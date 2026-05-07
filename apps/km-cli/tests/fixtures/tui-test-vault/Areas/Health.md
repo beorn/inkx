@@ -6,8 +6,8 @@ Personal health and wellness tracking.
 
 ### Weekly Targets
 
-- [ ] Run 3x per week 🔁 every week
-- [ ] Strength training 2x per week 🔁 every week
+- [ ] Run 3x per week recur:: "every week"
+- [ ] Strength training 2x per week recur:: "every week"
 - [/] Track calories daily
 - [-] Yoga classes (gym closed)
 
@@ -21,8 +21,8 @@ Personal health and wellness tracking.
 
 ## Appointments
 
-- [ ] Annual physical exam 📅 2025-02-15 priority:: P1
-- [ ] Dentist checkup 📅 2025-01-25
+- [ ] Annual physical exam due:: 2025-02-15 priority:: P1
+- [ ] Dentist checkup due:: 2025-01-25
 - [x] Eye exam (got new glasses!)
 - [!] Dermatologist referral (waiting for insurance approval)
 

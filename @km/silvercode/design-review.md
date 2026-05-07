@@ -104,3 +104,4 @@ Mouse-wheel to scroll. NotificationEventRow rows are click-to-expand.
 - Close this bead with a one-paragraph retrospective: what reads right, what doesn't, where the next iteration goes
 
 Bead is intentionally not auto-implementable — the work is design judgment, not code generation.
+

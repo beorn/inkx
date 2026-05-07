@@ -12,11 +12,11 @@ import { ThemeProvider } from "silvery"
 
 ## Props
 
-| Prop       | Type          | Default      | Description                                 |
-|------------|---------------|--------------|---------------------------------------------|
-| `theme`    | `Theme`       | **required** | Sterling Theme to provide                    |
-| `children` | `ReactNode`   | **required** | Descendants                                  |
-| `colorLevel` | `"truecolor" \| "256" \| "basic" \| "mono"` | auto-detect | Override the tier for this subtree |
+| Prop       | Type                                      | Default     | Description                        |
+| ---------- | ----------------------------------------- | ----------- | ---------------------------------- |
+| theme      | Theme                                     | required    | Sterling Theme to provide          |
+| children   | ReactNode                                 | required    | Descendants                        |
+| colorLevel | "truecolor" \| "256" \| "basic" \| "mono" | auto-detect | Override the tier for this subtree |
 
 Note: `run({ theme })` internally wraps your root in `<ThemeProvider theme={...}>`, so most apps never render it directly.
 
@@ -54,6 +54,7 @@ Nested `<ThemeProvider>`s compose. Innermost wins.
 ```
 
 Uses:
+
 - Theme pickers
 - Per-pane / per-tab theming
 - Multi-tenant branding
@@ -128,3 +129,4 @@ Returns the default Theme when no `<ThemeProvider>` is in scope.
 - [`Box`](./Box) — layout container with `theme` prop.
 
 <!-- TODO: verify after 0.19.0 ships — confirm `colorLevel` prop lands here vs only on `run()`, confirm adapter import path. -->
+

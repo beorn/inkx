@@ -76,13 +76,13 @@ For each file, produce one of these verdicts:
 ## Deliverables
 
 1. A gap analysis doc at docs/review/silvery-gap-analysis.md with:
-  - Table of every @km/tui file + verdict
-  - Migration order (by effort and impact)
-  - Estimated total LOC deletable
-  - List of new silvery primitives km needs (to file as @km/silvery.* feature beads)
-2. Concrete follow-up beads:
-  - One bead per DUPLICATE verdict with migration plan
-  - One @km/silvery.* bead per SILVERY GAP verdict
+- Table of every @km/tui file + verdict
+- Migration order (by effort and impact)
+- Estimated total LOC deletable
+- List of new silvery primitives km needs (to file as @km/silvery.* feature beads)
+7. Concrete follow-up beads:
+- One bead per DUPLICATE verdict with migration plan
+- One @km/silvery.* bead per SILVERY GAP verdict
 
 ## How to run
 

@@ -51,6 +51,7 @@ Two layers, both opt-in by default (don't fire extra HTTP per call):
 Hits each provider's quota/balance endpoint and prints a unified table:
 
 ## \`\`\`
+
 Provider         Balance / Used     Rate Limit         Last Used
 
 OpenAI           \$300 / \$700/mo    50K TPM, 500 RPM   2026-04-27 07:43
@@ -83,15 +84,15 @@ Always emit when the response carries \`x-ratelimit-*\` headers; gate on a confi
 
 ## Provider mapping
 
-| Provider      | Balance/spend                                                                                   | Rate-limit headers                                              | Notes                                            |
-| ------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
-| OpenAI        | `GET /v1/organization/usage/completions` (Admin key) or `GET /dashboard/billing/usage` (legacy) | `x-ratelimit-{requests,tokens}-{remaining,limit,reset}`         | Highest-leverage — implement first               |
-| OpenRouter    | `GET /api/v1/auth/key` returns `{ data: { limit_remaining, ... } }`                             | `x-ratelimit-*`                                                 | Has credits balance                              |
-| Anthropic     | No quota endpoint                                                                               | `anthropic-ratelimit-{requests,tokens}-{remaining,limit,reset}` | Headers only                                     |
-| Google Gemini | No public quota API                                                                             | None standardized                                               | Skip or query Google Cloud quotas (out of scope) |
-| xAI           | No public quota API                                                                             | TBD — investigate                                               |                                                  |
-| Perplexity    | TBD                                                                                             | TBD                                                             |                                                  |
-| Ollama        | Local                                                                                           | None                                                            | Skip — infinite                                  |
+| Provider      | Balance/spend                                                                               | Rate-limit headers                                            | Notes                                            |
+| ------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
+| OpenAI        | GET /v1/organization/usage/completions (Admin key) or GET /dashboard/billing/usage (legacy) | x-ratelimit-{requests,tokens}-{remaining,limit,reset}         | Highest-leverage — implement first               |
+| OpenRouter    | GET /api/v1/auth/key returns { data: { limit_remaining, ... } }                             | x-ratelimit-*                                                 | Has credits balance                              |
+| Anthropic     | No quota endpoint                                                                           | anthropic-ratelimit-{requests,tokens}-{remaining,limit,reset} | Headers only                                     |
+| Google Gemini | No public quota API                                                                         | None standardized                                             | Skip or query Google Cloud quotas (out of scope) |
+| xAI           | No public quota API                                                                         | TBD — investigate                                             |                                                  |
+| Perplexity    | TBD                                                                                         | TBD                                                           |                                                  |
+| Ollama        | Local                                                                                       | None                                                          | Skip — infinite                                  |
 
 ## Implementation hints
 

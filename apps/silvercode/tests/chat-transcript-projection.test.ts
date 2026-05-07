@@ -170,6 +170,68 @@ describe("projectChatTranscript", () => {
     expect(visibleChatLeaves(tree, channels(false))).toEqual([])
   })
 
+  test("ignores late message parts that arrive after a forced message completion", () => {
+    const sessionId = id<ChatSessionId>("session-1")
+    const messageId = id<ChatMessageId>("acp-turn-1")
+    const firstPartId = id<ChatMessagePartId>("part-1")
+    const latePartId = id<ChatMessagePartId>("part-late")
+    const firstEventId = id<ChatEventId>("text-delta:1")
+    const lateEventId = id<ChatEventId>("text-delta:late")
+    const tree = projectChatTranscript({
+      sessionId,
+      events: [
+        {
+          id: id<ChatEventId>("message-start"),
+          type: "message.started",
+          channel: "transcript",
+          ts: 1,
+          sessionId,
+          payload: { messageId, role: "assistant" },
+          rawRefs: [],
+        },
+        {
+          id: firstEventId,
+          type: "message.part.added",
+          channel: "transcript",
+          ts: 2,
+          sessionId,
+          payload: {
+            messageId,
+            partId: firstPartId,
+            part: { id: firstPartId, type: "text", text: "first chunk", eventIds: [firstEventId] },
+          },
+          rawRefs: [],
+        },
+        {
+          id: id<ChatEventId>("message-complete"),
+          type: "message.completed",
+          channel: "transcript",
+          ts: 3,
+          sessionId,
+          payload: { messageId },
+          rawRefs: [],
+        },
+        {
+          id: lateEventId,
+          type: "message.part.added",
+          channel: "transcript",
+          ts: 4,
+          sessionId,
+          payload: {
+            messageId,
+            partId: latePartId,
+            part: { id: latePartId, type: "text", text: "late chunk", eventIds: [lateEventId] },
+          },
+          rawRefs: [],
+        },
+      ],
+    })
+
+    const leaves = visibleChatLeaves(tree, channels(true))
+    expect(leaves.map((leaf) => leaf.props)).toContainEqual({ text: "first chunk" })
+    expect(leaves.map((leaf) => leaf.props)).not.toContainEqual({ text: "late chunk" })
+  })
+
   test("throws if an unknown ChatEventType reaches projection", () => {
     const sessionId = id<ChatSessionId>("session-1")
     const bad = {

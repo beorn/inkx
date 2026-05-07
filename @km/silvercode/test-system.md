@@ -169,3 +169,4 @@ Use termless tape executor. Store expected snapshots in `apps/silvercode/tests/s
 - Use `termless` for Layer 4.
 - Controller already has `spawnFactory` hook — reuse.
 - Agent harness tests at `apps/silvercode/packages/agent-harness/tests/` — good reference for fake patterns.
+

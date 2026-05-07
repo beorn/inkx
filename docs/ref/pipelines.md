@@ -135,14 +135,14 @@ const parsedFiles = await collect(parseFiles(sources, parsePool))
 
 ## Benefits
 
-| Benefit          | Description                                           |
-| ---------------- | ----------------------------------------------------- |
-| **DRY**          | Single implementation for parse → apply → resolve     |
-| **Testable**     | Each stage testable in isolation with mock generators |
-| **Composable**   | Mix and match stages for different use cases          |
-| **Observable**   | Easy to add progress/logging at any stage             |
-| **Backpressure** | Natural flow control via async iteration              |
-| **Cancellable**  | AbortSignal propagates through pipeline               |
+| Benefit      | Description                                           |
+| ------------ | ----------------------------------------------------- |
+| DRY          | Single implementation for parse → apply → resolve     |
+| Testable     | Each stage testable in isolation with mock generators |
+| Composable   | Mix and match stages for different use cases          |
+| Observable   | Easy to add progress/logging at any stage             |
+| Backpressure | Natural flow control via async iteration              |
+| Cancellable  | AbortSignal propagates through pipeline               |
 
 ## Testing Pipeline Stages
 
@@ -203,3 +203,4 @@ See [principles.md](../principles.md) Part 2: Composable Flows for the architect
 - [principles.md](../principles.md) — Async generator pipelines principle
 - [architecture.md](../architecture.md) — Data flow through layers
 - [storage.md](../design/model/storage.md) — SQLite schema and sync details
+

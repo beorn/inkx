@@ -2,7 +2,7 @@
 
 _Status: finalized. Bead: km-5kh9r. Implementation: km-silvery.api-impl._
 
-> **Deprecated (2026-03-16).** Original monolithic API design document (8 Sips). Content has been extracted into focused era2/ docs: [02-signals.md](../era2/02-signals.md) (Sips 1-3, signals, createModel), [05-app.md](../era2/05-app.md) (Sips 4-8, app composition, providers, migration), and [decisions.md](../era2/decisions.md) (decision log + design history).
+> Deprecated (2026-03-16). Original monolithic API design document (8 Sips). Content has been extracted into focused era2/ docs: 02-signals.md (Sips 1-3, signals, createModel), 05-app.md (Sips 4-8, app composition, providers, migration), and decisions.md (decision log + design history).
 
 ## The Problem
 
@@ -227,32 +227,25 @@ const testChat = useChat.create({
 ## Principles
 
 1. **Signals are the state primitive.** Silvery's native state cell is `signal<T>()`. Fine-grained O(1) reactivity — only subscribers of the specific signal that changed are notified. This is the right granularity for large trees (1000+ nodes), sparse updates, and terminal UIs with tight render budgets. Not Zustand stores (O(n) selector fanout), not proxies (too implicit), not bare useState (no sharing).
-
 2. **createModel wraps factories → typed hooks.** A model is a factory function returning signals + methods. `createModel()` wraps it into a Zustand-like callable hook with signal-aware selectors. The factory IS the definition; `createModel` IS the binding. No separate model interface, no Provider ceremony.
-
 3. **Selectors auto-unwrap signals.** In components, `useChat(m => m.phase)` returns `Phase`, not `Signal<Phase>`. The selector runs in a tracking scope that records signal dependencies and subscribes only to those. Signal details are hidden at the view boundary; visible everywhere else (tests, plugins, model code).
-
 4. **Plain objects for data, plugins for behavior.** Providers and models are plain typed objects composed via factory functions and `Pick`. Behavioral plugins (`with*`) handle cross-cutting concerns (undo, tracing, keybindings) by wrapping `apply()`. Data composition is explicit; behavioral composition is layered on top.
-
 5. **React-native.** Your hooks, your state, your components work. Silvery adds terminal capabilities, not a new programming model.
-
 6. **Native JS composition.** Plain objects, spread, function composition, async iterables. No framework-specific interfaces where JS already has the concept.
-
 7. **Types are inferred, not declared.** Provider types come from factory return types. Model types come from what the factory returns. `createModel` infers the hook type from the factory. Dependency types use `Pick<typeof providers, ...>`. No manual interface declarations needed.
-
 8. **The Silvery Way is opt-in.** The shiny path (typed providers, models, commands, behavioral plugins) is always visible but never forced. Progressive disclosure: Sip 1 is just React, Sip 3 adds `createModel`.
 
 ### State access: two surfaces, same signals
 
 The **primary** way to read state depends on context. Signals are the ground truth; selectors are read sugar:
 
-| Context                  | Access                             | Notes                                                |
-| ------------------------ | ---------------------------------- | ---------------------------------------------------- |
-| **React components**     | `useChat(m => m.exchanges.length)` | Signal-aware selector — auto-unwraps, O(1) subscribe |
-| **Model code / plugins** | `useChat.get().exchanges.value`    | Direct signal read — typed, reactive                 |
-| **AI agents / commands** | `useChat.get().submit({ text })`   | Direct method call — typed                           |
-| **External (CLI/MCP)**   | `useChat.snapshot()` → JSON        | Serialized snapshot for remote consumers             |
-| **Tests**                | `chat.exchanges.value`             | Isolated instance via `.create()` — no framework     |
+| Context              | Access                           | Notes                                                |
+| -------------------- | -------------------------------- | ---------------------------------------------------- |
+| React components     | useChat(m => m.exchanges.length) | Signal-aware selector — auto-unwraps, O(1) subscribe |
+| Model code / plugins | useChat.get().exchanges.value    | Direct signal read — typed, reactive                 |
+| AI agents / commands | useChat.get().submit({ text })   | Direct method call — typed                           |
+| External (CLI/MCP)   | useChat.snapshot() → JSON        | Serialized snapshot for remote consumers             |
+| Tests                | chat.exchanges.value             | Isolated instance via .create() — no framework       |
 
 ## Architecture
 
@@ -456,10 +449,10 @@ The `yield` in a content generator signals "cooperate / flush / expose intermedi
 
 This replaces the current `useTea` pattern of `streamPhase` / `revealFraction` / `setInterval` ticks with a model where the update function itself produces content progressively. The state machine that was 200+ lines of tick/advance/reveal logic in the AI chat demo becomes a 15-line async generator.
 
-| Mechanism                       | JS Primitive                  | Yields                   | Natural for                          |
-| ------------------------------- | ----------------------------- | ------------------------ | ------------------------------------ |
-| `async/await`                   | Promise (single future value) | Control (to the runtime) | "Do this I/O, give me the result"    |
-| `function*` / `async function*` | Iterator (sequence of values) | Content (to the view)    | "Stream these chunks as they arrive" |
+| Mechanism                   | JS Primitive                  | Yields                   | Natural for                          |
+| --------------------------- | ----------------------------- | ------------------------ | ------------------------------------ |
+| async/await                 | Promise (single future value) | Control (to the runtime) | "Do this I/O, give me the result"    |
+| function* / async function* | Iterator (sequence of values) | Content (to the view)    | "Stream these chunks as they arrive" |
 
 ### Built-in timer effects
 
@@ -794,7 +787,6 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()` — any schema library works. Zod is the ergonomic choice (signal defaults via `z.number().default(() => cursor.value)`), not a dependency.
 17. **Structured concurrency via scope tree.** See [06-scopes.md](../era2/06-scopes.md).
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
-
 19. **`run()` owns lifecycle.** Creates root scope, applies `withTerminal()` by default, returns awaitable handle. `run(app, fn)` for automation/testing.
 20. **Async/await for updates, generators for content.** `async` yields control (effects/I/O); `async function*` yields content (streaming chunks). Replaces `useTea`'s `streamPhase`/timer-tick pattern.
 21. **Providers are plain objects via `createProviders()`.** Single source of truth for I/O types. Models depend via `Pick<typeof providers, "key">`.
@@ -815,31 +807,31 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 
 ## What Changes
 
-| Current                                              | New                                                           | Why                                   |
-| ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
-| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string          | 4 → 1                                 |
-| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 → 1                                 |
-| `createSlice(init, handlers)` + `createEffects(...)` | `createModel(() => { signals + methods })` → typed hook       | 2 → one wrapper                       |
-| `useApp(selector)`                                   | `useChat(m => m.phase)` — per-model typed selector hook       | O(1) subscribe, no Provider           |
-| `tea()`, `createStore()`                             | Removed                                                       | Internal, no longer needed            |
-| Providers (DI with scoped contract)                  | `createProviders({...})` — plain frozen object                | Types inferred, deps via `Pick`       |
-| Runtime = monolith (event loop + I/O + effects)      | Providers (I/O) + behavioral plugins (tracing, recording)     | Data composition + behavioral plugins |
-| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields           | Behavioral composition, not just data |
-| Handle = the control surface                         | Model IS the control surface, external code calls it directly | No separate Handle shape              |
+| Current                                          | New                                                           | Why                                   |
+| ------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------- |
+| render() / renderSync() / renderStatic()         | render(el, config?) — one function, returns string            | 4 → 1                                 |
+| run(element) + createApp(config).run(element)    | run(app) or run(el, config?)                                  | 2 → 1                                 |
+| createSlice(init, handlers) + createEffects(...) | createModel(() => { signals + methods }) → typed hook         | 2 → one wrapper                       |
+| useApp(selector)                                 | useChat(m => m.phase) — per-model typed selector hook         | O(1) subscribe, no Provider           |
+| tea(), createStore()                             | Removed                                                       | Internal, no longer needed            |
+| Providers (DI with scoped contract)              | createProviders({...}) — plain frozen object                  | Types inferred, deps via Pick         |
+| Runtime = monolith (event loop + I/O + effects)  | Providers (I/O) + behavioral plugins (tracing, recording)     | Data composition + behavioral plugins |
+| Plugins add fields via spread only               | Plugins wrap apply() (SlateJS-style) + add fields             | Behavioral composition, not just data |
+| Handle = the control surface                     | Model IS the control surface, external code calls it directly | No separate Handle shape              |
 
 ## Current State & Migration Path
 
 ### Migration from `useTea`
 
-| `useTea` pattern                             | Factory function equivalent                   |
-| -------------------------------------------- | --------------------------------------------- |
-| `type Msg = { type: "start" } \| ...`        | Named methods on the model factory            |
-| `function update(s, msg) { switch... }`      | `start() {}, tick() {}` (methods on object)   |
-| `const [state, send] = useTea(init, update)` | `const useChat = createModel(() => { ... })`  |
-| `send({ type: "start" })`                    | `useChat.get().submit()` (direct method call) |
-| `[state, [fx.delay(...)]]` return            | `async start(s) { await scope.sleep(...) }`   |
-| `streamPhase` / `revealFraction` / timers    | `async *respond(s) { yield }` (generator)     |
-| `collect([state, effects])` on return value  | `await collect(() => state.chat.respond())`   |
+| useTea pattern                             | Factory function equivalent                 |
+| ------------------------------------------ | ------------------------------------------- |
+| type Msg = { type: "start" } \| ...        | Named methods on the model factory          |
+| function update(s, msg) { switch... }      | start() {}, tick() {} (methods on object)   |
+| const [state, send] = useTea(init, update) | const useChat = createModel(() => { ... })  |
+| send({ type: "start" })                    | useChat.get().submit() (direct method call) |
+| [state, [fx.delay(...)]] return            | async start(s) { await scope.sleep(...) }   |
+| streamPhase / revealFraction / timers      | async *respond(s) { yield } (generator)     |
+| collect([state, effects]) on return value  | await collect(() => state.chat.respond())   |
 
 The `collect()` helper survives unchanged. Timer effects migrate from `fx.delay`/`fx.interval` to scope methods (`scope.sleep`, `scope.timeout`). Only the wiring layer changes.
 
@@ -873,3 +865,4 @@ Read before proposing changes — many alternatives were explored and rejected.
 ---
 
 _See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [06-scopes.md](../era2/06-scopes.md) (effects, scoping, concurrency, observability), [03-commands.md](../era2/03-commands.md) (command tree, auto-derived surfaces), [05-app.md](../era2/05-app.md) (plugin composition, `op()` ergonomics), [04-input.md](../era2/04-input.md) (keymaps, sources, dispatch), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._
+

@@ -100,14 +100,14 @@ type Stage = (event: Event) => Event | null | void
 
 ## Config object fields
 
-| Field    | Type                 | Scope config                    | Output descriptor                |
-| -------- | -------------------- | ------------------------------- | -------------------------------- |
-| `level`  | `LogLevel`           | min level for scope             | min level for this output        |
-| `ns`     | `string \| string[]` | namespace filter (DEBUG syntax) | namespace filter for this output |
-| `format` | `LogFormat`          | default format for outputs      | format for this output           |
-| `spans`  | `boolean`            | enable/disable span output      | —                                |
-| `file`   | `string`             | —                               | creates file sink                |
-| `otel`   | `OtelConfig`         | —                               | creates OTEL sink (Phase 4)      |
+| Field  | Type               | Scope config                    | Output descriptor                |
+| ------ | ------------------ | ------------------------------- | -------------------------------- |
+| level  | LogLevel           | min level for scope             | min level for this output        |
+| ns     | string \| string[] | namespace filter (DEBUG syntax) | namespace filter for this output |
+| format | LogFormat          | default format for outputs      | format for this output           |
+| spans  | boolean            | enable/disable span output      | —                                |
+| file   | string             | —                               | creates file sink                |
+| otel   | OtelConfig         | —                               | creates OTEL sink (Phase 4)      |
 
 `format` is a compile-time output option, not a runtime stage.
 
@@ -214,14 +214,14 @@ authLog.info?.("login attempted", { user: "alice" })
 
 When `createLogger("name")` is called with no config array:
 
-| Variable     | Effect                                                  |
-| ------------ | ------------------------------------------------------- |
-| `LOG_LEVEL`  | minimum level (default: `info`)                         |
-| `DEBUG`      | namespace filter (DEBUG package syntax)                 |
-| `LOG_FORMAT` | `console` or `json` (default: auto-detect)              |
-| `NODE_ENV`   | `production` → JSON format                              |
-| `NO_COLOR`   | disable ANSI colors                                     |
-| `TRACE`      | `1`, `true`, or namespace prefixes — enable span output |
+| Variable   | Effect                                              |
+| ---------- | --------------------------------------------------- |
+| LOG_LEVEL  | minimum level (default: info)                       |
+| DEBUG      | namespace filter (DEBUG package syntax)             |
+| LOG_FORMAT | console or json (default: auto-detect)              |
+| NODE_ENV   | production → JSON format                            |
+| NO_COLOR   | disable ANSI colors                                 |
+| TRACE      | 1, true, or namespace prefixes — enable span output |
 
 ## Logger composition
 
@@ -267,16 +267,16 @@ const log = createLogger("myapp", { service: "api" })
 
 ## Migration from v1
 
-| v1 (global setter)          | v2 (config array)                                    |
-| --------------------------- | ---------------------------------------------------- |
-| `setLogLevel("debug")`      | `createLogger("x", [{ level: "debug" }, console])`   |
-| `setDebugFilter(["myapp"])` | `createLogger("x", [{ ns: "myapp" }, console])`      |
-| `setLogFormat("json")`      | `createLogger("x", [{ format: "json" }, console])`   |
-| `enableSpans()`             | `TRACE=1` env var (unchanged)                        |
-| `addWriter(w)`              | `createLogger("x", [console, w])`                    |
-| `createFileWriter(path)`    | `createLogger("x", [{ file: path }])`                |
-| `setSuppressConsole(true)`  | `createLogger("x", [{ file: path }])` (omit console) |
-| `setOutputMode("stderr")`   | pass `process.stderr` in config array                |
+| v1 (global setter)        | v2 (config array)                                  |
+| ------------------------- | -------------------------------------------------- |
+| setLogLevel("debug")      | createLogger("x", [{ level: "debug" }, console])   |
+| setDebugFilter(["myapp"]) | createLogger("x", [{ ns: "myapp" }, console])      |
+| setLogFormat("json")      | createLogger("x", [{ format: "json" }, console])   |
+| enableSpans()             | TRACE=1 env var (unchanged)                        |
+| addWriter(w)              | createLogger("x", [console, w])                    |
+| createFileWriter(path)    | createLogger("x", [{ file: path }])                |
+| setSuppressConsole(true)  | createLogger("x", [{ file: path }]) (omit console) |
+| setOutputMode("stderr")   | pass process.stderr in config array                |
 
 ## Decisions
 
@@ -322,3 +322,4 @@ const log = createLogger("myapp", { service: "api" })
 - File rotation (loggily/rotation)
 - Metrics in default compose
 - Systematic update of ALL loggily docs (README, guide, API reference, VitePress)
+

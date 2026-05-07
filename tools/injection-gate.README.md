@@ -67,3 +67,4 @@ can reply "proceed — I do want that" to authorize.
 - Unset the hook in settings to disable globally.
 - Remove the manifest side-effect by not passing `sessionId` to
   `wrapInjectedContext` (but then you lose the gate's data).
+

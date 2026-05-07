@@ -12,6 +12,7 @@ Background prior-art survey for `km-silvercode.recall-trigger-upgrade` — repla
 - Emits ONE digest event per probe with first 2 hits inline + tail count
 
 Failure modes observed in dogfooding:
+
 - Probes fire on prompts that don't warrant recall (`yes`, `pls continue`)
 - Misses opportunities mid-turn when the agent mentions a known identifier (bead ID, file path, error)
 - Verbatim prompt is rarely the right query — `"what about that wrap regression"` should probe `wrap regression`, not the whole sentence
@@ -23,10 +24,12 @@ Failure modes observed in dogfooding:
 Two layers of memory:
 
 **Saved memories** — permanent facts (e.g., "user works at Acme", "prefers terse output").
+
 - **Trigger:** injected ONCE at session start in the `Model Set Context` block of the system prompt
 - **Capture:** auto-captured by an LLM during conversation when it judges the information "useful for future"; user-editable
 
 **Chat-history summary** — rolling summary of all past conversations.
+
 - Updated frequently as conversations progress
 - Injected at new chat start
 
@@ -64,11 +67,13 @@ Tool-call memory paradigm — agent autonomously manages its own memory:
 Hybrid implicit + explicit context:
 
 **Implicit:**
+
 - Local embedding index on the codebase (project-scoped)
 - Every prompt: similarity search runs in background, top-K snippets attached automatically
 - "Cursor estimates relevance" — black-box ranking
 
 **Explicit `@-mention`:**
+
 - `@Files`, `@Folders`, `@Code`, `@Docs`, `@PastChats` — user-directed context
 - Cursor 2.0 REMOVED `@Web`, `@Git`, `@LinterErrors`, `@RecentChanges` — replaced with agent-driven tool use (the agent calls `git diff`, reads linter, browses web on its own when needed)
 
@@ -90,12 +95,12 @@ Repository map approach (NOT retrieval):
 
 Three architectural strategies for "when to inject memory into the prompt":
 
-| Strategy             | Examples                | Pros                                                       | Cons                                                          |
-|----------------------|-------------------------|------------------------------------------------------------|---------------------------------------------------------------|
-| Always-on at start   | ChatGPT memory          | Simple, predictable; no per-turn cost                      | Stale across long sessions; forces summary loss               |
-| Tool-call on demand  | Letta, mem0             | Maximum relevance; agent reasons about need                | Requires agent to know the tool exists; round-trip cost       |
-| Implicit per-prompt  | Cursor (codebase RAG)   | Always available, no friction                              | Cost on every prompt; noise if relevance ranker is weak       |
-| Static index always  | Aider repo map          | No retrieval at all; model handles selection               | Token budget hog; doesn't scale to massive corpora            |
+| Strategy            | Examples              | Pros                                         | Cons                                                    |
+| ------------------- | --------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| Always-on at start  | ChatGPT memory        | Simple, predictable; no per-turn cost        | Stale across long sessions; forces summary loss         |
+| Tool-call on demand | Letta, mem0           | Maximum relevance; agent reasons about need  | Requires agent to know the tool exists; round-trip cost |
+| Implicit per-prompt | Cursor (codebase RAG) | Always available, no friction                | Cost on every prompt; noise if relevance ranker is weak |
+| Static index always | Aider repo map        | No retrieval at all; model handles selection | Token budget hog; doesn't scale to massive corpora      |
 
 ## Implications for silvercode
 
@@ -112,13 +117,13 @@ Move the trigger from time-based to **salience-based with per-token dedupe**:
 
 1. **Watch the user prompt + the agent's last completion.**
 2. **Extract salient candidates** via pure regex (no LLM):
-   - kebab-case identifiers with ≥2 hyphens (`km-silvercode.X`, `feedback-trace-v3`)
-   - file paths (`apps/silvercode/src/ambient-adapters/recall.ts`)
-   - error strings (`TypeError: …`, `Error: …`)
-   - quoted phrases (`"the wrap bug"`)
-3. **Per-token dedupe with 5-minute TTL.** Same token within window stays silent; fresh tokens fire immediately.
-4. **Cap at 1 probe per turn.** Pick the rarest / most-namelike candidate.
-5. **Probe ON the candidate, not the whole prompt.** `recall.search("wrap regression")` is much more useful than `recall.search("what about that wrap thing")`.
+- kebab-case identifiers with ≥2 hyphens (`km-silvercode.X`, `feedback-trace-v3`)
+- file paths (`apps/silvercode/src/ambient-adapters/recall.ts`)
+- error strings (`TypeError: …`, `Error: …`)
+- quoted phrases (`"the wrap bug"`)
+9. **Per-token dedupe with 5-minute TTL.** Same token within window stays silent; fresh tokens fire immediately.
+10. **Cap at 1 probe per turn.** Pick the rarest / most-namelike candidate.
+11. **Probe ON the candidate, not the whole prompt.** `recall.search("wrap regression")` is much more useful than `recall.search("what about that wrap thing")`.
 
 This is the **Cursor implicit-per-prompt model, gated by salience** — get the always-available property without the noise on banal prompts.
 
@@ -151,16 +156,16 @@ User raised this 2026-04-27 after seeing the regex-based proposal. We **already*
 
 ### Comparison: regex (Option A) vs hypothesis (Option B)
 
-| Dimension              | Option A (regex salience)        | Option B (cheap-LLM planner)                          |
-|------------------------|----------------------------------|-------------------------------------------------------|
-| Latency per probe      | ~600 ms (FTS only)               | ~6–9 s (planner + fanout + synth)                     |
-| Cost per probe         | $0                               | ~$0.01 (claude-haiku) or $0 (local oMLX/lmstudio)     |
-| Trigger coverage       | Only explicit identifiers        | Anything the LLM judges relevant                      |
-| Natural-language input | Misses "that wrap thing"         | Handles via planner LLM understanding                 |
-| False-positive risk    | Low (regex is deterministic)     | Higher (LLM can hallucinate query relevance)          |
-| Predictability         | High (you can read the regex)    | Lower (LLM-driven, harder to reason about)            |
-| Cost amortization      | N/A                              | Daily ~$0.20 at 5 probes/turn × 50 active turns/day   |
-| Local-only             | Yes                              | Only with self-hosted model                           |
+| Dimension              | Option A (regex salience)     | Option B (cheap-LLM planner)                        |
+| ---------------------- | ----------------------------- | --------------------------------------------------- |
+| Latency per probe      | ~600 ms (FTS only)            | ~6–9 s (planner + fanout + synth)                   |
+| Cost per probe         | $0                            | ~$0.01 (claude-haiku) or $0 (local oMLX/lmstudio)   |
+| Trigger coverage       | Only explicit identifiers     | Anything the LLM judges relevant                    |
+| Natural-language input | Misses "that wrap thing"      | Handles via planner LLM understanding               |
+| False-positive risk    | Low (regex is deterministic)  | Higher (LLM can hallucinate query relevance)        |
+| Predictability         | High (you can read the regex) | Lower (LLM-driven, harder to reason about)          |
+| Cost amortization      | N/A                           | Daily ~$0.20 at 5 probes/turn × 50 active turns/day |
+| Local-only             | Yes                           | Only with self-hosted model                         |
 
 ### Why Option B might win
 
@@ -180,6 +185,7 @@ User raised this 2026-04-27 after seeing the regex-based proposal. We **already*
 Use **Option A as the trigger** (cheap, deterministic, fast) but **Option B as the query expander** (when the trigger fires, run the planner-fanout-rerank-synth on the extracted candidate to find best hits across phrasings).
 
 This gives:
+
 - Cheap trigger (~50 ms regex)
 - Rich retrieval (~6 s planner + fanout + synth on the candidate)
 - Per-token dedupe (the candidate IS the dedupe key)
@@ -203,3 +209,4 @@ In effect: regex picks **WHEN** to recall, LLM picks **WHAT** to recall.
 ## Next step
 
 Pose this synthesis + the proposed silvercode hybrid to `/pro` for architectural critique. Output captured at `hub/silvercode/design/recall-trigger-pro-review.md`.
+

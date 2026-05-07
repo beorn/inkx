@@ -34,6 +34,7 @@ Five specific bugs compounded the problem:
 A `Map<string, string>` built once at repo load time, mapping lowercase node names to node IDs. `resolveByName()` does a single map lookup instead of 6 SQL queries. The index is built as a progress step during repo loading and invalidated on mutations. The implementation is roughly 20 lines in `packages/km-storage/src/db.ts` (`getNameIndex()`, `clearNameIndex()`).
 
 Key files:
+
 - `packages/km-storage/src/db-queries/smart-resolver.ts` -- `resolveNode()` and `resolveByName()`
 - `packages/km-storage/src/db.ts` -- name index lifecycle
 - `packages/km-storage/src/repo.ts` -- index management during repo load
@@ -106,29 +107,24 @@ Performance work spanned Feb 22-24, 2026. The commits tell the story:
 
 Current instrumentation for diagnosing performance issues:
 
-| Tool | Usage | What it shows |
-|------|-------|---------------|
-| Span timing | `TRACE=1 bun km view` | Per-operation timing (repo load, build state, key handling) |
-| Component timing | Built into TreeNode render | Per-card render time, hook overhead |
-| Event loop monitor | `useEventLoopMonitor()` | Main thread blocks above threshold |
-| silvery instrumentation | `SILVERY_INSTRUMENT=1` | Skip/render counts, pipeline phase timing |
-| silvery strict mode | `SILVERY_STRICT=1` | Incremental vs fresh render comparison |
-| React DevTools | `DEBUG_DEVTOOLS=1 bun km view` | Flame graph of component mount/update |
-| Debug logging | `DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log` | Detailed render pipeline trace |
-| Pipeline phase timing | `DEBUG=silvery:render` or `globalThis.__silvery_last_pipeline` | Per-phase breakdown (measure, layout, content, output) |
+| Tool                    | Usage                                                      | What it shows                                               |
+| ----------------------- | ---------------------------------------------------------- | ----------------------------------------------------------- |
+| Span timing             | TRACE=1 bun km view                                        | Per-operation timing (repo load, build state, key handling) |
+| Component timing        | Built into TreeNode render                                 | Per-card render time, hook overhead                         |
+| Event loop monitor      | useEventLoopMonitor()                                      | Main thread blocks above threshold                          |
+| silvery instrumentation | SILVERY_INSTRUMENT=1                                       | Skip/render counts, pipeline phase timing                   |
+| silvery strict mode     | SILVERY_STRICT=1                                           | Incremental vs fresh render comparison                      |
+| React DevTools          | DEBUG_DEVTOOLS=1 bun km view                               | Flame graph of component mount/update                       |
+| Debug logging           | DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log                 | Detailed render pipeline trace                              |
+| Pipeline phase timing   | DEBUG=silvery:render or globalThis.__silvery_last_pipeline | Per-phase breakdown (measure, layout, content, output)      |
 
 ## Key Lessons
 
 1. **Profile before fixing.** Five minutes of instrumentation beats four sessions of theorizing. The performance toolkit above exists for a reason -- use it at the start of any performance investigation.
-
 2. **Measure after fixing.** A fix without a benchmark is a hypothesis. The 40x speedup was verifiable: 6447ms to 159ms in the same test, same span timer. "It feels faster" is not evidence.
-
 3. **One session with instrumentation beats four sessions guessing.** Sessions 1-4 picked plausible theories and implemented them. Sessions 5-6 added instrumentation and found the actual problem. The instrumentation sessions were more productive than all previous sessions combined.
-
 4. **Simple caches beat complex rewrites.** A `Map<string, string>` built at load time eliminated the bottleneck. No worker threads, no architectural changes, no Suspense boundaries. The fix was 20 lines.
-
 5. **The hot path is usually in a different layer than you expect.** The problem presented as slow React rendering (UI freezes), but the root cause was SQL queries during render. When profiling, check all layers of the stack, not just the layer where symptoms appear.
-
 6. **Perceived performance can be worse than actual performance.** Progressive column reveal was intended to improve perceived performance. Profiling revealed it was the primary startup bottleneck: 6.4s at 39% CPU utilization. Rendering everything in one frame: 0.8s at 142% CPU. The lesson: progressive/staggered rendering that yields to the event loop can make things slower when per-chunk render time is long and idle time between chunks is significant.
-
 7. **Deep research is expensive per insight.** At $1.50 per query, deep research should be reserved for genuinely novel architectural questions, not diagnosis. "Why is my app slow?" is a profiling question, not a research question.
+

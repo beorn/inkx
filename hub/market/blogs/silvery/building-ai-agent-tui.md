@@ -1,6 +1,7 @@
 ---
-title: "Building an AI Coding Agent in the Terminal"
-description: "The hard parts of building a terminal-based AI agent — streaming, scrollback, tool calls, and input handling."
+title: Building an AI Coding Agent in the Terminal
+description: The hard parts of building a terminal-based AI agent — streaming,
+  scrollback, tool calls, and input handling.
 date: 2026-04-02
 ---
 
@@ -215,3 +216,4 @@ Three rules: don't block the event loop (chunk processing with `setTimeout` yiel
 **Copy-paste fidelity.** Copying a code block from an agent response includes box-drawing characters and indentation whitespace. The terminal has no concept of "this region is a code block."
 
 These are terminal-level constraints, not framework-level ones -- things to design around rather than problems to solve.
+

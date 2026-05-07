@@ -79,7 +79,7 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/infra/signal-handler-registry"
+        target: km-all.signal-handler-registry
       - type: link
         target: km-cli.init-prompt-corrupts-tui
       - type: link
@@ -98,6 +98,8 @@ props:
         target: km-tui.evaluate-probe-autoprobing
       - type: link
         target: km-tui.single-col-missing-top-borders
+      - type: link
+        target: "@km/infra/signal-handler-registry"
 ---
 
 # [x] Session 2026-04-22: explore km view broken after storage/fs-mount refactor @km/session #task #P1 @claude:019d032d

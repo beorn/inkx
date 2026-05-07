@@ -1,6 +1,6 @@
-> **SUPERSEDED (2026-04-20)**: This design was retired when tribe was simplified to reuse km primitives. See [`hub/km/design/tribe-matrix.md`](../../km/design/tribe-matrix.md) for the current design. Kept here as historical context.
-
 # tribe-minimal — canonical write protocol + journal authority
+
+> SUPERSEDED (2026-04-20): This design was retired when tribe was simplified to reuse km primitives. See hub/km/design/tribe-matrix.md for the current design. Kept here as historical context.
 
 **Status**: Design spec, revised 2026-04-19 after GPT 5.4 Pro deep review. Internal / WIP.
 **Bead**: km-tribe.minimal-protocol
@@ -27,6 +27,7 @@ The revision keeps the core insight — **journal is authority, daemon is thinne
 **The daemon is a journal writer + fanout multiplexer + small read/admin surface. Sessions, chief, and coordination state are reducer-backed materialized views over the journal, not in-memory mutable state. Plugins live in a separate observer host process. Lore stays in-process behind a narrow query bridge until its extraction gets a dedicated RFC.**
 
 This is still a significant simplification:
+
 - `register` vs `tribe.join` collapses to one `hello` lifecycle.
 - `tribe.send` vs `tribe.broadcast` collapses to one `post` write.
 - The `chiefClaim` mutable global becomes a reducer over join/leave/claim events.
@@ -34,6 +35,7 @@ This is still a significant simplification:
 - Plugins sit behind a real process boundary, not a TS interface.
 
 But it keeps:
+
 - A small read/admin surface (`members`, `chief`, `history`, `state`, `dedup.claim`) so clients don't reimplement projections.
 - Daemon as the sole writer to SQLite (WAL single-writer model).
 - Per-project daemon (no scope sprawl).
@@ -45,17 +47,17 @@ JSON-RPC over Unix socket (unchanged transport).
 
 ### Methods a participant may call
 
-| Method | Purpose | Reply |
-|--------|---------|-------|
-| `hello` | Join the tribe; single-shot per connection | snapshot + replay-base + daemon epoch |
-| `post` | Append to the journal; daemon fans out to subscribers | `{id, seq, ts}` |
-| `members` | Snapshot current participants | array of `{id, name, claims, joined_at_seq}` |
-| `chief` | Current chief id (derived) | `{id, name}` or `null` |
-| `history` | Read back journal slice with filters | paged `{rows, next_seq}` |
-| `state.get` / `state.set` | Typed coordination KV (replaces `coordination` table's current RPC usage) | value / ack |
-| `dedup.claim` | Atomic first-wins claim | `{claimed: bool}` |
-| `retro` / `debug` / `health` / `reload` | Admin surface preserved | typed results |
-| `lore.*` | Lore's existing query surface — untouched in this RFC | typed results |
+| Method                          | Purpose                                                                 | Reply                                      |
+| ------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| hello                           | Join the tribe; single-shot per connection                              | snapshot + replay-base + daemon epoch      |
+| post                            | Append to the journal; daemon fans out to subscribers                   | {id, seq, ts}                              |
+| members                         | Snapshot current participants                                           | array of {id, name, claims, joined_at_seq} |
+| chief                           | Current chief id (derived)                                              | {id, name} or null                         |
+| history                         | Read back journal slice with filters                                    | paged {rows, next_seq}                     |
+| state.get / state.set           | Typed coordination KV (replaces coordination table's current RPC usage) | value / ack                                |
+| dedup.claim                     | Atomic first-wins claim                                                 | {claimed: bool}                            |
+| retro / debug / health / reload | Admin surface preserved                                                 | typed results                              |
+| lore.*                          | Lore's existing query surface — untouched in this RFC                   | typed results                              |
 
 ### Notifications the daemon pushes
 
@@ -278,8 +280,6 @@ Keeping policy out of the daemon means the daemon stays journal + fanout. Coordi
 
 The km-tribe.delivery-correctness fix (no DELETE on disconnect) is what makes this work. An undelivered journal row stays in the journal until the recipient reconnects and fanout fills in `delivered_to_id`. The chief can see stragglers because they don't disappear.
 
-
-
 ### Why this is not the v1 formula
 
 v1 tried to make the id alone carry all continuity semantics — `sha256(claude_session_id || pid || role || project)`. Pro correctly pointed out that `pid` + `role` are not stable; including them churns ids for no benefit.
@@ -362,6 +362,7 @@ Lore extraction gets its own follow-up RFC if/when the cost of in-process coupli
 ## What survives, what changes
 
 ### Survives (untouched)
+
 - Per-project daemon, Unix socket, JSON-RPC transport.
 - `messages` table name and structure (plus the new `seq` column).
 - `_schema_meta` versioned migrations.
@@ -372,6 +373,7 @@ Lore extraction gets its own follow-up RFC if/when the cost of in-process coupli
 - All read/admin RPCs: `members`, `chief`, `history`, `state.get/set`, `retro`, `debug`, `health`, `reload`.
 
 ### Changes
+
 - `register` RPC → `hello` method. Same connection-level handshake, clearer response shape with snapshot + replayBase + daemonEpoch.
 - `tribe.send` + `tribe.broadcast` → `post` method with `to_ids`.
 - Directs are one row per recipient (good for indexing + unread), not comma-joined strings.
@@ -383,6 +385,7 @@ Lore extraction gets its own follow-up RFC if/when the cost of in-process coupli
 - Explicit `seq INTEGER` column on `messages`; durable cursors reference `seq`, not rowid.
 
 ### Dissolves
+
 - `TribePluginApi` / `TribeClientApi` / `plugin-loader.ts` — plugins use the wire, not a TS interface.
 - `role` column (migration v11 after observer host is live and the claims encoding is in).
 - `chiefClaim` mutable global — replaced by `_proj_chief.id` + a `post` with `type="chief.claim"` or `type="chief.release"`.
@@ -420,6 +423,7 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 ## Migration — 5 phases
 
 ### Phase 0 — data-model prep (no wire change)
+
 - Add `messages.seq INTEGER` column + unique index; backfill from `rowid`.
 - Add `messages.delivered_to_id TEXT NULL` column; backfill as NULL (or to_id for rows the session row shows were delivered).
 - Add `_proj_participants`, `_proj_chief`, `_proj_state`, `_proj_meta` tables (empty; unused yet).
@@ -431,6 +435,7 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 **Effort**: half day. Zero user-visible change. All existing tests must pass unchanged.
 
 ### Phase 1 — canonical write protocol
+
 - Add `hello` method. `register` calls into it as a shim.
 - Add `post` method. `tribe.send` / `tribe.broadcast` call into it as shims.
 - Directs write one row per recipient.
@@ -443,6 +448,7 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 **Effort**: 2-3 days. Worktree-isolated. Old clients keep working via shims.
 
 ### Phase 2 — materialized projections + read-side cleanup
+
 - Populate `_proj_*` tables on every relevant journal write.
 - Switch `members` / `chief` / `state.*` RPCs to read from projections.
 - Write a reducer replay routine for cold start + corruption recovery.
@@ -453,6 +459,7 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 **Effort**: 3-4 days. Delivery health is just the column + reply-shape addition; it needs no projection, timer, or reducer.
 
 ### Phase 3 — observer host process
+
 - Implement `tribe-observer.ts` as a daemon-spawned peer.
 - Migrate each plugin (git, beads, github, health, accountly) to the host.
 - Delete `plugin-api.ts`, `plugin-loader.ts`, in-process plugin registration.
@@ -462,12 +469,14 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 **Effort**: 2 days.
 
 ### Phase 4 — delete write-side legacy
+
 - Drop `register` / `tribe.send` / `tribe.broadcast` shims after a cycle of coexistence.
 - Delete dead code in `handlers.ts`.
 
 **Effort**: half day.
 
 ### Phase 5 — lore decision (separate mini-RFC)
+
 - Reassess whether lore extraction earns its cost.
 - If yes: design the sync-query replacement (probably `lore.*` stays as RPCs on the daemon, but the summarizer process extracts).
 - If no: close the bead.
@@ -475,6 +484,7 @@ On boot, the daemon writes a `daemon.boot {epoch}` event at the journal tip befo
 **Effort**: TBD after Phase 4. Likely 2-3 days if we proceed, zero if we don't.
 
 ### Separate RFC (not this spec)
+
 - km-tribe.scope-model (multi-scope / per-machine daemon). Revisit only after the above phases land and we have a concrete need for it.
 
 ## Effort estimate
@@ -486,3 +496,4 @@ Phase 0 alone (half a day) gets us an explicit durable seq + projection table sc
 ## Recommendation
 
 Proceed with Phase 0 immediately. It is low-risk, prep-only, and unblocks everything else. Revisit Phase 1 after Phase 0 is in, with the slow test suite green.
+

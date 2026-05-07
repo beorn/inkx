@@ -19,8 +19,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/storage/tree"
+    type: list
+    values:
+      - type: link
+        target: km-tree
+      - type: link
+        target: "@km/storage/tree"
 ---
 
 # [ ] Phase 5a: Refs — auto-updating position handles (NodeRef, PointRef, RangeRef) @km/tree #task #P4

@@ -24,6 +24,7 @@ timeout 3 bun hub/silvery/prototype/aichat-v2/app.tsx | head -30
 ```
 
 Expected: ANSI output showing:
+
 - "AI Chat" title
 - System intro message listing `@silvery/signals`, `@silvery/commands`, `@silvery/create`, `@silvery/scope`, `useModel()`
 - First scripted user message ("Fix the login bug in auth.ts — ...")
@@ -39,6 +40,7 @@ attached (Kitty keyboard protocol releases, focus events from window
 manager, real paste from clipboard):
 
 ### Keybindings
+
 - [ ] `Escape` → exits the app cleanly (no hung process, terminal restored)
 - [ ] `Ctrl+C` → exits the app cleanly
 - [ ] `Ctrl+D` (when draft is empty) → exits the app
@@ -50,6 +52,7 @@ manager, real paste from clipboard):
 - [ ] Empty draft + `Enter` → submits the AI-suggested placeholder instead
 
 ### React context wiring (fix from bead)
+
 - [ ] `useChat()` / `useChatModel()` hooks throw clearly if used outside
       `<ChatProvider>`. Test: temporarily wrap `<ChatView />` without the
       provider — expect:
@@ -58,6 +61,7 @@ manager, real paste from clipboard):
       updates live as signals change.
 
 ### Focus + terminal events
+
 - [ ] Click outside the terminal, then back → input border changes color
       (blur / focus OSC 1004 reporting working)
 - [ ] Resize the terminal horizontally → layout reflows; message text
@@ -65,6 +69,7 @@ manager, real paste from clipboard):
 - [ ] Resize vertically → ListView adjusts (scrollback preserved)
 
 ### Streaming / lifecycle
+
 - [ ] After first scripted message, the agent reply streams word-by-word
       (visible typing animation, not one-shot)
 - [ ] Tool-use messages render with dotted spinner → checkmark when done
@@ -74,6 +79,7 @@ manager, real paste from clipboard):
       the conversation without any typing
 
 ### Cleanup
+
 - [ ] After exit, terminal is restored (no leftover escape sequences, no
       cursor-hidden state, no alternate-screen artifacts)
 - [ ] No orphaned `setTimeout` handles — the process terminates cleanly
@@ -107,9 +113,11 @@ Even without interactive verification, the `timeout 3` run proves:
    through the reconciler.
 
 The `app.test.ts` + `apply-chain.test.ts` cover:
+
 - Chat model domain logic (17 tests)
 - Substrate apply-chain contract — Op / Effect / ApplyResult / BaseApp /
   with\*Chain plugins (15 tests)
 
 Together, they validate the TEA Phase 3 design goal: the substrate
 contract is sufficient for aichat-v2 before rolling out to km-tui.
+

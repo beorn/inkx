@@ -33,41 +33,41 @@ Append `(...)` after the glob to filter by node properties.
 
 #### Filesystem type
 
-| Char | Matches | fstype values |
-|------|---------|---------------|
-| `.` | files (md + non-md) | `file`, `mdfile` |
-| `/` | folders | `folder` |
+| Char | Matches             | fstype values |
+| ---- | ------------------- | ------------- |
+| .    | files (md + non-md) | file, mdfile  |
+| /    | folders             | folder        |
 
 No section qualifier — bare globs match everything including sections. Use `(.)` to get files only.
 
 #### Node type
 
-| Char | Matches |
-|------|---------|
-| `i` | outline items (headings) |
-| `l` | list items |
+| Char | Matches                  |
+| ---- | ------------------------ |
+| i    | outline items (headings) |
+| l    | list items               |
 
 #### Task
 
-| Char | Matches | Equivalent query |
-|------|---------|------------------|
-| `t` | any task (has task marker) | `task_marker IS NOT NULL` |
-| `p` | past due (overdue, not done) | `due:past -status:done` |
-| `w` | due this week (includes today, not done) | `due:week -status:done` |
-| `d` | has any due date | `due_at IS NOT NULL` |
-| `s` | started (start date passed, not done) | `start:past -status:done` |
-| `x` | done or dropped | `status:done,dropped` |
+| Char | Matches                                  | Equivalent query        |
+| ---- | ---------------------------------------- | ----------------------- |
+| t    | any task (has task marker)               | task_marker IS NOT NULL |
+| p    | past due (overdue, not done)             | due:past -status:done   |
+| w    | due this week (includes today, not done) | due:week -status:done   |
+| d    | has any due date                         | due_at IS NOT NULL      |
+| s    | started (start date passed, not done)    | start:past -status:done |
+| x    | done or dropped                          | status:done,dropped     |
 
 Task date qualifiers (`p`, `w`, `s`) implicitly exclude done/dropped tasks.
 
 #### Content type (reserved, not yet implemented)
 
-| Char | Will match |
-|------|-----------|
-| `n` | notes |
-| `c` | contacts |
-| `e` | calendar events |
-| `m` | messages/mail |
+| Char | Will match      |
+| ---- | --------------- |
+| n    | notes           |
+| c    | contacts        |
+| e    | calendar events |
+| m    | messages/mail   |
 
 ### Sigils — Use Path Patterns
 
@@ -88,6 +88,7 @@ For `@mentions`, `#tags`, and `+projects`, use path glob patterns instead of qua
 ```
 
 Two rules:
+
 1. All files in inbox (recursive)
 2. Tasks that are overdue, due this week, or started (anywhere)
 
@@ -101,37 +102,37 @@ km list ./inbox/**(.)         # files in inbox
 
 ### Common patterns
 
-| Pattern | Meaning |
-|---------|---------|
-| `./inbox/**(.)` | all files in inbox |
-| `**(t)` | all tasks |
-| `**(tpw)` | overdue or due this week |
-| `**(tpws)` | overdue, this week, or started |
-| `./archive/**(x)` | done tasks in archive |
-| `./**(i.)` | outline items that are files |
-| `./inbox/*(.)` | direct children of inbox, files only |
+| Pattern         | Meaning                              |
+| --------------- | ------------------------------------ |
+| ./inbox/**(.)   | all files in inbox                   |
+| **(t)           | all tasks                            |
+| **(tpw)         | overdue or due this week             |
+| **(tpws)        | overdue, this week, or started       |
+| ./archive/**(x) | done tasks in archive                |
+| ./**(i.)        | outline items that are files         |
+| ./inbox/*(.)    | direct children of inbox, files only |
 
 ## Keyboard Chord Correspondence
 
 The task qualifier letters match keyboard chords — same mnemonics everywhere:
 
-| Qualifier | Board chord | Action |
-|-----------|------------|--------|
-| `p` | `t p` | set/view past due |
-| `w` | `t w` | set/view this week |
-| `d` | `t d` | set/view due date |
-| `s` | `t s` | set/view started |
-| `x` | `t x` | view done |
+| Qualifier | Board chord | Action             |
+| --------- | ----------- | ------------------ |
+| p         | t p         | set/view past due  |
+| w         | t w         | set/view this week |
+| d         | t d         | set/view due date  |
+| s         | t s         | set/view started   |
+| x         | t x         | view done          |
 
 Additional chords (no glob equivalent):
 
-| Chord | Action |
-|-------|--------|
-| `t .` | cycle task status |
-| `t @` | set assignee |
-| `t -` | clear task marker |
-| `t 0-4` | set priority |
-| `v x` | toggle done/not-done view |
+| Chord | Action                    |
+| ----- | ------------------------- |
+| t .   | cycle task status         |
+| t @   | set assignee              |
+| t -   | clear task marker         |
+| t 0-4 | set priority              |
+| v x   | toggle done/not-done view |
 
 ## Implementation
 
@@ -150,3 +151,4 @@ parseTreeGlob("./inbox/**(.)")
 ```
 
 Consumers translate qualifiers to their context (SQL WHERE, filter functions, etc). The glob parser is pure — no database dependency.
+

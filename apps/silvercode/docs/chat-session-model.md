@@ -23,12 +23,6 @@ Source ids stay source-specific. Claude message/jsonl UUIDs are message provenan
 
 `MessageEntry` and `MessageOp` are current implementation names, not the target vocabulary for new transcript presentation. New work should migrate toward `ChatMessage`, `ChatMessagePart`, `ChatEvent`, `ChatNode`, `ChatElement`, `ChatLeaf`, and `ChatTree` in a dedicated rename phase before changing renderer behavior.
 
-## Blocks and Channels
-
-`ChatPane` is the session pane. `ChatBlock` is UI vocabulary for a rendered transcript block; it is not the canonical data model. In data, use `ChatNode`; nodes with children are `ChatElement`s, and renderable leaves are `ChatLeaf`s.
-
-Channels are filters and routing metadata on leaves, not grouping nodes in the tree. Notifications use the `notification` channel and `notification` leaf type. Debug records use the `debug` channel. Older background-context wording should be treated as notification-channel work unless a doc is describing old provider bytes verbatim.
-
 ## Silvercode Chat Turns
 
 `Chat.Turn.*` is UI vocabulary. A Silvercode chat turn is an idle-delimited presentation group, not one prompt plus one response.
@@ -36,6 +30,12 @@ Channels are filters and routing metadata on leaves, not grouping nodes in the t
 A turn can contain multiple prompts, assistant messages, tool/activity spans, plan updates, permission requests, notifications, and summary/stat blocks. Blocks inside a turn are peers ordered by stream time; the UI may place nearby activity after narration for readability, but that does not imply prompt ownership.
 
 Use `turnKey` only as a UI projection key. It is derived from canonical session-event ids and can change if projection rules change.
+
+## Blocks and Channels
+
+`ChatPane` is the session pane. `ChatBlock` is UI vocabulary for a rendered transcript block; it is not the canonical data model. In data, use `ChatNode`; nodes with children are `ChatElement`s, and renderable leaves are `ChatLeaf`s.
+
+Channels are filters and routing metadata on leaves, not grouping nodes in the tree. Notifications use the `notification` channel and `notification` leaf type. Debug records use the `debug` channel. Older background-context wording should be treated as notification-channel work unless a doc is describing old provider bytes verbatim.
 
 ## Plans
 

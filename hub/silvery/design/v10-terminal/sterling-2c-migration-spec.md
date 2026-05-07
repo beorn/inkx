@@ -20,25 +20,27 @@ Earlier planning estimates said "~145 sites" — that was half the real number. 
 
 **High-frequency** (migrate with care, many call sites):
 
-| Current | Refs | Form |
-|---|---|---|
-| `$muted` | 56 | single-word $-token |
-| `$fg` | 40 | single-word $-token |
-| `$selection` | 34 | single-word $-token |
-| `$error` | 34 | single-word $-token |
-| `$primary` | 26 | single-word $-token |
-| `$selection-bg` | 23 | kebab $-token (half-migrated) |
-| `$warning` | 17 | single-word $-token |
-| `$success` | 16 | single-word $-token |
-| `$focusborder` | 14 | legacy camelCase $-token |
-| `$disabled-fg` | 14 | kebab $-token (half-migrated) |
-| `$link` | 12 | single-word $-token |
-| `$cursor` | 12 | single-word $-token |
+| Current       | Refs | Form                          |
+| ------------- | ---- | ----------------------------- |
+| $muted        | 56   | single-word $-token           |
+| $fg           | 40   | single-word $-token           |
+| $selection    | 34   | single-word $-token           |
+| $error        | 34   | single-word $-token           |
+| $primary      | 26   | single-word $-token           |
+| $selection-bg | 23   | kebab $-token (half-migrated) |
+| $warning      | 17   | single-word $-token           |
+| $success      | 16   | single-word $-token           |
+| $focusborder  | 14   | legacy camelCase $-token      |
+| $disabled-fg  | 14   | kebab $-token (half-migrated) |
+| $link         | 12   | single-word $-token           |
+| $cursor       | 12   | single-word $-token           |
 
 **Low-frequency** (easy wins):
+
 - `$popover-bg` (8), `$border` (7), `$surface-bg` (4), `$cursor-bg` (4), `$inputborder` (2), `$warning-fg` (1), `$inverse-bg` (1), `$inverse` (1), `$info` (1), `$accent-fg` (1), `$accent` (1)
 
 **theme.X field access** (33 refs, mostly in `theme.ts`):
+
 - `theme.bg` (9), `theme.primary` (7), `theme.focusborder` (3), remainder 1-2 each
 
 ---
@@ -82,15 +84,15 @@ theme.success              → theme["fg-success"]
 
 These tokens need per-site judgment because the semantic context determines the target:
 
-| Current | Possible targets | Judgment needed |
-|---|---|---|
-| `$primary` (26) | `$fg-accent` (link-like text) OR `$bg-accent` (button fill) | Check surrounding component role |
-| `$muted` (56) | `$fg-muted` (dim text) OR `$bg-surface-subtle` (panel fill) | Usually `$fg-muted` for text-color props, `$bg-surface-subtle` for bg props |
-| `$fg` (40) | `$fg-default` (plain text) — should just stay as `theme.fg` if Sterling keeps a `default` role | **BLOCKED ON 2a** — does Sterling expose `$fg-default` or keep `$fg` as a shortcut? |
-| `$selection` | `$fg-on-selected` vs `$fg-selected` | Context: is this text ON a selected bg (→ `fg-on-selected`), or accent color for selection highlight (→ `fg-selected`)? |
-| `$error` (34) | `$fg-error` (text color) — all current uses likely text | Audit: confirm none are used as a bg fill |
-| `$warning`, `$success`, `$info`, `$link`, `$cursor` | same as `$error` — likely all fg use | Same audit |
-| `$inverse`, `$inverse-bg` | Sterling may drop inverse entirely (use accent.bg + accent.fgOn) | **BLOCKED ON 2a** — inverse not in current Sterling spec |
+| Current                                   | Possible targets                                                                         | Judgment needed                                                                                                     |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| $primary (26)                             | $fg-accent (link-like text) OR $bg-accent (button fill)                                  | Check surrounding component role                                                                                    |
+| $muted (56)                               | $fg-muted (dim text) OR $bg-surface-subtle (panel fill)                                  | Usually $fg-muted for text-color props, $bg-surface-subtle for bg props                                             |
+| $fg (40)                                  | $fg-default (plain text) — should just stay as theme.fg if Sterling keeps a default role | BLOCKED ON 2a — does Sterling expose $fg-default or keep $fg as a shortcut?                                         |
+| $selection                                | $fg-on-selected vs $fg-selected                                                          | Context: is this text ON a selected bg (→ fg-on-selected), or accent color for selection highlight (→ fg-selected)? |
+| $error (34)                               | $fg-error (text color) — all current uses likely text                                    | Audit: confirm none are used as a bg fill                                                                           |
+| $warning, $success, $info, $link, $cursor | same as $error — likely all fg use                                                       | Same audit                                                                                                          |
+| $inverse, $inverse-bg                     | Sterling may drop inverse entirely (use accent.bg + accent.fgOn)                         | BLOCKED ON 2a — inverse not in current Sterling spec                                                                |
 
 ### Open questions for 2a to resolve
 
@@ -255,14 +257,14 @@ Resolves: km-silvery.sterling-2c-km-migration
 
 ## Risk register
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| 2a locks `$fg` ≠ `$fg-default` (shortcut form), invalidating 40 refs' planned target | High | Pause 2c, re-read 2a's decision, update substitution map. Don't proceed on assumption. |
-| `$muted` is ambiguous between fg-text and bg-surface uses | High | Judgment-required agent reads context; if >5 sites wrong, hold for manual review |
-| Test snapshots hardcode hex values that change with Sterling's new derivation | Medium | Accept snapshot changes if they match the new canonical hex; investigate if unexpected |
-| `theme.ts` local Theme alias in km-tui conflicts with Sterling's Theme | Medium | Step 1 specifically resolves this before any $-token edits |
-| batch-refactor over-matches (e.g., `$error` substring appears inside `$error-fg` already-kebab tokens) | Medium | Use `\b` word boundaries in patterns; dry-run each command and inspect diff before apply |
-| Documentation / comments / file names reference old tokens | High | Step 5 sweep finds them; fix in the same commit as Step 4 |
+| Risk                                                                                               | Likelihood | Mitigation                                                                             |
+| -------------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| 2a locks $fg ≠ $fg-default (shortcut form), invalidating 40 refs' planned target                   | High       | Pause 2c, re-read 2a's decision, update substitution map. Don't proceed on assumption. |
+| $muted is ambiguous between fg-text and bg-surface uses                                            | High       | Judgment-required agent reads context; if >5 sites wrong, hold for manual review       |
+| Test snapshots hardcode hex values that change with Sterling's new derivation                      | Medium     | Accept snapshot changes if they match the new canonical hex; investigate if unexpected |
+| theme.ts local Theme alias in km-tui conflicts with Sterling's Theme                               | Medium     | Step 1 specifically resolves this before any $-token edits                             |
+| batch-refactor over-matches (e.g., $error substring appears inside $error-fg already-kebab tokens) | Medium     | Use \b word boundaries in patterns; dry-run each command and inspect diff before apply |
+| Documentation / comments / file names reference old tokens                                         | High       | Step 5 sweep finds them; fix in the same commit as Step 4                              |
 
 ---
 
@@ -282,3 +284,4 @@ Resolves: km-silvery.sterling-2c-km-migration
 - NOT executable yet — it's the spec 2c executes against, once 2a ships
 
 Measured 2026-04-19 from `main` at commit `2f66d7a65`. Re-measure blast radius when 2c starts to catch any drift.
+

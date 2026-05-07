@@ -15,7 +15,7 @@ List items can have block ids too:
 - Second item with an id ^second-item
 - Third item
 
-> Blockquote lines can be ID'd at the end. ^quote-ref
+> Blockquote lines can be ID'd at the end.
 
 Paragraph references back: see [[self#^intro-para]] and [[other#^heading-ref]].
 
@@ -33,3 +33,4 @@ Embeds in a list:
 
 - ![[Daily/2026-01-14]]
 - ![[Projects/km^current-status]]
+

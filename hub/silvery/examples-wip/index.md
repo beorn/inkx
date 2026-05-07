@@ -43,82 +43,82 @@ examples/
 Simple, self-contained demos using `run()` + React hooks. No store, no TEA.
 Best starting point for new users.
 
-| Example      | File                          | Description                                  |
-| ------------ | ----------------------------- | -------------------------------------------- |
-| Hello        | `components/hello.tsx`        | Simplest app — styled text, exit on keypress |
-| Counter      | `components/counter.tsx`      | Interactive counter with useState + useInput |
-| Text Input   | `components/text-input.tsx`   | Single-line text entry with readline         |
-| Select List  | `components/select-list.tsx`  | Keyboard-navigable single-select list        |
-| Spinner      | `components/spinner.tsx`      | Four animated loading spinner styles         |
-| Progress Bar | `components/progress-bar.tsx` | Determinate and indeterminate progress       |
-| Virtual List | `components/virtual-list.tsx` | Efficient scrollable list with 200 items     |
+| Example      | File                        | Description                                  |
+| ------------ | --------------------------- | -------------------------------------------- |
+| Hello        | components/hello.tsx        | Simplest app — styled text, exit on keypress |
+| Counter      | components/counter.tsx      | Interactive counter with useState + useInput |
+| Text Input   | components/text-input.tsx   | Single-line text entry with readline         |
+| Select List  | components/select-list.tsx  | Keyboard-navigable single-select list        |
+| Spinner      | components/spinner.tsx      | Four animated loading spinner styles         |
+| Progress Bar | components/progress-bar.tsx | Determinate and indeterminate progress       |
+| Virtual List | components/virtual-list.tsx | Efficient scrollable list with 200 items     |
 
 ## Apps
 
 Full interactive applications demonstrating real-world patterns.
 
-| Example         | File                     | Description                                    |
-| --------------- | ------------------------ | ---------------------------------------------- |
-| AI Coding Agent | `apps/aichat/`           | Coding agent with streaming, tool calls        |
-| Todo App        | `apps/app-todo.tsx`      | Layer 3: `createApp()` with Zustand store      |
-| Async Data      | `apps/async-data.tsx`    | Suspense boundaries with `use()` hook          |
-| CLI Wizard      | `apps/cli-wizard.tsx`    | Multi-step scaffolding wizard                  |
-| Clipboard       | `apps/clipboard.tsx`     | OSC 52 clipboard copy/paste across sessions    |
-| Components      | `apps/components.tsx`    | 30+ component gallery with tabs                |
-| Data Explorer   | `apps/data-explorer.tsx` | Searchable, scrollable process table           |
-| Dev Tools       | `apps/dev-tools.tsx`     | Live log viewer with ListView                  |
-| Explorer        | `apps/explorer.tsx`      | Tabbed log viewer + process explorer           |
-| Gallery         | `apps/gallery.tsx`       | Images, pixel art, and truecolor rendering     |
-| Kanban          | `apps/kanban.tsx`        | Multi-column kanban with card movement         |
-| Layout Ref      | `apps/layout-ref.tsx`    | `forwardRef` + `onLayout` callbacks            |
-| Outline         | `apps/outline.tsx`       | Outline vs border side-by-side comparison      |
-| Panes           | `apps/panes/`            | Split-pane layout with coding agent            |
-| Paste Demo      | `apps/paste-demo.tsx`    | Bracketed paste mode — paste as single event   |
-| Scroll          | `apps/scroll.tsx`        | Basic scrollable list                          |
-| Search Filter   | `apps/search-filter.tsx` | React concurrent features (`useDeferredValue`) |
-| Task List       | `apps/task-list.tsx`     | ListView with variable-height items            |
-| Terminal        | `apps/terminal.tsx`      | Keyboard, mouse, clipboard, focus kitchensink  |
-| TextArea        | `apps/textarea.tsx`      | Multi-line text input component                |
-| Theme           | `apps/theme.tsx`         | Theme explorer with live palette preview       |
-| Transform       | `apps/transform.tsx`     | Text post-processing with Transform component  |
-| Virtual 10K     | `apps/virtual-10k.tsx`   | ListView with 10,000 items                     |
+| Example         | File                   | Description                                   |
+| --------------- | ---------------------- | --------------------------------------------- |
+| AI Coding Agent | apps/aichat/           | Coding agent with streaming, tool calls       |
+| Todo App        | apps/app-todo.tsx      | Layer 3: createApp() with Zustand store       |
+| Async Data      | apps/async-data.tsx    | Suspense boundaries with use() hook           |
+| CLI Wizard      | apps/cli-wizard.tsx    | Multi-step scaffolding wizard                 |
+| Clipboard       | apps/clipboard.tsx     | OSC 52 clipboard copy/paste across sessions   |
+| Components      | apps/components.tsx    | 30+ component gallery with tabs               |
+| Data Explorer   | apps/data-explorer.tsx | Searchable, scrollable process table          |
+| Dev Tools       | apps/dev-tools.tsx     | Live log viewer with ListView                 |
+| Explorer        | apps/explorer.tsx      | Tabbed log viewer + process explorer          |
+| Gallery         | apps/gallery.tsx       | Images, pixel art, and truecolor rendering    |
+| Kanban          | apps/kanban.tsx        | Multi-column kanban with card movement        |
+| Layout Ref      | apps/layout-ref.tsx    | forwardRef + onLayout callbacks               |
+| Outline         | apps/outline.tsx       | Outline vs border side-by-side comparison     |
+| Panes           | apps/panes/            | Split-pane layout with coding agent           |
+| Paste Demo      | apps/paste-demo.tsx    | Bracketed paste mode — paste as single event  |
+| Scroll          | apps/scroll.tsx        | Basic scrollable list                         |
+| Search Filter   | apps/search-filter.tsx | React concurrent features (useDeferredValue)  |
+| Task List       | apps/task-list.tsx     | ListView with variable-height items           |
+| Terminal        | apps/terminal.tsx      | Keyboard, mouse, clipboard, focus kitchensink |
+| TextArea        | apps/textarea.tsx      | Multi-line text input component               |
+| Theme           | apps/theme.tsx         | Theme explorer with live palette preview      |
+| Transform       | apps/transform.tsx     | Text post-processing with Transform component |
+| Virtual 10K     | apps/virtual-10k.tsx   | ListView with 10,000 items                    |
 
 ## Layout
 
-| Example     | File                     | Description                                   |
-| ----------- | ------------------------ | --------------------------------------------- |
-| Dashboard   | `layout/dashboard.tsx`   | Multi-pane dashboard with keyboard navigation |
-| Live Resize | `layout/live-resize.tsx` | Responsive columns via `useBoxRect()`         |
-| Overflow    | `layout/overflow.tsx`    | `overflow="hidden"` content clipping          |
+| Example     | File                   | Description                                   |
+| ----------- | ---------------------- | --------------------------------------------- |
+| Dashboard   | layout/dashboard.tsx   | Multi-pane dashboard with keyboard navigation |
+| Live Resize | layout/live-resize.tsx | Responsive columns via useBoxRect()           |
+| Overflow    | layout/overflow.tsx    | overflow="hidden" content clipping            |
 
 ## Kitty Protocol
 
-| Example         | File                        | Description                                      |
-| --------------- | --------------------------- | ------------------------------------------------ |
-| Image Viewer    | `kitty/images.tsx`          | Raw Kitty graphics protocol image display        |
-| Image Component | `kitty/image-component.tsx` | Declarative `<Image>` with protocol auto-detect  |
-| Key Events      | `kitty/keys.tsx`            | Interactive key chord tester with Kitty protocol |
-| Input           | `kitty/input.tsx`           | Kitty keyboard input demonstration               |
-| Canvas          | `kitty/canvas.tsx`          | Canvas rendering via Kitty graphics              |
-| Paint           | `kitty/paint.tsx`           | Terminal paint app using Kitty graphics          |
+| Example         | File                      | Description                                      |
+| --------------- | ------------------------- | ------------------------------------------------ |
+| Image Viewer    | kitty/images.tsx          | Raw Kitty graphics protocol image display        |
+| Image Component | kitty/image-component.tsx | Declarative <Image> with protocol auto-detect    |
+| Key Events      | kitty/keys.tsx            | Interactive key chord tester with Kitty protocol |
+| Input           | kitty/input.tsx           | Kitty keyboard input demonstration               |
+| Canvas          | kitty/canvas.tsx          | Canvas rendering via Kitty graphics              |
+| Paint           | kitty/paint.tsx           | Terminal paint app using Kitty graphics          |
 
 ## Runtime
 
-| Example         | File                          | Description                                      |
-| --------------- | ----------------------------- | ------------------------------------------------ |
-| Elm Counter     | `runtime/elm-counter.tsx`     | Layer 1: `createRuntime()` with Elm architecture |
-| Hello Runtime   | `runtime/hello-runtime.tsx`   | Layer 1: minimal static render                   |
-| Run Counter     | `runtime/run-counter.tsx`     | Layer 2: `run()` with React hooks                |
-| Runtime Counter | `runtime/runtime-counter.tsx` | Layer 1: `createRuntime()` with event loop       |
+| Example         | File                        | Description                                    |
+| --------------- | --------------------------- | ---------------------------------------------- |
+| Elm Counter     | runtime/elm-counter.tsx     | Layer 1: createRuntime() with Elm architecture |
+| Hello Runtime   | runtime/hello-runtime.tsx   | Layer 1: minimal static render                 |
+| Run Counter     | runtime/run-counter.tsx     | Layer 2: run() with React hooks                |
+| Runtime Counter | runtime/runtime-counter.tsx | Layer 1: createRuntime() with event loop       |
 
 ## Inline
 
-| Example         | File                         | Description                     |
-| --------------- | ---------------------------- | ------------------------------- |
-| Inline Simple   | `inline/inline-simple.tsx`   | Basic inline rendering          |
-| Inline Progress | `inline/inline-progress.tsx` | Inline progress bar             |
-| Inline Non-TTY  | `inline/inline-nontty.tsx`   | Inline output for piped/non-TTY |
-| Scrollback      | `inline/scrollback.tsx`      | REPL with ListView cache        |
+| Example         | File                       | Description                     |
+| --------------- | -------------------------- | ------------------------------- |
+| Inline Simple   | inline/inline-simple.tsx   | Basic inline rendering          |
+| Inline Progress | inline/inline-progress.tsx | Inline progress bar             |
+| Inline Non-TTY  | inline/inline-nontty.tsx   | Inline output for piped/non-TTY |
+| Scrollback      | inline/scrollback.tsx      | REPL with ListView cache        |
 
 ## Creating New Examples
 
@@ -130,3 +130,4 @@ Full interactive applications demonstrating real-world patterns.
 
 **Component examples** go in `components/` — use `run()` + hooks, keep them short (30-60 lines).
 **App examples** go in `apps/` — use `render()`/`createApp()`/`pipe()` for richer patterns.
+

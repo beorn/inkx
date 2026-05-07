@@ -72,21 +72,22 @@ Public app shape stays clean.
 
 1. Create features/selection.ts in ag-term (or wherever placements land after Pro review discussion)
 
-  NOTE: Phase 2.5 moved input-router to @silvery/create. Does SelectionFeature also belong in create?
+NOTE: Phase 2.5 moved input-router to @silvery/create. Does SelectionFeature also belong in create?
 
-  Arguments for create: with-dom-events (its consumer) lives there; it is runtime composition, not terminal rendering.
+Arguments for create: with-dom-events (its consumer) lives there; it is runtime composition, not terminal rendering.
   Arguments for ag-term: it uses TerminalBuffer for overlay rendering (via selection-renderer.ts).
 
-  Decision: keep SelectionFeature in ag-term, in a new features/ subfolder. Rationale: the feature wraps backend-specific behavior (buffer extraction, overlay rendering). ag-canvas would have its own features/selection.ts. This preserves multi-backend architecture.
+Decision: keep SelectionFeature in ag-term, in a new features/ subfolder. Rationale: the feature wraps backend-specific behavior (buffer extraction, overlay rendering). ag-canvas would have its own features/selection.ts. This preserves multi-backend architecture.
 2. Extend withDomEvents (in @silvery/create):
-  - Create SelectionFeature instance
-  - Register as capability via router from Phase 2.5
-  - Extend processMouseEvent: mousedown runs selectionHitTest + finds contain scope; mousemove while dragging extends machine; mouseup finalizes and calls clipboard capability if present
-  - Alt+drag override
-  - Selection state changes call router.invalidate() to trigger render
-3. Register selection overlay renderer with router (priority 100) so output phase repaints the overlay.
-4. OSC 52 clipboard capability is registered by withTerminal (not withDomEvents — withTerminal is backend-specific). The clipboard capability exposes a copy(text) method. withDomEvents looks it up via router on mouseup.
-5. 7 integration tests including the critical invalidation test.
+
+- Create SelectionFeature instance
+- Register as capability via router from Phase 2.5
+- Extend processMouseEvent: mousedown runs selectionHitTest + finds contain scope; mousemove while dragging extends machine; mouseup finalizes and calls clipboard capability if present
+- Alt+drag override
+- Selection state changes call router.invalidate() to trigger render
+8. Register selection overlay renderer with router (priority 100) so output phase repaints the overlay.
+9. OSC 52 clipboard capability is registered by withTerminal (not withDomEvents — withTerminal is backend-specific). The clipboard capability exposes a copy(text) method. withDomEvents looks it up via router on mouseup.
+10. 7 integration tests including the critical invalidation test.
 
 ## Files
 

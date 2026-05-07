@@ -184,13 +184,13 @@ Rules:
 - prompt/assistant turn association
 - conclusion detection
 - stats extraction
-20. Render existing transcript through `Chat.Turn.*` without changing behavior.
-21. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
-22. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
-23. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
-24. Move metadata and notification rows to `Chat.Metadata` and `Chat.Notification`.
-25. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
-26. Leave `Content.*` as the layout layer only.
+28. Render existing transcript through `Chat.Turn.*` without changing behavior.
+29. Change dense-turn behavior so collapsed summary may aggregate, while expanded details preserve narration/activity order.
+30. Move user prompt bubble rendering into `Chat.Turn.Prompt`.
+31. Move `TurnActivitySummary` behavior into `Chat.Turn.Activity` / `Chat.Turn.ToolGroup`.
+32. Move metadata and notification rows to `Chat.Metadata` and `Chat.Notification`.
+33. Wrap `SessionPromptComposer` as `Chat.Composer` or rename it when safe.
+34. Leave `Content.*` as the layout layer only.
 
 ## Acceptance Criteria
 
@@ -285,3 +285,4 @@ Final verification in this worktree:
 
 - [[@km/silvercode/chat-layout-quality-plateau]]
 - [[@km/silvercode/runtime-error-tracking-plateau]]
+

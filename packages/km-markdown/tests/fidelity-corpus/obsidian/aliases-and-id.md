@@ -5,9 +5,6 @@ aliases:
   - A longer alias with spaces
   - Alias-with-hyphens
 title: Canonical Title
-tags:
-  - reference
-  - fixture
 ---
 
 # Canonical Title
@@ -31,3 +28,4 @@ Inbound links expected:
 ## Wikilinks out
 
 This note links to [[Canonical Other|other]] and [[Canonical Third]].
+

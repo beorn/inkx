@@ -79,15 +79,15 @@ The `processMouseEvent()` function already tracks hover state via `mouseenter`/`
 
 Components should set sensible defaults without requiring explicit props:
 
-| Component        | Default cursor        |
-| ---------------- | --------------------- |
-| TextInput        | `text`                |
-| TextArea         | `text`                |
-| Button           | `pointer`             |
-| Link             | `pointer`             |
-| Toggle           | `pointer`             |
-| SelectList items | `pointer`             |
-| Everything else  | `default` (inherited) |
+| Component        | Default cursor      |
+| ---------------- | ------------------- |
+| TextInput        | text                |
+| TextArea         | text                |
+| Button           | pointer             |
+| Link             | pointer             |
+| Toggle           | pointer             |
+| SelectList items | pointer             |
+| Everything else  | default (inherited) |
 
 This can be implemented by having these components set `cursor` on their root Box, which the hit-test cursor resolution would pick up automatically.
 
@@ -121,18 +121,15 @@ This can be implemented by having these components set `cursor` on their root Bo
 ## Key Challenges
 
 1. **Terminal detection**: Not all terminals support OSC 22. Emitting it to unsupported terminals is harmless (ignored), but we should consider adding it to `TerminalCaps` for apps that want to know. This is non-blocking — emit unconditionally since terminals ignore unknown OSC.
-
 2. **Performance**: `mousemove` events can fire very rapidly (every cell the cursor crosses). The cursor resolution must be fast (walk ancestor path, check props — should be O(depth) which is typically <10 nodes).
-
 3. **stdout access**: The mouse processor currently doesn't have direct access to stdout. It returns events and lets the app handle them. For cursor changes, we have options:
-   - Add a `write` callback to `MouseEventProcessorOptions`
-   - Return the cursor change as a side-channel from `processMouseEvent()`
-   - Handle it in the runtime event loop where stdout is available
-
-4. **Cursor inheritance**: Like CSS, `cursor` should cascade from parent to child. The hit-test already walks ancestors, so the first `cursor` prop found wins. `cursor="default"` can be used to reset inheritance.
-
-5. **Cleanup on exit**: Terminal lifecycle (`terminal-lifecycle.ts`) already handles cleanup (alternate screen, cursor visibility, etc.). Add `resetMouseCursor()` to the cleanup sequence.
+- Add a `write` callback to `MouseEventProcessorOptions`
+- Return the cursor change as a side-channel from `processMouseEvent()`
+- Handle it in the runtime event loop where stdout is available
+10. **Cursor inheritance**: Like CSS, `cursor` should cascade from parent to child. The hit-test already walks ancestors, so the first `cursor` prop found wins. `cursor="default"` can be used to reset inheritance.
+11. **Cleanup on exit**: Terminal lifecycle (`terminal-lifecycle.ts`) already handles cleanup (alternate screen, cursor visibility, etc.). Add `resetMouseCursor()` to the cleanup sequence.
 
 ## Effort Estimate
 
 Small-to-medium. Phase 1 is trivial (2 functions). Phase 2 is a one-line BoxProps addition. Phase 3 is the main work (mouse processor changes + stdout plumbing). Phase 4 is mechanical. Total: ~100-150 lines of implementation code plus tests.
+

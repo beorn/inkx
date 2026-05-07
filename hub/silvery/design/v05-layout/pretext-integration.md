@@ -48,7 +48,7 @@ No Flexily engine changes needed. The MeasureFunc is the seam.
 
 ## TextLayoutService
 
-> **Note:** This is a design doc. The shipped API in `flexily/src/text-layout.ts` is the source of truth and may differ slightly from the interfaces below.
+> Note: This is a design doc. The shipped API in flexily/src/text-layout.ts is the source of truth and may differ slightly from the interfaces below.
 
 Pluggable abstraction — the rendering target selects the backend automatically:
 
@@ -140,7 +140,7 @@ This supports multiple styles in one paragraph (inline formatting, syntax highli
 | Backend                   | Used by                         | How it works                                               |
 | ------------------------- | ------------------------------- | ---------------------------------------------------------- |
 | PretextMeasurer           | Canvas, SVG, PDF, image, remote | Wraps @chenglou/pretext prepare/layout                     |
-| MonospaceMeasurer         | Terminal                        | charCount \* charWidth, always 1 line                      |
+| MonospaceMeasurer         | Terminal                        | charCount * charWidth, always 1 line                       |
 | DeterministicTestMeasurer | Tests, CI                       | Fixed grapheme width table (Latin 0.8, CJK 1.0, emoji 1.8) |
 | Browser native            | DOM standalone                  | No silvery measurement — browser CSS handles text          |
 
@@ -175,26 +175,26 @@ ag-dom-pos renders positioned DOM elements — so how is it different from just 
 
 **What ag-dom-pos gives you over react-dom:**
 
-| Advantage                      | Why                                                                                                  |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Flexily layout                 | Deterministic flexbox, identical on terminal/canvas/export. No CSS browser quirks.                   |
-| Shrinkwrap                     | Tightest text width preserving line count. CSS `fit-content` can't do this.                          |
-| Content-aware intrinsic sizing | Pretext gives exact min/max-content before rendering. CSS needs DOM measurement round-trips.         |
-| Variable-width text routing    | Text flowing around objects. CSS `shape-outside` is limited; Pretext `layoutNextLine` is general.    |
-| Same components on terminal    | Same `<Box>`, `<Text>`, `<SelectList>` also work in terminal and canvas. react-dom components don't. |
-| Deterministic testing          | `createTestMeasurer()` gives reproducible layout in CI without a browser.                            |
-| Export parity                  | Same layout engine drives PDF/SVG/image export. react-dom layouts don't export.                      |
+| Advantage                      | Why                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Flexily layout                 | Deterministic flexbox, identical on terminal/canvas/export. No CSS browser quirks.             |
+| Shrinkwrap                     | Tightest text width preserving line count. CSS fit-content can't do this.                      |
+| Content-aware intrinsic sizing | Pretext gives exact min/max-content before rendering. CSS needs DOM measurement round-trips.   |
+| Variable-width text routing    | Text flowing around objects. CSS shape-outside is limited; Pretext layoutNextLine is general.  |
+| Same components on terminal    | Same <Box>, <Text>, <SelectList> also work in terminal and canvas. react-dom components don't. |
+| Deterministic testing          | createTestMeasurer() gives reproducible layout in CI without a browser.                        |
+| Export parity                  | Same layout engine drives PDF/SVG/image export. react-dom layouts don't export.                |
 
 **What react-dom gives you over ag-dom-pos:**
 
-| Advantage                | Why                                                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Entire web ecosystem     | CSS libraries, animations, media queries, CSS Grid, scroll snap, `:hover`, `@container` queries...                        |
-| Browser text layout      | Line breaking, hyphenation, `text-align: justify`, `writing-mode: vertical`, font fallback cascading — decades of polish. |
-| No double layout         | Browser does layout. ag-dom-pos computes layout in Flexily THEN positions DOM elements.                                   |
-| CSS cascade/inheritance  | Themes, media queries, `:focus-visible` — all native.                                                                     |
-| Third-party integrations | Analytics, A/B testing, browser extensions, translation tools.                                                            |
-| Developer familiarity    | Everyone knows CSS.                                                                                                       |
+| Advantage                | Why                                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Entire web ecosystem     | CSS libraries, animations, media queries, CSS Grid, scroll snap, :hover, @container queries...                        |
+| Browser text layout      | Line breaking, hyphenation, text-align: justify, writing-mode: vertical, font fallback cascading — decades of polish. |
+| No double layout         | Browser does layout. ag-dom-pos computes layout in Flexily THEN positions DOM elements.                               |
+| CSS cascade/inheritance  | Themes, media queries, :focus-visible — all native.                                                                   |
+| Third-party integrations | Analytics, A/B testing, browser extensions, translation tools.                                                        |
+| Developer familiarity    | Everyone knows CSS.                                                                                                   |
 
 **When to use which:**
 
@@ -281,7 +281,7 @@ Enables: text wrapping around floated images/avatars, hanging indents, magazine-
 
 | Alternative             | Why not                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------- |
-| Raw `ctx.measureText()` | Too primitive — no caching, no line breaking, no intrinsic sizes                        |
+| Raw ctx.measureText()   | Too primitive — no caching, no line breaking, no intrinsic sizes                        |
 | Browser DOM measurement | Causes reflow, not deterministic, breaks headless/export story                          |
 | WASM text engines       | Bridge overhead per MeasureFunc call, distribution friction, overkill for current stage |
 | Yoga for text           | WASM→JS bridge per call is expensive; Flexily+Pretext is pure JS, zero overhead         |
@@ -296,3 +296,4 @@ Flexily + Pretext is the fastest possible integration — both pure JS, plain fu
 - Pretext API: prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine
 - License: MIT
 - Bead: km-silvery.engine, km-silvery.engine.text
+

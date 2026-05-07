@@ -117,16 +117,16 @@ These are all known-hard problems; OpenACP shipped them in 6 weeks. That's the c
 
 ## Where OpenACP stops (the silvercode opportunity space)
 
-| Layer | OpenACP does | OpenACP doesn't |
-|-------|--------------|------------------|
-| **Editor surface** | None — chat-platform first | TUI/IDE/silvercode-shaped UI is wide open |
-| **Tenancy** | Self-hosted, single-user, single-machine | Multi-tenant cloud gateway is wide open |
-| **Federation** | None | Matrix / federated rooms / cross-org agent rooms — wide open |
-| **Coordination across sessions** | None — sessions are independent | Shared memory / shared todos / shared decisions across agents and sessions — wide open (venture #13/#14) |
-| **Workspace as room** | Sessions are 1:1 with chat threads, not workspace structures | km-style "node = room" — open |
-| **Per-session memory** | History store as markdown, injected at switch | LLM-backed long-term memory, retrieval, summarization — open |
-| **Schema / event vocabulary** | Internal types only | Public event spec (our `agentroom-event-spec.md`) — open |
-| **Cross-protocol bridges** | ACP ↔ Telegram/Discord/Slack | ACP ↔ Matrix / Email / Web / agent-to-agent — open |
+| Layer                        | OpenACP does                                                 | OpenACP doesn't                                                                                          |
+| ---------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Editor surface               | None — chat-platform first                                   | TUI/IDE/silvercode-shaped UI is wide open                                                                |
+| Tenancy                      | Self-hosted, single-user, single-machine                     | Multi-tenant cloud gateway is wide open                                                                  |
+| Federation                   | None                                                         | Matrix / federated rooms / cross-org agent rooms — wide open                                             |
+| Coordination across sessions | None — sessions are independent                              | Shared memory / shared todos / shared decisions across agents and sessions — wide open (venture #13/#14) |
+| Workspace as room            | Sessions are 1:1 with chat threads, not workspace structures | km-style "node = room" — open                                                                            |
+| Per-session memory           | History store as markdown, injected at switch                | LLM-backed long-term memory, retrieval, summarization — open                                             |
+| Schema / event vocabulary    | Internal types only                                          | Public event spec (our agentroom-event-spec.md) — open                                                   |
+| Cross-protocol bridges       | ACP ↔ Telegram/Discord/Slack                                 | ACP ↔ Matrix / Email / Web / agent-to-agent — open                                                       |
 
 **Bottom line**: the gateway pattern is validated; the gateway *product* in our wedge (multi-tenant + editor-first + workspace-shared + federation-friendly + coordination-rich) is still empty. OpenACP raises the bar on "what a chat-bridge looks like" but does not occupy any of our target territories.
 
@@ -158,3 +158,4 @@ These are all known-hard problems; OpenACP shipped them in 6 weeks. That's the c
 - [agent-protocols-landscape.md](agent-protocols-landscape.md) — ACP vs A2A vs MCP vs IBM-ACP framing
 - [agentroom-event-spec.md](agentroom-event-spec.md) — proposed public event vocabulary (where OpenACP's internal types could plug in)
 - [hub/ventures/acp-proxy-2026-04-27.md](../../../ventures/acp-proxy-2026-04-27.md) — the worked-example venture analysis
+

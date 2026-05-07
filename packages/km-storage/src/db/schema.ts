@@ -1293,7 +1293,8 @@ export function migrateData(db: import("bun:sqlite").Database): DataMigrateResul
   if (current === 3 && DATA_VERSION === 4) {
     db.run("BEGIN IMMEDIATE")
     try {
-      db.run(`
+      db.run(
+        `
         UPDATE nodes
         SET data = json_remove(data, '$.mentions', '$.projects', '$.tags',
                                       '$._allMentions', '$._allProjects'),
@@ -1304,7 +1305,9 @@ export function migrateData(db: import("bun:sqlite").Database): DataMigrateResul
             OR json_extract(data, '$.tags') IS NOT NULL
             OR json_extract(data, '$._allMentions') IS NOT NULL
             OR json_extract(data, '$._allProjects') IS NOT NULL)
-      `, [Date.now()])
+      `,
+        [Date.now()],
+      )
       // Cleanup: nodes whose `data` collapsed to `{}` after the strip
       // get NULL'd to save space and match fresh-parse output shape.
       db.run("UPDATE nodes SET data = NULL WHERE data = '{}'")

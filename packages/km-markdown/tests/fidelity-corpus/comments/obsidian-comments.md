@@ -23,3 +23,4 @@ Wrapping text before a block comment.
 %% block-style comment with no surrounding content %%
 
 Wrapping text after.
+

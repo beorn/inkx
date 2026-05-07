@@ -31,13 +31,13 @@ All errors should return:
 
 Common error codes:
 
-| Code               | HTTP Status | Description              |
-| ------------------ | ----------- | ------------------------ |
-| `VALIDATION_ERROR` | 400         | Invalid input            |
-| `UNAUTHORIZED`     | 401         | Missing/invalid auth     |
-| `FORBIDDEN`        | 403         | Insufficient permissions |
-| `NOT_FOUND`        | 404         | Resource not found       |
-| `RATE_LIMITED`     | 429         | Too many requests        |
+| Code             | HTTP Status | Description              |
+| ---------------- | ----------- | ------------------------ |
+| VALIDATION_ERROR | 400         | Invalid input            |
+| UNAUTHORIZED     | 401         | Missing/invalid auth     |
+| FORBIDDEN        | 403         | Insufficient permissions |
+| NOT_FOUND        | 404         | Resource not found       |
+| RATE_LIMITED     | 429         | Too many requests        |
 
 ## Authentication
 
@@ -68,7 +68,7 @@ interface JWTPayload {
 
 Use URL versioning: `/v1/users`, `/v2/users`
 
-> **Note**: v1 endpoints will be deprecated after [[Projects/API Refactor]] completes.
+> Note: v1 endpoints will be deprecated after [[Projects/API Refactor]] completes.
 
 ## Tasks
 

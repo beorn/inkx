@@ -8,12 +8,12 @@ Synthesizes [prior-art research](recall-triggers-research.md) + dual /pro review
 
 Memory in agents maps to four cognitive modes humans use. Naming each tier after its biological analog (`mem lookup / mem inject / mem thought / mem dream`) makes the architecture self-documenting.
 
-| Tier | Name | State | Trigger | Latency | Scope | Cost |
-|------|------|-------|---------|---------|-------|------|
-| 1 | **mem lookup**  | ✅ **shipping** as `tribe.ask` MCP tools | Agent-initiated | ~500 ms FTS / ~6–9 s agent-mode | Specific question | $0 base; fires only on agent call |
-| 2 | **mem inject**  | ⚠️ **shipping** as `UserPromptSubmit` hook | System, every prompt | ~400–500 ms sync | Latest prompt | LLM synth in hook path |
-| 3 | **mem thought** | ❌ **doesn't exist** — this bead's scope | System, time/turn-paced | minutes async | Running conversation, multi-session | ~$0.05/cycle, ~5/session |
-| 4 | **mem dream**   | ❌ **doesn't exist** — separate bead | Offline, periodic (nightly / on-demand) | hours batch | Whole corpus | ~$1–5/run, ~30/month |
+| Tier | Name        | State                                | Trigger                                 | Latency                         | Scope                               | Cost                              |
+| ---- | ----------- | ------------------------------------ | --------------------------------------- | ------------------------------- | ----------------------------------- | --------------------------------- |
+| 1    | mem lookup  | ✅ shipping as tribe.ask MCP tools    | Agent-initiated                         | ~500 ms FTS / ~6–9 s agent-mode | Specific question                   | $0 base; fires only on agent call |
+| 2    | mem inject  | ⚠️ shipping as UserPromptSubmit hook | System, every prompt                    | ~400–500 ms sync                | Latest prompt                       | LLM synth in hook path            |
+| 3    | mem thought | ❌ doesn't exist — this bead's scope  | System, time/turn-paced                 | minutes async                   | Running conversation, multi-session | ~$0.05/cycle, ~5/session          |
+| 4    | mem dream   | ❌ doesn't exist — separate bead      | Offline, periodic (nightly / on-demand) | hours batch                     | Whole corpus                        | ~$1–5/run, ~30/month              |
 
 ### What each tier maps to cognitively
 
@@ -219,11 +219,11 @@ Track as `km-silvercode.mem-dream-consolidation` (parent epic `km-silvercode.amb
 
 Scope of this bead: **Tier 3 (mem thought) only** — the actual gap.
 
-| Phase | What ships | New code | Dogfood signal | Cost |
-|-------|-----------|----------|----------------|------|
-| v1 | Tier 3 mem thought | `percolate.ts` + summarizer + planner + synth + cadence loop | periodic `[mem thought, cycle N]` digests in chat scrollback | ~$10–15/dev/month |
-| v2 | tuning | hypothesis grounding constraint, minimum-coverage threshold, daily cost cap, per-session dedupe set | fewer noisy emits, tunable budget | same |
-| v3 | optional: Tier 1 polish | improved MCP tool descriptions + system-prompt mention | spawned agent discovers `tribe.ask` more reliably | $0 |
+| Phase | What ships              | New code                                                                                            | Dogfood signal                                             | Cost              |
+| ----- | ----------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------- |
+| v1    | Tier 3 mem thought      | percolate.ts + summarizer + planner + synth + cadence loop                                          | periodic [mem thought, cycle N] digests in chat scrollback | ~$10–15/dev/month |
+| v2    | tuning                  | hypothesis grounding constraint, minimum-coverage threshold, daily cost cap, per-session dedupe set | fewer noisy emits, tunable budget                          | same              |
+| v3    | optional: Tier 1 polish | improved MCP tool descriptions + system-prompt mention                                              | spawned agent discovers tribe.ask more reliably            | $0                |
 
 **Tier 1 (mem lookup)** needs zero work in v1 path. **Tier 2 (mem inject) v2** and **Tier 4 (mem dream)** are separate beads — bigger surfaces, different concerns.
 
@@ -247,3 +247,4 @@ Four cognitive modes for memory. Two already ship. Two are gaps.
 Tier 3 (this bead) is the mind-wandering pattern-matcher that catches what Tier 1 (must be asked) and Tier 2 (only one-prompt scope) both miss. One new module (`percolate.ts`) + cadence loop. ~$10–15/dev/month at heavy use, configurable. Zero user-facing latency (background async). Output framed clearly as looking-backward context.
 
 Tier 4 (separate bead) is the offline consolidation pass that improves the substrate Tiers 1–3 query against — atomic-fact extraction, deduplication, conflict resolution, generalization, bead status reconciliation. Lands once we have dogfooding data showing what the corpus needs.
+

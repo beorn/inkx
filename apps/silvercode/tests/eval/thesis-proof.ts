@@ -348,9 +348,7 @@ async function writeReport(args: {
   lines.push("")
   lines.push(`**Date:** 2026-04-27`)
   lines.push(`**Bead:** km-silvercode.notification-phase-1-thesis-proof`)
-  lines.push(
-    `**Design:** [apps/silvercode/docs/channels.md §4 Phase 1](../apps/silvercode/docs/channels.md)`,
-  )
+  lines.push(`**Design:** [apps/silvercode/docs/channels.md §4 Phase 1](../apps/silvercode/docs/channels.md)`)
   lines.push(`**Model:** ${model}`)
   lines.push(`**Trials per variant:** ${trials}`)
   lines.push("")

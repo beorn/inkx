@@ -1,6 +1,6 @@
 # Autoresearch: km Performance Optimization
 
-> Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch).
+> Inspired by Karpathy's autoresearch.
 > You are an autonomous AI agent optimizing km's performance.
 
 ## Your Mission

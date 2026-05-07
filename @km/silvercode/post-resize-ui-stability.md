@@ -167,7 +167,6 @@ After the user ran the live repro and shared `/tmp/silvercode-strict2.log` (3.9 
 
 The 6-cell suite runs in `apps/silvercode/tests/welcome-stability.test.tsx` + `chat-stability.test.tsx`. Total 14 tests with helper self-tests, ~8 s wall-clock.
 
-
 ## Update 2026-05-06 — narrow win + reframe filed
 
 silvery-expert audit identified the load-bearing feedback edge: `Content.Row` was writing `width={middleWidth}` AND `maxWidth={middleWidth}` on the middle Box (Content.tsx:378-379), propagating measured pixel widths upward into the row's intrinsic-sizing pass. Each silvery convergence pass re-used that propagated width, producing the 88↔120 oscillation.
@@ -189,8 +188,10 @@ Tonight's empirical attempt at the consensus rewrite: STRICT spike to 566 vs 176
 PTY repro variance is high (run-to-run swing 176↔326 with no code changes — the live --resume session has streaming variation that affects the count). The repro alone isn't reliable enough to A/B small fixes; need either a deterministic fixture or to trust visible behavior over STRICT count.
 
 Filed beads to capture the architectural target:
+
 - @km/silvery/use-deferred-box-rect-and-post-commit-observers — the L4 mechanical fix (in flight, silvery agent)
 - @km/silvery/ergonomic-responsive-primitives — Lane / Aside / useResponsiveDisplay surface
 - @km/silvery/layer-primitive — `<Layer>` for out-of-flow rendering, where AsideLayout-overlay belongs
 
 Net session result: silvery 100ms trailing-edge debounce shipped (vendor `b26b8476`), Content.Row pixel-width drop shipped (`7923bc8c7`), transcript-replay yield shipped (`4b0e48ba5`). Visible: focus-change stable per user, but startup and resize remain unstable. The architectural work in the silvery beads is the actual fix path; tonight's session brought the picture into focus but didn't land a visible-bug fix.
+

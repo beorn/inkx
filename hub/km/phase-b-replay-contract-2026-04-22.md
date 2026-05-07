@@ -5,6 +5,7 @@ Status: spec. Design reference for the Phase B oplog implementation.
 Bead: `km-storage.phase-b-replay-contract-spec` (P1).
 
 Upstream:
+
 - `hub/km/storage-architecture.md` §9 Phase B — pathway framing
 - `hub/km/research/op-vocabulary-audit-2026-04-22.md` — op-surface audit that surfaced DQ1–DQ5
 
@@ -20,13 +21,13 @@ Phase B persists km's existing `emitter.apply()` stream to an append-only, compa
 
 Concretely, Phase B delivers:
 
-| Deliverable | What it does |
-|---|---|
-| Oplog on disk | Every content op in `state.db` has a durable, append-only journal entry |
-| Compaction + snapshot | Oplog stays bounded; snapshot captures full state at a point |
-| `km doctor replay-from-snapshot` | Rebuild `state.db` from (snapshot + ops since) |
-| `km doctor verify-oplog-integrity` | Cross-check oplog against live `state.db` |
-| Op-surface closure | Every DB-mutating path routes through `emitter.apply()` |
+| Deliverable                      | What it does                                                          |
+| -------------------------------- | --------------------------------------------------------------------- |
+| Oplog on disk                    | Every content op in state.db has a durable, append-only journal entry |
+| Compaction + snapshot            | Oplog stays bounded; snapshot captures full state at a point          |
+| km doctor replay-from-snapshot   | Rebuild state.db from (snapshot + ops since)                          |
+| km doctor verify-oplog-integrity | Cross-check oplog against live state.db                               |
+| Op-surface closure               | Every DB-mutating path routes through emitter.apply()                 |
 
 ### 1.2 What Phase B is not
 
@@ -105,12 +106,12 @@ Today: append-forever. No compaction. A long-lived vault accumulates megabytes o
 
 Phase B introduces segmented + compacted retention:
 
-| Artifact | Location | Role | Retention |
-|---|---|---|---|
-| Active segment | `<kmDir>/changes.jsonl` | Current append target | Rotated on size/time/ops thresholds |
-| Archived segments | `<kmDir>/oplog/changes-NNNN.jsonl` | Past ops since last snapshot | Kept until next compaction |
-| Current snapshot | `<kmDir>/snapshots/snapshot-NNNN.jsonl` | Full state at checkpoint | One current + one prior retained (safe-rollback window, §7.5) |
-| Meta file | `<kmDir>/oplog-meta.json` | Index: last snapshot id, current segment, ops-since-snapshot count | Single record, rewritten on each checkpoint |
+| Artifact          | Location                              | Role                                                               | Retention                                                     |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Active segment    | <kmDir>/changes.jsonl                 | Current append target                                              | Rotated on size/time/ops thresholds                           |
+| Archived segments | <kmDir>/oplog/changes-NNNN.jsonl      | Past ops since last snapshot                                       | Kept until next compaction                                    |
+| Current snapshot  | <kmDir>/snapshots/snapshot-NNNN.jsonl | Full state at checkpoint                                           | One current + one prior retained (safe-rollback window, §7.5) |
+| Meta file         | <kmDir>/oplog-meta.json               | Index: last snapshot id, current segment, ops-since-snapshot count | Single record, rewritten on each checkpoint                   |
 
 **Rotation triggers** for the active segment (any of):
 
@@ -200,16 +201,16 @@ Consequences:
 
 For replay to produce the same `state.db` as live application, the following must hold:
 
-| Invariant | How enforced |
-|---|---|
-| Ops are pure JSON, no live references | Audit §"Serializability audit" — confirmed for all content ops |
-| `ts` comes from op, not Date.now() at replay | `applyChangeWithDb` reads `change.ts`, not fresh timestamp (audit §node_created, §node_updated) |
-| ULIDs come from op, not re-minted | `change.id` is the authoritative id; replay never calls `ulid()` |
-| Ordering matches emit order | Segments are append-only; replay follows file order |
-| Snapshot captures all rows present at checkpoint | Snapshot producer iterates `SELECT * FROM nodes`; single DB read under BEGIN IMMEDIATE |
-| Schema + data versions match | Replay aborts if `snapshot.schema_version != current` or `snapshot.data_version != current` |
-| FS path + inode divergence does not break replay | `fs_path`, `fs_ino`, `fs_mtime`, `fs_content_hash` are journaled values; re-sync runs after replay to reconcile |
-| FTS + link cache are rebuildable | Both are derived from node content (`db/links.ts`, FTS triggers); rebuild after replay |
+| Invariant                                        | How enforced                                                                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Ops are pure JSON, no live references            | Audit §"Serializability audit" — confirmed for all content ops                                          |
+| ts comes from op, not Date.now() at replay       | applyChangeWithDb reads change.ts, not fresh timestamp (audit §node_created, §node_updated)             |
+| ULIDs come from op, not re-minted                | change.id is the authoritative id; replay never calls ulid()                                            |
+| Ordering matches emit order                      | Segments are append-only; replay follows file order                                                     |
+| Snapshot captures all rows present at checkpoint | Snapshot producer iterates SELECT * FROM nodes; single DB read under BEGIN IMMEDIATE                    |
+| Schema + data versions match                     | Replay aborts if snapshot.schema_version != current or snapshot.data_version != current                 |
+| FS path + inode divergence does not break replay | fs_path, fs_ino, fs_mtime, fs_content_hash are journaled values; re-sync runs after replay to reconcile |
+| FTS + link cache are rebuildable                 | Both are derived from node content (db/links.ts, FTS triggers); rebuild after replay                    |
 
 Violations of any invariant are correctness bugs, not replay-contract gaps. The audit confirms none exist today for the seven content ops.
 
@@ -230,11 +231,11 @@ Both produce real `Change` records in `changes.jsonl` today. To prevent echo loo
 
 The audit surfaces three layouts:
 
-| Option | Description | Trade-off |
-|---|---|---|
-| Mixed | All ops share one file; replay treats them identically | Simplest; but replay re-applies fs-watch ops that reflect FS state already |
-| Tagged | One file, but ops carry `origin: "user" \| "fs-watch" \| "replay" \| "system"`; replay filters | Minimal schema change; clean separation at replay time |
-| Split | User ops go in `oplog/`, fs-watch ops go in `fs-audit.jsonl`, replayed separately | Clean at rest; but two sinks means dual-write correctness risk (same failure mode G3 avoided) |
+| Option | Description                                                                                  | Trade-off                                                                                     |
+| ------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Mixed  | All ops share one file; replay treats them identically                                       | Simplest; but replay re-applies fs-watch ops that reflect FS state already                    |
+| Tagged | One file, but ops carry origin: "user" \| "fs-watch" \| "replay" \| "system"; replay filters | Minimal schema change; clean separation at replay time                                        |
+| Split  | User ops go in oplog/, fs-watch ops go in fs-audit.jsonl, replayed separately                | Clean at rest; but two sinks means dual-write correctness risk (same failure mode G3 avoided) |
 
 ### 4.3 Replay semantics when FS state is also truth
 
@@ -330,10 +331,9 @@ Consequences:
 
 - A schema bump invalidates all existing oplog segments and snapshots for that vault. The next startup:
   1. Runs `migrateSchema` / `migrateData` as today.
-  2. Archives `changes.jsonl` + `snapshots/` to `oplog-pre-v<N>/` (for debugging; auto-pruned after 30 days).
-  3. Emits a fresh `snapshot-0000` from the post-migration state.
-  4. Starts a new `changes.jsonl` segment.
-
+  1. Archives `changes.jsonl` + `snapshots/` to `oplog-pre-v<N>/` (for debugging; auto-pruned after 30 days).
+  1. Emits a fresh `snapshot-0000` from the post-migration state.
+  1. Starts a new `changes.jsonl` segment.
 - Post-migration, the oplog is clean and future-forward. No cross-version replay is attempted.
 
 **Rationale:**
@@ -378,13 +378,13 @@ Phase B compaction **should**:
 
 Compaction is evaluated when any of the rotation triggers (§2.3) fires:
 
-| Trigger | Threshold (default) | Configurable? |
-|---|---|---|
-| Active segment size | 10 MB | `oplog.rotate_mb` |
-| Active segment age | 7 days | `oplog.rotate_days` |
-| Active segment op count | 10,000 | `oplog.rotate_ops` |
-| Snapshot age | 30 days | `oplog.snapshot_max_days` |
-| Archived segment count | 6 segments | `oplog.segment_max_count` |
+| Trigger                 | Threshold (default) | Configurable?           |
+| ----------------------- | ------------------- | ----------------------- |
+| Active segment size     | 10 MB               | oplog.rotate_mb         |
+| Active segment age      | 7 days              | oplog.rotate_days       |
+| Active segment op count | 10,000              | oplog.rotate_ops        |
+| Snapshot age            | 30 days             | oplog.snapshot_max_days |
+| Archived segment count  | 6 segments          | oplog.segment_max_count |
 
 The active segment rotates whenever any of the first three fires. A compaction + new snapshot runs whenever the last two indicate stale state (either snapshot is too old or too many segments have piled up).
 
@@ -480,14 +480,14 @@ Exit code: 0 if healthy, 1 if any check fails. CI / doctor harness can run `--fu
 
 ### 8.3 Failure modes and reporting
 
-| Failure | What it looks like | Recovery |
-|---|---|---|
-| Missing snapshot | No snapshot covers requested `--at` | `km doctor rebuild` from FS; start fresh oplog |
-| Corrupt segment | JSONL parse error mid-file | Report line + offset; replay stops at that op; user can `--at` before it to get a partial replay |
-| Schema version mismatch | Snapshot / segment targets a different schema | Abort; prompt user to `km doctor rebuild`; archive old oplog (§6.2) |
-| FS-DB divergence after replay | Post-replay FS scan reports unexpected diffs | Normal — oplog replay produces a stale-but-valid DB; FS scan catches it up; no user action needed |
-| Dual-write tear (DB ahead of journal) | `state.db.meta.last_event` is newer than the tail of `changes.jsonl` | Log warning; rely on next FS scan for reconciliation; file a bug |
-| Snapshot + meta out of sync | `oplog-meta.json` references a snapshot file that doesn't exist | Rescan `snapshots/`, rebuild `oplog-meta.json` from filenames + first-line metadata |
+| Failure                               | What it looks like                                               | Recovery                                                                                          |
+| ------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Missing snapshot                      | No snapshot covers requested --at                                | km doctor rebuild from FS; start fresh oplog                                                      |
+| Corrupt segment                       | JSONL parse error mid-file                                       | Report line + offset; replay stops at that op; user can --at before it to get a partial replay    |
+| Schema version mismatch               | Snapshot / segment targets a different schema                    | Abort; prompt user to km doctor rebuild; archive old oplog (§6.2)                                 |
+| FS-DB divergence after replay         | Post-replay FS scan reports unexpected diffs                     | Normal — oplog replay produces a stale-but-valid DB; FS scan catches it up; no user action needed |
+| Dual-write tear (DB ahead of journal) | state.db.meta.last_event is newer than the tail of changes.jsonl | Log warning; rely on next FS scan for reconciliation; file a bug                                  |
+| Snapshot + meta out of sync           | oplog-meta.json references a snapshot file that doesn't exist    | Rescan snapshots/, rebuild oplog-meta.json from filenames + first-line metadata                   |
 
 All failures are logged and surfaced to the user (no silent corruption — see km's "no silent failures" rule).
 
@@ -497,20 +497,20 @@ All failures are logged and surfaced to the user (no silent corruption — see k
 
 Phase B does **not** solve any of the following. They are Phase C, D, or E concerns.
 
-| Non-goal | Which phase owns it |
-|---|---|
-| Flipping DB to source-of-truth | Phase C |
-| Cross-device / cross-peer op exchange | Phase D (via CRDT) or Phase C (via custom sync protocol, Tier 3) |
-| Real-time collaboration | Phase D |
-| Conflict-resolution UX when Obsidian and km disagree | Phase C |
-| DB-query → FS-patch mapping (one block in two files, which owns the projection?) | Phase C |
-| Cross-schema time-travel replay | Not planned (§6.2 rationale) |
-| Keystroke-level undo | Not planned — edits collapse at save boundary by design (audit §"Text editing boundary") |
-| Op-level permissions / access control | Phase E (sync platform) |
-| Binary blob ops (images, PDFs, attachments) | Phase E |
-| Multi-actor reconciliation (agents + user as distinct peers with per-peer vector clocks) | Phase D |
-| Cross-vault oplog federation | Phase D+ |
-| LLM-adjudicated replay decisions | Phase C speculative (§9 Deferred in storage-architecture.md) |
+| Non-goal                                                                                 | Which phase owns it                                                                      |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Flipping DB to source-of-truth                                                           | Phase C                                                                                  |
+| Cross-device / cross-peer op exchange                                                    | Phase D (via CRDT) or Phase C (via custom sync protocol, Tier 3)                         |
+| Real-time collaboration                                                                  | Phase D                                                                                  |
+| Conflict-resolution UX when Obsidian and km disagree                                     | Phase C                                                                                  |
+| DB-query → FS-patch mapping (one block in two files, which owns the projection?)         | Phase C                                                                                  |
+| Cross-schema time-travel replay                                                          | Not planned (§6.2 rationale)                                                             |
+| Keystroke-level undo                                                                     | Not planned — edits collapse at save boundary by design (audit §"Text editing boundary") |
+| Op-level permissions / access control                                                    | Phase E (sync platform)                                                                  |
+| Binary blob ops (images, PDFs, attachments)                                              | Phase E                                                                                  |
+| Multi-actor reconciliation (agents + user as distinct peers with per-peer vector clocks) | Phase D                                                                                  |
+| Cross-vault oplog federation                                                             | Phase D+                                                                                 |
+| LLM-adjudicated replay decisions                                                         | Phase C speculative (§9 Deferred in storage-architecture.md)                             |
 
 Phase B's contract with Phase C: ops are serializable, stable-NodeId-scoped, origin-tagged, replay-idempotent against a snapshot. Phase C inherits this and adds the projection + conflict model. If Phase B shipped with un-tagged ops or relied on ephemeral state, Phase C would be stuck; that's why origin-stamping (§4) and the closure audit are non-negotiable prerequisites.
 
@@ -522,15 +522,15 @@ Phase B's contract with Phase C: ops are serializable, stable-NodeId-scoped, ori
 
 Before Phase B can start, these audit gaps close. Beads suggested in the audit §"Recommended follow-up beads":
 
-| Audit gap | Bead | Priority | Reason Phase B can't start without it |
-|---|---|---|---|
-| G3 | `km-storage.op-surface-rename-path` | P0 | Crash-safety issue today; Phase B replay would diverge at every folder rename |
-| G1 | `km-storage.op-surface-route-scanner` | P1 | Cold-start inserts must be either replayed or bootstrapped; without this, snapshot is incomplete |
-| G4 / G7 / G9 | `km-storage.op-surface-embed-and-blockid` | P2 | Derived-state writes that replay must also produce; otherwise replayed DB differs from live |
-| G2 | `km-storage.op-surface-deferred-emitter-required` | P2 | Deferred parse path must emit through emitter, else replay skips content |
-| G10 | `km-storage.op-surface-memorystore-cleanup` | P3 | Dead code confirmation; low risk |
-| DQ3 / G13 | `km-storage.phase-b-session-ops-decision` | P2 | Decision: session/message ops stay in `changes.jsonl` tagged with `type: session_*`; skipped by replay (no DB effect to replay). Memo-level, not a gap. |
-| Type tightening | `km-storage.op-vocabulary-type-tighten` | P3 | Nice-to-have before Phase B; enforces the serializability soft violation (audit §Serializability audit item 1) |
+| Audit gap       | Bead                                            | Priority | Reason Phase B can't start without it                                                                                                               |
+| --------------- | ----------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G3              | km-storage.op-surface-rename-path               | P0       | Crash-safety issue today; Phase B replay would diverge at every folder rename                                                                       |
+| G1              | km-storage.op-surface-route-scanner             | P1       | Cold-start inserts must be either replayed or bootstrapped; without this, snapshot is incomplete                                                    |
+| G4 / G7 / G9    | km-storage.op-surface-embed-and-blockid         | P2       | Derived-state writes that replay must also produce; otherwise replayed DB differs from live                                                         |
+| G2              | km-storage.op-surface-deferred-emitter-required | P2       | Deferred parse path must emit through emitter, else replay skips content                                                                            |
+| G10             | km-storage.op-surface-memorystore-cleanup       | P3       | Dead code confirmation; low risk                                                                                                                    |
+| DQ3 / G13       | km-storage.phase-b-session-ops-decision         | P2       | Decision: session/message ops stay in changes.jsonl tagged with type: session_*; skipped by replay (no DB effect to replay). Memo-level, not a gap. |
+| Type tightening | km-storage.op-vocabulary-type-tighten           | P3       | Nice-to-have before Phase B; enforces the serializability soft violation (audit §Serializability audit item 1)                                      |
 
 Schema changes required for Phase B:
 
@@ -590,3 +590,4 @@ Questions this doc does **not** answer. To be decided during implementation or d
 **OQ7 — Replay into a different vault**: Can Phase B's oplog replay *into a new DB for a new vault* (import-style)? Not a stated goal, but the machinery is close. Defer until Phase C, where cross-vault flows become a real concern.
 
 **OQ8 — Tier 2 sync protocol layering**: §9 of storage-architecture.md lists Tier 2 as "op-log-based sync" — two peers exchange ops, not file diffs. Phase B is a single-peer oplog; Tier 2 is multi-peer. The question of how peers advertise + reconcile oplogs (vector clocks? per-peer origin tags? monotone log ids?) is Tier 2's problem, not Phase B's. Surface when Tier 2 actually scopes in.
+

@@ -32,14 +32,14 @@ Delete getSelectedCards. Every caller switches to Selection.nodes(ctx). No wrapp
 ## Changes
 
 1. **@km/tui/src/selection.ts** (NEW) — Selection namespace:
-  - nodes(ctx): KNode[] — the selected nodes (or cursor node)
-  - nodeIds(ctx): string[]
-  - isEmpty(ctx): boolean
-  - contains(ctx, nodeId): boolean
-  - moveTo(ctx, pos: Position): void — batch move all selected, with undo batching
-  - forEach(ctx, fn): void — iterate with undo batching built in
-2. **DELETE getSelectedCards** from keyboard-helpers.ts
-3. **Fix all callers** — tsc-guided, one session
+- nodes(ctx): KNode[] — the selected nodes (or cursor node)
+- nodeIds(ctx): string[]
+- isEmpty(ctx): boolean
+- contains(ctx, nodeId): boolean
+- moveTo(ctx, pos: Position): void — batch move all selected, with undo batching
+- forEach(ctx, fn): void — iterate with undo batching built in
+9. **DELETE getSelectedCards** from keyboard-helpers.ts
+10. **Fix all callers** — tsc-guided, one session
 
 ## DRY audit (part of this phase)
 

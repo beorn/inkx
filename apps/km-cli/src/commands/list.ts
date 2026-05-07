@@ -369,4 +369,3 @@ function displaySimple(repo: Repo, nodes: KNodeType[], options: { showId: boolea
     console.log(indent + formatNode(repo, node, options.showId))
   }
 }
-

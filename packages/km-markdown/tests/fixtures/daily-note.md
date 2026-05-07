@@ -1,7 +1,6 @@
 ---
 title: 2025-01-08
 type: daily
-tags: [journal, planning]
 ---
 
 # Wednesday, January 8, 2025
@@ -10,13 +9,13 @@ tags: [journal, planning]
 
 - [x] Check emails
 - [x] Review calendar
-- [ ] Stand-up meeting ⏳ 2025-01-08
+- [ ] Stand-up meeting start:: 2025-01-08
 
 ## Focus Time
 
 ### Project Alpha
 
-- [ ] Complete feature spec priority:: P1 📅 2025-01-10
+- [ ] Complete feature spec due:: 2025-01-10 priority:: P1
 - [ ] Review code changes
 - [x] Completed unit tests
 

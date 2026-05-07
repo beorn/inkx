@@ -12,10 +12,10 @@ Backdrop fade is a **render-time cell transform**, not a component concern. Anal
 
 Two props, both emitted as `data-backdrop-fade-*` attributes on `<silvery-box>` so they flow naturally into `AgNode.props` without touching `BoxProps`:
 
-| Marker                            | Meaning                                                                                                             |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `data-backdrop-fade={amount}`     | Fade the cells covered by THIS node's screen rect by `amount` (0..1). Use case: `<Backdrop>` wrapping content that should fade. |
-| `data-backdrop-fade-excluded={amount}` | Fade every cell of the buffer EXCEPT those covered by this node's screen rect. Use case: modal dialog (fade everything behind it, keep the modal crisp). |
+| Marker                               | Meaning                                                                                                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| data-backdrop-fade={amount}          | Fade the cells covered by THIS node's screen rect by amount (0..1). Use case: <Backdrop> wrapping content that should fade.                              |
+| data-backdrop-fade-excluded={amount} | Fade every cell of the buffer EXCEPT those covered by this node's screen rect. Use case: modal dialog (fade everything behind it, keep the modal crisp). |
 
 Both read by the backdrop pass. If multiple nodes carry markers, each applies independently. Overlapping transforms compose (cells faded twice are faded ~twice — acceptable, rare).
 
@@ -29,6 +29,7 @@ measure → layout → scroll → sticky → scrollRect → notify
 ```
 
 `backdrop-phase.ts` exports one function: `applyBackdropFade(root, buffer, caps)`.
+
 - Walks the tree once, collects nodes with markers.
 - For each, looks up `node.screenRect` (set by `scrollrectPhase`).
 - Picks one of three strategies based on `caps.colorLevel`:
@@ -43,6 +44,7 @@ The pass mutates a CLONE of the buffer in place. `renderPhase` remains determini
 `SILVERY_STRICT=1` compares: `renderPhase(clone of prev)` vs `renderPhase(null)`. Both produce the same buffer (renderPhase invariant). The backdrop pass runs AFTER `renderPhase`, once, on the final buffer — identical inputs on both sides means identical outputs.
 
 What must be preserved:
+
 - Pre-transform buffer is identical for incremental + fresh render (already true — renderPhase invariant).
 - The pass operates on a FRESHLY CLONED buffer, not the stored `_prevBuffer` snapshot. `_prevBuffer` must hold the **pre-transform** buffer so incremental cloning + skipping continues to work.
 
@@ -84,3 +86,4 @@ Solution: `_prevBuffer = buffer` in `ag.ts` stays pre-transform. The backdrop pa
 - STRICT test written first, realistic fixture (50+ nodes).
 - `_prevBuffer` holds the pre-transform buffer — incremental invariant preserved.
 - Incremental = fresh output comparison: both run through the same pass, deterministic.
+

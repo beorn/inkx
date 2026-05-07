@@ -28,28 +28,28 @@ Master bead tracking all remaining Flexx compatibility work.
 ### P1 - High Priority
 
 1. **alignContent for wrapped layouts** (@km/_orphan/flexture-aligncontent)
-  - 5 failing tests
-  - Required for proper multi-line flex layouts
-2. **Separate measure from layout phase** (@km/_orphan/flexture-measure-phase)
-  - Performance optimization
-  - Would allow better caching strategies
+- 5 failing tests
+- Required for proper multi-line flex layouts
+5. **Separate measure from layout phase** (@km/_orphan/flexture-measure-phase)
+- Performance optimization
+- Would allow better caching strategies
 
 ### P2 - Medium Priority
 
 3. **wrap-reverse cross-axis positioning** (@km/_orphan/flexture-wraprev)
-  - Lines should position from bottom, not top
-  - Debug script: `bench/wrap-reverse-debug.ts`
-4. **column-reverse layout** (@km/_orphan/flexture-colrev)
-  - Negative array size issue
-5. **Auto margin centering for absolute children** (@km/_orphan/flexture-abs-auto-margin)
-  - Absolute children with auto margins should center
-6. **Eliminate allocations in hot paths** (@km/_orphan/flexture-alloc-hot)
-  - Profile and reduce GC pressure
+- Lines should position from bottom, not top
+- Debug script: `bench/wrap-reverse-debug.ts`
+7. **column-reverse layout** (@km/_orphan/flexture-colrev)
+- Negative array size issue
+10. **Auto margin centering for absolute children** (@km/_orphan/flexture-abs-auto-margin)
+- Absolute children with auto margins should center
+13. **Eliminate allocations in hot paths** (@km/_orphan/flexture-alloc-hot)
+- Profile and reduce GC pressure
 
 ### P3 - Lower Priority
 
 7. **Nested percentage resolution** (@km/_orphan/flexture-pct-nested)
-  - Percentages in nested containers
+- Percentages in nested containers
 
 ## Key Technical Notes
 

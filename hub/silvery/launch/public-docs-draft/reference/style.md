@@ -1,3 +1,8 @@
+---
+mentions:
+  - silvery
+---
+
 # `@silvery/ansi` — Terminal styling
 
 Theme-aware terminal styling with a chalk-compatible chainable API. Use it for CLI output (spinners, log lines, progress bars) that respects terminal color capabilities and resolves Sterling `$`-tokens — no React required.
@@ -35,10 +40,10 @@ interface StyleOptions {
 }
 ```
 
-| Option  | Default       | Notes                                                      |
-|---------|---------------|-------------------------------------------------------------|
-| `level` | auto-detect   | `null` disables all color                                   |
-| `theme` | `undefined`   | Any object matching Sterling's flat-token shape (`theme["fg-accent"]` etc) |
+| Option | Default     | Notes                                                                    |
+| ------ | ----------- | ------------------------------------------------------------------------ |
+| level  | auto-detect | null disables all color                                                  |
+| theme  | undefined   | Any object matching Sterling's flat-token shape (theme["fg-accent"] etc) |
 
 When `level` is omitted, `createStyle()` auto-detects from `process.stdout`, respecting `NO_COLOR` and `FORCE_COLOR`.
 
@@ -69,39 +74,39 @@ s.bold.underline.red("text")     // bold + underline + red
 
 ### Modifiers
 
-| Property        | SGR Open | SGR Close | Description    |
-|-----------------|----------|-----------|----------------|
-| `bold`          | 1        | 22        | Bold           |
-| `dim`           | 2        | 22        | Faint / dim    |
-| `italic`        | 3        | 23        | Italic         |
-| `underline`     | 4        | 24        | Underline      |
-| `inverse`       | 7        | 27        | Swap fg/bg     |
-| `hidden`        | 8        | 28        | Hidden         |
-| `strikethrough` | 9        | 29        | Strikethrough  |
+| Property      | SGR Open | SGR Close | Description   |
+| ------------- | -------- | --------- | ------------- |
+| bold          | 1        | 22        | Bold          |
+| dim           | 2        | 22        | Faint / dim   |
+| italic        | 3        | 23        | Italic        |
+| underline     | 4        | 24        | Underline     |
+| inverse       | 7        | 27        | Swap fg/bg    |
+| hidden        | 8        | 28        | Hidden        |
+| strikethrough | 9        | 29        | Strikethrough |
 
 ### Foreground colors
 
 Standard ANSI 16:
 
-| Property        | Code | Color          |
-|-----------------|------|----------------|
-| `black`         | 30   | Black          |
-| `red`           | 31   | Red            |
-| `green`         | 32   | Green          |
-| `yellow`        | 33   | Yellow         |
-| `blue`          | 34   | Blue           |
-| `magenta`       | 35   | Magenta        |
-| `cyan`          | 36   | Cyan           |
-| `white`         | 37   | White          |
-| `blackBright`   | 90   | Bright black   |
-| `gray` / `grey` | 90   | Gray (alias)   |
-| `redBright`     | 91   | Bright red     |
-| `greenBright`   | 92   | Bright green   |
-| `yellowBright` | 93   | Bright yellow  |
-| `blueBright`    | 94   | Bright blue    |
-| `magentaBright` | 95   | Bright magenta |
-| `cyanBright`    | 96   | Bright cyan    |
-| `whiteBright`   | 97   | Bright white   |
+| Property      | Code | Color          |
+| ------------- | ---- | -------------- |
+| black         | 30   | Black          |
+| red           | 31   | Red            |
+| green         | 32   | Green          |
+| yellow        | 33   | Yellow         |
+| blue          | 34   | Blue           |
+| magenta       | 35   | Magenta        |
+| cyan          | 36   | Cyan           |
+| white         | 37   | White          |
+| blackBright   | 90   | Bright black   |
+| gray / grey   | 90   | Gray (alias)   |
+| redBright     | 91   | Bright red     |
+| greenBright   | 92   | Bright green   |
+| yellowBright  | 93   | Bright yellow  |
+| blueBright    | 94   | Bright blue    |
+| magentaBright | 95   | Bright magenta |
+| cyanBright    | 96   | Bright cyan    |
+| whiteBright   | 97   | Bright white   |
 
 ### Background colors
 
@@ -139,16 +144,16 @@ s.bold["fg-accent"]("DEPLOY")         // chain modifiers with tokens
 
 Each Sterling token has a sensible ANSI fallback when no Theme is set:
 
-| Token          | Without theme (fallback)   | With theme                      |
-|----------------|-----------------------------|----------------------------------|
-| `fg-accent`    | yellow (33)                 | `theme["fg-accent"]` as hex      |
-| `fg-info`      | cyan (36)                   | `theme["fg-info"]` as hex        |
-| `fg-success`   | green (32)                  | `theme["fg-success"]` as hex     |
-| `fg-warning`   | yellow (33)                 | `theme["fg-warning"]` as hex     |
-| `fg-error`     | red (31)                    | `theme["fg-error"]` as hex       |
-| `fg-muted`     | dim (SGR 2)                 | `theme["fg-muted"]` as hex       |
-| `border-default`| gray (90)                  | `theme["border-default"]` as hex |
-| `border-focus` | blue (34)                   | `theme["border-focus"]` as hex   |
+| Token          | Without theme (fallback) | With theme                     |
+| -------------- | ------------------------ | ------------------------------ |
+| fg-accent      | yellow (33)              | theme["fg-accent"] as hex      |
+| fg-info        | cyan (36)                | theme["fg-info"] as hex        |
+| fg-success     | green (32)               | theme["fg-success"] as hex     |
+| fg-warning     | yellow (33)              | theme["fg-warning"] as hex     |
+| fg-error       | red (31)                 | theme["fg-error"] as hex       |
+| fg-muted       | dim (SGR 2)              | theme["fg-muted"] as hex       |
+| border-default | gray (90)                | theme["border-default"] as hex |
+| border-focus   | blue (34)                | theme["border-focus"] as hex   |
 
 CLI tools get reasonable colors even without configuring a theme.
 
@@ -167,12 +172,12 @@ s.resolve("$bg-surface-subtle")    // theme["bg-surface-subtle"]
 
 ## Color level degradation
 
-| Level       | Hex / RGB handling                                |
-|-------------|----------------------------------------------------|
-| `truecolor` | `38;2;R;G;B` — exact color                         |
-| `256`       | `38;5;N` — nearest in 6×6×6 cube                   |
-| `basic`     | `30`–`37` / `90`–`97` — nearest ANSI slot          |
-| `null`      | All styling stripped, plain text                   |
+| Level     | Hex / RGB handling                |
+| --------- | --------------------------------- |
+| truecolor | 38;2;R;G;B — exact color          |
+| 256       | 38;5;N — nearest in 6×6×6 cube    |
+| basic     | 30–37 / 90–97 — nearest ANSI slot |
+| null      | All styling stripped, plain text  |
 
 Truecolor → 256 uses the 6×6×6 color cube (indices 16–231) and the 24-shade gray ramp (232–255). 256 → basic uses Euclidean distance in RGB against ANSI 16.
 
@@ -304,3 +309,4 @@ The main differences: `createStyle()` returns a new instance each time (no globa
 - [Migrate from Chalk](/getting-started/migrate-from-chalk).
 
 <!-- TODO: verify after 0.19.0 ships — confirm `s["fg-accent"]` bracket notation works (vs camelCased `fgAccent`), exact fallback table, `bakeFlat` / `pickColorLevel` export paths. -->
+

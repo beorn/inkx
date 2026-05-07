@@ -141,3 +141,4 @@ Note: The project uses a hybrid testing approach:
 - **Bun Test**: Packages requiring Bun APIs (km-storage with bun:sqlite, Worker)
 
 The reporters only capture Vitest test results. Bun test results are shown via TAP output in terminal only.
+

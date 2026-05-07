@@ -51,15 +51,15 @@ Cannot find module './build-info.gen.ts' imported from .../packages/@km/_orphan/
 ## Fix options (pick one — TBD)
 
 1. Add postinstall hook to package.json: `\"postinstall\": \"bun run build:info\"`
-  - Simple, deterministic, runs everywhere bun install runs
-  - Cost: every install regenerates (cheap, ~50ms)
-2. Make the import optional with a runtime fallback in @km/_orphan/core
-  - More resilient but adds branching + non-frozen behavior
-3. Generate on demand at first import via a setup file
-  - Clever but introduces import-time side effects
-4. CI-only: add `bun run build:info` to .github/workflows/fuzz.yml after install
-  - Targeted fix; doesn't help fresh worktrees
-  - Need to repeat for every workflow that runs vitest
+- Simple, deterministic, runs everywhere bun install runs
+- Cost: every install regenerates (cheap, ~50ms)
+5. Make the import optional with a runtime fallback in @km/_orphan/core
+- More resilient but adds branching + non-frozen behavior
+8. Generate on demand at first import via a setup file
+- Clever but introduces import-time side effects
+11. CI-only: add `bun run build:info` to .github/workflows/fuzz.yml after install
+- Targeted fix; doesn't help fresh worktrees
+- Need to repeat for every workflow that runs vitest
 
 Recommend: option 1 (postinstall). Cheapest, most universal.
 

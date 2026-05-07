@@ -7,21 +7,13 @@ Started as "continue /max don't stop until done" with five parallel agents alrea
 ## What changed in the design (vs. the state at session start)
 
 1. **FS-truth reframing**. Started with "FS-truth forever, DB-truth maybe someday." Progressed through "FS-truth now, DB-truth probable future," and ended with a concrete **named pathway** (§9 Phase A → E) with per-phase value unlocks: semantic undo (B), versioning/agent-state (C), real-time collab (D), sync platform (E).
-
 2. **Inode elevated to primary**. After dual-pro round-2 critique + user clarification ("if we have ino we can use it — if we don't have it then of course .name"), reconciliation §3 reordered: inode (Step 1) → path-of-`.name` (Step 2) → content-hash + within-file heuristics (Step 3+). Rationale: inode is OS identity when present; `.name` is the cross-transport fallback.
-
 3. **block_id folded into `.name`**. A heading's or block's `^anchor` *is* the name. Heading-slug falls back to content-derived. Removed the separate `block_id?` field from `KNode`.
-
 4. **File basename vs path clarified**. Round-2 review flagged ambiguity. Split into: File `.name` = basename (Obsidian link form), `.path` = full repo-relative path (FS + disambiguation).
-
 5. **Structural-similarity heuristic dropped**. Round-2 reviewer called it a solo-dev tar pit without a concrete definition. Moved to Deferred with concrete re-entry criteria.
-
 6. **Minimal serializer gated on fidelity corpus**. Old P3 (CAS) could ship on an unverified serializer. New P3 = corpus → serializer → CAS, in that order.
-
 7. **Multi-file atomicity flagged as open decision**. Reviewer recommends dropping the journal for v1. Captured as `km-storage.multi-file-atomicity-decision` for user judgment.
-
 8. **DB-truth cost estimates removed**. Earlier drafts claimed ~300-400 LOC refactor + ~500-800 LOC versioning. Round-2 review flagged as likely off by 10x (write path inversion, three-way merge as default, bootstrap migration — product earthquakes, not sprints). Cost language removed entirely.
-
 9. **Rust/Zig escape hatch for Phase D perf**. User added at wrap: expected escalation if JS Automerge doesn't scale; keeping the storage interface small + op-shaped makes it a swap, not a rebuild.
 
 ## What the pushback actually caught
@@ -60,6 +52,7 @@ All fixable in a single pass once named. The doc had the right ideas but hadn't 
 The v3 doc's `§11` bead table lists several beads that don't yet exist or need restructuring. This session created the most critical ones:
 
 Created this session:
+
 - `km-storage.pathway-db-crdt` (P3, parent `km-all.plateau`) — Phase A→E tracker
 - `km-storage.identity-schema` (P0, parent `km-storage.adapter-architecture`) — blocks lazy-hydration
 - `km-storage.reconciliation-harness` (P1, parent `km-storage.fs-adapter`, blocks fs-adapter)
@@ -67,6 +60,7 @@ Created this session:
 - `km-storage.multi-file-atomicity-decision` (P1, parent `km-storage.writeback-cas`)
 
 Deferred to next bead-reshape session:
+
 - Rename `km-storage.fs-adapter` → `km-storage.fs-mount` (doc uses new name)
 - Supersede `km-storage.crdt-trigger` under `km-storage.pathway-db-crdt`
 - Review whether `km-storage.adapter-architecture` epic title still fits now that "adapter" was dropped in favor of concrete `FsMount`
@@ -82,3 +76,4 @@ Deferred to next bead-reshape session:
 ## Handoff note
 
 The storage architecture is now in a state where execution can start. Phase A is fully specified in `§8`. The pathway to Phase E is named but not scheduled. External reviews are archived in `hub/km/research/`. Session ended with no uncommitted work.
+

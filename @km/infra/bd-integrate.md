@@ -45,29 +45,29 @@ Quality level: **L0** today (ad-hoc). Target: **L3** (API/lifecycle structure ma
 Single command, transactional. Each step is a hard gate; failure aborts and reports state.
 
 1. **Pre-flight checks**
-  - Bead exists and is `closed` OR `in_progress` with `--force`
-  - Branch exists in worktree (read from bead metadata or `.claude/worktrees/<name>/`)
-  - Worktree has no uncommitted changes
-  - Branch is pushed to origin (verify via `git ls-remote origin <branch>`)
-  - `/complete` criteria from bead description pass (run greps literally)
-  - Main worktree has no uncommitted source changes (allow churn-listed paths only)
-2. **Merge to main**
-  - Fetch origin
-  - Compute merge-base; abort if conflicts predicted
-  - Fast-forward `--no-ff` merge with conventional message: `Merge bead <id>: <title>`
-  - Push origin main
-  - Verify push via `git ls-remote origin main` matches local SHA
-3. **Bead state update**
-  - New state: `integrated` (schema add)
-  - Annotate with merge SHA and timestamp
-  - `bd dolt push` so other sessions see the state
-4. **Worktree cleanup** (tied to `integrated` state, NOT session end)
-  - If worktree has no other branches: `git worktree remove`
-  - If worktree has other beads in flight: keep, but unmark this branch
-  - Skip if `--keep-worktree` flag set
-5. **Optional: --batch mode**
-  - `bd integrate --ready` integrates all beads matching state filter
-  - Sequential, abort-on-first-failure
+- Bead exists and is `closed` OR `in_progress` with `--force`
+- Branch exists in worktree (read from bead metadata or `.claude/worktrees/<name>/`)
+- Worktree has no uncommitted changes
+- Branch is pushed to origin (verify via `git ls-remote origin <branch>`)
+- `/complete` criteria from bead description pass (run greps literally)
+- Main worktree has no uncommitted source changes (allow churn-listed paths only)
+9. **Merge to main**
+- Fetch origin
+- Compute merge-base; abort if conflicts predicted
+- Fast-forward `--no-ff` merge with conventional message: `Merge bead <id>: <title>`
+- Push origin main
+- Verify push via `git ls-remote origin main` matches local SHA
+16. **Bead state update**
+- New state: `integrated` (schema add)
+- Annotate with merge SHA and timestamp
+- `bd dolt push` so other sessions see the state
+21. **Worktree cleanup** (tied to `integrated` state, NOT session end)
+- If worktree has no other branches: `git worktree remove`
+- If worktree has other beads in flight: keep, but unmark this branch
+- Skip if `--keep-worktree` flag set
+26. **Optional: --batch mode**
+- `bd integrate --ready` integrates all beads matching state filter
+- Sequential, abort-on-first-failure
 
 ## Hard gates (anti-fail-modes)
 

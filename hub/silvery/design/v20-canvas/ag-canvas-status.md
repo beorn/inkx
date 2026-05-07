@@ -41,23 +41,23 @@ Lives inside ag-react because it needs the React reconciler. Will become standal
 
 ## Capability Matrix (Terminal vs Canvas)
 
-| Capability          | Terminal | Canvas              | Notes                                   |
-| ------------------- | -------- | ------------------- | --------------------------------------- |
-| Box/Text rendering  | ✅       | ✅                  | Identical                               |
-| Layout (Flexily)    | ✅       | ✅                  | Identical                               |
-| Focus management    | ✅       | ✅                  | Identical                               |
-| Theme               | ✅       | ✅                  | Identical (Catppuccin default)          |
-| Virtualization      | ✅       | ✅                  | Identical                               |
-| useInput (keyboard) | ✅       | ✅                  | Canvas: no Kitty protocol               |
-| Mouse events        | ✅ SGR   | ✅ CanvasMouseEvent | Different API, same data                |
-| useApp (store)      | ✅       | ⚠️ Partial          | No pause/resume                         |
-| RuntimeContext emit | ✅       | ❌                  | Blocks custom app events                |
-| InputLayerProvider  | ✅       | ❌                  | Blocks modal input stacking             |
-| useTerm()           | ✅       | ❌                  | Terminal-only (dims, caps)              |
-| useStdout/useStderr | ✅       | ❌                  | Terminal-only                           |
-| useScrollback       | ✅       | ❌                  | Terminal-only                           |
-| Reactive resize     | ✅       | ⚠️ Manual           | Need resize observer                    |
-| Component count     | 40       | 38                  | Missing: ScrollbackList, ScrollbackView |
+| Capability          | Terminal | Canvas             | Notes                                   |
+| ------------------- | -------- | ------------------ | --------------------------------------- |
+| Box/Text rendering  | ✅        | ✅                  | Identical                               |
+| Layout (Flexily)    | ✅        | ✅                  | Identical                               |
+| Focus management    | ✅        | ✅                  | Identical                               |
+| Theme               | ✅        | ✅                  | Identical (Catppuccin default)          |
+| Virtualization      | ✅        | ✅                  | Identical                               |
+| useInput (keyboard) | ✅        | ✅                  | Canvas: no Kitty protocol               |
+| Mouse events        | ✅ SGR    | ✅ CanvasMouseEvent | Different API, same data                |
+| useApp (store)      | ✅        | ⚠️ Partial         | No pause/resume                         |
+| RuntimeContext emit | ✅        | ❌                  | Blocks custom app events                |
+| InputLayerProvider  | ✅        | ❌                  | Blocks modal input stacking             |
+| useTerm()           | ✅        | ❌                  | Terminal-only (dims, caps)              |
+| useStdout/useStderr | ✅        | ❌                  | Terminal-only                           |
+| useScrollback       | ✅        | ❌                  | Terminal-only                           |
+| Reactive resize     | ✅        | ⚠️ Manual          | Need resize observer                    |
+| Component count     | 40       | 38                 | Missing: ScrollbackList, ScrollbackView |
 
 ## Architecture Decisions
 
@@ -142,3 +142,4 @@ bun vitest run --project vendor vendor/silvery/packages/ag-react/src/ui/canvas/_
 # Canvas rendering test (Playwright, headless)
 # See km/apps/km-tui/web/ for Playwright exploration scripts
 ```
+

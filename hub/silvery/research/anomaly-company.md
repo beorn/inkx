@@ -156,3 +156,4 @@ From public reporting and the repo, the reasons opencode won mind-share in H2 20
 - `npm view @opentui/core` — maintainers `kommander`, `fanjie`, `thdxr`; repository `anomalyco/opentui`
 
 Numbers like MAU, ARR, and star counts move fast — re-verify before quoting in any external context.
+

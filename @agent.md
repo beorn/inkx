@@ -1,9 +1,9 @@
 ---
+mentions:
+  - agent
 id: "@agent"
 type: epic
 created_at: 2026-05-06T23:10:00.000Z
-rules:
-  add: "@agent"
 ---
 
 # @agent — agent persona slots
@@ -31,11 +31,11 @@ Each slot is a markdown file with:
 
 ## Operations
 
-| Skill | Effect |
-|---|---|
-| `/claim @agent/N` | Claim the slot (sets assignee + status=wip via DB-side CAS); reads body into session context as `<persona>` envelope; tribe-broadcasts |
-| `/do` | Picks the highest-priority bead from any claimed slot's queue, presents/auto-executes, closes on completion |
-| `km agent spawn @agent/N [--agent silvercode\|claude\|pi]` | Out-of-process: claim slot, compose session brief (persona + queue + env), exec the agent runtime; default `--agent silvercode` |
+| Skill                                                    | Effect                                                                                                                               |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| /claim @agent/N                                          | Claim the slot (sets assignee + status=wip via DB-side CAS); reads body into session context as <persona> envelope; tribe-broadcasts |
+| /do                                                      | Picks the highest-priority bead from any claimed slot's queue, presents/auto-executes, closes on completion                          |
+| km agent spawn @agent/N [--agent silvercode\|claude\|pi] | Out-of-process: claim slot, compose session brief (persona + queue + env), exec the agent runtime; default --agent silvercode        |
 
 ## Canonical model
 
@@ -48,3 +48,62 @@ Three docs define the moving parts:
 ## Tracking
 
 `@km/agent/sigil-boards` (epic, P2) — design + implementation phases.
+
+![[sigil-boards]]
+
+![[vault-next-me-rename]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[vault-next-me-rename]]
+
+![[watcher-bridge]]
+
+![[vault-next-me-rename]]
+
+![[vault-next-me-rename]]
+
+![[q5hji]]
+
+![[vault-next-me-rename]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[q5hji]]
+
+![[q5hji]]
+
+![[sigil-boards]]
+
+![[q5hji]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[watcher-bridge]]
+
+![[q5hji]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[sigil-boards]]
+
+![[q5hji]]
+
+![[q5hji]]
+
+![[sigil-boards]]
+
+![[q5hji]]
+

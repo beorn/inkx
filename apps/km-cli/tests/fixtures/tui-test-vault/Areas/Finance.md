@@ -4,19 +4,19 @@ Personal finance management and budgeting.
 
 ## Monthly Budget
 
-| Category      | Budget     | Spent      | Remaining |
-| ------------- | ---------- | ---------- | --------- |
-| Housing       | $2,000     | $2,000     | $0        |
-| Food          | $600       | $450       | $150      |
-| Transport     | $300       | $280       | $20       |
-| Entertainment | $200       | $150       | $50       |
-| **Total**     | **$3,100** | **$2,880** | **$220**  |
+| Category      | Budget | Spent  | Remaining |
+| ------------- | ------ | ------ | --------- |
+| Housing       | $2,000 | $2,000 | $0        |
+| Food          | $600   | $450   | $150      |
+| Transport     | $300   | $280   | $20       |
+| Entertainment | $200   | $150   | $50       |
+| Total         | $3,100 | $2,880 | $220      |
 
 ## Tasks
 
 ### Urgent
 
-- [ ] File quarterly taxes 📅 2025-04-15 priority:: P1
+- [ ] File quarterly taxes due:: 2025-04-15 priority:: P1
 - [!] Dispute charge on credit card (waiting for response)
 
 ### Regular
@@ -35,10 +35,13 @@ Personal finance management and budgeting.
 ## Goals
 
 1. **Emergency fund**: 6 months expenses ($18,000)
-   - Current: $12,000 (67%)
-2. **Retirement**: Max 401k contribution ($22,500/year)
-3. **House down payment**: $60,000 target
-   - Current: $25,000 (42%)
+
+- Current: $12,000 (67%)
+
+6. **Retirement**: Max 401k contribution ($22,500/year)
+7. **House down payment**: $60,000 target
+
+- Current: $25,000 (42%)
 
 ## Investment Allocation
 
@@ -72,6 +75,6 @@ Cash: 5%
 
 ## Notes
 
-> **Rule of thumb**: Keep 3-6 months expenses in emergency fund before investing extra.
+> Rule of thumb: Keep 3-6 months expenses in emergency fund before investing extra.
 
 See also: [[Resources/API Guidelines]] (just kidding, unrelated but tests cross-linking)

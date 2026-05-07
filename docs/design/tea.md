@@ -1,11 +1,11 @@
 # TEA State Machines
 
-> Every interactive subsystem's **inner reducer** is a pure state machine: `(state, op) → [state, effects]`.
+> Every interactive subsystem's inner reducer is a pure state machine: (state, op) → [state, effects].
 
 **Bead:** @km/all/tea-machines
 **Status:** Partially implemented (Phase 2a navigation reducer shipped; see [phases.md](phases.md) for roadmap)
 
-> **Scope note (2026-04-21)**: this doc describes the **inner** layer — pure domain reducers. The silvery apply-chain (outer plugin bus) uses a different, complementary signature: `apply(op) → false | Effect[]`. A plugin is typically an outer `apply(op)` wrapper owning a slice of state (via closure over zustand `set`) that optionally calls an inner `(state, op) → [state, effects]` reducer to compute the next slice state. See `@km/all/tea-discuss` §3 for the outer contract and the two-layer framing. Earlier text in this doc said the inner signature was universal "no exceptions" — that is correct *for inner domain reducers* but does not describe the outer plugin bus, which has a different contract by design.
+> Scope note (2026-04-21): this doc describes the inner layer — pure domain reducers. The silvery apply-chain (outer plugin bus) uses a different, complementary signature: apply(op) → false | Effect[]. A plugin is typically an outer apply(op) wrapper owning a slice of state (via closure over zustand set) that optionally calls an inner (state, op) → [state, effects] reducer to compute the next slice state. See @km/all/tea-discuss §3 for the outer contract and the two-layer framing. Earlier text in this doc said the inner signature was universal "no exceptions" — that is correct for inner domain reducers but does not describe the outer plugin bus, which has a different contract by design.
 
 ## The Principle
 
@@ -26,20 +26,20 @@ app coordination     Board.apply(state, op)      → [state, effects]
 
 See [glossary.md](../glossary.md) for full definitions. Consistent naming across all layers:
 
-| Concept | Term | Not |
-|---|---|---|
-| Something that happened | **event** | — |
-| Named, registered event handler | **command** | ~~action~~ |
-| Data passed to `.apply()` | **op** | ~~action~~, ~~message~~ |
-| Pure function implementing one op type | **op handler** | ~~reducer~~, ~~case~~ |
-| Handler map + typed apply dispatcher | **createSlice()** | — |
-| Ergonomic proxy routing calls through apply | **op() proxy** | — |
-| Read-only derivation from state | **selector** | ~~getter~~ |
-| Creates initial state | **constructor** | — |
-| Result side channel | **effect** | ~~side effect~~, ~~cmd~~ |
-| Persisted record of what changed | **change** | ~~committed event~~ |
-| Type + function namespace | **domain interface** | ~~noun-singleton~~, ~~class~~ |
-| State transition dispatcher | **`.apply()`** | ~~`.update()`~~, ~~`.reduce()`~~ |
+| Concept                                     | Term             | Not                   |
+| ------------------------------------------- | ---------------- | --------------------- |
+| Something that happened                     | event            | —                     |
+| Named, registered event handler             | command          | action                |
+| Data passed to .apply()                     | op               | action, message       |
+| Pure function implementing one op type      | op handler       | reducer, case         |
+| Handler map + typed apply dispatcher        | createSlice()    | —                     |
+| Ergonomic proxy routing calls through apply | op() proxy       | —                     |
+| Read-only derivation from state             | selector         | getter                |
+| Creates initial state                       | constructor      | —                     |
+| Result side channel                         | effect           | side effect, cmd      |
+| Persisted record of what changed            | change           | committed event       |
+| Type + function namespace                   | domain interface | noun-singleton, class |
+| State transition dispatcher                 | .apply()         | .update(), .reduce()  |
 
 **Ban**: `Action` as a type name. Use `*Op` for dispatch types (`BoardOp`, `TreeOp`, `PlainTextOp`).
 
@@ -103,6 +103,7 @@ op(model).chat.submit({ text: "hello" })
 The method name IS the op type. The arguments ARE the op data. Plugins (undo, tracing, recording) intercept via `apply()` without the caller changing anything — just wrap the target in `op()`.
 
 **When to use which:**
+
 - `createSlice()` — always, for defining state machines with typed handlers and apply
 - `op()` proxy — when mutations need interception (undo, recording, collaboration). The caller decides per-call whether to use `op(model).method()` (intercepted) or `model.method()` (direct)
 
@@ -121,6 +122,7 @@ event → command/handler → op → apply(state, op) → [state, effects]
 **Providers** create events (keyboard, mouse, FS watcher, sync, timer). **Event handlers** process events into ops. **Commands** are event handlers that are registered — they get an ID, keybinding, and appear in the palette. Other handlers (reconciler, sync, heartbeat) produce ops too but aren't user-invocable.
 
 **Op types are named after the consuming machine**, not the producing source:
+
 - `BoardOp` — consumed by `Board.apply()`
 - `TreeOp` — consumed by `Tree.apply()` (invertible, atomic, serializable)
 - `PlainTextOp` — consumed by `PlainText.apply()`
@@ -150,28 +152,28 @@ Every interactive subsystem mapped to its current state management approach:
 
 ### km-tui (application)
 
-| Domain | Files | Current Approach | Target |
-|---|---|---|---|
-| **Board navigation** | `board-reducer.ts`, `board-actions-nav.ts` | `applyBoard()` — **pure reducer + edit ops, shipped** (Phase 2a). `board-effect-runner.ts` centralizes effect interpretation | Full `Board.apply()` (Phase 2) |
-| **UI / Dialogs** | `board-app-store.ts`, `ui-reducer.ts` | Imperative Zustand `setUI()` mutations | `Dialog.apply()` (Phase 2) |
-| **Text editing** | `board-actions-edit.ts`, `useEditContext` | Ref-based, imperative | `PlainText.apply()` dispatch (Phase 1) |
-| **Search** | `SearchDialog.tsx`, `Omnibox.tsx` | Imperative handlers, local state | `Search.apply()` (Phase 2) |
-| **Selection** | `board-actions-selection.ts` | Implicit in board state | Part of `Board.apply()` (Phase 2) |
-| **Undo** | `undo-stack.ts`, `undoable-repo.ts` | Imperative UndoStack + UndoableRepo (active system) | TEA undo middleware (Phase 2) |
-| **Navigation history** | `board-app-store.ts` | Data-only back/forward stack | Part of `Board.apply()` (Phase 2) |
-| **Command system** | `command-bridge.ts`, `board-app.ts` | Key → command → operation (already data-driven) | Unchanged (routes to TEA machines) |
+| Domain             | Files                                  | Current Approach                                                                                                     | Target                               |
+| ------------------ | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Board navigation   | board-reducer.ts, board-actions-nav.ts | applyBoard() — pure reducer + edit ops, shipped (Phase 2a). board-effect-runner.ts centralizes effect interpretation | Full Board.apply() (Phase 2)         |
+| UI / Dialogs       | board-app-store.ts, ui-reducer.ts      | Imperative Zustand setUI() mutations                                                                                 | Dialog.apply() (Phase 2)             |
+| Text editing       | board-actions-edit.ts, useEditContext  | Ref-based, imperative                                                                                                | PlainText.apply() dispatch (Phase 1) |
+| Search             | SearchDialog.tsx, Omnibox.tsx          | Imperative handlers, local state                                                                                     | Search.apply() (Phase 2)             |
+| Selection          | board-actions-selection.ts             | Implicit in board state                                                                                              | Part of Board.apply() (Phase 2)      |
+| Undo               | undo-stack.ts, undoable-repo.ts        | Imperative UndoStack + UndoableRepo (active system)                                                                  | TEA undo middleware (Phase 2)        |
+| Navigation history | board-app-store.ts                     | Data-only back/forward stack                                                                                         | Part of Board.apply() (Phase 2)      |
+| Command system     | command-bridge.ts, board-app.ts        | Key → command → operation (already data-driven)                                                                      | Unchanged (routes to TEA machines)   |
 
 ### silvery (framework)
 
-| Domain | Files | Current Approach | Target |
-|---|---|---|---|
-| **tea middleware** | `packages/create/src/tea/` | **Shipped**: `tea()` Zustand middleware, `collect()` test helper | Unchanged |
-| **Focus** | `focus-manager.ts` | Tree-based, pure-ish (focusNext/Prev return new state) | Already TEA-compatible |
-| **readline editing** | `readline-ops.ts`, `useReadline.ts` | `handleReadlineKey` — pure function, returns result | `PlainText.apply()` (Phase 1) |
-| **TextArea** | `TextArea.tsx` | Stateful hooks + `handleReadlineKey` | Driven mode via `PlainText.apply()` (Phase 1) |
-| **TextInput** | `TextInput.tsx`, `useReadline.ts` | `useReadline` hook | Driven mode via `PlainText.apply()` (Phase 1) |
-| **VirtualList** | `VirtualList.tsx` | Internal scroll state, useInput | Could be TEA (low priority) |
-| **Input layers** | `InputLayerContext.tsx` | LIFO stack, imperative | Unchanged (routing, not state) |
+| Domain           | Files                           | Current Approach                                         | Target                                      |
+| ---------------- | ------------------------------- | -------------------------------------------------------- | ------------------------------------------- |
+| tea middleware   | packages/create/src/tea/        | Shipped: tea() Zustand middleware, collect() test helper | Unchanged                                   |
+| Focus            | focus-manager.ts                | Tree-based, pure-ish (focusNext/Prev return new state)   | Already TEA-compatible                      |
+| readline editing | readline-ops.ts, useReadline.ts | handleReadlineKey — pure function, returns result        | PlainText.apply() (Phase 1)                 |
+| TextArea         | TextArea.tsx                    | Stateful hooks + handleReadlineKey                       | Driven mode via PlainText.apply() (Phase 1) |
+| TextInput        | TextInput.tsx, useReadline.ts   | useReadline hook                                         | Driven mode via PlainText.apply() (Phase 1) |
+| VirtualList      | VirtualList.tsx                 | Internal scroll state, useInput                          | Could be TEA (low priority)                 |
+| Input layers     | InputLayerContext.tsx           | LIFO stack, imperative                                   | Unchanged (routing, not state)              |
 
 ### Key observations
 
@@ -238,6 +240,7 @@ type TreeEffect =
 **Kill ring architecture**: The kill ring is a global resource managed at the app level (BoardState or a dedicated store). PlainText.apply never reads the kill ring — it only emits `kill_ring_push` effects when text is killed. For yank operations, the command layer resolves the kill ring content and produces `{ type: "yank", text: killRing[0] }` ops before they reach PlainText.apply. This keeps the universal `(state, op) → [state, effects]` signature with no exceptions.
 
 **Consumers:**
+
 - **React (standalone)**: `usePlainText()` wraps in useState + optional useInput
 - **React (driven)**: `<TextInput state={s} onOp={dispatch} />`
 - **TEA store**: Call `PlainText.apply()` directly in update function
@@ -259,6 +262,7 @@ Transforms.splitNodes(editor, { at: point })
 ```
 
 km doesn't build its own rich text engine. SlateJS is the engine. km provides:
+
 - A **silvery rendering adapter** for terminal display (translates Slate's element/leaf tree to silvery components)
 - **ID-based node addressing** at the Tree level (SlateJS uses paths internally within a body, which is fine — bodies are small, path instability doesn't matter within a single node)
 - **Kill ring integration** via the same effect pattern as PlainText
@@ -325,17 +329,17 @@ SlateJS's best pattern: each core concept is both a TypeScript **interface** and
 
 km adopts this pattern with ID-based addressing:
 
-| SlateJS Singleton | km Equivalent | Adaptation |
-|---|---|---|
-| `Editor` | `Tree` | Pure: `Tree.apply(tree, op) → [TreeState, TreeEffect[]]` instead of `editor.apply(op)` |
-| `Node` | `Node` | ID-based: `Node.parent(root, id)` instead of `Node.parent(root, path)` |
-| `Element` | `Element` | Same — type guard + queries |
-| `Text` | `PlainText` | Character-level `.apply()` for readline editing (Phase 1) |
-| `Path` | `Path` | Retained for local tree navigation, but not for addressing |
-| `Point` | `Point` | `{ nodeId, offset }` instead of `{ path, offset }` |
-| `Range` | `Range` | `{ anchor: Point, focus: Point }` — same shape, ID-based Points |
-| `TreeOp` | `TreeOp` | Same 8 types, `nodeId` replaces `path` |
-| `Transforms` | `Transforms` | Same API, pure: `Transforms.insertText(tree, text) → [TreeState, TreeEffect[]]` |
+| SlateJS Singleton | km Equivalent | Adaptation                                                                         |
+| ----------------- | ------------- | ---------------------------------------------------------------------------------- |
+| Editor            | Tree          | Pure: Tree.apply(tree, op) → [TreeState, TreeEffect[]] instead of editor.apply(op) |
+| Node              | Node          | ID-based: Node.parent(root, id) instead of Node.parent(root, path)                 |
+| Element           | Element       | Same — type guard + queries                                                        |
+| Text              | PlainText     | Character-level .apply() for readline editing (Phase 1)                            |
+| Path              | Path          | Retained for local tree navigation, but not for addressing                         |
+| Point             | Point         | { nodeId, offset } instead of { path, offset }                                     |
+| Range             | Range         | { anchor: Point, focus: Point } — same shape, ID-based Points                      |
+| TreeOp            | TreeOp        | Same 8 types, nodeId replaces path                                                 |
+| Transforms        | Transforms    | Same API, pure: Transforms.insertText(tree, text) → [TreeState, TreeEffect[]]      |
 
 ### `.apply()` — The Universal Verb (inner reducer layer)
 
@@ -370,6 +374,7 @@ type Point = { nodeId: NodeId; offset: number }
 ```
 
 Benefits:
+
 - **CRDT-native**: No path transforms needed for collaborative editing
 - **Undo-stable**: IDs survive structural changes (reorder, indent, merge)
 - **Debuggable**: IDs are meaningful across time (logs, replays, history)
@@ -456,6 +461,7 @@ Tree.apply(tree, { type: "expand_node", nodeId: id })
 ```
 
 Benefits:
+
 - **No loading state in the component** — components are pure renderers of state snapshots
 - **Deterministic** — the state machine always knows what's loaded and what's not
 - **Testable** — inject loaded/unloaded states directly in tests
@@ -497,6 +503,7 @@ interface GapSelection {
 ```
 
 **How they interplay:**
+
 - **Board mode** (navigating cards): `NodeSelection` — cursor highlights a card, shift+arrow extends to multi-select
 - **Edit mode** (typing in a card): `TextSelection` — cursor is inside the text, shift+arrow selects text ranges
 - **Gap mode** (between blocks): `GapSelection` — cursor sits between two block-level nodes where no text exists (e.g., between two collapsed sections, at the end of an empty column, between non-editable block types)
@@ -505,6 +512,7 @@ interface GapSelection {
 **Why GapSelection**: ProseMirror provides GapCursor via a plugin for positions where no block can receive text focus. In km, this arises when navigating between items that have no editable text at a given position — the cursor needs somewhere to "be" between blocks. Without GapSelection, the cursor jumps unpredictably over non-editable regions. It also enables inserting new nodes at specific positions by typing at a gap.
 
 **Copy/cut behavior**:
+
 - TextSelection → copies text content (plain/rich text)
 - NodeSelection → copies whole nodes (structured data)
 - GapSelection → no-op (nothing to copy)
@@ -528,6 +536,7 @@ Tree.selectedNodes(tree)                  // → NodeId[]  (works for all types)
 ```
 
 **Why not just SlateJS's Range?** Because:
+
 1. SlateJS can't represent "column 2 is selected" — it has no concept of selecting a non-text node
 2. Multi-node selection (shift+click multiple cards) has no SlateJS equivalent
 3. Gap positions between non-editable blocks have no SlateJS representation
@@ -600,7 +609,7 @@ Tree.apply(bareState, op)
 
 This is the pure equivalent of SlateJS's `withHistory(withReact(createEditor()))` — but instead of monkey-patching a mutable object, each plugin contributes state fields and wraps the apply function. The compiler enforces that you can only access `state.history` if `withHistory` is in the composition chain.
 
-> **Implementation status**: `withHistory` was removed (dead code — never wired into the live app). The active undo system is the imperative `UndoStack` + `UndoableRepo`. `Board.apply` with effect runner has landed (`board-reducer.ts`). `withVim` and `withCollaboration` are designed but not yet implemented. The plugin composition pattern is proven by `silvery/tea` (shipped Zustand middleware). See [phases.md](phases.md) for what has shipped and what is planned.
+> Implementation status: withHistory was removed (dead code — never wired into the live app). The active undo system is the imperative UndoStack + UndoableRepo. Board.apply with effect runner has landed (board-reducer.ts). withVim and withCollaboration are designed but not yet implemented. The plugin composition pattern is proven by silvery/tea (shipped Zustand middleware). See phases.md for what has shipped and what is planned.
 
 ### Transforms (High-Level API)
 
@@ -668,6 +677,7 @@ Tree.batch(tree, [
 ```
 
 Why `batch()` over a callback pattern (SlateJS's `withoutNormalizing`):
+
 - **Serializable** — the operation list is data, can be sent over the network or logged
 - **Composable** — batches can be nested or concatenated
 - **CRDT-friendly** — maps directly to an Automerge `change()` call
@@ -703,6 +713,7 @@ km has two editing levels with clear scope boundaries:
 - **PlainText.apply()** handles simple single-line inputs: search bars, dialog text fields, inline title editing. No rich text, no marks — just cursor + readline shortcuts.
 
 SlateJS-compatibility means:
+
 - Same operation names (`insert_text`, `split_node`, etc.)
 - Same query patterns (`Tree.nodes()`, `Tree.above()`)
 - SlateJS serves as the body editor engine on both web and terminal
@@ -729,6 +740,7 @@ The persistent layer uses **Automerge** (or Yjs) as the source of truth. `Tree.a
 ```
 
 **Why separate docs:**
+
 - **Granular sync**: Load only the bodies the user is viewing — hierarchy is always loaded, bodies are lazy
 - **Independent history**: Undo within a body doesn't undo tree structure changes
 - **Conflict isolation**: Two users editing different items don't interfere
@@ -755,6 +767,7 @@ function apply(tree: TreeState, op: TreeOp): [TreeState, TreeEffect[]] {
 ```
 
 **What CRDT provides "for free":**
+
 - **Collaboration** — Automerge sync protocol replaces `withCollaboration` plugin
 - **Undo/redo** — Automerge change grouping + rollback replaces `withHistory` plugin (or the plugin becomes a thin wrapper over Automerge's undo)
 - **Conflict resolution** — concurrent edits merge automatically (no OT transforms needed)
@@ -762,6 +775,7 @@ function apply(tree: TreeState, op: TreeOp): [TreeState, TreeEffect[]] {
 - **History** — full change history with timestamps and attribution
 
 **What CRDT does NOT provide:**
+
 - **Operation semantics** — Tree.apply() still defines what "indent a node" means (move to previous sibling's children)
 - **Normalization** — tree invariants are still enforced by normalizers after each batch
 - **Selection** — selection is local-only, not synced via CRDT
@@ -769,6 +783,7 @@ function apply(tree: TreeState, op: TreeOp): [TreeState, TreeEffect[]] {
 - **Lazy loading** — which nodes are materialized is a per-client concern
 
 **Undo grouping policy** (critical for UX): Character-level edits (typing text) should merge into a single undo step. Without grouping, every keystroke is a separate undo entry. Policy:
+
 - Same operation type + same target node + within 500ms → merge into current group
 - Different operation type or different node → start new group
 - Explicit boundaries: Enter, Tab, paste, any structural op → always start new group
@@ -776,6 +791,7 @@ function apply(tree: TreeState, op: TreeOp): [TreeState, TreeEffect[]] {
 
 **Impact on SlateJS integration (Phase 3):**
 If body content lives in Automerge docs, SlateJS may serve as the **rendering and editing UI** while Automerge is the **data model**. Libraries like `slate-yjs` (for Yjs) or an Automerge equivalent bridge SlateJS's editor to CRDT documents. This means:
+
 - SlateJS operations → Automerge text mutations (via bridge)
 - Remote Automerge changes → SlateJS state updates (via bridge)
 - No separate "Slate state vs km state" synchronization problem
@@ -793,6 +809,7 @@ TextInput/TextArea become rendering shells with two modes:
 ```
 
 When `state` + `onOp` are provided, the component:
+
 1. Skips internal state management (no key capture)
 2. Renders from provided state (value, cursor, isActive)
 3. Reports key events as operations via `onOp` (parent calls `PlainText.apply()`)
@@ -801,7 +818,7 @@ Both modes share the same rendering code. The only difference is who drives the 
 
 ## Phased Plan
 
-> See [phases.md](phases.md) for the consolidated roadmap with current status and key files.
+> See phases.md for the consolidated roadmap with current status and key files.
 
 ### Phase 1: PlainText (Silvery/core) — character-level TEA
 
@@ -865,6 +882,7 @@ interface TreeState {
 ```
 
 Additional km operations beyond the 9 SlateJS types:
+
 - `indent`, `outdent` — change nesting level (sugar over `move_node`)
 - `load_children` — lazy content materialization (**excluded from undo stack** — not a user edit)
 - `undo`, `redo` — history navigation
@@ -922,13 +940,13 @@ The `NodeStore` (created via `createNodeStore()` factory) manages per-node signa
 
 ### What Was Replaced
 
-| Before | After |
-|---|---|
-| Jotai atoms + atomFamily (9 atom families, 5 cursor globals) | `Reactive<T>` signals in `NodeStore` |
-| `node-atoms-hydrate.ts` — 5 manual sync functions (216 LOC) | Board.tsx writes signals directly |
-| `node-atoms.ts` — atom definitions (135 LOC) | Deleted — signals created on-demand via `store.node(id)` |
-| Jotai `useAtomValue()` in 10+ component files | `useReactive()` hook (thin wrapper around `useSyncExternalStore`) |
-| Jotai + jotai-family npm dependencies | Zero external deps — `Reactive<T>` is 27 lines |
+| Before                                                       | After                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------- |
+| Jotai atoms + atomFamily (9 atom families, 5 cursor globals) | Reactive<T> signals in NodeStore                              |
+| node-atoms-hydrate.ts — 5 manual sync functions (216 LOC)    | Board.tsx writes signals directly                             |
+| node-atoms.ts — atom definitions (135 LOC)                   | Deleted — signals created on-demand via store.node(id)        |
+| Jotai useAtomValue() in 10+ component files                  | useReactive() hook (thin wrapper around useSyncExternalStore) |
+| Jotai + jotai-family npm dependencies                        | Zero external deps — Reactive<T> is 27 lines                  |
 
 ### Future: Operation-Targeted Updates
 
@@ -944,13 +962,13 @@ function dispatch(state: BoardState, op: BoardOp): BoardState {
 
 ### How Editors Solve This
 
-| Editor | State Model | UI Update Strategy |
-|---|---|---|
-| **CodeMirror 6** | Immutable EditorState | Changeset diff — computes minimal DOM mutations, bypasses React entirely |
-| **ProseMirror** | Transaction steps | Steps describe affected document range → targeted DOM reconciliation |
-| **Lexical** | Immutable tree + React | Dirty node tracking — only re-renders nodes whose data changed |
-| **Elm** | Single model + VDOM | `Html.lazy` memoizes subtrees; VDOM diff handles the rest |
-| **km** | Zustand + Reactive\<T\> signals | Delta sync from store → per-node signals → React re-renders |
+| Editor       | State Model                   | UI Update Strategy                                                       |
+| ------------ | ----------------------------- | ------------------------------------------------------------------------ |
+| CodeMirror 6 | Immutable EditorState         | Changeset diff — computes minimal DOM mutations, bypasses React entirely |
+| ProseMirror  | Transaction steps             | Steps describe affected document range → targeted DOM reconciliation     |
+| Lexical      | Immutable tree + React        | Dirty node tracking — only re-renders nodes whose data changed           |
+| Elm          | Single model + VDOM           | Html.lazy memoizes subtrees; VDOM diff handles the rest                  |
+| km           | Zustand + Reactive<T> signals | Delta sync from store → per-node signals → React re-renders              |
 
 The common pattern: **the state transition function produces enough information to compute the minimal UI update**.
 
@@ -1015,3 +1033,4 @@ Architecture comparisons and design influences:
 - **Zed** — Layered Buffer → MultiBuffer → DisplayMap architecture, CRDT-based text buffer. Shows that layered pure transforms scale to production editors. ([Architecture](https://deepwiki.com/zed-industries/zed/2-core-architecture))
 - **Automerge** — CRDT library for conflict-free collaborative data. Planned as km's persistent layer for both tree hierarchy and item body content. ([Docs](https://automerge.org/docs/))
 - **Elm Architecture** — The original `(msg, model) → (model, cmd)` pattern. Foundational influence on the `.apply()` signature and effect system.
+

@@ -101,11 +101,11 @@ app repl                    # interactive REPL (for humans)
 app repl <command>          # one-off command execution
 ```
 
-| Surface | Audience            | Protocol          | Mixin           |
-| ------- | ------------------- | ----------------- | --------------- |
-| `code`  | AI agents, scripts  | JSONL (code eval) | `withCode()`    |
-| `ai`    | Orchestrator agents | tRPC¹ (typed RPC) | `withAIAgent()` |
-| `repl`  | Human power users   | Text (readline)   | `withRepl()`    |
+| Surface | Audience            | Protocol          | Mixin         |
+| ------- | ------------------- | ----------------- | ------------- |
+| code    | AI agents, scripts  | JSONL (code eval) | withCode()    |
+| ai      | Orchestrator agents | tRPC¹ (typed RPC) | withAIAgent() |
+| repl    | Human power users   | Text (readline)   | withRepl()    |
 
 _¹ tRPC = TypeScript Remote Procedure Call — end-to-end type inference with no code generation or separate schema language._
 
@@ -253,7 +253,7 @@ No MCP server to configure. No tool schemas to load. The AI writes JavaScript �
 
 Code mode is a natural fit for **executable documentation**. Tests written as markdown with embedded code blocks run in the same sandbox as `app code`:
 
-````markdown
+~~~~markdown
 ## Toggle a task
 
 ```js
@@ -269,7 +269,7 @@ const overdue = state((s) => s.columns[0].cards.filter((c) => c.due < Date.now()
 for (const c of overdue) await task.set_priority({ nodeId: c.id, priority: 1 })
 assert(overdue.every((c) => state((s) => s.tasks.find((t) => t.id === c.id).priority) === 1))
 ```
-````
+~~~~
 
 The markdown IS the test suite AND the documentation. Same code, same domain objects, same sandbox — tests can't drift from the real API.
 
@@ -517,7 +517,7 @@ withRepl()                               ← separate (dev tool)
 
 ---
 
-# Part 2: Application in Silvery
+## Part 2: Application in Silvery
 
 ## Silvery Implementation Roadmap
 
@@ -548,17 +548,11 @@ AgentHub             ← orchestration layer
 ## Open Questions
 
 - **JS interpreter choice.** Bun's `vm` module? V8 isolates? QuickJS? Needs async/await support and domain objects as globals.
-
 - **Type generation.** Build time from CommandDef metadata, or runtime via reflection? Build time is simpler and enables IDE support; runtime enables dynamic plugins.
-
 - **tRPC transport.** tRPC is built for HTTP/WebSocket, not stdio. Adapt tRPC's transport layer, or use a tRPC-inspired JSONL protocol that preserves the typed contract.
-
 - **Hub discovery.** How do agents register? Well-known port? mDNS/Bonjour? `~/.agents.json`? Should be zero-config for local agents.
-
 - **Sandbox boundaries.** `console.log` streams via JSONL. `setTimeout` probably yes. `fetch` probably no. Closer to Cloudflare than Jupyter.
-
 - **LLM configuration.** For `withAIAgent()` and `<AIChat>`: model selection, API key management, system prompt customization. Defaults vs explicit config.
-
 - **CRDT-backed state (TODO — worth exploring).** What if all app state lives in a CRDT (like Automerge) and every command produces a change on it? This would give us:
   - **Free undo/redo** — every change is a CRDT operation; time-travel is built-in
   - **Nothing is dangerous** — any pure state mutation (not a side effect) can be undone. The security concern ("what if the AI deletes everything?") becomes trivial: just revert the changes. Only _effects_ (sending email, calling external APIs) are truly destructive.
@@ -566,11 +560,10 @@ AgentHub             ← orchestration layer
   - **Multi-agent safety** — multiple agents operating on the same app state can't corrupt each other; CRDT merges handle conflicts automatically.
   - **Sync** — CRDT state syncs across devices/instances for free. A headless agent and a TUI can share the same live state.
   - This would make the command/effect split from [TEA (The Elm Architecture) state machines](../../../../docs/design/tea.md) even more meaningful: commands that produce state changes are always safe (CRDT-backed, undoable). Commands that produce effects (send email, write file) are the only ones that need confirmation.
-
 - **Security (TODO — needs its own design).** The building blocks are sketched (per-command confirmation via `<AIChat confirm={[...]}>`; token-based auth for `app ai serve`; Unix socket permissions for local agents; per-agent permission scopes in Agent Hub). But the full security model — what happens when an AI calls a destructive command, how permissions compose across agents, how to audit and revoke — needs a dedicated design pass. The CRDT approach above could simplify this significantly: if state mutations are always undoable, the security concern narrows to effects only.
-
 - **Headless mode.** Booting without a terminal — just domain objects + state + storage. May need `createHeadlessApp()` that sets up the command layer without the rendering pipeline.
 
 ---
 
 _See also: [Command-Centric Design](../v15-tea/commands.md) — the architectural foundation that makes AI Mode possible._
+

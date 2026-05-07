@@ -229,9 +229,7 @@ export function planSet(repo: Repo, nodeId: string, fields: readonly string[]): 
         // Levenshtein distance ≤ 2 catches single-char typos and
         // adjacent-key swaps without false-positives on unrelated input.
         const suggestion = suggestField(key, ALL_FIELD_KEYS)
-        warnings.push(
-          suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
-        )
+        warnings.push(suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`)
       }
     }
   }

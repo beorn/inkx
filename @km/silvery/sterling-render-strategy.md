@@ -20,8 +20,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [ ] Sterling: pluggable RenderStrategy (output-side composability) @km/silvery #feature #P3 @claude:22c2717d

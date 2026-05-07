@@ -6,10 +6,10 @@ This is a sample project file with various node types for testing.
 
 - [ ] Open task without metadata
 - [x] Completed task
-- [ ] Task with due date 📅 2025-03-15
+- [ ] Task with due date due:: 2025-03-15
 - [ ] Task with high priority priority:: P1
 - [ ] Task with medium priority priority:: P2
-- [ ] Complex task 📅 2025-04-01 ⏳ 2025-03-20 priority:: P3
+- [ ] Complex task due:: 2025-04-01 start:: 2025-03-20 priority:: P3
 - [x] Another completed task
 - [ ] Open with tags #project #important
 

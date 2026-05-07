@@ -74,12 +74,12 @@ We use **Heroicons** for consistency:
 - Outline style for navigation
 - Solid style for actions
 
-| Icon  | Usage          | Code                 |
-| ----- | -------------- | -------------------- |
-| Home  | Navigation     | `<HomeIcon />`       |
-| Check | Success states | `<CheckIcon />`      |
-| X     | Close/cancel   | `<XMarkIcon />`      |
-| Arrow | Directional    | `<ArrowRightIcon />` |
+| Icon  | Usage          | Code               |
+| ----- | -------------- | ------------------ |
+| Home  | Navigation     | <HomeIcon />       |
+| Check | Success states | <CheckIcon />      |
+| X     | Close/cancel   | <XMarkIcon />      |
+| Arrow | Directional    | <ArrowRightIcon /> |
 
 ## Spacing Scale
 

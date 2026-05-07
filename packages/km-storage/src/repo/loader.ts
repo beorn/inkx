@@ -679,8 +679,9 @@ function* discoverFromEvents(
   const cursorRow = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event_seq") as
     | { value: string }
     | undefined
-  const cursorSet = cursorRow?.value !== undefined
-  const lastSeq = force || !cursorSet ? 0 : Number(cursorRow!.value)
+  const cursorValue = cursorRow?.value
+  const cursorSet = cursorValue !== undefined
+  const lastSeq = force || cursorValue === undefined ? 0 : Number(cursorValue)
   const maxRow = db.prepare("SELECT MAX(seq) AS max FROM events").get() as { max: number | null }
   const maxSeq = maxRow?.max ?? 0
 

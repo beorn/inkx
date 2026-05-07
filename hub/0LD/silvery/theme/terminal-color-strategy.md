@@ -64,81 +64,81 @@ Layer prefix (`text-` / `bg-` / `border-`) + semantic role. Kebab-case. Borrowed
 
 ### Text — static (10)
 
-| Token | Role |
-|---|---|
-| `fg-default` | body text |
-| `fg-muted` | meta, captions, de-emphasized |
-| `fg-subtle` | tertiary / fine print (used by `<Small>`) |
-| `fg-disabled` | clearly inactive |
-| `fg-inverse` | text on dark strips / status bars |
-| `fg-on-fill` | text on ANY filled surface |
-| `fg-danger` | error text (static; state-semantic but doesn't hover) |
-| `fg-warning` | warning text |
-| `fg-success` | success text |
-| `fg-info` | info text |
+| Token       | Role                                                  |
+| ----------- | ----------------------------------------------------- |
+| fg-default  | body text                                             |
+| fg-muted    | meta, captions, de-emphasized                         |
+| fg-subtle   | tertiary / fine print (used by <Small>)               |
+| fg-disabled | clearly inactive                                      |
+| fg-inverse  | text on dark strips / status bars                     |
+| fg-on-fill  | text on ANY filled surface                            |
+| fg-danger   | error text (static; state-semantic but doesn't hover) |
+| fg-warning  | warning text                                          |
+| fg-success  | success text                                          |
+| fg-info     | info text                                             |
 
 ### Text — interactive (2 × 3 states = 6)
 
-| Token family | Hover / Active |
-|---|---|
-| `fg-link` / `-hover` / `-active` | hyperlinks |
-| `fg-accent` / `-hover` / `-active` | brand-colored text used interactively |
+| Token family                 | Hover / Active                        |
+| ---------------------------- | ------------------------------------- |
+| fg-link / -hover / -active   | hyperlinks                            |
+| fg-accent / -hover / -active | brand-colored text used interactively |
 
 ### Backgrounds — static (5)
 
-| Token | Role |
-|---|---|
-| `bg-default` | app background |
-| `bg-surface-secondary` | alt rows, nested (one step above surface) |
-| `bg-overlay` | modals, popovers, tooltips (non-interactive) |
-| `bg-inverse` | dark strips, status bars |
-| `bg-selected` | selection highlight |
+| Token                | Role                                         |
+| -------------------- | -------------------------------------------- |
+| bg-default           | app background                               |
+| bg-surface-secondary | alt rows, nested (one step above surface)    |
+| bg-overlay           | modals, popovers, tooltips (non-interactive) |
+| bg-inverse           | dark strips, status bars                     |
+| bg-selected          | selection highlight                          |
 
 ### Backgrounds — interactive (6 × 3 states = 18)
 
-| Token family | Hover / Active |
-|---|---|
-| `bg-surface` / `-hover` / `-active` | cards, hoverable list rows |
-| `bg-fill-accent` / `-hover` / `-active` | primary button, active tab |
-| `bg-fill-danger` / `-hover` / `-active` | destructive button, error banner |
-| `bg-fill-warning` / `-hover` / `-active` | warning button/banner |
-| `bg-fill-success` / `-hover` / `-active` | confirm button/banner |
-| `bg-fill-info` / `-hover` / `-active` | info banner |
+| Token family                       | Hover / Active                   |
+| ---------------------------------- | -------------------------------- |
+| bg-surface / -hover / -active      | cards, hoverable list rows       |
+| bg-fill-accent / -hover / -active  | primary button, active tab       |
+| bg-fill-danger / -hover / -active  | destructive button, error banner |
+| bg-fill-warning / -hover / -active | warning button/banner            |
+| bg-fill-success / -hover / -active | confirm button/banner            |
+| bg-fill-info / -hover / -active    | info banner                      |
 
 ### Borders (4)
 
-| Token | Role |
-|---|---|
-| `border-default` | card outlines, dividers |
-| `border-secondary` | quiet separators |
-| `border-focus` | focus ring |
-| `border-danger` | error input outline |
+| Token            | Role                    |
+| ---------------- | ----------------------- |
+| border-default   | card outlines, dividers |
+| border-secondary | quiet separators        |
+| border-focus     | focus ring              |
+| border-danger    | error input outline     |
 
 ### Cursor (2)
 
-| Token | Role |
-|---|---|
-| `cursor-fill` | cursor fill color — the cursor block itself (matches terminal cursorColor) |
-| `cursor-text` | text under cursor when cursor is a block (matches terminal cursorText; universal formula = bg-default) |
+| Token       | Role                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| cursor-fill | cursor fill color — the cursor block itself (matches terminal cursorColor)                             |
+| cursor-text | text under cursor when cursor is a block (matches terminal cursorText; universal formula = bg-default) |
 
 ### Categorical (16)
 
-| Token | Role |
-|---|---|
-| `ansi[0..15]` | raw ANSI access for charts, categorical series, multi-hue data |
+| Token       | Role                                                           |
+| ----------- | -------------------------------------------------------------- |
+| ansi[0..15] | raw ANSI access for charts, categorical series, multi-hue data |
 
 ### Token counts
 
-| Group | Count |
-|---|---|
-| Text static | 10 |
-| Text interactive (2 × 3) | 6 |
-| Backgrounds static | 5 |
-| Backgrounds interactive (6 × 3) | 18 |
-| Borders | 4 |
-| Cursor | 2 |
-| Categorical ANSI | 16 |
-| **Total** | **61** |
+| Group                           | Count |
+| ------------------------------- | ----- |
+| Text static                     | 10    |
+| Text interactive (2 × 3)        | 6     |
+| Backgrounds static              | 5     |
+| Backgrounds interactive (6 × 3) | 18    |
+| Borders                         | 4     |
+| Cursor                          | 2     |
+| Categorical ANSI                | 16    |
+| Total                           | 61    |
 
 Polaris-scale, supporting silvery's full web-like interaction model.
 
@@ -170,11 +170,11 @@ A theme is a 20-token object (+ optional ansi[16]). Silvery bundles 30+. Apps pi
 
 ### Bundled set
 
-| Tier | Themes |
-|---|---|
-| **Silvery originals** | `silvery-dark` (default), `silvery-light` |
-| **Dark** | `dracula`, `tokyo-night`, `tokyo-night-storm`, `solarized-dark`, `gruvbox-dark`, `nord`, `catppuccin-mocha`, `catppuccin-frappe`, `catppuccin-macchiato`, `monokai`, `one-dark`, `github-dark`, `rose-pine`, `rose-pine-moon`, `everforest-dark`, `kanagawa`, `ayu-mirage`, `night-owl`, `palenight` |
-| **Light** | `solarized-light`, `gruvbox-light`, `catppuccin-latte`, `one-light`, `github-light`, `rose-pine-dawn`, `everforest-light`, `ayu-light`, `tokyo-night-light` |
+| Tier              | Themes                                                                                                                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Silvery originals | silvery-dark (default), silvery-light                                                                                                                                                                                                                          |
+| Dark              | dracula, tokyo-night, tokyo-night-storm, solarized-dark, gruvbox-dark, nord, catppuccin-mocha, catppuccin-frappe, catppuccin-macchiato, monokai, one-dark, github-dark, rose-pine, rose-pine-moon, everforest-dark, kanagawa, ayu-mirage, night-owl, palenight |
+| Light             | solarized-light, gruvbox-light, catppuccin-latte, one-light, github-light, rose-pine-dawn, everforest-light, ayu-light, tokyo-night-light                                                                                                                      |
 
 ~30 themes × 20 tokens = ~600 OKLCH values. Bundle overhead: <10KB. Cheap — ship them.
 
@@ -272,12 +272,12 @@ Skip `cursorText` (always = bg, 100% universal formula).
 
 Sources mixed and matched per slot; confidence reported per token.
 
-| Tier | Source | When |
-|---|---|---|
-| A | Full OSC probe | All probes succeeded |
-| B | Fingerprint match | Probed 18 slots match a cataloged theme (ΔE sum < 30 AND per-slot ΔE < 8) |
-| C | Formula derivation | Probed but no fingerprint — derive cursor/selection from fg/bg via OKLCH blends |
-| D | Declared fallback | Probing failed (SSH/tmux/CI/piped) — use declared or `silvery-dark`/`silvery-light` |
+| Tier | Source             | When                                                                            |
+| ---- | ------------------ | ------------------------------------------------------------------------------- |
+| A    | Full OSC probe     | All probes succeeded                                                            |
+| B    | Fingerprint match  | Probed 18 slots match a cataloged theme (ΔE sum < 30 AND per-slot ΔE < 8)       |
+| C    | Formula derivation | Probed but no fingerprint — derive cursor/selection from fg/bg via OKLCH blends |
+| D    | Declared fallback  | Probing failed (SSH/tmux/CI/piped) — use declared or silvery-dark/silvery-light |
 
 ### Fingerprint matching — calibrated, not fragile
 
@@ -291,14 +291,14 @@ Per /pro's guidance (avoid false-positive plausibly-wrong UI):
 
 Scheme-aware — inherit the user's probed fg/bg tint:
 
-| Token | Formula |
-|---|---|
-| `cursor-fill` | scheme.cursor if chromatic + contrast-safe + hue not near state (red/green/yellow); else `fg-default` |
-| `cursor-text` | `bg-default` (100% universal) |
-| `selection-bg` | `blend(bg, fg, 0.20)` in OKLCH |
-| `selection-fg` | `fg-default` (76% exact across real schemes) |
-| `fg-muted` | `blend(fg, bg, 0.4)` + AA contrast enforced |
-| `fg-subtle` | `blend(muted, bg, 0.4)` — one step below muted |
+| Token        | Formula                                                                                             |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| cursor-fill  | scheme.cursor if chromatic + contrast-safe + hue not near state (red/green/yellow); else fg-default |
+| cursor-text  | bg-default (100% universal)                                                                         |
+| selection-bg | blend(bg, fg, 0.20) in OKLCH                                                                        |
+| selection-fg | fg-default (76% exact across real schemes)                                                          |
+| fg-muted     | blend(fg, bg, 0.4) + AA contrast enforced                                                           |
+| fg-subtle    | blend(muted, bg, 0.4) — one step below muted                                                        |
 
 ### Brand cascade (for `primary`)
 
@@ -336,21 +336,21 @@ Every theme (bundled OR auto-detected OR authored) runs through a validator at l
 
 Terminal text is monospace body size — WCAG's "large text" 3:1 exception does NOT apply. All text tokens target 4.5:1 by default; softer thresholds only for truly decorative content.
 
-| Pair | Target | Why |
-|---|---|---|
-| `fg-default` on `bg-default` | AA (4.5:1) | body text |
-| `fg-muted` on `bg-default` | AA (4.5:1) | secondary text is still body-size |
-| `fg-subtle` on `bg-default` | AA (4.5:1) | fine print but still readable |
-| `fg-disabled` on `bg-default` | DIM (3:1) | intentionally quiet |
-| `fg-accent` on `bg-default` | AA (4.5:1) | brand emphasis text |
-| each state `fg-X` on `bg-default` | AA (4.5:1) | state text readable |
-| `fg-on-fill` on each `bg-fill-X` | AA (4.5:1) | button labels |
-| `border-focus` on `bg-default` AND `bg-surface` AND `bg-overlay` | 3:1 each | focus ring visible on any surface |
-| `bg-surface` vs `bg-default` | ΔL ≥ 0.03 | elevation distinguishable |
-| `bg-overlay` vs `bg-default` | ΔL ≥ 0.08 | modal clearly elevated |
-| `bg-selected` vs `bg-default` | ΔL ≥ 0.15 + preserves `fg-default` at 4.5:1 | selection distinct + readable |
-| `cursor-fill` vs `bg-default` | ΔE₂₀₀₀ ≥ 20 (OKLCH) | cursor visible |
-| `cursor-text` on `cursor-fill` | 4.5:1 | character under block cursor readable |
+| Pair                                                     | Target                                    | Why                                   |
+| -------------------------------------------------------- | ----------------------------------------- | ------------------------------------- |
+| fg-default on bg-default                                 | AA (4.5:1)                                | body text                             |
+| fg-muted on bg-default                                   | AA (4.5:1)                                | secondary text is still body-size     |
+| fg-subtle on bg-default                                  | AA (4.5:1)                                | fine print but still readable         |
+| fg-disabled on bg-default                                | DIM (3:1)                                 | intentionally quiet                   |
+| fg-accent on bg-default                                  | AA (4.5:1)                                | brand emphasis text                   |
+| each state fg-X on bg-default                            | AA (4.5:1)                                | state text readable                   |
+| fg-on-fill on each bg-fill-X                             | AA (4.5:1)                                | button labels                         |
+| border-focus on bg-default AND bg-surface AND bg-overlay | 3:1 each                                  | focus ring visible on any surface     |
+| bg-surface vs bg-default                                 | ΔL ≥ 0.03                                 | elevation distinguishable             |
+| bg-overlay vs bg-default                                 | ΔL ≥ 0.08                                 | modal clearly elevated                |
+| bg-selected vs bg-default                                | ΔL ≥ 0.15 + preserves fg-default at 4.5:1 | selection distinct + readable         |
+| cursor-fill vs bg-default                                | ΔE₂₀₀₀ ≥ 20 (OKLCH)                       | cursor visible                        |
+| cursor-text on cursor-fill                               | 4.5:1                                     | character under block cursor readable |
 
 ### Per-tier re-check
 
@@ -360,11 +360,11 @@ A theme that passes AA in OKLCH can fail after 256-color quantization or ANSI16 
 
 Invariant repair is bounded: **never mutate probed fg/bg/ansi slot values.** Those are the user's terminal theme and must pass through unchanged to preserve native feel.
 
-| Repairable | Off-limits |
-|---|---|
-| Derived semantic tokens (`fg-muted`, `fg-subtle`, `border-focus`, state surfaces) | Probed fg, bg |
-| Tier-specific render outputs (quantized hexes, ANSI16 slot choices) | Probed 16 ANSI |
-| Formula-derived cursor/selection if they failed contrast | Declared theme values (user opt-in to silvery-dark etc.) |
+| Repairable                                                                  | Off-limits                                               |
+| --------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Derived semantic tokens (fg-muted, fg-subtle, border-focus, state surfaces) | Probed fg, bg                                            |
+| Tier-specific render outputs (quantized hexes, ANSI16 slot choices)         | Probed 16 ANSI                                           |
+| Formula-derived cursor/selection if they failed contrast                    | Declared theme values (user opt-in to silvery-dark etc.) |
 
 When a repair fires, it's recorded in `ThemeAdjustment[]` for auditing.
 
@@ -392,23 +392,23 @@ Tokens are target-neutral. Each renderer translates for its medium.
 
 ### Terminal renderer
 
-| Tier | Emission |
-|---|---|
-| truecolor | SGR 38;2;R;G;B from token.toHex() |
-| 256 | quantize token.oklch → nearest cube/ramp/ANSI16 (deterministic math) |
-| ANSI 16 | nearest-hue slot (from probed or default ANSI16 palette) |
+| Tier       | Emission                                                               |
+| ---------- | ---------------------------------------------------------------------- |
+| truecolor  | SGR 38;2;R;G;B from token.toHex()                                      |
+| 256        | quantize token.oklch → nearest cube/ramp/ANSI16 (deterministic math)   |
+| ANSI 16    | nearest-hue slot (from probed or default ANSI16 palette)               |
 | monochrome | no color SGR; emit per-token attrs (bold/dim/italic/underline/inverse) |
-| plain | no SGR at all (color OR attrs) — pure text output |
+| plain      | no SGR at all (color OR attrs) — pure text output                      |
 
 #### NO_COLOR vs monochrome vs plain
 
 Three distinct "no color" modes:
 
-| Mode | What's emitted | When triggered |
-|---|---|---|
-| **monochrome** | Attrs only (bold, dim, underline, inverse, italic). No color SGR. | `NO_COLOR=*`, `TERM=dumb`, `SILVERY_COLOR=mono` |
-| **plain** | Nothing — no SGR, no attrs. Pure text. | `!isatty(stdout)`, `SILVERY_COLOR=plain` |
-| **no-ansi-strict** | Nothing, not even attrs. | `SILVERY_STRIP_ALL=1` (opt-in override) |
+| Mode           | What's emitted                                                    | When triggered                            |
+| -------------- | ----------------------------------------------------------------- | ----------------------------------------- |
+| monochrome     | Attrs only (bold, dim, underline, inverse, italic). No color SGR. | NO_COLOR=*, TERM=dumb, SILVERY_COLOR=mono |
+| plain          | Nothing — no SGR, no attrs. Pure text.                            | !isatty(stdout), SILVERY_COLOR=plain      |
+| no-ansi-strict | Nothing, not even attrs.                                          | SILVERY_STRIP_ALL=1 (opt-in override)     |
 
 `NO_COLOR=1` means "do not use color" per [no-color.org](https://no-color.org). Attrs like bold/italic/underline are NOT color; preserving them is within spec. Silvery's default on `NO_COLOR` is **monochrome** (preserves hierarchy via attrs). Apps that want true zero-SGR set `SILVERY_STRIP_ALL=1` or pipe through a stripper.
 
@@ -432,11 +432,11 @@ Also respect `FORCE_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE` — standard cross-tool
 
 The 256-color space has three regions:
 
-| Indices | Region | Math |
-|---|---|---|
-| 0–15 | ANSI 16 (themeable) | user's probed/default scheme slots |
-| 16–231 | 6×6×6 cube (fixed RGB) | `rgb(r×51, g×51, b×51)`, index = 16 + 36r + 6g + b |
-| 232–255 | Greyscale ramp (fixed) | `rgb(n, n, n)`, n = 8 + (index-232)×10 |
+| Indices | Region                 | Math                                             |
+| ------- | ---------------------- | ------------------------------------------------ |
+| 0–15    | ANSI 16 (themeable)    | user's probed/default scheme slots               |
+| 16–231  | 6×6×6 cube (fixed RGB) | rgb(r×51, g×51, b×51), index = 16 + 36r + 6g + b |
+| 232–255 | Greyscale ramp (fixed) | rgb(n, n, n), n = 8 + (index-232)×10             |
 
 Quantization: pick minimum ΔE2000 across all 256 candidates, emit `SGR 38;5;<idx>`.
 
@@ -444,18 +444,18 @@ Quantization: pick minimum ΔE2000 across all 256 candidates, emit `SGR 38;5;<id
 
 Preserves hierarchy when color is unavailable. Each token has an attrs mapping:
 
-| Token | attrs |
-|---|---|
-| `fg-default`, `bg-*`, `border-default` | `[]` |
-| `fg-muted`, `fg-subtle` | `["dim"]` |
-| `fg-accent` | `["underline"]` |
-| `fg-danger` | `["bold", "inverse"]` |
-| `fg-warning` | `["bold"]` |
-| `fg-success` | `["bold"]` |
-| `fg-info` | `["italic"]` |
-| `border-focus` | `["bold"]` |
-| `bg-selected` | `["inverse"]` |
-| `cursor-fill` | `["inverse"]` |
+| Token                            | attrs               |
+| -------------------------------- | ------------------- |
+| fg-default, bg-*, border-default | []                  |
+| fg-muted, fg-subtle              | ["dim"]             |
+| fg-accent                        | ["underline"]       |
+| fg-danger                        | ["bold", "inverse"] |
+| fg-warning                       | ["bold"]            |
+| fg-success                       | ["bold"]            |
+| fg-info                          | ["italic"]          |
+| border-focus                     | ["bold"]            |
+| bg-selected                      | ["inverse"]         |
+| cursor-fill                      | ["inverse"]         |
 
 Universally-supported SGR subset: bold, dim, italic, underline, inverse, strikethrough. Plus bold-as-bright compatibility note: some terminals conflate bold with bright palette — accept the overlap.
 
@@ -522,29 +522,29 @@ The user's terminal exposes 22 configurable slots (16 ANSI + 6 semantic: fg, bg,
 
 Drawn from git, vim, ls/eza, bat, grep, syntax highlighters, test runners:
 
-| Slot | Convention |
-|---|---|
-| black, white | default bg / default fg |
-| red, green, yellow | errors, success, warnings/metadata |
-| blue | directories, info, links |
-| magenta, cyan | special/media, symlinks/strings |
-| black-bright | muted, de-emphasized |
-| bright-variants | emphasis (critical errors, staged changes, search matches, keywords, function names) |
-| white-bright | titles, emphasis |
+| Slot               | Convention                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| black, white       | default bg / default fg                                                              |
+| red, green, yellow | errors, success, warnings/metadata                                                   |
+| blue               | directories, info, links                                                             |
+| magenta, cyan      | special/media, symlinks/strings                                                      |
+| black-bright       | muted, de-emphasized                                                                 |
+| bright-variants    | emphasis (critical errors, staged changes, search matches, keywords, function names) |
+| white-bright       | titles, emphasis                                                                     |
 
 ### Neutral ladder — hierarchy without color
 
 ANSI 16 provides four native neutrals; `dim` extends the ladder. Combined with the 2 semantic neutrals (fg/bg) and typography presets:
 
-| Expression | Role |
-|---|---|
-| `bg-default` | app floor |
-| `black` | slot-level darkest |
-| `brightBlack` | standard muted tier |
-| `fg-subtle` (≈ `brightBlack + dim`) | fine print, via `<Small>` |
-| `fg-muted` | secondary text |
-| `fg-default` / `white` | baseline |
-| `brightWhite` | emphasis, titles |
+| Expression                      | Role                    |
+| ------------------------------- | ----------------------- |
+| bg-default                      | app floor               |
+| black                           | slot-level darkest      |
+| brightBlack                     | standard muted tier     |
+| fg-subtle (≈ brightBlack + dim) | fine print, via <Small> |
+| fg-muted                        | secondary text          |
+| fg-default / white              | baseline                |
+| brightWhite                     | emphasis, titles        |
 
 ## Industry reference
 
@@ -565,27 +565,33 @@ ANSI 16 provides four native neutrals; `dim` extends the ladder. Combined with t
 ### Beads (15 open under `km-silvery.design-system`)
 
 Layer 1 — Tokens
+
 - `theme-dim-deprecate` — remove dimColor prop from Text/Box
 - `theme-fake-cursor` — wire fake cursors to cursor-fg
 
 Layer 2 — Catalog
+
 - `theme-catalog` — 30+ bundled themes (authored, silvery-flavored)
 - `theme-custom` — defineTokens for brand colors + authored theme support
 
 Layer 3 — Auto-detect
+
 - `theme-auto-detect` — probe + fingerprint + derive, with confidence metadata
 - `theme-generators` — synthesize from partial input (fg/bg, brand, accents)
 - `scheme-rename` — ColorScheme → ColorScheme refactor
 
 Layer 4 — Invariants
+
 - `theme-invariants` — AA contrast + gamut mapping enforced at load
 
 Layer 5 — Renderers
+
 - `theme-mono` — monochrome attrs theme (accessibility feature)
 - `theme-multi-target` — canvas + web renderers
 - `theme-storybook` — browse themes + live token inspection
 
 Infrastructure
+
 - `color-oklch` — migrate @silvery/color to OKLCH-native
 - `backdrop-fade` — render-time fade for modals (not a theme concern)
 - `theme-public-docs` — silvery.dev + terminfo.dev content
@@ -595,3 +601,4 @@ Infrastructure
 1. **Catalog size**: 30 themes OK, or push to 50 matching every popular terminal preset?
 2. **Attrs in monochrome** — the per-token table above assumes opinionated defaults; should themes be able to override (e.g., Dracula's mono mapping differs from Solarized's)?
 3. **`generateTheme()` API shape** — proposed four entry points (fg/bg, fg/bg/primary, accents{}, baseHue) — right level of flexibility?
+

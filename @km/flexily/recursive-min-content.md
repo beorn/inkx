@@ -151,21 +151,21 @@ Realistic perf impact: ~1.05-1.15x first layout, ~0% steady-state. The hot path 
 ## Implementation plan
 
 1. **Add `getMinContent(direction): number` to Node** (vendor/flexily/src/node-zero.ts).
-  - Cache slot: `_minContentMain`, `_minContentCross` (numbers, -1 sentinel for invalid). Cleared in `markDirty()`.
-  - Leaf branch: existing `cachedMeasure(0, MIN_CONTENT, …)` call — extract into shared method.
-  - Container branch: recursive sum-or-max based on direction vs flexDirection.
-2. **Wire into layout-zero.ts:636-648** — replace the `else if (child.children.length > 0) { contentMinSize = baseSize }` branch with `contentMinSize = child.getMinContent(isRow ? "row" : "column")`.
-3. **Remove the @km/tui `minWidth={0}` hints** added in commit e16090dfc — they become no-ops. Keep the comments updated to "redundant after flexily recursive min-content; left for clarity".
-4. **Update docs** — drop the "approximation note" claiming max-content; update flexily CLAUDE.md, src/CLAUDE.md, docs/guide/yoga-divergences.md.
-5. **Tests**:
-  - New flexily test: `Box(Text wrap)` lays out identically to `Text wrap` alone in a constrained row (the contract test).
-  - Existing fuzz suite (relayout-consistency.test.ts, 1200+ tests) must stay green.
-  - silvery dashboard test must stay green (padded Text columns use truncate → min-content == max-content, no behavior change).
-6. **Benchmark** (perf protocol from vendor/flexily/CLAUDE.md):
-  - top -l 1 baseline
-  - bench before
-  - bench after
-  - Acceptable: <5% regression on first-layout; ~0% on no-change re-layout.
+- Cache slot: `_minContentMain`, `_minContentCross` (numbers, -1 sentinel for invalid). Cleared in `markDirty()`.
+- Leaf branch: existing `cachedMeasure(0, MIN_CONTENT, …)` call — extract into shared method.
+- Container branch: recursive sum-or-max based on direction vs flexDirection.
+6. **Wire into layout-zero.ts:636-648** — replace the `else if (child.children.length > 0) { contentMinSize = baseSize }` branch with `contentMinSize = child.getMinContent(isRow ? "row" : "column")`.
+7. **Remove the @km/tui `minWidth={0}` hints** added in commit e16090dfc — they become no-ops. Keep the comments updated to "redundant after flexily recursive min-content; left for clarity".
+8. **Update docs** — drop the "approximation note" claiming max-content; update flexily CLAUDE.md, src/CLAUDE.md, docs/guide/yoga-divergences.md.
+9. **Tests**:
+- New flexily test: `Box(Text wrap)` lays out identically to `Text wrap` alone in a constrained row (the contract test).
+- Existing fuzz suite (relayout-consistency.test.ts, 1200+ tests) must stay green.
+- silvery dashboard test must stay green (padded Text columns use truncate → min-content == max-content, no behavior change).
+17. **Benchmark** (perf protocol from vendor/flexily/CLAUDE.md):
+- top -l 1 baseline
+- bench before
+- bench after
+- Acceptable: <5% regression on first-layout; ~0% on no-change re-layout.
 
 ## Acceptance
 

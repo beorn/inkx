@@ -20,12 +20,13 @@ Text before embed.
 
 Text after embed.
 
-> Quote with id ^quote-1
->
-> Second paragraph of the quote ^quote-2
+> Quote with id
+> 
+> Second paragraph of the quote
 
 Combining refs:
 
 - See [[Notes/Alpha^intro]]
 - And [[Notes/Beta#Section|the section]]
 - Plus ![[Notes/Gamma^summary]]
+

@@ -8,7 +8,7 @@ For visibility rules (which nodes participate), see [visibility.md](visibility.m
 
 ---
 
-# Node Visual Spec — State × Role Matrix
+## Node Visual Spec — State × Role Matrix
 
 Single source of truth for how every node state maps to visual treatment across all roles. If it's not in this table, it's not a rule. If the code disagrees with this table, the code is wrong.
 
@@ -16,96 +16,96 @@ Replaces the 8-rule comment in `selection-style.ts` and the scattered implementa
 
 ## Roles (determined by depth from board root)
 
-| Role | Depth | Component | What it looks like |
-|------|-------|-----------|-------------------|
-| Board | 0 | Board.tsx | Fullscreen container |
-| Column | 1 | CardColumn (column section) | Header bar + card list |
-| Card | 2 | CardColumn (card section) | Bordered box with title + body + sub-items |
-| Sub-item | 3+ | TreeNode | Indented line within a card |
-| Body | any | TreeNode (no item) | Leaf content block within a card/sub-item |
+| Role     | Depth | Component                   | What it looks like                         |
+| -------- | ----- | --------------------------- | ------------------------------------------ |
+| Board    | 0     | Board.tsx                   | Fullscreen container                       |
+| Column   | 1     | CardColumn (column section) | Header bar + card list                     |
+| Card     | 2     | CardColumn (card section)   | Bordered box with title + body + sub-items |
+| Sub-item | 3+    | TreeNode                    | Indented line within a card                |
+| Body     | any   | TreeNode (no item)          | Leaf content block within a card/sub-item  |
 
 ## States (from reduced signals)
 
-| Signal | Meaning |
-|--------|---------|
-| `cursor` | I am the cursor node |
-| `selected` | I am in the multi-selection set (shift-selected, not cursor) |
-| `cursorDescendant` | A descendant of mine has the cursor |
-| `selectedAncestor` | An ancestor of mine is selected — I should be muted |
-| `editingDescendant` | A descendant of mine is being edited |
-| `editing` | I am being edited (inline text input active) |
-| `isDone` | Task with done/dropped status |
-| `doneAncestor` | An ancestor is done — I should be dimmed |
-| `hovered` | Mouse is hovering over me |
+| Signal            | Meaning                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| cursor            | I am the cursor node                                         |
+| selected          | I am in the multi-selection set (shift-selected, not cursor) |
+| cursorDescendant  | A descendant of mine has the cursor                          |
+| selectedAncestor  | An ancestor of mine is selected — I should be muted          |
+| editingDescendant | A descendant of mine is being edited                         |
+| editing           | I am being edited (inline text input active)                 |
+| isDone            | Task with done/dropped status                                |
+| doneAncestor      | An ancestor is done — I should be dimmed                     |
+| hovered           | Mouse is hovering over me                                    |
 
 ## The Matrix
 
 ### Background
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| cursor | $selection-bg tint | — | — | — |
-| selected | — | — | selectedBg (14%) | selectedBg on title row |
-| cursorDescendant | — | — | — | — |
-| selectedAncestor (muted) | — | mutedBg (6%) | mutedBg, no border | mutedBg |
-| editing | — | — | — | — |
-| editingDescendant | — | — | — | — |
-| hovered | — | — | hoverBorder | — |
-| normal | — | — | default border | — |
+| State                    | Board              | Column       | Card               | Sub-item                |
+| ------------------------ | ------------------ | ------------ | ------------------ | ----------------------- |
+| cursor                   | $selection-bg tint | —            | —                  | —                       |
+| selected                 | —                  | —            | selectedBg (14%)   | selectedBg on title row |
+| cursorDescendant         | —                  | —            | —                  | —                       |
+| selectedAncestor (muted) | —                  | mutedBg (6%) | mutedBg, no border | mutedBg                 |
+| editing                  | —                  | —            | —                  | —                       |
+| editingDescendant        | —                  | —            | —                  | —                       |
+| hovered                  | —                  | —            | hoverBorder        | —                       |
+| normal                   | —                  | —            | default border     | —                       |
 
 ### Title / head row
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| cursor | — | inverseBg + $selection fg | inverseBg + $selection fg | inverseBg + $selection fg |
-| selected | — | — | selectedBg on title row | selectedBg on title row |
-| cursorDescendant | — | $selection fg + underline | yellow fg (not inverse) | — |
-| selectedAncestor | — | dim | dim | dim |
-| normal | — | default | default | default |
+| State            | Board | Column                    | Card                      | Sub-item                  |
+| ---------------- | ----- | ------------------------- | ------------------------- | ------------------------- |
+| cursor           | —     | inverseBg + $selection fg | inverseBg + $selection fg | inverseBg + $selection fg |
+| selected         | —     | —                         | selectedBg on title row   | selectedBg on title row   |
+| cursorDescendant | —     | $selection fg + underline | yellow fg (not inverse)   | —                         |
+| selectedAncestor | —     | dim                       | dim                       | dim                       |
+| normal           | —     | default                   | default                   | default                   |
 
 ### Border
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| cursor | — | — | $selection-bg (yellow) | — |
-| selected | — | — | $selection-bg | — |
-| cursorDescendant (breadcrumb) | — | $selection-bg underline | $selection-bg border | — |
-| selectedAncestor (muted) | — | — | none (border hidden) | — |
-| hovered | — | — | hover color | — |
-| normal | — | $surface-bg | $muted | — |
+| State                         | Board | Column                  | Card                   | Sub-item |
+| ----------------------------- | ----- | ----------------------- | ---------------------- | -------- |
+| cursor                        | —     | —                       | $selection-bg (yellow) | —        |
+| selected                      | —     | —                       | $selection-bg          | —        |
+| cursorDescendant (breadcrumb) | —     | $selection-bg underline | $selection-bg border   | —        |
+| selectedAncestor (muted)      | —     | —                       | none (border hidden)   | —        |
+| hovered                       | —     | —                       | hover color            | —        |
+| normal                        | —     | $surface-bg             | $muted                 | —        |
 
 ### Strip colors (inline content loses fg colors)
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| cursor | — | — | yes (title row only) | yes (title row only) |
-| selectedAncestor (muted) | — | yes | yes | yes |
-| isDone / doneAncestor | — | yes | yes | yes |
-| normal | — | no | no | no |
+| State                    | Board | Column | Card                 | Sub-item             |
+| ------------------------ | ----- | ------ | -------------------- | -------------------- |
+| cursor                   | —     | —      | yes (title row only) | yes (title row only) |
+| selectedAncestor (muted) | —     | yes    | yes                  | yes                  |
+| isDone / doneAncestor    | —     | yes    | yes                  | yes                  |
+| normal                   | —     | no     | no                   | no                   |
 
 ### Expand (show all children, override fold)
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| editingDescendant | — | — | expand to show editing child | — |
-| cursor (direct) | — | — | expand | — |
-| normal | — | — | respect fold | — |
+| State             | Board | Column | Card                         | Sub-item |
+| ----------------- | ----- | ------ | ---------------------------- | -------- |
+| editingDescendant | —     | —      | expand to show editing child | —        |
+| cursor (direct)   | —     | —      | expand                       | —        |
+| normal            | —     | —      | respect fold                 | —        |
 
 ### Dim (entire content dimmed)
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| isDone / dropped | — | dim all | dim all | dim all |
-| doneAncestor | — | dim | dim | dim |
-| body block (non-cursor) | — | — | dimColor | dimColor |
-| normal | — | — | — | — |
+| State                   | Board | Column  | Card     | Sub-item |
+| ----------------------- | ----- | ------- | -------- | -------- |
+| isDone / dropped        | —     | dim all | dim all  | dim all  |
+| doneAncestor            | —     | dim     | dim      | dim      |
+| body block (non-cursor) | —     | —       | dimColor | dimColor |
+| normal                  | —     | —       | —        | —        |
 
 ### Overflow indicators ("+N more")
 
-| State | Board | Column | Card | Sub-item |
-|-------|-------|--------|------|----------|
-| cursor/selected container | — | — | inherits card bg tint | — |
-| normal | — | — | dimColor | — |
+| State                     | Board | Column | Card                  | Sub-item |
+| ------------------------- | ----- | ------ | --------------------- | -------- |
+| cursor/selected container | —     | —      | inherits card bg tint | —        |
+| normal                    | —     | —      | dimColor              | —        |
 
 ## Composition rules
 
@@ -121,14 +121,14 @@ A node CAN be: selected + cursorDescendant + editingDescendant simultaneously. b
 
 ## Token reference
 
-| Token | Value | Used for |
-|-------|-------|----------|
-| `$selection-bg` | yellow-ish | Cursor inverse bg, breadcrumb borders |
-| `$selection` | dark on yellow | Cursor inverse fg |
-| `selectedBg(theme)` | blend(bg, primary, 14%) | Multi-selected card/sub-item bg |
-| `mutedBg(theme)` | blend(bg, primary, 6%) | Muted (ancestor selected) bg |
-| `$muted` | gray | Default card border, dimmed text |
-| `$surface-bg` | subtle | Column border |
+| Token             | Value                   | Used for                              |
+| ----------------- | ----------------------- | ------------------------------------- |
+| $selection-bg     | yellow-ish              | Cursor inverse bg, breadcrumb borders |
+| $selection        | dark on yellow          | Cursor inverse fg                     |
+| selectedBg(theme) | blend(bg, primary, 14%) | Multi-selected card/sub-item bg       |
+| mutedBg(theme)    | blend(bg, primary, 6%)  | Muted (ancestor selected) bg          |
+| $muted            | gray                    | Default card border, dimmed text      |
+| $surface-bg       | subtle                  | Column border                         |
 
 ## Signals → visual mapping (what components actually read)
 
@@ -178,22 +178,21 @@ const expand = editingDescendant || cursor
 - [data-model.md](data-model.md) — visual roles are positional, not typed
 - `apps/km-tui/src/views/selection-style.ts` — old rules (to be replaced by this spec)
 
-
 ---
 
-# Per-Node View Computeds: Architecture Assessment
+## Per-Node View Computeds: Architecture Assessment
 
-> **Status: historical design doc.** The migration this assessed is **done**.
-> The current architecture uses `createViewTree()` (in
-> `packages/km-board/src/view-tree-projection.ts`) which wraps a `TreeLens`
-> with per-node signal bags via `ProjectedMap`. React components subscribe via
-> `useNode(id)` and re-render only when *that node's* state changes. The old
-> `buildViewTree` / `ViewSnapshot` path referenced throughout this doc was
-> deleted in commit `2910f2dd8` (refactor(board): delete view-tree.ts +
+> Status: historical design doc. The migration this assessed is done.
+> The current architecture uses createViewTree() (in
+> packages/km-board/src/view-tree-projection.ts) which wraps a TreeLens
+> with per-node signal bags via ProjectedMap. React components subscribe via
+> useNode(id) and re-render only when that node's state changes. The old
+> buildViewTree / ViewSnapshot path referenced throughout this doc was
+> deleted in commit 2910f2dd8 (refactor(board): delete view-tree.ts +
 > view-snapshot.ts).
->
-> See [docs/design/ui/visibility.md](visibility-model.md) and the
-> `ViewTree` / `TreeLens` glossary entries for the current architecture. This
+> 
+> See docs/design/ui/visibility.md and the
+> ViewTree / TreeLens glossary entries for the current architecture. This
 > doc is preserved for historical context — the trade-off analysis (perf,
 > incrementality, debuggability, testing) is still useful as a record of why
 > the per-node projection was chosen.
@@ -202,13 +201,13 @@ Research-only assessment of replacing the single `PaneSignals.view` computed (wh
 rebuilds the entire ViewSnapshot) with a network of fine-grained per-node reactive
 derivations.
 
-> **Reminder**: throughout this doc, references to `buildViewTree`,
-> `ViewSnapshot`, and `PaneSignals.view` describe the *previous* architecture
-> (deleted in commit `2910f2dd8`). The "Current Architecture" section below
+> Reminder: throughout this doc, references to buildViewTree,
+> ViewSnapshot, and PaneSignals.view describe the previous architecture
+> (deleted in commit 2910f2dd8). The "Current Architecture" section below
 > means "current as of when this assessment was written," not "current as of
 > today." For the actual current architecture, see
-> [docs/design/ui/visibility.md](visibility-model.md) and the
-> `TreeLens` / `ViewTree` glossary entries.
+> docs/design/ui/visibility.md and the
+> TreeLens / ViewTree glossary entries.
 
 ## 1. Architecture at the time this assessment was written
 
@@ -224,6 +223,7 @@ memoization: unchanged columns (same children array reference) reuse cached
 subtrees.
 
 **Consumers:**
+
 - `Board.tsx` — sole `useSignal(ps.view)` subscriber; derives columns, nodeIndex
 - `board-app.ts` — reads `ps.view()` imperatively in `buildOpCtx` for navigation
 - `board-app-store.ts` — reads `ps.view()` for selection adapter sync
@@ -231,16 +231,16 @@ subtrees.
 
 ## 2. Dependency Graph: ViewNode Field x Input Trigger
 
-| ViewNode field      | Depends on               | Changes on cursor move? | Changes on fold? | Changes on zoom? | Changes on mutation? | Changes on filter? |
-|---------------------|--------------------------|:-:|:-:|:-:|:-:|:-:|
-| `id`                | KNode.id (static)         | - | - | Y* | Y | - |
-| `role`              | Tree position (depth)     | - | - | Y  | Y | - |
-| `node`              | KNode reference           | - | - | Y  | Y | - |
-| `parent`            | Parent ViewNode           | - | - | Y  | Y | - |
-| `children`          | getChildren + filters     | - | Y (partial) | Y | Y | Y |
-| `isBody`            | extractBody classification| - | - | Y  | Y | - |
-| `resolvedEmbed`     | embed_of + getNode      | - | - | -  | Y | - |
-| `rules`             | parseHeadingRules(content)| - | - | -  | Y | - |
+| ViewNode field | Depends on                 | Changes on cursor move? | Changes on fold? | Changes on zoom? | Changes on mutation? | Changes on filter? |
+| -------------- | -------------------------- | :---------------------: | :--------------: | :--------------: | :------------------: | :----------------: |
+| id             | KNode.id (static)          | -                       | -                | Y*               | Y                    | -                  |
+| role           | Tree position (depth)      | -                       | -                | Y                | Y                    | -                  |
+| node           | KNode reference            | -                       | -                | Y                | Y                    | -                  |
+| parent         | Parent ViewNode            | -                       | -                | Y                | Y                    | -                  |
+| children       | getChildren + filters      | -                       | Y (partial)      | Y                | Y                    | Y                  |
+| isBody         | extractBody classification | -                       | -                | Y                | Y                    | -                  |
+| resolvedEmbed  | embed_of + getNode         | -                       | -                | -                | Y                    | -                  |
+| rules          | parseHeadingRules(content) | -                       | -                | -                | Y                    | -                  |
 
 **Key finding:** Cursor move (j/k) does NOT change ANY ViewNode field. The view
 tree is structurally identical before and after a cursor move. The cursor lives
@@ -253,13 +253,13 @@ ViewSnapshot rebuild.
 
 ### What Each Trigger Actually Invalidates
 
-| User action          | Current: full rebuild? | Ideal: what changes?              |
-|----------------------|:----------------------:|-----------------------------------|
-| **Cursor move (j/k)**   | NO (not a dep)     | Nothing in view tree              |
-| **Fold toggle (z)**     | YES                | One subtree's children collapse   |
-| **Zoom (Z/Enter)**      | YES                | Entire tree (new root)            |
-| **Repo mutation**        | YES                | 1-2 nodes + their column          |
-| **Filter change**        | YES (hiddenNodeIds)| Cards matching filter criteria    |
+| User action       | Current: full rebuild? | Ideal: what changes?            |
+| ----------------- | :--------------------: | ------------------------------- |
+| Cursor move (j/k) | NO (not a dep)         | Nothing in view tree            |
+| Fold toggle (z)   | YES                    | One subtree's children collapse |
+| Zoom (Z/Enter)    | YES                    | Entire tree (new root)          |
+| Repo mutation     | YES                    | 1-2 nodes + their column        |
+| Filter change     | YES (hiddenNodeIds)    | Cards matching filter criteria  |
 
 The single computed already skips cursor moves because cursor is not a
 dependency. This means the most frequent user action (navigation) is already
@@ -278,6 +278,7 @@ computed's internal node holds no references to deps, making it eligible for GC
 if no external code retains the function.
 
 However, there is no explicit `dispose()` API for computeds. The cleanup path is:
+
 1. All effects/computeds that read this computed stop reading it
 2. `unwatched()` fires, purging dep links
 3. The closure is GC'd when unreferenced
@@ -371,7 +372,6 @@ Two options:
 
 1. **Lazy DFS (current):** `nextInWalk(id)` walks the tree on demand. O(1)
    amortized. Works with both architectures.
-
 2. **Per-node next/prev computeds:** Each node's `next` depends on its parent's
    `children`. Changing one parent's children invalidates the `next` of all
    siblings. 1000 nodes = 1000 `next` computeds, most invalidated on any
@@ -401,10 +401,8 @@ implicitly by `buildViewTree` which simply rebuilds the tree.
    column A's cards re-render. Currently, `useSignal(ps.view)` triggers Board
    re-render, which re-derives `columns`, and React.memo on Card/Column
    components already skips unchanged nodes via props comparison.
-
 2. **Fine-grained filter updates:** Toggling a filter could invalidate only
    matching nodes' `children` computeds. Currently rebuilds full tree.
-
 3. **Theoretical composability:** Per-node signals compose naturally with
    `NodeStore`'s existing per-node interactive state.
 
@@ -413,28 +411,22 @@ implicitly by `buildViewTree` which simply rebuilds the tree.
 1. **Lifecycle management:** Must track node creation/removal, dispose signals,
    handle virtual nodes, manage the Map. Currently zero lifecycle code — the
    tree is rebuilt from scratch each time.
-
 2. **Propagation fan-out:** `repoVersion` signal would fan out to ALL node
    computeds. This replaces one 0.085ms tree build with potentially thousands
    of dirty checks. Likely SLOWER for repo mutations.
-
 3. **Virtual node complexity:** Body columns, detail metadata, folder-index
    expansion — all require special-case logic that's currently simple procedural
    code inside `buildViewTree`.
-
 4. **Index file expansion:** `expandIndexFileViewNodes` does slot resolution,
    body extraction, and sibling ordering that depends on the full set of
    children. This is inherently top-level — cannot be decomposed into per-node
    computeds without duplicating the slot resolution logic.
-
 5. **Embed resolution cycles:** Embeds can chain (A embeds B which embeds C).
    Per-node computeds for embed resolution create potentially long dependency
    chains that alien-signals must evaluate sequentially.
-
 6. **Testing complexity:** Current architecture: pure function in, tree out.
    Per-node: must test signal lifecycle, disposal, incremental updates, stale
    references. Much harder to reason about.
-
 7. **Debugging complexity:** Current: breakpoint in `buildViewTree`, inspect
    tree. Per-node: must trace signal propagation through the reactive graph.
 
@@ -529,19 +521,15 @@ the performance benefit for km's current and foreseeable scale.
 1. **The hot path is already optimal.** Cursor movement (j/k) — the most
    frequent user action by orders of magnitude — does not rebuild the view tree.
    It only updates selection signals in `NodeStore`.
-
 2. **Column-level caching already provides 80% of the benefit.** The
    `ViewNodeColumnCache` means that a mutation in column A only rebuilds column
    A's subtree. Unchanged columns are O(1) cache hits.
-
 3. **The tree build is already fast.** 0.085ms for 670 nodes is negligible. Even
    at 2000 nodes, linear scaling puts this at ~0.25ms — still under 2% of frame
    budget at 60fps.
-
 4. **alien-signals propagation fan-out would hurt.** A `repoVersion` bump
    currently triggers ONE computed. With per-node computeds, it would fan out to
    thousands of dirty checks, likely SLOWER than the current single rebuild.
-
 5. **Lifecycle complexity is high.** Virtual nodes, embeds, index-file expansion,
    and slot resolution all require special handling that is trivial in procedural
    tree-building but complex in reactive derivations.
@@ -550,45 +538,41 @@ the performance benefit for km's current and foreseeable scale.
 
 Revisit this decision if ANY of these become true:
 
-| Trigger | Threshold | Why |
-|---------|-----------|-----|
-| Tree build time | >5ms (measured) | Currently 0.085ms. Would need 50x growth. |
-| React reconciliation | >16ms after view change | Board component tree is too deep to reconcile |
-| Node count | >10,000 visible nodes | Linear scaling of buildViewTree becomes noticeable |
-| Incremental edits | Typing in one cell rebuilds all columns | Need per-cell reactivity for live editing |
-| Browser port | silvery runs in browser with React DOM | DOM diffing cost makes skipping components critical |
-| Collaboration | Multiple cursors + real-time sync | Per-node invalidation needed for merge efficiency |
+| Trigger              | Threshold                               | Why                                                 |
+| -------------------- | --------------------------------------- | --------------------------------------------------- |
+| Tree build time      | >5ms (measured)                         | Currently 0.085ms. Would need 50x growth.           |
+| React reconciliation | >16ms after view change                 | Board component tree is too deep to reconcile       |
+| Node count           | >10,000 visible nodes                   | Linear scaling of buildViewTree becomes noticeable  |
+| Incremental edits    | Typing in one cell rebuilds all columns | Need per-cell reactivity for live editing           |
+| Browser port         | silvery runs in browser with React DOM  | DOM diffing cost makes skipping components critical |
+| Collaboration        | Multiple cursors + real-time sync       | Per-node invalidation needed for merge efficiency   |
 
 ### What to Do Instead
 
 1. **Keep the current single computed + column cache.** It's fast, simple, and
    correct.
-
 2. **Profile actual bottlenecks.** If rendering is slow, the problem is more
    likely in React component rendering (deep trees, many useSignal hooks) than
    in view tree building.
-
 3. **If column-level caching is too coarse,** add card-level caching to
    `buildCardNode` (same pattern as `buildColumnNodeCached`). This would be a
    10-line change vs. the 500+ line per-node reactive architecture.
-
 4. **For live editing performance,** use the existing `NodeStore` edit
    signal to skip re-rendering non-editing cards. This is already implemented.
 
 ### Key Risks If Adopted Later
 
-| Risk | Mitigation |
-|------|------------|
-| Signal lifecycle leaks (nodes removed but signals not disposed) | Use a generational GC: tag signals with tree version, sweep stale |
-| Propagation thundering herd (repoVersion fans to all nodes) | Shard by column: each column gets its own version signal |
-| Virtual node signal identity (body columns change ID on zoom) | Use stable virtual IDs scoped to root, not global singletons |
-| Embed chains creating deep dependency graphs | Limit embed resolution depth (already 1 level in practice) |
-| Testing regression (stateful signals harder to test than pure functions) | Keep `buildViewTree` as the reference implementation; test signals against it |
-
+| Risk                                                                     | Mitigation                                                                  |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Signal lifecycle leaks (nodes removed but signals not disposed)          | Use a generational GC: tag signals with tree version, sweep stale           |
+| Propagation thundering herd (repoVersion fans to all nodes)              | Shard by column: each column gets its own version signal                    |
+| Virtual node signal identity (body columns change ID on zoom)            | Use stable virtual IDs scoped to root, not global singletons                |
+| Embed chains creating deep dependency graphs                             | Limit embed resolution depth (already 1 level in practice)                  |
+| Testing regression (stateful signals harder to test than pure functions) | Keep buildViewTree as the reference implementation; test signals against it |
 
 ---
 
-# Reduced Signals
+## Reduced Signals
 
 Per-node derived state as **reduced signals**: cached tree reductions, incrementally recomputed on change. Like `Array.reduce`, but over a tree walk.
 
@@ -659,13 +643,13 @@ tree.down(nodeId, { into: pred })  // filtered DFS (skip subtrees)
 
 ### The split
 
-| | `ancestors` / `descendants` | `up` / `down` |
-|---|---|---|
-| **Purpose** | Declare what to compute | Walk the tree now |
-| **Takes** | Signal accessor | Node ID |
-| **Returns** | Reduce descriptor | `Iterable<string>` |
-| **Used in** | State definitions | Loops, navigation, search |
-| **Perspective** | "Look at my ancestors/descendants" | "Walk up/down from here" |
+|             | ancestors / descendants            | up / down                 |
+| ----------- | ---------------------------------- | ------------------------- |
+| Purpose     | Declare what to compute            | Walk the tree now         |
+| Takes       | Signal accessor                    | Node ID                   |
+| Returns     | Reduce descriptor                  | Iterable<string>          |
+| Used in     | State definitions                  | Loops, navigation, search |
+| Perspective | "Look at my ancestors/descendants" | "Walk up/down from here"  |
 
 Both live on `tree`. One is declarative, the other imperative. The declarative form uses the imperative form internally.
 
@@ -735,6 +719,7 @@ return acc
 ```
 
 The store wraps this with:
+
 1. **Cache** — result stored as a per-node `Signal<T>` for `useSignal` subscription
 2. **Dirty tracking** — which source signals changed since last batch
 3. **Incremental recomputation** — on `batch()`, recompute only affected regions, diff, write only changed signals
@@ -768,6 +753,7 @@ interface TreeAccess {
 ### Reparent / move / delete
 
 When a node moves from parent A to parent B during a batch:
+
 - **Up-propagated signals**: old ancestor chain (via A) must be recomputed — contributions from the moved node are removed. New ancestor chain (via B) gets contributions added.
 - **Down-propagated signals**: the moved subtree's inherited values recompute from the new parent's boundary value.
 - **Deleted nodes**: removing a source node clears its contributions from all affected ancestors/descendants. The node's own signals are cleaned up.
@@ -786,12 +772,12 @@ A node with `parent === null` is a root. `tree.ancestors` yields nothing for it.
 
 ## Complexity contracts
 
-| Operation | Complexity | Notes |
-|-----------|-----------|-------|
-| Query concern on node | O(1) | Pre-computed, cached signal |
-| Update a leaf concern (cursor move) | O(depth) | Propagate up ancestor chain |
-| Move/reparent subtree | O(depth_old + depth_new + subtree) | Old chain subtract, new chain add |
-| Subtree insert/remove | O(subtree + ancestor propagation) | |
+| Operation                           | Complexity                         | Notes                             |
+| ----------------------------------- | ---------------------------------- | --------------------------------- |
+| Query concern on node               | O(1)                               | Pre-computed, cached signal       |
+| Update a leaf concern (cursor move) | O(depth)                           | Propagate up ancestor chain       |
+| Move/reparent subtree               | O(depth_old + depth_new + subtree) | Old chain subtract, new chain add |
+| Subtree insert/remove               | O(subtree + ancestor propagation)  |                                   |
 
 Internally, descendant aggregates use **counts, not booleans**. Example: 2 selected descendants under an ancestor, remove one — boolean clears to false (wrong), count decrements to 1 (correct). The public API (`.some()`) returns boolean from the count.
 
@@ -825,28 +811,28 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 
 ### Done (implemented)
 
-| Old | New |
-|-----|-----|
-| `cursorInDescendant` (card-only, manual sync) | `cursorDescendant` (all nodes, reduced signal) |
-| Manual `prevDescendantCardId` tracking | Automatic via `batch()` + counts |
-| `expandedEditCardId === nodeId` for expansion | `editingDescendant` (reduced signal) |
-| `tree-concerns.ts` (prototype) | `alien-trees` (production, `alien-trees` (vendor/bearly/packages/alien-trees/src/index.ts)) |
+| Old                                         | New                                                                                     |
+| ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| cursorInDescendant (card-only, manual sync) | cursorDescendant (all nodes, reduced signal)                                            |
+| Manual prevDescendantCardId tracking        | Automatic via batch() + counts                                                          |
+| expandedEditCardId === nodeId for expansion | editingDescendant (reduced signal)                                                      |
+| tree-concerns.ts (prototype)                | alien-trees (production, alien-trees (vendor/bearly/packages/alien-trees/src/index.ts)) |
 
 ### v2 — Remaining (@km/tui/v2-reactive-tree)
 
-| Old | New (planned) | Blocker |
-|-----|-----|-----|
-| ~~Ad-hoc sigil inheritance in `hydrate()`~~ | ~~`tree.ancestors(s => s.ownSigils).reduce(concat, [])`~~ | Done — `.reduce()` combinator + `excludedSigils` signal |
-| ~~`expandWithDescendants()` (visual selection)~~ | ~~`selectedAncestor` reduces automatically~~ | Done — helper removed |
-| ~~`shouldStripColor` computed 4 ways~~ | ~~Derive from `cursor` / `selectedAncestor`~~ | Done — unified to 2 sites |
-| ~~`ReactiveNodeStore` class~~ | ~~Factory function per principles.md~~ | Done — `createNodeStore()` factory |
-| ~~`expandedEditCardId` store signal (1 reader)~~ | ~~`editingDescendant` or direct edit check~~ | Done — purged in commit d3dc1c2 |
+| Old                                        | New (planned)                                       | Blocker                                             |
+| ------------------------------------------ | --------------------------------------------------- | --------------------------------------------------- |
+| Ad-hoc sigil inheritance in hydrate()      | tree.ancestors(s => s.ownSigils).reduce(concat, []) | Done — .reduce() combinator + excludedSigils signal |
+| expandWithDescendants() (visual selection) | selectedAncestor reduces automatically              | Done — helper removed                               |
+| shouldStripColor computed 4 ways           | Derive from cursor / selectedAncestor               | Done — unified to 2 sites                           |
+| ReactiveNodeStore class                    | Factory function per principles.md                  | Done — createNodeStore() factory                    |
+| expandedEditCardId store signal (1 reader) | editingDescendant or direct edit check              | Done — purged in commit d3dc1c2                     |
 
 ### Kept by design (not tree-reduced)
 
-| Signal | Reason |
-|-----|-----|
-| `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Layout-derived from lens position, not tree aggregate |
+| Signal                                              | Reason                                                |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| cursorCardNodeId / cursorColumnNodeId / cursorDepth | Layout-derived from lens position, not tree aggregate |
 
 ## Worked example: cursor move
 
@@ -869,10 +855,10 @@ Batch end — store recomputes:
 
 1. **cursor (self)**: sub1 → false, card2 → true. 2 writes.
 2. **cursorDescendant (up from cursor sources)**:
-   - Old path: card1, col1, root were true → now false (sub1 no longer cursor). 3 writes.
-   - New path: col1, root already true (still ancestors of card2) → no write. card2 has no cursor descendant. 0 new writes.
-   - Net: card1 → false. 1 write. (col1/root unchanged — card2 is still under col1.)
-3. **selectedAncestor (down from selected sources)**: selection didn't change → 0 writes.
+- Old path: card1, col1, root were true → now false (sub1 no longer cursor). 3 writes.
+- New path: col1, root already true (still ancestors of card2) → no write. card2 has no cursor descendant. 0 new writes.
+- Net: card1 → false. 1 write. (col1/root unchanged — card2 is still under col1.)
+8. **selectedAncestor (down from selected sources)**: selection didn't change → 0 writes.
 
 Total: 3 signal writes. 3 component re-renders (sub1, card2, card1).
 
@@ -897,11 +883,11 @@ Batch end — store recomputes:
 
 1. **selected (self)**: card1 still selected → no change.
 2. **selectedAncestor (down from selected sources)**:
-   - Old path descendants of col1: card2 was `selectedAncestor=true` (sibling of selected card1). After move, card1 is no longer under col1 → card2's selectedAncestor becomes false. 1 write.
-   - New path descendants of col2: card3 gains `selectedAncestor=true` (sibling of moved card1). 1 write.
-   - col1 had count=1 (from card1). After move, count=0 → `selectedAncestor` for col1's subtree clears.
-   - col2 had count=0. After move, count=1 → `selectedAncestor` for col2's subtree sets.
-3. **cursorDescendant**: cursor didn't change → no recomputation.
+- Old path descendants of col1: card2 was `selectedAncestor=true` (sibling of selected card1). After move, card1 is no longer under col1 → card2's selectedAncestor becomes false. 1 write.
+- New path descendants of col2: card3 gains `selectedAncestor=true` (sibling of moved card1). 1 write.
+- col1 had count=1 (from card1). After move, count=0 → `selectedAncestor` for col1's subtree clears.
+- col2 had count=0. After move, count=1 → `selectedAncestor` for col2's subtree sets.
+9. **cursorDescendant**: cursor didn't change → no recomputation.
 
 Key: the store captures `card1`'s old parent (`col1`) before the structural mutation, then subtracts card1's contributions from the old ancestor chain and adds to the new one. Without old-parent capture, col1's ancestor chain can't be correctly updated.
 
@@ -925,39 +911,40 @@ Per cursor move (j/k): ~8-10 signal writes, <0.1ms. The real win is rendering �
 
 Run `cursor-perf` bench at each milestone to catch regressions and verify improvements:
 
-| When | What to capture | Pass criteria |
-|------|----------------|---------------|
-| Before Phase 1 | Baseline (current HEAD) | Record wall + per-phase breakdown |
-| After Phase 2 (shadow) | Shadow overhead | Wall time ≤ 110% of baseline (shadow adds comparison cost) |
-| After Phase 3 (cutover) | New implementation solo | Content render ≤ baseline (no regression) |
-| After Phase 4 (purge) | Old code deleted | Wall time ≤ baseline (likely small improvement) |
-| After Phase 5 (editing + sigils) | Full migration | Content render ≤ 8% of wall time (same or better) |
+| When                             | What to capture         | Pass criteria                                              |
+| -------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| Before Phase 1                   | Baseline (current HEAD) | Record wall + per-phase breakdown                          |
+| After Phase 2 (shadow)           | Shadow overhead         | Wall time ≤ 110% of baseline (shadow adds comparison cost) |
+| After Phase 3 (cutover)          | New implementation solo | Content render ≤ baseline (no regression)                  |
+| After Phase 4 (purge)            | Old code deleted        | Wall time ≤ baseline (likely small improvement)            |
+| After Phase 5 (editing + sigils) | Full migration          | Content render ≤ 8% of wall time (same or better)          |
 
 ## Signals inventory
 
 ### Implemented (v1)
 
-| Signal | Definition | Status |
-|--------|-----------|--------|
-| `cursorDescendant` | `tree.descendants(s => s.cursor).some()` | Done |
-| `selectedAncestor` | `tree.ancestors(s => s.selected).some()` | Done |
-| `editingDescendant` | `tree.descendants(s => s.editing).some()` | Done |
+| Signal            | Definition                              | Status |
+| ----------------- | --------------------------------------- | ------ |
+| cursorDescendant  | tree.descendants(s => s.cursor).some()  | Done   |
+| selectedAncestor  | tree.ancestors(s => s.selected).some()  | Done   |
+| editingDescendant | tree.descendants(s => s.editing).some() | Done   |
 
 ### v2 (@km/tui/v2-reactive-tree)
 
-| Signal | Definition | Blocked by |
-|--------|-----------|------------|
-| `excludedSigils` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` | `.reduce()` combinator |
-| `doneAncestor` | `tree.ancestors(s => s.isDone).some()` | None |
+| Signal         | Definition                                          | Blocked by           |
+| -------------- | --------------------------------------------------- | -------------------- |
+| excludedSigils | tree.ancestors(s => s.ownSigils).reduce(concat, []) | .reduce() combinator |
+| doneAncestor   | tree.ancestors(s => s.isDone).some()                | None                 |
 
 ### Future
 
-| Signal | Definition |
-|--------|-----------|
-| `hasErrorDescendant` | `tree.descendants(s => s.hasError).some()` |
-| `hasUnreadDescendant` | `tree.descendants(s => s.isUnread).some()` |
-| `errorCount` | `tree.descendants(s => s.hasError).count()` |
+| Signal              | Definition                                |
+| ------------------- | ----------------------------------------- |
+| hasErrorDescendant  | tree.descendants(s => s.hasError).some()  |
+| hasUnreadDescendant | tree.descendants(s => s.isUnread).some()  |
+| errorCount          | tree.descendants(s => s.hasError).count() |
 
 Each = one line in the state definition.
 
 See also: [data-model.md](data-model.md) for KNode structure, [links.md](links.md) for the same cache pattern.
+

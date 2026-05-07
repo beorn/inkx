@@ -93,6 +93,7 @@ Explicit user attrs always OR-in (`<Text bold color="$muted">` → bold + dim).
 New test file: `vendor/silvery/tests/features/mono-tier-attrs.test.tsx`
 
 Test cases:
+
 - `$primary` at colorLevel="none" → cell emits bold, no color
 - `$muted` at colorLevel="none" → cell emits dim
 - `$error` at colorLevel="none" → cell emits bold + inverse
@@ -119,3 +120,4 @@ The module-level `_activeColorLevel` mirrors the existing `_activeTheme`
 pattern — both are global state that the runtime flips once per app. Tests that
 rely on the default (truecolor) are unaffected. Tests that want to exercise
 mono tier set it explicitly.
+

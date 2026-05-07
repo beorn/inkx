@@ -15,7 +15,6 @@ links:
     - https://example.com/budget
   downstream:
     - https://example.com/shipping
-tags: [project, active, q1]
 ---
 
 # Project dossier
@@ -23,3 +22,4 @@ tags: [project, active, q1]
 Fixture for deeply nested YAML frontmatter. Common in Obsidian vaults that
 use community plugins like Dataview or Templater. The keys `meta.owners.primary`
 and `links.upstream[0]` must survive round-trip.
+

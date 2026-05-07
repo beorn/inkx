@@ -24,7 +24,15 @@ function makeTask(opts: {
 }): KNode {
   const status = opts.status ?? "todo"
   const marker =
-    status === "done" ? "[x]" : status === "wip" ? "[/]" : status === "blocked" ? "[!]" : status === "dropped" ? "[-]" : "[ ]"
+    status === "done"
+      ? "[x]"
+      : status === "wip"
+        ? "[/]"
+        : status === "blocked"
+          ? "[!]"
+          : status === "dropped"
+            ? "[-]"
+            : "[ ]"
   const data: Record<string, unknown> = {}
   if (opts.closedAt !== undefined) data.closed_at = opts.closedAt
   return {
@@ -108,10 +116,7 @@ describe("computeStatusBarCounts", () => {
   })
 
   test("closedThisWeek includes Monday 00:00 boundary", () => {
-    const tasks = [
-      makeTask({ status: "done", closedAt: thisMonday }),
-      makeTask({ status: "done", closedAt: lastWeek }),
-    ]
+    const tasks = [makeTask({ status: "done", closedAt: thisMonday }), makeTask({ status: "done", closedAt: lastWeek })]
     const counts = computeStatusBarCounts(tasks, wednesday)
     expect(counts.closedThisWeek).toBe(1)
   })
@@ -140,10 +145,7 @@ describe("computeStatusBarCounts", () => {
 
 describe("formatStatusBar", () => {
   test("canonical example — full breakdown", () => {
-    const line = formatStatusBar(
-      { open: 12, wip: 3, blocked: 2, todo: 7, closedThisWeek: 4 },
-      "@km",
-    )
+    const line = formatStatusBar({ open: 12, wip: 3, blocked: 2, todo: 7, closedThisWeek: 4 }, "@km")
     expect(line).toBe("@km — 12 open (3 wip · 2 blocked · 7 todo) — 4 closed this week")
   })
 

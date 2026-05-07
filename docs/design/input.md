@@ -18,11 +18,11 @@ Bead: `@km/all/keybindings-v2`.
 
 ## Binding Layers
 
-| Layer | Modifier | Works in | Style |
-|-------|----------|----------|-------|
-| **Vim** | Bare keys + chords | All terminals | Vim/TUI native |
-| **Ctrl** | Ctrl+key | All terminals | Consistent both modes |
-| **Cmd** | Cmd+key | Kitty protocol (Ghostty, Kitty, WezTerm, foot) | macOS native |
+| Layer | Modifier           | Works in                                       | Style                 |
+| ----- | ------------------ | ---------------------------------------------- | --------------------- |
+| Vim   | Bare keys + chords | All terminals                                  | Vim/TUI native        |
+| Ctrl  | Ctrl+key           | All terminals                                  | Consistent both modes |
+| Cmd   | Cmd+key            | Kitty protocol (Ghostty, Kitty, WezTerm, foot) | macOS native          |
 
 ## Three Verbs × Locations
 
@@ -55,29 +55,29 @@ maximum reach. See [getinboxzero.com](https://www.getinboxzero.com/blog/post/gma
 
 ### Smart Open (go / gO)
 
-| | go (regular) | gO (alt/dev) |
-|---|-------------|----------|
-| Folder | Finder | Terminal |
-| File | Default app | Editor (nvim) |
-| URL | Browser | — |
-| Node link | Follow/navigate | — |
-| Ctrl | Ctrl+o (node: smart open, text: open under cursor) | — |
-| Cmd | Cmd+o | Cmd+S-o |
+|           | go (regular)                                       | gO (alt/dev)  |
+| --------- | -------------------------------------------------- | ------------- |
+| Folder    | Finder                                             | Terminal      |
+| File      | Default app                                        | Editor (nvim) |
+| URL       | Browser                                            | —             |
+| Node link | Follow/navigate                                    | —             |
+| Ctrl      | Ctrl+o (node: smart open, text: open under cursor) | —             |
+| Cmd       | Cmd+o                                              | Cmd+S-o       |
 
 ### Ctrl Keys (both modes)
 
 All custom Ctrl bindings work identically in node mode and text edit mode,
 whether focus is on the board or the detail pane.
 
-| Key | Action |
-|-----|--------|
-| Ctrl+f | Local find (within current pane) |
-| Ctrl+g | Goto chord prefix (= pressing `g`, waits for suffix) |
-| Ctrl+k | Omnibox (universal search + commands) |
-| Ctrl+l | Add / link picker |
-| Ctrl+r | Re-parent / move picker |
+| Key    | Action                                                     |
+| ------ | ---------------------------------------------------------- |
+| Ctrl+f | Local find (within current pane)                           |
+| Ctrl+g | Goto chord prefix (= pressing g, waits for suffix)         |
+| Ctrl+k | Omnibox (universal search + commands)                      |
+| Ctrl+l | Add / link picker                                          |
+| Ctrl+r | Re-parent / move picker                                    |
 | Ctrl+o | Smart open (node: Finder/browser, text: open under cursor) |
-| Ctrl+t | Task dialog |
+| Ctrl+t | Task dialog                                                |
 
 ### Emacs Overrides
 
@@ -85,11 +85,11 @@ Three Ctrl keys override emacs readline in text edit mode. This follows modern
 convention: Ctrl+f = find and Ctrl+k = command palette are standard in Superhuman,
 Slack, VS Code, and most GUI apps. See [blog.superhuman.com](https://blog.superhuman.com/how-to-build-a-remarkable-command-palette/).
 
-| Key | App function | Emacs function (lost) | Alternative |
-|-----|-------------|----------------------|-------------|
-| Ctrl+f | Local find | Forward char | Arrow right |
-| Ctrl+g | Goto chord | Cancel/abort | Escape |
-| Ctrl+k | Omnibox | Kill line | Select-to-end + delete |
+| Key    | App function | Emacs function (lost) | Alternative            |
+| ------ | ------------ | --------------------- | ---------------------- |
+| Ctrl+f | Local find   | Forward char          | Arrow right            |
+| Ctrl+g | Goto chord   | Cancel/abort          | Escape                 |
+| Ctrl+k | Omnibox      | Kill line             | Select-to-end + delete |
 
 Remaining emacs keys work normally in text edit:
 Ctrl+a/b/d/e/h/n/p/u/w/y, Ctrl+_, Alt+b/d/f.
@@ -106,11 +106,11 @@ Ctrl+d, Ctrl+n, Ctrl+p, Ctrl+u, Ctrl+x (in node mode — emacs uses some in text
 
 Universal search + commands + slash commands. One input, multiple modes.
 
-| Key | Works in | Style |
-|-----|----------|-------|
-| : | Node mode only | Vim command mode |
-| Ctrl+k | Both modes | Ctrl shortcut |
-| Cmd+k | Both modes | macOS native (kitty) |
+| Key    | Works in       | Style                |
+| ------ | -------------- | -------------------- |
+| :      | Node mode only | Vim command mode     |
+| Ctrl+k | Both modes     | Ctrl shortcut        |
+| Cmd+k  | Both modes     | macOS native (kitty) |
 
 Supports: node search, go-to location, slash commands (/h1, /todo),
 free-text commands. Arrow keys navigate results within the omnibox.
@@ -125,10 +125,10 @@ Having three paths (`:`, Ctrl+k, Cmd+k) covers traditionalists and modern GUI us
 
 Search within the currently focused pane (board or detail).
 
-| Key | Works in | Style |
-|-----|----------|-------|
-| / | Node mode only | Vim search |
-| Ctrl+f | Both modes | Standard shortcut |
+| Key    | Works in       | Style             |
+| ------ | -------------- | ----------------- |
+| /      | Node mode only | Vim search        |
+| Ctrl+f | Both modes     | Standard shortcut |
 
 Inline bar at bottom, highlights matches, n/N navigate, Escape clears.
 **F / Cmd+f** opens search/replace dialog (floating, adds replace + regex).
@@ -137,11 +137,11 @@ Inline bar at bottom, highlights matches, n/N navigate, Escape clears.
 
 Board and detail pane each maintain their own cursor.
 
-| State | Board Cursor | Pane Cursor |
-|-------|-------------|-------------|
-| Board focused | **Bright yellow** | Dim yellow |
-| Pane focused | Dim yellow | **Bright yellow** |
-| No pane open | **Bright yellow** | — |
+| State         | Board Cursor  | Pane Cursor   |
+| ------------- | ------------- | ------------- |
+| Board focused | Bright yellow | Dim yellow    |
+| Pane focused  | Dim yellow    | Bright yellow |
+| No pane open  | Bright yellow | —             |
 
 Focus switching: Cmd+h/l (kitty) or mouse click. Escape from pane returns to board.
 
@@ -161,11 +161,11 @@ and text edit mode work identically. All operations apply.
 
 D is context-aware with three states:
 
-| Current State | D does | Result |
-|--------------|--------|--------|
-| Pane closed | Open + focus pane | Pane focused |
-| Pane open, board focused | Focus pane | Pane focused |
-| Pane open, pane focused | Close pane | Board focused |
+| Current State            | D does            | Result        |
+| ------------------------ | ----------------- | ------------- |
+| Pane closed              | Open + focus pane | Pane focused  |
+| Pane open, board focused | Focus pane        | Pane focused  |
+| Pane open, pane focused  | Close pane        | Board focused |
 
 This eliminates the need for a separate "focus pane" key. One hiccup: pressing D from
 board with pane open focuses instead of closing — user must press D twice to close.
@@ -177,6 +177,7 @@ Cmd+w always closes the pane regardless of focus state.
 ## Escape / Focus Layering
 
 Each Escape pops one layer (follows focus stack):
+
 1. **Text edit** → node mode (cursor stays on node, edit saved)
 2. **Pane focused** → focus board (**pane stays open**, pane cursor dims)
 3. **Dialog open** → close topmost dialog (keep pressing to close all)
@@ -187,82 +188,84 @@ Pane is closed explicitly via D (when focused) or Cmd+w. Escape never closes the
 
 ## Navigation
 
-| Key | Action |
-|-----|--------|
-| h / l | Move left / right (columns) |
-| j / k | Move up / down (items) |
-| J / K | Move block-by-block (auto-unfolds) |
-| gg / G | First / last item |
-| { / } | History back / forward |
-| Cmd+[ / Cmd+] | History back / forward (kitty) |
-| PgUp / PgDn | Page scroll |
+| Key           | Action                             |
+| ------------- | ---------------------------------- |
+| h / l         | Move left / right (columns)        |
+| j / k         | Move up / down (items)             |
+| J / K         | Move block-by-block (auto-unfolds) |
+| gg / G        | First / last item                  |
+| { / }         | History back / forward             |
+| Cmd+[ / Cmd+] | History back / forward (kitty)     |
+| PgUp / PgDn   | Page scroll                        |
 
 ## Folding
 
-| Key | Action |
-|-----|--------|
+| Key   | Action                                         |
+| ----- | ---------------------------------------------- |
 | H / L | Fold / unfold at cursor (subtree, progressive) |
-| < / > | Fold / unfold all (board-wide) |
+| < / > | Fold / unfold all (board-wide)                 |
 
 ## View
 
-| Key | Action |
-|-----|--------|
-| z | Zoom in (per press, repeatable — NOT a chord) |
-| Z | Zoom out (per press, repeatable) |
-| , | Settings (view modes, preferences) |
+| Key | Action                                        |
+| --- | --------------------------------------------- |
+| z   | Zoom in (per press, repeatable — NOT a chord) |
+| Z   | Zoom out (per press, repeatable)              |
+| ,   | Settings (view modes, preferences)            |
 
 ## Search
 
-| Key | Type | UI |
-|-----|------|-----|
-| / / Ctrl+f | Local find | Inline bar at bottom |
-| F / Cmd+f | Search / replace | Floating dialog |
-| : / Ctrl+k / Cmd+k | Omnibox | Full overlay |
+| Key                | Type             | UI                   |
+| ------------------ | ---------------- | -------------------- |
+| / / Ctrl+f         | Local find       | Inline bar at bottom |
+| F / Cmd+f          | Search / replace | Floating dialog      |
+| : / Ctrl+k / Cmd+k | Omnibox          | Full overlay         |
 
 Local find scopes to whichever pane has focus. n/N navigate find matches.
 Escape clears find highlights. Omnibox has its own result navigation (arrows).
 
 ## Dialogs & Pane (Shift+letter)
 
-| Key | Cmd | Type | UI |
-|-----|-----|------|-----|
-| T | Cmd+t | Task properties | **Dialog** (floating) |
-| F | Ctrl+g / Cmd+g | Filter / sort / group | **Dialog** (floating) |
-| S | Shift+Cmd+f | Search & replace | **Dialog** (floating, macOS-style) |
-| A | — | AI / agent | **Dialog** (floating) |
-| D | Cmd+p | Preview / detail | **Pane** (embedded sidebar) |
+| Key | Cmd            | Type                  | UI                             |
+| --- | -------------- | --------------------- | ------------------------------ |
+| T   | Cmd+t          | Task properties       | Dialog (floating)              |
+| F   | Ctrl+g / Cmd+g | Filter / sort / group | Dialog (floating)              |
+| S   | Shift+Cmd+f    | Search & replace      | Dialog (floating, macOS-style) |
+| A   | —              | AI / agent            | Dialog (floating)              |
+| D   | Cmd+p          | Preview / detail      | Pane (embedded sidebar)        |
 
 Only D is a real pane (embedded, persistent, has its own cursor). T/F/S/A are floating dialogs.
 Escape closes topmost dialog (keep pressing to close all). D uses smart toggle (see above).
 
 ### Local Find (inline, lightweight)
-| Key | Mode | Action |
-|-----|------|--------|
-| / | node | Open local find bar (vim-style) |
-| Ctrl+f | node | Open local find bar |
-| Ctrl+/ | any | Open local find bar (works in text edit mode too) |
-| Cmd+f | any (Kitty) | Open local find bar |
-| n / N | find active | Next / previous match |
+
+| Key    | Mode        | Action                                            |
+| ------ | ----------- | ------------------------------------------------- |
+| /      | node        | Open local find bar (vim-style)                   |
+| Ctrl+f | node        | Open local find bar                               |
+| Ctrl+/ | any         | Open local find bar (works in text edit mode too) |
+| Cmd+f  | any (Kitty) | Open local find bar                               |
+| n / N  | find active | Next / previous match                             |
 
 ### Search & Replace Dialog (macOS-style)
-| Key | Context | Action |
-|-----|---------|--------|
-| Tab | dialog | Switch find/replace fields |
-| Enter / Shift+Enter | dialog | Find next / previous |
-| Cmd+r / Ctrl+r | dialog | Replace current match |
-| Cmd+Shift+r / Ctrl+Shift+r | dialog | Replace all |
-| Cmd+x / Ctrl+x | dialog | Toggle regex |
-| Escape | dialog | Close |
+
+| Key                        | Context | Action                     |
+| -------------------------- | ------- | -------------------------- |
+| Tab                        | dialog  | Switch find/replace fields |
+| Enter / Shift+Enter        | dialog  | Find next / previous       |
+| Cmd+r / Ctrl+r             | dialog  | Replace current match      |
+| Cmd+Shift+r / Ctrl+Shift+r | dialog  | Replace all                |
+| Cmd+x / Ctrl+x             | dialog  | Toggle regex               |
+| Escape                     | dialog  | Close                      |
 
 ## Edit Entry
 
-| Key | Action | Cursor |
-|-----|--------|--------|
-| i | Edit title | Start |
-| Enter | Edit title | End |
-| I | Edit body | Start |
-| S-Enter | Edit body | End |
+| Key     | Action     | Cursor |
+| ------- | ---------- | ------ |
+| i       | Edit title | Start  |
+| Enter   | Edit title | End    |
+| I       | Edit body  | Start  |
+| S-Enter | Edit body  | End    |
 
 ## Text Edit Mode
 
@@ -284,20 +287,20 @@ Ctrl+l (add/link), Ctrl+o (open under cursor), Ctrl+r (reparent), Ctrl+t (task).
 
 ## Editing (node mode)
 
-| Key | Action |
-|-----|--------|
-| o / O | New item below / above |
-| c / C | Capture new (quick-add to inbox) |
-| Cmd+n | Capture new (kitty) |
-| e | Archive (remove from view, still searchable) |
-| d / S-Backspace | Cut forward (cursor → next) |
-| Backspace | Cut backward (cursor → prev) |
-| y | Copy (yank) |
-| p | Paste |
-| Cmd+d | Duplicate (kitty) |
-| Tab / S-Tab | Indent / outdent |
-| Alt+h/j/k/l | Shift node (also Alt+arrows) |
-| u / U | Undo / redo |
+| Key             | Action                                       |
+| --------------- | -------------------------------------------- |
+| o / O           | New item below / above                       |
+| c / C           | Capture new (quick-add to inbox)             |
+| Cmd+n           | Capture new (kitty)                          |
+| e               | Archive (remove from view, still searchable) |
+| d / S-Backspace | Cut forward (cursor → next)                  |
+| Backspace       | Cut backward (cursor → prev)                 |
+| y               | Copy (yank)                                  |
+| p               | Paste                                        |
+| Cmd+d           | Duplicate (kitty)                            |
+| Tab / S-Tab     | Indent / outdent                             |
+| Alt+h/j/k/l     | Shift node (also Alt+arrows)                 |
+| u / U           | Undo / redo                                  |
 
 All operations work on multi-selection: Space-select multiple, then d/y/e/Tab/x/c applies to all.
 Verb chords (a#, m+, etc.) also apply to all selected items.
@@ -307,89 +310,89 @@ important speed optimizations for triage workflows. See [simplehuman.email](http
 
 ## Organizational (bare symbols)
 
-| Key | Action | Mode |
-|-----|--------|------|
-| @ | Assign person (= a@) | Node: immediate. Text: autocomplete |
-| # | Add tag (= a#) | Node: immediate. Text: autocomplete |
-| + | Move to project (= m+) | Node: immediate |
-| [ | Move to node (= m[) | Node: immediate. Text: [[ = autocomplete |
+| Key | Action                 | Mode                                     |
+| --- | ---------------------- | ---------------------------------------- |
+| @   | Assign person (= a@)   | Node: immediate. Text: autocomplete      |
+| #   | Add tag (= a#)         | Node: immediate. Text: autocomplete      |
+| +   | Move to project (= m+) | Node: immediate                          |
+| [   | Move to node (= m[)    | Node: immediate. Text: [[ = autocomplete |
 
 All work on multi-selection.
 
 ## Task (t-prefix)
 
-| Key | Action |
-|-----|--------|
-| tt / Ctrl+t | Task dialog |
-| t- | Clear taskness (remove all task properties) |
-| to | Set owner |
-| td | Set date/due (natural language) |
-| t! | Set priority |
-| ts | Set status |
-| tl | Set label/tag |
+| Key         | Action                                      |
+| ----------- | ------------------------------------------- |
+| tt / Ctrl+t | Task dialog                                 |
+| t-          | Clear taskness (remove all task properties) |
+| to          | Set owner                                   |
+| td          | Set date/due (natural language)             |
+| t!          | Set priority                                |
+| ts          | Set status                                  |
+| tl          | Set label/tag                               |
 
 Consolidates what apps like Linear do with scattered single keys into one mnemonic
 prefix. All work on multi-selection.
 
 ## Task Status
 
-| Key | Action |
-|-----|--------|
-| x | Toggle done / not-done (quick) |
-| X | Cycle through all statuses (full control) |
+| Key | Action                                    |
+| --- | ----------------------------------------- |
+| x   | Toggle done / not-done (quick)            |
+| X   | Cycle through all statuses (full control) |
 
 ## Favorites
 
-| Key | Action |
-|-----|--------|
-| 0-9 | Jump to favorite |
-| M | Manage favorites (mnemonics/memory) |
+| Key | Action                              |
+| --- | ----------------------------------- |
+| 0-9 | Jump to favorite                    |
+| M   | Manage favorites (mnemonics/memory) |
 
 Any unassigned key can be a favorite. Works with g/m/a: g<key>, m<key>, a<key>.
 
 ## Selection & Bulk
 
-| Key | Action |
-|-----|--------|
-| Space | Toggle select (board AND pane) |
-| S-arrows | Extend selection |
-| Ctrl+a / Cmd+a | Select all |
-| v | Visual mode (P4) |
+| Key            | Action                         |
+| -------------- | ------------------------------ |
+| Space          | Toggle select (board AND pane) |
+| S-arrows       | Extend selection               |
+| Ctrl+a / Cmd+a | Select all                     |
+| v              | Visual mode (P4)               |
 
 All operations work on multi-selection: d, y, e, x, Tab, S-Tab, c,
 and all verb chords (a#, a@, m+, m[, etc.).
 
 ## System
 
-| Key | Action |
-|-----|--------|
-| Ctrl+c | Quit immediately |
-| : | Omnibox (type `quit` to exit) |
-| ? | Help |
-| / | Local find |
-| c / C | Capture new (quick-add to inbox) |
-| Ctrl+k / Cmd+k | Omnibox |
-| Ctrl+f | Local find |
-| Cmd+n | Capture new (kitty) |
-| , | Settings / view modes |
-| \` | Debug console |
+| Key            | Action                           |
+| -------------- | -------------------------------- |
+| Ctrl+c         | Quit immediately                 |
+| :              | Omnibox (type quit to exit)      |
+| ?              | Help                             |
+| /              | Local find                       |
+| c / C          | Capture new (quick-add to inbox) |
+| Ctrl+k / Cmd+k | Omnibox                          |
+| Ctrl+f         | Local find                       |
+| Cmd+n          | Capture new (kitty)              |
+| ,              | Settings / view modes            |
+| `              | Debug console                    |
 
-> Bare `q` is intentionally **unbound**. A single fat-finger keystroke must
-> never destroy the session — especially after an incomplete chord like `vq`
-> where the user meant `vs`. See bead @km/tui/q-quits-no-confirm.
+> Bare q is intentionally unbound. A single fat-finger keystroke must
+> never destroy the session — especially after an incomplete chord like vq
+> where the user meant vs. See bead @km/tui/q-quits-no-confirm.
 
 ## Mouse
 
-| Action | Effect |
-|--------|--------|
-| Click | Select node |
-| Double-click | Edit node |
-| Cmd+click | Toggle select (on URL: opens URL) |
-| Ctrl+click | Smart open |
-| Shift+click | Range select |
-| Right-click | Context menu |
-| Scroll | Scroll view |
-| Cmd+scroll | Zoom in/out |
+| Action       | Effect                            |
+| ------------ | --------------------------------- |
+| Click        | Select node                       |
+| Double-click | Edit node                         |
+| Cmd+click    | Toggle select (on URL: opens URL) |
+| Ctrl+click   | Smart open                        |
+| Shift+click  | Range select                      |
+| Right-click  | Context menu                      |
+| Scroll       | Scroll view                       |
+| Cmd+scroll   | Zoom in/out                       |
 
 ## Context-Sensitive Key Bar + Mode Indicator
 
@@ -548,26 +551,31 @@ Additional shifted symbols available: $, ^, &, *, (, ), ]
 ## Design Comparison
 
 ### vs Superhuman
+
 - Both: `e` = archive, command palette (Cmd+k / :), single-key triage
 - km adds: verb×location chords, detail pane, task management, text editing
 - Superhuman uses nudges to teach shortcuts; km uses persistent key bar + which-key
 
 ### vs Linear
+
 - Both: keyboard-first project management, status cycling, command palette
 - km consolidates task actions under `t` prefix (vs Linear's scattered single keys)
 - Linear has searchable shortcut help; km has contextual key bar
 
 ### vs lazygit
+
 - Both: vim-like TUI, contextual menus, single-letter actions
 - km's g/m/a system is "more systematic and predictable" than lazygit's ad-hoc menus
 - lazygit uses capital vs lowercase for variants (P push, p pull); km uses Shift for dialogs
 
 ### vs Helix/Kakoune
+
 - km uses vim's verb-then-target (g+i = goto inbox)
 - Kakoune uses object-then-verb (select, then act)
 - km avoids Helix's consistency issues by enforcing "two modes everywhere"
 
 ### vs Taskwarrior-TUI
+
 - Both: terminal task management, vim navigation
 - km is more scalable (verb×location handles many destinations)
 - Taskwarrior-TUI overrides Ctrl+e/y for scrolling, similar to km's emacs overrides
@@ -583,3 +591,4 @@ Additional shifted symbols available: $, ^, &, *, (, ), ]
 - [Taskwarrior-TUI keybindings](https://kdheepak.com/taskwarrior-tui/keybindings/) — vim-like task TUI reference
 - [Lazygit keybindings](https://github.com/jesseduffield/lazygit/blob/master/docs/keybindings/Keybindings_en.md) — contextual menus
 - [Linear keyboard shortcuts](https://linear.app/changelog/2021-03-25-keyboard-shortcuts-help) — searchable shortcut help
+

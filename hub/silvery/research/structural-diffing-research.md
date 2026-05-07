@@ -10,11 +10,9 @@ For Silvery, **structural diffing is worth adding as an optional layer above cel
   - **`IL` / `DL`** for **mid-buffer line insertion/deletion**
   - especially in **inline mode**, where cell diff otherwise rewrites many shifted rows
   - and in **fullscreen** for list/view scrolling and viewport shifts
-
 - **Probably not worthwhile in inline mode**
   - **`SU` / `SD`** without `DECSTBM`
   - because without a bounded scroll region they act on the **whole page**, not just Silvery’s block
-
 - **Key practical conclusion**
   - **`IL`/`DL` can be used without `DECSTBM`**
   - but in **inline/main-buffer mode**, `IL` needs a **“make room first”** strategy, otherwise it may discard Silvery’s own bottom row if the render block touches the screen bottom
@@ -32,7 +30,7 @@ That gives most of the gain without turning the output phase into a full termina
 
 ---
 
-## 2. Key details and facts
+### 2. Key details and facts
 
 ---
 
@@ -116,12 +114,12 @@ If the block touches the screen bottom, `IL` will shift row 50 downward and the 
 So the safe sequence is:
 
 1. **Create disposable space below the block**
-   - usually by appending one newline at the end of the block
-   - this grows the controlled area by one physical line
-2. Move back up to insertion row
-3. Emit `CSI 1 L`
-4. Paint the inserted row
-5. Restore cursor to the desired final position
+- usually by appending one newline at the end of the block
+- this grows the controlled area by one physical line
+5. Move back up to insertion row
+6. Emit `CSI 1 L`
+7. Paint the inserted row
+8. Restore cursor to the desired final position
 
 Pseudo-sequence:
 
@@ -224,22 +222,20 @@ The best practical approach is:
 Good first implementation.
 
 1. Compute a hash/fingerprint for each row:
-   - chars
-   - style attributes
-   - wide-cell markers / continuation cells
-   - any wrap metadata you consider relevant
-
-2. Find:
-   - longest common prefix
-   - longest common suffix
-
-3. Check for simple patterns:
-   - **insert candidate** at row `i`:
-     - `next[i .. i+k)` are new
-     - `prev[i .. end-k)` equals `next[i+k .. end)`
-   - **delete candidate** at row `i`:
-     - `prev[i .. i+k)` removed
-     - `prev[i+k .. end)` equals `next[i .. end-k)`
+- chars
+- style attributes
+- wide-cell markers / continuation cells
+- any wrap metadata you consider relevant
+7. Find:
+- longest common prefix
+- longest common suffix
+11. Check for simple patterns:
+- **insert candidate** at row `i`:
+  - `next[i .. i+k)` are new
+  - `prev[i .. end-k)` equals `next[i+k .. end)`
+- **delete candidate** at row `i`:
+  - `prev[i .. i+k)` removed
+  - `prev[i+k .. end)` equals `next[i .. end-k)`
 
 This catches the most valuable cases:
 
@@ -271,13 +267,13 @@ Best practical architecture for Silvery.
 For each candidate structural edit:
 
 1. **simulate** the terminal effect on `prev`
-   - apply row insert/delete/scroll to a scratch copy of the prev buffer
-2. run existing **cell diff** from simulated buffer → `next`
-3. compute byte cost:
-   - cursor moves
-   - structural op bytes
-   - residual repaint bytes
-4. choose structural only if cheaper
+- apply row insert/delete/scroll to a scratch copy of the prev buffer
+4. run existing **cell diff** from simulated buffer → `next`
+5. compute byte cost:
+- cursor moves
+- structural op bytes
+- residual repaint bytes
+11. choose structural only if cheaper
 
 This is especially attractive for Silvery because you already have a good `changesToAnsi()`.
 
@@ -407,7 +403,7 @@ But this is mostly a **fullscreen** optimization, not inline.
 
 ---
 
-## 3. Different perspectives / approaches
+### 3. Different perspectives / approaches
 
 ---
 
@@ -475,7 +471,7 @@ For Silvery, this seems justified **only if fullscreen scrolling perf becomes a 
 
 ---
 
-## 4. Real-world framework usage
+### 4. Real-world framework usage
 
 This is uneven.
 
@@ -552,7 +548,7 @@ This actually argues that Silvery could be **distinctive** here, especially beca
 
 ---
 
-## 5. Risks and failure modes
+### 5. Risks and failure modes
 
 ---
 
@@ -642,7 +638,7 @@ Mitigation:
 
 ---
 
-## 6. Recent developments / current state
+### 6. Recent developments / current state
 
 As of the modern terminal ecosystem:
 
@@ -654,9 +650,7 @@ As of the modern terminal ecosystem:
   - WezTerm
   - Alacritty
   - Windows Terminal / modern VT stack
-
 - **Synchronized update support** has become more common, which reduces visible flicker and makes structural edits safer to batch.
-
 - **Most modern TUI frameworks still prefer cell diffing**, not because structural ops lack value, but because:
   - implementation complexity is higher
   - fullscreen redraws are often “fast enough”
@@ -671,7 +665,7 @@ So the current state is:
 
 ---
 
-## 7. Recommendation for Silvery
+### 7. Recommendation for Silvery
 
 ### Recommended final stance
 
@@ -711,100 +705,83 @@ It matches your constraints:
 ### Suggested implementation strategy
 
 1. **Prepass**
-   - compute row hashes for prev/next
-   - look for one contiguous insert/delete/scroll candidate
-
-2. **Cost model**
-   - estimate bytes for:
-     - structural op + inserted/deleted rows + cursor restore
-     - existing cell diff
-   - choose structural only if meaningfully cheaper
-
-3. **Simulation**
-   - apply candidate op to scratch-prev
-   - then call existing `changesToAnsi(scratchPrev, next)`
-
-4. **Mode gating**
-   - inline:
-     - `DL`: yes
-     - `IL`: yes, but only with room-making step
-     - `SU`/`SD`: no
-   - fullscreen/alt:
-     - all four are candidates
-
-5. **Fallback**
-   - width change, wrap uncertainty, ambiguous cases, unknown terminal → current cell diff/full render
+- compute row hashes for prev/next
+- look for one contiguous insert/delete/scroll candidate
+5. **Cost model**
+- estimate bytes for:
+  - structural op + inserted/deleted rows + cursor restore
+  - existing cell diff
+- choose structural only if meaningfully cheaper
+9. **Simulation**
+- apply candidate op to scratch-prev
+- then call existing `changesToAnsi(scratchPrev, next)`
+13. **Mode gating**
+- inline:
+  - `DL`: yes
+  - `IL`: yes, but only with room-making step
+  - `SU`/`SD`: no
+- fullscreen/alt:
+  - all four are candidates
+17. **Fallback**
+- width change, wrap uncertainty, ambiguous cases, unknown terminal → current cell diff/full render
 
 ---
 
-## 8. Direct answers to your numbered questions
+### 8. Direct answers to your numbered questions
 
 1. **How would IL/DL work in practice?**  
    Move to row, emit `CSI n L/M`, then repaint only the inserted/deleted rows and residual mismatches. In inline insertion, first create room below the block.
-
 2. **Does IL work in inline/main buffer?**  
    **Yes**, but it edits the visible page/region. It does **not** reliably push displaced content into scrollback. Treat it as in-place page editing.
-
 3. **Wide chars / wrapped / styles?**  
    Shifted lines generally preserve contents and styles correctly. New blank lines need repainting. Wrapped-line metadata is the trickiest part; operate on physical rows, not logical text flow.
-
 4. **Detection algorithm?**  
    Use row hashes + common-prefix/common-suffix + contiguous shift detection. Optionally simulate candidates and choose the cheapest valid plan.
-
 5. **Actual byte savings?**  
    Huge for mid-buffer insert/delete and fullscreen scrolls; small for append-at-bottom. Typical savings are **10x–100x+** depending on width and shifted rows.
-
 6. **Do real frameworks do this?**  
    **ncurses: yes.**  
    **Modern Rust TUIs: generally no, or not automatically.**
-
 7. **Risks?**  
    Biggest risks are inline main-buffer semantics, whole-page effects without margins, erase/background quirks, and terminal/multiplexer edge cases.
-
 8. **Can IL/DL be used without DECSTBM?**  
    **Yes.** They work fine without scroll regions. But without `DECSTBM`, they apply to the default full-page region, so inline usage must be conservative.
 
 ---
 
-## 9. Sources / references
+### 9. Sources / references
 
 Where possible, these are the primary references to consult:
 
 1. **ECMA-48 / ISO 6429**  
    Standard definitions for `IL`, `DL`, `SU`, `SD`
-   - ECMA-48 standard page:  
+- ECMA-48 standard page:  
      https://ecma-international.org/publications-and-standards/standards/ecma-48/
-
-2. **xterm Control Sequences**  
+4. **xterm Control Sequences**  
    Practical terminal semantics for ANSI/DEC sequences, including margins and editing ops
-   - https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
-
-3. **VT510 / DEC terminal manuals**  
+- https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+7. **VT510 / DEC terminal manuals**  
    Historical reference for line insertion/deletion behavior
-   - https://vt100.net/docs/
-
-4. **ncurses man pages**
-   - `curs_insdel(3X)` — insert/delete line functions
-   - `curs_outopts(3X)` — includes options like `idlok`, `scrollok`
-   - ncurses manpage index:  
+- https://vt100.net/docs/
+10. **ncurses man pages**
+- `curs_insdel(3X)` — insert/delete line functions
+- `curs_outopts(3X)` — includes options like `idlok`, `scrollok`
+- ncurses manpage index:  
      https://invisible-island.net/ncurses/man/
-
-5. **Crossterm docs**  
+15. **Crossterm docs**  
    For terminal command support and backend capabilities
-   - https://docs.rs/crossterm/latest/crossterm/
-
-6. **Ratatui docs / source**  
+- https://docs.rs/crossterm/latest/crossterm/
+18. **Ratatui docs / source**  
    For backend draw model and cell-oriented rendering
-   - https://docs.rs/ratatui/latest/ratatui/
-
-7. **termwiz docs**  
+- https://docs.rs/ratatui/latest/ratatui/
+21. **termwiz docs**  
    For lower-level terminal capability abstractions
-   - https://docs.rs/termwiz/latest/termwiz/
-
-8. **Microsoft Console Virtual Terminal Sequences**  
+- https://docs.rs/termwiz/latest/termwiz/
+24. **Microsoft Console Virtual Terminal Sequences**  
    For Windows VT support status
-   - https://learn.microsoft.com/windows/console/console-virtual-terminal-sequences
+- https://learn.microsoft.com/windows/console/console-virtual-terminal-sequences
 
 ---
 
 If you want, I can next turn this into a **Silvery-specific design proposal**: detection heuristic, ANSI sequences, safety conditions, and pseudocode for integrating structural diffing into `changesToAnsi()` / `inlineIncrementalRender()`.
+

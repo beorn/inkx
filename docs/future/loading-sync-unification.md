@@ -59,14 +59,14 @@ const parsedFiles = await collect(parseFiles(sources, parsePool))
 
 ## Benefits
 
-| Benefit          | Description                                           |
-| ---------------- | ----------------------------------------------------- |
-| **DRY**          | Single implementation for parse → apply → resolve     |
-| **Testable**     | Each stage testable in isolation with mock generators |
-| **Composable**   | Mix and match stages for different use cases          |
-| **Observable**   | Easy to add progress/logging at any stage             |
-| **Backpressure** | Natural flow control via async iteration              |
-| **Cancellable**  | AbortSignal propagates through pipeline               |
+| Benefit      | Description                                           |
+| ------------ | ----------------------------------------------------- |
+| DRY          | Single implementation for parse → apply → resolve     |
+| Testable     | Each stage testable in isolation with mock generators |
+| Composable   | Mix and match stages for different use cases          |
+| Observable   | Easy to add progress/logging at any stage             |
+| Backpressure | Natural flow control via async iteration              |
+| Cancellable  | AbortSignal propagates through pipeline               |
 
 ## Architecture Principle
 
@@ -82,3 +82,4 @@ Added to `docs/principles.md` as Principle 7: Async Generator Pipelines.
 - `packages/km-storage/src/repo-loader.ts` - Uses `runDeferredPipeline()`
 - `packages/km-storage/src/watch/reconcile.ts` - Uses `parseFiles()`
 - `docs/principles.md` - Added async generator principle
+

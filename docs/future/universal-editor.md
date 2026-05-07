@@ -52,13 +52,13 @@ The bulk of the application — state management, hooks, business logic, data tr
 
 ### The Five Engine Packages
 
-| Package | Role | Dependencies | Platform-specific? |
-|---------|------|-------------|-------------------|
-| **runly** | Shared runtime: event loop, state management, run modes | None | No — shared |
-| **docily** | App foundation: document model, command system, undo/CRDT¹, plugin composition | runly | No — shared |
-| **textily** | Rich text model: cursor, selection, formatting | None (zero deps) | No — shared |
-| **termily** | Terminal: React renderer + components + cell buffer + ANSI diff | runly, flexily | Yes — terminal only |
-| **flexily** | Standalone flexbox layout engine | None | No — but only terminal needs it |
+| Package | Role                                                                           | Dependencies     | Platform-specific?              |
+| ------- | ------------------------------------------------------------------------------ | ---------------- | ------------------------------- |
+| runly   | Shared runtime: event loop, state management, run modes                        | None             | No — shared                     |
+| docily  | App foundation: document model, command system, undo/CRDT¹, plugin composition | runly            | No — shared                     |
+| textily | Rich text model: cursor, selection, formatting                                 | None (zero deps) | No — shared                     |
+| termily | Terminal: React renderer + components + cell buffer + ANSI diff                | runly, flexily   | Yes — terminal only             |
+| flexily | Standalone flexbox layout engine                                               | None             | No — but only terminal needs it |
 
 ¹ CRDT = Conflict-free Replicated Data Type — a data structure that enables real-time collaborative editing by automatically merging concurrent changes without a central server.
 
@@ -84,14 +84,14 @@ The web app is not a port of the terminal app — it's a **first-class creative 
 
 ### What's Shared vs Platform-Specific
 
-| Layer | Terminal | Web | Shared? |
-|-------|----------|-----|---------|
-| **App** — state, hooks, logic, views | km-app | km-app | **Yes — identical** |
-| **Editing** — document model, commands, undo | docily + textily | docily + textily | **Yes — identical** |
-| **Runtime** — event loop, run modes | runly | runly | **Yes — identical** |
-| **Rendering** — primitives, layout, output | termily + flexily | react-dom + CSS | No — swapped |
-| **Input** — event parsing | stdin/ANSI | KeyboardEvent/PointerEvent | No — swapped |
-| **Shell** — entry point, platform setup | km-tui | km-web | No — thin, per-platform |
+| Layer                                    | Terminal          | Web                        | Shared?                 |
+| ---------------------------------------- | ----------------- | -------------------------- | ----------------------- |
+| App — state, hooks, logic, views         | km-app            | km-app                     | Yes — identical         |
+| Editing — document model, commands, undo | docily + textily  | docily + textily           | Yes — identical         |
+| Runtime — event loop, run modes          | runly             | runly                      | Yes — identical         |
+| Rendering — primitives, layout, output   | termily + flexily | react-dom + CSS            | No — swapped            |
+| Input — event parsing                    | stdin/ANSI        | KeyboardEvent/PointerEvent | No — swapped            |
+| Shell — entry point, platform setup      | km-tui            | km-web                     | No — thin, per-platform |
 
 Most of the code is shared. What changes per platform is the rendering layer and a thin entry-point shell.
 
@@ -114,15 +114,10 @@ This is the hardest part of the architecture to get right.
 "Swap the renderer" is a one-line phrase that hides real work:
 
 - **DOM selection/cursor**: Re-rendering can reset the browser caret. Must use the Selection API to restore it after state updates. Typing must not trigger full re-renders. See [Lexical's approach](https://news.ycombinator.com/item?id=31018746) — they treat the DOM as derived state, diffed carefully to preserve selection.
-
 - **IME/EditContext**: The W3C [EditContext API](https://developer.mozilla.org/en-US/docs/Web/API/EditContext) is Chrome/Edge only as of 2026. Firefox and Safari need a fallback (hidden `<textarea>` or contentEditable). Expect edge cases with composition events, dead keys, CJK input.
-
 - **Focus management**: Browsers provide DOM focus for free; terminals must implement an equivalent system (focusable elements, tab order, focus/blur events). Both platforms should expose the same abstract focus API to km-app.
-
 - **Mouse/touch**: Web users expect clicking to place cursor, drag to select, scroll wheels. The command system needs pointer interaction handlers — registered by the platform shell, not baked into docily.
-
 - **Accessibility**: Needs ARIA roles, focus management for screen readers, live regions for state changes, keyboard navigation that doesn't fight the browser's own.
-
 - **Virtual scroll on web**: Variable-height elements with proportional fonts require DOM measurement (`getBoundingClientRect`), unlike terminal where wrap is computable from column width.
 
 ### Web-Specific Opportunities
@@ -205,12 +200,12 @@ interface DocumentStore {
 
 **DocumentStore is a swappable interface** — the backing store is an implementation detail. Different platforms and use cases plug in different backends:
 
-| Implementation | Backing store | Sync/async |
-|---------------|---------------|------------|
-| Adapter over `Repo` (existing) | SQLite + markdown files | Sync |
-| IndexedDB wrapper | IndexedDB / OPFS | Async (or sync via WASM SQLite in worker) |
-| CRDT adapter | Automerge / Yjs + CAS + search index | Async |
-| Platform wrapper | CloudKit / Room / Core Data | Async |
+| Implementation               | Backing store                        | Sync/async                                |
+| ---------------------------- | ------------------------------------ | ----------------------------------------- |
+| Adapter over Repo (existing) | SQLite + markdown files              | Sync                                      |
+| IndexedDB wrapper            | IndexedDB / OPFS                     | Async (or sync via WASM SQLite in worker) |
+| CRDT adapter                 | Automerge / Yjs + CAS + search index | Async                                     |
+| Platform wrapper             | CloudKit / Room / Core Data          | Async                                     |
 
 Some backends are inherently async (IndexedDB, network-backed CRDTs). The interface returns synchronous values, which means async implementations must either pre-load data into memory or use a synchronous bridge (e.g., WASM SQLite with OPFS). The app layer should be designed so that navigating to an unloaded subtree triggers a load + re-render, not a blocking call.
 
@@ -267,6 +262,7 @@ interface UndoManager {
 **Undo grouping**: Consecutive `text.insert` operations merge into a single undo step (time-based: >500ms gap or non-text command breaks the group). Structural operations are always separate undo steps. `batch()` groups multiple operations.
 
 **CRDT integration**: The operations map cleanly to **Yjs or Automerge** — we use an existing CRDT library rather than building our own:
+
 - `text.insert/delete` → Yjs Y.Text or Automerge.Text operations
 - `node.insert/delete/move` → tree CRDT operations (Automerge nested maps)
 - `node.update` → field-level CRDT merge
@@ -398,13 +394,13 @@ flexily is a pure JavaScript flexbox layout engine. It already exists as flexily
 
 Views live in the shared app layer. They define **what** to render — which nodes, in what order, with what state — using shared hooks and logic. Platform shells provide the concrete rendering for each view.
 
-| View | What it shows | How it maps to the document tree |
-|------|--------------|----------------------------------|
-| **Board** | Kanban columns + cards | L1 children = columns, L2 children = cards |
-| **Outline** | Indented tree | Direct tree rendering with depth |
-| **List** | Flat list + detail pane | Filtered/sorted flat view of subtree |
-| **Calendar** | Time-based layout | Nodes with date fields |
-| **Table** | Spreadsheet grid | Nodes as rows, metadata fields as columns |
+| View     | What it shows           | How it maps to the document tree           |
+| -------- | ----------------------- | ------------------------------------------ |
+| Board    | Kanban columns + cards  | L1 children = columns, L2 children = cards |
+| Outline  | Indented tree           | Direct tree rendering with depth           |
+| List     | Flat list + detail pane | Filtered/sorted flat view of subtree       |
+| Calendar | Time-based layout       | Nodes with date fields                     |
+| Table    | Spreadsheet grid        | Nodes as rows, metadata fields as columns  |
 
 **Views share the same docily DocumentEditor instance.** Switching views changes rendering, not state. Cursor, selection, and undo history persist across view switches.
 
@@ -431,6 +427,7 @@ km-storage ──→ docily (implements DocumentStore)
 ```
 
 **Key constraints:**
+
 - **km-app** depends on the shared engine (docily, textily, runly) but NOT on any renderer — platform-agnostic
 - textily has **zero dependencies** — standalone, usable anywhere
 - docily depends on runly but NOT on termily — platform-agnostic
@@ -448,16 +445,16 @@ km-storage ──→ docily (implements DocumentStore)
 
 EditContext = W3C EditContext API (decouples text input from DOM). contentEditable = browser's built-in rich text editing surface (convenient but notoriously buggy — selection, IME, and undo are hard to control).
 
-| System | Model | Platform | EditContext | Lazy loading | CRDT-native |
-|--------|-------|----------|------------|--------------|-------------|
-| **ProseMirror** | Schema-based, children[] | Browser only | No (contentEditable) | No | Via Yjs plugin |
-| **Slate.js** | Children[], index paths | Browser only | No (contentEditable) | No | Via Yjs plugin |
-| **Lexical** | Children[], keys | Browser only | No (contentEditable) | No | Partial |
-| **CodeMirror** | Line-based | Browser only | Experimental | No | Via Yjs plugin |
-| **Notion** | ID-based blocks | Browser only (Electron) | No | Yes (API-loaded) | Custom OT |
-| **Obsidian** | File-based | Browser (Electron) | No | Partial | No |
-| **Automerge** | CRDT document | Any | No | No | **Yes** |
-| **Ours** | **ID-based, parentId/idx** | **Terminal + Browser + Native** | **Yes (aligned)** | **Yes (DocumentStore)** | **Yes (via Yjs/Automerge)** |
+| System      | Model                    | Platform                    | EditContext          | Lazy loading        | CRDT-native             |
+| ----------- | ------------------------ | --------------------------- | -------------------- | ------------------- | ----------------------- |
+| ProseMirror | Schema-based, children[] | Browser only                | No (contentEditable) | No                  | Via Yjs plugin          |
+| Slate.js    | Children[], index paths  | Browser only                | No (contentEditable) | No                  | Via Yjs plugin          |
+| Lexical     | Children[], keys         | Browser only                | No (contentEditable) | No                  | Partial                 |
+| CodeMirror  | Line-based               | Browser only                | Experimental         | No                  | Via Yjs plugin          |
+| Notion      | ID-based blocks          | Browser only (Electron)     | No                   | Yes (API-loaded)    | Custom OT               |
+| Obsidian    | File-based               | Browser (Electron)          | No                   | Partial             | No                      |
+| Automerge   | CRDT document            | Any                         | No                   | No                  | Yes                     |
+| Ours        | ID-based, parentId/idx   | Terminal + Browser + Native | Yes (aligned)        | Yes (DocumentStore) | Yes (via Yjs/Automerge) |
 
 The unique combination: ID-based model (like Notion's blocks) + EditContext alignment (like the W3C standard) + truly platform agnostic (terminal AND creative-tools-level web) + lazy loading + CRDT via Yjs/Automerge. No existing editing framework targets both a terminal TUI and a rich web app.
 
@@ -470,11 +467,13 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 ## Roadmap
 
 ### Phase A — Terminal (current state)
+
 - Silvery + custom text editing + SQLite + Board/Outline/List views
 - This is km today, progressively refactored
 - Operations-based undo via event log
 
 ### Phase B — Extract packages
+
 1. **textily**: Extract `text-cursor.ts` from Silvery. Implement `TerminalEditContext`, `TextOp` with `invertOp()`, `useEditContext()` hook. Refactor TextArea to use EditContext internally. Tests: 50+ covering EditContext methods + events + text operations.
 2. **runly**: Extract runtime (event loop, state management), event streams, run modes. Extract React reconciler abstraction (renderer-agnostic parts). Tests: event streams, run modes, state cycle.
 3. **docily**: Extract command system from km-commands. Define `DocNode`, `DocumentStore`, `DocCursor`, `DocSelection` interfaces. Implement `DocOperation` types with invertibility, `UndoManager`, `DocumentEditor`. Extract plugin composition. Adapter: `DocumentStore` over existing km `Repo`. Tests: Full CRUD + undo/redo + cross-block navigation + commands, all without rendering.
@@ -485,6 +484,7 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 **Cross-cutting**: CRDT-ready from day one — DocOperations as invertible ops mapping to Automerge/Yjs. Tests: Existing km-tui tests pass with new engine.
 
 ### Phase C — Web App
+
 - km-web shell: React DOM rendering using km-app + react-dom
 - Web-specific EditContext implementations (BrowserEditContext, SlateEditContextAdapter)
 - IndexedDB storage via DocumentStore adapter
@@ -492,6 +492,7 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 - Target: creative-tools-level polish — smooth interactions, rich visual design, mouse+keyboard
 
 ### Phase D — Collaboration (enabled by ops model)
+
 - CRDT-backed DocumentStore (Automerge/Yjs)
 - DocOperations translate directly to CRDT operations
 - ID-based cursors survive concurrent edits
@@ -499,11 +500,13 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 - Real-time multiplayer editing
 
 ### Phase E — Terminal in Browser
+
 - termily rendering to xterm.js canvas (not stdout)
 - Terminal version runs in browser with zero app code changes
 - Useful for web-based terminal access, demos, embedding
 
 ### Phase F — Native
+
 - SwiftUI (macOS/iOS) + Jetpack Compose (Android)
 - Same km-app + docily + textily, native rendering and input
 - Platform storage (CloudKit, Room)
@@ -535,15 +538,10 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 Extracting packages from an ~80K-line monolith and building a shared app layer has specific risks:
 
 - **Component abstraction boundary**: km-app shares state, hooks, and logic wholesale. But components have a rendering layer that differs per platform (cell buffer vs DOM). The question is where to draw the line — too much in km-app and platform-specific rendering leaks in; too little and you duplicate logic in each shell. Mitigation: start by extracting state/hooks/logic into km-app and let each shell own its component rendering. Converge toward shared components incrementally where it reduces duplication.
-
 - **Hidden coupling**: Monolith code may have cross-boundary shortcuts — a terminal component directly mutating document state, or a command that assumes terminal-specific rendering. These only surface when you try to import docily without termily. Mitigation: enforce import rules via lint (e.g., docily cannot import from termily).
-
 - **Undo breakage**: Any mutation path that bypasses the operation log will silently break undo/redo. If something directly sets `node.content = "..."` instead of going through `DocumentStore.updateNode()`, it won't be recorded. Mitigation: make DocumentStore the only way to mutate — freeze node objects, use TypeScript readonly.
-
 - **Performance regression**: New abstraction layers add indirection. If a hot path previously inlined a function and now crosses a package boundary, V8 may not optimize it the same way. Mitigation: benchmark before and after extraction, especially for typing latency and scroll performance.
-
 - **Integration points**: Features that cross boundaries are easy to miss. Cursor rendering, scroll sync, focus management, clipboard — these all involve coordination between editing and rendering. Mitigation: list all user-facing features and trace their data flow through the new architecture before splitting.
-
 - **Extract incrementally**: textily first (lowest risk, self-contained, zero deps), then runly, then docily, then termily, then km-app. Test at each step.
 
 ---
@@ -583,13 +581,13 @@ Extracting packages from an ~80K-line monolith and building a shared app layer h
 
 ### Platform Strategies
 
-| Approach | Examples | How it works |
-|----------|----------|--------------|
-| **Shared rendering engine** | Flutter, Qt | Custom rendering engine draws identical pixels everywhere |
-| **Bridge to native views** | React Native, KMP | Shared logic, native UI widgets via bridge |
-| **Web in a shell** | Electron, Tauri | Web app running in native browser shell |
-| **Terminal emulation** | SSH, tmux, xterm.js | Terminal app embedded in browser/native |
-| **Ours: shared core + native adapters** | — | Pure TS editor core + shared app layer, platform-specific rendering |
+| Approach                            | Examples            | How it works                                                        |
+| ----------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| Shared rendering engine             | Flutter, Qt         | Custom rendering engine draws identical pixels everywhere           |
+| Bridge to native views              | React Native, KMP   | Shared logic, native UI widgets via bridge                          |
+| Web in a shell                      | Electron, Tauri     | Web app running in native browser shell                             |
+| Terminal emulation                  | SSH, tmux, xterm.js | Terminal app embedded in browser/native                             |
+| Ours: shared core + native adapters | —                   | Pure TS editor core + shared app layer, platform-specific rendering |
 
 **React Native**: No terminal support; text editing is RN's weakest point; RN is rendering-centric while we share editing logic; assumes eager loading; heavy runtime (Metro, bridge, Hermes).
 
@@ -643,59 +641,60 @@ Analysis of the current Silvery codebase reveals a **60/40 split** between porta
 
 **Portable (~60%) → runly + docily:**
 
-| Module | What it does | Destination |
-|--------|-------------|-------------|
-| Elm runtime | Functional reactive: init/update/view cycle | runly |
-| React reconciler | Fiber-based custom renderer (React's incremental rendering architecture) | runly (abstract) or termily |
-| Command system | Registry, keybindings, executor, chord state | docily |
-| Plugin composition | withCommands, withScroll, withHistory | docily |
-| Event streams | AsyncIterable event processing | runly |
-| Unicode handling | grapheme segmentation, East Asian width | textily or shared util |
-| Virtual scroll | Viewport-aware lazy rendering | docily (logic) + termily (impl) |
+| Module             | What it does                                                             | Destination                     |
+| ------------------ | ------------------------------------------------------------------------ | ------------------------------- |
+| Elm runtime        | Functional reactive: init/update/view cycle                              | runly                           |
+| React reconciler   | Fiber-based custom renderer (React's incremental rendering architecture) | runly (abstract) or termily     |
+| Command system     | Registry, keybindings, executor, chord state                             | docily                          |
+| Plugin composition | withCommands, withScroll, withHistory                                    | docily                          |
+| Event streams      | AsyncIterable event processing                                           | runly                           |
+| Unicode handling   | grapheme segmentation, East Asian width                                  | textily or shared util          |
+| Virtual scroll     | Viewport-aware lazy rendering                                            | docily (logic) + termily (impl) |
 
 **Terminal-specific (~40%) → termily:**
 
-| Module | What it does | Why not portable |
-|--------|-------------|-----------------|
-| Cell buffer | 2D grid of styled characters | Terminal concept — browsers use DOM |
-| ANSI diff | Compute minimal escape sequences | Terminal output format |
-| Dirty flag system | Track which cells changed | Terminal optimization |
-| Stdin parser | Raw mode + ANSI sequence parsing | Terminal input format |
-| Terminal detection | Capabilities, color depth, size | Terminal-specific queries |
-| Scroll tiers | Container-aware scroll regions | Terminal rendering strategy |
-| Sticky children | Position:sticky for cell buffers | Terminal layout extension |
+| Module             | What it does                     | Why not portable                    |
+| ------------------ | -------------------------------- | ----------------------------------- |
+| Cell buffer        | 2D grid of styled characters     | Terminal concept — browsers use DOM |
+| ANSI diff          | Compute minimal escape sequences | Terminal output format              |
+| Dirty flag system  | Track which cells changed        | Terminal optimization               |
+| Stdin parser       | Raw mode + ANSI sequence parsing | Terminal input format               |
+| Terminal detection | Capabilities, color depth, size  | Terminal-specific queries           |
+| Scroll tiers       | Container-aware scroll regions   | Terminal rendering strategy         |
+| Sticky children    | Position:sticky for cell buffers | Terminal layout extension           |
 
 **Key insight**: The cell buffer, diff algorithm, and dirty tracking are terminal-specific, not core. On web, the browser handles layout, painting, and diffing. The core is the component model + event system + command dispatch + virtual scroll logic.
 
 ### Extraction Candidates
 
-| Component | Location | Lines | Destination |
-|-----------|----------|-------|-------------|
-| `text-cursor.ts` | `vendor/silvery/src/text-cursor.ts` | 196 | textily (pure functions) |
-| `TextArea` | `vendor/silvery/src/components/TextArea.tsx` | 412 | textily + termily |
-| Elm runtime | `vendor/silvery/src/runtime/` | ~1500 | runly |
-| React reconciler | `vendor/silvery/src/reconciler/` | ~2000 | termily |
-| Cell buffer + diff | `vendor/silvery/src/output/` | ~1200 | termily |
-| Command system | `packages/km-commands/src/` | ~22K | docily |
-| `KNode` | `packages/km-core/src/types.ts` | 474 | docily (11 node types, ID+parentId) |
-| `Repo` | `packages/km-storage/src/` | 40+ files | km-storage (DocumentStore adapter) |
-| `board-actions.ts` | `apps/km-tui/src/board/board-actions.ts` | 1,380 | docily (111-case dispatch) |
-| Board actions (edit) | `apps/km-tui/src/board/board-actions-edit.ts` | 580 | docily |
-| Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | docily |
-| Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | docily |
-| Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | docily |
-| Flexily layout | `vendor/flexily/` | ~3000 | flexily (standalone) |
+| Component                 | Location                                         | Lines     | Destination                         |
+| ------------------------- | ------------------------------------------------ | --------- | ----------------------------------- |
+| text-cursor.ts            | vendor/silvery/src/text-cursor.ts                | 196       | textily (pure functions)            |
+| TextArea                  | vendor/silvery/src/components/TextArea.tsx       | 412       | textily + termily                   |
+| Elm runtime               | vendor/silvery/src/runtime/                      | ~1500     | runly                               |
+| React reconciler          | vendor/silvery/src/reconciler/                   | ~2000     | termily                             |
+| Cell buffer + diff        | vendor/silvery/src/output/                       | ~1200     | termily                             |
+| Command system            | packages/km-commands/src/                        | ~22K      | docily                              |
+| KNode                     | packages/km-core/src/types.ts                    | 474       | docily (11 node types, ID+parentId) |
+| Repo                      | packages/km-storage/src/                         | 40+ files | km-storage (DocumentStore adapter)  |
+| board-actions.ts          | apps/km-tui/src/board/board-actions.ts           | 1,380     | docily (111-case dispatch)          |
+| Board actions (edit)      | apps/km-tui/src/board/board-actions-edit.ts      | 580       | docily                              |
+| Board actions (nav)       | apps/km-tui/src/board/board-actions-nav.ts       | 285       | docily                              |
+| Board actions (selection) | apps/km-tui/src/board/board-actions-selection.ts | 142       | docily                              |
+| Board actions (zoom)      | apps/km-tui/src/board/board-actions-zoom.ts      | 325       | docily                              |
+| Flexily layout            | vendor/flexily/                                  | ~3000     | flexily (standalone)                |
 
 **Key finding**: No Slate.js dependency. Text editing is entirely custom via the command-dispatch pattern and `blockEditTargetRef`. No Slate to remove.
 
 ### What This Replaces
 
-| Current | Future | Why better |
-|---------|--------|-----------|
-| Custom text editing (blockEditTargetRef) | textily EditContext + factory | W3C-aligned, swappable implementations |
-| `KNode.children[]` arrays (in-memory tree) | docily ID + `parentId/parentIdx` queries | Lazy loading, CRDT-friendly, matches storage |
-| `board-actions.ts` (1,380-line switch) | docily DocumentEditor | Pure logic, testable without rendering |
-| Silvery monolith (runtime + rendering + commands) | runly + termily + docily | Clean separation, web-portable |
-| Silvery-only rendering | termily (terminal) or react-dom (web) | Same editing engine, native rendering per platform |
-| Custom `wrapSegment` etc. | textily text-cursor (done!) | Standalone, tested, reusable |
-| Eager tree loading | docily DocumentStore lazy queries | Handles 100K+ node vaults |
+| Current                                           | Future                                 | Why better                                         |
+| ------------------------------------------------- | -------------------------------------- | -------------------------------------------------- |
+| Custom text editing (blockEditTargetRef)          | textily EditContext + factory          | W3C-aligned, swappable implementations             |
+| KNode.children[] arrays (in-memory tree)          | docily ID + parentId/parentIdx queries | Lazy loading, CRDT-friendly, matches storage       |
+| board-actions.ts (1,380-line switch)              | docily DocumentEditor                  | Pure logic, testable without rendering             |
+| Silvery monolith (runtime + rendering + commands) | runly + termily + docily               | Clean separation, web-portable                     |
+| Silvery-only rendering                            | termily (terminal) or react-dom (web)  | Same editing engine, native rendering per platform |
+| Custom wrapSegment etc.                           | textily text-cursor (done!)            | Standalone, tested, reusable                       |
+| Eager tree loading                                | docily DocumentStore lazy queries      | Handles 100K+ node vaults                          |
+

@@ -688,23 +688,23 @@ When the outer component unmounts or the deps change, the effect scope disposes 
 
 Every shape reduces to `scope.use(disposable(nativeThing, cleanup))`. No framework-owned replacements for platform APIs.
 
-| Shape | Acquire | Dispose |
-|---|---|---|
-| Child processes | `child_process.spawn(cmd, args)` | `p => p.kill("SIGTERM")` |
-| MCP stdio pipes | returned from `spawn` | `() => pipe.close()` |
-| File watchers | `fs.watch(path, cb)` / `chokidar.watch(...)` | `w => w.close()` |
-| File descriptors / streams | `fs.createWriteStream(...)` | `s => s.close()` |
-| Database connections | `new Database(path)` (per-driver) | `db => db.close()` |
-| Network sockets | `new WebSocket(url)` / `net.createConnection(...)` | `w => w.close()` |
-| Subscriptions | `emitter.on(event, fn)` | `() => emitter.off(event, fn)` |
-| Timers | `setTimeout(fn, ms)` / `setInterval(fn, ms)` | `clearTimeout` / `clearInterval` |
-| Temp directories | `fs.mkdtempSync(prefix)` | `d => fs.rmSync(d, { recursive: true })` |
-| Server listeners | `http.createServer(...).listen(port)` | `s => s.close()` |
-| Worker threads | `new Worker(script)` | `w => w.terminate()` |
-| Abort / cancellation | (use `scope.signal` directly in `fetch`, `AbortSignal.timeout`, etc.) | — |
-| Terminal protocol state | `term.modes.enable(...)` (silvery-owned) | returned `Disposable` |
-| Terminal signals | `term.signals.on(signal, fn, opts)` (silvery-owned) | returned `Disposable` |
-| Sub-reconciler roots | `mountSubroot(element)` (silvery-owned) | returned `Disposable` |
+| Shape                      | Acquire                                                         | Dispose                                |
+| -------------------------- | --------------------------------------------------------------- | -------------------------------------- |
+| Child processes            | child_process.spawn(cmd, args)                                  | p => p.kill("SIGTERM")                 |
+| MCP stdio pipes            | returned from spawn                                             | () => pipe.close()                     |
+| File watchers              | fs.watch(path, cb) / chokidar.watch(...)                        | w => w.close()                         |
+| File descriptors / streams | fs.createWriteStream(...)                                       | s => s.close()                         |
+| Database connections       | new Database(path) (per-driver)                                 | db => db.close()                       |
+| Network sockets            | new WebSocket(url) / net.createConnection(...)                  | w => w.close()                         |
+| Subscriptions              | emitter.on(event, fn)                                           | () => emitter.off(event, fn)           |
+| Timers                     | setTimeout(fn, ms) / setInterval(fn, ms)                        | clearTimeout / clearInterval           |
+| Temp directories           | fs.mkdtempSync(prefix)                                          | d => fs.rmSync(d, { recursive: true }) |
+| Server listeners           | http.createServer(...).listen(port)                             | s => s.close()                         |
+| Worker threads             | new Worker(script)                                              | w => w.terminate()                     |
+| Abort / cancellation       | (use scope.signal directly in fetch, AbortSignal.timeout, etc.) | —                                      |
+| Terminal protocol state    | term.modes.enable(...) (silvery-owned)                          | returned Disposable                    |
+| Terminal signals           | term.signals.on(signal, fn, opts) (silvery-owned)               | returned Disposable                    |
+| Sub-reconciler roots       | mountSubroot(element) (silvery-owned)                           | returned Disposable                    |
 
 Silvery-owned APIs (`term.*`, `mountSubroot`) return `Disposable` directly so they can be passed to `scope.use()` without wrapping. Everything else uses the native API + `disposable()`.
 
@@ -771,8 +771,8 @@ Scope additions:
 - **`vendor/silvery/packages/ag-react/src/reconciler/host-config.ts`** — add an optional `scope: Scope | null` field on the fiber-local state the reconciler tracks. On the fiber-unmount path, if `scope != null`, start `scope[Symbol.asyncDispose]()` and route failures to `reportDisposeError(error, { phase: "react-unmount", scope })`.
 - **`vendor/silvery/packages/ag-react/src/hooks/useScope.ts`** (new file) — hook that:
   1. Looks for a scope on the current fiber's state. If present, return it.
-  2. Walks up the owner chain (React's fiber `.return` pointer, exposed via `react-reconciler` internals or equivalent) to find the nearest ancestor scope.
-  3. Lazily allocates a fiber-local scope as a child of the nearest ancestor on first access — so components that never call `useScope()` pay nothing.
+  1. Walks up the owner chain (React's fiber `.return` pointer, exposed via `react-reconciler` internals or equivalent) to find the nearest ancestor scope.
+  1. Lazily allocates a fiber-local scope as a child of the nearest ancestor on first access — so components that never call `useScope()` pay nothing.
 - **`vendor/silvery/packages/ag-react/src/hooks/useAppScope.ts`** (new file) — returns the root scope attached by `withScope()`.
 - **`vendor/silvery/packages/ag-react/src/hooks/useScopeEffect.ts`** (new file) — `useEffect` wrapper that creates a child scope after commit, calls `setup(child)`, and disposes that child on dep change/unmount.
 - **`vendor/silvery/packages/ag-term/src/runtime/create-app.tsx`** — `createApp()` unconditionally calls `withScope()` first (so every app has a root scope). `app` gets a `.scope` field. The existing plugin-chain (`pipe(withX, withY)(...)`) stays as-is; `withScope` just goes first by default.
@@ -868,15 +868,15 @@ No `@silvery/node` / `@silvery/web` / `@silvery/core` packages. No `spawn()`, `w
 
 One bead per mechanism; do them in order:
 
-| Order | Mechanism | Action | Bead |
-|---|---|---|---|
-| 1 | Sub-reconciler roots (silvercode panels) | Wire root scope cascade via `scope.use(mountSubroot(...))` | `km-silvery.scope-subroots` |
-| 2 | Raw `setTimeout` / `setInterval` in app code | Replace with `scope.use(disposable(setTimeout(fn, ms), clearTimeout))` | `km-silvery.scope-timers` |
-| 3 | Raw `new AbortController` | Replace with `scope.signal` | `km-silvery.scope-abort` |
-| 4 | Raw `fs.watch` / `child_process.spawn` | Wrap with `disposable(nativeCall, cleanup)` and `scope.use(...)` | `km-silvery.scope-node-io` |
-| 5 | `term.signals.on(SIGINT)` in app code | Wire into root scope; app code no longer touches `term.signals` | `km-silvery.scope-signals` |
-| 6 | `useExit` | Replace call sites with `useAppScope()` + root-scope disposal | `km-silvery.scope-useexit` |
-| 7 | Store `subscribe` / `off` pairs | `scope.use(store.subscribe(fn))` (stores return `Disposable` or wrap with `disposable()`) | `km-silvery.scope-stores` |
+| Order | Mechanism                                | Action                                                                              | Bead                      |
+| ----- | ---------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------- |
+| 1     | Sub-reconciler roots (silvercode panels) | Wire root scope cascade via scope.use(mountSubroot(...))                            | km-silvery.scope-subroots |
+| 2     | Raw setTimeout / setInterval in app code | Replace with scope.use(disposable(setTimeout(fn, ms), clearTimeout))                | km-silvery.scope-timers   |
+| 3     | Raw new AbortController                  | Replace with scope.signal                                                           | km-silvery.scope-abort    |
+| 4     | Raw fs.watch / child_process.spawn       | Wrap with disposable(nativeCall, cleanup) and scope.use(...)                        | km-silvery.scope-node-io  |
+| 5     | term.signals.on(SIGINT) in app code      | Wire into root scope; app code no longer touches term.signals                       | km-silvery.scope-signals  |
+| 6     | useExit                                  | Replace call sites with useAppScope() + root-scope disposal                         | km-silvery.scope-useexit  |
+| 7     | Store subscribe / off pairs              | scope.use(store.subscribe(fn)) (stores return Disposable or wrap with disposable()) | km-silvery.scope-stores   |
 
 **Exit per bead**: grep shows zero remaining raw usage of that mechanism in `apps/*` + `packages/*` (vendor exempt). Test suite green.
 
@@ -962,3 +962,4 @@ Trio-style structured concurrency ported to React fiber lifetimes. One-liner per
 - Signal mediator: `vendor/silvery/packages/ag-term/src/runtime/devices/signals.ts`
 - Public doc mirror (post Phase 4): `vendor/silvery/docs/design/lifecycle-scope.md`
 - Bead: `km-silvery.lifecycle-scope`
+

@@ -46,6 +46,7 @@ On `$PREFIX/share/cap/<app>.json` or `<app> --cap-manifest`:
 ```
 
 Fields:
+
 - Subcommands + flags + arg types (JSON Schema)
 - Input / output types
 - Exit codes + meanings
@@ -167,3 +168,4 @@ Day 1 experience: "I just installed `gh`. Open commander. `cap-wrap gh` runs in 
 ## Origin
 
 2026-04-23 discussion — user's "millions of apps" framing + AutoCompletor / ff as existing silvery-native tools. The leverage realization: commander is only "better Warp" without a protocol; with CAP, it's a platform.
+

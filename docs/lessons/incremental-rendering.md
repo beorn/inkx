@@ -23,6 +23,7 @@ When debugging is hard, **stop and build better tooling**. The investment pays o
 4. **Invariant checks** - SILVERY_STRICT catches mismatches automatically
 
 Example: We added `FAST-PATH ANALYSIS` to error output that explains WHY a node was skipped:
+
 ```
 FAST-PATH ANALYSIS:
   ⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node
@@ -39,6 +40,7 @@ AI agents (Claude, GPT) are excellent at debugging when given rich diagnostic ou
 **Bad**: `AssertionError: expected "A" but got "B"`
 
 **Good**: Include everything needed to diagnose without re-running:
+
 ```
 MISMATCH at (12, 5) on render #3
 
@@ -94,6 +96,7 @@ export function testEnv(tree: TreeDefinition, options?: TestEnvOptions) {
 ### Error Messages Should Answer "Why?"
 
 Every error message should answer:
+
 1. **What** went wrong (the symptom)
 2. **Where** it happened (position, node path, render number)
 3. **Why** it likely happened (analysis of flags, state, conditions)
@@ -124,13 +127,14 @@ if (process.env.SILVERY_STRICT && this.stats.renderCount > 0) {
 
 ### Layer Your Invariants
 
-| Layer | What to Check | When |
-|-------|---------------|------|
-| **Unit** | Single function contracts | Every call |
-| **Integration** | Cross-component consistency | After operations |
-| **System** | End-to-end correctness | Every render (in tests) |
+| Layer       | What to Check               | When                    |
+| ----------- | --------------------------- | ----------------------- |
+| Unit        | Single function contracts   | Every call              |
+| Integration | Cross-component consistency | After operations        |
+| System      | End-to-end correctness      | Every render (in tests) |
 
 For rendering:
+
 ```typescript
 // Unit: Node-level invariants
 if (node.subtreeDirty && !hasAnyDirtyDescendant(node)) {
@@ -180,6 +184,7 @@ The SILVERY_STRICT check catches this immediately in tests.
 ### When Invariants Fail: Fix the Bug, Not the Invariant
 
 When an invariant fails, you have two choices:
+
 1. **Fix the code** - The invariant caught a real bug
 2. **Update the invariant** - Your understanding of correctness was wrong
 
@@ -227,12 +232,12 @@ EOF
 
 ### When to Get Outside Perspective
 
-| Situation | Action |
-|-----------|--------|
-| Stuck for 30+ minutes on same bug | `/deep` with full source |
-| Fix works but feels hacky | Ask for architectural review |
-| Not sure if fix is complete | Ask for edge cases you might have missed |
-| Complex algorithm changes | Ask for correctness review |
+| Situation                         | Action                                   |
+| --------------------------------- | ---------------------------------------- |
+| Stuck for 30+ minutes on same bug | /deep with full source                   |
+| Fix works but feels hacky         | Ask for architectural review             |
+| Not sure if fix is complete       | Ask for edge cases you might have missed |
+| Complex algorithm changes         | Ask for correctness review               |
 
 ### What Makes a Good LLM Review Request
 
@@ -244,6 +249,7 @@ EOF
 ### The Meta-Benefit
 
 Even if the other LLM doesn't solve your problem, articulating it clearly often triggers your own insight. The act of preparing context for review forces you to:
+
 - Organize what you know
 - State your assumptions explicitly
 - Question whether you've tried the obvious things
@@ -271,12 +277,12 @@ if (
 
 ### Common Bug Patterns
 
-| Pattern | Symptom | Root Cause | Fix |
-|---------|---------|------------|-----|
-| **Blank regions** | Content disappears after navigation | Parent cleared region but children skipped by fast-path | Propagate `contentRegionCleared` to disable child fast-path |
-| **Stale backgrounds** | Old highlight color persists | Node had backgroundColor, now doesn't | Check `stylePropsDirty` flag, clear region on removal |
-| **Sibling shift artifacts** | Gap pixels between moved children | Child positions changed but parent didn't clear | Detect `childPositionChanged`, clear parent region |
-| **Overlay bleed** | Dialog background leaks through | Dialog closed but underlying content not restored | Re-render content behind dialog |
+| Pattern                 | Symptom                             | Root Cause                                              | Fix                                                       |
+| ----------------------- | ----------------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| Blank regions           | Content disappears after navigation | Parent cleared region but children skipped by fast-path | Propagate contentRegionCleared to disable child fast-path |
+| Stale backgrounds       | Old highlight color persists        | Node had backgroundColor, now doesn't                   | Check stylePropsDirty flag, clear region on removal       |
+| Sibling shift artifacts | Gap pixels between moved children   | Child positions changed but parent didn't clear         | Detect childPositionChanged, clear parent region          |
+| Overlay bleed           | Dialog background leaks through     | Dialog closed but underlying content not restored       | Re-render content behind dialog                           |
 
 ### The Key Insight
 
@@ -311,6 +317,7 @@ This compares incremental vs fresh render on EVERY render and throws on mismatch
 ### 2. Read the Error Output
 
 The enhanced error shows:
+
 - **Position** - Where the mismatch occurred
 - **Cell values** - What incremental showed vs what fresh showed
 - **Node path** - Which component owns that cell
@@ -322,12 +329,12 @@ The enhanced error shows:
 
 Look for these clues:
 
-| Clue | Likely Pattern |
-|------|----------------|
-| `active: (none - node was clean)` | Fast-path incorrectly skipped |
-| `⚠ SCROLL CHANGED: offset X → Y` | Scroll handling issue |
-| `bg=N` in incremental, `bg=0` in fresh | Background not cleared |
-| Node in visible range but blank | Viewport clear + fast-path issue |
+| Clue                               | Likely Pattern                   |
+| ---------------------------------- | -------------------------------- |
+| active: (none - node was clean)    | Fast-path incorrectly skipped    |
+| ⚠ SCROLL CHANGED: offset X → Y     | Scroll handling issue            |
+| bg=N in incremental, bg=0 in fresh | Background not cleared           |
+| Node in visible range but blank    | Viewport clear + fast-path issue |
 
 ### 4. Create a Fixture Test
 
@@ -367,13 +374,13 @@ Trace through with the question: "Why is this node skipped?"
 
 ## Dirty Flag Reference
 
-| Flag | Meaning | Set When |
-|------|---------|----------|
-| `contentDirty` | Text/structure changed | Text content changes |
-| `stylePropsDirty` | Visual props changed | backgroundColor, color, border changes |
-| `subtreeDirty` | Descendant is dirty | Any child has a dirty flag |
-| `childrenDirty` | Children added/removed/reordered | React reconciliation changes children |
-| `layoutDirty` | Layout props changed | Width, height, flex props change |
+| Flag            | Meaning                          | Set When                               |
+| --------------- | -------------------------------- | -------------------------------------- |
+| contentDirty    | Text/structure changed           | Text content changes                   |
+| stylePropsDirty | Visual props changed             | backgroundColor, color, border changes |
+| subtreeDirty    | Descendant is dirty              | Any child has a dirty flag             |
+| childrenDirty   | Children added/removed/reordered | React reconciliation changes children  |
+| layoutDirty     | Layout props changed             | Width, height, flex props change       |
 
 ## Testing Checklist
 
@@ -390,6 +397,7 @@ When fixing incremental bugs:
 Don't over-invalidate. Each disabled fast-path means more rendering work.
 
 The hierarchy of "expensive":
+
 1. **Fresh render every frame** - Most correct, most expensive
 2. **Subtree re-render** - When subtreeDirty propagates up
 3. **Node re-render** - Single node + children
@@ -403,3 +411,4 @@ Goal: Skip as many nodes as possible while maintaining correctness.
 - `vendor/silvery/src/debug-mismatch.ts` - Error formatting
 - `vendor/silvery/src/scheduler.ts` - SILVERY_STRICT check
 - `apps/km-tui/tests/helpers/board-test.ts` - Test fixtures
+

@@ -7,7 +7,7 @@
 
 ## Question this spike answers
 
-> Can the silvery apply-chain substrate (`@silvery/create/runtime/`) carry km's existing pure reducer code cleanly, or does the `apply(op) -> false | Effect[]` signature fight the native `(state, op) -> [state, effects]` shape?
+> Can the silvery apply-chain substrate (@silvery/create/runtime/) carry km's existing pure reducer code cleanly, or does the apply(op) -> false | Effect[] signature fight the native (state, op) -> [state, effects] shape?
 
 If the spike feels clean, **proceed to km-tui.tea Phase 1**. If it fights the framework, **abort and re-design** before committing 7 phases.
 
@@ -180,3 +180,4 @@ cat hub/silvery/experiments/tea-nav-spike/sample-trace-transcript.log  # frozen 
 ## Do not delete
 
 Bjørn asked in the prompt: keep this spike as reference so he can inspect Monday. This directory is intentionally preserved under `hub/silvery/experiments/` (not `hub/silvery/prototype/` where typed-pipe etc. live, to keep the "throwaway validator" status visible). `vitest.config.ts` and `tsconfig.json` untouched aside from one include pattern extension — removing this spike is a clean revert of that one change plus `rm -rf hub/silvery/experiments/tea-nav-spike/`.
+

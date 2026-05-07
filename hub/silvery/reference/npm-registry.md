@@ -4,21 +4,21 @@ Everything we own on npm, what's planned, and naming research history.
 
 ## Owned Org Scopes
 
-| Scope         | Status      | Purpose                           |
-| ------------- | ----------- | --------------------------------- |
-| `@silvery`    | **primary** | TUI framework ecosystem           |
-| `@termless`   | active      | Terminal emulator for testing     |
-| `@bearly`     | registered  | Utility packages (non-framework)  |
-| `@silverai`   | registered  | AI integration (2026-03-11)       |
-| `@silvercode` | registered  | Code/editor (2026-03-11)          |
-| `@silverapp`  | registered  | App framework (2026-03-11)        |
-| `@finetea`    | registered  | Legacy (hightea rename candidate) |
-| `@earthen`    | registered  | Fallback (unused)                 |
-| `@stressless` | registered  | Fallback (unused)                 |
-| `@sipping`    | registered  | Fallback (unused)                 |
-| `@newfangled` | registered  | Fallback (unused)                 |
-| `@kindled`    | registered  | Fallback (unused)                 |
-| `@buzzed`     | registered  | Fallback (unused)                 |
+| Scope       | Status     | Purpose                           |
+| ----------- | ---------- | --------------------------------- |
+| @silvery    | primary    | TUI framework ecosystem           |
+| @termless   | active     | Terminal emulator for testing     |
+| @bearly     | registered | Utility packages (non-framework)  |
+| @silverai   | registered | AI integration (2026-03-11)       |
+| @silvercode | registered | Code/editor (2026-03-11)          |
+| @silverapp  | registered | App framework (2026-03-11)        |
+| @finetea    | registered | Legacy (hightea rename candidate) |
+| @earthen    | registered | Fallback (unused)                 |
+| @stressless | registered | Fallback (unused)                 |
+| @sipping    | registered | Fallback (unused)                 |
+| @newfangled | registered | Fallback (unused)                 |
+| @kindled    | registered | Fallback (unused)                 |
+| @buzzed     | registered | Fallback (unused)                 |
 
 Registered during naming exploration (200+ names checked). Only `@silvery`, `@termless`, and `@bearly` are actively used.
 
@@ -26,31 +26,31 @@ Registered during naming exploration (200+ names checked). Only `@silvery`, `@te
 
 ### Active / planned
 
-| Package             | Version | Status      | Notes                                                         |
-| ------------------- | ------- | ----------- | ------------------------------------------------------------- |
-| `silvery`           | 0.0.1   | placeholder | All-in-one bundle (re-exports @silvery/ag-react)              |
-| `@silvery/ag-react` | 0.0.1   | placeholder | Core framework                                                |
-| `loggily`           | 0.0.1   | placeholder | Logger (was: decant → omlog → loggily)                        |
-| `termless`          | 0.0.2   | placeholder | Terminal emulator for testing                                 |
-| `silvercommand`     | 0.0.1   | placeholder | Command system (2026-03-11)                                   |
-| `silvercmd`         | 0.0.1   | placeholder | Command system short name (2026-03-11)                        |
-| `silvertea`         | 0.0.1   | placeholder | TEA state management (2026-03-11). Note: @silvertea org taken |
-| `silverstate`       | 0.0.1   | placeholder | State management (2026-03-11)                                 |
-| `corecommand`       | 0.0.1   | placeholder | Command system alt (2026-03-11)                               |
-| `corecmd`           | 0.0.1   | placeholder | Command system alt short (2026-03-11)                         |
-| `silverai`          | 0.0.1   | placeholder | AI integration (2026-03-11)                                   |
-| `silvercode`        | 0.0.1   | placeholder | Code/editor (2026-03-11)                                      |
-| `silverapp`         | 0.0.1   | placeholder | App framework (2026-03-11)                                    |
-| `aicentral`         | 0.0.1   | placeholder | AI hub/central (2026-03-11)                                   |
-| `vimonkey`          | 0.0.1   | placeholder | Fuzz testing & chaos streams for Vitest (2026-03-11)          |
+| Package           | Version | Status      | Notes                                                         |
+| ----------------- | ------- | ----------- | ------------------------------------------------------------- |
+| silvery           | 0.0.1   | placeholder | All-in-one bundle (re-exports @silvery/ag-react)              |
+| @silvery/ag-react | 0.0.1   | placeholder | Core framework                                                |
+| loggily           | 0.0.1   | placeholder | Logger (was: decant → omlog → loggily)                        |
+| termless          | 0.0.2   | placeholder | Terminal emulator for testing                                 |
+| silvercommand     | 0.0.1   | placeholder | Command system (2026-03-11)                                   |
+| silvercmd         | 0.0.1   | placeholder | Command system short name (2026-03-11)                        |
+| silvertea         | 0.0.1   | placeholder | TEA state management (2026-03-11). Note: @silvertea org taken |
+| silverstate       | 0.0.1   | placeholder | State management (2026-03-11)                                 |
+| corecommand       | 0.0.1   | placeholder | Command system alt (2026-03-11)                               |
+| corecmd           | 0.0.1   | placeholder | Command system alt short (2026-03-11)                         |
+| silverai          | 0.0.1   | placeholder | AI integration (2026-03-11)                                   |
+| silvercode        | 0.0.1   | placeholder | Code/editor (2026-03-11)                                      |
+| silverapp         | 0.0.1   | placeholder | App framework (2026-03-11)                                    |
+| aicentral         | 0.0.1   | placeholder | AI hub/central (2026-03-11)                                   |
+| vimonkey          | 0.0.1   | placeholder | Fuzz testing & chaos streams for Vitest (2026-03-11)          |
 
 ### To unpublish
 
-| Package    | Version | Notes                             |
-| ---------- | ------- | --------------------------------- |
-| `royaltea` | 0.0.2   | Obsolete hightea rename candidate |
-| `claritea` | 0.0.2   | Obsolete hightea rename candidate |
-| `puritea`  | 0.0.2   | Obsolete hightea rename candidate |
+| Package  | Version | Notes                             |
+| -------- | ------- | --------------------------------- |
+| royaltea | 0.0.2   | Obsolete hightea rename candidate |
+| claritea | 0.0.2   | Obsolete hightea rename candidate |
+| puritea  | 0.0.2   | Obsolete hightea rename candidate |
 
 `finetea` already unpublished (2026-03-09). See bead `km-infra.npm-cleanup`.
 
@@ -58,22 +58,22 @@ Registered during naming exploration (200+ names checked). Only `@silvery`, `@te
 
 ### @silvery/\* ecosystem
 
-| Package                | What                                           |
-| ---------------------- | ---------------------------------------------- |
-| `@silvery/ag-term`     | Terminal runtime, ANSI output, pipeline        |
-| `@silvery/tea`         | TEA state machine store (zustand-based)        |
-| `@silvery/ag-react/ui` | Component library (30+ components)             |
-| `@silvery/theme`       | Design tokens, palettes, theme CLI             |
-| `@silvery/test`        | Testing utilities (virtual renderer, locators) |
-| `@silvery/ink`         | Ink/Chalk compatibility layers                 |
-| `@silvery/dom`         | DOM render target (future)                     |
-| `@silvery/canvas`      | Canvas render target (future)                  |
+| Package              | What                                           |
+| -------------------- | ---------------------------------------------- |
+| @silvery/ag-term     | Terminal runtime, ANSI output, pipeline        |
+| @silvery/tea         | TEA state machine store (zustand-based)        |
+| @silvery/ag-react/ui | Component library (30+ components)             |
+| @silvery/theme       | Design tokens, palettes, theme CLI             |
+| @silvery/test        | Testing utilities (virtual renderer, locators) |
+| @silvery/ink         | Ink/Chalk compatibility layers                 |
+| @silvery/dom         | DOM render target (future)                     |
+| @silvery/canvas      | Canvas render target (future)                  |
 
 ### Standalone packages
 
-| Package   | What                                          |
-| --------- | --------------------------------------------- |
-| `flexily` | Pure JS flexbox layout engine (was: flexture) |
+| Package | What                                          |
+| ------- | --------------------------------------------- |
+| flexily | Pure JS flexbox layout engine (was: flexture) |
 
 ### User journey
 
@@ -85,30 +85,30 @@ Registered during naming exploration (200+ names checked). Only `@silvery`, `@te
 
 ## Domains
 
-| Domain      | Status     | Purpose                              |
-| ----------- | ---------- | ------------------------------------ |
-| silvery.dev | **active** | Documentation site (GitHub Pages)    |
-| finetea.dev | owned      | 301 → silvery.dev (legacy, can drop) |
-| finetea.app | owned      | 301 → silvery.dev (legacy, can drop) |
+| Domain      | Status | Purpose                              |
+| ----------- | ------ | ------------------------------------ |
+| silvery.dev | active | Documentation site (GitHub Pages)    |
+| finetea.dev | owned  | 301 → silvery.dev (legacy, can drop) |
+| finetea.app | owned  | 301 → silvery.dev (legacy, can drop) |
 
 ## Availability Research (2026-03-11)
 
 Names checked for potential command/state management packages:
 
-| Name            | Package   | Org Scope | Notes                              |
-| --------------- | --------- | --------- | ---------------------------------- |
-| `ainative`      | available | taken     | similarity risk (ai-native exists) |
-| `ai-native`     | taken     | taken     |                                    |
-| `ain`           | squatted  | taken     |                                    |
-| `aicmd`         | squatted  | available |                                    |
-| `aicommand`     | available | available |                                    |
-| `ai-command`    | squatted  | taken     |                                    |
-| `ai-cmd`        | taken     | taken     |                                    |
-| `silvercommand` | available | available |                                    |
-| `silvertea`     | available | taken     |                                    |
-| `silverstate`   | available | available |                                    |
-| `corecommand`   | available | available |                                    |
-| `corecmd`       | available | available |                                    |
+| Name          | Package   | Org Scope | Notes                              |
+| ------------- | --------- | --------- | ---------------------------------- |
+| ainative      | available | taken     | similarity risk (ai-native exists) |
+| ai-native     | taken     | taken     |                                    |
+| ain           | squatted  | taken     |                                    |
+| aicmd         | squatted  | available |                                    |
+| aicommand     | available | available |                                    |
+| ai-command    | squatted  | taken     |                                    |
+| ai-cmd        | taken     | taken     |                                    |
+| silvercommand | available | available |                                    |
+| silvertea     | available | taken     |                                    |
+| silverstate   | available | available |                                    |
+| corecommand   | available | available |                                    |
+| corecmd       | available | available |                                    |
 
 **Best available** (both pkg + scope): `aicommand`, `silvercommand`, `silverstate`, `corecommand`, `corecmd`.
 
@@ -150,8 +150,8 @@ npm rejects names confusingly similar to existing packages. No API checks this �
 
 | Attempted | Blocked by | Rule                                         |
 | --------- | ---------- | -------------------------------------------- |
-| `hightea` | `high-tea` | Strip hyphens: `hightea` = `hightea`         |
-| `omlog`   | `npmlog`   | Uncertain — may have been preemptive concern |
+| hightea   | high-tea   | Strip hyphens: hightea = hightea             |
+| omlog     | npmlog     | Uncertain — may have been preemptive concern |
 
 **Scoped packages bypass similarity** — `@myorg/log` publishes fine even if `log` exists.
 
@@ -177,3 +177,4 @@ Checked ~30 more. Available: `@honeyed` (poetic, warm), `@soothing`, `@pillowy`,
 ### Fallback scopes registered
 
 Registered 6 fallback scopes during exploration: `@sipping`, `@earthen`, `@newfangled`, `@kindled`, `@buzzed`, `@stressless`. These can be released if not needed — no packages published under them.
+

@@ -1,6 +1,8 @@
 ---
-title: "Terminal Protocols You Should Know in 2026"
-description: "The modern terminal feature landscape — Kitty keyboard, synchronized output, OSC 52 clipboard, graphics protocols, and which terminals support them."
+title: Terminal Protocols You Should Know in 2026
+description: The modern terminal feature landscape — Kitty keyboard,
+  synchronized output, OSC 52 clipboard, graphics protocols, and which terminals
+  support them.
 date: 2026-04-02
 ---
 
@@ -127,3 +129,4 @@ Here's a summary of protocol support across macOS terminals, based on [terminfo.
 The major protocols -- truecolor, synchronized output, hyperlinks, focus reporting, semantic prompts -- are supported across the macOS terminals in this comparison. The remaining gaps are in input protocols (Terminal.app doesn't support Kitty keyboard) and graphics (no consensus protocol).
 
 For the full per-feature, per-terminal breakdown with version-specific results, see [terminfo.dev](https://terminfo.dev). The data is generated from actual probe runs against real terminal builds, not documentation claims.
+

@@ -145,6 +145,7 @@ How agents act:
 - Bridges through Matrix's existing appservice ecosystem (Slack, Discord, Telegram, WhatsApp, Signal, iMessage, IRC, SMS, Email — all via `matrix-appservice-*`)
 
 **What this enables**:
+
 - **Squad mode goes cross-machine and cross-host.** Pane A on laptop + pane B on remote dev box + pane C run by a teammate, all coordinating through the same agentroom.
 - **Mobile coordination.** Element on phone reads agentroom state. Approve a permission request from a beach.
 - **Multi-team agent collaboration.** Two km vaults can share an agentroom. Agents from different humans cooperate on shared rooms.
@@ -168,23 +169,23 @@ These run server-side at the gateway; they're persistent (don't die when an inte
 
 ## What sits where (canonical mapping)
 
-| Concept | Lives in | Filesystem location | Renderer |
-|---|---|---|---|
-| Notes, daily journals | km | `notes/` | km-tui notes view, Obsidian, any md editor |
-| Tasks (beads) | km | `beads/<scope>/<slug>.md` | km-tui board view, `bd` CLI |
-| Calendar entries | km | `calendar/2026/04/` | km-tui calendar view |
-| Roadmaps, kanbans, plans | km | `plans/` | km-tui board projections |
-| Workflow contracts (Symphony-style) | km | `plans/<workflow-name>.md` (KNode with `workflow` facet) | km-tui + agentroom interpreter |
-| Persona files | km | `agents/<name>.md` | km-tui + read by silvercode at session start |
-| User profiles | km | `users/<name>.md` | km-tui |
-| Durable chat rooms | tribe → km | `com/rooms/<channel>.md` (committed) | Element, km-tui room view, silvercode ambient pipe |
-| Ephemeral chats | tribe → km | `com/chats/<topic>.md` (gitignored) | Element, km-tui |
-| Agent session transcripts | tribe → km | `sessions/<sid>/transcript.md` | km-tui session viewer, silvercode pane (live) |
-| File claims (live state) | tribe (CrossAgentState) | — (in-memory; projected to room events) | silvercode file-claim map; agentroom gateway derived state |
-| Decisions, retros | km | `decisions/`, `retros/` | km-tui, any md editor |
-| Recall index | km-storage | `.km/recall.db` (SQLite, rebuildable) | `bun recall "query"` |
-| Tool call logs | tribe → km | `sessions/<sid>/tool-calls.md` | silvercode pane |
-| Structured events (m.km.*) | tribe (Matrix events) → km projection | `com/rooms/<room>.md` body | km-aware clients act on structure; plain clients render text |
+| Concept                             | Lives in                              | Filesystem location                                  | Renderer                                                     |
+| ----------------------------------- | ------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| Notes, daily journals               | km                                    | notes/                                               | km-tui notes view, Obsidian, any md editor                   |
+| Tasks (beads)                       | km                                    | beads/<scope>/<slug>.md                              | km-tui board view, bd CLI                                    |
+| Calendar entries                    | km                                    | calendar/2026/04/                                    | km-tui calendar view                                         |
+| Roadmaps, kanbans, plans            | km                                    | plans/                                               | km-tui board projections                                     |
+| Workflow contracts (Symphony-style) | km                                    | plans/<workflow-name>.md (KNode with workflow facet) | km-tui + agentroom interpreter                               |
+| Persona files                       | km                                    | agents/<name>.md                                     | km-tui + read by silvercode at session start                 |
+| User profiles                       | km                                    | users/<name>.md                                      | km-tui                                                       |
+| Durable chat rooms                  | tribe → km                            | com/rooms/<channel>.md (committed)                   | Element, km-tui room view, silvercode ambient pipe           |
+| Ephemeral chats                     | tribe → km                            | com/chats/<topic>.md (gitignored)                    | Element, km-tui                                              |
+| Agent session transcripts           | tribe → km                            | sessions/<sid>/transcript.md                         | km-tui session viewer, silvercode pane (live)                |
+| File claims (live state)            | tribe (CrossAgentState)               | — (in-memory; projected to room events)              | silvercode file-claim map; agentroom gateway derived state   |
+| Decisions, retros                   | km                                    | decisions/, retros/                                  | km-tui, any md editor                                        |
+| Recall index                        | km-storage                            | .km/recall.db (SQLite, rebuildable)                  | bun recall "query"                                           |
+| Tool call logs                      | tribe → km                            | sessions/<sid>/tool-calls.md                         | silvercode pane                                              |
+| Structured events (m.km.*)          | tribe (Matrix events) → km projection | com/rooms/<room>.md body                             | km-aware clients act on structure; plain clients render text |
 
 The pattern: **anything live runs in tribe; anything durable lives in km; the projection from tribe → km is automatic.** Surfaces (km-tui, silvercode, Element) read both the live (tribe) and durable (km) layers.
 
@@ -205,13 +206,9 @@ The pattern: **anything live runs in tribe; anything durable lives in km; the pr
 This is the architectural commitment that everything else depends on:
 
 1. **Humans, LLMs, and custom apps share one substrate.** Edit `agents/architect.md` in Obsidian; the agent picks up the new mission next session. Run a Python script over `beads/`; km picks up the changes via filewatch. Read the workspace from any tool that reads markdown.
-
 2. **Git tracks everything.** Full audit trail across all three layers. `git log agents/architect.md` shows persona evolution. `git diff sessions/<sid>/transcript.md` shows what an agent actually did.
-
 3. **No vendor lock-in.** Drop the runtimes; the markdown remains. Rebuild the runtimes from scratch and lose nothing. Your knowledge graph is portable forever.
-
 4. **Plain markdown beats databases for human-AI collaboration.** Both humans and agents read/write the same format. Schema = the markdown structure (headings, frontmatter, wikilinks, tags). No "API for the agent, GUI for the human" split.
-
 5. **Composability follows.** Custom automations are plain scripts that read/write the vault. A daily summarizer is 50 lines reading `com/`, `beads/`, `sessions/` and writing `notes/2026-04-27-summary.md`. No glue protocols; just file I/O.
 
 ## Open questions (canonically tracked)
@@ -235,13 +232,16 @@ These are aspirational threads that need answers but don't block the 0-180 day e
 ## Cross-references
 
 ### Upstream / vision
+
 - [`hub/km/design/vision.md`](vision.md) — the high-level vision this document elaborates.
 - [`docs/principles.md`](../../../docs/principles.md) — design principles governing all of the above.
 
 ### License & posture
+
 - [`hub/km/design/licensing-strategy.md`](licensing-strategy.md) — license + commercial-posture decision per layer (silvery / tribe / km / silvercode / agentroom) and per package. /pro-vetted recommendation: pick a clean lane (Cursor-style fully proprietary OR Confluent-style Apache + proprietary cloud services), don't hedge with BSL. Path B is the default unless explicit reason to pick Path A.
 
 ### Sibling design
+
 - [`hub/km/design/tribe-matrix.md`](tribe-matrix.md) — the coordination layer implementation design.
 - [`hub/silvercode/future/ai-terminal/silvercode-squad-mode.md`](../../silvercode/future/ai-terminal/silvercode-squad-mode.md) — the 0-90 day execution wedge.
 - [`hub/silvercode/future/ai-terminal/02-agent-integration.md`](../../silvercode/future/ai-terminal/02-agent-integration.md) — the ACP-not-fork decision with explicit tripwires.
@@ -251,11 +251,13 @@ These are aspirational threads that need answers but don't block the 0-180 day e
 - [`hub/tribe/design/recall-thought.md`](../../tribe/design/recall-thought.md) — the seed sub-agent for agentroom edge-compute.
 
 ### Landscape / external
+
 - [`hub/silvery/research/coding-agent-landscape.md`](../../silvery/research/coding-agent-landscape.md) — the competitive landscape that informed the squad-mode wedge selection.
 - [`hub/silvercode/future/ai-terminal/09-agent-host-landscape.md`](../../silvercode/future/ai-terminal/09-agent-host-landscape.md) — own-loop hosts.
 - [`hub/silvercode/future/ai-terminal/10-agent-router-landscape.md`](../../silvercode/future/ai-terminal/10-agent-router-landscape.md) — meta-orchestrators (Symphony, OpenClaw, claude-squad, etc.).
 
 ### External research artifacts (2026-04-27)
+
 - `/tmp/coding-agents-deep-result-2026-04-27.md` — OpenAI deep research on coding-agent landscape.
 - `/tmp/coding-agents-pro-result-2026-04-27.md` — 4-leg /pro enrichment of the deep research.
 - `/tmp/oss-vs-private-deep-context-2026-04-27.md` — context for the OSS-vs-private research (firing now).
@@ -274,3 +276,4 @@ These are aspirational threads that need answers but don't block the 0-180 day e
 km is not "the notes app that has a coding agent attached." It is **the workdesk where humans, LLMs, and custom apps collaborate on shared markdown**. silvercode is the coding-flavored surface. agentroom is the bridge that lets that workdesk span machines and chat ecosystems. tribe is the live coordination substrate. The vault is the durable truth.
 
 Everything in `hub/silvercode/future/ai-terminal/` and `hub/ventures/` and `hub/km/design/` should ladder up to this document. If a future design doesn't fit somewhere on this map, it probably belongs in a different project (pam, recall, silvery, etc.) — or it indicates this document needs updating, in which case update it rather than work around it.
+

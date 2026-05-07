@@ -15,12 +15,12 @@ hub/silvercode/
 
 ## What lives here vs elsewhere
 
-| Live here                                               | Live elsewhere                              |
-| ------------------------------------------------------- | ------------------------------------------- |
-| Long-horizon vision (silvercode-agent / ACP++)          | Public README → `apps/silvercode/README.md` |
-| Strategic positioning vs other coding agents            | Live design docs → `apps/silvercode/docs/`  |
-| Research notes (router landscape, host landscape, etc.) | Component design → silvery's internal hub    |
-| Quarterly review notes                                  | Issue tracking → beads                      |
+| Live here                                               | Live elsewhere                            |
+| ------------------------------------------------------- | ----------------------------------------- |
+| Long-horizon vision (silvercode-agent / ACP++)          | Public README → apps/silvercode/README.md |
+| Strategic positioning vs other coding agents            | Live design docs → apps/silvercode/docs/  |
+| Research notes (router landscape, host landscape, etc.) | Component design → silvery's internal hub |
+| Quarterly review notes                                  | Issue tracking → beads                    |
 
 ## Promotion path
 
@@ -32,3 +32,4 @@ Drafts start here. They move to `apps/silvercode/docs/` (or further up to user-f
 - In-flight design docs: [`apps/silvercode/docs/`](../../apps/silvercode/docs/)
 - Silvery (the framework): [`hub/silvery/`](../silvery/)
 - Companion in-repo workspace: [`hub/km/`](../km/)
+

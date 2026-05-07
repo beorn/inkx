@@ -9,6 +9,7 @@ CAP manifests declare **intent + permissions** (reads-fs, writes-fs, network, sp
 This is arguably the **killer feature for agent safety** — more important than any UI. Warp doesn't have it (bash underneath leaks). nushell doesn't. MCP does (tool manifests) but only for MCP-native tools. CAP extends that guarantee to *every* CLI with a manifest.
 
 Design:
+
 - Every CAP call goes through a policy checkpoint
 - Policy is per-session, inherited from parent with tightening-only
 - Violations → typed `wants-permission` event → human or parent decides
@@ -19,6 +20,7 @@ Design:
 Every block is a trace span. Every session is a trace root. Cross-session pipes (`link A B`) create distributed traces. "Why was this slow?" → hover a block → see the whole tree.
 
 Loggily already gives us the instrumentation plumbing; this layer just exposes it in the UI. Adds:
+
 - Flame-graph render for session trees
 - Per-command latency histograms
 - Correlation of agent token usage with tool-call latency
@@ -36,6 +38,7 @@ Loggily already gives us the instrumentation plumbing; this layer just exposes i
 ## D. Collaborative sessions (multi-human + multi-agent, one session)
 
 Tribe already solved cross-session coordination at the daemon level. Extend *inward*:
+
 - Presence indicators per pane (who's watching / typing)
 - Simultaneous-input merging (Figma-for-terminals — multiple cursors, last-write-wins or CRDT)
 - Human↔agent handoff (`handoff S to @beorn`)
@@ -62,6 +65,7 @@ This is a moat. Warp and cmux are mac-native TUIs where accessibility is a retro
 CAP adoption fails without this. `cap-wrap git` parses `git --help` into a manifest heuristically. Community curates and polishes. Registry at `cap.silvery.dev` (or similar) — git-versioned, PR-reviewed, distributed via CDN. Without this, CAP is a beautiful spec with five entries.
 
 Components:
+
 - `cap-wrap <tool>` — heuristic manifest generator
 - `cap-lint <manifest>` — validator
 - `cap-registry` — git repo of polished manifests
@@ -109,6 +113,7 @@ Far-future, but: palette is "anything that ranks intent." Voice input, camera-ba
 ## O. Training data & fleet telemetry (opt-in)
 
 CAP calls + success/failure + duration → anonymized aggregated fleet data. Powers:
+
 - "What flags do people actually use on `gh pr create`?"
 - "What typo patterns should palette auto-correct?"
 - "What third-party tools lack manifests but get used a lot?" (ranked adoption queue)
@@ -131,6 +136,7 @@ Bun Shell (`Bun.$`) is written in Zig but the template-literal API comes from [`
 Sessions grouped into **workspaces** — a workspace has default policy (dev vs prod), default bus, default tape recording, default membership (which humans/agents can join). km's kanban → commander's workspace is a natural consumer.
 
 Workspace examples:
+
 - "main dev workspace" — loose policy, full network, broad fs
 - "prod debug" — read-only, audit-heavy, no mutations
 - "sandbox" — ephemeral, isolated fs, unlimited policy
@@ -169,6 +175,7 @@ Running wrapped coding agents in their **non-interactive modes** (`claude -p` / 
 Bonus: JSONL session files in `~/.claude/projects/` are structured and canonical. Tail them instead of parsing TUI grid.
 
 Implications for 02-agent-integration:
+
 - Grid parsing becomes the worst-case path, not the primary
 - Each agent adapter is "find the structured mode and use it"
 - For Claude Code specifically: tail JSONL + `-p --output-format=stream-json` for driving
@@ -205,3 +212,4 @@ Nice-to-haves that compound:
 Far-future:
 
 10. Everything else — keeps for later
+

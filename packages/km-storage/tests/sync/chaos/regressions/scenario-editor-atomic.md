@@ -17,7 +17,7 @@ setup:
 scenarios:
   - type: editor_atomic
     params:
-      tempSuffix: ".tmp"
+      tempSuffix: .tmp
       renameDelayMs: 50
 events:
   - type: add

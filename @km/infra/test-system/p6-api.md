@@ -16,6 +16,7 @@ closeReason: "shipped ca07323fc on origin/main: structured TestApp tree
 # [x] Phase 6: TestApp API refinement — shrink surface, improve ergonomics @km/all #task #P2
 
 blocks:: [[@km/infra/test-system]]
+
 ## Goal
 
 Refine the TestApp API based on Pro review findings. Less surface area, sharper signals, better failure messages.
@@ -30,15 +31,15 @@ Refine the TestApp API based on Pro review findings. Less surface area, sharper 
   > column: col1
   > task: task1 [cursor]
   > task: task2
-14. Locator strictness: single-target ops throw on multiple matches (Playwright model)
-15. Shrink TestApp surface:
+18. Locator strictness: single-target ops throw on multiple matches (Playwright model)
+19. Shrink TestApp surface:
 - Cut aliases
 - Move expect* methods to vitest matchers
 - Demote dispatch() (prefer press/command which route through the real kb handler)
-31. Vitest test.extend for typed fixtures + cleanup hooks
-32. bell as counter → toBell() matcher (Pro finding #15)
-33. Distinguish command() from press() semantically (Pro finding #16)
-34. app.card(title) → app.node(id) for stable refs, card(title) convenience only (Pro finding #17)
+40. Vitest test.extend for typed fixtures + cleanup hooks
+41. bell as counter → toBell() matcher (Pro finding #15)
+42. Distinguish command() from press() semantically (Pro finding #16)
+43. app.card(title) → app.node(id) for stable refs, card(title) convenience only (Pro finding #17)
 
 ## /complete criteria
 
@@ -63,3 +64,4 @@ Evidence:
 - `bun run typecheck:check` blocked by unrelated existing errors in `apps/silvercode/tests/chat-types.test.ts` and `apps/silvercode/tests/prompt-assembly-boundary.test.ts`.
 
 blocks:: [[@km/infra/test-system]]
+

@@ -41,9 +41,9 @@ acp-controller-wire shipped a v0 permissionHandler that auto-approves the first 
 1. Define a per-session PermissionQueue: when connectAcp's permissionHandler is invoked, push a {req, resolver} onto the queue and emit a 'permission-request' AgentEvent the existing UI consumes.
 2. Override AcpAgentSession.respondToPermission(requestId, approved) to look up the queued resolver and call it with selected/cancelled.
 3. Map approved/denied UI responses to ACP RequestPermissionOutcome variants:
-  - approved → { outcome: 'selected', optionId: <chosen> }
-  - denied → { outcome: 'cancelled' }
-4. Surface the multi-option case (ACP allows 'allow_once', 'allow_always', 'reject_once', 'reject_always') in the UI when a session uses an ACP agent that returns >1 option.
+- approved → { outcome: 'selected', optionId: <chosen> }
+- denied → { outcome: 'cancelled' }
+9. Surface the multi-option case (ACP allows 'allow_once', 'allow_always', 'reject_once', 'reject_always') in the UI when a session uses an ACP agent that returns >1 option.
 
 ## Acceptance
 

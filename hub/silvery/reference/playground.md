@@ -1,8 +1,8 @@
 # Canvas Playground Design
 
-> **Internal** — Architecture for a live-editing playground (JSX → Canvas). Depends on Canvas adapter.
->
-> **Status: RFC** — This is a design proposal. The basic static playground lives at `examples/playground/`; this describes the architecture for a live-editing version.
+> Internal — Architecture for a live-editing playground (JSX → Canvas). Depends on Canvas adapter.
+> 
+> Status: RFC — This is a design proposal. The basic static playground lives at examples/playground/; this describes the architecture for a live-editing version.
 
 Design document for a full interactive playground where users can write JSX and see it rendered to canvas in real time.
 
@@ -143,7 +143,7 @@ Three error categories, each shown differently:
 | Error Type    | Source                | Display                   |
 | ------------- | --------------------- | ------------------------- |
 | Syntax error  | Sucrase transpilation | Red underline in editor   |
-| Runtime error | `new Function()`      | Error banner above canvas |
+| Runtime error | new Function()        | Error banner above canvas |
 | Render error  | React reconciler      | Error boundary with stack |
 
 All errors are caught and displayed; the playground never crashes.
@@ -179,7 +179,7 @@ Ship with built-in examples users can load:
 | Text Styles    | Bold, italic, underline, strikethrough, colors |
 | Flexbox Layout | Row/column, flexGrow, gap, nested panels       |
 | Dashboard      | Multi-panel layout with borders and status     |
-| Responsive     | `useBoxRect()` adapting layout to size         |
+| Responsive     | useBoxRect() adapting layout to size           |
 | Color Palette  | Named colors, hex, RGB backgrounds             |
 | Border Gallery | All border styles: single, double, round, bold |
 
@@ -252,7 +252,7 @@ Show both Canvas and DOM adapter output side by side, demonstrating that the sam
 | Monaco Editor   | ~800 KB     |
 | Sucrase         | ~40 KB      |
 | Playground UI   | ~5 KB       |
-| **Total**       | **~935 KB** |
+| Total           | ~935 KB     |
 
 Monaco dominates. For a lighter alternative, consider CodeMirror 6 (~150 KB) with a JSX mode, reducing total to ~285 KB. The tradeoff is less TypeScript intellisense.
 
@@ -262,3 +262,4 @@ Monaco dominates. For a lighter alternative, consider CodeMirror 6 (~150 KB) wit
 - `examples/web/canvas.html` -- Minimal Canvas adapter demo
 - `../internals/two-phase-rendering.md` -- RenderAdapter interface
 - `../design/v10-terminal/composability.md` -- Cross-platform rendering vision
+

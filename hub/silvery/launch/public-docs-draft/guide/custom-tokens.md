@@ -1,6 +1,7 @@
 ---
 title: Custom Tokens
-description: Extend Sterling with app-specific tokens, or publish your own DesignSystem as an @silvery/design-* package.
+description: Extend Sterling with app-specific tokens, or publish your own
+  DesignSystem as an @silvery/design-* package.
 ---
 
 # Custom Tokens
@@ -242,3 +243,4 @@ No hidden TokenResolver, no fallback chain. Design systems are swappable per sco
 - [`@silvery/design` reference](/reference/theme) — DesignSystem contract, Theme type.
 
 <!-- TODO: verify after 0.19.0 ships — confirm `extend:` option on deriveFromScheme (vs a separate `defineTokens` API), exact `DesignSystemError` name, `FlattenRule` signature, adapter pattern code. -->
+

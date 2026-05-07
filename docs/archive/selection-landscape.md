@@ -1,8 +1,8 @@
 # Selection Landscape — ARCHIVED 2026-04-17
 
-> **Research artifact**, not active design. Comparison with tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM API. Pull back from archive if a future selection redesign needs the comparative input.
+> Research artifact, not active design. Comparison with tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM API. Pull back from archive if a future selection redesign needs the comparative input.
 
-# Selection Landscape
+## Selection Landscape
 
 Industry reference for selection and manipulation systems. Covers what exists across tree UIs, canvas/drawing tools, text editors, and diagramming tools. Used to validate that `@silvery/selection` is extensible to these use cases.
 
@@ -14,107 +14,107 @@ See [selection-model.md](selection-model.md) for the implementation design.
 
 ## Selection state (`select-*`)
 
-| Slug | Description | State shape |
-|---|---|---|
-| `select-set` | One or more nodes/shapes | `cursor + anchor + selected: OrderedSet<ID>` |
-| `select-cell-rect` | Rectangular cell region | `anchorCell + cursorCell → rect` |
-| `select-gap` | Gap cursor between blocks | `position between nodes` |
+| Slug             | Description               | State shape                                |
+| ---------------- | ------------------------- | ------------------------------------------ |
+| select-set       | One or more nodes/shapes  | cursor + anchor + selected: OrderedSet<ID> |
+| select-cell-rect | Rectangular cell region   | anchorCell + cursorCell → rect             |
+| select-gap       | Gap cursor between blocks | position between nodes                     |
 
 Cardinality helpers (not separate modes): empty = none, size 1 = single, size > 1 = multi, set = scope = all.
 
 ## Sub-selection (`sub-*`)
 
-| Slug | Description | State shape |
-|---|---|---|
-| `sub-text` | Text caret or range | `nodeId + cursor + anchor?` (absent = caret) |
-| `sub-text-multi` | Multiple text cursors | `(nodeId + cursor + anchor?)[]` |
-| `sub-text-rect` | Rectangular text selection | `nodeId + rect` |
-| `sub-path` | Vector path points/segments | `shapeId + pointIds: Set` |
-| `sub-edge` | Edge endpoint or bend | `edgeId + end? + bendIds?` |
-| `sub-crop` | Image/frame crop region | `objectId + cropRect` |
+| Slug           | Description                 | State shape                                |
+| -------------- | --------------------------- | ------------------------------------------ |
+| sub-text       | Text caret or range         | nodeId + cursor + anchor? (absent = caret) |
+| sub-text-multi | Multiple text cursors       | (nodeId + cursor + anchor?)[]              |
+| sub-text-rect  | Rectangular text selection  | nodeId + rect                              |
+| sub-path       | Vector path points/segments | shapeId + pointIds: Set                    |
+| sub-edge       | Edge endpoint or bend       | edgeId + end? + bendIds?                   |
+| sub-crop       | Image/frame crop region     | objectId + cropRect                        |
 
 ## Pointer states (`ptr-*`)
 
-| Slug | Trigger | Resolves to | Modifiers |
-|---|---|---|---|
-| `ptr-idle` | — | — | |
-| `ptr-pointing-empty` | Pointer-down on empty | `ptr-node-rect` (drag) or deselect (click) | |
-| `ptr-pointing-node` | Pointer-down on unselected | `ptr-node-translate` (drag) or select (click) | Cmd = toggle, Shift = extend |
-| `ptr-pointing-selection` | Pointer-down on selected | `ptr-node-translate` (drag) or reselect (click) | |
-| `ptr-pointing-handle` | Pointer-down on handle | `ptr-node-resize` or `ptr-node-rotate` (drag) | |
-| `ptr-node-rect` | Drag from empty | Rectangle + hit set | Cmd = toggle (XOR) |
-| `ptr-node-translate` | Drag selected | Offset delta | Opt = copy, Cmd+Opt = link |
-| `ptr-node-resize` | Drag resize handle | Scale transform | Shift = aspect, Opt = center |
-| `ptr-node-rotate` | Drag rotation handle | Angle from center | Shift = snap 15° |
-| `ptr-node-extend` | Shift+click | Range preview | |
-| `ptr-text-select` | Drag in text | Text range preview | |
-| `ptr-text-drag` | Drag selected text | Moving text range | |
-| `ptr-edge-route` | Drag edge endpoint | Snap to ports | |
+| Slug                   | Trigger                    | Resolves to                                   | Modifiers                    |
+| ---------------------- | -------------------------- | --------------------------------------------- | ---------------------------- |
+| ptr-idle               | —                          | —                                             |                              |
+| ptr-pointing-empty     | Pointer-down on empty      | ptr-node-rect (drag) or deselect (click)      |                              |
+| ptr-pointing-node      | Pointer-down on unselected | ptr-node-translate (drag) or select (click)   | Cmd = toggle, Shift = extend |
+| ptr-pointing-selection | Pointer-down on selected   | ptr-node-translate (drag) or reselect (click) |                              |
+| ptr-pointing-handle    | Pointer-down on handle     | ptr-node-resize or ptr-node-rotate (drag)     |                              |
+| ptr-node-rect          | Drag from empty            | Rectangle + hit set                           | Cmd = toggle (XOR)           |
+| ptr-node-translate     | Drag selected              | Offset delta                                  | Opt = copy, Cmd+Opt = link   |
+| ptr-node-resize        | Drag resize handle         | Scale transform                               | Shift = aspect, Opt = center |
+| ptr-node-rotate        | Drag rotation handle       | Angle from center                             | Shift = snap 15°             |
+| ptr-node-extend        | Shift+click                | Range preview                                 |                              |
+| ptr-text-select        | Drag in text               | Text range preview                            |                              |
+| ptr-text-drag          | Drag selected text         | Moving text range                             |                              |
+| ptr-edge-route         | Drag edge endpoint         | Snap to ports                                 |                              |
 
 ## Hit targets (`hit-*`)
 
-| Slug | Resolves to | Detail |
-|---|---|---|
-| `hit-empty` | Empty space | |
-| `hit-node` | Node/shape body | |
-| `hit-text` | Text region | Carries `nodeId + blockId + offset` |
-| `hit-handle` | Resize handle | Carries `corner` |
-| `hit-rotate` | Rotation handle | |
-| `hit-path` | Path point or segment | Carries `pointId` or `segmentId` |
-| `hit-edge` | Edge endpoint or bend | Carries `end` or `bendId` |
-| `hit-port` | Connection port | Carries `nodeId + portId` |
-| `hit-bounds` | Selection bounding box | |
-| `hit-locked` | Locked node | Hittable but not selectable |
-| `hit-hidden` | Hidden node | Not hittable |
+| Slug       | Resolves to            | Detail                            |
+| ---------- | ---------------------- | --------------------------------- |
+| hit-empty  | Empty space            |                                   |
+| hit-node   | Node/shape body        |                                   |
+| hit-text   | Text region            | Carries nodeId + blockId + offset |
+| hit-handle | Resize handle          | Carries corner                    |
+| hit-rotate | Rotation handle        |                                   |
+| hit-path   | Path point or segment  | Carries pointId or segmentId      |
+| hit-edge   | Edge endpoint or bend  | Carries end or bendId             |
+| hit-port   | Connection port        | Carries nodeId + portId           |
+| hit-bounds | Selection bounding box |                                   |
+| hit-locked | Locked node            | Hittable but not selectable       |
+| hit-hidden | Hidden node            | Not hittable                      |
 
 ## Commands (`cmd-*`)
 
 Selection commands:
 
-| Slug | Default binding | Effect |
-|---|---|---|
-| `cmd-node-cursor` | j / k / Arrow / Tab | Move node cursor |
-| `cmd-node-extend` | Shift+cursor keys | Extend range from anchor |
-| `cmd-node-toggle` | Cmd+click | Add/remove from selection |
-| `cmd-node-select-all` | Cmd+A | Select all in scope |
-| `cmd-node-expand` | A / Shift+Alt+Right | Progressive expand |
-| `cmd-text-select` | Arrow / Shift+Arrow (in text mode) | Move caret or extend range |
-| `cmd-enter` | Enter / double-click | Enter edit / scope |
-| `cmd-exit-sub` | Escape (in edit mode) | Exit sub-selection |
-| `cmd-root-up` | Escape (in scope) | Exit current scope |
-| `cmd-cancel` | Escape (during drag) | Cancel active drag |
-| `cmd-deselect` | Escape (no scope, no sub) | Clear selection |
-| `cmd-select-behind` | Alt+click / repeated click | Cycle stacked hits |
+| Slug                | Default binding                    | Effect                     |
+| ------------------- | ---------------------------------- | -------------------------- |
+| cmd-node-cursor     | j / k / Arrow / Tab                | Move node cursor           |
+| cmd-node-extend     | Shift+cursor keys                  | Extend range from anchor   |
+| cmd-node-toggle     | Cmd+click                          | Add/remove from selection  |
+| cmd-node-select-all | Cmd+A                              | Select all in scope        |
+| cmd-node-expand     | A / Shift+Alt+Right                | Progressive expand         |
+| cmd-text-select     | Arrow / Shift+Arrow (in text mode) | Move caret or extend range |
+| cmd-enter           | Enter / double-click               | Enter edit / scope         |
+| cmd-exit-sub        | Escape (in edit mode)              | Exit sub-selection         |
+| cmd-root-up         | Escape (in scope)                  | Exit current scope         |
+| cmd-cancel          | Escape (during drag)               | Cancel active drag         |
+| cmd-deselect        | Escape (no scope, no sub)          | Clear selection            |
+| cmd-select-behind   | Alt+click / repeated click         | Cycle stacked hits         |
 
 Selection-adjacent (use selection, don't change it): `cmd-delete`, `cmd-clipboard`, `cmd-duplicate`, `cmd-undo`, `cmd-node-group`, `cmd-node-lock`, `cmd-node-reorder`, `cmd-context-menu`.
 
 ## Modifier effects
 
-| Modifier | Selection effect | Manipulation effect |
-|---|---|---|
-| **Shift** | Extend range | Constrain axis, preserve aspect, snap angle |
-| **Ctrl** | — | Fine-grained, disable snap |
-| **Cmd/Meta** | Toggle (XOR) | Link-drag (with Opt) |
-| **Opt/Alt** | — | Duplicate on drag, resize from center |
+| Modifier | Selection effect | Manipulation effect                         |
+| -------- | ---------------- | ------------------------------------------- |
+| Shift    | Extend range     | Constrain axis, preserve aspect, snap angle |
+| Ctrl     | —                | Fine-grained, disable snap                  |
+| Cmd/Meta | Toggle (XOR)     | Link-drag (with Opt)                        |
+| Opt/Alt  | —                | Duplicate on drag, resize from center       |
 
 Platform: Cmd = Meta on macOS, Ctrl on Windows/Linux.
 
 ## Cross-cutting (`xc-*`)
 
-| Slug | What it means |
-|---|---|
-| `xc-undo` | Selection state captured in transactions |
-| `xc-clipboard` | Copy/cut reads selection, paste targets it |
-| `xc-a11y` | Selection announced, focus ring visible |
-| `xc-ime` | Input method composition during text editing |
-| `xc-collab` | Remote cursors/selections from other users |
-| `xc-snap` | Snap to grid/edges/centers during manipulation |
-| `xc-constraints` | Aspect ratio, position constraints during resize |
-| `xc-virtualization` | Offscreen items selected but not rendered |
-| `xc-locked` | Locked items: selectable via panel, not directly transformable |
-| `xc-hidden` | Hidden items: not hittable, not rendered |
-| `xc-order` | Z-order, chronological, tree order |
-| `xc-autopan` | Auto-scroll/pan during drag, area, or text selection |
+| Slug              | What it means                                                  |
+| ----------------- | -------------------------------------------------------------- |
+| xc-undo           | Selection state captured in transactions                       |
+| xc-clipboard      | Copy/cut reads selection, paste targets it                     |
+| xc-a11y           | Selection announced, focus ring visible                        |
+| xc-ime            | Input method composition during text editing                   |
+| xc-collab         | Remote cursors/selections from other users                     |
+| xc-snap           | Snap to grid/edges/centers during manipulation                 |
+| xc-constraints    | Aspect ratio, position constraints during resize               |
+| xc-virtualization | Offscreen items selected but not rendered                      |
+| xc-locked         | Locked items: selectable via panel, not directly transformable |
+| xc-hidden         | Hidden items: not hittable, not rendered                       |
+| xc-order          | Z-order, chronological, tree order                             |
+| xc-autopan        | Auto-scroll/pan during drag, area, or text selection           |
 
 ## Design notes for future extensions
 
@@ -143,6 +143,7 @@ Platform: Cmd = Meta on macOS, Ctrl on Windows/Linux.
 Source: github.com/tldraw/tldraw v4.5
 
 **Selection state** — `TLInstancePageState` (per-page, per-tab):
+
 - `selectedShapeIds: TLShapeId[]` — the core selection (array, not set)
 - `hoveredShapeId: TLShapeId | null` — throttled at 32ms
 - `editingShapeId: TLShapeId | null` — shape in edit mode
@@ -150,6 +151,7 @@ Source: github.com/tldraw/tldraw v4.5
 - `focusedGroupId: TLShapeId | null` — group drill-in scope
 
 **Pointer state machine** — hierarchical `StateNode` classes. SelectTool has 18 child states:
+
 - Pointing: `pointing_canvas`, `pointing_shape`, `pointing_selection`, `pointing_resize_handle`, `pointing_rotate_handle`, `pointing_handle`, `pointing_arrow_label`
 - Active: `brushing`, `scribble_brushing`, `translating`, `resizing`, `rotating`, `editing_shape`
 - Sub-state machine: `crop` with `crop.idle`, `crop.pointing_crop`, `crop.pointing_crop_handle`, `crop.cropping`, `crop.translating_crop`
@@ -284,29 +286,30 @@ select (root)
 
 **Our mapping** (what we implement now vs later):
 
-| tldraw state | Our equivalent | Phase |
-|---|---|---|
-| `idle` | `ptr-idle` | Now |
-| `pointing_canvas` | `ptr-pointing-empty` | Now |
-| `pointing_shape` | `ptr-pointing-node` | Now |
-| `pointing_selection` | `ptr-pointing-selection` | Now |
-| `pointing_resize_handle` | `ptr-pointing-handle` | Later |
-| `pointing_rotate_handle` | `ptr-pointing-handle` | Later |
-| `pointing_handle` | `ptr-pointing-handle` | Later |
-| `pointing_arrow_label` | — | Later (edge labels) |
-| `brushing` | `ptr-node-rect` | Now |
-| `scribble_brushing` | — | Later (lasso) |
-| `translating` | `ptr-node-translate` | Later (manipulation) |
-| `resizing` | `ptr-node-resize` | Later (manipulation) |
-| `rotating` | `ptr-node-rotate` | Later (manipulation) |
-| `editing_shape` | `sel.text()` / sub-selection | Now |
-| `crop.*` | `sel.crop()` sub-selection | Later |
+| tldraw state           | Our equivalent             | Phase                |
+| ---------------------- | -------------------------- | -------------------- |
+| idle                   | ptr-idle                   | Now                  |
+| pointing_canvas        | ptr-pointing-empty         | Now                  |
+| pointing_shape         | ptr-pointing-node          | Now                  |
+| pointing_selection     | ptr-pointing-selection     | Now                  |
+| pointing_resize_handle | ptr-pointing-handle        | Later                |
+| pointing_rotate_handle | ptr-pointing-handle        | Later                |
+| pointing_handle        | ptr-pointing-handle        | Later                |
+| pointing_arrow_label   | —                          | Later (edge labels)  |
+| brushing               | ptr-node-rect              | Now                  |
+| scribble_brushing      | —                          | Later (lasso)        |
+| translating            | ptr-node-translate         | Later (manipulation) |
+| resizing               | ptr-node-resize            | Later (manipulation) |
+| rotating               | ptr-node-rotate            | Later (manipulation) |
+| editing_shape          | sel.text() / sub-selection | Now                  |
+| crop.*                 | sel.crop() sub-selection   | Later                |
 
 ### Decker (collaborative board — our codebase)
 
 Source: ~/Code/DZ/decker, decker-cardboard package.
 
 **Selection state** — Zustand store:
+
 - `selectedIds: string[]`, `selectingIds: string[]` (preview during area-select)
 - `editMode: "node" | "text"`, `dragMode: DragMode`, `areaSelection: { anchor, focus }`
 - `dropEffect: "move" | "copy" | "link" | null`
@@ -352,20 +355,21 @@ Source: ~/Code/DZ/decker, decker-cardboard package.
 
 ## Terminology alignment
 
-| Our term | tldraw | ProseMirror | DOM API | VS Code |
-|---|---|---|---|---|
-| `cursor` | — (no linear order) | `head` | `focusNode` | `active` |
-| `anchor` | — | `anchor` | `anchorNode` | `anchor` |
-| `sel.node.ids` | `selectedShapeIds` | `ranges` | — | `selections` |
-| `sel.text()` | `editingShapeId` | `TextSelection` | `Selection` | `Selection` |
-| `sel.root.id` | `focusedGroupId` | — | — | — |
-| `sel.drag` | `pointing_*` → `brushing/translating` | — | — | — |
-| `sel.kind` | implicit from state machine path | `Selection` subclass | `type` | — |
-| pointer state machine | `StateNode` hierarchy (18 states) | — | — | — |
-| pure transitions | — (side effects in StateNode) | `Transaction` | — | — |
+| Our term              | tldraw                            | ProseMirror        | DOM API    | VS Code    |
+| --------------------- | --------------------------------- | ------------------ | ---------- | ---------- |
+| cursor                | — (no linear order)               | head               | focusNode  | active     |
+| anchor                | —                                 | anchor             | anchorNode | anchor     |
+| sel.node.ids          | selectedShapeIds                  | ranges             | —          | selections |
+| sel.text()            | editingShapeId                    | TextSelection      | Selection  | Selection  |
+| sel.root.id           | focusedGroupId                    | —                  | —          | —          |
+| sel.drag              | pointing_* → brushing/translating | —                  | —          | —          |
+| sel.kind              | implicit from state machine path  | Selection subclass | type       | —          |
+| pointer state machine | StateNode hierarchy (18 states)   | —                  | —          | —          |
+| pure transitions      | — (side effects in StateNode)     | Transaction        | —          | —          |
 
 We use `cursor` (natural for TUI) where the industry uses `head`/`focus`/`active`. Canvas tools (tldraw, Figma) don't have cursor/anchor — they're set-based. We bridge both worlds: ordered set with cursor/anchor for tree UIs, extensible to pure set for canvas.
 
 ### SlateJS architectural alignment
 
 km's tree layer descends from SlateJS. The selection system aligns with the same `Editor.apply(op)` pattern — tree ops transform selection inline via `transformSelection(sel, op, prevTree, nextTree)`. Each history batch stores `selectionBefore` for atomic undo. Sub-selection preserved on move if block identity survives. All tree changes through `apply()`. See [selection-model.md](selection-model.md) § SlateJS alignment.
+

@@ -21,13 +21,13 @@ Once @km/tui/view-tree migration is complete and architecture-v2.md no longer ha
 2. Remove 'migration in progress' from ViewNode section
 3. Replace docs/architecture.md with architecture-v2.md (mv or copy content)
 4. Update all cross-references (15+ docs link to architecture.md):
-  - docs/dev/debugging.md, docs/dev/testing.md, docs/README.md
-  - docs/principles.md, docs/concepts.md, docs/storage.md
-  - docs/design/tea-state-machines.md, docs/ref/ui.md, docs/ref/pipelines.md, docs/ref/commands.md
-  - docs/architecture/brain.md (3 references), docs/lessons/filetree-as-peer.md
-  - docs/adr/archive/002-domain-objects-refactor.md
-5. Remove architecture-v2.md (content is now in architecture.md)
-6. Update docs/README.md to remove the v2 line
+- docs/dev/debugging.md, docs/dev/testing.md, docs/README.md
+- docs/principles.md, docs/concepts.md, docs/storage.md
+- docs/design/tea-state-machines.md, docs/ref/ui.md, docs/ref/pipelines.md, docs/ref/commands.md
+- docs/architecture/brain.md (3 references), docs/lessons/filetree-as-peer.md
+- docs/adr/archive/002-domain-objects-refactor.md
+14. Remove architecture-v2.md (content is now in architecture.md)
+15. Update docs/README.md to remove the v2 line
 
 DEPENDS ON: @km/tui/view-tree (all phases), @km/tui/unify-columns
 DO LAST in the simplification epic — this is the victory lap.

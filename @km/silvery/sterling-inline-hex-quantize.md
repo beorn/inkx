@@ -20,8 +20,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [ ] Sterling: quantize inline hex values per caps.colorLevel @km/silvery #feature #P4 @claude:22c2717d

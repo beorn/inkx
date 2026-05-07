@@ -6,13 +6,13 @@ These are **works-in-progress designs** that may change, be approved, or be disc
 
 ## Contents
 
-| File                        | Purpose                                | Status           |
-| --------------------------- | -------------------------------------- | ---------------- |
-| `dashboard-mockup.ansi`     | btop-style system monitor dashboard    | ✓ Approved       |
-| `components-mockup-v2.ansi` | Component gallery redesign             | In review        |
-| `chat-mockup.ansi`          | AI chat interface                      | In review        |
-| `*-mockup.txt`              | Plain text versions (markup notes)     | Reference only   |
-| `gen-*.ts`                  | Generation scripts (Gemini, GPT, etc.) | Development only |
+| File                      | Purpose                                | Status           |
+| ------------------------- | -------------------------------------- | ---------------- |
+| dashboard-mockup.ansi     | btop-style system monitor dashboard    | ✓ Approved       |
+| components-mockup-v2.ansi | Component gallery redesign             | In review        |
+| chat-mockup.ansi          | AI chat interface                      | In review        |
+| *-mockup.txt              | Plain text versions (markup notes)     | Reference only   |
+| gen-*.ts                  | Generation scripts (Gemini, GPT, etc.) | Development only |
 
 ## Workflow
 
@@ -32,3 +32,4 @@ All mockups are generated and reviewed with specific LLM models. The `create.md`
 
 - **First draft**: Gemini 2.5 Pro ($0.05/request, ~7/10 quality)
 - **Final polish**: GPT-5.4 Pro ($0.80-2/request, exact 135×40 chars)
+

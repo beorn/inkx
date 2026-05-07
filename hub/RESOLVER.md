@@ -10,12 +10,12 @@ For routing within km's public `docs/`, see [`../../docs/RESOLVER.md`](../../doc
 
 ## § 1 — Is it public or internal?
 
-| Question                                                        | Answer → Route                                                                          |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Is it the shipped doc on `<pkg>.dev`?                           | → `vendor/<pkg>/docs/`                                                                  |
-| Is it km's canonical architecture/design?                       | → `docs/` in the km repo                                                                |
-| Is it a draft, research note, launch copy, or internal roadmap? | → `hub/` (this file routes inside)                                          |
-| Is it frozen pre-public or a superseded draft?                  | → `hub/0LD/<pkg>/` (mirrors the live hub layout) or (if tied to a shipping doc) the public `archive/` |
+| Question                                                        | Answer → Route                                                                                    |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Is it the shipped doc on <pkg>.dev?                             | → vendor/<pkg>/docs/                                                                              |
+| Is it km's canonical architecture/design?                       | → docs/ in the km repo                                                                            |
+| Is it a draft, research note, launch copy, or internal roadmap? | → hub/ (this file routes inside)                                                                  |
+| Is it frozen pre-public or a superseded draft?                  | → hub/0LD/<pkg>/ (mirrors the live hub layout) or (if tied to a shipping doc) the public archive/ |
 
 **Rule:** public docs must never reference `hub/` content. Internal docs may reference anything (public, internal, or cross-repo).
 
@@ -32,27 +32,27 @@ Content is routed two ways:
 
 Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when content justifies:
 
-| Subdir        | Content                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------ |
-| `design/`     | Pre-public architecture, design drafts under iteration. Promote to `vendor/<pkg>/docs/` when polished. |
-| `research/`   | Competitive analysis, prior-art surveys, market intel specific to this package.                        |
-| `launch/`     | Pre-launch blog drafts, marketing copy, positioning docs for this package.                             |
-| `reference/`  | Internal reference material — benchmarks, specs not ready for public ref docs.                         |
-| `benchmarks/` | Perf numbers, profiling artifacts.                                                                     |
-| `mockups/`    | Design mockups (ANSI art, screenshots in progress).                                                    |
-| `prototype/`  | Working prototypes validating design ideas. Disposable.                                                |
-| `vision/`     | Long-horizon vision docs for the package.                                                              |
-| `CLAUDE.md`   | Internal workspace guide for agents.                                                                   |
-| `README.md`   | Internal workspace entry point.                                                                        |
+| Subdir      | Content                                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| design/     | Pre-public architecture, design drafts under iteration. Promote to vendor/<pkg>/docs/ when polished. |
+| research/   | Competitive analysis, prior-art surveys, market intel specific to this package.                      |
+| launch/     | Pre-launch blog drafts, marketing copy, positioning docs for this package.                           |
+| reference/  | Internal reference material — benchmarks, specs not ready for public ref docs.                       |
+| benchmarks/ | Perf numbers, profiling artifacts.                                                                   |
+| mockups/    | Design mockups (ANSI art, screenshots in progress).                                                  |
+| prototype/  | Working prototypes validating design ideas. Disposable.                                              |
+| vision/     | Long-horizon vision docs for the package.                                                            |
+| CLAUDE.md   | Internal workspace guide for agents.                                                                 |
+| README.md   | Internal workspace entry point.                                                                      |
 
 **Don't pre-create empty subdirs.** Only add a subdir when content justifies. Today: silvery has the full layout; km/bearly/loggily have a subset; flexily/termless/mdspec have none yet.
 
 ### § 2.2 — Ecosystem-wide slots
 
-| Dir                              | Content                                                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `hub/market/`        | Cross-package marketing: content strategy, growth ideas, funnel architecture, brainstorms that apply to multiple sites               |
-| `hub/<cross-theme>/` | Create ad-hoc when a cross-cutting theme doesn't fit a single package (e.g. `hub/ecosystem-research/` if it ever exists) |
+| Dir                | Content                                                                                                                |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| hub/market/        | Cross-package marketing: content strategy, growth ideas, funnel architecture, brainstorms that apply to multiple sites |
+| hub/<cross-theme>/ | Create ad-hoc when a cross-cutting theme doesn't fit a single package (e.g. hub/ecosystem-research/ if it ever exists) |
 
 **Naming rule:** package-named subdirs are for a single package's workspace. Cross-package content goes in named concern-subdirs (`market/`, etc.).
 
@@ -60,25 +60,25 @@ Each package's internal workspace (`hub/<pkg>/`) uses this sub-layout when conte
 
 ## § 3 — Routing decision table
 
-| Content                                            | Home                                                       |
-| -------------------------------------------------- | ---------------------------------------------------------- |
-| Pre-public silvery design doc                      | `hub/silvery/design/`                          |
-| Silvery launch blog draft                          | `hub/silvery/launch/`                          |
-| Silvery competitive research (OpenTUI, Ink, etc.)  | `hub/silvery/research/`                        |
-| Silvery version roadmap (horizons)                 | `hub/roadmap.md` § Track 2                     |
-| Holistic km roadmap + all track detail             | `hub/roadmap.md`                               |
-| Ordered near-term queue (what's next)              | `hub/backlog.md`                               |
-| km pre-public design draft                         | `hub/km/`                                      |
-| bearly plugin design                               | `hub/bearly/design/`                           |
-| bearly agent memory/context                        | `hub/bearly/memory.md`                         |
-| loggily API v2 research                            | `hub/loggily/`                                 |
-| Cross-ecosystem content marketing system/funnel    | `hub/market/strategy/`                         |
-| Ecosystem growth strategy                          | `hub/market/strategy/`                         |
-| Content/growth brainstorm lists                    | `hub/market/ideas/`                            |
-| Marketing tool reference                           | `hub/market/reference/`                        |
-| Per-site blog drafts                               | `hub/market/blogs/<site>/`                     |
-| Point-in-time SEO/audit snapshots                  | `hub/market/audits/<YYYY-MM-DD>/`              |
-| Retro / post-shipped analysis of a silvery feature | `hub/0LD/silvery/` (internal-only lessons, mirrors live hub layout) |
+| Content                                            | Home                                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------- |
+| Pre-public silvery design doc                      | hub/silvery/design/                                               |
+| Silvery launch blog draft                          | hub/silvery/launch/                                               |
+| Silvery competitive research (OpenTUI, Ink, etc.)  | hub/silvery/research/                                             |
+| Silvery version roadmap (horizons)                 | hub/roadmap.md § Track 2                                          |
+| Holistic km roadmap + all track detail             | hub/roadmap.md                                                    |
+| Ordered near-term queue (what's next)              | hub/backlog.md                                                    |
+| km pre-public design draft                         | hub/km/                                                           |
+| bearly plugin design                               | hub/bearly/design/                                                |
+| bearly agent memory/context                        | hub/bearly/memory.md                                              |
+| loggily API v2 research                            | hub/loggily/                                                      |
+| Cross-ecosystem content marketing system/funnel    | hub/market/strategy/                                              |
+| Ecosystem growth strategy                          | hub/market/strategy/                                              |
+| Content/growth brainstorm lists                    | hub/market/ideas/                                                 |
+| Marketing tool reference                           | hub/market/reference/                                             |
+| Per-site blog drafts                               | hub/market/blogs/<site>/                                          |
+| Point-in-time SEO/audit snapshots                  | hub/market/audits/<YYYY-MM-DD>/                                   |
+| Retro / post-shipped analysis of a silvery feature | hub/0LD/silvery/ (internal-only lessons, mirrors live hub layout) |
 
 ---
 
@@ -119,3 +119,4 @@ If you walk § 2 and nothing fits: park the draft in `hub/<pkg>/draft/` (create 
 - [`../../docs/RESOLVER.md`](../../docs/RESOLVER.md) — km public-docs filing
 - [`../CLAUDE.md`](../CLAUDE.md) — vendor boundary rule (package independence)
 - [`silvery/CLAUDE.md`](silvery/CLAUDE.md) — silvery-internal workspace guide (most mature example of the layout)
+

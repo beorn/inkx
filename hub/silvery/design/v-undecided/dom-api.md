@@ -1,8 +1,8 @@
 # DOM-like Render API Design
 
-> **Internal** — Design proposal for nested mounting inspired by DOM patterns. Not yet implemented.
->
-> **Status: RFC** — This is a design proposal, not an implemented feature. Feedback welcome.
+> Internal — Design proposal for nested mounting inspired by DOM patterns. Not yet implemented.
+> 
+> Status: RFC — This is a design proposal, not an implemented feature. Feedback welcome.
 
 Design proposal for a simplified, DOM-inspired render API with nested mounting.
 
@@ -179,13 +179,13 @@ The test renderer already has the right ergonomics. No changes needed -- it retu
 
 ### Comparison with DOM API
 
-| DOM (React 18)                         | Silvery (proposed)                         |
-| -------------------------------------- | ------------------------------------------ |
-| `const root = createRoot(container)`   | `const root = await silvery.createRoot()`  |
-| `root.render(<App />)`                 | `root.render(<App />)`                     |
-| `root.unmount()`                       | `root.unmount()`                           |
-| `createRoot(childDiv).render(<Sub />)` | `root.createRoot(locator).render(<Sub />)` |
-| `createPortal(children, container)`    | (nested root is the equivalent)            |
+| DOM (React 18)                       | Silvery (proposed)                       |
+| ------------------------------------ | ---------------------------------------- |
+| const root = createRoot(container)   | const root = await silvery.createRoot()  |
+| root.render(<App />)                 | root.render(<App />)                     |
+| root.unmount()                       | root.unmount()                           |
+| createRoot(childDiv).render(<Sub />) | root.createRoot(locator).render(<Sub />) |
+| createPortal(children, container)    | (nested root is the equivalent)          |
 
 Key difference: DOM has a physical `container` (HTMLElement). Silvery has an abstract render target -- either a terminal (the "document") or a region identified by an `AutoLocator`. The locator's `boundingBox()` defines the nested root's dimensions and position.
 
@@ -193,13 +193,13 @@ Key difference: DOM has a physical `container` (HTMLElement). Silvery has an abs
 
 This proposal does **not** replace the runtime layers. Instead, it provides a better foundation for them:
 
-| Layer | Current                            | Proposed                                    |
-| ----- | ---------------------------------- | ------------------------------------------- |
-| 0     | `render()` in `render.tsx` (old)   | `silvery.createRoot()` + `root.render()`    |
-| 0     | `render()` in `renderer.ts` (test) | unchanged -- already good ergonomics        |
-| 1     | `createRuntime()`                  | unchanged -- low-level, max control         |
-| 2     | `run()` (hooks)                    | `silvery.run()` wrapping `createRoot()`     |
-| 3     | `createApp()` (Zustand)            | unchanged -- uses `createRoot()` internally |
+| Layer | Current                        | Proposed                                  |
+| ----- | ------------------------------ | ----------------------------------------- |
+| 0     | render() in render.tsx (old)   | silvery.createRoot() + root.render()      |
+| 0     | render() in renderer.ts (test) | unchanged -- already good ergonomics      |
+| 1     | createRuntime()                | unchanged -- low-level, max control       |
+| 2     | run() (hooks)                  | silvery.run() wrapping createRoot()       |
+| 3     | createApp() (Zustand)          | unchanged -- uses createRoot() internally |
 
 The key insight is that `silvery.createRoot()` unifies the old `render.tsx` and `renderer.ts` behind a single interface (`SilveryRoot`), while the runtime layers continue to provide their ergonomic patterns on top.
 
@@ -361,9 +361,7 @@ Child roots render independently but composite synchronously with the parent. Th
 ## Open Questions
 
 1. **Should nested roots share contexts?** The DOM model says no (separate React trees). But sharing `TermContext` makes sense since all roots share one terminal. Proposal: share `TermContext` and `InputLayerProvider`, isolate `AppContext` and `StoreContext`.
-
 2. **How does focus transfer between nested roots?** Options: (a) explicit API (`parentRoot.focus(childRoot)`), (b) automatic based on Tab/Shift-Tab cycling, (c) delegated to application code via keybindings. Recommendation: (a) with (c) as the common pattern.
-
 3. **Should `silvery.createRoot()` be sync or async?** It needs to init the layout engine (async). Options: (a) always async, (b) sync if engine already initialized, throw otherwise, (c) separate `await silvery.init()` then sync `createRoot()`. Recommendation: (a) for simplicity -- the one-time engine init cost is negligible.
-
 4. **How to handle child root overflow?** If a child root's content exceeds its bounding box: (a) clip at boundary (like CSS `overflow: hidden`), (b) scroll within region, (c) error. Recommendation: (a) clip by default, (b) opt-in scroll via props.
+

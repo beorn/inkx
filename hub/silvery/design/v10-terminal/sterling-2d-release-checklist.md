@@ -194,12 +194,12 @@ npm view silvery version  # → 0.19.0
 
 ## Risk register
 
-| Risk | Mitigation |
-|---|---|
-| Consumer outside km (if any exist) breaks on upgrade | Version-pin warning in CHANGELOG; keep a migration script in `vendor/silvery/scripts/migrate-to-sterling.ts` if there's a publicly-exposed consumer |
-| `augmentWithSterlingFlat` removal breaks a corner of the pipeline that still depended on the augmented legacy Theme | tsc catches; 2b should have migrated all @silvery/ui consumers; verify with full test:vendor |
-| tmux / iTerm2 users miss the Kitty graphics backdrop fallback | Not a 0.19.0 concern — already shipped as capability-gated |
-| npm publish fails on provenance or token | See vendor/CLAUDE.md §npm; use `pnpm publish` not `npm publish`; OIDC provenance auto-configured |
+| Risk                                                                                                              | Mitigation                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consumer outside km (if any exist) breaks on upgrade                                                              | Version-pin warning in CHANGELOG; keep a migration script in vendor/silvery/scripts/migrate-to-sterling.ts if there's a publicly-exposed consumer |
+| augmentWithSterlingFlat removal breaks a corner of the pipeline that still depended on the augmented legacy Theme | tsc catches; 2b should have migrated all @silvery/ui consumers; verify with full test:vendor                                                      |
+| tmux / iTerm2 users miss the Kitty graphics backdrop fallback                                                     | Not a 0.19.0 concern — already shipped as capability-gated                                                                                        |
+| npm publish fails on provenance or token                                                                          | See vendor/CLAUDE.md §npm; use pnpm publish not npm publish; OIDC provenance auto-configured                                                      |
 
 ---
 
@@ -208,3 +208,4 @@ npm view silvery version  # → 0.19.0
 One commit, one tag, one release. Deletes ~300 LOC of compat shims. Simplifies the Theme type surface by ~50 legacy fields. Ships the complete Sterling story.
 
 Do it when 2c + derivation-adaptive + prune-state-variants are all closed with green acceptance commands.
+

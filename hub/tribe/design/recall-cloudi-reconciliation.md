@@ -1,30 +1,30 @@
 # km-tribe.recall ↔ cloudi/ADR01 reconciliation
 
-> **Date**: 2026-04-28
-> **Bead**: `km-tribe.recall` (epic), see also `km-tribe.recall-eval-corpus`, `km-tribe.recall-thought`, `km-tribe.recall-deep-rounds`
-> **Triggered by**: discovery during 2026-04-28 design session that cloudi has a fully-specced memory system (`cloudi/specs/active/ADR01/`, 861 + 2661 lines) and `docs/future/brain.md` already commits to absorbing it.
+> Date: 2026-04-28
+> Bead: km-tribe.recall (epic), see also km-tribe.recall-eval-corpus, km-tribe.recall-thought, km-tribe.recall-deep-rounds
+> Triggered by: discovery during 2026-04-28 design session that cloudi has a fully-specced memory system (cloudi/specs/active/ADR01/, 861 + 2661 lines) and docs/future/brain.md already commits to absorbing it.
 
 This note reconciles the recall-thought / deep-rounds work with the prior cloudi memory specs. tl;dr: they're complementary, not competing; the eval-corpus + runner is genuinely new infrastructure that serves both.
 
 ## Two layers, not two competing systems
 
-| Layer | What it is | Where it lives | Status |
-|---|---|---|---|
-| **Substrate** | The store + retrieval primitives. SPO statements with ENGRAM cognitive types, entities, embeddings, FTS5 session-history, etc. | cloudi `ADR01-memory-system.md` (canonical spec). km absorbs via `docs/future/brain.md`. Today: FTS5 session-history is the only shipped piece. | Spec mature, implementation partial |
-| **Active layer** | The thing that DECIDES what to retrieve, when, in what shape. Hypothesis-driven inner-loop, compiled state across turns, diff-emission. | Net-new in `km-tribe.recall-thought`, `km-tribe.recall-deep-rounds`. None of cloudi/Letta/Hindsight has this. | Designed in this epic |
-| **Eval** | Measures substrate AND active layer. Three axes (conversational / external-data / per-thread overlap). Public benchmarks (LongMemEval, LoCoMo) for substrate sanity. | Net-new: `tools/recall-eval.ts` + `hub/tribe/eval/recall-corpus.yaml`. | v0 shipped 2026-04-28 |
+| Layer        | What it is                                                                                                                                                           | Where it lives                                                                                                                              | Status                              |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Substrate    | The store + retrieval primitives. SPO statements with ENGRAM cognitive types, entities, embeddings, FTS5 session-history, etc.                                       | cloudi ADR01-memory-system.md (canonical spec). km absorbs via docs/future/brain.md. Today: FTS5 session-history is the only shipped piece. | Spec mature, implementation partial |
+| Active layer | The thing that DECIDES what to retrieve, when, in what shape. Hypothesis-driven inner-loop, compiled state across turns, diff-emission.                              | Net-new in km-tribe.recall-thought, km-tribe.recall-deep-rounds. None of cloudi/Letta/Hindsight has this.                                   | Designed in this epic               |
+| Eval         | Measures substrate AND active layer. Three axes (conversational / external-data / per-thread overlap). Public benchmarks (LongMemEval, LoCoMo) for substrate sanity. | Net-new: tools/recall-eval.ts + hub/tribe/eval/recall-corpus.yaml.                                                                          | v0 shipped 2026-04-28               |
 
 ## Substrate maturation
 
 Cloudi's 4-phase plan, applied to km:
 
-| Phase | Cloudi calls it | km equivalent | Status |
-|---|---|---|---|
-| 0 | (pre-Phase 1) | FTS5 session-history index | shipped |
-| 1 | Statements | SPO triples + cognitive types + provenance | speccéd in brain.md, not yet implemented |
-| 2 | Embeddings | Per-category semantic search, ranked merge | not yet |
-| 3 | Entities | Modeled memory (PIM types) | not yet |
-| 4 | Confidence | Cross-source accumulation | not yet |
+| Phase | Cloudi calls it | km equivalent                              | Status                                   |
+| ----- | --------------- | ------------------------------------------ | ---------------------------------------- |
+| 0     | (pre-Phase 1)   | FTS5 session-history index                 | shipped                                  |
+| 1     | Statements      | SPO triples + cognitive types + provenance | speccéd in brain.md, not yet implemented |
+| 2     | Embeddings      | Per-category semantic search, ranked merge | not yet                                  |
+| 3     | Entities        | Modeled memory (PIM types)                 | not yet                                  |
+| 4     | Confidence      | Cross-source accumulation                  | not yet                                  |
 
 km-tribe.recall's substrate-side work (multipath-rrf, cognitive-rerank, drop-synthesis) operates on Phase 0 (FTS5) and is gradually subsumed as Phase 1+ ships. Specifically:
 
@@ -55,9 +55,11 @@ Cloudi's ADR01 Appendix A mentions LongMemEval as the validation benchmark but h
 ## What this means for the bead set
 
 Closed:
+
 - `km-tribe.recall-compiled-state` — folded into `recall-thought` earlier today.
 
 Keep + reference cloudi:
+
 - `km-tribe.recall-eval-corpus` — runner is substrate-agnostic, serves cloudi too. README updated to cite ADR01 §Architecture and REF01 §Benchmarks.
 - `km-tribe.recall-multipath-rrf` — Hindsight TEMPR read-side adoption, composes with cloudi Phase 2.
 - `km-tribe.recall-cognitive-rerank` — interim read-side ENGRAM until cloudi Phase 1 ships in km. Marked as superseded-on-Phase-1.
@@ -69,8 +71,10 @@ Keep + reference cloudi:
 - `km-tribe.recall-eval-external-data` — Axis B. km-specific.
 
 Reference for absorption work:
+
 - The km-side absorption of cloudi ADR01 lives in `docs/future/brain.md` and the deferred bead `[DEFERRED] [P4] km-tools.* Agent memory: implement Cloudi ADR01 SPO memory system for km`. Substrate work happens there; this epic operates on whatever substrate is shipped.
 
 ## Open question
 
 Is there value in coordinating the cloudi-absorption bead with this epic? Likely yes — the active layer would land more cleanly on Phase 1 statements than on FTS5 alone. But that's a sequencing question for after eval-corpus produces real numbers.
+

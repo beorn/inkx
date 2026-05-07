@@ -29,18 +29,18 @@ Before designing anything, I read state.ts (387 LOC) and index.tsx (253 LOC) the
 
 ### Logical feature plugins (pre-existing in the code, just not separated)
 
-| Feature                | Where it lives today                                                 | State it owns                                                                     |
-| ---------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Mount / init**       | `update → case "mount"`                                              | `pulse` interval, initial script dispatch                                         |
-| **Script walk-through**| `doAdvance`, `case "advance"` / `"autoAdvance"`                      | `scriptIdx`, `exchanges`                                                          |
-| **Streaming animation**| `startStreaming`, `case "endThinking"` / `"streamTick"` / `"endTools"`| `streamPhase`, `revealFraction`, `pulse`                                         |
-| **Auto-typing**        | `case "typingTick"` / `"autoTypingDone"`                             | `autoTyping`                                                                      |
-| **Compaction**         | `useAutoCompact`, `case "compact"` / `"compactDone"`                 | `compacting`, `contextBaseline`                                                   |
-| **User submit**        | `case "submit"`                                                      | appends to `exchanges`                                                            |
-| **Off-script reply**   | `case "respondRandom"`                                               | `offScript`, appends to `exchanges`                                               |
-| **Key bindings**       | `useKeyBindings` hook                                                | `ctrlDPending`, `lastCtrlDRef`                                                    |
-| **Auto-exit**          | `useAutoExit` hook                                                   | `done`                                                                            |
-| **Footer UI + timer**  | `DemoFooter`                                                         | `inputText`, `elapsed`, `randomIdx`, auto-submit timer                            |
+| Feature             | Where it lives today                                           | State it owns                                    |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| Mount / init        | update → case "mount"                                          | pulse interval, initial script dispatch          |
+| Script walk-through | doAdvance, case "advance" / "autoAdvance"                      | scriptIdx, exchanges                             |
+| Streaming animation | startStreaming, case "endThinking" / "streamTick" / "endTools" | streamPhase, revealFraction, pulse               |
+| Auto-typing         | case "typingTick" / "autoTypingDone"                           | autoTyping                                       |
+| Compaction          | useAutoCompact, case "compact" / "compactDone"                 | compacting, contextBaseline                      |
+| User submit         | case "submit"                                                  | appends to exchanges                             |
+| Off-script reply    | case "respondRandom"                                           | offScript, appends to exchanges                  |
+| Key bindings        | useKeyBindings hook                                            | ctrlDPending, lastCtrlDRef                       |
+| Auto-exit           | useAutoExit hook                                               | done                                             |
+| Footer UI + timer   | DemoFooter                                                     | inputText, elapsed, randomIdx, auto-submit timer |
 
 **10 features, one monolithic reducer.** The reducer has **30+ `case` arms across all features**; a change to "compaction" brushes against "script walk-through" because they share `doAdvance`. This is the mesh/star the user is describing: features talk to each other by reaching into one another's state via shared helper functions (`doAdvance`, `autoAdvanceEffects`), not through a typed event interface.
 
@@ -248,19 +248,19 @@ Measured from `aichat-composed.tsx` and the feature-plugin stubs referenced from
 
 Measured against `aichat-composed.tsx` (375 code LOC / 487 total with comments):
 
-| Plugin / section     | Code LOC | Slice state fields | Op types |
-|----------------------|----------|--------------------|----------|
-| `withScript`         | 45       | 4                  | 4        |
-| `withStream`         | 65       | 3                  | 6        |
-| `withMount`          | 15       | 0 (uses others)    | 1        |
-| `withCompact`        | 30       | 2                  | 2        |
-| `withSubmit`         | 20       | 1 (exchanges)      | 1        |
-| `withKeys`           | 30       | 1 (ctrlDPending)   | 0 (via commands) |
-| `withAutoExit`       | 10       | 0                  | 1 (effect-only) |
-| `buildAIChatApp`     | 30       | — (composition)    | — |
-| `useAppSlice` + view stub | 55  | — (React bridge)   | — |
-| Shared types + helpers | 75     | `asSubscribable` utility | — |
-| **Total**            | **~375** | — | — |
+| Plugin / section        | Code LOC | Slice state fields     | Op types         |
+| ----------------------- | -------- | ---------------------- | ---------------- |
+| withScript              | 45       | 4                      | 4                |
+| withStream              | 65       | 3                      | 6                |
+| withMount               | 15       | 0 (uses others)        | 1                |
+| withCompact             | 30       | 2                      | 2                |
+| withSubmit              | 20       | 1 (exchanges)          | 1                |
+| withKeys                | 30       | 1 (ctrlDPending)       | 0 (via commands) |
+| withAutoExit            | 10       | 0                      | 1 (effect-only)  |
+| buildAIChatApp          | 30       | — (composition)        | —                |
+| useAppSlice + view stub | 55       | — (React bridge)       | —                |
+| Shared types + helpers  | 75       | asSubscribable utility | —                |
+| Total                   | ~375     | —                      | —                |
 
 **Note** — `withAutoTyping` (the `autoTyping` state) and `withIdleSubmit` (the 10-second idle auto-submit) aren't broken out in the sketch; each would add ~25 LOC if fully ported. Adding both brings the total to ~425 code LOC.
 
@@ -277,6 +277,7 @@ The savings come from:
 ### definePlugin comparison
 
 definePlugin (v2) hit ~33 LOC for help overlay but **couldn't express**:
+
 - Custom effects (intervals, delays). definePlugin's `ops: (s) => newState` is pure state. No effect lane.
 - Cross-plugin dispatch. No way to say "endTools should kick off autoAdvance on withScript".
 - Ordering invariants via type constraints.
@@ -286,12 +287,14 @@ For aichat's 10 features, definePlugin would need each plugin to emit `{nextStat
 ### Ergonomics honest appraisal
 
 **Wins of pipe/with*/createSlice**:
+
 - Types accumulate naturally across the pipe — `const app = pipe(...)`, `app.stream.phase`, `app.script.scriptIdx` all inferred.
 - Each plugin is a plain function — trivial to test, trivial to mock.
 - Effects are first-class, not squeezed into a pure reducer.
 - No global registries. Order is explicit at the call site.
 
 **Costs honestly documented**:
+
 - Per-plugin boilerplate is higher than definePlugin: a `createSlice` + an `apply` wrapper + a contribution type. ~15 LOC of ceremony vs definePlugin's ~5.
 - Ordering invariants beyond "needs X upstream" require marker-typing, which is harder to teach.
 - React binding still needs a hook, and each plugin needs an external-store shape for `useSyncExternalStore` — same as v2, unavoidable for React integration.
@@ -304,13 +307,14 @@ See `help-overlay.v3.ts`. Final size: **56 code LOC / 85 LOC total including com
 
 Comparison:
 
-| Version | Code LOC | Composability | Effects | Cross-plugin dispatch | Command palette |
-|---------|----------|---------------|---------|------------------------|-----------------|
-| v1 (reducer + store + singleton + bridge + hook, 3 files) | 296 | low — singleton, lives outside pipe | none | none | no |
-| v2 (definePlugin, single file) | 33 | medium — declarative but factory-owned | impossible | impossible | no |
-| **v3 (pipe/with*/createSlice)** | **56** | **high — just a `with*()` in the pipe** | native | native | **yes (4 commands registered)** |
+| Version                                                   | Code LOC | Composability                          | Effects    | Cross-plugin dispatch | Command palette             |
+| --------------------------------------------------------- | -------- | -------------------------------------- | ---------- | --------------------- | --------------------------- |
+| v1 (reducer + store + singleton + bridge + hook, 3 files) | 296      | low — singleton, lives outside pipe    | none       | none                  | no                          |
+| v2 (definePlugin, single file)                            | 33       | medium — declarative but factory-owned | impossible | impossible            | no                          |
+| v3 (pipe/with/createSlice)*                               | 56       | high — just a with*() in the pipe      | native     | native                | yes (4 commands registered) |
 
 **Why v3 is +23 code LOC over v2** — because v3 is not a factory. It carries:
+
 - an explicit `createSlice` init (6 LOC) — vs definePlugin's inferred-from-ops shape (0 LOC of ceremony, but you lose the init-factory separation that createSlice uses for testing).
 - an explicit `apply` wrapper + subscription store (12 LOC) — vs definePlugin's `ops: {...}` map (6 LOC, machine-generated wiring).
 - 4 `withApp.keymap()` command registrations (5 LOC) — v2's `keys: {...}` map doesn't register them as discoverable commands.
@@ -372,6 +376,7 @@ No global store. No zustand per plugin. React consumers read exactly the slice t
 ## 7. Engaging with pro's review
 
 pro argued for the provider-style `with*()` approach based on:
+
 1. Composition > registry.
 2. Types accumulate through `pipe()`.
 3. Ordering can be enforced with `<Req, Add>`.
@@ -380,6 +385,7 @@ pro argued for the provider-style `with*()` approach based on:
 **The spike confirms 1, 2, 4 and partially confirms 3** (ordering invariants beyond "needs X upstream" require marker types, but that's a per-concern opt-in not a blanket requirement).
 
 K2.6 argued for definePlugin based on:
+
 1. Radical ergonomics — inference + type-safe API with minimal ceremony.
 2. Catches names at compile time.
 3. A declarative shape is easier for AI to generate.
@@ -399,6 +405,7 @@ K2.6 argued for definePlugin based on:
 Replace `apps/km-tui/src/plugins/with-help-overlay.ts` (213 LOC, singleton-based) with a `withHelpOverlay(): AppPlugin<BaseApp & AppWithApp, { help: HelpSlice }>` in the v3 shape. Wire it into the km pipe the same way `withInputChain` is wired today.
 
 **Why this one**:
+
 - Smallest real plugin in km with a complete state machine.
 - Parity tests already exist (v1 vs v2); add v3 variant to the same test matrix.
 - Validates the pattern against the actual km runtime (not aichat-scale).
@@ -412,3 +419,4 @@ Replace `apps/km-tui/src/plugins/with-help-overlay.ts` (213 LOC, singleton-based
 ### Open question for the user
 
 Should marker-typed ordering (e.g. `AppAfterFocus` brands) be added to silvery's `with*()` plugins now, or deferred until a second plugin actually needs an out-of-order dependency? My instinct says defer — YAGNI until the second consumer, per CLAUDE.md's "research-first for foundational features" rule. The first consumer gets width-typed `<Req, Add>`; when the second arrives and needs the marker, extract at that point.
+

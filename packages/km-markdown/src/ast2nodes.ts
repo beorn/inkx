@@ -1226,7 +1226,6 @@ function wikiLinkToHref(link: WikiLink): string {
   return normalizeLinkHref("wiki", label)
 }
 
-
 /**
  * Validate that the file has exactly one H1 heading.
  * Returns warnings for missing or multiple H1s.

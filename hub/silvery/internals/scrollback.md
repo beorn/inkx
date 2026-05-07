@@ -1,9 +1,9 @@
 # Scrollback Analysis: Interactivity in Inline Mode
 
-> **Internal** — Research into how interactive TUIs work in inline (non-alternate-screen) mode. Analyzes terminal scrollback behavior across emulators and proposes the viewport-based solution.
->
-> **Bead**: km-Silvery.scrollback-analysis
-> **Date**: 2026-02-25
+> Internal — Research into how interactive TUIs work in inline (non-alternate-screen) mode. Analyzes terminal scrollback behavior across emulators and proposes the viewport-based solution.
+> 
+> Bead: km-Silvery.scrollback-analysis
+> Date: 2026-02-25
 
 ## The Core Question
 
@@ -16,7 +16,6 @@
 Every terminal emulator maintains two distinct areas:
 
 1. **Viewport** (mutable grid): The visible rows × cols grid. Applications write to it via ANSI escape sequences. Cursor positioning (`CUU`, `CUD`, `CHA`, `CUP`) works freely within this grid.
-
 2. **Scrollback buffer** (append-only): When content is pushed off the top of the viewport (via newline at the bottom row, or scroll-up within DECSTBM scroll regions), it enters the scrollback buffer. **Once there, it is immutable.** No escape sequence can modify scrollback content.
 
 ### When Content Enters Scrollback
@@ -29,13 +28,13 @@ Key: content only enters scrollback when it is **pushed off the top of the viewp
 
 Terminal emulators handle this differently:
 
-| Terminal         | Behavior When User Scrolls Up + New Output Arrives                                                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ghostty          | Viewport stays pinned where user scrolled. `scroll-to-bottom` config: default is `keystroke, no-output` (the `output` option is _currently unimplemented_). |
-| iTerm2           | Stays pinned on scroll-up. Scrolls to bottom on next keystroke.                                                                                             |
-| WezTerm          | Configurable: `scroll_to_bottom_on_input` (default: true).                                                                                                  |
-| Windows Terminal | Viewport should stay pinned, but has bugs around it (issue #7222).                                                                                          |
-| xterm            | `scrollTtyOutput` controls this. When false, output doesn't auto-scroll, but content still updates at the cursor position.                                  |
+| Terminal         | Behavior When User Scrolls Up + New Output Arrives                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ghostty          | Viewport stays pinned where user scrolled. scroll-to-bottom config: default is keystroke, no-output (the output option is currently unimplemented). |
+| iTerm2           | Stays pinned on scroll-up. Scrolls to bottom on next keystroke.                                                                                     |
+| WezTerm          | Configurable: scroll_to_bottom_on_input (default: true).                                                                                            |
+| Windows Terminal | Viewport should stay pinned, but has bugs around it (issue #7222).                                                                                  |
+| xterm            | scrollTtyOutput controls this. When false, output doesn't auto-scroll, but content still updates at the cursor position.                            |
 
 **Critical insight**: When the user scrolls up and the app writes new output at the cursor position (bottom of viewport), the terminal updates the viewport content at the bottom BUT does not force the user's view to scroll down. The user sees stale content until they scroll back.
 
@@ -83,8 +82,8 @@ const frozenCount = useScrollback(exchanges, {
 
 ### What useScrollback Gives Us
 
-| Capability                                                 | Status                          |
-| ---------------------------------------------------------- | ------------------------------- |
+| Capability                                                 | Status                         |
+| ---------------------------------------------------------- | ------------------------------ |
 | Frozen content becomes real scrollback                     | ✅ Works                        |
 | Scrollback content is native text (searchable, selectable) | ✅ Works                        |
 | Scrollback persists after app exit                         | ✅ Works                        |
@@ -96,41 +95,31 @@ const frozenCount = useScrollback(exchanges, {
 ### What's Possible
 
 1. **Small live area at bottom** — Only the current exchange + status bar are in the mutable viewport. This minimizes the "flicker zone" and maximizes scrollback content.
-
 2. **User can scroll up freely** — Terminal scrollback works natively. User sees frozen exchanges as styled text. In Ghostty (default config), the viewport stays pinned where the user scrolled even as new output arrives.
-
 3. **User can search scrollback** — Cmd+F (terminal native search) works on scrollback content since it's real text.
-
 4. **User can select/copy from scrollback** — Native terminal selection works.
-
 5. **Keyboard input scrolls back to bottom** — When the user types (presses Enter, etc.), the terminal auto-scrolls to bottom (Ghostty default: `scroll-to-bottom: keystroke`). The live area is then visible.
-
 6. **Compaction flushes everything to scrollback** — On compaction, all live exchanges are frozen, written to scrollback, and the live area starts fresh. This is useful for very long sessions.
 
 ### What's NOT Possible (Terminal Limitations)
 
 1. **Cannot detect if user has scrolled** — There is no escape sequence to query the viewport scroll position. The app has no way to know if the user is viewing scrollback or the live area.
-
 2. **Cannot modify scrollback content** — Once frozen, content cannot be updated, re-styled, or removed.
-
 3. **Cannot pause rendering when user scrolls up** — Without scroll detection (#1), the app can't know to pause. It keeps rendering at the cursor position regardless.
-
 4. **Cannot make scrollback interactive** — No click handlers, no focus, no hover states in scrollback. It's static text. (Terminal hyperlinks via OSC 8 _do_ work in scrollback if the terminal supports them.)
-
 5. **Cannot guarantee scrollback width matches terminal width** — If the user resizes the terminal, scrollback content remains at the old width. New content renders at the new width. This causes visual misalignment in scrollback.
-
 6. **Live area can't exceed terminal height** — Content beyond `termRows` is truncated. If a single exchange with many tool calls exceeds the viewport, it gets cut off.
 
 ### What Claude Code Gets Wrong (And We Can Do Better)
 
 Claude Code's inline mode has known issues:
 
-| Issue                                                   | Claude Code                                            | Silvery with useScrollback                                                |
-| ------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Scrollback contains stale TUI frames                    | ✅ Problem — every viewport redraw pushes stale frames | ✅ **Solved** — frozen content is rendered once as clean text             |
-| Auto-scroll to top when output arrives during scroll-up | ✅ Problem (issue #10769)                              | ✅ **Solved** — live area stays at cursor, user's viewport is undisturbed |
-| /clear wipes scrollback                                 | ✅ Problem (issue #2479)                               | N/A — compaction freezes to scrollback, doesn't clear                     |
-| Native Cmd+F search                                     | ✅ Works                                               | ✅ Works (better — scrollback is clean text, not stale frames)            |
+| Issue                                                   | Claude Code                                           | Silvery with useScrollback                                           |
+| ------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Scrollback contains stale TUI frames                    | ✅ Problem — every viewport redraw pushes stale frames | ✅ Solved — frozen content is rendered once as clean text             |
+| Auto-scroll to top when output arrives during scroll-up | ✅ Problem (issue #10769)                              | ✅ Solved — live area stays at cursor, user's viewport is undisturbed |
+| /clear wipes scrollback                                 | ✅ Problem (issue #2479)                               | N/A — compaction freezes to scrollback, doesn't clear                |
+| Native Cmd+F search                                     | ✅ Works                                               | ✅ Works (better — scrollback is clean text, not stale frames)        |
 
 **The key advantage of useScrollback**: Clean scrollback. Claude Code's scrollback is polluted with previous render frames because every viewport update pushes the old frame up. With useScrollback, frozen content is rendered exactly once as a final styled version. The scrollback contains a clean, readable conversation history.
 
@@ -147,15 +136,15 @@ This is essentially what useScrollback does natively — but at the framework le
 
 ## Framework Comparison
 
-| Framework                   | Mode                 | Scrollback                     | Scroll Detection | Live Updates        |
-| --------------------------- | -------------------- | ------------------------------ | ---------------- | ------------------- |
-| **Silvery (useScrollback)** | Inline               | Clean frozen content           | No               | Yes, small viewport |
-| **Claude Code**             | Inline               | Stale frames                   | No               | Yes, full viewport  |
-| **pi-tui**                  | Inline               | Line-by-line native            | No               | Yes, differential   |
-| **BubbleTea**               | Alt screen (default) | None                           | N/A              | Full screen         |
-| **Textual**                 | Both                 | Inline: partial                | No               | Yes                 |
-| **Ratatui**                 | Alt screen           | Optional via `insert_before()` | N/A              | Full screen         |
-| **Blessed**                 | Alt screen           | None (configurable in widgets) | N/A              | Full screen         |
+| Framework               | Mode                 | Scrollback                     | Scroll Detection | Live Updates        |
+| ----------------------- | -------------------- | ------------------------------ | ---------------- | ------------------- |
+| Silvery (useScrollback) | Inline               | Clean frozen content           | No               | Yes, small viewport |
+| Claude Code             | Inline               | Stale frames                   | No               | Yes, full viewport  |
+| pi-tui                  | Inline               | Line-by-line native            | No               | Yes, differential   |
+| BubbleTea               | Alt screen (default) | None                           | N/A              | Full screen         |
+| Textual                 | Both                 | Inline: partial                | No               | Yes                 |
+| Ratatui                 | Alt screen           | Optional via insert_before()   | N/A              | Full screen         |
+| Blessed                 | Alt screen           | None (configurable in widgets) | N/A              | Full screen         |
 
 ### pi-tui (Gold Standard for Inline)
 
@@ -258,15 +247,16 @@ Independent review by O3 confirms:
 
 ## Summary
 
-| Question                                                           | Answer                                                                                    |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| Can we have interactivity in inline mode?                          | **Yes** — live area at bottom updates normally                                            |
-| Can the user scroll through history?                               | **Yes** — native terminal scrollback via useScrollback                                    |
-| Is the scrollback clean?                                           | **Yes** — unlike Claude Code, frozen content is rendered once as final styled text        |
-| Can we detect user scroll position?                                | **No** — fundamental terminal limitation                                                  |
-| Can we pause when user scrolls up?                                 | **No** — no scroll detection available                                                    |
-| Can we update scrollback content?                                  | **No** — immutable once written                                                           |
-| Does useScrollback solve the "stale frames in scrollback" problem? | **Yes** — this is its primary value                                                       |
-| How does this compare to Claude Code?                              | **Better scrollback quality, same viewport behavior**                                     |
-| Why do boxes appear to overflow?                                   | **DECAWM auto-wrap** when writing exactly `cols` chars to a line (fix: limit to `cols-1`) |
-| Can we enrich scrollback?                                          | **Yes** — OSC 8 links, OSC 133 marks, bell notifications                                  |
+| Question                                                           | Answer                                                                            |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Can we have interactivity in inline mode?                          | Yes — live area at bottom updates normally                                        |
+| Can the user scroll through history?                               | Yes — native terminal scrollback via useScrollback                                |
+| Is the scrollback clean?                                           | Yes — unlike Claude Code, frozen content is rendered once as final styled text    |
+| Can we detect user scroll position?                                | No — fundamental terminal limitation                                              |
+| Can we pause when user scrolls up?                                 | No — no scroll detection available                                                |
+| Can we update scrollback content?                                  | No — immutable once written                                                       |
+| Does useScrollback solve the "stale frames in scrollback" problem? | Yes — this is its primary value                                                   |
+| How does this compare to Claude Code?                              | Better scrollback quality, same viewport behavior                                 |
+| Why do boxes appear to overflow?                                   | DECAWM auto-wrap when writing exactly cols chars to a line (fix: limit to cols-1) |
+| Can we enrich scrollback?                                          | Yes — OSC 8 links, OSC 133 marks, bell notifications                              |
+

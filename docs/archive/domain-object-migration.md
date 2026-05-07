@@ -13,16 +13,16 @@ The km codebase is transitioning from global singletons to domain objects. The b
 
 ## Quick Reference
 
-| Old API (deprecated)      | New API (preferred)            |
-| ------------------------- | ------------------------------ |
-| `loadRepo(path)`          | `createRepo(path)`             |
-| `getNode(id)`             | `repo.getNode(id)`             |
-| `getChildren(id)`         | `repo.getChildren(id)`         |
-| `getAllTasks()`           | `repo.getAllTasks()`           |
-| `search(query)`           | `repo.search(query)`           |
-| `updateNode(id, changes)` | `repo.updateNode(id, changes)` |
-| `getTuiConfig()`          | `loadConfigObject().tui`       |
-| `getBeadsConfig()`        | `loadConfigObject().beads`     |
+| Old API (deprecated)    | New API (preferred)          |
+| ----------------------- | ---------------------------- |
+| loadRepo(path)          | createRepo(path)             |
+| getNode(id)             | repo.getNode(id)             |
+| getChildren(id)         | repo.getChildren(id)         |
+| getAllTasks()           | repo.getAllTasks()           |
+| search(query)           | repo.search(query)           |
+| updateNode(id, changes) | repo.updateNode(id, changes) |
+| getTuiConfig()          | loadConfigObject().tui       |
+| getBeadsConfig()        | loadConfigObject().beads     |
 
 ## Migration Patterns
 
@@ -265,3 +265,4 @@ export const statsCommand = new Command("stats")
     console.log(`Tasks: ${tasks.length}`)
   })
 ```
+

@@ -94,12 +94,12 @@ Persist the baseline as `$HOME/.silvercode/ambient-soak-baseline.json` so the Da
 
 The soak runs in observe-and-react mode. Alarms have an explicit severity and an explicit action.
 
-| Severity | Trigger | Action |
-|---|---|---|
-| **P0** | `>= 1 role_prefix_hits` in any 24 h window. | Stop the soak. Capture the offending JSONL turn (binary-blob, `.recall-ignore` it). Investigate before re-enabling. Strongly consider rollback (§4). |
-| **P1** | `> 100 dropped events/hour` sustained for ≥ 30 min on any single source. | Either the breaker is too tight or the source is runaway. Inspect `breaker` records — if `opened` flapping, breaker is too tight; if a source is producing nonsense, fix at the source. Don't loosen the breaker without diagnosing. |
-| **P1** | Telemetry pipeline silent (`silvercode:ambient:*` records absent) for `> 1 h` while silvercode is otherwise running. | **Detection blind.** Fix observability before the soak continues — `tail -f $LOGGILY_FILE_AMBIENT` should always show heartbeats or steady-state events. Check loggily writer wiring, file path, permissions. |
-| **P2** | `sanitize_actions` per source `> 10×` the Day-1 baseline rate, sustained for ≥ 6 h, with no proportional admit-rate increase. | Investigate. Either upstream content shape changed, or a new vector is showing up that the sanitizer is now neutralizing repeatedly. Not a rollback trigger by itself. |
+| Severity | Trigger                                                                                                                   | Action                                                                                                                                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | >= 1 role_prefix_hits in any 24 h window.                                                                                 | Stop the soak. Capture the offending JSONL turn (binary-blob, .recall-ignore it). Investigate before re-enabling. Strongly consider rollback (§4).                                                                               |
+| P1       | > 100 dropped events/hour sustained for ≥ 30 min on any single source.                                                    | Either the breaker is too tight or the source is runaway. Inspect breaker records — if opened flapping, breaker is too tight; if a source is producing nonsense, fix at the source. Don't loosen the breaker without diagnosing. |
+| P1       | Telemetry pipeline silent (silvercode:ambient:* records absent) for > 1 h while silvercode is otherwise running.          | Detection blind. Fix observability before the soak continues — tail -f $LOGGILY_FILE_AMBIENT should always show heartbeats or steady-state events. Check loggily writer wiring, file path, permissions.                          |
+| P2       | sanitize_actions per source > 10× the Day-1 baseline rate, sustained for ≥ 6 h, with no proportional admit-rate increase. | Investigate. Either upstream content shape changed, or a new vector is showing up that the sanitizer is now neutralizing repeatedly. Not a rollback trigger by itself.                                                           |
 
 Alarms surface via the §7 reporter. P0/P1 must be visible in the user's daily `tribe send` digest; P2 is captured for the Day-3/Day-7 review.
 
@@ -135,7 +135,7 @@ if (process.env.SILVERCODE_AMBIENT_DISABLED === "1") {
 
 User-facing message format when ambient is disabled (shown once per session, in the silvercode chrome where ambient events would otherwise render):
 
-> Ambient context is disabled (`SILVERCODE_AMBIENT_DISABLED=1`). Tribe broadcasts, recall hits, sub-agent results, CI events, file-watch, and permission decisions will not be auto-delivered to the agent. Unset the env var to re-enable.
+> Ambient context is disabled (SILVERCODE_AMBIENT_DISABLED=1). Tribe broadcasts, recall hits, sub-agent results, CI events, file-watch, and permission decisions will not be auto-delivered to the agent. Unset the env var to re-enable.
 
 The kill-switch is reversible — unsetting the env var and starting a fresh silvercode session restores ambient delivery. No state migration, no breaker reset, no telemetry replay.
 
@@ -243,7 +243,7 @@ T=0 only kicks off when **all** of these hold. Each item is a hard gate.
 5. **Loggily writer wired.** `LOGGILY_FILE_AMBIENT=$HOME/.silvercode/ambient.jsonl` exported in the daily-flow shell. `addWriterFor("silvercode:ambient:*", createFileWriter(...))` registered at silvercode startup (Phase 6.b owns; verify it works end-to-end).
 6. **Tribe broadcast announcement.** At T=0:
 
-   > `tribe send all "Phase 5 ambient-context soak begins T=2026-MM-DDTHH:MMZ. Anthropic only. 7-day clean window required. Report odd agent behavior — confused responses, hallucinated user turns, transcript-shape oddities — to the soak channel (or me directly). Layer 3/4 telemetry is on; any role_prefix_hit pages me. Kill-switch: SILVERCODE_AMBIENT_DISABLED=1."`
+> tribe send all "Phase 5 ambient-context soak begins T=2026-MM-DDTHH:MMZ. Anthropic only. 7-day clean window required. Report odd agent behavior — confused responses, hallucinated user turns, transcript-shape oddities — to the soak channel (or me directly). Layer 3/4 telemetry is on; any role_prefix_hit pages me. Kill-switch: SILVERCODE_AMBIENT_DISABLED=1."
 
 7. **Soak T=0 timestamp recorded** to `$HOME/.silvercode/ambient-soak-T0`.
 
@@ -279,3 +279,4 @@ If any gate fails, soak does not start. File the gap as a bead, fix it, re-run t
 - Logging conventions: [`.claude/skills/logging/SKILL.md`](../../../.claude/skills/logging/SKILL.md) — loggily namespace, file-writer wiring, `LOGGILY_FILE_*` env-var pattern.
 - Tracking bead: `km-silvercode.ambient-phase-5-soak`.
 - Parent epic: `km-silvercode.ambient-context-excellence`.
+

@@ -27,11 +27,11 @@ Text selection that feels as natural as a browser. Selectable by default. Intera
 
 Three orthogonal CSS-like props control pointer behavior:
 
-| Prop            | Question            | Values                            | Status  |
-| --------------- | ------------------- | --------------------------------- | ------- |
-| `pointerEvents` | See pointer events? | `auto`, `none`                    | Done    |
-| `userSelect`    | Text selectable?    | `auto`, `none`, `text`, `contain` | Phase 1 |
-| `draggable`     | Node draggable?     | `boolean`                         | Future  |
+| Prop          | Question            | Values                    | Status  |
+| ------------- | ------------------- | ------------------------- | ------- |
+| pointerEvents | See pointer events? | auto, none                | Done    |
+| userSelect    | Text selectable?    | auto, none, text, contain | Phase 1 |
+| draggable     | Node draggable?     | boolean                   | Future  |
 
 These compose freely:
 
@@ -148,11 +148,11 @@ The composed cells flow through the normal diff/output renderer, which handles w
 
 **Selection hit testing is NOT the same as pointer hit testing.** They are orthogonal:
 
-|                          | Pointer hitTest        | Selection hitTest           |
-| ------------------------ | ---------------------- | --------------------------- |
-| Respects `pointerEvents` | Yes                    | No                          |
-| Respects `userSelect`    | No                     | Yes                         |
-| Purpose                  | Find click/drag target | Find selection-start target |
+|                        | Pointer hitTest        | Selection hitTest           |
+| ---------------------- | ---------------------- | --------------------------- |
+| Respects pointerEvents | Yes                    | No                          |
+| Respects userSelect    | No                     | Yes                         |
+| Purpose                | Find click/drag target | Find selection-start target |
 
 Implementation: same tree traversal machinery, but parameterized:
 
@@ -587,3 +587,4 @@ Copy immediately when mouse is released. Rejected as default: surprising to many
 ## Review History
 
 - **2026-04-06 GPT 5.4 Pro**: Architecture validated ("good architecture, right center of gravity"). Six corrections incorporated: (1) text extraction correctness with row metadata, (2) style composition instead of ANSI overlay, (3) separate visual/semantic clipboard layers, (4) selection-specific hit testing, (5) configurable copy trigger, (6) clipboard backend abstraction. See full review at `/tmp/llm-manual-review-this-text-selection-0xgb.txt`.
+

@@ -119,3 +119,4 @@ silvercode uses silvery's grid layout (probably \`<Box flexDirection="row">\` wi
 
 - \`km-silvercode.ctrl-b-background\` (P2, in-progress) — Ctrl+B chord conflict to resolve
 - \`km-silvercode.multi-account\` (closed P2) — multi-account spawning is the source of "many panes" in the first place
+

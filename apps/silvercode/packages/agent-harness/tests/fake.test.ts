@@ -31,6 +31,7 @@ const FIXTURES: FakeFixtureName[] = [
   "rejection-flow",
   "error-flow",
   "streaming-text",
+  "ask-user-question",
 ]
 
 describe("fixture replay (manual driver)", () => {

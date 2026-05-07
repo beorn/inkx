@@ -132,10 +132,10 @@ Segments:
 
 1. Define `Decoration` and `DecorationStyle` types in `@silvery/create/text-decorations.ts`.
 2. Implement `splitIntoSegments(lineStart, lineEnd, decorations, selection)`:
-   - Takes a line range, array of decorations, and optional selection.
-   - Returns an array of `{ from, to, style }` segments, sorted by position, non-overlapping.
-   - Selection ranges get a special `selection: true` flag.
-3. Pure function, fully testable without rendering.
+- Takes a line range, array of decorations, and optional selection.
+- Returns an array of `{ from, to, style }` segments, sorted by position, non-overlapping.
+- Selection ranges get a special `selection: true` flag.
+8. Pure function, fully testable without rendering.
 
 ### Phase 2: useTextArea integration
 
@@ -147,9 +147,9 @@ Segments:
 
 1. Add `decorations?: Decoration[]` to `TextAreaProps`.
 2. In the render function, replace the current line-rendering logic with segment-based rendering:
-   - For each visible line, call `splitIntoSegments()`.
-   - Render each segment as a `<Text>` element with the appropriate style props.
-3. The cursor rendering merges into the segment system (cursor position becomes a segment boundary).
+- For each visible line, call `splitIntoSegments()`.
+- Render each segment as a `<Text>` element with the appropriate style props.
+7. The cursor rendering merges into the segment system (cursor position becomes a segment boundary).
 
 ### Phase 4: Convenience utilities
 
@@ -198,3 +198,4 @@ The cursor is currently rendered as a special segment. With decorations, the cur
 Medium-to-large. Phase 1 (types + splitting) is ~100 lines. Phase 2 (hook pass-through) is trivial. Phase 3 (rendering changes) is ~150 lines and the most complex part, requiring careful handling of the segment/cursor/selection interaction. Phase 4 (utilities) is ~50 lines. Total: ~300-350 lines plus tests.
 
 The segment splitting is the core algorithmic challenge and should be implemented and tested first, before any rendering integration.
+

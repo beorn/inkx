@@ -19,11 +19,8 @@
 Four-part series representing the deepest technical writing on signals in the ecosystem:
 
 1. **"Derivations in Reactivity"** (Jan 2024) — Core distinction: derivation (pure `next = fn(deps)`) vs synchronization (effects writing to state). "What can be derived, should be derived." Effects writing to state break dependency tracking.
-
 2. **"Scheduling Derivations in Reactivity"** — Three scheduling strategies: immediate (sync, depth-first), lazy (defer until read), scheduled (queue for ordering). Even lazy systems benefit from scheduled nodes for pure calculations before rendering.
-
 3. **"Async Derivations in Reactivity"** (Aug 2024) — The hardest problem. Async contamination (function coloring) spreads through codebases. Proposes signals that handle async transparently: `createAsync` executes eagerly, throws unresolved values up the chain, reschedules on resolution. With "colorless async," ALL values become potentially reactive.
-
 4. **"Mutable Derivations in Reactivity"** — Introduces **projections**: derived mutable stores that track changes and apply transformations reactively. Unlike immutable derivations that rebuild state, projections mutate in-place, preserving object identity.
 
 Links: `dev.to/this-is-learning/derivations-in-reactivity-4fo1` (and subsequent parts)
@@ -147,14 +144,14 @@ Similarly, [`deepsignal`](https://github.com/CCherry07/alien-deepsignals) adds d
 
 ### Other Notable Libraries
 
-| Library                                                              | Notes                                                                                                                                                          |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**Signia**](https://github.com/tldraw/signia) (tldraw)              | Signals with **incremental computation** for large derived collections. Logical clocks instead of dirty flags. Built for 100K+ collaborative whiteboard nodes. |
-| [**Starbeam**](https://github.com/starbeamjs/starbeam) (Yehuda Katz) | "Universal reactivity" — framework-agnostic. Renderers for React, Preact, Svelte. Reactive data structures (Map, Set). Contributed to TC39 proposal.           |
-| [**Legend State**](https://github.com/LegendApp/legend-state)        | ~4KB, fine-grained signals for React/React Native. Local-first sync with optimistic updates. Persistence plugins.                                              |
-| **Reactively**                                                       | Lazy/pull-based. Among fastest in benchmarks. Efficient on wide dependency graphs.                                                                             |
-| [**@maverick-js/signals**](https://github.com/maverick-js/signals)   | Used by Vidstack player. Ownership/disposal tree (like Solid).                                                                                                 |
-| [**Effect-TS**](https://github.com/Effect-TS/effect)                 | Structured concurrency + reactive streams. Fiber-based. Heavyweight but comprehensive.                                                                         |
+| Library                | Notes                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signia (tldraw)        | Signals with incremental computation for large derived collections. Logical clocks instead of dirty flags. Built for 100K+ collaborative whiteboard nodes. |
+| Starbeam (Yehuda Katz) | "Universal reactivity" — framework-agnostic. Renderers for React, Preact, Svelte. Reactive data structures (Map, Set). Contributed to TC39 proposal.       |
+| Legend State           | ~4KB, fine-grained signals for React/React Native. Local-first sync with optimistic updates. Persistence plugins.                                          |
+| Reactively             | Lazy/pull-based. Among fastest in benchmarks. Efficient on wide dependency graphs.                                                                         |
+| @maverick-js/signals   | Used by Vidstack player. Ownership/disposal tree (like Solid).                                                                                             |
+| Effect-TS              | Structured concurrency + reactive streams. Fiber-based. Heavyweight but comprehensive.                                                                     |
 
 ## Advanced Problems Being Solved
 
@@ -187,13 +184,13 @@ Similarly, [`deepsignal`](https://github.com/CCherry07/alien-deepsignals) adds d
 
 **Problem**: Multiple signal writes should produce one update, not N.
 
-| Library        | Strategy                                                           |
-| -------------- | ------------------------------------------------------------------ |
-| Preact signals | Explicit `batch(fn)`                                               |
-| alien-signals  | Auto-batch in microtask                                            |
-| Solid          | Automatic batching in `createEffect`, explicit `batch()` available |
-| Angular        | Auto-batch via `effect()` scheduling                               |
-| Vue            | `nextTick()` for DOM updates, synchronous for computed             |
+| Library        | Strategy                                                       |
+| -------------- | -------------------------------------------------------------- |
+| Preact signals | Explicit batch(fn)                                             |
+| alien-signals  | Auto-batch in microtask                                        |
+| Solid          | Automatic batching in createEffect, explicit batch() available |
+| Angular        | Auto-batch via effect() scheduling                             |
+| Vue            | nextTick() for DOM updates, synchronous for computed           |
 
 **Era2**: Has `batch(fn)`. Scope tree could provide effect scheduling (sync vs microtask vs frame).
 
@@ -207,12 +204,12 @@ Similarly, [`deepsignal`](https://github.com/CCherry07/alien-deepsignals) adds d
 
 **Problem**: Effects and computed values that are no longer needed must be cleaned up to avoid memory leaks.
 
-| Approach            | Used By                                                              |
-| ------------------- | -------------------------------------------------------------------- |
-| **Ownership tree**  | Solid — computations created inside a reactive scope are owned by it |
-| **Manual dispose**  | Preact signals — `effect()` returns a dispose function               |
-| **Scope/fiber**     | Effect-TS — structured concurrency fiber tree                        |
-| **`using` keyword** | TC39 explicit resource management — `using scope = createScope()`    |
+| Approach       | Used By                                                              |
+| -------------- | -------------------------------------------------------------------- |
+| Ownership tree | Solid — computations created inside a reactive scope are owned by it |
+| Manual dispose | Preact signals — effect() returns a dispose function                 |
+| Scope/fiber    | Effect-TS — structured concurrency fiber tree                        |
+| using keyword  | TC39 explicit resource management — using scope = createScope()      |
 
 **Era2**: Scope tree with `[Symbol.dispose]()` and `using` cleanup. Well-aligned with the `using` direction.
 
@@ -232,22 +229,22 @@ Similarly, [`deepsignal`](https://github.com/CCherry07/alien-deepsignals) adds d
 
 ### Push vs Pull vs Push-Pull
 
-| Model                              | How it works                                                | Trade-off                                         |
-| ---------------------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
-| **Push**                           | Writer notifies all subscribers immediately                 | Simple, but eagerly evaluates everything          |
-| **Pull**                           | Reader asks for latest value on access                      | Lazy, but can't notify on change                  |
-| **Push-pull** (industry consensus) | Push dirty notifications, pull actual values lazily on read | Best of both — only computes what's actually read |
+| Model                          | How it works                                                | Trade-off                                         |
+| ------------------------------ | ----------------------------------------------------------- | ------------------------------------------------- |
+| Push                           | Writer notifies all subscribers immediately                 | Simple, but eagerly evaluates everything          |
+| Pull                           | Reader asks for latest value on access                      | Lazy, but can't notify on change                  |
+| Push-pull (industry consensus) | Push dirty notifications, pull actual values lazily on read | Best of both — only computes what's actually read |
 
 All modern implementations use push-pull. alien-signals optimizes this with version counting.
 
 ### Effect Scheduling
 
-| Strategy             | When effects run                               | Used by                         |
-| -------------------- | ---------------------------------------------- | ------------------------------- |
-| Synchronous          | Immediately on signal write                    | Manual `batch()` + sync effects |
-| Microtask            | After current task, before next frame          | alien-signals, auto-batching    |
-| Animation frame      | Before next paint                              | UI-specific effects             |
-| Framework-controlled | Framework decides (React reconciliation, etc.) | Angular, React adapters         |
+| Strategy             | When effects run                               | Used by                       |
+| -------------------- | ---------------------------------------------- | ----------------------------- |
+| Synchronous          | Immediately on signal write                    | Manual batch() + sync effects |
+| Microtask            | After current task, before next frame          | alien-signals, auto-batching  |
+| Animation frame      | Before next paint                              | UI-specific effects           |
+| Framework-controlled | Framework decides (React reconciliation, etc.) | Angular, React adapters       |
 
 ### Ownership & Disposal Trees
 
@@ -292,12 +289,12 @@ The App layer depends on **`Signal<T>`** — `{ (): T, subscribe(fn): () => void
 
 **Industry approaches** (ranked by granularity):
 
-| Pattern                       | Granularity         | Example                                                                                      | Memory/entity               |
-| ----------------------------- | ------------------- | -------------------------------------------------------------------------------------------- | --------------------------- |
-| Centralized store + selectors | Whole-store (O(n))  | Zustand `useStore(s => s.nodes[id])`                                                         | ~0                          |
-| Store + atom bridge           | Per-atom (O(1))     | jotai-zustand `createAtomicStore` ([PR #8](https://github.com/jotaijs/jotai-zustand/pull/8)) | ~200-400 bytes              |
-| Entity signals                | Per-entity (O(1))   | `Map<id, Signal<NodeState>>`                                                                 | ~100-200 bytes              |
-| Deep proxy                    | Per-property (O(1)) | alien-deepsignals, valtio, MobX                                                              | ~50-100 bytes/accessed leaf |
+| Pattern                       | Granularity         | Example                                 | Memory/entity               |
+| ----------------------------- | ------------------- | --------------------------------------- | --------------------------- |
+| Centralized store + selectors | Whole-store (O(n))  | Zustand useStore(s => s.nodes[id])      | ~0                          |
+| Store + atom bridge           | Per-atom (O(1))     | jotai-zustand createAtomicStore (PR #8) | ~200-400 bytes              |
+| Entity signals                | Per-entity (O(1))   | Map<id, Signal<NodeState>>              | ~100-200 bytes              |
+| Deep proxy                    | Per-property (O(1)) | alien-deepsignals, valtio, MobX         | ~50-100 bytes/accessed leaf |
 
 **Decker precedent**: decker-boardliner's `boardState.ts` projects `selectedIds` into per-item `ItemState` objects in a `Map<ItemElement, ItemState>`. The infrastructure exists but components still subscribe to global `selectedIds` (the TODO for per-item subscription was never completed). Shows the need is real even in simpler apps.
 
@@ -368,19 +365,19 @@ Don't build a signals engine. Use alien-signals as the core (getter/setter funct
 
 ### Why alien-signals over alternatives?
 
-| Criteria              | alien-signals              | @preact/signals-core       | @solidjs/signals                 | @vue/reactivity                  |
-| --------------------- | -------------------------- | -------------------------- | -------------------------------- | -------------------------------- |
-| **Speed**             | Fastest (benchmark leader) | Good                       | Not benchmarked yet              | Good (uses alien-signals in 3.6) |
-| **Size (gzip)**       | 1.8KB                      | 1.9KB                      | **14KB**                         | ~10KB                            |
-| **API**               | `value()` callable         | `.value`                   | **`getter()`**                   | `.value`                         |
-| **Deep stores**       | +alien-deepsignals (2.7KB) | +deepsignal/core (1.0KB)   | Built-in `createStore`           | Built-in `reactive()`            |
-| **Async**             | No (build on top)          | No                         | Built-in (memo + Promise)        | No                               |
-| **Projections**       | No                         | No                         | Built-in `createProjection`      | No                               |
-| **Optimistic**        | No                         | No                         | Built-in `createOptimisticStore` | No                               |
-| **Ownership**         | `effectScope()`            | `effect()` returns dispose | Full tree (createRoot)           | No                               |
-| **React hooks**       | No (build on top)          | Yes (separate pkg)         | No                               | No                               |
-| **Framework baggage** | None                       | Preact-flavored            | Solid ownership model            | Vue-flavored                     |
-| **Production proven** | Vue 3.6, XState            | Preact ecosystem           | SolidJS 2.0 beta                 | Vue ecosystem                    |
+| Criteria          | alien-signals              | @preact/signals-core     | @solidjs/signals               | @vue/reactivity                  |
+| ----------------- | -------------------------- | ------------------------ | ------------------------------ | -------------------------------- |
+| Speed             | Fastest (benchmark leader) | Good                     | Not benchmarked yet            | Good (uses alien-signals in 3.6) |
+| Size (gzip)       | 1.8KB                      | 1.9KB                    | 14KB                           | ~10KB                            |
+| API               | value() callable           | .value                   | getter()                       | .value                           |
+| Deep stores       | +alien-deepsignals (2.7KB) | +deepsignal/core (1.0KB) | Built-in createStore           | Built-in reactive()              |
+| Async             | No (build on top)          | No                       | Built-in (memo + Promise)      | No                               |
+| Projections       | No                         | No                       | Built-in createProjection      | No                               |
+| Optimistic        | No                         | No                       | Built-in createOptimisticStore | No                               |
+| Ownership         | effectScope()              | effect() returns dispose | Full tree (createRoot)         | No                               |
+| React hooks       | No (build on top)          | Yes (separate pkg)       | No                             | No                               |
+| Framework baggage | None                       | Preact-flavored          | Solid ownership model          | Vue-flavored                     |
+| Production proven | Vue 3.6, XState            | Preact ecosystem         | SolidJS 2.0 beta               | Vue ecosystem                    |
 
 **Decision**: alien-signals + alien-deepsignals (~4.5KB total) for era2. Fastest, smallest with deep tracking. Era2 wraps with callable accessors (`sig()` / `sig(5)`) per Decision 29 — same pattern as Angular and SolidJS. Build `createResource()` on scope tree. Watch `@solidjs/signals` projections for future adoption.
 
@@ -404,15 +401,15 @@ The km-tui `Reactive<T>` class is a subset of what alien-signals provides. Migra
 
 ### What To Take From Each Library
 
-| Concept                 | Source                                     | How to Adopt                                                           |
-| ----------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
-| Core signals engine     | alien-signals                              | Re-export as `@silvery/signals`                                        |
-| Deep store proxy        | alien-deepsignals                          | Use directly — adds Proxy tracking to alien-signals                    |
-| Async resources         | Solid `createAsync` concept                | Build on signals + scope tree (Solid's uses memo + Promise internally) |
-| Projections             | `@solidjs/signals` `createProjection`      | Study API when stable, build accessor-based equivalent                 |
-| Optimistic updates      | `@solidjs/signals` `createOptimisticStore` | Future — study pattern, build on stores                                |
-| Incremental computation | Signia (tldraw)                            | Consider for large tree operations                                     |
-| React integration       | km's `useReactive` pattern                 | Generalize into `useSignal()` hook via `useSyncExternalStore`          |
+| Concept                 | Source                                 | How to Adopt                                                           |
+| ----------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| Core signals engine     | alien-signals                          | Re-export as @silvery/signals                                          |
+| Deep store proxy        | alien-deepsignals                      | Use directly — adds Proxy tracking to alien-signals                    |
+| Async resources         | Solid createAsync concept              | Build on signals + scope tree (Solid's uses memo + Promise internally) |
+| Projections             | @solidjs/signals createProjection      | Study API when stable, build accessor-based equivalent                 |
+| Optimistic updates      | @solidjs/signals createOptimisticStore | Future — study pattern, build on stores                                |
+| Incremental computation | Signia (tldraw)                        | Consider for large tree operations                                     |
+| React integration       | km's useReactive pattern               | Generalize into useSignal() hook via useSyncExternalStore              |
 
 ## Key Repos & Resources
 
@@ -434,3 +431,4 @@ The km-tui `Reactive<T>` class is a subset of what alien-signals provides. Migra
 - [`LegendApp/legend-state`](https://github.com/LegendApp/legend-state) — fine-grained React signals
 - [`transitive-bullshit/ts-reactive-comparison`](https://github.com/transitive-bullshit/ts-reactive-comparison) — 15-library comparison
 - [`milomg/js-reactivity-benchmark`](https://github.com/milomg/js-reactivity-benchmark) — performance benchmarks
+

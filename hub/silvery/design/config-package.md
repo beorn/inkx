@@ -1,3 +1,8 @@
+---
+mentions:
+  - silvery
+---
+
 # `@silvery/config` — design
 
 Bead: `km-silvery.config-package`
@@ -224,10 +229,10 @@ set if `=`).
 
 When loaded with `appName`, two files are resolved:
 
-| Source                            | Linux / macOS                                      | Windows                              |
-| --------------------------------- | -------------------------------------------------- | ------------------------------------ |
-| **Global** (user-wide)            | `${XDG_CONFIG_HOME:-~/.config}/<app>/config.yaml`   | `%APPDATA%\<app>\config.yaml`        |
-| **Project** (cosmiconfig walk-up) | nearest `.<app>/config.yaml` from cwd              | nearest `.<app>/config.yaml` from cwd |
+| Source                        | Linux / macOS                                   | Windows                             |
+| ----------------------------- | ----------------------------------------------- | ----------------------------------- |
+| Global (user-wide)            | ${XDG_CONFIG_HOME:-~/.config}/<app>/config.yaml | %APPDATA%<app>\config.yaml          |
+| Project (cosmiconfig walk-up) | nearest .<app>/config.yaml from cwd             | nearest .<app>/config.yaml from cwd |
 
 Reads merge both; **project overrides global**. Writes target the explicit scope (global by default, `"local"` for project — lazy-creates the project file on first write if absent).
 
@@ -392,3 +397,4 @@ Each bead independently shippable; chain enforced via `km bd dep`.
 
 - **`base:` in object form** — keep or drop. Useful escape hatch but adds a parse branch. Decide after silvercode adopts and we see real-world entries.
 - **Encrypted secrets** — `{vault:key}` substitution alongside `{env:VAR}`. Defer until we have a vault.
+

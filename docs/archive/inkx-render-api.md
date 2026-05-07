@@ -1,10 +1,10 @@
 # InkX Render API — ARCHIVED 2026-04-17
 
-> **Ink is retired**; km uses [silvery](../../vendor/silvery/). This speculative design won't ship.
+> Ink is retired; km uses silvery. This speculative design won't ship.
 
-# Unified Silvery Rendering API
+## Unified Silvery Rendering API
 
-> **Status: Future** — Design proposal, not yet implemented.
+> Status: Future — Design proposal, not yet implemented.
 
 Unify production and testing render paths via a pure generator API that separates I/O from rendering logic.
 
@@ -17,11 +17,8 @@ Unify production and testing render paths via a pure generator API that separate
 ### Pain Points Today
 
 1. **Two mental models** — Production uses `render(term, <App />)`, testing uses `createRenderer()`. Same operation, different APIs.
-
 2. **Test-only debugging** — `getContainer()`, `debugTree()`, frame capture only exist in test renderer. Can't debug production rendering.
-
 3. **Awkward mocking** — `stdin.write('\x1b[B')` requires ANSI codes. `press('ArrowDown')` would be clearer.
-
 4. **Implicit I/O** — Production render couples React to terminal output. Can't intercept frames for logging, replay, or debugging.
 
 ### What We Want
@@ -71,13 +68,13 @@ expect(result.lastFrameText()).toContain("...")
 
 ### Feature Matrix
 
-| Feature         | Testing                   | Production  |
-| --------------- | ------------------------- | ----------- |
-| Frame capture   | `lastFrame()`, `frames[]` | stdout only |
-| Execution       | Synchronous               | Async       |
-| Input           | `stdin.write()`           | Real stdin  |
-| Tree inspection | `getContainer()`          | None        |
-| Diffing         | Disabled                  | Enabled     |
+| Feature         | Testing               | Production  |
+| --------------- | --------------------- | ----------- |
+| Frame capture   | lastFrame(), frames[] | stdout only |
+| Execution       | Synchronous           | Async       |
+| Input           | stdin.write()         | Real stdin  |
+| Tree inspection | getContainer()        | None        |
+| Diffing         | Disabled              | Enabled     |
 
 ### Shared: 5-Phase Pipeline
 
@@ -208,15 +205,15 @@ All these systems share a key insight: **pure functions describe effects, an ext
 
 ### Systems Surveyed
 
-| System                                                             | Effect Model        | How Effects Are Described        |
-| ------------------------------------------------------------------ | ------------------- | -------------------------------- |
-| [Elm](https://guide.elm-lang.org/architecture/)                    | Commands to runtime | `Cmd msg` returned from `update` |
-| [Roc](https://www.roc-lang.org/functional)                         | Platform + Tasks    | `Task` values handed to platform |
-| [Haskell](https://wiki.haskell.org/All_About_Monads)               | IO Monad            | `IO a` confined, never escapes   |
-| [Koka](https://koka-lang.github.io/koka/doc/book.html)             | Algebraic effects   | Effect types + handlers          |
-| [Unison](https://www.unison-lang.org/docs/fundamentals/abilities/) | Abilities           | Effect types + handlers          |
-| [Cycle.js](https://cycle.js.org/)                                  | Sources/Sinks       | Streams in, streams out          |
-| [Redux Saga](https://redux-saga.js.org/)                           | Generator effects   | `yield call()`, `yield put()`    |
+| System     | Effect Model        | How Effects Are Described      |
+| ---------- | ------------------- | ------------------------------ |
+| Elm        | Commands to runtime | Cmd msg returned from update   |
+| Roc        | Platform + Tasks    | Task values handed to platform |
+| Haskell    | IO Monad            | IO a confined, never escapes   |
+| Koka       | Algebraic effects   | Effect types + handlers        |
+| Unison     | Abilities           | Effect types + handlers        |
+| Cycle.js   | Sources/Sinks       | Streams in, streams out        |
+| Redux Saga | Generator effects   | yield call(), yield put()      |
 
 ### Elm: Model-View-Update
 
@@ -331,14 +328,14 @@ main = do
 
 Our generator-based API embodies these patterns:
 
-| Pattern             | Our Implementation                 |
-| ------------------- | ---------------------------------- |
-| Pure core           | `renderSync()` has no I/O          |
-| Effect descriptions | `RenderEvent` (exit, bell, title)  |
-| Runtime executes    | `run()` wrapper handles actual I/O |
-| Input via messages  | `gen.next(inputEvent)`             |
-| Output via yields   | `yield { frame, event }`           |
-| Testable            | Mock inputs, assert on outputs     |
+| Pattern             | Our Implementation               |
+| ------------------- | -------------------------------- |
+| Pure core           | renderSync() has no I/O          |
+| Effect descriptions | RenderEvent (exit, bell, title)  |
+| Runtime executes    | run() wrapper handles actual I/O |
+| Input via messages  | gen.next(inputEvent)             |
+| Output via yields   | yield { frame, event }           |
+| Testable            | Mock inputs, assert on outputs   |
 
 **The key architectural insight:** Generators provide a natural "effect boundary" in JavaScript—`yield` describes what to do, the caller decides how to do it.
 
@@ -398,24 +395,24 @@ Pure generator yields frames, receives input. Wrappers for ergonomics.
 
 ## Benefits
 
-| Benefit           | Description                |
-| ----------------- | -------------------------- |
-| **Purity**        | Render has no I/O          |
-| **Testability**   | `gen.next()` deterministic |
-| **Control**       | Full event loop control    |
-| **Debuggability** | Frame capture everywhere   |
-| **Unification**   | Same code, two interfaces  |
+| Benefit       | Description               |
+| ------------- | ------------------------- |
+| Purity        | Render has no I/O         |
+| Testability   | gen.next() deterministic  |
+| Control       | Full event loop control   |
+| Debuggability | Frame capture everywhere  |
+| Unification   | Same code, two interfaces |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk                    | Mitigation                      |
-| ----------------------- | ------------------------------- |
-| Breaking change         | Old APIs become wrappers        |
-| Generator unfamiliarity | Convenience wrappers hide it    |
-| React async batching    | `act()` + `updateContainerSync` |
-| Performance             | Diffing still works             |
+| Risk                    | Mitigation                   |
+| ----------------------- | ---------------------------- |
+| Breaking change         | Old APIs become wrappers     |
+| Generator unfamiliarity | Convenience wrappers hide it |
+| React async batching    | act() + updateContainerSync  |
+| Performance             | Diffing still works          |
 
 ---
 
@@ -467,13 +464,13 @@ Async variant consuming event stream.
 
 ## Files
 
-| File                            | Changes                         |
-| ------------------------------- | ------------------------------- |
-| `silvery/src/render-gen.ts`        | New: `renderSync()`, `render()` |
-| `silvery/src/run.ts`               | New: `run()` wrapper            |
-| `silvery/src/testing/test-term.ts` | New: `createTestTerm()`         |
-| `silvery/src/context.ts`           | Events to queue                 |
-| `silvery/src/index.ts`             | Exports                         |
+| File                             | Changes                     |
+| -------------------------------- | --------------------------- |
+| silvery/src/render-gen.ts        | New: renderSync(), render() |
+| silvery/src/run.ts               | New: run() wrapper          |
+| silvery/src/testing/test-term.ts | New: createTestTerm()       |
+| silvery/src/context.ts           | Events to queue             |
+| silvery/src/index.ts             | Exports                     |
 
 ---
 
@@ -534,3 +531,4 @@ expect(term.screenshot()).toContain("selected")
 - [inkx-nested-mounting.md](inkx-nested-mounting.md) — Nested mounting API (speculative, lower priority)
 - [../archive/ink-patterns-pre-silvery.md](../archive/ink-patterns-pre-silvery.md) — Legacy Ink patterns (pre-silvery migration)
 - [../principles.md](../principles.md) — Principle 7: Async Generator Pipelines
+

@@ -22,8 +22,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Purge tone aliases — variant everywhere @km/silvery #task #P2 @claude:22c2717d

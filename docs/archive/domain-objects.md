@@ -219,21 +219,21 @@ The `using` and `await using` declarations provide automatic cleanup at scope ex
 
 ### When to Use `using` vs `await using`
 
-| Declaration   | Cleanup Method            | Use For                           |
-| ------------- | ------------------------- | --------------------------------- |
-| `using`       | `[Symbol.dispose]()`      | Sync cleanup (DB close, etc.)     |
-| `await using` | `[Symbol.asyncDispose]()` | Async cleanup (workers, watchers) |
+| Declaration | Cleanup Method      | Use For                           |
+| ----------- | ------------------- | --------------------------------- |
+| using       | Symbol.dispose      | Sync cleanup (DB close, etc.)     |
+| await using | Symbol.asyncDispose | Async cleanup (workers, watchers) |
 
 ### Disposable Objects in km
 
-| Object        | Disposable Type   | Cleanup Action             |
-| ------------- | ----------------- | -------------------------- |
-| `Repo`        | `Disposable`      | Closes database connection |
-| `FakeRepo`    | `Disposable`      | Closes in-memory database  |
-| `MemoryStore` | `Disposable`      | Closes database            |
-| `DiskStore`   | `Disposable`      | Closes database            |
-| `Watcher`     | `AsyncDisposable` | Stops file watchers        |
-| `ParsePool`   | `AsyncDisposable` | Terminates worker threads  |
+| Object      | Disposable Type | Cleanup Action             |
+| ----------- | --------------- | -------------------------- |
+| Repo        | Disposable      | Closes database connection |
+| FakeRepo    | Disposable      | Closes in-memory database  |
+| MemoryStore | Disposable      | Closes database            |
+| DiskStore   | Disposable      | Closes database            |
+| Watcher     | AsyncDisposable | Stops file watchers        |
+| ParsePool   | AsyncDisposable | Terminates worker threads  |
 
 ### Synchronous Cleanup (Disposable)
 
@@ -461,13 +461,13 @@ await watcher.start()
 
 ### When to Use
 
-| Scenario                       | Use                                        |
-| ------------------------------ | ------------------------------------------ |
-| Single resource                | `using` / `await using` directly           |
-| Multiple independent resources | Multiple `using` declarations              |
-| Resources + cleanup callbacks  | `DisposableStack` / `AsyncDisposableStack` |
-| Conditional cleanup            | `stack.defer()` with conditional logic     |
-| Non-disposable with cleanup    | `stack.adopt(value, cleanup)`              |
+| Scenario                       | Use                                    |
+| ------------------------------ | -------------------------------------- |
+| Single resource                | using / await using directly           |
+| Multiple independent resources | Multiple using declarations            |
+| Resources + cleanup callbacks  | DisposableStack / AsyncDisposableStack |
+| Conditional cleanup            | stack.defer() with conditional logic   |
+| Non-disposable with cleanup    | stack.adopt(value, cleanup)            |
 
 ### Methods
 
@@ -728,3 +728,4 @@ When migrating existing code to domain objects:
 7. **Remove singleton** - Delete the global state
 
 See bead `km-domain-objects` for the full migration plan.
+

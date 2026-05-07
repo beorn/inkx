@@ -92,13 +92,13 @@ Config was previously in `.release-it.json` (now managed by the `/release` skill
 
 release-it uses conventional commits to generate changelog entries:
 
-| Commit Type        | Changelog Section |
-| ------------------ | ----------------- |
-| `feat:`            | Added             |
-| `fix:`             | Fixed             |
-| `refactor:`        | Changed           |
-| `perf:`            | Performance       |
-| `BREAKING CHANGE:` | Breaking Changes  |
+| Commit Type      | Changelog Section |
+| ---------------- | ----------------- |
+| feat:            | Added             |
+| fix:             | Fixed             |
+| refactor:        | Changed           |
+| perf:            | Performance       |
+| BREAKING CHANGE: | Breaking Changes  |
 
 ## Manual Steps (if needed)
 
@@ -130,3 +130,4 @@ git push && git push --tags
 
 - [CHANGELOG.md](../../CHANGELOG.md) — Release history
 - [release-it docs](https://github.com/release-it/release-it)
+

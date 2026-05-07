@@ -17,8 +17,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/codepath-collapse"
+    type: list
+    values:
+      - type: link
+        target: km-all.codepath-collapse
+      - type: link
+        target: "@km/silvery/codepath-collapse"
 ---
 
 # [ ] Make hybrid output the only path — finish phase 3 migration @km/silvery #feature #P2

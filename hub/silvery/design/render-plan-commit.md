@@ -166,3 +166,4 @@ buffer-emitting pipeline. The parity test:
 Failure of the parity test means the plan/commit ordering diverges from
 the imperative ordering for that scene. The fix is to extend the plan
 with the missing op kind, not to hide the divergence.
+

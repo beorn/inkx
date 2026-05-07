@@ -93,7 +93,7 @@ Blocks:
 
 ## Notes
 
-> **Important**: Maintain backwards compatibility with v1 REST endpoints during migration period.
+> Important: Maintain backwards compatibility with v1 REST endpoints during migration period.
 
 Key decisions from planning meeting:
 

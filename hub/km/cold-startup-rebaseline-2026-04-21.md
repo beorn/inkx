@@ -6,10 +6,10 @@
 
 ## TL;DR
 
-| Scenario                                    | Median wall-clock | Classification        |
-| ------------------------------------------- | ----------------- | --------------------- |
-| **Interactive `bun km view` (`Bear/Vault`)** | **~4.0s**         | **IMPROVED** (2 – 8s) |
-| `--no-interactive` (full eager load)         | ~17.6s            | UNRESOLVED (eager-load path only) |
+| Scenario                                      | Median wall-clock | Classification                                                 |
+| --------------------------------------------- | ----------------- | -------------------------------------------------------------- |
+| Interactive bun km view (Bear/Vault)          | ~4.0s             | IMPROVED (2 – 8s)                                              |
+| --no-interactive (full eager load)            | ~17.6s            | UNRESOLVED (eager-load path only)                              |
 | "First load after DB mutation" (rule re-eval) | ~19.2s (one-time) | Opportunistic (state-dependent, not a steady-state regression) |
 
 The user-facing interactive path has **dropped from 17s to 4s** since the Phase 1 diagnostic bead was filed (2026-04-18). The remaining 4s splits roughly 1.8s (repo-load + first render via span telemetry) + 2.3s bun/import/tty-harness overhead.
@@ -147,16 +147,17 @@ Same harness as the rebaseline: `tools/measure-cold-start.ts` → `bun km view ~
 
 ### Results
 
-| Config | Flag | Min | Median | p95 | Max | Spread |
-|---|---|---:|---:|---:|---:|---:|
-| **A. Lazy hydration ON** (current default) | none | 2825ms | **2830ms** | 2832ms | 2832ms | 7ms |
-| **B. Eager load** (disables discoverOnly + lazyHydrate) | `KM_EAGER_LOAD=1` | 20088ms | **20345ms** | 27813ms | 27813ms | 7725ms |
+| Config                                              | Flag            | Min     | Median  | p95     | Max     | Spread |
+| --------------------------------------------------- | --------------- | ------: | ------: | ------: | ------: | -----: |
+| A. Lazy hydration ON (current default)              | none            | 2825ms  | 2830ms  | 2832ms  | 2832ms  | 7ms    |
+| B. Eager load (disables discoverOnly + lazyHydrate) | KM_EAGER_LOAD=1 | 20088ms | 20345ms | 27813ms | 27813ms | 7725ms |
 
 The eager run 1 outlier (27813ms) is the "post-DB-mutation rule re-eval" leaking into the critical path that the rebaseline doc describes; it's reproducible one-time per DB mutation. Steady-state eager is ~20.3s.
 
 ### Per-phase attribution (span telemetry)
 
 **Lazy (run 5, 2827ms wall-clock)**:
+
 ```
 km:startup:repo-load                     (170ms)   ← discover-disk (3ms) + apply-changes (1ms) + health (53ms)
 km:startup:build-state                     (2ms)
@@ -167,6 +168,7 @@ unattributed: ~2235ms (bun boot + imports + PTY harness double-spawn)
 ```
 
 **Eager (run 5, 20088ms wall-clock)**:
+
 ```
 km:storage:repo-loader:load-repo:reconcile-filesystem    (370ms)   ← what lazyHydrate defers
 km:storage:db:rules:evaluate-add-rule × 15 sections    (15.4s)    ← what discoverOnly defers

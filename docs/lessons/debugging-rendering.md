@@ -67,3 +67,4 @@ The project has `withDiagnostics`, `checkReplay`, `checkIncremental`,
 - `.claude/skills/tui/fix.md` — "Rendering Bugs" section
 - `vendor/silvery/src/with-diagnostics.ts` — diagnostic plugin implementation
 - `apps/km-tui/src/driver.ts` — `createBoardDriver` for real app testing
+

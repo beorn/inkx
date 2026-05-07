@@ -1,6 +1,6 @@
 # km bd Cutover Runbook
 
-> **Bead**: `km-beads.cutover` (P1, in_progress) · **Blocker**: `km-beads.split-backend` (P1, in_progress) · **Follow-up**: `km-beads.dolt-archive` (P3)
+> Bead: km-beads.cutover (P1, in_progress) · Blocker: km-beads.split-backend (P1, in_progress) · Follow-up: km-beads.dolt-archive (P3)
 
 Two-phase cutover from Go `bd` binary to km-native `km bd`. Phase A is low-risk preparation that can land on main any time. Phase B is the actual binary swap and requires session drain + atomic switch.
 
@@ -14,48 +14,48 @@ Two-phase cutover from Go `bd` binary to km-native `km bd`. Phase A is low-risk 
 
 **Ported to km bd (170+ skill instances — safe to rewrite as `km bd <cmd>`):**
 
-| Subcommand | Files referencing |
-|---|---|
-| `bd ready` | 12 |
-| `bd list` | 23 |
-| `bd show` | 18 |
-| `bd create` | 25 |
-| `bd update` | 25 |
-| `bd close` | 17 |
-| `bd drop` | 2 |
-| `bd dep` | 8 |
-| `bd stale` | 7 |
-| `bd orphans` | 1 |
-| `bd claim` | 1 |
-| `bd children` | 5 |
-| `bd blocked` | 6 |
-| `bd query` | 3 |
-| `bd rename` | 6 |
-| `bd migrate` | 3 |
-| `bd export` | 2 |
-| `bd remember` | 3 |
-| `bd memories` | 1 |
-| `bd prime` | 3 |
+| Subcommand  | Files referencing |
+| ----------- | ----------------- |
+| bd ready    | 12                |
+| bd list     | 23                |
+| bd show     | 18                |
+| bd create   | 25                |
+| bd update   | 25                |
+| bd close    | 17                |
+| bd drop     | 2                 |
+| bd dep      | 8                 |
+| bd stale    | 7                 |
+| bd orphans  | 1                 |
+| bd claim    | 1                 |
+| bd children | 5                 |
+| bd blocked  | 6                 |
+| bd query    | 3                 |
+| bd rename   | 6                 |
+| bd migrate  | 3                 |
+| bd export   | 2                 |
+| bd remember | 3                 |
+| bd memories | 1                 |
+| bd prime    | 3                 |
 
 **Advanced — NOT yet ported (31 instances across 14 files — leave as `bd <cmd>`):**
 
-| Subcommand | Files |
-|---|---|
-| `bd search` | 5 |
-| `bd count` | 4 |
-| `bd epic` | 4 |
-| `bd defer` | 2 |
-| `bd doctor` | 2 |
-| `bd lint` | 1 |
-| `bd formula` | 1 |
-| `bd mol` | 1 |
-| `bd gate` | 1 |
-| `bd undefer` | 1 |
-| `bd validate` | 1 |
-| `bd delete` | 1 |
-| `bd label` | 1 |
-| `bd promote` | 1 |
-| `bd duplicates` | 1 |
+| Subcommand    | Files |
+| ------------- | ----- |
+| bd search     | 5     |
+| bd count      | 4     |
+| bd epic       | 4     |
+| bd defer      | 2     |
+| bd doctor     | 2     |
+| bd lint       | 1     |
+| bd formula    | 1     |
+| bd mol        | 1     |
+| bd gate       | 1     |
+| bd undefer    | 1     |
+| bd validate   | 1     |
+| bd delete     | 1     |
+| bd label      | 1     |
+| bd promote    | 1     |
+| bd duplicates | 1     |
 
 These keep using Go bd (synonym path) until each is ported to km bd. Track via `km-beads.split-backend` follow-up.
 
@@ -237,3 +237,4 @@ grep -rEn "\\bbd\\s+($PORTED)\\b" \
   | grep -v node_modules || true
 echo ""
 ```
+

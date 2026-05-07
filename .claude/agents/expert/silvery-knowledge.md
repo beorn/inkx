@@ -1,6 +1,41 @@
 # Silvery Knowledge — silvery agent
 
-Last updated: 2026-05-05 (cyan-strip RESOLVED — applyBgSegmentsToLine missing maxCol/minCol clip)
+Last updated: 2026-05-07 (bg-residue shrink+move RESOLVED — case-2 in `_checkDescendantOverflow`)
+
+## bg-residue shrink+move: RESOLVED — `_checkDescendantOverflow` missed in-rect bg residue (2026-05-07)
+
+**Bead**: `@km/silvery/incremental-bg-residue-shrink-move`. P1 cyan-strip-residue class, Welcome→Chat transition.
+
+**Root cause** (`vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts:_checkDescendantOverflow`):
+The descendant-overflow detector only fired when a descendant's `prevLayout` extended **outside** an ancestor's CURRENT rect (case 1). It missed the dual case: a bg-bearing descendant SHRANK and MOVED within an ancestor's rect, leaving stale bg cells in `prev_rect \ cur_rect` ⊆ ancestor's rect that nothing in the descendant's subtree repaints.
+
+**The shape**: at frame N a Box with `backgroundColor` paints (0,y,W,h). Between N and N+1 a sibling marker is inserted → painter shifts (x=0 → x=1) and shrinks (W → W-1). Painter's `clearExcessArea` SKIPS due to position-change guard (`prev.x !== layout.x`). Cleanup is delegated to ancestors. Painter's prev rect (0,y,W,h) is INSIDE every ancestor's current rect (none of them changed) — case 1 doesn't fire. No ancestor sees `descendantOverflowChanged=true`. Cell (0,y) carries the painter's bg from the prior frame indefinitely, while fresh paints inherited bg (null typically) — STRICT mismatch.
+
+**Fix**: Extend `_checkDescendantOverflow` with case 2 — when descendant has `effectiveBg` AND `_prevHasResidueOutside(prev, cur)` (prev has cells not covered by cur), set DESC_OVERFLOW_BIT on every ancestor whose rect intersects the residue cells. The ancestor's `contentAreaAffected=true` triggers `clearNodeRegion` (transparent ancestor) or `renderBox` fill (bg-bearing ancestor). Either way the residue is overwritten before the painter paints its new (smaller) rect.
+
+Why "every ancestor whose rect intersects": the closest transparent ancestor that contains the residue cells must clear them. If every ancestor up to a bg-bearing one is transparent, the bg-bearing ancestor's `renderBox` fill suffices. Setting the flag at every ancestor whose rect contains residue guarantees coverage regardless of where the bg-break in the chain is.
+
+**Why prior checks missed it**:
+- `clearExcessArea` position-change guard correctly skips (avoids phantom-rect at wrong-coords bug from km-yej6). Delegated to parent.
+- Parent's `hasChildPositionChanged` fires (childPositionChanged=true → contentAreaAffected) — BUT only at the IMMEDIATE parent. If the immediate parent is bg-bearing (`backgroundColor` set), `contentRegionCleared=false` (the `!hasBgColor` gate); `renderBox` fills with parent's bg, not inherited. Cell (0,y) gets parent's bg if parent's bg matches painter's bg → STRICT passes incrementally but a sibling at fresh has no bg-bearing ancestor and produces null → mismatch.
+- `_hasDescendantOverflowChanged` (case 1) only fires when prev EXTENDS BEYOND ancestor's rect. The shrink-and-move case keeps prev within the ancestor.
+
+**Reproduction**:
+- Real: `apps/silvercode/tests/visual/queue-ux.test.tsx -t "wire format"` (and 3 other queue tests). Welcome→Chat transition. The painter is the SessionPromptComposer's bg=$bg-surface-raised Box. STRICT MISMATCH at (0, 22) on render #36.
+- Synthetic: `vendor/silvery/tests/features/incremental-bg-shrink-move.test.tsx` (4 variants — single-marker insertion, marker-width-grow, transparent wrapper chain, in-rect shrink with `width=cols` parent). Note: the synthetic doesn't reliably reproduce the bug at the createRenderer scale — the production bug requires the multi-pass convergence + React reconciler interactions in the silvercode app. The synthetic file is the local STRICT scaffold; the silvercode test is the end-to-end verification. **When iterating on bg-residue fixes, always re-run the silvercode queue-ux test, not just the synthetic.**
+
+**Lessons**:
+1. **Two-direction overflow check.** `_hasDescendantOverflowChanged` originally meant "prev rect outside ancestor's current rect"; the dual case (bg-bearing descendant shrunk-or-moved leaving residue inside) needs an effectiveBg gate + a `prev ⊄ cur` predicate. Case 1 and case 2 are SYMMETRIC: both ask "is some prev cell not covered by cur paint?" — case 1 asks at the ancestor's boundary, case 2 asks at the descendant's boundary inside the ancestor. Audit other "overflow detection" code paths for the same dual-case oversight.
+2. **Position-change guard ≠ no cleanup.** When `clearExcessArea` skips due to position change, ancestors MUST cover the residue. If every ancestor relies on `descendantOverflowChanged` to know, the predicate must catch every shape of "prev painted bg now not covered". The fix doesn't change `clearExcessArea` — it expands the ancestor's awareness so the existing cleanup paths (clearNodeRegion / renderBox fill) get invoked.
+3. **Synthetic tests don't always reproduce.** The bg-painter shrink-and-move at createRenderer scale (`<App withMarker={false}>` → `<App withMarker={true}>`) passes WITHOUT the fix in 4 different attempted reproductions. The bug requires the React reconciler's multi-pass convergence (silvercode runs maxLayoutPasses=5) plus the specific layout shape (deep nesting with mixed flex direction). The actual repro is the silvercode app — the synthetic remains as a STRICT scaffold for any future regression that DOES reproduce at unit scale.
+4. **Silent residue is a class.** The cyan-strip family (km-silvery.render-light-blue-bg-strip-residue, km-silvery.cyan-strip-residue, this bead) all share the shape "prev paints bg at cell C; cur paints nothing at C; cascade fast-paths C; STRICT diverges". Different roots (case-1 overflow / applyBgSegmentsToLine clip / case-2 in-rect residue), same fingerprint. SILVERY_STRICT=residue (tier 2) catches them programmatically — recommend running tier-2 on suspect frames in fuzz tests.
+
+**Where this lives**:
+- `vendor/silvery/packages/ag-term/src/pipeline/layout-phase.ts` — fix (`_layoutGetEffectiveBg` helper + `_prevHasResidueOutside` predicate + case 2 in `_checkDescendantOverflow`)
+- `vendor/silvery/tests/features/incremental-bg-shrink-move.test.tsx` — synthetic STRICT scaffold (4 tests)
+- `apps/silvercode/tests/visual/queue-ux.test.tsx` — canonical reproduction
+- `apps/silvercode/tests/visual/queue-option-b.test.tsx` — secondary reproduction
+- Commit: `vendor/silvery@263c0f30`
 
 ## Cyan-strip Round 12: RESOLVED — applyBgSegmentsToLine missing visible-region clip (2026-05-05)
 

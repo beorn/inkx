@@ -99,12 +99,14 @@ Same components rendered three ways: silvery/terminal, silvery/web (CSS vars emi
 ## MVP vs Full
 
 ### MVP (~1 session, ~600 LOC)
+
 - Three-pane layout (SchemeList + ComponentPreview + TokenTree)
 - Scheme swap cycles 84 catalog
 - Token click → derivation rule + highlight components
 - `colorLevel` toggle (truecolor/256/ansi16) affects rendering
 
 ### Full (~3 sessions on top of MVP)
+
 - Derivation visualizer panel
 - Contrast audit view with WCAG ratios per pair
 - Intent vs role demo section
@@ -113,6 +115,7 @@ Same components rendered three ways: silvery/terminal, silvery/web (CSS vars emi
 - "Your terminal's scheme" auto-detection splash on startup
 
 ### Aspirational (post-Phase 3b)
+
 - Cross-target preview (web/RN alongside terminal)
 - Generative vs preservative mode toggle
 - Alternative design-system swap (`@silvery/design-material`) — validates the DesignSystem contract with a real live consumer
@@ -159,11 +162,11 @@ Gets a dedicated page on silvery.dev when the docs site ships: `storybook.silver
 
 ## Sequencing
 
-| Phase | Depends on | Artifact |
-|---|---|---|
-| MVP | Sterling Phase 2a (data layer) | `km-silvery.sterling-storybook-mvp` |
-| Full | MVP + Phase 2a derivationTrace hooks | `km-silvery.sterling-storybook-full` |
-| Aspirational | Phase 3b (package split) + Phase 5 (design-material) + silvery/web | separate bead, post-plateau |
+| Phase        | Depends on                                                         | Artifact                           |
+| ------------ | ------------------------------------------------------------------ | ---------------------------------- |
+| MVP          | Sterling Phase 2a (data layer)                                     | km-silvery.sterling-storybook-mvp  |
+| Full         | MVP + Phase 2a derivationTrace hooks                               | km-silvery.sterling-storybook-full |
+| Aspirational | Phase 3b (package split) + Phase 5 (design-material) + silvery/web | separate bead, post-plateau        |
 
 Ship MVP immediately after Sterling data layer lands — it's the most visible validation of the whole Sterling investment. "Here's what you get" beats "here's an architecture diagram."
 
@@ -171,3 +174,4 @@ Ship MVP immediately after Sterling data layer lands — it's the most visible v
 
 Bead: `km-silvery.sterling-storybook` (this doc's parent epic; children for MVP + Full)
 Sterling parent: `km-silvery.theme-v4`
+

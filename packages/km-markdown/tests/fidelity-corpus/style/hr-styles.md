@@ -9,11 +9,11 @@ Before dashes.
 
 Before asterisks.
 
-***
+---
 
 Before underscores.
 
-___
+---
 
 After all three.
 
@@ -21,14 +21,15 @@ After all three.
 
 CommonMark accepts arbitrary-length runs too:
 
-----
+---
 
 Four dashes.
 
-*****
+---
 
 Five asterisks.
 
-________
+---
 
 Eight underscores.
+

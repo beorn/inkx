@@ -437,9 +437,7 @@ async function writeReport(args: {
   lines.push("")
   lines.push(`**Date:** ${dateIso}`)
   lines.push("**Bead:** km-silvercode.notification-split-test")
-  lines.push(
-    "**Design:** [apps/silvercode/docs/channels.md §4](../../../apps/silvercode/docs/channels.md)",
-  )
+  lines.push("**Design:** [apps/silvercode/docs/channels.md §4](../../../apps/silvercode/docs/channels.md)")
   lines.push("**Driver:** `apps/silvercode/tests/eval/notification-variants.eval.ts`")
   lines.push(`**Trials per cell:** ${trials}`)
   lines.push("")

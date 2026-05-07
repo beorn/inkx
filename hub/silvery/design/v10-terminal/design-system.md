@@ -8,7 +8,7 @@
 
 ---
 
-# Part 1 — The model
+## Part 1 — The model
 
 ## The flow
 
@@ -107,16 +107,17 @@ Tokens read **channel-role-state** order (matches Primer / CSS var conventions).
 4. **Cross-platform by construction.** Same Theme, same `<ThemeProvider>`, same components across terminal / canvas / DOM / React Native. Only the output phase differs.
 5. **Preservative by default.** User-authored color schemes (Nord, Catppuccin) are sacred — Sterling's default derivation preserves the 22 input colors and only fills gaps. Generative derivations (Material-style from a seed) are supported as alternate modes.
 6. **Asymmetric surprise.** Sterling MUST NOT surprise users in the negative direction. Every reachable API must either work, or fail at compile time with a teaching message. Sterling MAY exceed expectations in the positive direction (auto-detection, contrast guarantees, helpful traces). Three corollaries (locked 2026-04-25):
-   - *No silent fallback.* No "best effort" to another token/role; mismatches surface, not paper over.
-   - *Auto-magic must be inspectable.* When derivation lifts contrast or repairs a token, the trace records it.
-   - *JS callers get runtime teaching errors.* TS users get compile-time failures; dynamic indexing throws `TypeError` with the valid set + "Did you mean …?".
+- *No silent fallback.* No "best effort" to another token/role; mismatches surface, not paper over.
+- *Auto-magic must be inspectable.* When derivation lifts contrast or repairs a token, the trace records it.
+- *JS callers get runtime teaching errors.* TS users get compile-time failures; dynamic indexing throws `TypeError` with the valid set + "Did you mean …?".
 
-   Concrete consequences encoded in v1:
-   - Disabled token family (`fg-disabled`/`bg-disabled`/`border-disabled`) — adopters reach for these; they exist.
-   - `bg-backdrop` distinct from `bg-surface-overlay` — modal scrim and popover card bg are different surfaces.
-   - `fg-default` / `bg-default` are explicit public flat tokens.
-   - Component prop name is `variant` (industry-standard, satisfies muscle memory across Material/Chakra/shadcn/Radix/Polaris-via-its-actual-implementation). Per-component value unions enforce correctness — `<Alert variant="destructive">` won't compile.
-   - Status family type is `StatusRole`, not `InteractiveRole` — the family lacks `fg.hover/active`, the name now reflects that.
+Concrete consequences encoded in v1:
+
+- Disabled token family (`fg-disabled`/`bg-disabled`/`border-disabled`) — adopters reach for these; they exist.
+- `bg-backdrop` distinct from `bg-surface-overlay` — modal scrim and popover card bg are different surfaces.
+- `fg-default` / `bg-default` are explicit public flat tokens.
+- Component prop name is `variant` (industry-standard, satisfies muscle memory across Material/Chakra/shadcn/Radix/Polaris-via-its-actual-implementation). Per-component value unions enforce correctness — `<Alert variant="destructive">` won't compile.
+- Status family type is `StatusRole`, not `InteractiveRole` — the family lacks `fg.hover/active`, the name now reflects that.
 
 ## How to frame it
 
@@ -130,7 +131,7 @@ Tokens read **channel-role-state** order (matches Primer / CSS var conventions).
 
 ---
 
-# Part 2 — Reference
+## Part 2 — Reference
 
 ## Design-system contract
 
@@ -174,11 +175,11 @@ The nested-POJO-with-hex-leaves shape is universal across design systems. Whethe
 
 `@silvery/ansi` exposes two generic helpers that operate on this shape:
 
-| Helper | Takes | Returns | Use |
-|---|---|---|---|
-| `bakeFlat(theme, rule?)` | nested theme + optional `FlattenRule` | same object with flat keys written + frozen | project hex leaves as hyphen-keyed root siblings |
-| `pickColorLevel(theme, tier)` | theme + color tier | structurally identical theme with quantized leaves | pre-quantize for ANSI-16 / 256 / mono terminals |
-| `quantizeHex(hex, tier)` | single hex | hex | single-color tier quantization |
+| Helper                      | Takes                               | Returns                                            | Use                                              |
+| --------------------------- | ----------------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| bakeFlat(theme, rule?)      | nested theme + optional FlattenRule | same object with flat keys written + frozen        | project hex leaves as hyphen-keyed root siblings |
+| pickColorLevel(theme, tier) | theme + color tier                  | structurally identical theme with quantized leaves | pre-quantize for ANSI-16 / 256 / mono terminals  |
+| quantizeHex(hex, tier)      | single hex                          | hex                                                | single-color tier quantization                   |
 
 All three are in `@silvery/ansi`, consumable by any DesignSystem, Sterling included. `defineDesignSystem` wires `bakeFlat` into the contract so every derivation method auto-applies it per the `flatten` flag — system authors never call `bakeFlat` themselves.
 
@@ -188,14 +189,14 @@ Alternative-system authors can pass a custom `FlattenRule` when their convention
 
 Grammar (from GitHub's Primer): `prefix-role-state-modifier`.
 
-| Axis | Values |
-|---|---|
-| Prefix | `fg-*`, `bg-*`, `border-*`, `cursor-*` |
-| Role | `accent`, `info`, `success`, `warning`, `error`, `muted`, `default` |
-| Kind | `fill` (interactive surfaces), `surface` (containers), `on-<role>` (foreground on filled bg) |
-| State | `-hover`, `-active`, `-selected`, `-disabled`, `-focus` |
-| Emphasis | `-subtle`, `-muted`, `-emphasis` |
-| Surface level | `default`, `subtle`, `raised`, `overlay` |
+| Axis          | Values                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------- |
+| Prefix        | fg-, bg-, border-, cursor-                                                             |
+| Role          | accent, info, success, warning, error, muted, default                                  |
+| Kind          | fill (interactive surfaces), surface (containers), on-<role> (foreground on filled bg) |
+| State         | -hover, -active, -selected, -disabled, -focus                                          |
+| Emphasis      | -subtle, -muted, -emphasis                                                             |
+| Surface level | default, subtle, raised, overlay                                                       |
 
 **Vocabulary**: 6 of 10 surveyed systems use `error`/`warning`/`success`/`info`. Polaris (`critical`/`caution`) and Primer (`danger`/`attention`) are opinionated outliers. Silvery synthesizes: **Primer grammar + Material/shadcn vocabulary** — no single system ships this combo.
 
@@ -259,23 +260,23 @@ Silvery ships **84 color schemes** — the famous terminal/editor palettes (Nord
 
 ## Derivation rules (default, preservative)
 
-| Token | Derivation |
-|---|---|
-| `error.fg` | `scheme.red` |
-| `warning.fg` | `scheme.yellow` |
-| `success.fg` | `scheme.green` |
-| `info.fg` | `scheme.primary` (aliases `accent.fg` by default — distinct role, same hex) |
-| `accent.fg` | `scheme.primary` |
-| `accent.bg` | `scheme.primary` |
-| `accent.hover.bg` | OKLCH `+0.04L` on `accent.bg` |
-| `accent.active.bg` | OKLCH `+0.08L` on `accent.bg` |
-| `accent.fgOn` | contrast-pick(fg, bg) for WCAG AA against `accent.bg` |
-| `muted.fg` | blend(fg, bg, 0.5) |
-| `surface.default` | `scheme.background` |
-| `surface.subtle` | blend(bg, fg, 0.05) |
-| `surface.raised` | blend(bg, fg, 0.08) |
-| `surface.overlay` | blend(bg, fg, 0.12) |
-| `border.focus` | `scheme.primary` |
+| Token            | Derivation                                                              |
+| ---------------- | ----------------------------------------------------------------------- |
+| error.fg         | scheme.red                                                              |
+| warning.fg       | scheme.yellow                                                           |
+| success.fg       | scheme.green                                                            |
+| info.fg          | scheme.primary (aliases accent.fg by default — distinct role, same hex) |
+| accent.fg        | scheme.primary                                                          |
+| accent.bg        | scheme.primary                                                          |
+| accent.hover.bg  | OKLCH +0.04L on accent.bg                                               |
+| accent.active.bg | OKLCH +0.08L on accent.bg                                               |
+| accent.fgOn      | contrast-pick(fg, bg) for WCAG AA against accent.bg                     |
+| muted.fg         | blend(fg, bg, 0.5)                                                      |
+| surface.default  | scheme.background                                                       |
+| surface.subtle   | blend(bg, fg, 0.05)                                                     |
+| surface.raised   | blend(bg, fg, 0.08)                                                     |
+| surface.overlay  | blend(bg, fg, 0.12)                                                     |
+| border.focus     | scheme.primary                                                          |
 
 Scheme authors can override specific tokens; OKLCH defaults cover 80%+.
 
@@ -283,13 +284,13 @@ Scheme authors can override specific tokens; OKLCH defaults cover 80%+.
 
 **State variants (`-hover`, `-active`) apply to interactive-surface tokens, not to text tokens in general.** Only text that is itself interactive (links, accent clickable text) gets state variants. This matches Primer / Material / shadcn / Polaris grammar — none ship `fg-<role>-hover` for non-link text.
 
-| Token | Has state variants? |
-|---|---|
-| `bg-accent`, `bg-error`, `bg-warning`, `bg-success`, `bg-info` | ✓ always (hover/active = surface states) |
-| `fg-on-<role>` | ✗ (fg-on-X text doesn't change when the bg-X under it hovers) |
-| `fg-accent`, `fg-link` | ✓ (interactive text) |
-| `fg-error`, `fg-warning`, `fg-success`, `fg-info`, `fg-muted` | ✗ (non-interactive status text) |
-| `bg-surface`, `bg-surface-subtle`, `bg-surface-raised`, `bg-surface-overlay` | ✓ (surfaces can be hovered) |
+| Token                                                                | Has state variants?                                           |
+| -------------------------------------------------------------------- | ------------------------------------------------------------- |
+| bg-accent, bg-error, bg-warning, bg-success, bg-info                 | ✓ always (hover/active = surface states)                      |
+| fg-on-<role>                                                         | ✗ (fg-on-X text doesn't change when the bg-X under it hovers) |
+| fg-accent, fg-link                                                   | ✓ (interactive text)                                          |
+| fg-error, fg-warning, fg-success, fg-info, fg-muted                  | ✗ (non-interactive status text)                               |
+| bg-surface, bg-surface-subtle, bg-surface-raised, bg-surface-overlay | ✓ (surfaces can be hovered)                                   |
 
 **Derivation algorithm** — adaptive OKLCH L-shift:
 
@@ -350,20 +351,20 @@ Composability test: `@silvery/color + @silvery/ansi + @silvery/ag-react + @silve
 
 ## Output targets
 
-| Target | Conversion |
-|---|---|
-| Terminal truecolor | Theme hex → ANSI 24-bit |
-| Terminal 256-color | Theme hex → nearest ANSI-256 |
-| Terminal ANSI16 | Theme hex → nearest ANSI-16 slot |
-| Terminal mono | Theme hex → attribute-only (bold/underline/reverse) |
-| Web (DOM) | Theme hex → CSS `--token` variables |
-| Canvas | Theme hex → direct fill colors |
+| Target             | Conversion                                          |
+| ------------------ | --------------------------------------------------- |
+| Terminal truecolor | Theme hex → ANSI 24-bit                             |
+| Terminal 256-color | Theme hex → nearest ANSI-256                        |
+| Terminal ANSI16    | Theme hex → nearest ANSI-16 slot                    |
+| Terminal mono      | Theme hex → attribute-only (bold/underline/reverse) |
+| Web (DOM)          | Theme hex → CSS --token variables                   |
+| Canvas             | Theme hex → direct fill colors                      |
 
 Same Theme object across all targets; only the output phase differs.
 
 ---
 
-# Part 3 — Phased delivery
+## Part 3 — Phased delivery
 
 Parent epic: `km-silvery.theme-v4`. Full bead tree + dependency graph lives in beads — this section is just the map.
 
@@ -383,22 +384,22 @@ Each bead = one focused session. Seven serial + two parallel to plateau.
 
 ## Status
 
-| # | Phase | Bead | Status |
-|---|---|---|---|
-| 1 | Hex-only Theme (preparatory) | `theme-v4-ansi16-hex` | ✓ shipped |
-| — | Pre-flight decisions (D1-D6) | `sterling-preflight` | open — blocks 2a |
-| 2a | Theme type + derivation + guardrails (additive) | `sterling-2a-data-layer` | open |
-| 2b | `@silvery/ui` consumes new tokens | `sterling-2b-ui-components` | open |
-| 2c | Batch-refactor km-tui ~145 sites | `sterling-2c-km-migration` | open |
-| 2d | Delete legacy, ship silvery 0.19.0 (**BREAKING**) | `sterling-2d-release` | open |
-| 3a | Internal package rescope (@silvery/theme slim) | `theme-v4-schemes-rescope` | ✓ shipped |
-| 3b | Package rename → `@silvery/design` + `@silvery/schemes` | `design-package-rename` | open — after 2d |
-| — | silvery.dev doc updates for 0.19.0 | `sterling-public-docs` | open — after 2d |
-| 4 | km-tui `stripInlineColors` cleanup | `theme-v4-stripInlineColors` | open — orthogonal |
-| 5 | `@silvery/design-material` reference impl | `sterling-design-material` | open — post-plateau |
-| 6 | Backdrop standalone + Kitty overlay | `theme-v4-backdrop-standalone` + silvery main | ✓ shipped (calibration stable) |
-| — | Storybook MVP (3-pane explorer) | `sterling-storybook-mvp` | open — after 2a |
-| — | Storybook Full (derivation viz + audit + demos) | `sterling-storybook-full` | open — after MVP |
+| #   | Phase                                               | Bead                                        | Status                         |
+| --- | --------------------------------------------------- | ------------------------------------------- | ------------------------------ |
+| 1   | Hex-only Theme (preparatory)                        | theme-v4-ansi16-hex                         | ✓ shipped                      |
+| —   | Pre-flight decisions (D1-D6)                        | sterling-preflight                          | open — blocks 2a               |
+| 2a  | Theme type + derivation + guardrails (additive)     | sterling-2a-data-layer                      | open                           |
+| 2b  | @silvery/ui consumes new tokens                     | sterling-2b-ui-components                   | open                           |
+| 2c  | Batch-refactor km-tui ~145 sites                    | sterling-2c-km-migration                    | open                           |
+| 2d  | Delete legacy, ship silvery 0.19.0 (BREAKING)       | sterling-2d-release                         | open                           |
+| 3a  | Internal package rescope (@silvery/theme slim)      | theme-v4-schemes-rescope                    | ✓ shipped                      |
+| 3b  | Package rename → @silvery/design + @silvery/schemes | design-package-rename                       | open — after 2d                |
+| —   | silvery.dev doc updates for 0.19.0                  | sterling-public-docs                        | open — after 2d                |
+| 4   | km-tui stripInlineColors cleanup                    | theme-v4-stripInlineColors                  | open — orthogonal              |
+| 5   | @silvery/design-material reference impl             | sterling-design-material                    | open — post-plateau            |
+| 6   | Backdrop standalone + Kitty overlay                 | theme-v4-backdrop-standalone + silvery main | ✓ shipped (calibration stable) |
+| —   | Storybook MVP (3-pane explorer)                     | sterling-storybook-mvp                      | open — after 2a                |
+| —   | Storybook Full (derivation viz + audit + demos)     | sterling-storybook-full                     | open — after MVP               |
 
 ## What each sub-phase does
 
@@ -424,39 +425,39 @@ Each bead = one focused session. Seven serial + two parallel to plateau.
 
 ---
 
-# Appendices
+## Appendices
 
 ## Appendix A — 10-system comparison (informs vocabulary choice)
 
-| System | Vendor | Reach | Grammar | Vocabulary | Uses `error`? |
-|---|---|---|---|---|:-:|
-| Material 3 | Google | Dominant on Android (~4M wk) | Medium | error/warning/success/info | ✓ |
-| Carbon | IBM | Enterprise B2B | Good | error/warning/success/info | ✓ |
-| Tailwind | Tailwind Labs | Dominant web utility (~15M wk) | N/A (color-first) | — | ✗ |
-| shadcn/ui | shadcn | Hot 2024-2025 React choice | Good (CSS vars) | destructive/muted/accent | ✗ |
-| Radix Colors | WorkOS | Foundational (shadcn base) | scale-based | — | ✗ |
-| Chakra UI | Segun Adebayo | ~500K wk | Medium | error/warning/success/info | ✓ |
-| Ant Design | Alibaba | ~1.2M wk; dominant in China | Medium | error/warning/success/info | ✓ |
-| Claude Design | Anthropic | Internal; generated per-team | Generated | error/warning/success/info | ✓ |
-| Polaris | Shopify | Shopify admin + apps | Good (opinionated) | critical/caution/subdued | ✗ |
-| Primer | GitHub | github.com + fans (~120K wk) | **Excellent** | danger/attention/severe | ✗ |
+| System        | Vendor        | Reach                          | Grammar            | Vocabulary                 | Uses error? |
+| ------------- | ------------- | ------------------------------ | ------------------ | -------------------------- | :---------: |
+| Material 3    | Google        | Dominant on Android (~4M wk)   | Medium             | error/warning/success/info | ✓           |
+| Carbon        | IBM           | Enterprise B2B                 | Good               | error/warning/success/info | ✓           |
+| Tailwind      | Tailwind Labs | Dominant web utility (~15M wk) | N/A (color-first)  | —                          | ✗           |
+| shadcn/ui     | shadcn        | Hot 2024-2025 React choice     | Good (CSS vars)    | destructive/muted/accent   | ✗           |
+| Radix Colors  | WorkOS        | Foundational (shadcn base)     | scale-based        | —                          | ✗           |
+| Chakra UI     | Segun Adebayo | ~500K wk                       | Medium             | error/warning/success/info | ✓           |
+| Ant Design    | Alibaba       | ~1.2M wk; dominant in China    | Medium             | error/warning/success/info | ✓           |
+| Claude Design | Anthropic     | Internal; generated per-team   | Generated          | error/warning/success/info | ✓           |
+| Polaris       | Shopify       | Shopify admin + apps           | Good (opinionated) | critical/caution/subdued   | ✗           |
+| Primer        | GitHub        | github.com + fans (~120K wk)   | Excellent          | danger/attention/severe    | ✗           |
 
 **Conclusion**: Primer grammar + Material/shadcn vocabulary.
 
 ## Appendix B — derivation approaches compared
 
-| Dimension | Material 3 | Ant Design | Silvery (default) |
-|---|---|---|---|
-| Input shape | 1 seed color | ~13 seed tokens | 22-color palette |
-| Color math | HCT (Google) | CAM16-UCS | OKLCH |
-| Token layers | 2 | 3 (seed/map/alias) | 2 |
-| Output count | ~60-80 | ~400 | ~50 |
-| Generates scales? | Yes | Yes | No (terminals ship scales) |
-| Output aesthetic | Material-flavored | Ant-flavored | **Scheme-preserved** |
-| User palette honored? | Partial (seed hue) | Partial (seed colors) | **Fully (22 colors intact)** |
-| Runtime swap | ✓ | ✓ | ✓ |
-| Auto-detect from env | ✓ (Android wallpaper) | ✗ | **✓ (terminal probe)** |
-| Cultural fit | Android, Google | Enterprise admin | Terminal, themeable SaaS, white-label |
+| Dimension             | Material 3            | Ant Design            | Silvery (default)                     |
+| --------------------- | --------------------- | --------------------- | ------------------------------------- |
+| Input shape           | 1 seed color          | ~13 seed tokens       | 22-color palette                      |
+| Color math            | HCT (Google)          | CAM16-UCS             | OKLCH                                 |
+| Token layers          | 2                     | 3 (seed/map/alias)    | 2                                     |
+| Output count          | ~60-80                | ~400                  | ~50                                   |
+| Generates scales?     | Yes                   | Yes                   | No (terminals ship scales)            |
+| Output aesthetic      | Material-flavored     | Ant-flavored          | Scheme-preserved                      |
+| User palette honored? | Partial (seed hue)    | Partial (seed colors) | Fully (22 colors intact)              |
+| Runtime swap          | ✓                     | ✓                     | ✓                                     |
+| Auto-detect from env  | ✓ (Android wallpaper) | ✗                     | ✓ (terminal probe)                    |
+| Cultural fit          | Android, Google       | Enterprise admin      | Terminal, themeable SaaS, white-label |
 
 Material + Ant are **generative**. Silvery's default is **preservative** — but derivation is pluggable, so generative modes are supported as alternate derivations.
 
@@ -464,19 +465,19 @@ Material + Ant are **generative**. Silvery's default is **preservative** — but
 
 **Sterling is ~80% Primer.** It takes Primer's grammar wholesale and its structural conventions (fg / bg / `fg-on-<role>` pairs, state variants, surface hierarchy, per-role emphasis levels). The deltas are deliberate:
 
-| Aspect | Primer | Sterling | Reason |
-|---|---|---|---|
-| Grammar | `fg-*`, `bg-*`, `-hover`, `-active` | Same | Primer grammar is the best; no reason to deviate |
-| Surface pairs | `canvas-default`, `canvas-subtle` | `surface.default`, `surface.subtle` | Same concept, `surface` reads better cross-platform |
-| Success role | `success` | `success` | Same |
-| Error role | **`danger`** | **`error`** | 6 of 10 major systems use `error`; ecosystem consensus |
-| Warning role | **`attention`** | **`warning`** | Same reasoning |
-| Critical role | `severe` | *(n/a — use `error`)* | Sterling collapses severity; apps use state, not a new role |
-| Accent / brand | `accent` + separate brand | `accent` (default) + `brand` overlay | Simpler default; brand is opt-in |
-| Structured vs flat | Flat CSS vars (`--fgColor-accent`) | **Structured JS objects** (`theme.accent.fg`) | Silvery isn't CSS-bound (see [Appendix D](#appendix-d--cross-platform-translation)) |
-| Derivation input | Designer-authored JSON | **22-color terminal scheme** | Terminal culture — schemes are the input |
-| Derivation style | Designer-curated light/dark pair | **Preservative OKLCH from scheme** | Users authored Nord; Sterling preserves Nord |
-| State shift | `-hover` / `-active` hand-curated | **OKLCH ±0.04L / ±0.08L** | Terminals can't guess; OKLCH is a good default |
+| Aspect             | Primer                           | Sterling                                | Reason                                                      |
+| ------------------ | -------------------------------- | --------------------------------------- | ----------------------------------------------------------- |
+| Grammar            | fg-, bg-, -hover, -active        | Same                                    | Primer grammar is the best; no reason to deviate            |
+| Surface pairs      | canvas-default, canvas-subtle    | surface.default, surface.subtle         | Same concept, surface reads better cross-platform           |
+| Success role       | success                          | success                                 | Same                                                        |
+| Error role         | danger                           | error                                   | 6 of 10 major systems use error; ecosystem consensus        |
+| Warning role       | attention                        | warning                                 | Same reasoning                                              |
+| Critical role      | severe                           | (n/a — use error)                       | Sterling collapses severity; apps use state, not a new role |
+| Accent / brand     | accent + separate brand          | accent (default) + brand overlay        | Simpler default; brand is opt-in                            |
+| Structured vs flat | Flat CSS vars (--fgColor-accent) | Structured JS objects (theme.accent.fg) | Silvery isn't CSS-bound (see Appendix D)                    |
+| Derivation input   | Designer-authored JSON           | 22-color terminal scheme                | Terminal culture — schemes are the input                    |
+| Derivation style   | Designer-curated light/dark pair | Preservative OKLCH from scheme          | Users authored Nord; Sterling preserves Nord                |
+| State shift        | -hover / -active hand-curated    | OKLCH ±0.04L / ±0.08L                   | Terminals can't guess; OKLCH is a good default              |
 
 **What stays the same**: the structural shape of the system — roles, surfaces, state variants, pair convention, `fg-on-<role>` separation, emphasis levels. An app that reads Primer's style guide and applies it to silvery will mostly "just work" once the vocabulary substitution is done.
 
@@ -506,12 +507,12 @@ theme["border-focus"]        // "#58a6ff"
 
 Flat tokens follow **channel-role-state** order (matches Primer / CSS var conventions):
 
-| Token | Reads as |
-|---|---|
-| `bg-accent` | "background of accent" |
-| `bg-accent-hover` | "background of accent, in hover state" |
-| `fg-on-error` | "foreground when on an error fill" |
-| `border-focus` | "focus-state border" |
+| Token           | Reads as                               |
+| --------------- | -------------------------------------- |
+| bg-accent       | "background of accent"                 |
+| bg-accent-hover | "background of accent, in hover state" |
+| fg-on-error     | "foreground when on an error fill"     |
+| border-focus    | "focus-state border"                   |
 
 Tokens are short (≤ 3 segments), readable as English, and compose with `$` naturally — no dot chains to escape inside strings.
 
@@ -555,24 +556,24 @@ theme.{role}.fgOn                →  fg-on-{role}
 
 Example round-trip:
 
-| Nested | Flat |
-|---|---|
-| `theme.accent.bg` | `bg-accent` |
-| `theme.accent.fg` | `fg-accent` |
-| `theme.accent.fgOn` | `fg-on-accent` |
-| `theme.accent.hover.bg` | `bg-accent-hover` |
-| `theme.accent.active.bg` | `bg-accent-active` |
-| `theme.surface.subtle` | `bg-surface-subtle` |
-| `theme.surface.subtle.hover` | `bg-surface-subtle-hover` |
-| `theme.border.focus` | `border-focus` |
-| `theme.error.bg` | `bg-error` |
+| Nested                     | Flat                    |
+| -------------------------- | ----------------------- |
+| theme.accent.bg            | bg-accent               |
+| theme.accent.fg            | fg-accent               |
+| theme.accent.fgOn          | fg-on-accent            |
+| theme.accent.hover.bg      | bg-accent-hover         |
+| theme.accent.active.bg     | bg-accent-active        |
+| theme.surface.subtle       | bg-surface-subtle       |
+| theme.surface.subtle.hover | bg-surface-subtle-hover |
+| theme.border.focus         | border-focus            |
+| theme.error.bg             | bg-error                |
 
 ### Why both? — each shape earns its keep
 
-| Shape | Good at | Bad at |
-|---|---|---|
-| **Nested** | Discoverability in IDE (autocomplete `theme.accent.` shows `fg`, `bg`, `fgOn`, `hover`, `active`), type-safety of shape, programmatic iteration (`for (const [state, pair] of Object.entries(theme.accent))`) | Verbose for simple references; hard to use in string syntax |
-| **Flat** | `$token` strings (`<Text color="$fg-accent">`), CSS var compatibility (`--bg-accent-hover`), shell-friendly logging/debugging, theme diffs | Opaque — no structural type information; `theme.flat["bg-accnt"]` typos silently fail (though TS string-literal types catch known keys) |
+| Shape  | Good at                                                                                                                                                                                         | Bad at                                                                                                                                |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Nested | Discoverability in IDE (autocomplete theme.accent. shows fg, bg, fgOn, hover, active), type-safety of shape, programmatic iteration (for (const [state, pair] of Object.entries(theme.accent))) | Verbose for simple references; hard to use in string syntax                                                                           |
+| Flat   | $token strings (<Text color="$fg-accent">), CSS var compatibility (--bg-accent-hover), shell-friendly logging/debugging, theme diffs                                                            | Opaque — no structural type information; theme.flat["bg-accnt"] typos silently fail (though TS string-literal types catch known keys) |
 
 ### How Sterling (and any DesignSystem) exposes both
 
@@ -621,13 +622,13 @@ Systems that don't want flat-projection at all set `flatten: false` (or omit it)
 
 ### How the two shapes map to targets
 
-| Runtime | Which shape | Why |
-|---|---|---|
-| Terminal (silvery) | Both — `$` strings resolve against flat; programmatic access reads nested | `<Text color="$fg-accent">` → flat lookup; custom hooks → nested |
-| React Native | Nested primarily; flat available for `$`-style libs (Tamagui-compat) | JS-native consumption |
-| Canvas | Nested (direct fill/stroke) | Programmatic rendering loops |
-| DOM / Web | Flat form → CSS custom properties 1:1 (`--bg-accent-hover`) | CSS syntax is flat; no flattening rule mismatch |
-| Figma / W3C Design Tokens | Both exported; nested for hierarchical browsing, flat for search | Tooling ecosystem |
+| Runtime                   | Which shape                                                             | Why                                                            |
+| ------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Terminal (silvery)        | Both — $ strings resolve against flat; programmatic access reads nested | <Text color="$fg-accent"> → flat lookup; custom hooks → nested |
+| React Native              | Nested primarily; flat available for $-style libs (Tamagui-compat)      | JS-native consumption                                          |
+| Canvas                    | Nested (direct fill/stroke)                                             | Programmatic rendering loops                                   |
+| DOM / Web                 | Flat form → CSS custom properties 1:1 (--bg-accent-hover)               | CSS syntax is flat; no flattening rule mismatch                |
+| Figma / W3C Design Tokens | Both exported; nested for hierarchical browsing, flat for search        | Tooling ecosystem                                              |
 
 ---
 
@@ -637,16 +638,16 @@ Systems that don't want flat-projection at all set `flatten: false` (or omit it)
 
 Primer ships flat CSS variables; Sterling's structured form compiles to them at build time via deterministic flattening:
 
-| Sterling (structured) | Primer-ish CSS var |
-|---|---|
-| `theme.accent.fg` | `--fgColor-accent` |
-| `theme.accent.bg` | `--bgColor-accent-emphasis` |
-| `theme.accent.fgOn` | `--fgColor-on-emphasis` |
-| `theme.accent.hover.bg` | `--bgColor-accent-emphasis-hover` |
-| `theme.surface.default` | `--bgColor-default` |
-| `theme.surface.subtle` | `--bgColor-muted` |
-| `theme.error.fg` | `--fgColor-danger` (Primer) / `--fgColor-error` (Sterling web) |
-| `theme.border.focus` | `--borderColor-focus` |
+| Sterling (structured) | Primer-ish CSS var                                         |
+| --------------------- | ---------------------------------------------------------- |
+| theme.accent.fg       | --fgColor-accent                                           |
+| theme.accent.bg       | --bgColor-accent-emphasis                                  |
+| theme.accent.fgOn     | --fgColor-on-emphasis                                      |
+| theme.accent.hover.bg | --bgColor-accent-emphasis-hover                            |
+| theme.surface.default | --bgColor-default                                          |
+| theme.surface.subtle  | --bgColor-muted                                            |
+| theme.error.fg        | --fgColor-danger (Primer) / --fgColor-error (Sterling web) |
+| theme.border.focus    | --borderColor-focus                                        |
 
 The flattening rule: `theme.{role}.{kind}.{state?}` → `--{kind}Color-{role}-{state?}`. Silvery's web target emits these as CSS custom properties at the `<ThemeProvider>` root, matching Primer's convention without the vocabulary rename.
 
@@ -654,16 +655,16 @@ The flattening rule: `theme.{role}.{kind}.{state?}` → `--{kind}Color-{role}-{s
 
 Material 3's token system is deeply structured but keys differently — pair convention is encoded in *names* (`onPrimary`) rather than nested objects:
 
-| Sterling | Material 3 (Compose/Flutter) |
-|---|---|
-| `theme.accent.bg` | `colorScheme.primary` |
-| `theme.accent.fgOn` | `colorScheme.onPrimary` |
-| `theme.accent.fg` | *(no direct peer — Material uses `primary` for both)* |
-| `theme.surface.default` | `colorScheme.surface` |
-| `theme.surface.subtle` | `colorScheme.surfaceVariant` / `surfaceContainerLow` |
-| `theme.error.bg` | `colorScheme.error` |
-| `theme.error.fgOn` | `colorScheme.onError` |
-| `theme.accent.hover.bg` | *(derived via state layers, not a token)* |
+| Sterling              | Material 3 (Compose/Flutter)                      |
+| --------------------- | ------------------------------------------------- |
+| theme.accent.bg       | colorScheme.primary                               |
+| theme.accent.fgOn     | colorScheme.onPrimary                             |
+| theme.accent.fg       | (no direct peer — Material uses primary for both) |
+| theme.surface.default | colorScheme.surface                               |
+| theme.surface.subtle  | colorScheme.surfaceVariant / surfaceContainerLow  |
+| theme.error.bg        | colorScheme.error                                 |
+| theme.error.fgOn      | colorScheme.onError                               |
+| theme.accent.hover.bg | (derived via state layers, not a token)           |
 
 `@silvery/design-material` maps Sterling-shaped input → Material-shaped theme (or the inverse, depending on which direction you're bridging). Components wired to Sterling won't read from Material's theme directly — you pick one design system per ThemeProvider scope.
 
@@ -671,14 +672,14 @@ Material 3's token system is deeply structured but keys differently — pair con
 
 shadcn ships flat kebab CSS vars backed by Radix color scales:
 
-| Sterling | shadcn CSS var |
-|---|---|
-| `theme.accent.bg` | `--primary` |
-| `theme.accent.fgOn` | `--primary-foreground` |
-| `theme.surface.default` | `--background` |
-| `theme.surface.subtle` | `--muted` |
-| `theme.error.bg` | `--destructive` |
-| `theme.error.fgOn` | `--destructive-foreground` |
+| Sterling              | shadcn CSS var           |
+| --------------------- | ------------------------ |
+| theme.accent.bg       | --primary                |
+| theme.accent.fgOn     | --primary-foreground     |
+| theme.surface.default | --background             |
+| theme.surface.subtle  | --muted                  |
+| theme.error.bg        | --destructive            |
+| theme.error.fgOn      | --destructive-foreground |
 
 Sterling's `fg`/`bg`/`fgOn` triplet vs shadcn's `<role>` + `<role>-foreground` pair — shadcn collapses "fg" (text-role color) into just using `primary` and expects `bg: primary; color: primary-foreground`. Sterling keeps the triplet because text-accent (link color) and accent-fill (button color) legitimately diverge in dark mode.
 
@@ -724,14 +725,14 @@ function AccentButton({ children, onPress }) {
 
 Compare to RN's existing design-system prior art:
 
-| RN design system | Shape | Example |
-|---|---|---|
-| **Tamagui** | `$tokenName` string syntax, resolved at compile | `<Button theme="accent" />` |
-| **Gluestack** | Nested JS tokens, scale-based (`colors.primary.500`) | `<Button action="primary" />` |
-| **NativeBase** | Nested JS tokens, scale-based (`colors.primary.600`) | `<Button colorScheme="primary">` |
-| **Dripsy** | Flat JS keys with Theme UI conventions | `sx={{ bg: "primary" }}` |
-| **React Native Paper** | Material 3 tokens (`colors.primary`, `colors.onPrimary`) | `<Button mode="contained">` |
-| **Sterling** (proposed) | **Nested JS tokens, role-structured** (`accent.bg`, `accent.fg`, `accent.hover.bg`) | `<Button color="$accent">` |
+| RN design system    | Shape                                                                     | Example                        |
+| ------------------- | ------------------------------------------------------------------------- | ------------------------------ |
+| Tamagui             | $tokenName string syntax, resolved at compile                             | <Button theme="accent" />      |
+| Gluestack           | Nested JS tokens, scale-based (colors.primary.500)                        | <Button action="primary" />    |
+| NativeBase          | Nested JS tokens, scale-based (colors.primary.600)                        | <Button colorScheme="primary"> |
+| Dripsy              | Flat JS keys with Theme UI conventions                                    | sx={{ bg: "primary" }}         |
+| React Native Paper  | Material 3 tokens (colors.primary, colors.onPrimary)                      | <Button mode="contained">      |
+| Sterling (proposed) | Nested JS tokens, role-structured (accent.bg, accent.fg, accent.hover.bg) | <Button color="$accent">       |
 
 Sterling lands between Gluestack/NativeBase (scale-based, more granular) and Paper (Material 3, flatter). The role-structured shape is closer to Material's actual convention but with explicit state nesting. No one in RN ships this exact shape today — Sterling is novel in combining role + pair + state + emphasis as nested objects.
 
@@ -750,13 +751,13 @@ No intermediate step. This is the cleanest target — Sterling shape = the bytes
 
 ### Summary
 
-| Runtime | Consumption |
-|---|---|
-| Terminal | Structured JS → colorLevel-quantized ANSI at output phase |
-| Canvas | Structured JS → direct fillStyle |
-| React Native | Structured JS → direct StyleSheet values |
-| DOM / Web | Structured JS → flattened to CSS custom properties at `<ThemeProvider>` root |
-| Figma (future) | Structured JS ↔ W3C Design Tokens JSON (bidirectional) |
+| Runtime        | Consumption                                                                |
+| -------------- | -------------------------------------------------------------------------- |
+| Terminal       | Structured JS → colorLevel-quantized ANSI at output phase                  |
+| Canvas         | Structured JS → direct fillStyle                                           |
+| React Native   | Structured JS → direct StyleSheet values                                   |
+| DOM / Web      | Structured JS → flattened to CSS custom properties at <ThemeProvider> root |
+| Figma (future) | Structured JS ↔ W3C Design Tokens JSON (bidirectional)                     |
 
 **CSS is the only target that requires a flatten step.** Everything else is native. That's why Sterling's structured form is the right default for silvery's multi-target story — the lowest-common-denominator shape isn't CSS's flat strings, it's JS objects.
 
@@ -783,6 +784,7 @@ const theme = design.deriveFromSchemeWithBrand(scheme, { brand: "#FF6A00" })
 **Why**: if `brand` is exposed as a public role alongside `accent`, apps will misuse it as "the nicer blue/purple" — a second accent. Within months a codebase ends up with `<Button color="$accent">` and `<Button color="$brand">` used interchangeably, which is exactly the semantic drift Sterling exists to prevent.
 
 **The rule**:
+
 - Components: **consume `accent`**. Never reference `brand`.
 - Theme construction: **brand IS the input** — derives `accent` by default, may also derive categorical highlights, brand surfaces, etc.
 - Marketing / splash / onboarding surfaces: OK to reference `brand` directly — these are one-off theming contexts, not the app's default UI
@@ -810,7 +812,7 @@ Implementation-level decisions D1-D6 locked in [sterling-preflight.md](sterling-
 
 ---
 
-# Related docs
+## Related docs
 
 - [silvery-positioning-brief.md](../../../../docs/silvery-positioning-brief.md) — why silvery is multi-target
 - [color-inherit-plan.md](color-inherit-plan.md) — `color="inherit"` / `currentColor` cascade primitive (sub-plan)
@@ -824,3 +826,4 @@ Archived (history only, do not link from public docs):
 - `hub/0LD/silvery/theme/terminal-color-strategy.md`
 - `hub/0LD/silvery/theme/theme-system-v2-plan.md`
 - `hub/0LD/silvery/theme/theme-v4-multi-target-plan.md`
+

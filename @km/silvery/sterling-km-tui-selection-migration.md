@@ -39,9 +39,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.sterling-selection-tokens
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Phase C: Migrate km-tui consumers from legacy selection/inverse/link tokens to Sterling flat tokens @km/silvery #task #P2 @claude:22c2717d

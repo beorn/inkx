@@ -15,9 +15,9 @@ Pre-existing TypeScript errors in chaos testing infrastructure:
 
 1. fake-repo.ts: LoadError not exported from repo.ts
 2. chaos testing files (db-to-fs.slow.test.ts, fuzzer.ts, harness.ts, verifier.ts):
-  - Missing getDb function
-  - Wrong number of arguments to reconcile functions
-  - Database type mismatches
+- Missing getDb function
+- Wrong number of arguments to reconcile functions
+- Database type mismatches
 
 These were introduced around the domain objects refactor and block TypeScript strict mode.
 

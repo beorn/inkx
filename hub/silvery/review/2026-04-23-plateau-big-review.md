@@ -13,12 +13,12 @@
 2. **System perspective.** A structural invariant — "there is exactly one terminal resolution per process, and the pipeline observes it" — was enforced by convention across three enum spellings, two detection functions, and three constructors. The pipeline computed different answers depending on which entry point and which constructor produced the Term.
 3. **Architectural view.** Detection was a *layer concern* masquerading as a set of utility functions. There was no owner for "the current terminal's resolved profile"; every entry point (run.tsx options path, run.tsx Term path, createApp.run, render, ink compat, termless, detectTerminalCaps) re-derived it independently and read from `process.env` directly. The plateau puts the resolution in a typed object (`TerminalProfile`) that's built once and threaded.
 4. **Historical.** This is at least the 4th related incident:
-   - 6c4442ee: `selectionEnabled ?? false` default drift
-   - 48143ef0: `detectTerminalCaps` didn't honor `FORCE_COLOR` (docstring claimed it did)
-   - 915b4bf9: mouse drag state machine default drift
-   - The plateau (this) — caps optional, color-tier triple-spelled, detection duplicated.
+- 6c4442ee: `selectionEnabled ?? false` default drift
+- 48143ef0: `detectTerminalCaps` didn't honor `FORCE_COLOR` (docstring claimed it did)
+- 915b4bf9: mouse drag state machine default drift
+- The plateau (this) — caps optional, color-tier triple-spelled, detection duplicated.
    All four are the same failure mode: **a documented default in a hot-path function was never exercised by tests because callers passed the option explicitly.** `bun recall "defaults contract"` confirms the pattern and the Phase 1 contracts convention that was seeded in response.
-5. **Counterfactual.** In a perfectly designed system, there would be one answer to "what is the current terminal's profile?" and that answer would be a non-optional, typed field reachable from every render path. Entry points would not take `caps`/`colorLevel`/`colorOverride` as free-floating options; they would take a `TerminalProfile`, and the profile factory would own every precedence decision.
+13. **Counterfactual.** In a perfectly designed system, there would be one answer to "what is the current terminal's profile?" and that answer would be a non-optional, typed field reachable from every render path. Entry points would not take `caps`/`colorLevel`/`colorOverride` as free-floating options; they would take a `TerminalProfile`, and the profile factory would own every precedence decision.
 
 The plateau refactor reached the counterfactual about 80% of the way. Gaps: `detectTheme` is still separate and async; `TerminalProfile` is not yet the *required* argument to every entry point (profile is optional, caps/colorLevel still coexist); two case-sensitivity copies of the TERM_PROGRAM comparison still exist (`profile.ts:295` vs `text-sizing.ts:75`).
 
@@ -26,24 +26,24 @@ The plateau refactor reached the counterfactual about 80% of the way. Gaps: `det
 
 ## Phase 2: Hypotheses (Round 1 — 16 enumerated)
 
-| #   | Category              | Hypothesis                                                                                                                                                                                                                                                                                |
-| --- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H1  | Missing invariant     | The Ghostty case-sensitivity bug (profile.ts:295 `"ghostty"` vs detectColorFromEnv "Ghostty") is a second copy of the same comparison inside one file. The refactor created the bug by copying `detectColor`'s `"Ghostty"` string into `detectColorFromEnv` while the caps probe kept the legacy lowercase. **Need to verify when the lowercase was introduced.** |
-| H2  | Unification           | `detectTheme` (async, OSC probe, lives in run.tsx) should be a member of `TerminalProfile` — `profile.theme` — and the profile factory should be `async createTerminalProfile({ probeTheme?: boolean })`. Then run() becomes a one-liner.                                                                                                                                                                    |
-| H3  | Wrong ownership       | `RunOptions.caps` and `RunOptions.colorLevel` are still free-floating. They should be removed in favor of `RunOptions.profile` only. Today any caller can pass `{ caps: X, colorLevel: Y, profile: Z }` — three sources of truth at one call site.                                                                                                                                                                                         |
-| H4  | Missing invariant     | `output-phase.ts:175-177` still uses `caps.underlineStyles ?? true, caps.colorLevel ?? "truecolor"`. Caps is non-optional in `Term.caps`, but `createOutputPhase` accepts `Partial<OutputCaps>` — so the guard survived. Is that justified or a leftover?                                                                                                                                                                             |
-| H5  | Missing abstraction   | `TerminalProfileSource` is a private attribution tag. The *real* abstraction it implies is **"forced vs natural tier"** — a boolean derived from source. Every use of `source` is `source === "env" \|\| source === "override"`. Maybe `profile.forced: boolean` is the real primitive.                                                                                                                                                   |
-| H6  | Deletion              | The `detectColor` and `detectTerminalCaps` shims in detection.ts (and their re-exports through `@silvery/ansi` + `ag-term`) could be deleted now that profile.ts owns detection. km-tui and command-bridge.ts still call `detectTerminalCaps()` — 2 call sites. Migration is trivial.                                                                                                                                                                                 |
-| H7  | Wrong layer           | `isTextSizingLikelySupported` reads `process.env.TERM_PROGRAM` directly (text-sizing.ts:75) with its own `.toLowerCase()`. It should consume `TerminalProfile.caps.program` (plus `TERM_PROGRAM_VERSION`) — NOT re-read env. This is the "every fact from env is read by every consumer" failure mode the plateau set out to eliminate.                                                                                                                               |
-| H8  | Wrong layer           | Same issue in `scroll-region.ts:55`, `output.ts:285`, `ag.ts:256`, `term-def.ts`, `ink/chalk.ts:45/103`, `termtest.ts:15`. The plateau fixed the *big* entry points but not the *long tail* of env-reads. "One profile" is only true if consumers read it instead of bypassing it.                                                                                                                                                                                              |
-| H9  | Missing invariant     | Headless `createHeadlessTerm` caps default to `mono + noUnicode + noMouse`, but `createBackendTerm` (emulator) defaults to `defaultCaps()` which is truecolor + unicode + mouse. A test author choosing between them gets wildly different cap profiles without a clear reason — the two headless paths should collapse or the distinction should be named.                                                                                                              |
-| H10 | Prior art             | chalk / supports-color use a single function + memoization. Ink uses `supportsColor.stderr`. Node's `getColorDepth()` is a built-in since v9.9. Should the profile factory just *defer* to `process.stdout.getColorDepth()` on modern Node? It's 1 LOC and handles `NO_COLOR`/`FORCE_COLOR`/ `NODE_DISABLE_COLORS` authoritatively.                                                                                                                                    |
-| H11 | Inverse               | Instead of deriving `caps` from env in the factory, what if `caps` were the primary input and env-var overrides were applied as a *post-processor*? Today env wins first; overrides second; caps third. That order is surprising — a caller who passes `caps` expects caps to win unless env explicitly overrides. Is the current precedence right?                                                                                                                   |
-| H12 | Missing abstraction   | `TerminalProfile` has `caps` (canonical cap set) and `colorTier` (duplicate of `caps.colorLevel`) and `source`. That's ~3 public fields, one of them redundant. A `DerivedProfile` type with methods (`profile.isMonoForced()`, `profile.wantsPreQuantize()`) would be cleaner than field + boolean-derivation at each call site.                                                                                                                                      |
-| H13 | Missing invariant     | The 46 profile tests pin every precedence rung — but no test pins *every caps field* for the known terminal matrix (Ghostty, Kitty, WezTerm, Alacritty, Apple_Terminal, iTerm.app, xterm, screen/tmux, CI). The case-sensitivity bug (H1) would have been caught by a "Ghostty → `caps.kittyKeyboard === true`" test. Snapshot-style matrix test missing.                                                                                                            |
-| H14 | Inverse               | The 14 pre-existing failures (focus, useBoxMetrics, use-ag-node) — are any of them the *same* docstring-drift class? If so, the plateau fixed the color class but missed the focus/metrics class, and the right follow-up is another plateau refactor for that subsystem.                                                                                                                                                                                                |
-| H15 | Composition           | Phase 4 introduces two ways to pass a profile (RunOptions and AppRunOptions), both of which auto-build one if absent. The *third* way — `createTerm()` — silently calls `detectTerminalCaps()` and does NOT build a profile. So the profile is SoT for the entry points but not for the Term itself. A Term that was built from a profile should remember that.                                                                                                                                                             |
-| H16 | Deletion              | `RunOptions.caps` can probably be deleted (not just deprecated) in favor of `RunOptions.profile`. The only callers that pass raw caps are tests and the runtime internal (`termProfile.caps`). Remove caps, require profile-or-nothing.                                                                                                                                                                                                                              |
+| #   | Category            | Hypothesis                                                                                                                                                                                                                                                                                                                                                |
+| --- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | Missing invariant   | The Ghostty case-sensitivity bug (profile.ts:295 "ghostty" vs detectColorFromEnv "Ghostty") is a second copy of the same comparison inside one file. The refactor created the bug by copying detectColor's "Ghostty" string into detectColorFromEnv while the caps probe kept the legacy lowercase. Need to verify when the lowercase was introduced.     |
+| H2  | Unification         | detectTheme (async, OSC probe, lives in run.tsx) should be a member of TerminalProfile — profile.theme — and the profile factory should be async createTerminalProfile({ probeTheme?: boolean }). Then run() becomes a one-liner.                                                                                                                         |
+| H3  | Wrong ownership     | RunOptions.caps and RunOptions.colorLevel are still free-floating. They should be removed in favor of RunOptions.profile only. Today any caller can pass { caps: X, colorLevel: Y, profile: Z } — three sources of truth at one call site.                                                                                                                |
+| H4  | Missing invariant   | output-phase.ts:175-177 still uses caps.underlineStyles ?? true, caps.colorLevel ?? "truecolor". Caps is non-optional in Term.caps, but createOutputPhase accepts Partial<OutputCaps> — so the guard survived. Is that justified or a leftover?                                                                                                           |
+| H5  | Missing abstraction | TerminalProfileSource is a private attribution tag. The real abstraction it implies is "forced vs natural tier" — a boolean derived from source. Every use of source is source === "env" \|\| source === "override". Maybe profile.forced: boolean is the real primitive.                                                                                 |
+| H6  | Deletion            | The detectColor and detectTerminalCaps shims in detection.ts (and their re-exports through @silvery/ansi + ag-term) could be deleted now that profile.ts owns detection. km-tui and command-bridge.ts still call detectTerminalCaps() — 2 call sites. Migration is trivial.                                                                               |
+| H7  | Wrong layer         | isTextSizingLikelySupported reads process.env.TERM_PROGRAM directly (text-sizing.ts:75) with its own .toLowerCase(). It should consume TerminalProfile.caps.program (plus TERM_PROGRAM_VERSION) — NOT re-read env. This is the "every fact from env is read by every consumer" failure mode the plateau set out to eliminate.                             |
+| H8  | Wrong layer         | Same issue in scroll-region.ts:55, output.ts:285, ag.ts:256, term-def.ts, ink/chalk.ts:45/103, termtest.ts:15. The plateau fixed the big entry points but not the long tail of env-reads. "One profile" is only true if consumers read it instead of bypassing it.                                                                                        |
+| H9  | Missing invariant   | Headless createHeadlessTerm caps default to mono + noUnicode + noMouse, but createBackendTerm (emulator) defaults to defaultCaps() which is truecolor + unicode + mouse. A test author choosing between them gets wildly different cap profiles without a clear reason — the two headless paths should collapse or the distinction should be named.       |
+| H10 | Prior art           | chalk / supports-color use a single function + memoization. Ink uses supportsColor.stderr. Node's getColorDepth() is a built-in since v9.9. Should the profile factory just defer to process.stdout.getColorDepth() on modern Node? It's 1 LOC and handles NO_COLOR/FORCE_COLOR/ NODE_DISABLE_COLORS authoritatively.                                     |
+| H11 | Inverse             | Instead of deriving caps from env in the factory, what if caps were the primary input and env-var overrides were applied as a post-processor? Today env wins first; overrides second; caps third. That order is surprising — a caller who passes caps expects caps to win unless env explicitly overrides. Is the current precedence right?               |
+| H12 | Missing abstraction | TerminalProfile has caps (canonical cap set) and colorTier (duplicate of caps.colorLevel) and source. That's ~3 public fields, one of them redundant. A DerivedProfile type with methods (profile.isMonoForced(), profile.wantsPreQuantize()) would be cleaner than field + boolean-derivation at each call site.                                         |
+| H13 | Missing invariant   | The 46 profile tests pin every precedence rung — but no test pins every caps field for the known terminal matrix (Ghostty, Kitty, WezTerm, Alacritty, Apple_Terminal, iTerm.app, xterm, screen/tmux, CI). The case-sensitivity bug (H1) would have been caught by a "Ghostty → caps.kittyKeyboard === true" test. Snapshot-style matrix test missing.     |
+| H14 | Inverse             | The 14 pre-existing failures (focus, useBoxMetrics, use-ag-node) — are any of them the same docstring-drift class? If so, the plateau fixed the color class but missed the focus/metrics class, and the right follow-up is another plateau refactor for that subsystem.                                                                                   |
+| H15 | Composition         | Phase 4 introduces two ways to pass a profile (RunOptions and AppRunOptions), both of which auto-build one if absent. The third way — createTerm() — silently calls detectTerminalCaps() and does NOT build a profile. So the profile is SoT for the entry points but not for the Term itself. A Term that was built from a profile should remember that. |
+| H16 | Deletion            | RunOptions.caps can probably be deleted (not just deprecated) in favor of RunOptions.profile. The only callers that pass raw caps are tests and the runtime internal (termProfile.caps). Remove caps, require profile-or-nothing.                                                                                                                         |
 
 ---
 
@@ -214,13 +214,9 @@ See H3. Tag: **BROAD** — ASK user about breaking change.
 Four hypotheses are **REFRAME** (H2 profile-bundles-theme, H8 long-tail env-readers, H15 Term-owns-profile) or **BROAD** with "same root cause" framing (H1 case-sensitivity, H7 text-sizing bypass, H13 matrix test). The patterns:
 
 1. **The plateau fixed the entry points but not the consumers.** Env is still read from many places. The design where this class can't happen: a lint/grep invariant that no module outside `@silvery/ansi/profile.ts` reads terminal env vars directly. Caps is passed as an argument from then on.
-
 2. **Theme is the last out-of-band fact.** Collapsing `detectTheme` into the profile (async, `probeTheme: true`) finishes the SoT story.
-
 3. **`Term` and `TerminalProfile` have overlapping ownership.** Term owns caps (after Phase 2); Profile wraps caps + tier + source. A Term that was built with a profile should remember it; a Term that wasn't should produce one on demand. One owner, one profile per Term.
-
 4. **Test matrix is missing.** 56 precedence-chain tests + 0 full-caps-per-terminal snapshot tests. The case-sensitivity bug at profile.ts:295 is the proof.
-
 5. **Docstring-silent-wins are still here.** `RunOptions.profile` "silently wins over caps/colorLevel" — the same shape as the three plateau precursor bugs. The contract test suite that prevents them from recurring (the plateau's own test infrastructure) doesn't cover this new contract.
 
 ---
@@ -271,32 +267,28 @@ Fix H1 (Ghostty case-sensitivity) with a regression test. Closes the existing op
 ### DOING NOW
 
 1. **Fix H1: Ghostty case-sensitivity at profile.ts:295.** Change `program === "ghostty"` → `program === "Ghostty"`. Add regression test asserting `profile.caps.kittyKeyboard === true` + `caps.osc52 === true` when `TERM_PROGRAM=Ghostty`. Closes existing bead `km-silvery.ghostty-case-sensitivity`.
-
 2. **Fix H7: text-sizing.ts heuristic reads caps, not env.** Rewrite `isTextSizingLikelySupported(caps?: TerminalCaps)` to read `caps.textSizingSupported` with a fallback that matches current behavior when caps is not supplied. No caller change needed (argument is optional; default uses env like today).
-
 3. **File beads** for H2, H6, H8, H13, H15, and for the H3/H16 ASK (below).
-
 4. **Add contract test** for H3: "`RunOptions.profile` supplied alongside `caps` → profile wins, caps silently ignored." Pins the documented behavior so a future refactor doesn't invert silently.
 
 ### ASK (user approval needed)
 
 1. **H3 + H16: Deprecate `RunOptions.caps` and `RunOptions.colorLevel` in favor of `RunOptions.profile` only.**
-   - Why: silent-wins between three fields is the exact bug class the plateau aimed to kill. Today it's still possible at the entry-point API surface.
-   - Effort: deprecate (1 commit, emit warning when both are passed) + delete in silvery 1.1 (another commit).
-   - Recommend: **yes**, deprecate now, delete when silvery hits 1.0.
-
-2. **H6: Delete `detectColor` and `detectTerminalCaps` shims from `@silvery/ansi`.**
-   - Why: parallel API, two call sites in km that still use it. Migration is trivial. The existence of shims makes it easy to ignore the profile API.
-   - Effort: 2 hours — 2 km-tui call sites + 6 internal silvery call sites + deprecate public exports + changelog.
-   - Recommend: **yes, but after the case-sensitivity and text-sizing fixes land** so the migration doesn't have to re-fix mid-stream.
-
-3. **H15: Give `Term` its own `profile` field.**
-   - Why: eliminates the double-detection on the Term path in run.tsx; makes Term the canonical owner of "the current terminal's profile."
-   - Effort: ~30 LOC + documentation update.
-   - Recommend: **yes**, low risk, aligns with Term-as-provider principle.
+- Why: silent-wins between three fields is the exact bug class the plateau aimed to kill. Today it's still possible at the entry-point API surface.
+- Effort: deprecate (1 commit, emit warning when both are passed) + delete in silvery 1.1 (another commit).
+- Recommend: **yes**, deprecate now, delete when silvery hits 1.0.
+6. **H6: Delete `detectColor` and `detectTerminalCaps` shims from `@silvery/ansi`.**
+- Why: parallel API, two call sites in km that still use it. Migration is trivial. The existence of shims makes it easy to ignore the profile API.
+- Effort: 2 hours — 2 km-tui call sites + 6 internal silvery call sites + deprecate public exports + changelog.
+- Recommend: **yes, but after the case-sensitivity and text-sizing fixes land** so the migration doesn't have to re-fix mid-stream.
+11. **H15: Give `Term` its own `profile` field.**
+- Why: eliminates the double-detection on the Term path in run.tsx; makes Term the canonical owner of "the current terminal's profile."
+- Effort: ~30 LOC + documentation update.
+- Recommend: **yes**, low risk, aligns with Term-as-provider principle.
 
 ### Out of scope for this review
 
 - Pre-existing 14 failures (H14) — unrelated class.
 - Async profile with theme probe (H2) — nontrivial API change, needs its own design doc.
 - Env-reader lint rule (H8) — big undertaking, separate bead with its own plan.
+

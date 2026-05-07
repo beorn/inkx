@@ -118,14 +118,14 @@ Weekly check: is there a new Ink release? If yes, broadcast and create an issue.
 1. **Update pinned Ink version** from 5.2.1 → 7.0 (whatever's latest)
 2. **Run bun run compat** and document new failure count
 3. **Add compat shims** for missing Ink 7.0 hooks:
-  - useAnimation
-  - useBoxMetrics (verify existing shim still works)
-  - useCursor
-  - usePaste
-  - useIsScreenReaderEnabled
-4. **Update RESULTS.md** with Ink 7.0 numbers
-5. **Document new intentional divergences** if any
-6. **Update silvery-vs-ink.md** feature parity table
+- useAnimation
+- useBoxMetrics (verify existing shim still works)
+- useCursor
+- usePaste
+- useIsScreenReaderEnabled
+12. **Update RESULTS.md** with Ink 7.0 numbers
+13. **Document new intentional divergences** if any
+14. **Update silvery-vs-ink.md** feature parity table
 
 ## Longer-term
 

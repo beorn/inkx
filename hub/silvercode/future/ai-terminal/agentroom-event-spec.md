@@ -129,6 +129,7 @@ A user prompt sent to one or more agents. Wraps the underlying `m.room.message` 
 ```
 
 `prompt_to` is the multi-agent routing field. Values:
+
 - `null` (or absent) — use the session's `routing_policy` (broadcast / classifier).
 - `"@codex-acp:gateway.example"` — target a specific agent.
 - `["@codex-acp:gateway.example", "@claude-acp:gateway.example"]` — target a subset.
@@ -242,6 +243,7 @@ A typed content block — code, diff, image, plan-tree, etc. — emitted alongsi
 ```
 
 `block_type` values include:
+
 - `text` — plain text (default if omitted)
 - `code` — code with `language` field
 - `code.diff` — unified diff
@@ -558,12 +560,12 @@ Explicit handoff from one agent (or human) to another. Often follows `todo.compl
 
 Matrix's existing power-level mechanism gates who can emit which event types. We propose:
 
-| Power level | Default | Permitted |
-|---|---|---|
-| 0 (default member) | view all events | none of `org.agentroom.*` |
-| 50 (moderator) | view all | emit `org.agentroom.permission.decision` for own requests |
-| 75 (operator) | view all | emit any `org.agentroom.*` event; configure room policies |
-| 100 (admin) | view all | full control including agent invitation/eviction |
+| Power level        | Default         | Permitted                                               |
+| ------------------ | --------------- | ------------------------------------------------------- |
+| 0 (default member) | view all events | none of org.agentroom.*                                 |
+| 50 (moderator)     | view all        | emit org.agentroom.permission.decision for own requests |
+| 75 (operator)      | view all        | emit any org.agentroom.* event; configure room policies |
+| 100 (admin)        | view all        | full control including agent invitation/eviction        |
 
 Agent service accounts run at PL 50 (moderator) — high enough to emit prompts on behalf of agents, low enough that humans retain final authority.
 
@@ -659,3 +661,4 @@ JSONL is append-only and grows linearly with conversation length. For long sessi
 - [`hub/ventures/acp-proxy-2026-04-27.md`](../../../ventures/acp-proxy-2026-04-27.md) — venture #11 + spec-authorship moat analysis
 - [MCP (Model Context Protocol)](https://github.com/modelcontextprotocol) — the analogous Anthropic-authored standard for tool calls
 - [Anthropic Computer Use](https://www.anthropic.com/news/3-5-models-and-computer-use) — agent capability standardization precedent
+

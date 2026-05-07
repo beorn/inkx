@@ -48,15 +48,15 @@ ALS is a stopgap for backwards compatibility, not the goal:
 ### Remaining Work
 
 1. **Add `needsRebuild()` to Vault interface**
-  - File: `packages/km-storage/src/vault.ts`
-  - Memory mode returns false (never needs rebuild)
-  - Disk mode checks events.jsonl vs last_event in meta table
-2. **Update rebuild.test.ts**
-  - Use `vault.needsRebuild()` instead of standalone function
-  - Convert the todo test to use domain object pattern
-3. **Deprecate standalone `needsRebuild()`**
-  - File: `packages/km-storage/src/rebuild.ts`
-  - Add @deprecated JSDoc, keep for backwards compat
+- File: `packages/km-storage/src/vault.ts`
+- Memory mode returns false (never needs rebuild)
+- Disk mode checks events.jsonl vs last_event in meta table
+6. **Update rebuild.test.ts**
+- Use `vault.needsRebuild()` instead of standalone function
+- Convert the todo test to use domain object pattern
+10. **Deprecate standalone `needsRebuild()`**
+- File: `packages/km-storage/src/rebuild.ts`
+- Add @deprecated JSDoc, keep for backwards compat
 
 ### Files to Modify
 

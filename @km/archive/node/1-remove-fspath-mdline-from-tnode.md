@@ -19,10 +19,10 @@ Remove storage-layer properties from TNode that leak across layers.
 ### Changes
 
 1. Remove from TNode type (packages/@km/tree/src/types.ts):
-  - Delete `fsPath?: string`
-  - Delete `mdLine?: number`
-2. Update nodeToTNode() in apps to stop copying these properties
-3. Simplify @km/_orphan/opentui/App.tsx to always use storage query path
+- Delete `fsPath?: string`
+- Delete `mdLine?: number`
+5. Update nodeToTNode() in apps to stop copying these properties
+6. Simplify @km/_orphan/opentui/App.tsx to always use storage query path
 
 ### Files
 

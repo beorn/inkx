@@ -17,15 +17,15 @@ closed_at: 2026-01-27T14:32:29Z
 Issues:
 
 1. docs/ref/commands.md describes comprehensive Ctx interface with storage access
-  - Actual: CommandContext has only cursor, selection, viewMode
-  - Missing: storage, dispatchBoard, dispatch, refresh(), buildTree()
-  - Fix: Clarify "Design Target (Future)" vs actual
-2. docs/storage.md missing node types
-  - Missing: "embed" type in NodeType enum
-  - Missing: fs_mtime field in KNode interface
-3. docs/architecture.md missing DisposableStore
-  - Implementation has DisposableStore class for managing subscriptions
-  - Not documented in events section
+- Actual: CommandContext has only cursor, selection, viewMode
+- Missing: storage, dispatchBoard, dispatch, refresh(), buildTree()
+- Fix: Clarify "Design Target (Future)" vs actual
+6. docs/storage.md missing node types
+- Missing: "embed" type in NodeType enum
+- Missing: fs_mtime field in KNode interface
+10. docs/architecture.md missing DisposableStore
+- Implementation has DisposableStore class for managing subscriptions
+- Not documented in events section
 
 Actions:
 

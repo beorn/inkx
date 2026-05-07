@@ -68,16 +68,15 @@ km-tui's full app suite (real-world layouts, large boards, named regions).
     `silvery:passes:<cause>` (with the parent `silvery:passes` aggregator
     stage capturing both parent and child events). This enables granular
     debug filtering:
-
     ```bash
     DEBUG=silvery:passes                    # all causes
     DEBUG=silvery:passes:layout-invalidate  # only layout-invalidate
     DEBUG=silvery:passes:scrollto-settle    # only scrollto-settle
     ```
 
-    Children are cached per cause (one logger per `PassCause` ever
-    constructed; subsequent `logPass({ cause: x })` calls reuse the
-    cached child). Zero hot-path cost beyond a `Map.get`.
+    Children are cached per cause (one logger per PassCause ever
+    constructed; subsequent logPass({ cause: x }) calls reuse the
+    cached child). Zero hot-path cost beyond a Map.get.
   - Trimmed three legacy enum buckets that observed 0/0/0 records in the
     v2 corpus (`viewport-dependent`, `text-measurement-feedback`,
     `resize-resettle`). The unknown-bucket synthesis (fee71c54) makes
@@ -139,17 +138,17 @@ Both confirm:
 
 ## Summary (v2)
 
-| Metric | silvery features | km-tui | Combined |
-|---|---:|---:|---:|
-| Test files | 511 (full vendor) | 126 | 637 |
-| Tests | 11 365 / 11 367 (2 perf flake under load) | 2 528 / 2 534 (6 flake under load) | 13 893 |
-| App teardowns recorded | 579 | 6 | 585 |
-| Extra-pass causes recorded | 4 885 | 11 581 | 16 466 |
-| layout-invalidate share | 91.0% | 98.0% | 95.9% |
-| viewport-resize share | 6.9% | 0.1% | 2.1% |
-| scrollto-settle share | 1.9% | 1.9% | 1.9% |
-| unknown share | 0.2% | 0.0% | 0.07% |
-| Max convergence depth observed | pass 0→1 | pass 0→1 | pass 0→1 |
+| Metric                         | silvery features                          | km-tui                             | Combined |
+| ------------------------------ | ----------------------------------------: | ---------------------------------: | -------: |
+| Test files                     | 511 (full vendor)                         | 126                                | 637      |
+| Tests                          | 11 365 / 11 367 (2 perf flake under load) | 2 528 / 2 534 (6 flake under load) | 13 893   |
+| App teardowns recorded         | 579                                       | 6                                  | 585      |
+| Extra-pass causes recorded     | 4 885                                     | 11 581                             | 16 466   |
+| layout-invalidate share        | 91.0%                                     | 98.0%                              | 95.9%    |
+| viewport-resize share          | 6.9%                                      | 0.1%                               | 2.1%     |
+| scrollto-settle share          | 1.9%                                      | 1.9%                               | 1.9%     |
+| unknown share                  | 0.2%                                      | 0.0%                               | 0.07%    |
+| Max convergence depth observed | pass 0→1                                  | pass 0→1                           | pass 0→1 |
 
 km-tui shows much higher absolute per-teardown layout-invalidate
 counts (~1 930 / teardown) reflecting its real-world useBoxRect /
@@ -158,18 +157,18 @@ unsubscribed renders) shows the structural baseline (~8 / teardown).
 
 ## Combined: by cause
 
-| Cause | Count | % | Notes |
-|---|---:|---:|---|
-| layout-invalidate | 15 799 | 95.9% | Subscriber-observed only (gated via `hasLayoutSignals(node)`) |
-| viewport-resize | 344 | 2.1% | Root trigger, not a feedback edge |
-| scrollto-settle | 312 | 1.9% | newIntent 311 / recovery 1 |
-| unknown | 11 | 0.07% | Synthesized by `notePassCommit` when no specific cause was attributed |
-| wrap-reflow | 0 | 0.0% | Wired in measure-phase but no fit-content/snug-content node hit a delta in this run |
-| intrinsic-shrinkwrap | 0 | 0.0% | Same as wrap-reflow |
-| sticky-resettle | 0 | 0.0% | km-tui doesn't use sticky children in covered tests |
-| resize-resettle | 0 | 0.0% | No resize-during-batch case in corpus |
-| decoration-remap, focus-scroll-into-view, font-metrics-changed, async-image-size, theme-metric-changed | 0 | 0.0% | Not yet wired (decoration-remap requires reaching into @silvery/ag, focus-scroll-into-view + the rest need their producer paths to land first) |
-| viewport-dependent, text-measurement-feedback | 0 | 0.0% | Legacy buckets retained for back-compat |
+| Cause                                                                                                  | Count  | %     | Notes                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | -----: | ----: | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| layout-invalidate                                                                                      | 15 799 | 95.9% | Subscriber-observed only (gated via hasLayoutSignals(node))                                                                                    |
+| viewport-resize                                                                                        | 344    | 2.1%  | Root trigger, not a feedback edge                                                                                                              |
+| scrollto-settle                                                                                        | 312    | 1.9%  | newIntent 311 / recovery 1                                                                                                                     |
+| unknown                                                                                                | 11     | 0.07% | Synthesized by notePassCommit when no specific cause was attributed                                                                            |
+| wrap-reflow                                                                                            | 0      | 0.0%  | Wired in measure-phase but no fit-content/snug-content node hit a delta in this run                                                            |
+| intrinsic-shrinkwrap                                                                                   | 0      | 0.0%  | Same as wrap-reflow                                                                                                                            |
+| sticky-resettle                                                                                        | 0      | 0.0%  | km-tui doesn't use sticky children in covered tests                                                                                            |
+| resize-resettle                                                                                        | 0      | 0.0%  | No resize-during-batch case in corpus                                                                                                          |
+| decoration-remap, focus-scroll-into-view, font-metrics-changed, async-image-size, theme-metric-changed | 0      | 0.0%  | Not yet wired (decoration-remap requires reaching into @silvery/ag, focus-scroll-into-view + the rest need their producer paths to land first) |
+| viewport-dependent, text-measurement-feedback                                                          | 0      | 0.0%  | Legacy buckets retained for back-compat                                                                                                        |
 
 The "unknown" bucket is synthesized when a pass commits React work but
 no specific PassCause was emitted during it. 11 / 16 466 = **0.07%**,
@@ -181,11 +180,11 @@ well under the 10% completeness threshold. The current categories cover
 Across all observed convergence loops, only pass 0 ever committed React
 work that forced pass 1. **No test reached pass 2 or beyond.**
 
-| Corpus | Pass 0 commits | Pass 1+ commits |
-|---:|---:|---:|
-| silvery features (full vendor) | 14 | 0 |
-| km-tui | 69 | 0 |
-| Combined | 83 | 0 |
+| Corpus                         | Pass 0 commits | Pass 1+ commits |
+| -----------------------------: | -------------: | --------------: |
+| silvery features (full vendor) | 14             | 0               |
+| km-tui                         | 69             | 0               |
+| Combined                       | 83             | 0               |
 
 The MAX_SINGLE_PASS_ITERATIONS=15 budget is **massively over-budgeted**
 relative to observed depth. The next-frame headroom for safety is at
@@ -233,11 +232,11 @@ not noise.
 
 ## Side-by-side comparison
 
-|  | silvery features | km-tui |
-|---|---:|---:|
-| layout-invalidate per teardown | 7.7 | 1 893 |
-| viewport-resize per teardown | 0.58 | 1.5 |
-| scrollto-settle per teardown | 0.16 | 36.2 |
+|                                | silvery features | km-tui |
+| ------------------------------ | ---------------: | -----: |
+| layout-invalidate per teardown | 7.7              | 1 893  |
+| viewport-resize per teardown   | 0.58             | 1.5    |
+| scrollto-settle per teardown   | 0.16             | 36.2   |
 
 km-tui exercises ~245× more layout-invalidate edges per teardown than
 silvery features. That gap is the subscriber-density signal: km-tui's
@@ -279,11 +278,11 @@ WeakMap lookup — cheap, but only runs when INSTRUMENT is true.
 Verified via hot subset benchmark (sibling-overlap-incremental +
 absolute-hit-test, 3 runs each), v1 baseline:
 
-| Variant | Mean test time |
-|---|---:|
-| main (no instrumentation in source) | 108 ms |
-| feat/feedback-trace, INSTRUMENT off | 104 ms |
-| feat/feedback-trace, INSTRUMENT on (v1) | 184 ms |
+| Variant                                 | Mean test time |
+| --------------------------------------- | -------------: |
+| main (no instrumentation in source)     | 108 ms         |
+| feat/feedback-trace, INSTRUMENT off     | 104 ms         |
+| feat/feedback-trace, INSTRUMENT on (v1) | 184 ms         |
 
 v2 has not been re-benchmarked but the OFF path is unchanged (same
 gate). The ON path likely got faster (fewer object allocations
@@ -348,3 +347,4 @@ comments on `PassCause` for future reference.
 - `km-silvery.renderer-feedback-trace` (this work, C3a)
 - `km-silvery.renderer-convergence-by-design` / C3b (consumes this data)
 - `km-silvery.structural-hardening` (parent epic)
+

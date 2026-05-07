@@ -77,17 +77,11 @@ Merge rule: interleave `MessageEntry[]` and `AmbientStreamEntry[]` by `ts` / `ti
 ## Integration points
 
 1. **`AmbientEventRow.tsx`** (new) — pure presentational component. Inputs: `entry: AmbientStreamEntry`, `expanded: boolean`, `onToggleExpand: () => void`. Outputs: a row matching the visual spec. Owns its own hover state. NO knowledge of mute filters, of the session, or of how it got here.
-
 2. **`SessionUpdateList.tsx`** — extend to accept an optional `ambientEntries: AmbientStreamEntry[]` prop. When passed, merge with `messages` by timestamp, dispatch on item kind in `renderItem`. When omitted, current behaviour. Mute filter is applied at the `SessionCard` level, not here — by the time entries arrive, they're already filtered.
-
 3. **`SessionCard.tsx`** — pull ambient stream via `useAmbientStream(handle.id)`, apply per-source mute filter (read from a new `mutedSources` signal), pass the filtered list to `SessionUpdateList`.
-
 4. **`SidePanel.tsx`** — add an "Ambient" section. One row per source with a checkbox-style toggle (`☐` / `☑`). Clicking toggles the source's entry in the `mutedSources` signal. Live count of total events per source as muted text suffix. Hover popover explains "muting hides rows from the inline view; the agent still receives them."
-
 5. **`ambient-stream.ts`** (new) — `createAmbientStream(scope)` factory. Two methods: `record(sessionId, event)` (controller calls), `read(sessionId): AmbientStreamEntry[]` (UI calls). One alien-signals `signal` per session for reactivity.
-
 6. **`controller.ts`** — wire `channelQueue.subscribe` to also call `ambientStream.record(focusedId, event)` for whichever session(s) consumed the event in `assembleAcpPrompt`. (Phase 6.a: write to focused session only; future phases can attribute by who actually drained.)
-
 7. **`mute-state.ts`** (new) — `createMuteState(scope)`. Persists to `~/.config/silvercode/mute-state.json` (so toggles survive restarts). Reactive signal of `Set<string>`.
 
 ---
@@ -127,3 +121,4 @@ The hover popover on each side-panel mute row spells this out so the user does n
 - Rate-limit / circuit-breaker UI (lives in Phase 6.b — `silvercode doctor ambient`).
 - Cross-session ambient history view (one global feed across all panes).
 - Inline action affordances on actionable events ("retry CI", "view PR") — that's a future bead once the actionable taxonomy stabilizes.
+

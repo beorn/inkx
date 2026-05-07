@@ -267,17 +267,17 @@ Books and papers that shaped this design:
 
 External packages we depend on and why:
 
-| Package                 | Why                                   | Risk                     |
-| ----------------------- | ------------------------------------- | ------------------------ |
-| `bun`                   | Runtime + test + pkg manager          | New but maturing fast    |
-| `react`                 | UI framework (via silvery reconciler) | Stable                   |
-| `yjs`                   | CRDT for sync                         | Well-maintained          |
-| `mdast-util-*`          | Markdown AST utilities                | Stable                   |
-| `micromark`             | Markdown tokenizer                    | Stable                   |
-| `better-sqlite3`        | (alt) SQLite driver                   | Replaced by `bun:sqlite` |
-| `sqlite` (bun built-in) | Primary storage                       | Stable                   |
-| `ulid`                  | ID generator                          | Stable                   |
-| `yaml`                  | Frontmatter parsing                   | Stable                   |
+| Package               | Why                                   | Risk                   |
+| --------------------- | ------------------------------------- | ---------------------- |
+| bun                   | Runtime + test + pkg manager          | New but maturing fast  |
+| react                 | UI framework (via silvery reconciler) | Stable                 |
+| yjs                   | CRDT for sync                         | Well-maintained        |
+| mdast-util-*          | Markdown AST utilities                | Stable                 |
+| micromark             | Markdown tokenizer                    | Stable                 |
+| better-sqlite3        | (alt) SQLite driver                   | Replaced by bun:sqlite |
+| sqlite (bun built-in) | Primary storage                       | Stable                 |
+| ulid                  | ID generator                          | Stable                 |
+| yaml                  | Frontmatter parsing                   | Stable                 |
 
 ## Appendix E: Decisions log ^decisions
 
@@ -343,3 +343,4 @@ Explicit performance budgets — if we exceed these, we regress.
   clear contribution guidelines, say no often.
 
 <!-- end of multi-year program outline -->
+

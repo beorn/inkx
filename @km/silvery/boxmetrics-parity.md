@@ -49,20 +49,20 @@ const { width, height, left, top, hasMeasured } = useBoxMetrics(ref)
 ## Decisions to make
 
 1. **Rename useContentRect → useBoxMetrics?**
-  - Pro: 100% Ink migration compat
-  - Con: Lose descriptive name; "BoxMetrics" is vague
-  - Alternative: Export both names — useBoxMetrics as alias
-2. **Match the shape?**
-  - Add left/top to our API (parent-relative)
-  - Add hasMeasured flag
-  - Ensure ref-based usage works
-3. **Keep useScreenRect separate?**
-  - Ink doesn't have equivalent (no scroll containers)
-  - Silvery's advantage — keep it
-  - useBoxMetrics = parent-relative; useScreenRect = screen-absolute
-4. **Document migration path**
-  - Ink users should be able to copy-paste useBoxMetrics calls
-  - Add to migrate-from-ink.md
+- Pro: 100% Ink migration compat
+- Con: Lose descriptive name; "BoxMetrics" is vague
+- Alternative: Export both names — useBoxMetrics as alias
+6. **Match the shape?**
+- Add left/top to our API (parent-relative)
+- Add hasMeasured flag
+- Ensure ref-based usage works
+11. **Keep useScreenRect separate?**
+- Ink doesn't have equivalent (no scroll containers)
+- Silvery's advantage — keep it
+- useBoxMetrics = parent-relative; useScreenRect = screen-absolute
+16. **Document migration path**
+- Ink users should be able to copy-paste useBoxMetrics calls
+- Add to migrate-from-ink.md
 
 ## Output
 

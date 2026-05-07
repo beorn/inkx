@@ -34,9 +34,13 @@ function freshRepo(): Repo {
  * blocked-by storage has something stable to point at. Mirrors the
  * shape `Bead.from` reads.
  */
-function addTask(repo: Repo, opts: { id?: string; content?: string; parentId?: string | null }): string {
+function addTask(
+  repo: Repo,
+  opts: { id?: string; aliases?: string[]; content?: string; parentId?: string | null },
+): string {
   const data: Record<string, unknown> = {}
   if (opts.id) data.id = opts.id
+  if (opts.aliases) data.aliases = opts.aliases
   return repo.addNode(opts.parentId ?? null, {
     type: "p",
     item: { list: "-", task: { marker: "[ ]", status: "todo" } },
@@ -176,6 +180,25 @@ describe("removeGraphEdge", () => {
     const b = addTask(repo, { id: "@km/foo/b" })
 
     expect(() => removeGraphEdge(repo, { from: a, to: b, rel: "blocks" })).not.toThrow()
+  })
+
+  test("removes an existing edge stored under an alias of the blocker", () => {
+    const repo = freshRepo()
+    const a = addTask(repo, { id: "@km/foo/a", aliases: ["km-foo.a"] })
+    const b = addTask(repo, { id: "@km/foo/b" })
+    repo.updateNode(b, {
+      data: {
+        id: "@km/foo/b",
+        props: { "blocked-by": { type: "link", target: "km-foo.a" } },
+        propsRaw: { "blocked-by": "[[km-foo.a]]" },
+      },
+    })
+
+    removeGraphEdge(repo, { from: a, to: b, rel: "blocks" })
+
+    const node = repo.getNode(b)
+    const data = node?.data as { props?: Record<string, unknown> }
+    expect(data.props?.["blocked-by"]).toBeUndefined()
   })
 
   test("preserves remaining blockers when one is removed", () => {

@@ -159,29 +159,29 @@ Every form an incoming reference can take, where it is parsed today, and how the
 
 All forms below live in `KNode.content`. The link-cache (`packages/km-storage/src/db/links.ts`) indexes wiki-form occurrences by canonical href, so we don't need to walk every node to find the candidate hosts — `getBacklinksByHref(db, oldHref)` returns the host_id list directly.
 
-| Form | Notation | Parser entrypoint | Index that finds it |
-|---|---|---|---|
-| Plain wikilink | `[[old]]` | `parseWikiLinks` (packages/km-markdown/src/parser.ts:117) | `links` table, rel=`link`, href=`km:old` |
-| Aliased wikilink | `[[old\|Alias]]` | same | same href; alias lives in body, must be preserved |
-| Section ref | `[[old#Heading]]` | same | href=`km:old#Heading`; **rewrite the path part only** |
-| Block ref | `[[old^abc]]` | same | href=`km:old#^abc`; same |
-| Transclusion | `![[old]]` | same | `links` table, rel=`embed`, href=`km:old` |
-| Self-ref to old name | `[[#Heading]]` (when host is the moved node) | same | not in backlink index — covered by §2.7 |
-| Logseq inline-property wikilink | `blocks:: [[old]], [[other]]` | `parseInlineProperties` (parser.ts:521) wraps `parseWikiLinks` | host's body has `[[old]]`, host's link row already exists — same backlink hit |
-| Logseq inline-property single | `blocked-by:: [[old]]` | same | same |
-| Bare bd-id mention in prose | `… see km-scope.slug for context …` | `rewriteLegacyIdMentions` regex (packages/km-beads/src/migrate.ts:235) | NOT in any index — requires content scan; gated by `bareIdMention` form (default off for non-bd renames) |
+| Form                            | Notation                                   | Parser entrypoint                                                    | Index that finds it                                                                                    |
+| ------------------------------- | ------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Plain wikilink                  | [[old]]                                    | parseWikiLinks (packages/km-markdown/src/parser.ts:117)              | links table, rel=link, href=km:old                                                                     |
+| Aliased wikilink                | [[old\\|Alias]]                            | same                                                                 | same href; alias lives in body, must be preserved                                                      |
+| Section ref                     | [[old#Heading]]                            | same                                                                 | href=km:old#Heading; rewrite the path part only                                                        |
+| Block ref                       | [[old#^abc]]                               | same                                                                 | href=km:old#^abc; same                                                                                 |
+| Transclusion                    | ![[old]]                                   | same                                                                 | links table, rel=embed, href=km:old                                                                    |
+| Self-ref to old name            | [[#Heading]] (when host is the moved node) | same                                                                 | not in backlink index — covered by §2.7                                                                |
+| Logseq inline-property wikilink | blocks:: [[old]], [[other]]                | parseInlineProperties (parser.ts:521) wraps parseWikiLinks           | host's body has [[old]], host's link row already exists — same backlink hit                            |
+| Logseq inline-property single   | blocked-by:: [[old]]                       | same                                                                 | same                                                                                                   |
+| Bare bd-id mention in prose     | … see km-scope.slug for context …          | rewriteLegacyIdMentions regex (packages/km-beads/src/migrate.ts:235) | NOT in any index — requires content scan; gated by bareIdMention form (default off for non-bd renames) |
 
 The bare-id mention case is the only body-content form not covered by the link cache. When `MoveSpec` indicates a bd id rename (i.e., `newShortId` is set), the primitive runs the `rewriteLegacyIdMentions`-style pass over every node's content; otherwise it skips. The cost is bounded — see §5.
 
 ### 2.2 Frontmatter
 
-| Field | Where parsed | Example | Rewrite |
-|---|---|---|---|
-| `id` | km-markdown ast2nodes (sets `node.data.short_id`); km-beads/migrate.ts:149 emits it | `id: @km/scope/old-slug` | Update on the moved node (§3.2). On other nodes: appears only via `parent_id` (§2.5). |
-| `aliases` | yaml list, consumed by name resolver | `aliases: [@km/scope/old-slug, km-scope.old-slug]` | When a host file's aliases list contains the old short id (path-form or bd-form), rewrite to the new short id. **Preserve other aliases.** Iterates the host's `node.data.aliases` array. |
-| `parent_id` | km-beads/schema.ts:52 (bd v1.0 emits it) | `parent_id: @km/scope/old-slug` | Rewrite when it equals the old short id. |
-| `created_by`, `created_at`, `closed_at`, `close_reason` | bd metadata | n/a | Never references other nodes; ignored. |
-| Block-by prop string form | km-cli/src/commands/bd.ts:982 | `blocked-by: { type: "link", target: "km-scope.old-slug" }` | Already covered by `km bd rename` today; the primitive subsumes it. The `target` field is a bare bd-id string, distinct from a wikilink. |
+| Field                                           | Where parsed                                                                      | Example                                                   | Rewrite                                                                                                                                                                             |
+| ----------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                                              | km-markdown ast2nodes (sets node.data.short_id); km-beads/migrate.ts:149 emits it | id: @km/scope/old-slug                                    | Update on the moved node (§3.2). On other nodes: appears only via parent_id (§2.5).                                                                                                 |
+| aliases                                         | yaml list, consumed by name resolver                                              | aliases: [@km/scope/old-slug, km-scope.old-slug]          | When a host file's aliases list contains the old short id (path-form or bd-form), rewrite to the new short id. Preserve other aliases. Iterates the host's node.data.aliases array. |
+| parent_id                                       | km-beads/schema.ts:52 (bd v1.0 emits it)                                          | parent_id: @km/scope/old-slug                             | Rewrite when it equals the old short id.                                                                                                                                            |
+| created_by, created_at, closed_at, close_reason | bd metadata                                                                       | n/a                                                       | Never references other nodes; ignored.                                                                                                                                              |
+| Block-by prop string form                       | km-cli/src/commands/bd.ts:982                                                     | blocked-by: { type: "link", target: "km-scope.old-slug" } | Already covered by km bd rename today; the primitive subsumes it. The target field is a bare bd-id string, distinct from a wikilink.                                                |
 
 ### 2.3 Heading rules (km.add, km.sync)
 
@@ -355,13 +355,13 @@ The bead description suggests `Bun.glob` over `*.md`. That's the wrong primitive
 
 ### 5.5 Estimate summary
 
-| Operation | Hosts touched | Time | Notes |
-|---|---|---|---|
-| Pure re-parent of a leaf node, no incoming refs | 0 | <5ms | Data-layer only. |
-| Pure re-parent with 5 backlinks | 5 | <10ms | Indexed. |
-| Rename of a project node with 50 backlinks | 50 | ~50ms | Indexed + rule scan. |
-| Bd id canonicalisation with 200 inline mentions | ~50 | ~300ms | Bare-id pass dominates. |
-| Restructure a folder with 500 incoming refs | ~500 | ~500ms | Indexed; multiple href variants. |
+| Operation                                       | Hosts touched | Time   | Notes                            |
+| ----------------------------------------------- | ------------- | ------ | -------------------------------- |
+| Pure re-parent of a leaf node, no incoming refs | 0             | <5ms   | Data-layer only.                 |
+| Pure re-parent with 5 backlinks                 | 5             | <10ms  | Indexed.                         |
+| Rename of a project node with 50 backlinks      | 50            | ~50ms  | Indexed + rule scan.             |
+| Bd id canonicalisation with 200 inline mentions | ~50           | ~300ms | Bare-id pass dominates.          |
+| Restructure a folder with 500 incoming refs     | ~500          | ~500ms | Indexed; multiple href variants. |
 
 The 200ms threshold for "go background" (§6) is calibrated against this — anything that scans `getAllNodes` for the bare-id pass crosses it.
 
@@ -514,3 +514,4 @@ Code paths referenced in this design (file:line for traceability):
 - `packages/km-beads/src/migrate.ts:309-319` — `bdIdToPathForm`
 - `packages/km-beads/src/migrate.ts:362-371` — `bdIdToPathFormWithSlug`
 - `vendor/bearly/tools/lib/backends/wikilink/index.ts` — refactor.ts wikilink backend (NOT reused; the link cache is faster)
+

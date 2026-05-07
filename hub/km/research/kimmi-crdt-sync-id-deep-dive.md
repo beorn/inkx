@@ -29,7 +29,8 @@ ADR-001 is explicit ("Option 6B: URI Scheme (Current)", `decisions/001-repo-data
 
 Fully decoupled from path. `TreeDoc` has **only** `parent_id` + `parent_idx` (fractional index) — no path is stored on the item.
 `/Users/beorn/Code/pim/kimmi/docs/design/kimmi-tree.md:34-40`:
-> Items use `parent_id` to link to parent … `parent_idx` for ordering … To reorder: Update `parent_idx` only, no sibling updates needed.
+
+> Items use parent_id to link to parent … parent_idx for ordering … To reorder: Update parent_idx only, no sibling updates needed.
 
 Path is **derived** from tree position during markdown materialization; the mapping `itemId ↔ filename` is a cache in `items.db` (not the truth):
 `/Users/beorn/Code/pim/kimmi/docs/design/kimmi-fsrepo.md:302-306`: "Track item ID → filename mapping in `items.db`."
@@ -53,10 +54,11 @@ Path is **derived** from tree position during markdown materialization; the mapp
 
 **Split: one TreeDoc + one Item doc per item + one blob per binary.** Direct quote, `kimmi-repo.md:11-23`:
 
-> **Automerge Documents** (managed via automerge-repo Repo)
-> - **Tree document**: Single doc with all items, hierarchy, properties
-> - **Item documents**: One doc per item containing markdown text
-> - Each accessed via `DocHandle` for automatic sync/storage
+> Automerge Documents (managed via automerge-repo Repo)
+> 
+> * Tree document: Single doc with all items, hierarchy, properties
+> * Item documents: One doc per item containing markdown text
+> * Each accessed via DocHandle for automatic sync/storage
 
 Rationale (`kimmi-repo.md:29`): "Tree + items separation: Tree changes don't require syncing all text."
 ADR-001 §Content Document Separation evaluates unified vs separate and chooses separate (`001:280-322`).
@@ -70,6 +72,7 @@ Operations are NOT reified into a separate stream — the mutation API is `DocHa
 `docs/decisions/014-unified-item-data-model.md:179-182`: round-trip preserved via `meta._vcard` / `meta._ical` raw-format blobs nested in `meta.*`.
 
 For markdown:
+
 - Materialization is described only at a structural level (`kimmi-fsrepo.md:213-313`) — title → heading, list items → children, frontmatter → props.
 - No fidelity test corpus. No discussion of preserving YAML key ordering, comment preservation, whitespace, Obsidian-specific syntax (callouts, embeds, math).
 - `ItemDoc.content` is a plain string in v0.7, parsed AST deferred to v3+ (`ADR-013:34`, `014:256`).
@@ -95,6 +98,7 @@ Kimmi adopts this without modification. Pruning / history truncation is an **ope
 ### Q10 — automerge-repo subset
 
 Kimmi uses automerge-repo **as-is**, not a subset (`kimmi-repo.md:36-55`). Extensions are:
+
 1. **Blob store** (content-addressed binaries, not in automerge-repo),
 2. **Markdown materialization** (FS-only, optional),
 3. **PIM connectors** (CardDAV/CalDAV/IMAP).
@@ -110,7 +114,6 @@ No custom storage adapter, no custom sync protocol. Uses `NodeFSStorageAdapter` 
 **Two distinct sync surfaces:**
 
 1. **Repo-to-Repo replication** — Automerge-native, designed for **peer-to-peer + relays** via pluggable NetworkAdapters (WebSocket, MessageChannel, BroadcastChannel). `kimmi-sync.md:131-155`. Currently **aspirational** — status says "Peer-to-peer replicators (Repo-to-Repo over network)" is "Future (v0.7+)" (`kimmi-sync.md:766-770`). Implemented: **none**.
-
 2. **Connectors** — external system sync (CardDAV today via vdirsyncer). Three-phase: Remote ↔ Cache ↔ Repo (`kimmi-sync.md:183-226`).
 
 The Repo is explicitly described as a "**sync hub**" in the hub/spoke sense (`kimmi-sync.md:13-30`) but this is not a server-central topology — each device is a full replica.
@@ -137,9 +140,9 @@ For markdown `.md` files specifically (filesystem materialization), distinction 
 
 Under-specified. The doc says (`kimmi-fsrepo.md:287-300`):
 
-> - Repo → Files: Serialize items to `.md` files
-> - Files → Repo: Parse `.md` files, update Automerge documents via DocHandle
-> - Debounce rapid changes (100ms default)
+> * Repo → Files: Serialize items to .md files
+> * Files → Repo: Parse .md files, update Automerge documents via DocHandle
+> * Debounce rapid changes (100ms default)
 
 That's it. No echo-suppression scheme, no reconcile strategy on divergence, no "which side wins if both changed" policy for markdown. This is the most under-designed part of kimmi's filesystem story.
 
@@ -158,9 +161,10 @@ Declared optional and lazy-capable: "Optional markdown materialization for human
 ### Q17 — Markdown as git-working-directory
 
 Yes, architecturally explicit. `kimmi-fsrepo.md:16`:
-> Architecture analogy: Like Git - `.kimmi/` is the repository, workspace markdown files are the working directory.
-And `kimmi-fsrepo.md:224`:
-> Markdown files are a _projection_ for editing, NOT the Repo itself.
+
+> Architecture analogy: Like Git - .kimmi/ is the repository, workspace markdown files are the working directory.
+> And kimmi-fsrepo.md:224:
+> Markdown files are a projection for editing, NOT the Repo itself.
 
 ### Q18 — User style preferences in projection
 
@@ -183,6 +187,7 @@ Design only. `kimmi-fsrepo.md:342-345`: "Updated when Repo changes (via DocHandl
 ### Q21 — Query patterns
 
 Planned (`kimmi-query.md` + ADR-002 deferred):
+
 - **Backlink index** — wikilink graph (`kimmi-query.md:11-34`)
 - **FTS5** full-text
 - **Property index** — filter by doc_type / schema fields
@@ -205,6 +210,7 @@ Explicitly (`research/automerge.md:412-418`):
 > Documents with large histories (>60k edits) can be slow to sync. Sync requires loading full document into memory. Sync server can struggle with high traffic on large docs. Currently in beta.
 
 And (`ADR-001:462-466`):
+
 > At what item count does single tree become slow? Plan sub-tree splitting when repos exceed 10,000 items.
 
 ### Q24 — Too-many-docs-to-load
@@ -251,11 +257,8 @@ Kimmi's mitigation (`automerge.md:421-428`): "Multiple smaller documents better 
 ## Synthesis for km
 
 1. **Adopt**: URI-scheme identity (`automerge:`, `file:sha256:`, `item:`, `https:`) + stable UUID item IDs + fractional-index ordering. The ADR-001 design is clean, battle-tested at 3,700 items, and zero-friction to retrofit onto km's current path-based identity. The **three-level change detection** split (items / fields / characters) via `microdiff` is the right frame for km's "what changed?" question — keep it even if we don't adopt Automerge.
-
 2. **Avoid / cautionary**: Kimmi quietly proves that **Automerge does not solve the hard problems** we think it does — no diff API, no sync to external systems, sync-protocol limits >60k edits, Text type thrash across versions, mandatory custom field-comparison code anyway. The per-item Automerge-doc explosion (one DocHandle per note) is untested at 20k notes and its scale ceiling is acknowledged but not measured. The **markdown fidelity / echo-suppression** gap is massive in kimmi — we should not assume "Family C" automatically solves round-trip.
-
 3. **Still unknown in kimmi**: cross-repo federation (Q3 — kimmi is explicitly single-repo), block-level IDs inside markdown (kimmi has item-level only; `.content` is a plain string), structural concurrent-edit semantics beyond last-write-wins on `parent_id`, file-watcher self-write suppression, markdown round-trip fidelity corpus, compaction/GC policy, ItemIndex materialization timing. km's problem surface is larger than kimmi has confronted.
-
 4. **A vs C tip**: **Neither side is conclusively pushed by kimmi.** Kimmi's design shows that (a) DB-as-truth is *buildable* and the markdown-as-projection posture is defensible, BUT (b) the atomic layer doing real work is **stable IDs + SQLite-style indexes + custom field diffs** — Automerge is, in practice, a *storage substrate* kimmi could have swapped for SQLite + event log without losing most of its design. That weakens the "C requires CRDT" framing. Since stable IDs + federation are already decided, and those are the load-bearing wins, km can move toward C's *identity discipline* without committing to Automerge. kimmi's experience suggests **C-without-CRDT** (SQLite + stable DocId/BlockId + operation log) is the pragmatic middle.
-
 5. **Validating experiment**: Take km's current vault, generate stable DocIds (UUID) + BlockIds per paragraph/heading, store them in a `.km/state.db` SQLite with `(doc_id, block_id, content_hash)` rows + an operation log table, and implement kimmi's `microdiff`-based Level-2 change detection to reconcile `.md` file changes against the DB. Success criterion: rename a file, move a heading between files, edit a block — all three preserve identity across the round-trip, with the `.md` remaining human-readable and git-diffable. This proves the "identity + diff" core without Automerge, and if it works, we've gotten 80% of Family C's value with 20% of kimmi's complexity.
+

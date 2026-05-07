@@ -142,6 +142,7 @@ The pieces work together: **km is the workspace where durable artifacts live and
 Following `docs/principles.md`, each layer has specific patterns:
 
 ### km: durable, structured, searchable, posture-agnostic
+
 - **Single tree, polymorphic nodes**: KNode's positional role keeps the type system simple.
 - **Markdown as source of truth**: files are editable, git-trackable, human-readable.
 - **Every artifact links**: wikilinks, bead refs, mentions — all typed relations.
@@ -149,6 +150,7 @@ Following `docs/principles.md`, each layer has specific patterns:
 - **Plans are nodes**: roadmaps, kanbans, workflow contracts are KNodes with facets, not new infrastructure. Top-down posture is opt-in per board, not a global mode.
 
 ### tribe: event-log core, rendered projections
+
 - **Rooms are event logs**, not chat apps. Small core interface, capabilities for optional features.
 - **Events are immutable**; edits and redactions are new events that reference prior ones.
 - **Files are projections**, not editable source. Posting goes through the `Room` API.
@@ -156,6 +158,7 @@ Following `docs/principles.md`, each layer has specific patterns:
 - **Every structured event** is also a human-readable message. Plain clients render text; km-aware clients act on the structure.
 
 ### Agents: durable identity, ephemeral sessions
+
 - **Persona = identity**, Session = process, Role = scoped claim. Three concerns, not conflated. Persona files live in km; sessions and leases live in tribe.
 - **Stable `persona_id`** distinct from filename; rename preserves identity.
 - **Lease-based exclusivity** (or explicit advisory-only) — never silent "who holds this."
@@ -166,27 +169,35 @@ Following `docs/principles.md`, each layer has specific patterns:
 ## Integration with the wider ecosystem
 
 ### Claude Code
+
 km's primary runtime. Sessions assume personas via SessionStart hook. MCP tools exposed for tribe (broadcast, send, members, history, recall, bd operations). Claude Code is the interactive shell; km is the workspace it shells into.
 
 ### @bearly/recall
+
 The search primitive. Indexes vault files including rendered `chats/`, persona working memory, bead descriptions. Invoked as `bun recall "query"` from CLI or as a tribe MCP tool.
 
 ### bearlymade (alien-signals, alien-trees, alien-projections, alien-resources)
+
 km's reactive primitives. Used throughout km-tui, km-board, km-storage. No change from vision; continues as-is.
 
 ### silvery
+
 km's TUI framework. Gets a new **channel view type** for rendering `chats/` directories (see `tribe-matrix.md`). No other fundamental changes; silvery remains general-purpose.
 
 ### bd / km bd
+
 Work ledger. External `beads` in use today; km-native `km bd` backed by km-storage is the destination (`km-infra.bd-v1-compat`). Tribe references bead IDs in structured events; bead claims can auto-create threads in the relevant channel.
 
 ### OpenClaw
+
 Future bridge only. When km user wants cross-platform reach (chat from Slack, Telegram, iMessage, etc. arrives in the same tribe rooms), `@bearly/room-openclaw` adapter provides it. No dependency today; commitment avoided per the trust-surface analysis in `tribe-matrix.md`.
 
 ### pam (Personal Assistant Machine)
+
 Adjacent project. pam and km share philosophy but different shapes — pam is the conversational personal-assistant product; km is the knowledge-work-environment product. They can be bridged via tribe (a pam agent becomes a persona in a km tribe room) but are not merged.
 
 ### gbrain-pam convergence
+
 See `hub/km/gbrain-pam-convergence.md`. The takeaways — RESOLVER.md, compiled-truth/timeline, enrichment tiers, hybrid search — inform the knowledge-layer vision here. km adopts those patterns gradually; vector search integration is a Phase 5+ concern.
 
 ## Roadmap
@@ -194,11 +205,13 @@ See `hub/km/gbrain-pam-convergence.md`. The takeaways — RESOLVER.md, compiled-
 Aligned with how each domain advances; phased rollout in the DR for communication is the active work.
 
 ### Knowledge (ongoing)
+
 - km bd feature parity with external beads (`km-infra.bd-v1-compat`, in progress)
 - Vector search integration into km-storage (future)
 - RESOLVER.md + compiled-truth patterns adopted from gbrain (future)
 
 ### tribe (phased via [`tribe-matrix.md`](tribe-matrix.md))
+
 - **Phase 0**: `@bearly/room` interface + minimal adapters + chaos conformance (5-6d)
 - **Phase 1**: Matrix adapter + homeserver install (4-5d)
 - **Phase 2**: Personas + session assumption + lease mechanism (3-5d)
@@ -207,6 +220,7 @@ Aligned with how each domain advances; phased rollout in the DR for communicatio
 - **Phase 5+**: E2E, OpenClaw bridge, federation, per-room class policies
 
 ### Agents (parallel to communication phases)
+
 - **Phase 2 (from tribe)**: persona files, session assumption, lease, `km agent` CLI
 - **Phase 3**: personas integrated into silvery (render in channel view; profile pages)
 - **Phase 4**: agent spawning integrated with `bun worktree` for scoped sub-agents
@@ -262,3 +276,4 @@ The document itself should age well. Specific implementation details (Matrix ver
 - **Convergence with other projects**: [`hub/km/gbrain-pam-convergence.md`](../gbrain-pam-convergence.md) — how km relates to adjacent systems.
 
 Other downstream design docs to be written as the work proceeds: agent-personas.md (expanding Phase 2), channel-view.md (expanding Phase 3, silvery work), bead-threading.md (expanding Phase 4).
+

@@ -8,9 +8,9 @@ A knowledge base is **personal** — designed for one user, not collaborative ed
 
 The design combines the transparency of plain-file PKM tools (Obsidian, Logseq — user control, git-versioned, editor-agnostic) with the structured memory of AI agent systems (ENGRAM, Hindsight — queryable triples, confidence scoring, per-category retrieval). Markdown is a view of the data, not the source of truth. The critical path is deterministic — LLM inference is background-only.
 
-> **Relationship to [architecture.md](../architecture.md)**: That document describes km's five-layer system (App → Board → Tree → Storage → FS). The items described here are implemented by that five-layer system — items and blocks map to `KNode` records, queries and mutations flow through the same `emit()` pipeline described in [storage.md](../design/model/storage.md). This document describes the **knowledge base layer** — logs, statements, and the transformations that connect them.
->
-> **Status**: Under active development. See [Current State](#current-state) for what's implemented vs planned.
+> Relationship to architecture.md: That document describes km's five-layer system (App → Board → Tree → Storage → FS). The items described here are implemented by that five-layer system — items and blocks map to KNode records, queries and mutations flow through the same emit() pipeline described in storage.md. This document describes the knowledge base layer — logs, statements, and the transformations that connect them.
+> 
+> Status: Under active development. See Current State for what's implemented vs planned.
 
 ## Core Model
 
@@ -37,11 +37,11 @@ The pipeline is **unidirectional**: logs produce statements, statements define i
 
 The knowledge base has three layers:
 
-| Layer | What | Format | Git-friendly? |
-|---|---|---|---|
-| **Logs** | Chat logs + edit logs — everything that happened | JSONL (one file per log) | Yes |
-| **Statements** | Structured knowledge (SPO triples) | SQLite (derived, rebuildable) | Rebuildable |
-| **Knowledge tree** | Items organized hierarchically | `KNode` records (rendered as markdown, TUI, etc.) | Yes (markdown) |
+| Layer          | What                                             | Format                                          | Git-friendly?  |
+| -------------- | ------------------------------------------------ | ----------------------------------------------- | -------------- |
+| Logs           | Chat logs + edit logs — everything that happened | JSONL (one file per log)                        | Yes            |
+| Statements     | Structured knowledge (SPO triples)               | SQLite (derived, rebuildable)                   | Rebuildable    |
+| Knowledge tree | Items organized hierarchically                   | KNode records (rendered as markdown, TUI, etc.) | Yes (markdown) |
 
 The S and O in SPO can both reference items — a contact is a subject in `(contact:alice, birthday, 12-24)` and an object in `(company:acme, employs, contact:alice)`. Items are what statements describe and connect. Some items are shaped into **entities** — the typed, collection-oriented subset (all contacts, all tasks) that participates in external sync.
 
@@ -49,29 +49,29 @@ Statements are always rebuildable from logs. Delete state.db, replay logs, get i
 
 ### Terminology
 
-| Term | What |
-|---|---|
-| **knowledge base** | What `km init` creates — the whole system |
-| **chat log** | A conversational event sequence from one source (agent transcript, sync adapter output) |
-| **edit log** | A structured edit sequence (file edits, `remember()`, `retract()`) |
-| **statement** | A fact in SPO form (subject-predicate-object) — the unit of knowledge |
-| **knowledge tree** | Items organized hierarchically — the tree of KNodes |
-| **item** | A knowledge object in the tree — note, contact, task, section. The S and O in SPO reference items. |
-| **entity** | An item with a strict type schema — the collection-oriented subset (all contacts, all events). Participates in external sync. |
-| **block** | Content within an item (paragraph, code block, quote) |
-| **node** | Implementation term for items and blocks (used in code: `KNode` = Knowledge Node) |
-| **shaping** | Items → typed entities (deterministic projection, no LLM) |
-| **view** | Rendered output — markdown files, TUI, API response |
+| Term           | What                                                                                                                          |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| knowledge base | What km init creates — the whole system                                                                                       |
+| chat log       | A conversational event sequence from one source (agent transcript, sync adapter output)                                       |
+| edit log       | A structured edit sequence (file edits, remember(), retract())                                                                |
+| statement      | A fact in SPO form (subject-predicate-object) — the unit of knowledge                                                         |
+| knowledge tree | Items organized hierarchically — the tree of KNodes                                                                           |
+| item           | A knowledge object in the tree — note, contact, task, section. The S and O in SPO reference items.                            |
+| entity         | An item with a strict type schema — the collection-oriented subset (all contacts, all events). Participates in external sync. |
+| block          | Content within an item (paragraph, code block, quote)                                                                         |
+| node           | Implementation term for items and blocks (used in code: KNode = Knowledge Node)                                               |
+| shaping        | Items → typed entities (deterministic projection, no LLM)                                                                     |
+| view           | Rendered output — markdown files, TUI, API response                                                                           |
 
 ## Logs
 
 All interaction with the knowledge base is modeled as **logs** — bounded sequences of related events from a single source, with attribution and temporal context.
 
-| Log type | What generates it | Content | Rebuildable? |
-|---|---|---|---|
-| **Chat log** (agent) | AI conversation (Claude, etc.) | Full transcript — turns, tool calls, reasoning | Yes — re-extract with improved prompts |
-| **Chat log** (sync) | External sync (CardDAV, CalDAV) | Sync adapter output — what was fetched/diffed | No — contains authoritative structured data |
-| **Edit log** | Human editing session, agent `remember()`/`retract()` | Structured edits — who, when, what changed | Yes — re-extract from diffs |
+| Log type         | What generates it                                 | Content                                        | Rebuildable?                                |
+| ---------------- | ------------------------------------------------- | ---------------------------------------------- | ------------------------------------------- |
+| Chat log (agent) | AI conversation (Claude, etc.)                    | Full transcript — turns, tool calls, reasoning | Yes — re-extract with improved prompts      |
+| Chat log (sync)  | External sync (CardDAV, CalDAV)                   | Sync adapter output — what was fetched/diffed  | No — contains authoritative structured data |
+| Edit log         | Human editing session, agent remember()/retract() | Structured edits — who, when, what changed     | Yes — re-extract from diffs                 |
 
 A raw file edit on disk is just bytes changing — meaningless until km turns it into an event: who made the edit, when, what specifically changed. The log is where meaning lives.
 
@@ -102,12 +102,12 @@ All log events flow through storage.md's [4-path multiplexer](../design/model/st
 
 Event quality depends on the source:
 
-| Source | Attribution | Context | Why |
-|---|---|---|---|
-| Agent chat log | Full | Full reasoning, tool calls | Embedded in transcript |
-| km CLI/TUI | High | Command + arguments | Available |
-| Obsidian (km running) | Medium | What changed, when | No "why" |
-| Obsidian (km stopped) | Low | Diff on next startup | No who, no why |
+| Source                | Attribution | Context                    | Why                    |
+| --------------------- | ----------- | -------------------------- | ---------------------- |
+| Agent chat log        | Full        | Full reasoning, tool calls | Embedded in transcript |
+| km CLI/TUI            | High        | Command + arguments        | Available              |
+| Obsidian (km running) | Medium      | What changed, when         | No "why"               |
+| Obsidian (km stopped) | Low         | Diff on next startup       | No who, no why         |
 
 The more the knowledge base is "awake" (km running), the better its memory.
 
@@ -119,11 +119,11 @@ Statements are SPO (subject-predicate-object) triples. Everything the knowledge 
 
 Every statement is categorized by cognitive type. Per-category retrieval (top-K per type, then merge) prevents cross-type interference. ENGRAM's ablation study showed +31% accuracy from this separation alone.
 
-| Category | What | Example |
-|----------|------|---------|
-| **fact** | Static knowledge | "Alice's birthday is Dec 24" |
-| **event** | Something that happened | "Fixed auth bug in auth.ts:42" |
-| **instruction** | How to behave | "Always run bun fix before committing" |
+| Category    | What                    | Example                                |
+| ----------- | ----------------------- | -------------------------------------- |
+| fact        | Static knowledge        | "Alice's birthday is Dec 24"           |
+| event       | Something that happened | "Fixed auth bug in auth.ts:42"         |
+| instruction | How to behave           | "Always run bun fix before committing" |
 
 Three categories map cleanly to cognitive science (Tulving's taxonomy) and have proven accuracy gains. Decisions ("chose JWT over session cookies because of microservices") can be stored as facts with a `rationale` predicate — the reasoning lives in the item, not the category. If retrieval quality suffers from decisions drowning in facts, a 4th category can be promoted.
 
@@ -190,11 +190,11 @@ Items are knowledge objects organized in the **knowledge tree** — notes, tasks
 
 Items are built from statements. An item exists in the knowledge tree because statements describe it. Items can be rendered as multiple views:
 
-| View | What | Audience |
-|---|---|---|
-| **Markdown files** | `key:: value` properties, prose, wikilinks | Humans, git, Obsidian |
-| **TUI view** | Interactive card/column layout | Humans (km-tui) |
-| **API response** | Structured JSON | Agents, integrations |
+| View           | What                                     | Audience              |
+| -------------- | ---------------------------------------- | --------------------- |
+| Markdown files | key:: value properties, prose, wikilinks | Humans, git, Obsidian |
+| TUI view       | Interactive card/column layout           | Humans (km-tui)       |
+| API response   | Structured JSON                          | Agents, integrations  |
 
 Markdown is the primary human-facing view — the one that gets committed to git — but it's not the only way to see items.
 
@@ -214,13 +214,13 @@ Items without an explicit type prefix are plain items — `note:weeklog` or just
 
 ### Built-in PIM Types
 
-| Entity | Key Predicates | Sync Target |
-|--------|----------------|-------------|
-| **Contact** | name, birthday, email, phone, company, role | CardDAV |
-| **Event** | summary, when, attendees, location | CalDAV |
-| **Task** | title, status, dueDate, priority | CalDAV TODO |
-| **Project** | title, status, members | — |
-| **Note** | title, content (blob ref) | — |
+| Entity  | Key Predicates                              | Sync Target |
+| ------- | ------------------------------------------- | ----------- |
+| Contact | name, birthday, email, phone, company, role | CardDAV     |
+| Event   | summary, when, attendees, location          | CalDAV      |
+| Task    | title, status, dueDate, priority            | CalDAV TODO |
+| Project | title, status, members                      | —           |
+| Note    | title, content (blob ref)                   | —           |
 
 ### Custom Types
 
@@ -274,10 +274,10 @@ This runs **asynchronously in the background**. It's valuable but not required f
 
 **Two tiers of extraction:**
 
-| Tier | Input | Method | Cost |
-|---|---|---|---|
-| **Structured** | `key:: value` properties, frontmatter, wikilinks, tags | Deterministic parsing | Free |
-| **Natural language** | Prose paragraphs in agent chat log transcripts | LLM extraction (background) | ~$0.04/chat |
+| Tier             | Input                                                | Method                      | Cost        |
+| ---------------- | ---------------------------------------------------- | --------------------------- | ----------- |
+| Structured       | key:: value properties, frontmatter, wikilinks, tags | Deterministic parsing       | Free        |
+| Natural language | Prose paragraphs in agent chat log transcripts       | LLM extraction (background) | ~$0.04/chat |
 
 Structured extraction is always safe to re-run (idempotent). NL extraction is rebuildable — if models or prompts improve, re-extract from the same chat logs for better statements.
 
@@ -286,6 +286,7 @@ Structured extraction is always safe to re-run (idempotent). NL extraction is re
 Alice tells the agent her birthday is December 24th. Here's the complete path:
 
 **1. Chat log event recorded**
+
 ```jsonl
 // .km/chats/2026-02-16-agent-abc.jsonl
 {"id":"01J...","type":"session_message","actor":"kimmi","data":{
@@ -297,6 +298,7 @@ Alice tells the agent her birthday is December 24th. Here's the complete path:
 ```
 
 **2. Statement stored**
+
 ```sql
 INSERT INTO spo_triples VALUES (
   '01J...', 'contact:alice', 'birthday', '12-24',
@@ -312,6 +314,7 @@ The `contact:alice` subject now has statements (name, birthday, email from prior
 The statements match the Contact type signature (has name, birthday, email predicates). Shaping projects a Contact entity with all known fields.
 
 **5. Markdown view rendered**
+
 ```markdown
 ## Alice Smith
 Type: contact
@@ -340,22 +343,22 @@ my-knowledge-base/
 
 Four tiers of content:
 
-| Tier | Format | Git? | Rebuildable? |
-|---|---|---|---|
-| Markdown files | Plain .md | Yes | From statements |
-| Logs | Plain .jsonl | Yes | No (source of truth) |
-| Blobs | CAS (hash-addressed) | git-lfs | No (source of truth) |
-| state.db | SQLite | Gitignored | Yes (replay logs) |
+| Tier           | Format               | Git?       | Rebuildable?         |
+| -------------- | -------------------- | ---------- | -------------------- |
+| Markdown files | Plain .md            | Yes        | From statements      |
+| Logs           | Plain .jsonl         | Yes        | No (source of truth) |
+| Blobs          | CAS (hash-addressed) | git-lfs    | No (source of truth) |
+| state.db       | SQLite               | Gitignored | Yes (replay logs)    |
 
 ### What state.db Contains (All Derived)
 
-| Index | Derived from | How |
-|---|---|---|
-| nodes table | Statements + markdown scan | Statement processing + filesystem scan |
-| links table (backlinks) | Wikilinks in markdown | Link extraction during scan |
-| spo_triples | Logs | Log replay + structured parsing |
-| fts5 (full-text search) | Statements + markdown | Indexed on insert |
-| entities (contacts, events, tasks) | Statements | Deterministic shaping |
+| Index                              | Derived from               | How                                    |
+| ---------------------------------- | -------------------------- | -------------------------------------- |
+| nodes table                        | Statements + markdown scan | Statement processing + filesystem scan |
+| links table (backlinks)            | Wikilinks in markdown      | Link extraction during scan            |
+| spo_triples                        | Logs                       | Log replay + structured parsing        |
+| fts5 (full-text search)            | Statements + markdown      | Indexed on insert                      |
+| entities (contacts, events, tasks) | Statements                 | Deterministic shaping                  |
 
 ## Interfaces
 
@@ -369,15 +372,15 @@ Multiple can connect simultaneously:
 
 ## Failure Modes & Risks
 
-| Failure Mode | Severity | Mitigation |
-|-------------|----------|------------|
-| **Extraction errors** (NL) | High | Confidence threshold (≥0.8 auto-accept), low-confidence review queue, prefer structured over NL, background-only |
-| **Stale facts** | Medium | `superseded_by` field + recency preference in ranking |
-| **Context clash** (conflicting statements) | Medium | Bi-temporal validity, conflict detection |
-| **Sync conflicts** (entity ↔ external) | Medium | Last-writer-wins with conflict log, entity-level locking |
-| **Category drift** | Low | Hybrid heuristic+LLM categorization, validation rules |
-| **Over-remembering** | Low | TTL on chat-sourced statements (30 days), periodic pruning |
-| **Retrieval mismatch** | Low | Embeddings (future) for semantic matching |
+| Failure Mode                           | Severity | Mitigation                                                                                                       |
+| -------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| Extraction errors (NL)                 | High     | Confidence threshold (≥0.8 auto-accept), low-confidence review queue, prefer structured over NL, background-only |
+| Stale facts                            | Medium   | superseded_by field + recency preference in ranking                                                              |
+| Context clash (conflicting statements) | Medium   | Bi-temporal validity, conflict detection                                                                         |
+| Sync conflicts (entity ↔ external)     | Medium   | Last-writer-wins with conflict log, entity-level locking                                                         |
+| Category drift                         | Low      | Hybrid heuristic+LLM categorization, validation rules                                                            |
+| Over-remembering                       | Low      | TTL on chat-sourced statements (30 days), periodic pruning                                                       |
+| Retrieval mismatch                     | Low      | Embeddings (future) for semantic matching                                                                        |
 
 No dual-store divergence risk — the pipeline is unidirectional. Statements are the single source of truth; the knowledge tree and entities are derived projections.
 
@@ -408,6 +411,7 @@ Like a database WAL + checkpointing — the snapshot is the baseline, recent log
 ## Current State
 
 **Implemented:**
+
 - **Knowledge tree** — the five-layer architecture for items and blocks ([architecture.md](../architecture.md))
 - **CalDAV/CardDAV client** — `@km/connector-caldav` package with vCard/iCal parsing ([services.md](../future/services.md))
 - **Agent runtime** — `@km/agent` package with harnesses, work queues ([agents.md](../future/agents.md))
@@ -415,6 +419,7 @@ Like a database WAL + checkpointing — the snapshot is the baseline, recent log
 - **CAS** — Content-addressable store for large content and binaries (`@km/fs-mount`)
 
 **Planned** (described in this document):
+
 - Log-based event architecture (currently: changes.jsonl, planned: per-log JSONL files)
 - Statement store (`packages/km-memory/` — not yet created)
 - Structured extraction (markdown → statements via deterministic parsing)
@@ -425,46 +430,55 @@ Like a database WAL + checkpointing — the snapshot is the baseline, recent log
 ## Implementation Roadmap
 
 ### Prototype: Validate Core Assumption
+
 SPO table + recall/remember/retract CLI commands + ENGRAM per-category retrieval. Test with real Claude Code chat logs.
 
 **Success**: Agent produces useful statements; recall beats current FTS5-only approach.
 
 ### Phase 1: Statement Store + Agent Tools
+
 Core SPO schema, `StatementStore`, agent tools (recall/remember/retract), keyword + FTS5 search.
 
 **Success**: Agents can remember and recall facts across sessions. **Depends on**: nothing (starting point).
 
 ### Phase 2: Structured Extraction
+
 Parse `key:: value` properties, frontmatter, wikilinks, and tags from markdown into statements. No LLM. Human edits produce statements directly via structured diff.
 
 **Success**: Editing `birthday:: 12-24` in a contact file produces a statement. **Depends on**: Phase 1 (needs statement store).
 
 ### Phase 3: Entity Shaping
+
 Deterministic projection: match statements against type signatures → typed entities (Contact, Event, Task). Entity table in state.db. Collection-level operations (list all contacts, filter tasks by status).
 
 **Success**: `km entity contact:alice` shows a shaped Contact with all known fields. **Depends on**: Phase 1.
 
 ### Phase 4: Sync Adapters
+
 CardDAV, CalDAV, Google Calendar. Sync events flow as sync chat logs through the normal pipeline. Builds on `@km/connector-caldav`.
 
 **Success**: A contact added in CardDAV appears as statements + entity + markdown. **Depends on**: Phase 2, Phase 3.
 
 ### Phase 5: NL Extraction (Background)
+
 LLM-based extraction from agent chat log transcripts. Runs asynchronously. Confidence scoring, review queue for low-confidence statements.
 
 **Success**: "Alice mentioned she works at Acme" in an agent chat log produces `(contact:alice, company, Acme Corp, fact, 0.8)`. **Depends on**: Phase 1.
 
 ### Phase 6: Confidence Accumulation
+
 Multi-source corroboration, contradiction handling, confidence decay.
 
 **Success**: A fact confirmed by 3 sources scores higher than a single-source fact. **Depends on**: Phase 5.
 
 ### Phase 7: Embeddings + Unified Query
+
 Semantic search for retrieval mismatch. `repo.query()` + statement store merged via reciprocal rank fusion (RRF).
 
 **Success**: Searching "birthday" finds statements stored as "date of birth". **Depends on**: Phase 1.
 
 ### Phase 8: Reflection
+
 Periodic automated synthesis — summarize clusters of event statements into higher-level fact statements, surface contradictions, decay low-confidence orphans. Inspired by Hindsight's reflection layer, which showed that automated reasoning over accumulated memory significantly improves long-horizon recall.
 
 **Success**: After 50 agent sessions about a project, a summary statement captures the key decisions without querying all 50 transcripts. **Depends on**: Phase 5, Phase 6.
@@ -487,12 +501,12 @@ km's knowledge base layer absorbs designs from two earlier projects in the PIM m
 
 The PIM ecosystem simplifies to two things:
 
-| | **km** (knowledge base) | **pam** (channels) |
-|---|---|---|
-| **Purpose** | Knowledge engine | Multi-channel AI assistant |
-| **Absorbs** | kimmi (sync), cloudi (memory + pipeline) | cloudi (channels) |
-| **Contains** | Knowledge tree, statements, entity sync, search | Channel adapters, security harness, conversation state |
-| **Interface** | Library, CLI, MCP, TUI | WhatsApp, email, Telegram, web |
+|           | km (knowledge base)                             | pam (channels)                                         |
+| --------- | ----------------------------------------------- | ------------------------------------------------------ |
+| Purpose   | Knowledge engine                                | Multi-channel AI assistant                             |
+| Absorbs   | kimmi (sync), cloudi (memory + pipeline)        | cloudi (channels)                                      |
+| Contains  | Knowledge tree, statements, entity sync, search | Channel adapters, security harness, conversation state |
+| Interface | Library, CLI, MCP, TUI                          | WhatsApp, email, Telegram, web                         |
 
 ## References
 
@@ -508,3 +522,4 @@ The PIM ecosystem simplifies to two things:
 - [../future/services.md](../future/services.md) — CalDAV/CardDAV connectors
 - [../future/agents.md](../future/agents.md) — Agent runtime, harnesses, session events (= chat logs)
 - [../explorations/plain-brain.md](../explorations/plain-brain.md) — original exploration (graduated to this doc)
+

@@ -1,6 +1,6 @@
 # Composability — Universal Rendering Architecture
 
-> **Deep-dive** for [era2-overview.md](../../reference/era2-overview.md). Framework×platform composability matrix.
+> Deep-dive for era2-overview.md. Framework×platform composability matrix.
 
 _Status: draft (2026-03-19, updated 2026-03-30). What silvery's components are, how they compose, the tradeoffs vs platform-specific approaches, and what's theoretically possible._
 
@@ -36,11 +36,11 @@ Ag is thin — types, interfaces, theme tokens, utilities. Heavy lifting lives i
 
 Bridges between view frameworks and silvery's abstract nodes.
 
-| Framework  | How it works                                                  | Virtual DOM?                     |
-| ---------- | ------------------------------------------------------------- | -------------------------------- |
-| **React**  | `react-reconciler` diffs virtual tree, patches abstract nodes | Yes                              |
-| **Svelte** | Compiler generates direct abstract node operations            | No — compile-time knowledge      |
-| **Solid**  | Fine-grained signal subscriptions update nodes directly       | No — subscription-time knowledge |
+| Framework | How it works                                                | Virtual DOM?                     |
+| --------- | ----------------------------------------------------------- | -------------------------------- |
+| React     | react-reconciler diffs virtual tree, patches abstract nodes | Yes                              |
+| Svelte    | Compiler generates direct abstract node operations          | No — compile-time knowledge      |
+| Solid     | Fine-grained signal subscriptions update nodes directly     | No — subscription-time knowledge |
 
 All produce the same abstract nodes. The pipeline downstream is identical.
 
@@ -54,11 +54,11 @@ All produce the same abstract nodes. The pipeline downstream is identical.
 
 Bridges between the pipeline and a rendering target.
 
-| Platform     | Output                       | Layout             | Input                           | Theme                 |
-| ------------ | ---------------------------- | ------------------ | ------------------------------- | --------------------- |
-| **Terminal** | ANSI sequences               | flexily            | stdin parsing → normalized keys | OSC palette detection |
-| **Web**      | DOM elements (via framework) | Native CSS flexbox | DOM listeners → normalized keys | CSS custom properties |
-| **Canvas**   | Draw calls                   | flexily            | Hit-testing → normalized keys   | Programmatic colors   |
+| Platform | Output                       | Layout             | Input                           | Theme                 |
+| -------- | ---------------------------- | ------------------ | ------------------------------- | --------------------- |
+| Terminal | ANSI sequences               | flexily            | stdin parsing → normalized keys | OSC palette detection |
+| Web      | DOM elements (via framework) | Native CSS flexbox | DOM listeners → normalized keys | CSS custom properties |
+| Canvas   | Draw calls                   | flexily            | Hit-testing → normalized keys   | Programmatic colors   |
 
 **Input normalization**: each platform converts its native events to a common format (normalized key strings like `"ctrl+d"`, `"j"`, `"escape"`) before they reach the command system's `keymap()`. The app framework never sees platform-specific event types.
 
@@ -128,19 +128,19 @@ Future topologies (server-authoritative model, replicated/event-sourced model ac
 
 The abstract component model can only express what ALL platforms can render. Anything platform-specific is either abstracted with graceful degradation, or excluded from the model.
 
-| Capability                | Native web                       | Silvery universal                         | Status                                                                                                           |
-| ------------------------- | -------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Flexbox**               | Full CSS flexbox                 | Full (same semantics)                     | Parity                                                                                                           |
-| **Grid**                  | CSS Grid                         | Not yet abstracted                        | Closable — add grid props; term emulates via flexily, web passes to native                                       |
-| **Animations**            | CSS transitions/keyframes        | Not yet abstracted                        | Closable — add animation system; term: frame-by-frame, web: CSS                                                  |
-| **Accessibility**         | ARIA roles, labels, live regions | Not yet abstracted                        | Closable — add role/aria-\* props; term ignores, web passes to DOM. **Priority: legally required for web apps.** |
-| **Form elements**         | Native `<input>`, `<select>`     | Custom components (TextInput, SelectList) | Functional parity; web can delegate to native for a11y + mobile keyboard                                         |
-| **SVG**                   | Full SVG spec                    | Not yet abstracted                        | Closable — add SVG components; term: box-drawing/braille, web: real SVG                                          |
-| **Images**                | `<img>`, srcset                  | Not yet abstracted                        | Closable — add `<Image>`; term: sixel/kitty/ASCII, web: `<img>`                                                  |
-| **Rich inline text**      | `<em>`, `<strong>`, `<a>`        | Bold/italic/link on Text                  | Closable — add inline formatting nodes                                                                           |
-| **Arbitrary CSS**         | Full CSS                         | Not available                             | Escape hatch — className/style for web, term ignores                                                             |
-| **Proportional fonts**    | Standard                         | Fixed-width on terminal                   | **Fundamental** — accept graceful degradation                                                                    |
-| **Sub-pixel positioning** | Standard                         | Cell-grid on terminal                     | **Fundamental** — accept graceful degradation                                                                    |
+| Capability            | Native web                       | Silvery universal                         | Status                                                                                                      |
+| --------------------- | -------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Flexbox               | Full CSS flexbox                 | Full (same semantics)                     | Parity                                                                                                      |
+| Grid                  | CSS Grid                         | Not yet abstracted                        | Closable — add grid props; term emulates via flexily, web passes to native                                  |
+| Animations            | CSS transitions/keyframes        | Not yet abstracted                        | Closable — add animation system; term: frame-by-frame, web: CSS                                             |
+| Accessibility         | ARIA roles, labels, live regions | Not yet abstracted                        | Closable — add role/aria-* props; term ignores, web passes to DOM. Priority: legally required for web apps. |
+| Form elements         | Native <input>, <select>         | Custom components (TextInput, SelectList) | Functional parity; web can delegate to native for a11y + mobile keyboard                                    |
+| SVG                   | Full SVG spec                    | Not yet abstracted                        | Closable — add SVG components; term: box-drawing/braille, web: real SVG                                     |
+| Images                | <img>, srcset                    | Not yet abstracted                        | Closable — add <Image>; term: sixel/kitty/ASCII, web: <img>                                                 |
+| Rich inline text      | <em>, <strong>, <a>              | Bold/italic/link on Text                  | Closable — add inline formatting nodes                                                                      |
+| Arbitrary CSS         | Full CSS                         | Not available                             | Escape hatch — className/style for web, term ignores                                                        |
+| Proportional fonts    | Standard                         | Fixed-width on terminal                   | Fundamental — accept graceful degradation                                                                   |
+| Sub-pixel positioning | Standard                         | Cell-grid on terminal                     | Fundamental — accept graceful degradation                                                                   |
 
 **Two kinds of gaps:**
 
@@ -267,13 +267,13 @@ The architecture is designed so these limits are explicit tradeoffs per-componen
 
 ## What's Fundamentally Hard
 
-| Challenge                         | Why                                                                                                                                                               | Mitigation                                                                                      |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **Terminal ↔ web visual parity**  | Fixed-width cells vs proportional fonts, 256 colors vs unlimited, cell-grid vs pixel positioning                                                                  | Accept graceful degradation. Design for terminal, enhance on web.                               |
-| **Framework interop**             | React and Svelte have different lifecycles, hooks, tooling. Running both requires two runtimes.                                                                   | Practical case is different views for different deployments, not mixing frameworks in one view. |
-| **Component library abstraction** | SelectList, TextInput etc. are React components with hooks today. Making them framework-agnostic requires headless logic + framework-specific rendering wrappers. | Align with TEA: component logic as pure state machines, rendering as projection.                |
-| **Native mobile**                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                               | Future @silvery/ag-native package, or @silvery/ag-dom in a WebView.                             |
-| **Performance at scale**          | Abstract nodes add indirection vs direct rendering.                                                                                                               | Negligible for most apps. Platforms can short-circuit for hot paths.                            |
+| Challenge                     | Why                                                                                                                                                               | Mitigation                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Terminal ↔ web visual parity  | Fixed-width cells vs proportional fonts, 256 colors vs unlimited, cell-grid vs pixel positioning                                                                  | Accept graceful degradation. Design for terminal, enhance on web.                               |
+| Framework interop             | React and Svelte have different lifecycles, hooks, tooling. Running both requires two runtimes.                                                                   | Practical case is different views for different deployments, not mixing frameworks in one view. |
+| Component library abstraction | SelectList, TextInput etc. are React components with hooks today. Making them framework-agnostic requires headless logic + framework-specific rendering wrappers. | Align with TEA: component logic as pure state machines, rendering as projection.                |
+| Native mobile                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                               | Future @silvery/ag-native package, or @silvery/ag-dom in a WebView.                             |
+| Performance at scale          | Abstract nodes add indirection vs direct rendering.                                                                                                               | Negligible for most apps. Platforms can short-circuit for hot paths.                            |
 
 ## The Gradual Path
 
@@ -308,3 +308,4 @@ Two products, one gradient. See [roadmap § Track 2](../../../roadmap.md#track-2
 ```
 
 Each step is independently valuable. Each solves a specific pain point. You never rewrite — you extract and recompose.
+

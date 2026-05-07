@@ -104,3 +104,4 @@ The state of the landscape means **any competent Svelte or Vue TUI reconciler bu
 - `vendor/silvery/CLAUDE.md` — silvery reconciler architecture (`@silvery/ag` framework-agnostic, `@silvery/ag-react` as the React host).
 
 Re-verify package versions and activity before quoting — the Vue/Svelte TUI space is small enough that one new entrant could change the picture.
+

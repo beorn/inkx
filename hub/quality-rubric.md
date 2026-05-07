@@ -67,3 +67,4 @@ Be honest classifying target. Not every bug deserves L4. Test-only ergonomics (e
 - **Skipping L5.** L4 without L5 leaves the workaround drifting in code as a fossil. The "guard removed + test added" step is what finishes a plateau.
 - **Inflating target to L4 by default.** Some beads should target L3. State the reason.
 - **Mixing levels across a bead.** A bead that says "current L1, target L4" implies one class of work. If the bead actually contains three sub-classes at three levels, split it.
+

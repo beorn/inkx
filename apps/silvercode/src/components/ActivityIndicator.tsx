@@ -1,6 +1,7 @@
 import React from "react"
 import { Box, Text } from "silvery"
 import { SessionEntry } from "./SessionEntry.tsx"
+import { StatusGlyph } from "./StatusGlyph.tsx"
 
 const ELAPSED_TICK_MS = 1000
 const THINKING_WORDS = ["Smelting", "Forging", "Tempering", "Polishing", "Etching", "Burnishing"] as const
@@ -131,20 +132,8 @@ export function ActivityIndicator({
   }
   const tail = tailParts.length > 0 ? ` (${tailParts.join(" · ")})` : ""
 
-  // Pulse the ◈ silvery diamond by alternating bold↔regular on the same
-  // 1s tick as the elapsed updater — zero extra timers, visible "alive"
-  // rhythm. No spinner character; the diamond echoes silvercode's own
-  // brand glyph (◈ Silver Code) at the leading slot.
-  const pulse = Math.floor(now / 1000) % 2 === 0
-
   return (
-    <SessionEntry
-      marker={
-        <Text bold={pulse} color={color}>
-          ◈
-        </Text>
-      }
-    >
+    <SessionEntry marker={<StatusGlyph glyph="●" active color={color} period={1800} />}>
       <Box flexDirection="row" gap={0} minWidth={0} flexShrink={1}>
         <Text color={color}>{label}</Text>
         {tail ? <Text color="$muted">{tail}</Text> : null}

@@ -117,4 +117,3 @@ through `harness.stderr.text()`.
 `km-silvercode.test-process-harness` (P2). Sibling: `km-silvercode.cursor
 -startup-position` (P1) — that bug is the original motivator and the
 canonical regression test under `tests/process/`.
-

@@ -19,11 +19,8 @@ When the schema was fixed, the hook started working again — but the sessions t
 ## The Causal Chain
 
 1. **Hook treated as authoritative write path.** The design assumed "SessionEnd hook runs → file exists." There was no check that the file actually made it to disk. The hook was a one-shot with no confirmation loop.
-
 2. **No idempotency guarantee on the frequent trigger.** The hook only fired on SessionEnd, which happens once per session. If it failed, the next chance to write that session's markdown was never.
-
 3. **Schema change broke the output envelope.** The validator upstream tightened to reject `hookSpecificOutput` on events that don't have an event-specific schema. Claude Code's behavior changed; the hook didn't.
-
 4. **Errors were invisible until cumulative damage became obvious.** The hook's failure produced a warning at session end, but nothing surfaced the cumulative "N sessions never got exported" state. A user noticed the prompt-injection wrapper working weirdly and pulled the thread.
 
 ---
@@ -69,3 +66,4 @@ The catchup's correctness relies on "running it twice is the same as running it 
 - [Reproduce First](reproduce-first.md) — why the hook's silent failure survived so long (no one reproduced "what should be in raw/chats/")
 - `vendor/accountly/src/recall.ts` — the catchup implementation
 - `vendor/accountly/tests/recall.test.ts` — regression guards for the hook JSON envelope
+

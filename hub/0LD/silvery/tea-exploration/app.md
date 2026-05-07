@@ -1,8 +1,8 @@
-> **Superseded (2026-04-11).** Canonical design: [app-composition.md](../../design/v10-terminal/app-composition.md). This doc is kept for historical reference — it contains domain plugin pattern details (withTodo, op() proxy, when(), scopes) not yet in the canonical doc.
-
 # App Architecture & Scopes
 
-> **Deep-dive** for [era2-overview.md](../../reference/era2-overview.md) § Part 2 (App Level) and Async Scope Tree. Plugin composition, domain plugins, op() proxy, structured concurrency. Last synced: 2026-03-19.
+> Superseded (2026-04-11). Canonical design: app-composition.md. This doc is kept for historical reference — it contains domain plugin pattern details (withTodo, op() proxy, when(), scopes) not yet in the canonical doc.
+
+> Deep-dive for era2-overview.md § Part 2 (App Level) and Async Scope Tree. Plugin composition, domain plugins, op() proxy, structured concurrency. Last synced: 2026-03-19.
 
 _Status: v1 (2026-03-19). Merged from 05-app.md (plugin composition) and 06-scopes.md (structured concurrency). See also: [01-rendering-input.md](../../archive/era2-drafts/01-rendering-input.md) (rendering, input pipeline), [signals.md](./signals.md) (signals, models), [commands.md](./commands.md) (command tree, availability)._
 
@@ -20,13 +20,13 @@ Three wrappable methods, zero state. Everything else -- models, commands, keymap
 
 The progression:
 
-| Level           | What you add                            | What you get                                                  |
-| --------------- | --------------------------------------- | ------------------------------------------------------------- |
-| **Foundation**  | `create()`                              | `{ dispatch, apply, run }` -- zero state                      |
-| **+ Scope**     | `withScope()`                           | `app.scope`, `op.scope` (lazy), `app.quit()`                  |
-| **+ App**       | `withApp()`                             | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
-| **+ Domains**   | `withTodo()`, `withEditor()`, ...       | Populated models, commands, keybindings                       |
-| **+ Rendering** | `withAg()`, `withTerm()`, `withReact()` | Node tree, terminal I/O, React reconciler                     |
+| Level       | What you add                      | What you get                                          |
+| ----------- | --------------------------------- | ----------------------------------------------------- |
+| Foundation  | create()                          | { dispatch, apply, run } -- zero state                |
+| + Scope     | withScope()                       | app.scope, op.scope (lazy), app.quit()                |
+| + App       | withApp()                         | app.models, app.commands, app.keymap(), app.command() |
+| + Domains   | withTodo(), withEditor(), ...     | Populated models, commands, keybindings               |
+| + Rendering | withAg(), withTerm(), withReact() | Node tree, terminal I/O, React reconciler             |
 
 Each layer only calls down. The app layer doesn't know about rendering. Domains don't know about each other (unless explicitly ordered). The kernel doesn't know about anything.
 
@@ -53,13 +53,13 @@ Without `withApp()`, `create()` apps can still use `dispatch()` and `apply()` di
 
 Plugins compose on `create()` via `pipe()`. Each plugin wraps one or more of the three methods (`dispatch`, `apply`, `run`) to add behavior. There are no special categories -- a plugin does whatever it needs. Common patterns:
 
-| Pattern            | What it does                        | Examples                                        |
-| ------------------ | ----------------------------------- | ----------------------------------------------- |
-| **Domain**         | Adds model + commands + keybindings | `withTodo()`, `withEditor()`, `withChat()`      |
-| **Infrastructure** | Wraps `dispatch` or `apply`         | `withScope()`, `withLogging()`, `withHistory()` |
-| **Renderer**       | Provides `run()`                    | `withTerm()`                                    |
-| **Adapter**        | Bridges framework to ag tree        | `withReact()`, `withSvelte()` (future)          |
-| **Cross-cutting**  | Wraps `apply()` for observation     | `withTracing()`, `withRecording()`              |
+| Pattern        | What it does                        | Examples                                  |
+| -------------- | ----------------------------------- | ----------------------------------------- |
+| Domain         | Adds model + commands + keybindings | withTodo(), withEditor(), withChat()      |
+| Infrastructure | Wraps dispatch or apply             | withScope(), withLogging(), withHistory() |
+| Renderer       | Provides run()                      | withTerm()                                |
+| Adapter        | Bridges framework to ag tree        | withReact(), withSvelte() (future)        |
+| Cross-cutting  | Wraps apply() for observation       | withTracing(), withRecording()            |
 
 Last plugin in `pipe` wraps `apply()` outermost -- it intercepts first.
 
@@ -162,7 +162,7 @@ op(app.models).chat.submit({ text: "hello" })
 - Apps can run in **loose mode** (direct calls allowed) or **strict mode** (state-changing methods must go through `op()` or `dispatch()`)
 - `op()` does NOT intercept signal reads -- components read signals directly via the function-call accessor (`cursor()`, not `.value`)
 
-> **Note**: The implementation below is illustrative pseudocode. A production implementation must handle nested path accumulation, receiver binding, proxy identity caching, async generator methods, and symbol properties.
+> Note: The implementation below is illustrative pseudocode. A production implementation must handle nested path accumulation, receiver binding, proxy identity caching, async generator methods, and symbol properties.
 
 Model-ops produce operations with `type: "model-op"` alongside the `target/path/args/run` fields. They flow through the same `apply()` pipeline as command ops. The `type` discriminant distinguishes command-ops (`type: "command"`) from model-ops (`type: "model-op"`) -- see [era2-overview.md](../../reference/era2-overview.md) SS Op Types.
 
@@ -266,14 +266,14 @@ A **tree of scopes where ownership, lifecycle, and communication follow the tree
 
 This pattern appears in every major system -- but each implements it for only one concern:
 
-| System            | Name                   | Scope =         | Down =                 | Up =           |
-| ----------------- | ---------------------- | --------------- | ---------------------- | -------------- |
-| **Kotlin**        | CoroutineScope         | Coroutine scope | Cancellation           | Exception      |
-| **Swift**         | Structured concurrency | TaskGroup       | Cancellation           | Thrown error   |
-| **Trio (Python)** | Nursery                | Nursery block   | Cancellation           | Exception      |
-| **React**         | Component tree         | Component       | Unmount                | Error boundary |
-| **C# / TS**       | `using` / Disposable   | Block scope     | `Dispose()`            | --             |
-| **Silvery**       | Scope tree             | Scope           | Cancellation + cleanup | Error + spans  |
+| System        | Name                   | Scope =         | Down =                 | Up =           |
+| ------------- | ---------------------- | --------------- | ---------------------- | -------------- |
+| Kotlin        | CoroutineScope         | Coroutine scope | Cancellation           | Exception      |
+| Swift         | Structured concurrency | TaskGroup       | Cancellation           | Thrown error   |
+| Trio (Python) | Nursery                | Nursery block   | Cancellation           | Exception      |
+| React         | Component tree         | Component       | Unmount                | Error boundary |
+| C# / TS       | using / Disposable     | Block scope     | Dispose()              | --             |
+| Silvery       | Scope tree             | Scope           | Cancellation + cleanup | Error + spans  |
 
 The insight: effects, concurrency, observability, and lifecycle aren't separate trees. They're projections of the same tree.
 
@@ -623,9 +623,7 @@ Providers are the app's I/O capabilities — persistence, AI, network, terminal.
 Technically, a plugin could put an AI capability anywhere on `app` and a model could read it. Providers are not a separate mechanism — they're a **convention** backed by three things:
 
 1. **Typed DI for models.** Models declare what they need via `Pick<typeof providers, "persist" | "ai">`. This makes the dependency surface explicit, testable (mock just the providers), and enforced by TypeScript. Plugins don't have this — a plugin is just `(app) => app` with no declared contract.
-
 2. **Named namespace.** `app.providers` separates "what the app can reach" (I/O) from "what the app knows" (models) and "what the user can do" (commands). Without this, capabilities end up on `app.models` or ad-hoc properties with no convention.
-
 3. **Future effect resolution.** The planned effects system (see § Future: Effects System below) routes `AsyncEffect` descriptors to providers by name — `fx.persist(data)` resolves to `providers.persist`. This routing requires a known namespace. Providers reserve that namespace.
 
 Today (v1), providers are plain objects that models call directly. The convention is lightweight — `withApp({ providers })` puts them on `app.providers`, models receive them via factory injection. No framework magic.
@@ -668,7 +666,7 @@ This is the same `.create(mockDeps)` pattern described in [signals.md](./signals
 
 ## Future: Effects System
 
-> The effect descriptor system extends providers with trackable, serializable async operations. v1 uses providers directly via `scope.sleep()`, `scope.timeout()`, and scoped async calls. The effect system below is the planned extension for when operations need to be inspected, replayed, or composed as data.
+> The effect descriptor system extends providers with trackable, serializable async operations. v1 uses providers directly via scope.sleep(), scope.timeout(), and scoped async calls. The effect system below is the planned extension for when operations need to be inspected, replayed, or composed as data.
 
 ### `AsyncEffect` -- Effect Descriptors
 
@@ -826,15 +824,12 @@ await app.run()
 ## Open Questions
 
 - **Plugin ordering.** Last plugin in `pipe` wraps `apply()` outermost -- it intercepts first. Should the framework detect/enforce ordering, or is it convention?
-
 - **Plugin identity.** Can a plugin be added twice? Should plugins have IDs for dedup/replacement?
-
 - **Hot reloading.** Can plugins be added/removed at runtime? Rich text editing may need this (enable/disable formatting based on context). Or is composition static?
-
 - **Supervision strategies.** Should scopes support restart policies via `withSupervision()` (Erlang-style one-for-one), or is cancel-on-error sufficient for TUI apps?
-
 - **Non-cancellable blocks.** Kotlin has `NonCancellable` for cleanup code that must complete. `scope.onDispose()` likely covers most cases; `withNonCancellable()` if needed.
 
 ---
 
 _See also: [era2-overview.md](../../reference/era2-overview.md) (canonical reference), [01-rendering-input.md](../../archive/era2-drafts/01-rendering-input.md) (rendering, input pipeline), [signals.md](./signals.md) (signals, models), [commands.md](./commands.md) (command tree, availability)._
+

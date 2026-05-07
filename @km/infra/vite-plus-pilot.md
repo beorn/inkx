@@ -21,14 +21,14 @@ Vite Plus adds Bun as supported package manager (PR in progress). Check weekly.
 ## Plan
 
 1. **flexily first** — smallest standalone package, already uses Vite for docs
-  - Replace: oxlint config + oxfmt config + vitest.config + tsconfig + build script
-  - With: single vite.config.ts
-  - Verify: `vp lint`, `vp fmt`, `vp test`, `vp build`, `vp check` all work
-  - Verify: `bun test` still works as fallback
-  - Compare: build output size, test speed, lint speed
-2. **If flexily works** → silvery (14 sub-packages, monorepo stress test)
-3. **If silvery works** → termless, loggily, other vendors
-4. **Last** → km root (most complex, has bun:sqlite deps)
+- Replace: oxlint config + oxfmt config + vitest.config + tsconfig + build script
+- With: single vite.config.ts
+- Verify: `vp lint`, `vp fmt`, `vp test`, `vp build`, `vp check` all work
+- Verify: `bun test` still works as fallback
+- Compare: build output size, test speed, lint speed
+8. **If flexily works** → silvery (14 sub-packages, monorepo stress test)
+9. **If silvery works** → termless, loggily, other vendors
+10. **Last** → km root (most complex, has bun:sqlite deps)
 
 ## Weekly Check
 

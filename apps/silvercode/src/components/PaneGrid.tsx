@@ -421,11 +421,13 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           controller={controller}
           agent={agent}
           composerSlot={composerSlot}
+          allSessions={sessions}
         />
       )
     },
     [
       sessionMap,
+      sessions,
       sessions.length,
       focusedSessionId,
       onFocusSession,
@@ -506,6 +508,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               agent={agent}
               composerSlot={composerSlot}
               showFocusBar
+              allSessions={sessions}
             />
           </Box>
         </Box>
@@ -568,6 +571,7 @@ function LeafContainer({
   controller,
   agent,
   composerSlot,
+  allSessions,
 }: {
   handle: SessionHandle
   isFocused: boolean
@@ -599,6 +603,7 @@ function LeafContainer({
    *  composer inside the welcome center. Non-focused leaves drop it.
    *  Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
   composerSlot?: React.ReactNode
+  allSessions: ReadonlyArray<SessionHandle>
 }): React.ReactElement {
   const rect = useBoxRect()
   // useBoxRect updates synchronously during render — write through
@@ -634,6 +639,7 @@ function LeafContainer({
           agent={agent}
           composerSlot={isFocused ? composerSlot : undefined}
           showFocusBar={showPaneChrome}
+          allSessions={allSessions}
         />
       )}
       {showPaneChrome ? (

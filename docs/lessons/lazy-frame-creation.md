@@ -7,6 +7,7 @@ We spent an entire session optimizing React reconciliation, tree traversal, and 
 ## What Happened
 
 `createTextFrame(buffer)` in `buffer.ts` was doing three things eagerly:
+
 1. **Clone the buffer** — deep-copy for immutability (~0.08ms at 80K cells)
 2. **Create Cell objects** — `buffer.getCell(x, y)` for every cell (~10ms at 80K cells)
 3. **Lazy text/ansi** — these were already lazy (good)
@@ -40,12 +41,12 @@ function getCellData() { ... build on first cell() access ... }
 
 ## Impact
 
-| Scenario | Before | After | Speedup |
-|---|---|---|---|
-| 100 items, 80×24 | 0.37ms | 0.15ms | 2.4× |
-| 1000 items, 80×24 | 3.5ms | 1.5ms | 2.3× |
-| 1000 items, 400×200 | 14.8ms | 2.0ms | 7.5× |
-| vs Ink ratio | 5-6× | **15-16×** | |
+| Scenario            | Before | After  | Speedup |
+| ------------------- | ------ | ------ | ------- |
+| 100 items, 80×24    | 0.37ms | 0.15ms | 2.4×    |
+| 1000 items, 80×24   | 3.5ms  | 1.5ms  | 2.3×    |
+| 1000 items, 400×200 | 14.8ms | 2.0ms  | 7.5×    |
+| vs Ink ratio        | 5-6×   | 15-16× |         |
 
 ## The Real Lesson: We Were Measuring the Wrong Thing
 
@@ -56,11 +57,8 @@ We spent hours optimizing React reconciliation (reactive cascade, PreparedText c
 ### How to avoid this next time
 
 1. **Measure at realistic sizes.** The 80×24 bench hid a O(cells) cost that dominated at 400×200. Always benchmark at the user's actual terminal size.
-
 2. **Use the diagnostic bench pattern.** Compare "no-change rerender" (every component bails out) vs "cursor move." If they cost the same, the bottleneck is NOT in React — it's in per-frame overhead that runs regardless of what changed.
-
 3. **Question attribution.** When a timing bucket says "React reconciliation: 87%," ask: what ELSE runs in that bucket? The measurement boundary may not match the architectural boundary.
-
 4. **Lazy beats eager for derived data.** If you create data that the consumer might not read, defer the creation. The 80K Cell objects were read by tests and STRICT mode — never by production rendering.
-
 5. **The most impactful optimization is often the dumbest one.** Not a clever algorithm change. Not reactive signals. Just: stop doing expensive work nobody asked for.
+

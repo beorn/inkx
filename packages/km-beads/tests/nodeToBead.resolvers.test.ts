@@ -10,7 +10,7 @@
  * Resolvers under test:
  *   - resolveBlockedBy   — props["blocked-by"] → string[]?
  *   - resolveStatus      — node.item.task.status + blockedBy fallback
- *   - resolveType        — link-row hashtag scan against BEAD_TYPE_KEYWORDS
+ *   - resolveType        — hashtag scan against BEAD_TYPE_KEYWORDS
  *   - resolveBeadShortId — data.id / data.short_id / fs_path-derived
  *
  * Each resolver has 3+ tests covering its decision branches; together
@@ -152,9 +152,16 @@ describe("resolveStatus — task.status + blockedBy fallback", () => {
 // =============================================================================
 
 describe("resolveType — hashtag link rows scanned against BEAD_TYPE_KEYWORDS", () => {
-  test("returns undefined when no repo provided (no link rows)", () => {
+  test("falls back to content hashtags when no repo is provided", () => {
     const node = { id: "n1", content: "title #bug" } as unknown as KNode
-    expect(resolveType(node, undefined)).toBeUndefined()
+    expect(resolveType(node, undefined)).toBe("bug")
+  })
+
+  test("falls back to content hashtags when link rows are stale or absent", () => {
+    const repo = createTestRepo()
+    const id = repo.addNode(null, { type: "p", content: "Title #epic #P1" })
+    const node = repo.getNode(id)!
+    expect(resolveType(node, repo)).toBe("epic")
   })
 
   test("recognizes the canonical keyword `bug`", () => {

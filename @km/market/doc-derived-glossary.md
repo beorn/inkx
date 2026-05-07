@@ -25,19 +25,22 @@ Extract glossary terms directly from documentation source files instead of maint
 
 1. **Heading + first paragraph**: Mark sections as glossary sources
    \`\`\`markdown
-  <!-- glossary: components -->
-  - SelectList
 
-  Interactive keyboard-navigable list with j/k navigation and type-ahead search.
-  ```
+  <!-- glossary: components -->
+
+- SelectList
+
+Interactive keyboard-navigable list with j/k navigation and type-ahead search.
+
+```
 2. **Abbreviation syntax** (markdown-it-abbr): Inline definitions
-   \`\`\`markdown
-   *[SGR]: Select Graphic Rendition — ANSI escape codes for text styling
-   \`\`\`
+ \`\`\`markdown
+ *[SGR]: Select Graphic Rendition — ANSI escape codes for text styling
+ \`\`\`
 3. **\<dfn\> marking** (Bikeshed/W3C-style): Mark defining instance
-   \`\`\`markdown
-   The <dfn>alternate screen</dfn> preserves scrollback when fullscreen apps run.
-   \`\`\`
+ \`\`\`markdown
+ The <dfn>alternate screen</dfn> preserves scrollback when fullscreen apps run.
+ \`\`\`
 
 ## Buckets
 
@@ -50,10 +53,10 @@ Terms belong to named buckets (e.g., "terminal", "components", "hooks", "matcher
 Sites compose by importing specific buckets:
 \`\`\`typescript
 const glossary = [
-  ...loadBucket("terminal"),      // from terminfo.dev
-  ...loadBucket("components"),    // extracted from silvery docs
-  ...loadBucket("matchers"),      // extracted from termless docs
-  ...siteSpecific,                // manual overrides
+...loadBucket("terminal"),      // from terminfo.dev
+...loadBucket("components"),    // extracted from silvery docs
+...loadBucket("matchers"),      // extracted from termless docs
+...siteSpecific,                // manual overrides
 ]
 \`\`\`
 
@@ -80,4 +83,6 @@ Build-time VitePress plugin that:
 - Cross-site composition via buckets (terminfo terminal terms available everywhere)
 - Scales to 200+ terms where manual JSON breaks down
 - Foundational for any content-rich VitePress site
+
+```
 

@@ -1,6 +1,6 @@
 # Silvery Benchmarks
 
-> **Internal** — Raw performance data for development tracking. Reproduce with `bun run bench`. For the public performance story, see the comparison tables in `vendor/silvery/docs/comparison.md`.
+> Internal — Raw performance data for development tracking. Reproduce with bun run bench. For the public performance story, see the comparison tables in vendor/silvery/docs/comparison.md.
 
 Raw benchmark data for Silvery performance. All numbers from Apple M1 Max, macOS, Bun 1.3.9, February 2026.
 
@@ -14,41 +14,41 @@ For technical explanations of these optimizations, see [Performance Deep Dive](p
 
 ### Full Pipeline
 
-| Metric                            | Time  |
-| --------------------------------- | ----- |
-| `executeRender (simple, first)`   | 75us  |
-| `executeRender (simple, diff)`    | 9us   |
-| `executeRender (50 items, first)` | 189us |
-| `executeRender (50 items, diff)`  | 32us  |
+| Metric                          | Time  |
+| ------------------------------- | ----- |
+| executeRender (simple, first)   | 75us  |
+| executeRender (simple, diff)    | 9us   |
+| executeRender (50 items, first) | 189us |
+| executeRender (50 items, diff)  | 32us  |
 
 Diff renders are 6-8x faster than first renders thanks to incremental rendering.
 
 ### By Phase
 
-| Phase                         | Time  | Notes                             |
-| ----------------------------- | ----- | --------------------------------- |
-| `measurePhase (simple)`       | 4ns   | Cached, no dirty nodes            |
-| `measurePhase (100 children)` | 523ns | Selective traversal               |
-| `layoutPhase (simple)`        | 442ns | Flexily layout                    |
-| `layoutPhase (100 children)`  | 24us  | Flexily layout                    |
-| `renderPhase (simple)`        | 1.7us | Incremental clone + dirty skip    |
-| `renderPhase (100 children)`  | 3.4us | Incremental clone + dirty skip    |
-| `outputPhase (no changes)`    | 7.5us | Dirty bounding box skips all rows |
-| `outputPhase (10% changes)`   | 45us  | Row-level dirty + style cache     |
-| `outputPhase (first render)`  | 70us  | Full buffer diff                  |
+| Phase                       | Time  | Notes                             |
+| --------------------------- | ----- | --------------------------------- |
+| measurePhase (simple)       | 4ns   | Cached, no dirty nodes            |
+| measurePhase (100 children) | 523ns | Selective traversal               |
+| layoutPhase (simple)        | 442ns | Flexily layout                    |
+| layoutPhase (100 children)  | 24us  | Flexily layout                    |
+| renderPhase (simple)        | 1.7us | Incremental clone + dirty skip    |
+| renderPhase (100 children)  | 3.4us | Incremental clone + dirty skip    |
+| outputPhase (no changes)    | 7.5us | Dirty bounding box skips all rows |
+| outputPhase (10% changes)   | 45us  | Row-level dirty + style cache     |
+| outputPhase (first render)  | 70us  | Full buffer diff                  |
 
 ### Buffer Operations
 
-| Operation       | Time  |
-| --------------- | ----- |
-| `fill 80x24`    | 3.0us |
-| `setCell`       | 28ns  |
-| `getCellChar`   | 5.1ns |
-| `getCellBg`     | 8.7ns |
-| `readCellInto`  | 18ns  |
-| `cellEquals`    | 18ns  |
-| `create 80x24`  | 1.7us |
-| `create 200x50` | 3.7us |
+| Operation     | Time  |
+| ------------- | ----- |
+| fill 80x24    | 3.0us |
+| setCell       | 28ns  |
+| getCellChar   | 5.1ns |
+| getCellBg     | 8.7ns |
+| readCellInto  | 18ns  |
+| cellEquals    | 18ns  |
+| create 80x24  | 1.7us |
+| create 200x50 | 3.7us |
 
 ---
 
@@ -154,16 +154,17 @@ Flexily (pure JS, 7KB) is 2.6x faster than Yoga NAPI for flat layouts. Matches Y
 
 ## Summary Table
 
-| Scenario                              | Silvery         | Ink                     |                          |
-| ------------------------------------- | --------------- | ----------------------- | ------------------------ |
-| Cold render (1 component)             | 165 us          | 271 us                  | Silvery 1.6x faster      |
-| Cold render (1000 components)         | 463 ms          | 541 ms                  | Silvery 1.2x faster      |
-| Full React rerender (1000 components) | 630 ms          | 20.7 ms                 | Ink 30x faster           |
-| **Typical interactive update**        | **169 us**      | **20.7 ms**             | **Silvery 100x+ faster** |
-| Layout (50-node kanban)               | 57 us (Flexily) | 136 us (Yoga NAPI)      | Flexily 2.4x faster      |
-| Terminal resize (1000 nodes)          | 21 us           | Full re-render          | --                       |
-| Buffer diff (80x24, 10% changed)      | 34 us           | N/A (row-based strings) | --                       |
+| Scenario                              | Silvery         | Ink                     |                      |
+| ------------------------------------- | --------------- | ----------------------- | -------------------- |
+| Cold render (1 component)             | 165 us          | 271 us                  | Silvery 1.6x faster  |
+| Cold render (1000 components)         | 463 ms          | 541 ms                  | Silvery 1.2x faster  |
+| Full React rerender (1000 components) | 630 ms          | 20.7 ms                 | Ink 30x faster       |
+| Typical interactive update            | 169 us          | 20.7 ms                 | Silvery 100x+ faster |
+| Layout (50-node kanban)               | 57 us (Flexily) | 136 us (Yoga NAPI)      | Flexily 2.4x faster  |
+| Terminal resize (1000 nodes)          | 21 us           | Full re-render          | --                   |
+| Buffer diff (80x24, 10% changed)      | 34 us           | N/A (row-based strings) | --                   |
 
 **Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. Silvery runs a 5-phase pipeline (measure, layout, content, output) after React reconciliation -- that's the cost of layout feedback. But this scenario almost never happens in real apps.
 
 **The row that matters -- "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. Silvery has per-node dirty tracking that bypasses React entirely -- 169 us for 1000 nodes. Ink must re-render the full React tree for _any_ state change -- 20.7 ms. In practice, Silvery is **100x+ faster** for the updates that actually happen during interactive use.
+

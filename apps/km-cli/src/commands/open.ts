@@ -65,7 +65,7 @@ export function pickEditor(env: NodeJS.ProcessEnv = process.env): string {
   // the precedence chain explicitly so we don't fall back to nano
   // just because the most-specific var was whitespace.
   for (const candidate of [env.KM_EDITOR, env.VISUAL, env.EDITOR]) {
-    if (candidate && candidate.trim()) return candidate
+    if (candidate?.trim()) return candidate
   }
   return "nano"
 }

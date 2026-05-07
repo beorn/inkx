@@ -22,8 +22,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling v1 completeness — no negative surprises @km/silvery #task #P1 @claude:22c2717d
@@ -51,17 +55,17 @@ Without this work, `consolidate-design-demos` would ship a beautiful explorer of
 1. **Component prop name: `variant`** (industry-standard; replaces `tone`). All status + action components use `variant`. Component-specific value unions enforce correctness.
 2. **`destructive` is component-layer alias to `error` palette** — NOT a separate token role. No `theme.destructive`.
 3. **Disabled-token derivation: composite-based** (Pro v2 review):
-  - `fg-disabled = composite(fg-default @ 0.38, bg-surface-default)` clamped to ≥3:1 contrast
-  - `border-disabled = composite(border-default @ 0.24, bg-surface-default)`
-  - `bg-disabled = composite(border-default @ 0.12, bg-surface-default)`
-  - **Disabled is a NEUTRAL family** (not "muted error" / "muted success")
-4. **Backdrop derivation: composite-based, derived from canvas `$bg-default` not surface**:
-  - `bg-backdrop = composite(black @ 0.40, $bg-default)`
-  - ANSI16 fallback: snap to nearest darker distinct color
-5. **Compat aliases for one cycle**: `type InteractiveRole = StatusRole` with `@deprecated` annotation; legacy `disabledfg` aliased to `fg-disabled`. Removed in next sweep.
-6. **Acceptance: BOTH compile-time AND runtime guards**:
-  - TS unions enforce correctness at compile time
-  - Dynamic indexing (e.g., `theme[someKey]`) returns teaching error, not `undefined`
+- `fg-disabled = composite(fg-default @ 0.38, bg-surface-default)` clamped to ≥3:1 contrast
+- `border-disabled = composite(border-default @ 0.24, bg-surface-default)`
+- `bg-disabled = composite(border-default @ 0.12, bg-surface-default)`
+- **Disabled is a NEUTRAL family** (not "muted error" / "muted success")
+11. **Backdrop derivation: composite-based, derived from canvas `$bg-default` not surface**:
+- `bg-backdrop = composite(black @ 0.40, $bg-default)`
+- ANSI16 fallback: snap to nearest darker distinct color
+15. **Compat aliases for one cycle**: `type InteractiveRole = StatusRole` with `@deprecated` annotation; legacy `disabledfg` aliased to `fg-disabled`. Removed in next sweep.
+16. **Acceptance: BOTH compile-time AND runtime guards**:
+- TS unions enforce correctness at compile time
+- Dynamic indexing (e.g., `theme[someKey]`) returns teaching error, not `undefined`
 
 ## Acceptance criteria
 

@@ -1,6 +1,6 @@
 # Introducing Silvery: Polished Terminal Apps in React
 
-> **Internal draft. Not published.** Refine before posting.
+> Internal draft. Not published. Refine before posting.
 
 ---
 
@@ -79,16 +79,16 @@ What Silvery does have is architectural headroom. The problems it solves -- layo
 
 ## The packages
 
-| Package                           | What                                                               |
-| --------------------------------- | ------------------------------------------------------------------ |
-| `silvery`                         | Components, hooks, renderer -- the one package you need            |
-| `@silvery/ink` / `@silvery/chalk` | Ink compatibility -- 918/931 Ink 7.0 tests, 32/32 Chalk tests      |
-| `@silvery/test`                   | Playwright-style testing -- locators, `press()`, buffer assertions |
-| `@silvery/theme`                  | 84 color schemes, semantic tokens, auto-detect                          |
-| `@silvery/commander`              | Beautiful CLIs for free -- help renders through Silvery itself     |
-| `@silvery/headless`               | Pure state machines -- portable, no React                          |
-| `@silvery/ansi`                   | Terminal primitives -- styling, SGR, detection                     |
-| `@silvery/create`                 | Composable app builder -- `pipe()` providers                       |
+| Package                       | What                                                             |
+| ----------------------------- | ---------------------------------------------------------------- |
+| silvery                       | Components, hooks, renderer -- the one package you need          |
+| @silvery/ink / @silvery/chalk | Ink compatibility -- 918/931 Ink 7.0 tests, 32/32 Chalk tests    |
+| @silvery/test                 | Playwright-style testing -- locators, press(), buffer assertions |
+| @silvery/theme                | 84 color schemes, semantic tokens, auto-detect                   |
+| @silvery/commander            | Beautiful CLIs for free -- help renders through Silvery itself   |
+| @silvery/headless             | Pure state machines -- portable, no React                        |
+| @silvery/ansi                 | Terminal primitives -- styling, SGR, detection                   |
+| @silvery/create               | Composable app builder -- pipe() providers                       |
 
 And the standalone ecosystem projects:
 
@@ -148,3 +148,4 @@ Powerful apps. Polished UIs. Proudly terminal.
 - [GitHub](https://github.com/beorn/silvery)
 - [The Silvery Way](https://silvery.dev/guide/the-silvery-way) -- 10 design principles
 - [Silvery vs Ink](https://silvery.dev/guide/silvery-vs-ink) -- full feature comparison
+

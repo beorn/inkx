@@ -66,66 +66,66 @@ Listed OpenTUI first, Silvery second. Features under "Silvery" are built into th
 
 ### Rendering
 
-| Feature                           | OpenTUI 0.1.99                                                                                                                      | Silvery                                                                                                  |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Core language**                 | TypeScript façade over **native Zig core** (C ABI, prebuilt `.node` per platform: `@opentui/core-{darwin,linux,win32}-{x64,arm64}`) | Pure TypeScript, zero native deps                                                                        |
-| **Buffer**                        | Zig-backed `OptimizedBuffer` with native span feed and UTF-8 fast paths                                                             | TypeScript `TerminalBuffer` + `createTextFrame()` immutable snapshot                                     |
-| **Incremental diff**              | Cell-level diff (`Diff.ts` in renderables, native-assisted)                                                                         | Cell-level dirty tracking (7 flags/node), cell-level buffer diff                                         |
-| **Inline vs fullscreen**          | Supported; distinct code paths                                                                                                      | Blurred boundary — inline gets fullscreen-level incremental; fullscreen gets inline-level history access |
-| **Dynamic scrollback**            | App-managed                                                                                                                         | Items graduate to native terminal scrollback automatically; Cmd+F works                                  |
-| **Render targets**                | Terminal only (`packages/web` is early)                                                                                             | Terminal, Canvas 2D, DOM (experimental) — same component tree                                            |
-| **Layout feedback during render** | `useTerminalDimensions()` + imperative renderable measurement; no React-level `useBoxRect` analogue                                 | `useBoxRect()` returns real size during first render pass                                                |
-| **Post-processing effects**       | `DistortionEffect`, glitch/color filters (`packages/core/src/post/`)                                                                | None                                                                                                     |
-| **3D / WebGPU**                   | Optional: `three@0.177.0`, `bun-webgpu`, sprite/texture/shader pipeline (`packages/core/src/3d/`)                                   | None (out of scope)                                                                                      |
-| **2D physics**                    | Optional: `rapier2d-simd-compat`, `planck`                                                                                          | None                                                                                                     |
+| Feature                       | OpenTUI 0.1.99                                                                                                              | Silvery                                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Core language                 | TypeScript façade over native Zig core (C ABI, prebuilt .node per platform: @opentui/core-{darwin,linux,win32}-{x64,arm64}) | Pure TypeScript, zero native deps                                                                        |
+| Buffer                        | Zig-backed OptimizedBuffer with native span feed and UTF-8 fast paths                                                       | TypeScript TerminalBuffer + createTextFrame() immutable snapshot                                         |
+| Incremental diff              | Cell-level diff (Diff.ts in renderables, native-assisted)                                                                   | Cell-level dirty tracking (7 flags/node), cell-level buffer diff                                         |
+| Inline vs fullscreen          | Supported; distinct code paths                                                                                              | Blurred boundary — inline gets fullscreen-level incremental; fullscreen gets inline-level history access |
+| Dynamic scrollback            | App-managed                                                                                                                 | Items graduate to native terminal scrollback automatically; Cmd+F works                                  |
+| Render targets                | Terminal only (packages/web is early)                                                                                       | Terminal, Canvas 2D, DOM (experimental) — same component tree                                            |
+| Layout feedback during render | useTerminalDimensions() + imperative renderable measurement; no React-level useBoxRect analogue                             | useBoxRect() returns real size during first render pass                                                  |
+| Post-processing effects       | DistortionEffect, glitch/color filters (packages/core/src/post/)                                                            | None                                                                                                     |
+| 3D / WebGPU                   | Optional: three@0.177.0, bun-webgpu, sprite/texture/shader pipeline (packages/core/src/3d/)                                 | None (out of scope)                                                                                      |
+| 2D physics                    | Optional: rapier2d-simd-compat, planck                                                                                      | None                                                                                                     |
 
 ### Performance & size
 
-| Metric               | OpenTUI 0.1.99                                                                                                                 | Silvery                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| **Hot paths**        | Native Zig: buffer draw, UTF-8, native span feed, text-buffer coordinates                                                      | Pure JS: fingerprint-cached layout, dirty-flag incremental pipeline         |
-| **Layout engine**    | `yoga-layout@3.2.1` (WASM, async init)                                                                                         | Flexily (pure JS, ~2 KB, sync) — or Yoga as pluggable engine                |
-| **Bundle size**      | Large — Yoga WASM + Zig `.node` binaries per platform; native core alone is multiple MB per platform                           | `silvery/runtime` ~115 KB gzipped (core + Flexily); at parity with Ink+Yoga |
-| **Memory**           | Zig-controlled where native, JS GC where not                                                                                   | Normal JS GC; graduated scrollback frees React tree                         |
-| **Initialization**   | Async (WASM + native binary load)                                                                                              | Synchronous import                                                          |
-| **Benchmarks**       | Native benchmarks shipped (`zig build bench`, `bench:box-draw`, `bench:text-table`, `bench:ts`) — no public numbers vs silvery | `silvery-vs-ink.bench.ts` shows 3-27× vs Ink; no OpenTUI comparison yet     |
-| **Native toolchain** | Zig required to build from source; bun-ffi-structs at runtime                                                                  | None                                                                        |
+| Metric           | OpenTUI 0.1.99                                                                                                         | Silvery                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Hot paths        | Native Zig: buffer draw, UTF-8, native span feed, text-buffer coordinates                                              | Pure JS: fingerprint-cached layout, dirty-flag incremental pipeline       |
+| Layout engine    | yoga-layout@3.2.1 (WASM, async init)                                                                                   | Flexily (pure JS, ~2 KB, sync) — or Yoga as pluggable engine              |
+| Bundle size      | Large — Yoga WASM + Zig .node binaries per platform; native core alone is multiple MB per platform                     | silvery/runtime ~115 KB gzipped (core + Flexily); at parity with Ink+Yoga |
+| Memory           | Zig-controlled where native, JS GC where not                                                                           | Normal JS GC; graduated scrollback frees React tree                       |
+| Initialization   | Async (WASM + native binary load)                                                                                      | Synchronous import                                                        |
+| Benchmarks       | Native benchmarks shipped (zig build bench, bench:box-draw, bench:text-table, bench:ts) — no public numbers vs silvery | silvery-vs-ink.bench.ts shows 3-27× vs Ink; no OpenTUI comparison yet     |
+| Native toolchain | Zig required to build from source; bun-ffi-structs at runtime                                                          | None                                                                      |
 
 Silvery does not have numbers to quote against OpenTUI. **Action**: add an OpenTUI column to `vendor/silvery/benchmarks/silvery-vs-ink.bench.ts` — treat this as a standing gap.
 
 ### Interaction
 
-| Feature                               | OpenTUI 0.1.99                                                                                     | Silvery                                                                                                             |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Mouse + drag**                      | `parse.mouse.ts`, SGR mouse, `MouseEvent`, `MouseButton`, drag events                              | SGR mouse, `onClick`/`onWheel`, hit testing, drag, DOM-style bubbling                                               |
-| **Scroll acceleration**               | `MacOSScrollAccel`, `ScrollAcceleration` (macOS momentum scrolling)                                | Built-in macOS scroll acceleration                                                                                  |
-| **Input layering**                    | `KeyHandler` with `stopPropagation` tests, tree-based bubbling                                     | DOM-style bubbling, modal isolation, input layer providers                                                          |
-| **Focus system**                      | None in React bindings (no `useFocus`); imperative on renderables                                  | Tree-based focus: scopes, spatial nav, click-to-focus, `useFocusWithin`, DOM-style focus/blur, `withFocus()` plugin |
-| **TextInput / Textarea**              | `Input`, `Textarea`, `EditBufferRenderable` with extmarks (Neovim-style mark system), edit history | `TextInput` / `TextArea` — readline keybindings, selection, undo/redo, cursor                                       |
-| **Text selection + find + copy mode** | Selection buffer tests on `Text`; capture-spans test; basic selection                              | Mouse drag selection, `Ctrl+F` find, `Esc,v` keyboard copy mode                                                     |
-| **Clipboard**                         | `clipboard.ts` (OSC 52)                                                                            | OSC 52 — works across SSH                                                                                           |
-| **Command + keybinding system**       | `keymapping.ts`, `KeyBinding` type — lower-level key-to-action wiring                              | Named commands via `@silvery/commands`, context-aware, `parseHotkey("⌘K")`, serializable                            |
-| **Paste handling**                    | `parse.keypress-kitty.ts`, `paste.ts`, `PasteEvent`, `decodePasteBytes`                            | `usePaste`, bracketed paste mode, auto-enable                                                                       |
-| **Image rendering**                   | `jimp` + Kitty graphics + sprite/texture system (3D module)                                        | `<Image>` — Kitty graphics + Sixel + text fallback                                                                  |
-| **Hyperlinks**                        | OSC 8 via `detect-links.ts`                                                                        | `<Link>` — OSC 8 clickable URLs, Cmd-click support via `useModifierKeys`                                            |
-| **Tree-sitter syntax highlighting**   | Built-in, `tree-sitter-styled-text.ts`                                                             | Available via silvery's styled-text layer                                                                           |
-| **Markdown**                          | `Markdown.ts` renderable + `marked@17.0.1`                                                         | Available via km-markdown and silvery's Text primitives                                                             |
+| Feature                           | OpenTUI 0.1.99                                                                               | Silvery                                                                                                         |
+| --------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Mouse + drag                      | parse.mouse.ts, SGR mouse, MouseEvent, MouseButton, drag events                              | SGR mouse, onClick/onWheel, hit testing, drag, DOM-style bubbling                                               |
+| Scroll acceleration               | MacOSScrollAccel, ScrollAcceleration (macOS momentum scrolling)                              | Built-in macOS scroll acceleration                                                                              |
+| Input layering                    | KeyHandler with stopPropagation tests, tree-based bubbling                                   | DOM-style bubbling, modal isolation, input layer providers                                                      |
+| Focus system                      | None in React bindings (no useFocus); imperative on renderables                              | Tree-based focus: scopes, spatial nav, click-to-focus, useFocusWithin, DOM-style focus/blur, withFocus() plugin |
+| TextInput / Textarea              | Input, Textarea, EditBufferRenderable with extmarks (Neovim-style mark system), edit history | TextInput / TextArea — readline keybindings, selection, undo/redo, cursor                                       |
+| Text selection + find + copy mode | Selection buffer tests on Text; capture-spans test; basic selection                          | Mouse drag selection, Ctrl+F find, Esc,v keyboard copy mode                                                     |
+| Clipboard                         | clipboard.ts (OSC 52)                                                                        | OSC 52 — works across SSH                                                                                       |
+| Command + keybinding system       | keymapping.ts, KeyBinding type — lower-level key-to-action wiring                            | Named commands via @silvery/commands, context-aware, parseHotkey("⌘K"), serializable                            |
+| Paste handling                    | parse.keypress-kitty.ts, paste.ts, PasteEvent, decodePasteBytes                              | usePaste, bracketed paste mode, auto-enable                                                                     |
+| Image rendering                   | jimp + Kitty graphics + sprite/texture system (3D module)                                    | <Image> — Kitty graphics + Sixel + text fallback                                                                |
+| Hyperlinks                        | OSC 8 via detect-links.ts                                                                    | <Link> — OSC 8 clickable URLs, Cmd-click support via useModifierKeys                                            |
+| Tree-sitter syntax highlighting   | Built-in, tree-sitter-styled-text.ts                                                         | Available via silvery's styled-text layer                                                                       |
+| Markdown                          | Markdown.ts renderable + marked@17.0.1                                                       | Available via km-markdown and silvery's Text primitives                                                         |
 
 ### Components & framework
 
-| Feature                      | OpenTUI 0.1.99                                                                                                                                                                                                   | Silvery                                                                                                                                                                                        |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework hosts**          | React + Solid (first-party)                                                                                                                                                                                      | React only                                                                                                                                                                                     |
-| **Reconciler**               | `react-reconciler@0.32.0` for React, custom Solid reconciler                                                                                                                                                     | `@silvery/ag-react` on `react-reconciler`                                                                                                                                                      |
-| **Renderables / components** | ~20 low-level: Box, Text, TextNode, Textarea, Input, Select, Slider, ScrollBox, ScrollBar, TabSelect, TextTable, Markdown, Code, ASCIIFont, Diff, FrameBuffer, LineNumber, EditBufferRenderable, TimeToFirstDraw | 45+ higher-level: Box, Text, SelectList, TextInput, TextArea, VirtualList, Table, TreeView, Tabs, SplitView, ModalDialog, CommandPalette, Toast, Spinner, ProgressBar, Image, Link, Console, … |
-| **Component ecosystem**      | Nascent: `@opentui-ui/dialog`, `@opentui-ui/toast`, `opentui-spinner`, community forks (`@fairyhunter13/*`, `@vybestack/*`, `@phantasy/*`)                                                                       | In-repo canonical components; no external ecosystem                                                                                                                                            |
-| **Plugin system**            | `packages/core/src/plugins/` — core-slot, registry, plugin types; per-framework plugins in `react/plugins`, `solid/plugins`                                                                                      | `pipe()` + `withReact / withTerminal / withFocus / withDomEvents / withCommands / …`                                                                                                           |
-| **Slot / composition API**   | `createSlot`, `createSolidSlotRegistry`, `SolidPlugin`                                                                                                                                                           | React composition + `<Console />` / `<Portal />` / focus scopes                                                                                                                                |
-| **Theme system**             | App-level RGBA, hex colors, per-component styling, `terminal-palette.ts`                                                                                                                                         | 84 color schemes, semantic tokens (`$primary`, `$muted`, `$success`, `$error`, `$surfacebg`, …), typography presets (`H1/H2/H3/Muted/Small/Code`), auto-detect                                      |
-| **Animation**                | `Timeline.ts`, `useTimeline`, frame-delta animation                                                                                                                                                              | `useAnimation` + easing functions + `useAnimatedTransition`                                                                                                                                    |
-| **Accessibility**            | None visible                                                                                                                                                                                                     | Basic support                                                                                                                                                                                  |
-| **Resource cleanup**         | Explicit dispose / reconciler teardown                                                                                                                                                                           | `using` / Disposable + explicit teardown                                                                                                                                                       |
-| **TEA state machines**       | None                                                                                                                                                                                                             | `@silvery/create` + `@silvery/headless`: `(action, state) → [state, effects]`, replay, undo                                                                                                    |
+| Feature                  | OpenTUI 0.1.99                                                                                                                                                                                                   | Silvery                                                                                                                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework hosts          | React + Solid (first-party)                                                                                                                                                                                      | React only                                                                                                                                                                                     |
+| Reconciler               | react-reconciler@0.32.0 for React, custom Solid reconciler                                                                                                                                                       | @silvery/ag-react on react-reconciler                                                                                                                                                          |
+| Renderables / components | ~20 low-level: Box, Text, TextNode, Textarea, Input, Select, Slider, ScrollBox, ScrollBar, TabSelect, TextTable, Markdown, Code, ASCIIFont, Diff, FrameBuffer, LineNumber, EditBufferRenderable, TimeToFirstDraw | 45+ higher-level: Box, Text, SelectList, TextInput, TextArea, VirtualList, Table, TreeView, Tabs, SplitView, ModalDialog, CommandPalette, Toast, Spinner, ProgressBar, Image, Link, Console, … |
+| Component ecosystem      | Nascent: @opentui-ui/dialog, @opentui-ui/toast, opentui-spinner, community forks (@fairyhunter13/, @vybestack/, @phantasy/*)                                                                                     | In-repo canonical components; no external ecosystem                                                                                                                                            |
+| Plugin system            | packages/core/src/plugins/ — core-slot, registry, plugin types; per-framework plugins in react/plugins, solid/plugins                                                                                            | pipe() + withReact / withTerminal / withFocus / withDomEvents / withCommands / …                                                                                                               |
+| Slot / composition API   | createSlot, createSolidSlotRegistry, SolidPlugin                                                                                                                                                                 | React composition + <Console /> / <Portal /> / focus scopes                                                                                                                                    |
+| Theme system             | App-level RGBA, hex colors, per-component styling, terminal-palette.ts                                                                                                                                           | 84 color schemes, semantic tokens ($primary, $muted, $success, $error, $surfacebg, …), typography presets (H1/H2/H3/Muted/Small/Code), auto-detect                                             |
+| Animation                | Timeline.ts, useTimeline, frame-delta animation                                                                                                                                                                  | useAnimation + easing functions + useAnimatedTransition                                                                                                                                        |
+| Accessibility            | None visible                                                                                                                                                                                                     | Basic support                                                                                                                                                                                  |
+| Resource cleanup         | Explicit dispose / reconciler teardown                                                                                                                                                                           | using / Disposable + explicit teardown                                                                                                                                                         |
+| TEA state machines       | None                                                                                                                                                                                                             | @silvery/create + @silvery/headless: (action, state) → [state, effects], replay, undo                                                                                                          |
 
 ### React hook surface
 
@@ -143,33 +143,33 @@ OpenTUI's 6 hooks push applications toward imperative mutation on `*Renderable` 
 
 ### Testing
 
-| Feature                             | OpenTUI 0.1.99                                                   | Silvery                                                                                                                                                                 |
-| ----------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Test renderer**                   | `packages/core/src/testing/test-renderer.ts` — headless render   | `createRenderer` (fast virtual buffer) + `createTermless` (full ANSI pipeline)                                                                                          |
-| **Mock input**                      | `mock-keys.ts`, `mock-mouse.ts`, `manual-clock.ts`, `spy.ts`     | `app.press()`, `app.type()`, `app.mouse.*`, AutoLocator, deterministic clock                                                                                            |
-| **Recording**                       | `test-recorder.ts`, `capture-spans.test.ts`, integration.test.ts | `.tape` recordings → animated GIF / PNG / SVG with 77 themes and window chrome                                                                                          |
-| **Real terminal emulator in tests** | None visible                                                     | `createTermless()` + Termless backends: xterm.js, vt100, libvterm, Ghostty, Kitty, Alacritty, WezTerm                                                                   |
-| **Cross-parser invariants**         | None                                                             | `SILVERY_STRICT_TERMINAL=all` verifies ANSI output against vt100, xterm.js, Ghostty                                                                                     |
-| **Render invariant checks**         | None visible                                                     | `SILVERY_STRICT=1/2` verifies incremental == fresh on every frame; `SILVERY_STRICT_ACCUMULATE=1` full replay                                                            |
-| **CSS selector locators**           | None                                                             | AutoLocator: CSS3 via css-select — `#id`, `[attr=…]`, combinators, pseudo-classes, `:has`, `:nth-child`, `:not`, narrowing via `getByText`, `filter`, `first`, `nth`, … |
-| **Cell-level assertions**           | Snapshot-based                                                   | `app.cell(col,row)` → resolved RGB colors, bold, dim, underline, wide-char, hyperlink                                                                                   |
-| **Frame-by-frame replay**           | Via test-recorder                                                | `handle.frames` (ANSI strings per render), `.tape` executor                                                                                                             |
-| **Property-invariant fuzz**         | None visible                                                     | `tests/features/property-invariants.fuzz.tsx` (7 invariants) + `incremental-rendering.fuzz.tsx` stress suite                                                            |
+| Feature                         | OpenTUI 0.1.99                                               | Silvery                                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test renderer                   | packages/core/src/testing/test-renderer.ts — headless render | createRenderer (fast virtual buffer) + createTermless (full ANSI pipeline)                                                                            |
+| Mock input                      | mock-keys.ts, mock-mouse.ts, manual-clock.ts, spy.ts         | app.press(), app.type(), app.mouse.*, AutoLocator, deterministic clock                                                                                |
+| Recording                       | test-recorder.ts, capture-spans.test.ts, integration.test.ts | .tape recordings → animated GIF / PNG / SVG with 77 themes and window chrome                                                                          |
+| Real terminal emulator in tests | None visible                                                 | createTermless() + Termless backends: xterm.js, vt100, libvterm, Ghostty, Kitty, Alacritty, WezTerm                                                   |
+| Cross-parser invariants         | None                                                         | SILVERY_STRICT_TERMINAL=all verifies ANSI output against vt100, xterm.js, Ghostty                                                                     |
+| Render invariant checks         | None visible                                                 | SILVERY_STRICT=1/2 verifies incremental == fresh on every frame; SILVERY_STRICT_ACCUMULATE=1 full replay                                              |
+| CSS selector locators           | None                                                         | AutoLocator: CSS3 via css-select — #id, [attr=…], combinators, pseudo-classes, :has, :nth-child, :not, narrowing via getByText, filter, first, nth, … |
+| Cell-level assertions           | Snapshot-based                                               | app.cell(col,row) → resolved RGB colors, bold, dim, underline, wide-char, hyperlink                                                                   |
+| Frame-by-frame replay           | Via test-recorder                                            | handle.frames (ANSI strings per render), .tape executor                                                                                               |
+| Property-invariant fuzz         | None visible                                                 | tests/features/property-invariants.fuzz.tsx (7 invariants) + incremental-rendering.fuzz.tsx stress suite                                              |
 
 OpenTUI has a respectable unit-test infrastructure; silvery has a **correctness-engineering** infrastructure. For a TUI framework where bugs are often "this one terminal renders incrementally differently from fresh," that distinction is the whole ballgame.
 
 ### API & DX
 
-| Feature                | OpenTUI 0.1.99                                                                                                                | Silvery                                                                                               |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Simple entry point** | `const renderer = await createCliRenderer(); render(<App/>, renderer)` — async, renderer first                                | `await run(<App />)` (runtime) or `render(<App />, term)` (bare)                                      |
-| **Composition API**    | Plugin registry + slots; `pipe`-style not idiomatic                                                                           | `pipe(createApp, withReact, withTerminal, withFocus, withDomEvents)`                                  |
-| **React DevTools**     | Standard react-reconciler support                                                                                             | Supported + `SILVERY_DEV=1` inspector (tree, dirty flags, focus path)                                 |
-| **Unicode utilities**  | Internal (`styled-text.ts`, `TextNode`, `TextTable`)                                                                          | 28+ built-in functions: grapheme split, display width, CJK, ANSI-aware truncation                     |
-| **Console capture**    | N/A                                                                                                                           | `<Console />` composable component                                                                    |
-| **Non-TTY detection**  | App-level                                                                                                                     | `isTTY()`, `resolveNonTTYMode()`, `renderString()` fallback                                           |
-| **Documentation**      | `packages/core/docs/`: getting-started, development, tree-sitter, renderables-vs-constructs, env-vars. Functional but sparse. | `silvery.dev` VitePress site + The Silvery Way guide + Styling guide + debugging guide + compat guide |
-| **License**            | MIT                                                                                                                           | MIT                                                                                                   |
+| Feature            | OpenTUI 0.1.99                                                                                                              | Silvery                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Simple entry point | const renderer = await createCliRenderer(); render(<App/>, renderer) — async, renderer first                                | await run(<App />) (runtime) or render(<App />, term) (bare)                                        |
+| Composition API    | Plugin registry + slots; pipe-style not idiomatic                                                                           | pipe(createApp, withReact, withTerminal, withFocus, withDomEvents)                                  |
+| React DevTools     | Standard react-reconciler support                                                                                           | Supported + SILVERY_DEV=1 inspector (tree, dirty flags, focus path)                                 |
+| Unicode utilities  | Internal (styled-text.ts, TextNode, TextTable)                                                                              | 28+ built-in functions: grapheme split, display width, CJK, ANSI-aware truncation                   |
+| Console capture    | N/A                                                                                                                         | <Console /> composable component                                                                    |
+| Non-TTY detection  | App-level                                                                                                                   | isTTY(), resolveNonTTYMode(), renderString() fallback                                               |
+| Documentation      | packages/core/docs/: getting-started, development, tree-sitter, renderables-vs-constructs, env-vars. Functional but sparse. | silvery.dev VitePress site + The Silvery Way guide + Styling guide + debugging guide + compat guide |
+| License            | MIT                                                                                                                         | MIT                                                                                                 |
 
 ## Terminal protocol coverage
 
@@ -177,23 +177,23 @@ Protocols verified in the OpenTUI clone (`packages/core/src/lib/`).
 
 ### Keyboard & input
 
-| Protocol           | What                                                                    | OpenTUI | Silvery                           |
-| ------------------ | ----------------------------------------------------------------------- | ------- | --------------------------------- |
-| Kitty keyboard     | `parse.keypress-kitty.ts` + `.protocol.test.ts` — all flags             | Full    | Full                              |
-| Modifier detection | Shift, Alt, Ctrl, Super/Cmd                                             | Full    | Full + Hyper, CapsLock, NumLock   |
-| Key event types    | Press + release + repeat                                                | Full    | Full                              |
-| Bracketed paste    | `parse.keypress-kitty.ts`, `paste.ts`, `decodePasteBytes`, `PasteEvent` | Full    | `usePaste` hook + bracketed paste |
-| Focus reporting    | Reported via renderer events                                            | Partial | Full                              |
+| Protocol           | What                                                            | OpenTUI | Silvery                         |
+| ------------------ | --------------------------------------------------------------- | ------- | ------------------------------- |
+| Kitty keyboard     | parse.keypress-kitty.ts + .protocol.test.ts — all flags         | Full    | Full                            |
+| Modifier detection | Shift, Alt, Ctrl, Super/Cmd                                     | Full    | Full + Hyper, CapsLock, NumLock |
+| Key event types    | Press + release + repeat                                        | Full    | Full                            |
+| Bracketed paste    | parse.keypress-kitty.ts, paste.ts, decodePasteBytes, PasteEvent | Full    | usePaste hook + bracketed paste |
+| Focus reporting    | Reported via renderer events                                    | Partial | Full                            |
 
 ### Mouse
 
-| Protocol              | What                                          | OpenTUI | Silvery |
-| --------------------- | --------------------------------------------- | ------- | ------- |
-| SGR mouse (1006)      | `parse.mouse.ts`, `MouseEvent`, `MouseButton` | Yes     | Yes     |
-| Drag                  | Yes                                           | Yes     |
-| Wheel                 | Yes                                           | Yes     |
-| macOS scroll momentum | `scroll-acceleration.ts`, `MacOSScrollAccel`  | Yes     | Yes     |
-| Cursor shape (OSC 22) | Unclear                                       | —       | Yes     |
+| Protocol              | What                                     | OpenTUI | Silvery |
+| --------------------- | ---------------------------------------- | ------- | ------- |
+| SGR mouse (1006)      | parse.mouse.ts, MouseEvent, MouseButton  | Yes     | Yes     |
+| Drag                  | Yes                                      | Yes     |         |
+| Wheel                 | Yes                                      | Yes     |         |
+| macOS scroll momentum | scroll-acceleration.ts, MacOSScrollAccel | Yes     | Yes     |
+| Cursor shape (OSC 22) | Unclear                                  | —       | Yes     |
 
 ### DEC modes and output
 
@@ -208,14 +208,14 @@ Protocols verified in the OpenTUI clone (`packages/core/src/lib/`).
 
 ### OSC sequences
 
-| OSC | What                    | OpenTUI                 | Silvery |
-| --- | ----------------------- | ----------------------- | ------- |
-| 0/2 | Window title            | Partial                 | Yes     |
-| 8   | Hyperlinks              | Yes (`detect-links.ts`) | Yes     |
-| 22  | Mouse cursor shape      | —                       | Yes     |
-| 52  | Clipboard over SSH      | Yes (`clipboard.ts`)    | Yes     |
-| 66  | Kitty text sizing       | —                       | Yes     |
-| 133 | Semantic prompt markers | —                       | Yes     |
+| OSC | What                    | OpenTUI               | Silvery |
+| --- | ----------------------- | --------------------- | ------- |
+| 0/2 | Window title            | Partial               | Yes     |
+| 8   | Hyperlinks              | Yes (detect-links.ts) | Yes     |
+| 22  | Mouse cursor shape      | —                     | Yes     |
+| 52  | Clipboard over SSH      | Yes (clipboard.ts)    | Yes     |
+| 66  | Kitty text sizing       | —                     | Yes     |
+| 133 | Semantic prompt markers | —                     | Yes     |
 
 ### Graphics
 
@@ -301,16 +301,16 @@ OpenTUI is trying to be a **full terminal canvas** — productivity UIs, yes, bu
 
 ## Layout engines — concrete comparison
 
-|                                    | Flexily                                | Yoga (OpenTUI + Ink)                       |
-| ---------------------------------- | -------------------------------------- | ------------------------------------------ |
-| Size (gzip)                        | ~19 KB pure JS                         | ~53 KB WASM (+ loader)                     |
-| Language                           | TypeScript                             | C++ → WASM (OpenTUI adds a Zig C-ABI host) |
-| Initialization                     | Synchronous                            | Async                                      |
-| Default `flexDirection`            | `row` (CSS spec)                       | `column` (Yoga default)                    |
-| `overflow:hidden` + `flexShrink:0` | Item shrinks to fit (CSS §4.5)         | Item expands to content                    |
-| `alignContent`                     | Browser-matching                       | Minor divergence                           |
-| Fingerprint caching                | Yes                                    | No                                         |
-| Pluggable?                         | Yes — `SILVERY_ENGINE=yoga` falls back | OpenTUI locks to Yoga                      |
+|                                | Flexily                              | Yoga (OpenTUI + Ink)                       |
+| ------------------------------ | ------------------------------------ | ------------------------------------------ |
+| Size (gzip)                    | ~19 KB pure JS                       | ~53 KB WASM (+ loader)                     |
+| Language                       | TypeScript                           | C++ → WASM (OpenTUI adds a Zig C-ABI host) |
+| Initialization                 | Synchronous                          | Async                                      |
+| Default flexDirection          | row (CSS spec)                       | column (Yoga default)                      |
+| overflow:hidden + flexShrink:0 | Item shrinks to fit (CSS §4.5)       | Item expands to content                    |
+| alignContent                   | Browser-matching                     | Minor divergence                           |
+| Fingerprint caching            | Yes                                  | No                                         |
+| Pluggable?                     | Yes — SILVERY_ENGINE=yoga falls back | OpenTUI locks to Yoga                      |
 
 Both benchmark in the same ballpark on typical trees (100-node kanban: Flexily 85 μs, Yoga 88 μs in silvery's own benchmarks). Flexily's advantage is spec compliance, sync init, fingerprint caching, zero WASM loader, and being hackable from the same repo.
 
@@ -401,3 +401,4 @@ Things to do or watch, in no particular order:
 - `hub/silvery/research/opentui-opencode.md` — paired strategic framing doc (same capture session).
 
 Re-verify numeric claims (star counts, LOC, version strings) before quoting in public materials. Everything else is architectural and should be stable on short timescales.
+

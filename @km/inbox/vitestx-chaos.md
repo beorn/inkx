@@ -21,11 +21,11 @@ The sync chaos testing system (watcher-chaos, chaos-testing.md) has its own runn
 
 1. Refactor chaos scenario logic into reusable functions: expandEditToAtomic(event)→Event[], introduceDelay(event), etc.
 2. Build a chaosEventGenerator(fs, scenarios) async generator that:
-  - Maintains file state (Set of current files)
-  - Picks random operations (create/modify/delete/rename)
-  - Applies chaos transforms inline (EDITOR_ATOMIC→yield 2 events, QUEUE_OVERFLOW→skip 20%, SLOW_DISK→await delay, REORDER→buffer+shuffle)
-  - Performs actual FS operations on FakeFileSystem for ground truth
-3. Use test.fuzz + take(chaosEventGenerator, eventCount) for auto-shrinking + regression
+- Maintains file state (Set of current files)
+- Picks random operations (create/modify/delete/rename)
+- Applies chaos transforms inline (EDITOR_ATOMIC→yield 2 events, QUEUE_OVERFLOW→skip 20%, SLOW_DISK→await delay, REORDER→buffer+shuffle)
+- Performs actual FS operations on FakeFileSystem for ground truth
+9. Use test.fuzz + take(chaosEventGenerator, eventCount) for auto-shrinking + regression
 
 Example sketch:
   test.fuzz('sync survives chaos', async () => {

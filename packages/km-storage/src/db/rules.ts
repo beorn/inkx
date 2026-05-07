@@ -785,7 +785,8 @@ export function extractChangedAttrs(db: Database, changedNodeIds: Iterable<strin
   // Each sigil accepts path-form (`@scope/sub`, `+project/sub`, `#scope/sub`)
   // so incremental rule-eval picks up the full canonical name when sigil
   // attrs change. See docs/design/model/klink.md and @km/agent/sigil-boards.
-  const refRegex = /#([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)|@([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)|\+([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)/g
+  const refRegex =
+    /#([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)|@([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)|\+([a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)/g
 
   const idList = Array.from(changedNodeIds)
   if (idList.length === 0) return result

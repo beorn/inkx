@@ -1,6 +1,6 @@
 # Viewport Architecture
 
-> **Internal** — Design rationale for Silvery's viewport system: fullscreen, inline, and virtualized scrolling modes. Explains the composable root component pattern.
+> Internal — Design rationale for Silvery's viewport system: fullscreen, inline, and virtualized scrolling modes. Explains the composable root component pattern.
 
 How Silvery manages fullscreen apps, scrollback-based apps, and virtualized scrolling — using composable root components with a shared virtualization engine.
 
@@ -286,19 +286,14 @@ ScrollbackView uses DECSTBM (scroll regions) to pin a footer/status bar at the b
 ## Implemented Optimizations
 
 1. **OSC 8 hyperlinks in scrollback**: Frozen content preserves clickable links (file paths, URLs) that remain functional in terminal scrollback. The render pipeline generates OSC 8 sequences, and `\r\n` normalization in useScrollback doesn't corrupt them.
-
 2. **OSC 133 semantic markers**: `useScrollback({ markers: true })` emits shell integration marks around each frozen item, enabling "jump to previous item" (Cmd+Up/Down) in iTerm2, Kitty, WezTerm, and Ghostty. Custom marker callbacks provide per-item control.
-
 3. **Content-change detection on resize**: See "Resize Strategy" above — avoids unnecessary re-emission when content is identical at both widths.
-
 4. **DECAWM pending-wrap handling**: All stdout writes use `\r\n` instead of bare `\n` to prevent double line advance when content fills exactly the terminal width.
-
 5. **Inline incremental rendering**: The output phase diffs buffers and emits only changed cells using relative cursor positioning, achieving 28-192x reduction in bytes per keystroke compared to full re-render.
 
 ## Open Questions (Future Work)
 
 1. **Scroll position detection**: No terminal protocol exists to detect whether the user has scrolled up. This means the app can't show "you've scrolled away, new content below" indicators. A future terminal protocol extension could solve this.
-
 2. **React `<Activity>`/`<Offscreen>`**: If React ships this, it could provide a "paused" state that preserves hook state without rendering. Worth revisiting if it proves useful for terminal UIs.
-
 3. **Streaming items that scroll off**: A long streaming response scrolls its top into scrollback while the bottom is still live. The tall-item optimization handles this, but the UX of having partially-frozen content is worth studying further.
+

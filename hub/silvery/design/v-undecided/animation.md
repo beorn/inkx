@@ -245,3 +245,4 @@ Read from `PREFERS_REDUCED_MOTION` env var or silvery setting.
 4. **Exit animation coordination**: React doesn't natively wait for animation before unmount. Need a portal or delayed-unmount pattern.
 
 These are implementation questions for Phases 3-5, not blockers for Phase 1.
+

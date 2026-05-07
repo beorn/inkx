@@ -28,11 +28,11 @@
  *   recall     — STUB (needs a controller-level token stream + a recall
  *                workspace dep that Phase 6.b can't add per its own
  *                "DO NOT modify package.json" constraint)
- *   subagent   — STUB (needs a structured sub-agent event stream from the
- *                harness — `Task` tool currently returns final results only)
+ *   subagent   — Task/Agent tool lifecycle events from the session stream
  *
- * Stubs still go through `sanitizeNotification` + the per-source debounce —
- * the wiring is real, only the upstream signal is missing.
+ * Ambient sources still go through `sanitizeNotification` + per-source
+ * debounce. Task/Agent lifecycle events are not debounced because dropping a
+ * state transition leaves the UI with stale active subagents.
  */
 
 import type { Scope } from "@silvery/scope"
@@ -40,7 +40,11 @@ import type { ChannelQueue } from "../channel-queue.ts"
 import { registerCiNotificationAdapter, type CiAdapterOptions } from "./ci.ts"
 import { registerFilewatchNotificationAdapter, type FilewatchAdapterOptions } from "./filewatch.ts"
 import { registerRecallNotificationAdapter, type RecallAdapterOptions } from "./recall.ts"
-import { registerSubagentNotificationAdapterHandle, type SubagentAdapterOptions, type SubagentHandle } from "./subagent.ts"
+import {
+  registerSubagentNotificationAdapterHandle,
+  type SubagentAdapterOptions,
+  type SubagentHandle,
+} from "./subagent.ts"
 import { registerTribeNotificationAdapter, type TribeAdapterOptions } from "./tribe.ts"
 
 export { registerTribeNotificationAdapter, emitTribeLineForTest } from "./tribe.ts"
@@ -52,7 +56,11 @@ export type { FilewatchAdapterOptions } from "./filewatch.ts"
 export { registerCiNotificationAdapter, probeCiOnce, diffCi, DEFAULT_CI_POLL_MS } from "./ci.ts"
 export type { CiAdapterOptions } from "./ci.ts"
 
-export { registerRecallNotificationAdapter, registerRecallNotificationAdapterHandle, triggerRecallProbe } from "./recall.ts"
+export {
+  registerRecallNotificationAdapter,
+  registerRecallNotificationAdapterHandle,
+  triggerRecallProbe,
+} from "./recall.ts"
 export type { RecallAdapterOptions, RecallHit, RecallQueryFn } from "./recall.ts"
 
 export {
@@ -110,7 +118,9 @@ export type RegisterAllNotificationAdaptersResult = (() => void) & {
  * Idempotent per scope — call once per session. Sources that aren't yet
  * wired (recall stub) become no-ops and don't error.
  */
-export function registerAllNotificationAdapters(opts: RegisterAllNotificationAdaptersOptions): RegisterAllNotificationAdaptersResult {
+export function registerAllNotificationAdapters(
+  opts: RegisterAllNotificationAdaptersOptions,
+): RegisterAllNotificationAdaptersResult {
   const disable = opts.disable ?? {}
   const disposers: Array<() => void> = []
   let subagentHandle: SubagentHandle | undefined

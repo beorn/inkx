@@ -1,6 +1,7 @@
 ---
 title: "Dynamic Scrollback: Why Your TUI Should Use the Terminal's Native History"
-description: "Most TUI frameworks trap everything in the alternate screen. Here's what you lose and how dynamic scrollback gives it back."
+description: Most TUI frameworks trap everything in the alternate screen. Here's
+  what you lose and how dynamic scrollback gives it back.
 date: 2026-04-02
 ---
 
@@ -132,3 +133,4 @@ The terminal's scrollback buffer is one of its most underappreciated features. I
 Most TUI frameworks throw it away by defaulting to the alternate screen. For applications that produce output over time -- and that's a lot of applications, from chat to CI to test runners -- using the normal screen and letting completed output graduate to scrollback gives users capabilities that would take significant engineering effort to replicate inside the application.
 
 Dynamic scrollback isn't appropriate for every TUI. But for the growing category of streaming, output-heavy terminal applications -- AI agents being the most prominent example -- the terminal already has most of the infrastructure you need. The trick is building a pipeline that uses it rather than replacing it.
+

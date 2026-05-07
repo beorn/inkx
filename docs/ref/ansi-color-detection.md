@@ -134,3 +134,4 @@ const isTTY = "isTTY" in output ? output.isTTY : undefined
 **Follow ecosystem conventions** - NO_COLOR and FORCE_COLOR are widely supported. Respecting them improves interoperability.
 
 **Env vars vs CLI flags** - Explicit flags should take precedence over env vars for principle of least surprise.
+

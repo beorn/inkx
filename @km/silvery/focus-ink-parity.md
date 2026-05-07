@@ -32,18 +32,18 @@ blocks:: [[@km/silvery/architectural-plateau]]
 **Two parallel focus systems exist:**
 
 1. **Silvery native FocusManager (keeper)**:
-  - `vendor/silvery/packages/ag/src/focus-manager.ts` — tree-based manager with `HookFocusable` support (`registerHookFocusable`, `setHookFocusableActive`, `focusVirtualId`, `setHookFocusEnabled`, `hasHookFocusables`, `hookFocusEnabled`). Unified `TabEntry` list interleaves tree + hook focusables.
-  - `vendor/silvery/packages/ag-react/src/hooks/useFocus.ts` — **already shipped** Ink-compatible `useFocus(options)` returning `{isFocused, focus}`. Wired via `FocusManagerContext`.
-  - `vendor/silvery/packages/ag-react/src/hooks/useFocusManager.ts` — rich result with `focusNext/focusPrev/blur/activateScope` plus Ink-compat aliases (`enableFocus/disableFocus/focusPrevious`).
-  - Wired in `packages/ag-react/src/render.tsx:442,462` and `packages/ag-term/src/renderer.ts:454,502`.
-2. **Ink-compat parallel system (to delete)**:
-  - `vendor/silvery/packages/ink/src/with-ink-focus.ts` (248 LOC) — owns `InkFocusContext`, `InkFocusProvider`, `withInkFocus()`. Flat `Focusable[]` state + own Tab handling.
-  - `vendor/silvery/packages/ink/src/ink-hooks.ts:37-87` — local `useFocus`/`useFocusManager` reading from `InkFocusContext`. Annotated `@deprecated`.
-  - `vendor/silvery/packages/ink/src/ink-render.ts:15,332-341,418` — wraps tree in `InkFocusProvider` + installs `InkFocusBridge`. The ONLY planting site.
-  - `vendor/silvery/packages/ink/src/with-ink.ts` — composes `withInkCursor() + withInkFocus()`.
-  - `vendor/silvery/packages/ink/src/index.ts:17-18` — barrel re-exports
-  - `vendor/silvery/packages/ag-term/src/plugins/index.ts:130-134` — re-export
-  - `vendor/silvery/packages/ink/package.json:41-43,64` — `./with-ink-focus` subpath
+- `vendor/silvery/packages/ag/src/focus-manager.ts` — tree-based manager with `HookFocusable` support (`registerHookFocusable`, `setHookFocusableActive`, `focusVirtualId`, `setHookFocusEnabled`, `hasHookFocusables`, `hookFocusEnabled`). Unified `TabEntry` list interleaves tree + hook focusables.
+- `vendor/silvery/packages/ag-react/src/hooks/useFocus.ts` — **already shipped** Ink-compatible `useFocus(options)` returning `{isFocused, focus}`. Wired via `FocusManagerContext`.
+- `vendor/silvery/packages/ag-react/src/hooks/useFocusManager.ts` — rich result with `focusNext/focusPrev/blur/activateScope` plus Ink-compat aliases (`enableFocus/disableFocus/focusPrevious`).
+- Wired in `packages/ag-react/src/render.tsx:442,462` and `packages/ag-term/src/renderer.ts:454,502`.
+7. **Ink-compat parallel system (to delete)**:
+- `vendor/silvery/packages/ink/src/with-ink-focus.ts` (248 LOC) — owns `InkFocusContext`, `InkFocusProvider`, `withInkFocus()`. Flat `Focusable[]` state + own Tab handling.
+- `vendor/silvery/packages/ink/src/ink-hooks.ts:37-87` — local `useFocus`/`useFocusManager` reading from `InkFocusContext`. Annotated `@deprecated`.
+- `vendor/silvery/packages/ink/src/ink-render.ts:15,332-341,418` — wraps tree in `InkFocusProvider` + installs `InkFocusBridge`. The ONLY planting site.
+- `vendor/silvery/packages/ink/src/with-ink.ts` — composes `withInkCursor() + withInkFocus()`.
+- `vendor/silvery/packages/ink/src/index.ts:17-18` — barrel re-exports
+- `vendor/silvery/packages/ag-term/src/plugins/index.ts:130-134` — re-export
+- `vendor/silvery/packages/ink/package.json:41-43,64` — `./with-ink-focus` subpath
 
 **Bead description correction**: bead says "No tests for useFocus(options)" — **wrong**. Two near-duplicate test files exist:
 

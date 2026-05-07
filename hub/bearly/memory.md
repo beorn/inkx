@@ -92,12 +92,12 @@ Instructs the LLM to extract:
 
 ## Cost Model
 
-| Operation                     | Cost            | Frequency                |
-| ----------------------------- | --------------- | ------------------------ |
-| Auto-recall (per prompt)      | ~$0.001-0.003   | Every non-trivial prompt |
-| Manual recall                 | ~$0.001-0.003   | On demand                |
-| Session-end remember          | ~$0.005-0.01    | Once per session         |
-| **Daily total** (~50 prompts) | **~$0.05-0.20** |                          |
+| Operation                 | Cost          | Frequency                |
+| ------------------------- | ------------- | ------------------------ |
+| Auto-recall (per prompt)  | ~$0.001-0.003 | Every non-trivial prompt |
+| Manual recall             | ~$0.001-0.003 | On demand                |
+| Session-end remember      | ~$0.005-0.01  | Once per session         |
+| Daily total (~50 prompts) | ~$0.05-0.20   |                          |
 
 ## Design Decisions
 
@@ -128,3 +128,4 @@ This separates "knowledge I want to always have" from "knowledge I can find when
 - Those systems require separate infrastructure and API keys
 - We already have the data (session transcripts) and the search (FTS5)
 - Adding a cheap LLM call leverages existing capabilities at minimal cost
+

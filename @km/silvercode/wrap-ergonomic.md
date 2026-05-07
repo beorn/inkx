@@ -60,3 +60,4 @@ Silvery is a multi-target UI framework with web ambitions — NOT "Ink but bette
 
 - Flipping silvery's `flexShrink` default from 0 to 1 (prior silvery-expert audit flagged as high-risk — ListView + others depend on 0).
 - Generalized `<Block>` / `<Stack>` / `<Section>` design primitives (future silvery work; separate initiative).
+

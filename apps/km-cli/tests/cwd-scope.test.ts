@@ -51,7 +51,7 @@ describe("resolveCwdScope", () => {
     }
   })
 
-  test("cwd not under any vault → kind:\"no-vault\"", () => {
+  test('cwd not under any vault → kind:"no-vault"', () => {
     const dir = mkdtempSync(join(BASE, "outside-"))
     // Don't create .km here. Walk up: BASE itself has no .km, /tmp
     // sometimes has one (in CI it doesn't); stub by passing an

@@ -28,8 +28,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Phase 4: km-tui stripInlineColors prop tidy-up @km/silvery #task #P4

@@ -6,50 +6,50 @@ Every concept in km has exactly one canonical doc. Overviews, references, and gu
 
 ## Doc roles
 
-| Role          | Purpose                                                         | Edit discipline                                                 |
-| ------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
-| **canonical** | Owns one or more concepts. Authoritative definition lives here. | Update in place. Bump the "last verified" date.                 |
-| **overview**  | Surveys multiple concepts without owning any.                   | Point at canonicals. No redefining.                             |
-| **reference** | Lookup table or API docs.                                       | Mechanical. Regenerate if derived.                              |
-| **guide**     | How-to for users or devs.                                       | Keep aligned with canonical.                                    |
-| **lesson**    | Retrospective / case study.                                     | Frozen once written; move to archive if the pattern is retired. |
+| Role      | Purpose                                                         | Edit discipline                                                 |
+| --------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| canonical | Owns one or more concepts. Authoritative definition lives here. | Update in place. Bump the "last verified" date.                 |
+| overview  | Surveys multiple concepts without owning any.                   | Point at canonicals. No redefining.                             |
+| reference | Lookup table or API docs.                                       | Mechanical. Regenerate if derived.                              |
+| guide     | How-to for users or devs.                                       | Keep aligned with canonical.                                    |
+| lesson    | Retrospective / case study.                                     | Frozen once written; move to archive if the pattern is retired. |
 
 ## Canonical sources — concept → doc
 
-| Concept                                                                                          | Canonical doc                                                                                          |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| KNode record shape, items vs blocks, ItemData, visual roles, body content                        | [design/model/knode.md](../design/model/knode.md)                                                      |
-| TreeMutator — atomic ops (split, merge, indent, outdent, inverse, normalize)                     | [design/model/tree-mutator.md](../design/model/tree-mutator.md)                                        |
-| Repo API — queries, mutations, event semantics, sync                                             | [design/model/repo-api.md](../design/model/repo-api.md)                                                |
-| KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | [design/model/klink.md](../design/model/klink.md)                                                      |
-| km-ast type system, block types, traits, derivation rules                                        | [design/model/kast.md](../design/model/kast.md)                                                        |
-| Visibility mechanisms (structural exclusion, collapsed columns, fold)                            | [design/ui/visibility.md](../design/ui/visibility.md)                                                  |
-| Folder/file/H1 collapse rule, index file expansion, fstype classification                        | [design/ui/visibility.md](../design/ui/visibility.md)                                                  |
-| Selection type, cursor/anchor, inputMode, 9 Selecting kinds                                      | [design/ui/selection.md](../design/ui/selection.md)                                                    |
-| TEA state machine pattern                                                                        | [design/tea.md](../design/tea.md)                                                                      |
-| Navigation (cursor movement, grid nav, zoom)                                                     | [design/ui/navigation.md](../design/ui/navigation.md)                                                  |
-| Node visual spec (rendering, embed expansion)                                                    | [design/ui/rendering.md](../design/ui/rendering.md)                                                    |
-| Per-node reactive computeds                                                                      | [design/ui/rendering.md](../design/ui/rendering.md)                                                    |
-| Horizontal virtualization, sticky columns                                                        | [design/ui/layout.md](../design/ui/layout.md)                                                          |
-| Outliner spec (indent, bullets, nesting)                                                         | [design/ui/layout.md](../design/ui/layout.md)                                                          |
-| Theme tokens (km uses silvery's system)                                                          | [silvery.dev/guide/theming](https://silvery.dev/guide/theming)                                         |
-| Spatial navigation, focus scope                                                                  | [design/ui/navigation.md](../design/ui/navigation.md)                                                  |
-| Omnibox (command palette, fuzzy search)                                                          | [design/omnibox.md](../design/omnibox.md)                                                              |
-| Tree aggregation, fold-depth                                                                     | [design/ui/rendering.md](../design/ui/rendering.md)                                                    |
-| Task recurrence (RRULE + FROM)                                                                   | [design/recurrence.md](../design/recurrence.md)                                                        |
-| Tribe multi-session coordination                                                                 | [vendor/bearly/plugins/tribe/README.md](../../vendor/bearly/plugins/tribe/README.md) — owned by bearly |
-| Storage modes (memory/disk), SQLite schema, ULIDs                                                | [storage.md](../design/model/storage.md)                                                               |
-| Query language (field:value, sigils, paths, FTS)                                                 | [guides/query.md](../guides/query.md)                                                                  |
-| Task fields (marker, status, due, priority, recur) + cross-system mapping                        | [ref/task-fields.md](../ref/task-fields.md)                                                            |
-| Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs)             | [guides/markdown.md](../guides/markdown.md)                                                            |
-| Keybindings (layers, chord system, v2)                                                           | [design/input.md](../design/input.md)                                                                  |
-| Command registry, when clauses                                                                   | [ref/commands.md](../ref/commands.md)                                                                  |
-| Effect type catalog (TreeEffect + BoardEffect)                                                   | [ref/effects.md](../ref/effects.md)                                                                    |
-| Change type taxonomy (`node_*`, `task_*`, `session_*`)                                           | [ref/changes.md](../ref/changes.md)                                                                    |
-| Tree glob patterns                                                                               | [ref/tree-globs.md](../ref/tree-globs.md)                                                              |
-| Terminology index (all terms A–Z)                                                                | [glossary.md](../glossary.md)                                                                          |
-| Test architecture (unit, integration, driver, system)                                            | [dev/test-system.md](../dev/test-system.md)                                                            |
-| Silvercode backend fakes and fake/live backend drift contracts                                   | [dev/silvercode-backend-fakes.md](../dev/silvercode-backend-fakes.md)                                  |
+| Concept                                                                                          | Canonical doc                                           |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| KNode record shape, items vs blocks, ItemData, visual roles, body content                        | design/model/knode.md                                   |
+| TreeMutator — atomic ops (split, merge, indent, outdent, inverse, normalize)                     | design/model/tree-mutator.md                            |
+| Repo API — queries, mutations, event semantics, sync                                             | design/model/repo-api.md                                |
+| KLink, KLinkRef, KResolution, NameIndex, MdForm, sigil parsing, normalizeLinkHref, href encoding | design/model/klink.md                                   |
+| km-ast type system, block types, traits, derivation rules                                        | design/model/kast.md                                    |
+| Visibility mechanisms (structural exclusion, collapsed columns, fold)                            | design/ui/visibility.md                                 |
+| Folder/file/H1 collapse rule, index file expansion, fstype classification                        | design/ui/visibility.md                                 |
+| Selection type, cursor/anchor, inputMode, 9 Selecting kinds                                      | design/ui/selection.md                                  |
+| TEA state machine pattern                                                                        | design/tea.md                                           |
+| Navigation (cursor movement, grid nav, zoom)                                                     | design/ui/navigation.md                                 |
+| Node visual spec (rendering, embed expansion)                                                    | design/ui/rendering.md                                  |
+| Per-node reactive computeds                                                                      | design/ui/rendering.md                                  |
+| Horizontal virtualization, sticky columns                                                        | design/ui/layout.md                                     |
+| Outliner spec (indent, bullets, nesting)                                                         | design/ui/layout.md                                     |
+| Theme tokens (km uses silvery's system)                                                          | silvery.dev/guide/theming                               |
+| Spatial navigation, focus scope                                                                  | design/ui/navigation.md                                 |
+| Omnibox (command palette, fuzzy search)                                                          | design/omnibox.md                                       |
+| Tree aggregation, fold-depth                                                                     | design/ui/rendering.md                                  |
+| Task recurrence (RRULE + FROM)                                                                   | design/recurrence.md                                    |
+| Tribe multi-session coordination                                                                 | vendor/bearly/plugins/tribe/README.md — owned by bearly |
+| Storage modes (memory/disk), SQLite schema, ULIDs                                                | storage.md                                              |
+| Query language (field:value, sigils, paths, FTS)                                                 | guides/query.md                                         |
+| Task fields (marker, status, due, priority, recur) + cross-system mapping                        | ref/task-fields.md                                      |
+| Markdown format (GFM, wikilinks, embeds, task marks, sigils, properties, block refs)             | guides/markdown.md                                      |
+| Keybindings (layers, chord system, v2)                                                           | design/input.md                                         |
+| Command registry, when clauses                                                                   | ref/commands.md                                         |
+| Effect type catalog (TreeEffect + BoardEffect)                                                   | ref/effects.md                                          |
+| Change type taxonomy (node_, task_, session_*)                                                   | ref/changes.md                                          |
+| Tree glob patterns                                                                               | ref/tree-globs.md                                       |
+| Terminology index (all terms A–Z)                                                                | glossary.md                                             |
+| Test architecture (unit, integration, driver, system)                                            | dev/test-system.md                                      |
+| Silvercode backend fakes and fake/live backend drift contracts                                   | dev/silvercode-backend-fakes.md                         |
 
 ## Overview docs — what to expect
 
@@ -91,3 +91,4 @@ W2 flagged these as deferred; all shipped as part of the docs-grooming /complete
 - **Before editing a doc**: check the concept map. If the doc you're editing is not the canonical for the concept, fix the canonical instead.
 - **Before creating a new doc**: check if the concept is already owned. If yes, update the owner. If no, add a row to the concept map here once the new doc lands.
 - **When a canonical changes**: the overview docs that reference it should be checked for drift. Track these via `grep` for the concept name.
+

@@ -23,9 +23,9 @@ Skip unchanged subtrees during re-layout by tracking constraint fingerprints.
 2. At start of layoutNode, check if fingerprint matches and node not dirty
 3. If match, skip layout and reuse cached layout.left/top/width/height
 4. Handle edge cases:
-  - Shrink-wrap nodes (auto-sized) cannot skip - they affect parent
-  - Percent values must re-resolve if parent changed
-  - Dirty flag must propagate up to root
+- Shrink-wrap nodes (auto-sized) cannot skip - they affect parent
+- Percent values must re-resolve if parent changed
+- Dirty flag must propagate up to root
 
 ## Expected Impact
 

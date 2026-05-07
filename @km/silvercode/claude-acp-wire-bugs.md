@@ -49,13 +49,13 @@ Three symptoms observed when running silvercode against claude via the
    the user typed.
 2. **Tool error rendered twice as distinct boxes.** Bash run of
    `tribe status` (daemon down) shows up as both:
-  - a "Run failed" ToolCall box with the stderr inside
-  - a separate "Error" row right below with the same stderr text
+- a "Run failed" ToolCall box with the stderr inside
+- a separate "Error" row right below with the same stderr text
    Suspected source: stderr listener in `acp-client.ts:497-502` emits
    `kind: "error"` for any non-empty child stderr. Claude's hook scripts
    fire on tool-call lifecycle and may write to stderr, which becomes a
    second visible error event on top of the legitimate tool-result.
-3. **Session stuck in "doing" status.** SidePanel/composer shows
+7. **Session stuck in "doing" status.** SidePanel/composer shows
    "Refining… (3s)" indefinitely after the assistant has clearly
    finished the response. Suggests the turn-end legacy event isn't
    being emitted from the ACP boundary, so session-store status never

@@ -1,18 +1,18 @@
 # Overlay / Anchor System — Design
 
-> Status: research + design (Phase 4c of `km-silvery.view-as-layout-output`).
-> Owning bead: `km-silvery.overlay-anchor-system` (P2, in progress).
+> Status: research + design (Phase 4c of km-silvery.view-as-layout-output).
+> Owning bead: km-silvery.overlay-anchor-system (P2, in progress).
 > Implementation deferred — this doc names the destination so we stop accreting bespoke per-overlay signals.
 
 ## 1. Problem
 
 The view-as-layout-output substrate (closed bead `km-silvery.view-as-layout-output`) reframed cursor / focus / selection as **layout outputs** rather than React-effect-bridged signals. That removed the "first-frame returns null/0" bug class and gave us three new peer signals on `LayoutSignals`:
 
-| Semantic input (BoxProps)          | Geometric output (LayoutSignals)            |
-| ---------------------------------- | ------------------------------------------- |
-| `cursorOffset: { col, row, ... }`  | `cursorRect: CursorRect \| null`            |
-| `focused: boolean`                 | `focusedNodeId: string \| null`             |
-| `selectionIntent: { from, to }`    | `selectionFragments: readonly Rect[]`       |
+| Semantic input (BoxProps)       | Geometric output (LayoutSignals)    |
+| ------------------------------- | ----------------------------------- |
+| cursorOffset: { col, row, ... } | cursorRect: CursorRect \| null      |
+| focused: boolean                | focusedNodeId: string \| null       |
+| selectionIntent: { from, to }   | selectionFragments: readonly Rect[] |
 
 That pattern works. The problem is the next plateau: every new overlay-shaped feature wants the same shape and we'd accrete one bespoke signal per kind:
 
@@ -53,13 +53,13 @@ BoxProps.<input>  ──▶  syncRectSignals  ──▶  LayoutSignals.<output> 
 
 Generalize that shape to **N decoration kinds** sharing one mechanism:
 
-| Layer            | Today                                                  | After                                                         |
-| ---------------- | ------------------------------------------------------ | ------------------------------------------------------------- |
-| Semantic input   | `cursorOffset`, `focused`, `selectionIntent`           | + `anchorRef`, `decorations: Decoration[]`                    |
-| Per-node compute | `computeCursorRect`, `computeFocusedNodeId`, ...       | + `computeAnchorRect`, `computeDecorationRects`               |
-| Per-node signal  | `cursorRect`, `focusedNodeId`, `selectionFragments`    | + `anchorRects: Map<id, Rect>`, `decorationRects: ...`        |
-| Tree-walk lookup | `findActiveCursorRect`, `findActive*`                  | + `findAnchor(id)`, `collectOverlayLayer()`                   |
-| Frame artifact   | (implicit — scheduler reads each signal independently) | one `OverlayLayer` returned alongside the buffer              |
+| Layer            | Today                                                  | After                                              |
+| ---------------- | ------------------------------------------------------ | -------------------------------------------------- |
+| Semantic input   | cursorOffset, focused, selectionIntent                 | + anchorRef, decorations: Decoration[]             |
+| Per-node compute | computeCursorRect, computeFocusedNodeId, ...           | + computeAnchorRect, computeDecorationRects        |
+| Per-node signal  | cursorRect, focusedNodeId, selectionFragments          | + anchorRects: Map<id, Rect>, decorationRects: ... |
+| Tree-walk lookup | findActiveCursorRect, findActive*                      | + findAnchor(id), collectOverlayLayer()            |
+| Frame artifact   | (implicit — scheduler reads each signal independently) | one OverlayLayer returned alongside the buffer     |
 
 Three new ideas, each modest:
 
@@ -131,18 +131,18 @@ Caret / focus / selection retain dedicated props because they are core, frequent
 
 For each kind, the layout-phase computation:
 
-| Kind             | Input fields                                | How geometry is derived                                                                                                  |
-| ---------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Caret            | `cursorOffset` + `contentRect`              | Already implemented (`computeCursorRect`).                                                                               |
-| Focus ring       | `focused` + `boxRect`                       | Already implemented (`computeFocusedNodeId` + a paint-time rect lookup via `boxRect`).                                   |
-| Selection        | `selectionIntent` + `contentRect` + text    | `computeSelectionFragments` (today: `\n`-split only; soft-wrap is § 8).                                                  |
-| Anchor           | `anchorRef.id` + `contentRect`              | New: write `(id → { top, bottom, left, right, center })` into a tree-scoped map at end of layout.                        |
-| Popover          | `anchorId` + `placement` + `size?`          | New: lookup anchor rect → place floating rect via Popper-style algorithm (collision flip is v2).                         |
-| Tooltip          | same as popover, with intrinsic `text`      | Same as popover.                                                                                                         |
-| Hover indicator  | rect (or implicit hovered-element rect)     | Pass-through if rect provided; else lookup last-known hover registry rect.                                               |
-| Highlight        | `intent: {from,to}` + `contentRect` + text  | Same algorithm as selection; one `Decoration` per match. Soft-wrap fragmentation must be shared with selection (see § 8).|
-| Drag overlay     | rect (mouse-position-driven by app)         | Pass-through.                                                                                                            |
-| Custom           | payload + per-plugin compute hook           | Plugin-provided. Out of v1 scope.                                                                                        |
+| Kind            | Input fields                            | How geometry is derived                                                                                                 |
+| --------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Caret           | cursorOffset + contentRect              | Already implemented (computeCursorRect).                                                                                |
+| Focus ring      | focused + boxRect                       | Already implemented (computeFocusedNodeId + a paint-time rect lookup via boxRect).                                      |
+| Selection       | selectionIntent + contentRect + text    | computeSelectionFragments (today: \n-split only; soft-wrap is § 8).                                                     |
+| Anchor          | anchorRef.id + contentRect              | New: write (id → { top, bottom, left, right, center }) into a tree-scoped map at end of layout.                         |
+| Popover         | anchorId + placement + size?            | New: lookup anchor rect → place floating rect via Popper-style algorithm (collision flip is v2).                        |
+| Tooltip         | same as popover, with intrinsic text    | Same as popover.                                                                                                        |
+| Hover indicator | rect (or implicit hovered-element rect) | Pass-through if rect provided; else lookup last-known hover registry rect.                                              |
+| Highlight       | intent: {from,to} + contentRect + text  | Same algorithm as selection; one Decoration per match. Soft-wrap fragmentation must be shared with selection (see § 8). |
+| Drag overlay    | rect (mouse-position-driven by app)     | Pass-through.                                                                                                           |
+| Custom          | payload + per-plugin compute hook       | Plugin-provided. Out of v1 scope.                                                                                       |
 
 ### New layout APIs needed
 
@@ -158,11 +158,11 @@ For each kind, the layout-phase computation:
 
 The `OverlayLayer` artifact is target-agnostic. Each renderer paints it differently:
 
-| Target   | Caret                              | Selection / highlight                   | Popover / tooltip                              | Anchor map                            |
-| -------- | ---------------------------------- | --------------------------------------- | ---------------------------------------------- | ------------------------------------- |
-| Terminal | DECSCUSR + cursor-positioning ANSI | Inverse / accent bg fill in buffer      | Sub-buffer composited into the parent buffer   | (debug-only; no direct paint)         |
-| Canvas   | Caret rect drawn each frame        | Painter draws semi-transparent fills    | Floating canvas group at computed rect          | (debug-only)                          |
-| DOM      | Browser-native caret               | Range API or absolute-positioned `<div>`| `<div class="overlay">` positioned via anchor   | Could feed CSS `anchor-name`           |
+| Target   | Caret                              | Selection / highlight                  | Popover / tooltip                            | Anchor map                    |
+| -------- | ---------------------------------- | -------------------------------------- | -------------------------------------------- | ----------------------------- |
+| Terminal | DECSCUSR + cursor-positioning ANSI | Inverse / accent bg fill in buffer     | Sub-buffer composited into the parent buffer | (debug-only; no direct paint) |
+| Canvas   | Caret rect drawn each frame        | Painter draws semi-transparent fills   | Floating canvas group at computed rect       | (debug-only)                  |
+| DOM      | Browser-native caret               | Range API or absolute-positioned <div> | <div class="overlay"> positioned via anchor  | Could feed CSS anchor-name    |
 
 Same input / output contract; target-specific painters consume `OverlayLayer`. This is exactly where /pro pushed back hardest: `CursorShape` leaking into core was a target leak; the same rule applies — overlay *kinds* are semantic, *paint* is target-specific.
 
@@ -189,16 +189,19 @@ The blocker: `computeSelectionFragments` lives in `@silvery/ag/layout-signals.ts
 ### Options
 
 **Option A — lift `wrapText` into a layering-neutral package.** Move the Unicode + width logic to `@silvery/text-utils` (or fold into `@silvery/ag` directly). `wrapText` only needs a `Measurer`-shaped object (`graphemeWidth`, `displayWidth`); it doesn't need any terminal-specific code. The terminal-specific bits (`textSizing`, `maybeWideEmojis` caps) are already passed in via `Measurer`.
-  - Pros: Clean. `computeSelectionFragments` calls `wrapText` directly. Same path for canvas/DOM future.
-  - Cons: Largest move (~800 LOC of unicode.ts), needs careful split (some of unicode.ts is genuinely terminal-specific — ANSI stripping, escape parsing).
+
+- Pros: Clean. `computeSelectionFragments` calls `wrapText` directly. Same path for canvas/DOM future.
+- Cons: Largest move (~800 LOC of unicode.ts), needs careful split (some of unicode.ts is genuinely terminal-specific — ANSI stripping, escape parsing).
 
 **Option B — register a wrap measurer with `@silvery/ag`.** Add `setWrapMeasurer(m)` / `getWrapMeasurer()` in `@silvery/ag`. `@silvery/ag-term` calls `setWrapMeasurer` at runtime init. `computeSelectionFragments` calls `getWrapMeasurer()?.wrapText(text, width)` and falls back to `\n`-split when no measurer is registered (e.g., in pure-layout unit tests).
-  - Pros: Smallest change. Mirrors how `_scopedMeasurer` already works inside `unicode.ts`. No package moves.
-  - Cons: Adds a runtime singleton (mild global-state smell). Hidden coupling — pure-layout tests of `@silvery/ag` need a mock measurer to exercise the soft-wrap path.
+
+- Pros: Smallest change. Mirrors how `_scopedMeasurer` already works inside `unicode.ts`. No package moves.
+- Cons: Adds a runtime singleton (mild global-state smell). Hidden coupling — pure-layout tests of `@silvery/ag` need a mock measurer to exercise the soft-wrap path.
 
 **Option C — compute fragments terminal-side.** Move `computeSelectionFragments` into `@silvery/ag-term` and have `LayoutSignals.selectionFragments` be populated by a sync function in `ag-term` instead of `ag`. `@silvery/ag` keeps just the type.
-  - Pros: No layering inversion.
-  - Cons: Canvas + DOM targets need their own duplicate. Inverts the current pattern (all `compute*` functions live in `ag`). Spreads the layout-signals story across packages.
+
+- Pros: No layering inversion.
+- Cons: Canvas + DOM targets need their own duplicate. Inverts the current pattern (all `compute*` functions live in `ag`). Spreads the layout-signals story across packages.
 
 ### Recommendation: Option B for v1, Option A as a planned follow-on.
 
@@ -250,3 +253,4 @@ For `km-silvery.softwrap-selection-fragments`:
 6. Fallback path (no measurer registered) preserves `\n`-only behaviour, verified by a unit test with a fresh `@silvery/ag` import.
 
 When both ship, Phase 4 is fully closed and the destination /pro flagged is reachable.
+

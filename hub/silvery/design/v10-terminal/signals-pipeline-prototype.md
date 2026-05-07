@@ -325,13 +325,13 @@ if (!node.hasLayoutDirtyInSubtree()) return // skip entire layout phase
 
 ## Evaluation
 
-| Design                      | Ergonomics    | Performance            | Handles tree?        | Fast paths?               | Complexity |
-| --------------------------- | ------------- | ---------------------- | -------------------- | ------------------------- | ---------- |
-| A (alien-signals)           | Good          | Good                   | ❌ No tree computeds | ✅                        | Low        |
-| B (reactiveTree)            | Excellent     | ? (structural changes) | ✅                   | ❌ No version granularity | Medium     |
-| C (version counting)        | OK            | Excellent              | ❌ Manual subtree    | ❌ Coarse                 | Very low   |
-| D (hybrid versions+signals) | Very good     | Good                   | ❌ No tree computeds | ✅                        | Medium     |
-| **E (D + reactiveTree)**    | **Excellent** | **Good**               | **✅**               | **✅**                    | **Medium** |
+| Design                      | Ergonomics | Performance            | Handles tree?       | Fast paths?              | Complexity |
+| --------------------------- | ---------- | ---------------------- | ------------------- | ------------------------ | ---------- |
+| A (alien-signals)           | Good       | Good                   | ❌ No tree computeds | ✅                        | Low        |
+| B (reactiveTree)            | Excellent  | ? (structural changes) | ✅                   | ❌ No version granularity | Medium     |
+| C (version counting)        | OK         | Excellent              | ❌ Manual subtree    | ❌ Coarse                 | Very low   |
+| D (hybrid versions+signals) | Very good  | Good                   | ❌ No tree computeds | ✅                        | Medium     |
+| E (D + reactiveTree)        | Excellent  | Good                   | ✅                   | ✅                        | Medium     |
 
 ## Recommendation
 
@@ -560,16 +560,16 @@ function renderSubtree(node: ReactiveNode, buffer: TerminalBuffer) {
 
 ### What dissolves
 
-| Current phase | In Design F                   | How                                                |
-| ------------- | ----------------------------- | -------------------------------------------------- |
-| measure       | Lazy computed `intrinsicSize` | Only runs when text/props actually change          |
-| layout        | Lazy computed `boxRect`       | Only runs when props or parent rect change         |
-| scroll        | Lazy computed `scrollOffset`  | Only runs when scrollTo or children heights change |
-| sticky        | Computed from scroll signals  | Position derives from scroll + layout              |
-| scrollRect    | Lazy computed `screenRect`    | Derives from boxRect - ancestor scroll offsets     |
-| notify        | Effect on `boxRect`           | `useBoxRect()` subscribes to the signal directly   |
-| **content**   | **Explicit phase (kept)**     | Walks dirty subtrees, reads lazy computeds         |
-| **output**    | **Explicit phase (kept)**     | Buffer diff, ANSI emission (unchanged)             |
+| Current phase | In Design F                  | How                                                |
+| ------------- | ---------------------------- | -------------------------------------------------- |
+| measure       | Lazy computed intrinsicSize  | Only runs when text/props actually change          |
+| layout        | Lazy computed boxRect        | Only runs when props or parent rect change         |
+| scroll        | Lazy computed scrollOffset   | Only runs when scrollTo or children heights change |
+| sticky        | Computed from scroll signals | Position derives from scroll + layout              |
+| scrollRect    | Lazy computed screenRect     | Derives from boxRect - ancestor scroll offsets     |
+| notify        | Effect on boxRect            | useBoxRect() subscribes to the signal directly     |
+| content       | Explicit phase (kept)        | Walks dirty subtrees, reads lazy computeds         |
+| output        | Explicit phase (kept)        | Buffer diff, ANSI emission (unchanged)             |
 
 ### How Flexily integrates
 
@@ -687,14 +687,14 @@ This is fine for correctness, but means "O(dirty node)" is really "O(dirty node 
 
 ## Evaluation (updated)
 
-| Design                         | Ergonomics      | Performance        | Handles tree? | Fast paths? | Phases | Complexity                        |
-| ------------------------------ | --------------- | ------------------ | ------------- | ----------- | ------ | --------------------------------- |
-| A (alien-signals)              | Good            | Good               | ❌            | ✅          | 8      | Low                               |
-| B (reactiveTree)               | Excellent       | ?                  | ✅            | ❌          | 8      | Medium                            |
-| C (version counting)           | OK              | Excellent          | ❌            | ❌          | 8      | Very low                          |
-| D (hybrid versions+signals)    | Very good       | Good               | ❌            | ✅          | 8      | Medium                            |
-| E (D + reactiveTree)           | Excellent       | Good               | ✅            | ✅          | 8      | Medium                            |
-| **F (full reactive pipeline)** | **Outstanding** | **Good-Excellent** | **✅**        | **✅**      | **2**  | **High initially, low long-term** |
+| Design                      | Ergonomics  | Performance    | Handles tree? | Fast paths? | Phases | Complexity                    |
+| --------------------------- | ----------- | -------------- | ------------- | ----------- | ------ | ----------------------------- |
+| A (alien-signals)           | Good        | Good           | ❌             | ✅           | 8      | Low                           |
+| B (reactiveTree)            | Excellent   | ?              | ✅             | ❌           | 8      | Medium                        |
+| C (version counting)        | OK          | Excellent      | ❌             | ❌           | 8      | Very low                      |
+| D (hybrid versions+signals) | Very good   | Good           | ❌             | ✅           | 8      | Medium                        |
+| E (D + reactiveTree)        | Excellent   | Good           | ✅             | ✅           | 8      | Medium                        |
+| F (full reactive pipeline)  | Outstanding | Good-Excellent | ✅             | ✅           | 2      | High initially, low long-term |
 
 ### Design F vs Design E — when to stop
 
@@ -959,14 +959,14 @@ Each phase: shadow oracle via SILVERY_STRICT, independently shippable.
 
 Full comparison of all approaches, from safest to most ambitious:
 
-| Option                  | What                                          | Reward                                        | Risk                                      | Cost        | Ceiling                          |
-| ----------------------- | --------------------------------------------- | --------------------------------------------- | ----------------------------------------- | ----------- | -------------------------------- |
-| **0: Epoch flags**      | Boolean → epoch numbers, O(1) clear           | Immediate perf, zero behavioral change        | Almost none                               | Days        | Same complexity, better perf     |
-| **1: E+**               | Epoch + alien-signals cascades                | Declarative cascades, correct by construction | Medium (memory, batching)                 | 4–6 weeks   | 25–40× pipeline, no cascade bugs |
-| **2: Design F**         | Phases → lazy computeds                       | 8→2 phases, dramatic simplification           | HIGH (Flexily wrapping, stabilization)    | 2–3 months  | 100×+ theoretical                |
-| **3: Reactive Flexily** | Signal wrapper around Flexily                 | Truly incremental layout                      | HIGH (sibling invalidation, measure loop) | 2–4 weeks   | Unlocks Design F                 |
-| **4: End-to-end graph** | One signal graph: app→layout→render→output    | Theoretical maximum, zero manual coordination | VERY HIGH (4 system boundaries)           | 3–6 months  | Unlimited                        |
-| **5: SolidJS target**   | Replace React reconciler with signal compiler | Eliminate React 30% ceiling                   | EXTREME (new framework)                   | 6–12 months | Maximum perf possible            |
+| Option              | What                                          | Reward                                        | Risk                                      | Cost        | Ceiling                          |
+| ------------------- | --------------------------------------------- | --------------------------------------------- | ----------------------------------------- | ----------- | -------------------------------- |
+| 0: Epoch flags      | Boolean → epoch numbers, O(1) clear           | Immediate perf, zero behavioral change        | Almost none                               | Days        | Same complexity, better perf     |
+| 1: E+               | Epoch + alien-signals cascades                | Declarative cascades, correct by construction | Medium (memory, batching)                 | 4–6 weeks   | 25–40× pipeline, no cascade bugs |
+| 2: Design F         | Phases → lazy computeds                       | 8→2 phases, dramatic simplification           | HIGH (Flexily wrapping, stabilization)    | 2–3 months  | 100×+ theoretical                |
+| 3: Reactive Flexily | Signal wrapper around Flexily                 | Truly incremental layout                      | HIGH (sibling invalidation, measure loop) | 2–4 weeks   | Unlocks Design F                 |
+| 4: End-to-end graph | One signal graph: app→layout→render→output    | Theoretical maximum, zero manual coordination | VERY HIGH (4 system boundaries)           | 3–6 months  | Unlimited                        |
+| 5: SolidJS target   | Replace React reconciler with signal compiler | Eliminate React 30% ceiling                   | EXTREME (new framework)                   | 6–12 months | Maximum perf possible            |
 
 ### Recommended path (confirmed)
 
@@ -974,23 +974,23 @@ Full comparison of all approaches, from safest to most ambitious:
 
 #### E+ Pipeline (signals for dirty tracking)
 
-| Phase   | What                                            | Effort | Expected impact                              |
-| ------- | ----------------------------------------------- | ------ | -------------------------------------------- |
-| **0**   | Epoch-stamped flags, O(1) clear                 | Days   | Eliminates O(N) clearDirtyFlags walk         |
-| **1**   | Category-specific epochs (layout/render/buffer) | 1 week | Correct flag lifecycle management            |
-| **1.5** | Complete skip/buffer-validity oracle            | Days   | Prevents "beautifully incremental and wrong" |
-| **2**   | Reactive cascade derivations (alien-signals)    | 1 week | Declarative isDirty/isStyleOnly/isBgOnly     |
-|         | **EVALUATE**                                    |        | Stop if cascade bugs eliminated              |
-| **3**   | dirtyChildCount + buffer validity token         | 1 week | O(1) subtreeDirty reads                      |
+| Phase | What                                            | Effort | Expected impact                              |
+| ----- | ----------------------------------------------- | ------ | -------------------------------------------- |
+| 0     | Epoch-stamped flags, O(1) clear                 | Days   | Eliminates O(N) clearDirtyFlags walk         |
+| 1     | Category-specific epochs (layout/render/buffer) | 1 week | Correct flag lifecycle management            |
+| 1.5   | Complete skip/buffer-validity oracle            | Days   | Prevents "beautifully incremental and wrong" |
+| 2     | Reactive cascade derivations (alien-signals)    | 1 week | Declarative isDirty/isStyleOnly/isBgOnly     |
+|       | EVALUATE                                        |        | Stop if cascade bugs eliminated              |
+| 3     | dirtyChildCount + buffer validity token         | 1 week | O(1) subtreeDirty reads                      |
 
 #### Reactive Flexily (signals for layout)
 
-| Phase  | What                                | Effort    | Expected impact                          |
-| ------ | ----------------------------------- | --------- | ---------------------------------------- |
-| **F0** | Layout-on-demand gate               | Days      | Skip 38% of pipeline when no layoutDirty |
-| **F1** | Container-level signal wrapper      | 1–2 weeks | Only dirty containers recalculate        |
-| **F2** | inheritedBg as computed chain       | Days      | O(1) bg reads vs O(depth) tree walk      |
-| **F3** | useBoxRect via useSyncExternalStore | Days      | Eliminate notify phase entirely          |
+| Phase | What                                | Effort    | Expected impact                          |
+| ----- | ----------------------------------- | --------- | ---------------------------------------- |
+| F0    | Layout-on-demand gate               | Days      | Skip 38% of pipeline when no layoutDirty |
+| F1    | Container-level signal wrapper      | 1–2 weeks | Only dirty containers recalculate        |
+| F2    | inheritedBg as computed chain       | Days      | O(1) bg reads vs O(depth) tree walk      |
+| F3    | useBoxRect via useSyncExternalStore | Days      | Eliminate notify phase entirely          |
 
 **E+ and Flexily phases are independent tracks** — they can proceed in parallel or interleaved.
 
@@ -1117,24 +1117,24 @@ interface PreparedTextRender {
 
 Each step is independently valuable and benchmarkable:
 
-| Step   | What                                                            | Depends on              | Expected impact                                           |
-| ------ | --------------------------------------------------------------- | ----------------------- | --------------------------------------------------------- |
-| **G1** | `preparedText = computed(text)` — shared text analysis          | Existing reactive infra | Eliminate redundant text processing. 15-30% on text-heavy |
-| **G2** | Measure callback reads `preparedText()`                         | G1                      | Layout 38% → 20-28% (Pro estimate)                        |
-| **G3** | `wrappedLines = computed(preparedText, width)`                  | G1 + G2                 | Render avoids re-wrapping unchanged text                  |
-| **G4** | `renderedCells = computed(wrappedLines, style)`                 | G3                      | Content 20% → 12-16% (Pro estimate)                       |
-| **G5** | Lazy boxRect via epoch-synced snapshot                          | Independent             | Eliminate propagateLayout tree walk                       |
-| **G6** | Connect to buffer: `effect(renderedCells → buffer.writeRegion)` | G4                      | Render phase becomes effect-driven                        |
+| Step | What                                                          | Depends on              | Expected impact                                           |
+| ---- | ------------------------------------------------------------- | ----------------------- | --------------------------------------------------------- |
+| G1   | preparedText = computed(text) — shared text analysis          | Existing reactive infra | Eliminate redundant text processing. 15-30% on text-heavy |
+| G2   | Measure callback reads preparedText()                         | G1                      | Layout 38% → 20-28% (Pro estimate)                        |
+| G3   | wrappedLines = computed(preparedText, width)                  | G1 + G2                 | Render avoids re-wrapping unchanged text                  |
+| G4   | renderedCells = computed(wrappedLines, style)                 | G3                      | Content 20% → 12-16% (Pro estimate)                       |
+| G5   | Lazy boxRect via epoch-synced snapshot                        | Independent             | Eliminate propagateLayout tree walk                       |
+| G6   | Connect to buffer: effect(renderedCells → buffer.writeRegion) | G4                      | Render phase becomes effect-driven                        |
 
 ### What this replaces
 
-| Current                                                     | Design G                                 |
-| ----------------------------------------------------------- | ---------------------------------------- |
-| `collectPlainText` (measure) + `collectTextWithBg` (render) | One `preparedText` computed              |
-| `wrapText` (measure) + `formatTextLines` (render)           | One `wrappedLines` computed per width    |
-| `renderGraphemes` (imperative buffer writes)                | `renderedCells` computed → buffer effect |
-| `propagateLayout` tree walk                                 | Lazy boxRect reads                       |
-| Manual text cache invalidation                              | Automatic via signal dependencies        |
+| Current                                                 | Design G                               |
+| ------------------------------------------------------- | -------------------------------------- |
+| collectPlainText (measure) + collectTextWithBg (render) | One preparedText computed              |
+| wrapText (measure) + formatTextLines (render)           | One wrappedLines computed per width    |
+| renderGraphemes (imperative buffer writes)              | renderedCells computed → buffer effect |
+| propagateLayout tree walk                               | Lazy boxRect reads                     |
+| Manual text cache invalidation                          | Automatic via signal dependencies      |
 
 ### Framework-agnostic signal graph
 
@@ -1142,11 +1142,11 @@ The signal graph (preparedText, wrappedLines, boxRect, renderedCells) is framewo
 
 The difference between frameworks is the **adapter thickness**:
 
-| Framework    | Adapter                     | What it does                                    | Overhead        |
-| ------------ | --------------------------- | ----------------------------------------------- | --------------- |
-| **React**    | Thick (reconciler)          | Reconciles virtual tree, then writes to signals | 30% of pipeline |
-| **SolidJS**  | Thin (compiler)             | Compiles JSX directly to signal writes          | ~0%             |
-| **Svelte 5** | Medium (compiler + runtime) | Compiles to fine-grained updates                | ~5%             |
+| Framework | Adapter                     | What it does                                    | Overhead        |
+| --------- | --------------------------- | ----------------------------------------------- | --------------- |
+| React     | Thick (reconciler)          | Reconciles virtual tree, then writes to signals | 30% of pipeline |
+| SolidJS   | Thin (compiler)             | Compiles JSX directly to signal writes          | ~0%             |
+| Svelte 5  | Medium (compiler + runtime) | Compiles to fine-grained updates                | ~5%             |
 
 The signal graph is **the same** regardless of adapter. Building it for React means `@silvery/solid` becomes a thinner adapter into the same graph — the 30% React overhead disappears without changing any pipeline code.
 
@@ -1168,3 +1168,4 @@ This is the architectural payoff: the signal graph is the platform; frameworks a
 | ANSI text parsing in signal graph    | Low            | Parse once in preparedText, store as styleRuns                          |
 | Wrap memo memory                     | Low            | LRU eviction after N entries per node                                   |
 | React integration                    | Already solved | Existing alien-signals + SILVERY_REACTIVE infrastructure                |
+

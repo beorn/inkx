@@ -1,8 +1,8 @@
-> **Deprecated (2026-03-25).** Superseded by [00-overview.md](../00-overview.md). Kept for historical reference.
-
 # Packaging Model
 
-> **Partially superseded (2026-03-20).** The package naming has evolved. "Silver Platter" is now **Ag** (`@silvery/ag-*`). Package structure: `@silvery/create` + `@silvery/scope` + `@silvery/headless` + `@silvery/commands` + `@silvery/signals` (optional) + `@silvery/model`. `@silvery/tea` is gone (tea() is a utility in create). `@silvery/ag-ui` is gone (now `@silvery/ag-react/ui` subpath). Commands depend only on create. See [00-architecture.md](./00-architecture.md) § Dependency Graph for the current package structure.
+> Deprecated (2026-03-25). Superseded by 00-overview.md. Kept for historical reference.
+
+> Partially superseded (2026-03-20). The package naming has evolved. "Silver Platter" is now Ag (@silvery/ag-*). Package structure: @silvery/create + @silvery/scope + @silvery/headless + @silvery/commands + @silvery/signals (optional) + @silvery/model. @silvery/tea is gone (tea() is a utility in create). @silvery/ag-ui is gone (now @silvery/ag-react/ui subpath). Commands depend only on create. See 00-architecture.md § Dependency Graph for the current package structure.
 
 _Status: draft (2026-03-16). How silvery decomposes into independent packages and recomposes for different use cases._
 
@@ -18,16 +18,16 @@ The core idea: **separate what you render (components) from which framework crea
 
 ## Current Packages (v0.3.0)
 
-| Package                | What                                                                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `silvery`              | Bundled convenience — re-exports @silvery/ag-react                                                                                                                  |
-| `@silvery/ag-react`    | React reconciler and runtime                                                                                                                                        |
-| `@silvery/ag-term`     | Terminal rendering target                                                                                                                                           |
-| `@silvery/ag-react/ui` | Component library (30+ React components)                                                                                                                            |
-| `@silvery/tea`         | **Deprecated (Decision 31).** TEA state machine store (zustand-based) — dissolved into `tea()` in `@silvery/create`. Commands/keymaps moved to `@silvery/commands`. |
-| `@silvery/theme`       | Theming system (semantic tokens, 84 color schemes)                                                                                                                       |
-| `@silvery/test`        | Testing utilities (virtual renderer, locators)                                                                                                                      |
-| `@silvery/ink`         | Ink/Chalk compatibility layer (private)                                                                                                                             |
+| Package              | What                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| silvery              | Bundled convenience — re-exports @silvery/ag-react                                                                                                        |
+| @silvery/ag-react    | React reconciler and runtime                                                                                                                              |
+| @silvery/ag-term     | Terminal rendering target                                                                                                                                 |
+| @silvery/ag-react/ui | Component library (30+ React components)                                                                                                                  |
+| @silvery/tea         | Deprecated (Decision 31). TEA state machine store (zustand-based) — dissolved into tea() in @silvery/create. Commands/keymaps moved to @silvery/commands. |
+| @silvery/theme       | Theming system (semantic tokens, 84 color schemes)                                                                                                        |
+| @silvery/test        | Testing utilities (virtual renderer, locators)                                                                                                            |
+| @silvery/ink         | Ink/Chalk compatibility layer (private)                                                                                                                   |
 
 Companion packages: **flexily** (layout engine), **loggily** (debug + tracing), **termless** (headless terminal testing).
 
@@ -189,7 +189,7 @@ Virtual DOM based — React diffs the component tree to determine what nodes cha
 
 ### @silvery/ag-exp-svelte — Svelte Framework Adapter (experimental)
 
-> **Experimental**: Logs a warning on import. API may change between minor versions.
+> Experimental: Logs a warning on import. API may change between minor versions.
 
 Svelte framework adapter that compiles to direct abstract node operations, plus Svelte component library.
 
@@ -212,7 +212,7 @@ Works in real terminals AND browsers (via xterm.js).
 
 ### @silvery/ag-exp-web — Web Platform (experimental)
 
-> **Experimental**: Logs a warning on import. API may change between minor versions.
+> Experimental: Logs a warning on import. API may change between minor versions.
 
 Maps silvery abstractions to native DOM rendering. Unlike terminal (where the platform owns the full render pipeline), web leverages the browser's native layout, diffing, and rendering.
 
@@ -244,7 +244,7 @@ Each backend is a ~10-line adapter: `zustandBackend(store)`, `signalBackend(sign
 
 The app-level packages replace and expand what was `@silvery/tea` (dissolved per Decision 31). Framework-agnostic, platform-agnostic. Split across focused packages:
 
-> **`withApp()` is a composition preset**, not a standalone package export. It combines `withCommands()` + model registry setup + optional provider wiring into a single convenience plugin. `withScope()` is a separate plugin in the pipe -- `withApp()` does not include it. The `silvery` bundle provides both, or users write their own by composing `@silvery/commands`, `@silvery/scope`, `@silvery/model`.
+> withApp() is a composition preset, not a standalone package export. It combines withCommands() + model registry setup + optional provider wiring into a single convenience plugin. withScope() is a separate plugin in the pipe -- withApp() does not include it. The silvery bundle provides both, or users write their own by composing @silvery/commands, @silvery/scope, @silvery/model.
 
 - **@silvery/create** — `create()`, `dispatch()`, `apply()`, `pipe()`, `tea()` — zero-dep dispatch pipeline + TEA utility
 - **@silvery/scope** — `createScope()`, `withScope()`, `currentScope()` — structured concurrency (zero deps)
@@ -284,10 +284,10 @@ Svelte bindings for signals and commands, plus Svelte component wrappers.
 
 **Impure bridges connect app-level packages to framework+platforms.** Summary:
 
-| Adapter                     | Surface plugin  | Rendered components | Rendering       |
-| --------------------------- | --------------- | ------------------- | --------------- |
-| `@silvery/impure/react-dom` | `withBrowser()` | DOM elements        | react-dom       |
-| `@silvery/impure/svelte`    | `withBrowser()` | Svelte components   | Svelte compiler |
+| Adapter                   | Surface plugin | Rendered components | Rendering       |
+| ------------------------- | -------------- | ------------------- | --------------- |
+| @silvery/impure/react-dom | withBrowser()  | DOM elements        | react-dom       |
+| @silvery/impure/svelte    | withBrowser()  | Svelte components   | Svelte compiler |
 
 Silvery ag is one rendering option among many. The impure bridges serve users who want the app architecture without ag rendering.
 
@@ -333,17 +333,17 @@ The surface adapter is the integration point — it knows both the platform (whe
 
 ## Migration Path: current tea -> new packages
 
-| @silvery/tea (current, zustand) | New location                                         | Change                                              |
-| ------------------------------- | ---------------------------------------------------- | --------------------------------------------------- |
-| `createSlice()`                 | `createModel()` (@silvery/model)                     | Factory receives `ModelContext` with explicit scope |
-| `store.apply({ op })`           | `op(model).method()`                                 | Proxy-based, same types/autocomplete                |
-| `useStore(selector)`            | `useSignal(signal)`                                  | Fine-grained (per-signal) vs coarse (selector)      |
-| Zustand store                   | signals + methods                                    | No store wrapper — signals replace the store        |
-| `createEffects()`               | Same (kept)                                          | —                                                   |
-| `createStore()` (TEA runtime)   | `tea()` (@silvery/create)                            | Same TEA shape, now a utility in create             |
-| —                               | `keymap()`, `when()`, `invoke()` (@silvery/commands) | New: input mapping system                           |
-| —                               | `Scope`, structured concurrency (@silvery/scope)     | New: explicit lifecycle                             |
-| —                               | `op()`, `apply()` (@silvery/commands)                | New: interception pipeline                          |
+| @silvery/tea (current, zustand) | New location                                   | Change                                            |
+| ------------------------------- | ---------------------------------------------- | ------------------------------------------------- |
+| createSlice()                   | createModel() (@silvery/model)                 | Factory receives ModelContext with explicit scope |
+| store.apply({ op })             | op(model).method()                             | Proxy-based, same types/autocomplete              |
+| useStore(selector)              | useSignal(signal)                              | Fine-grained (per-signal) vs coarse (selector)    |
+| Zustand store                   | signals + methods                              | No store wrapper — signals replace the store      |
+| createEffects()                 | Same (kept)                                    | —                                                 |
+| createStore() (TEA runtime)     | tea() (@silvery/create)                        | Same TEA shape, now a utility in create           |
+| —                               | keymap(), when(), invoke() (@silvery/commands) | New: input mapping system                         |
+| —                               | Scope, structured concurrency (@silvery/scope) | New: explicit lifecycle                           |
+| —                               | op(), apply() (@silvery/commands)              | New: interception pipeline                        |
 
 ## Dependency Graph
 
@@ -395,10 +395,10 @@ Bundles:
 
 **Impure bridges are the integration points.** Each impure package bridges the command system to a specific framework+renderer:
 
-| Package                     | Surface adapter | Rendered components | Deps                          |
-| --------------------------- | --------------- | ------------------- | ----------------------------- |
-| `@silvery/impure/react-dom` | `withBrowser()` | DOM elements        | headless, commands, react-dom |
-| `@silvery/impure/svelte`    | `withBrowser()` | Svelte components   | headless, commands, svelte    |
+| Package                   | Surface adapter | Rendered components | Deps                          |
+| ------------------------- | --------------- | ------------------- | ----------------------------- |
+| @silvery/impure/react-dom | withBrowser()   | DOM elements        | headless, commands, react-dom |
+| @silvery/impure/svelte    | withBrowser()   | Svelte components   | headless, commands, svelte    |
 
 ## What Should I Use?
 
@@ -460,14 +460,14 @@ Two product groups, one gradient. Start with what you need, go deeper when the p
 
 Each step builds on the previous. None requires the next. Stop when you have enough.
 
-| Step         | What you add                | What you get                             | When to adopt                                         |
-| ------------ | --------------------------- | ---------------------------------------- | ----------------------------------------------------- |
-| **Commands** | `{ fn, args? }`, `invoke()` | Testable, discoverable actions           | You want AI/CLI/tests to drive the app                |
-| **Keymaps**  | `keymap()`, `when()`        | Declarative input binding with modes     | You have keyboard-heavy interaction                   |
-| **Signals**  | `signal()`, `computed()`    | Shared reactive state outside React      | State needed in 2+ components, or outside rendering   |
-| **Op**       | `op()`, `apply()`           | Interception, undo, replay               | You need undo, audit logging, or collaboration        |
-| **Plugins**  | `pipe()`, `create()`        | Composable app architecture              | You have multiple subsystems or want reusable plugins |
-| **Scopes**   | `Scope`, effects as data    | Structured concurrency, testable effects | You have complex async lifecycles                     |
+| Step     | What you add            | What you get                             | When to adopt                                         |
+| -------- | ----------------------- | ---------------------------------------- | ----------------------------------------------------- |
+| Commands | { fn, args? }, invoke() | Testable, discoverable actions           | You want AI/CLI/tests to drive the app                |
+| Keymaps  | keymap(), when()        | Declarative input binding with modes     | You have keyboard-heavy interaction                   |
+| Signals  | signal(), computed()    | Shared reactive state outside React      | State needed in 2+ components, or outside rendering   |
+| Op       | op(), apply()           | Interception, undo, replay               | You need undo, audit logging, or collaboration        |
+| Plugins  | pipe(), create()        | Composable app architecture              | You have multiple subsystems or want reusable plugins |
+| Scopes   | Scope, effects as data  | Structured concurrency, testable effects | You have complex async lifecycles                     |
 
 **Signals are optional.** Commands depend only on `@silvery/create` — they work without any signal library. `when()` predicates are plain `() => boolean` functions, not reactive subscriptions. Add `@silvery/signals` when you need reactive state (shared across components, outside rendering, reactive availability in toolbars). The value of app-level packages is what's built on top of the dispatch pipeline (commands, keymaps, op), not any particular state primitive.
 
@@ -475,37 +475,37 @@ Each step builds on the previous. None requires the next. Stop when you have eno
 
 #### Today
 
-| Situation                   | Install             | Notes                                                                                                                        |
-| --------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Terminal app (better Ink)   | `silvery`           | One install — bundles create + scope + headless + commands + signals + model + ag + ag-react + ag-react/ui + ag-term + theme |
-| Terminal app + architecture | `silvery`           | Already includes model + commands                                                                                            |
-| Headless model (AI/tests)   | `@silvery/commands` | No rendering, no signal dependency needed. Add @silvery/model if you want model factories                                    |
+| Situation                   | Install           | Notes                                                                                                                        |
+| --------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Terminal app (better Ink)   | silvery           | One install — bundles create + scope + headless + commands + signals + model + ag + ag-react + ag-react/ui + ag-term + theme |
+| Terminal app + architecture | silvery           | Already includes model + commands                                                                                            |
+| Headless model (AI/tests)   | @silvery/commands | No rendering, no signal dependency needed. Add @silvery/model if you want model factories                                    |
 
 #### Future
 
-| Situation                     | Install                                           | Notes                                       |
-| ----------------------------- | ------------------------------------------------- | ------------------------------------------- |
-| Terminal + web (shared model) | `silvery` + `@silvery/ag-exp-web`                 | Both platforms, one model (experimental)    |
-| React-dom app with commands   | `@silvery/commands` + `@silvery/impure/react-dom` | Commands + react-dom, no ag (experimental)  |
-| Svelte web app with commands  | `@silvery/commands` + `@silvery/impure/svelte`    | Commands + svelte, no ag (experimental)     |
-| Svelte terminal app           | `@silvery/ag-exp-svelte` + `@silvery/ag-term`     | Ag rendering, swap framework (experimental) |
+| Situation                     | Install                                       | Notes                                       |
+| ----------------------------- | --------------------------------------------- | ------------------------------------------- |
+| Terminal + web (shared model) | silvery + @silvery/ag-exp-web                 | Both platforms, one model (experimental)    |
+| React-dom app with commands   | @silvery/commands + @silvery/impure/react-dom | Commands + react-dom, no ag (experimental)  |
+| Svelte web app with commands  | @silvery/commands + @silvery/impure/svelte    | Commands + svelte, no ag (experimental)     |
+| Svelte terminal app           | @silvery/ag-exp-svelte + @silvery/ag-term     | Ag rendering, swap framework (experimental) |
 
 #### Convenience bundle
 
-| Bundle    | Contains                                                                                                                     | For                                  |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `silvery` | `create` + `scope` + `headless` + `commands` + `signals` + `model` + `ag` + `ag-react` + `ag-react/ui` + `ag-term` + `theme` | Everything — one install, one import |
+| Bundle  | Contains                                                                                               | For                                  |
+| ------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| silvery | create + scope + headless + commands + signals + model + ag + ag-react + ag-react/ui + ag-term + theme | Everything — one install, one import |
 
 ## The Operation Spectrum
 
 Every piece of app behavior sits at one of three points. See [architecture-overview.md](../archive/architecture-overview.md#the-operation-spectrum) for full details.
 
-|                     | **op-call**        | **op-as-object**        | **op-as-data**                         |
-| ------------------- | ------------------ | ----------------------- | -------------------------------------- |
-| Shape               | `setState(n+1)`    | `{ fn() { n() + 1 } }`  | `{ op: "increment", args: { by: 1 } }` |
-| Contains functions? | Is a function call | Yes — `fn` is a closure | No — pure JSON                         |
-| Serializable?       | No                 | No                      | Yes                                    |
-| Established term    | Callbacks (React)  | Command pattern (GoF)   | Actions (Redux/Elm)                    |
+|                     | op-call            | op-as-object          | op-as-data                           |
+| ------------------- | ------------------ | --------------------- | ------------------------------------ |
+| Shape               | setState(n+1)      | { fn() { n() + 1 } }  | { op: "increment", args: { by: 1 } } |
+| Contains functions? | Is a function call | Yes — fn is a closure | No — pure JSON                       |
+| Serializable?       | No                 | No                    | Yes                                  |
+| Established term    | Callbacks (React)  | Command pattern (GoF) | Actions (Redux/Elm)                  |
 
 **op-call** -> imperative, locked in. **op-as-object** -> decoupled (swap framework/runtime). **op-as-data** -> serializable (undo/replay/persist).
 
@@ -513,12 +513,12 @@ The `op()` proxy bridges op-as-object to op-as-data transparently.
 
 ## Portability Dimensions
 
-| Dimension           | What you can swap           | Cost of entry                                                  |
-| ------------------- | --------------------------- | -------------------------------------------------------------- |
-| **Multi-framework** | React <-> Svelte <-> Solid  | State in signals, not framework hooks                          |
-| **Multi-platform**  | Terminal <-> Web <-> Canvas | Components using silvery abstractions, not platform primitives |
-| **Multi-runtime**   | Real <-> test <-> AI agent  | Behavior in commands, not inline callbacks                     |
-| **Multi-session**   | Undo, replay, persist       | State changes through op(), not direct mutation                |
+| Dimension       | What you can swap           | Cost of entry                                                  |
+| --------------- | --------------------------- | -------------------------------------------------------------- |
+| Multi-framework | React <-> Svelte <-> Solid  | State in signals, not framework hooks                          |
+| Multi-platform  | Terminal <-> Web <-> Canvas | Components using silvery abstractions, not platform primitives |
+| Multi-runtime   | Real <-> test <-> AI agent  | Behavior in commands, not inline callbacks                     |
+| Multi-session   | Undo, replay, persist       | State changes through op(), not direct mutation                |
 
 ### Bring-your-own state management
 
@@ -537,3 +537,4 @@ Any state library works with silvery rendering. The tradeoff is which app-level 
 Commands are fully state-agnostic — they work with any state library or none at all. `when()` predicates are plain `() => boolean` functions; no signal interface required. `op()` requires silvery-compatible signals because it intercepts signal mutations.
 
 **Multi-platform** (terminal <-> web) is orthogonal — all state libraries work on all platforms. The constraint is on behavioral portability: can non-UI consumers drive your state?
+

@@ -24,9 +24,7 @@ import { dirname, relative, resolve } from "node:path"
 import { findKmRootFromPath } from "@km/fs-mount"
 
 /** Result of resolving the cwd into a task-scope filter. */
-export type CwdScope =
-  | { kind: "scope"; vaultRoot: string; relativePath: string }
-  | { kind: "no-vault" }
+export type CwdScope = { kind: "scope"; vaultRoot: string; relativePath: string } | { kind: "no-vault" }
 
 /**
  * Compute the cwd scope. Walks up from `cwd` looking for a `.km/`

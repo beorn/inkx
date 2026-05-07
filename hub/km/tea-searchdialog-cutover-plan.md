@@ -18,16 +18,19 @@ needs redesign before the 7-phase migration.
 ## Interaction Inventory (current SearchDialog behavior to preserve)
 
 ### State owned by UI reducer (`ui-reducer.ts`)
+
 - `showSearchDialog: boolean` — visibility
 - `searchDialogInitialInput: string` — buffered printable-key before the dialog registered its input layer
 - `searchScope: "all" | "selected"` — scope toggle
 - `searchScopeNodeIds: string[]` — scope ids (cursor subtree) when scope=="selected"
 
 ### State owned locally in SearchDialog.tsx
+
 - `selectedIndex: number` — result-list selection (React.useState)
 - `editCtx.value` — text query (via `useEditContext`/`useDialogInput`/TextInput)
 
 ### Open path
+
 1. User presses `/` OR dispatches "search" command → action `SHOW_SEARCH_DIALOG`
 2. Handler: `pushDialogMode("dialog:search")` (focus scope), `closeDetailPane()`,
    `ctx.setUI({ showSearchDialog: true, searchDialogInitialInput: "",
@@ -39,6 +42,7 @@ needs redesign before the 7-phase migration.
 5. After first render, `useEffect` clears `searchDialogInitialInput`.
 
 ### Key handling while open
+
 - **Printable keys** (letters, digits, symbols): captured by TextInput via
   `useEditContext` → updates `editCtx.value` → `onChange` resets `selectedIndex` to 0.
   NOT routed through command system.
@@ -60,6 +64,7 @@ needs redesign before the 7-phase migration.
 - **Ctrl+A/E/K/U/W**: readline edits → handled by useEditContext/TextInput.
 
 ### Close paths (where `showSearchDialog: false` is set)
+
 1. DIALOG_CONFIRM → dialogTargetRef.confirm() → handleSearchSelect → setUI
 2. DIALOG_CANCEL → dialogTargetRef.cancel() → handleSearchCancel → setUI
 3. DIALOG_CONFIRM/CANCEL fallback (both refs null): direct `setUI({showSearchDialog: false})`
@@ -94,6 +99,7 @@ export function isTeaSearchEnabled(): boolean
 ```
 
 Crucially this plugin does NOT own:
+
 - `selectedIndex` (local, internal UI; migrate in a later phase if useful)
 - `editCtx.value` (the actual query text; owned by TextInput; Phase 2+ concern)
 - `dialogTargetRef` or `dialog-guard.ts` (keep as-is; the plugin is an
@@ -146,6 +152,7 @@ the flag is on, also dispatch to the plugin store:
 ### Integration in `WorkspaceChrome.tsx`
 
 Replace:
+
 ```tsx
 {ui.showSearchDialog && (
   <CenterDialog ... focusScope>
@@ -155,6 +162,7 @@ Replace:
 ```
 
 With:
+
 ```tsx
 <SearchDialogBridge
   legacyVisible={ui.showSearchDialog}
@@ -254,7 +262,9 @@ with it.
 ## Tests
 
 ### Parity tests — `apps/km-tui/tests/plugins/search-mini-cutover.spec.ts`
+
 Every scenario runs on both paths under `withBothPaths`:
+
 - show: `app.dispatch("search")` → `app.state.overlay === "search"`
 - escape: Escape → overlay null
 - scope default is "all"
@@ -267,13 +277,16 @@ Every scenario runs on both paths under `withBothPaths`:
 - contextual Escape from board layer closes the dialog
 
 Plugin-only tests:
+
 - Subscriber sees every state transition (show → toggleScope → hide)
 - Plugin state matches legacy ui state after a complex action sequence
 
 ### Unit tests — `apps/km-tui/tests/plugins/with-search-dialog.test.ts`
+
 Reducer semantics for every op × every state (no React).
 
 ### Termless tests — `apps/km-tui/tests/plugins/search-termless.test.ts`
+
 - Plugin path: dispatch search → type → Escape (screen clears, no stale cells)
 - Legacy path: same sequence
 - Cross-path parity on screen text presence/absence
@@ -281,11 +294,13 @@ Reducer semantics for every op × every state (no React).
 ## Elegance baseline (HelpOverlay comparison)
 
 HelpOverlay shipped with these numbers (from `tea-mini-cutover-help-overlay.md`):
+
 - Production files: 3 (with-help-overlay.ts, use-help-overlay.ts, HelpOverlayBridge.tsx)
 - LOC: with-help-overlay.ts 213, use-help-overlay.ts 24, HelpOverlayBridge.tsx 61 = 298 total
 - Test files: 3 (unit: 24 tests, parity: 16 tests, termless: 3 tests)
 
 SearchDialog target:
+
 - Same 3 production files
 - LOC target: comparable (plugin is slightly more complex — 4 fields vs 2 + 5 ops vs 5)
 - Same test hierarchy
@@ -306,3 +321,4 @@ plugin state desyncs from ui state.
 
 Fought-framework: Would only happen if we tried to make the plugin OWN text
 query or selectedIndex; the plan explicitly avoids that scope.
+

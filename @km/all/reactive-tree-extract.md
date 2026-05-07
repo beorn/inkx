@@ -24,8 +24,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/storage/reactive-tree-library"
+    type: list
+    values:
+      - type: link
+        target: km-all.reactive-tree-library
+      - type: link
+        target: "@km/storage/reactive-tree-library"
 ---
 
 # [x] Extract reactive-graph.ts to @km/reactive-tree workspace package @km/all #task #P2 @Bjørn Stabell

@@ -6,19 +6,19 @@ Catalog of every export from every entry point. Last updated 2026-03-09.
 
 ### Entry Points
 
-| Specifier       | Resolves To                 | Purpose                                    |
-| --------------- | --------------------------- | ------------------------------------------ |
-| `silvery` (`.`) | `src/index.ts`              | Re-exports `@silvery/ag-react` + `VERSION` |
-| `silvery/ink`   | `packages/ink/src/ink.ts`   | Drop-in Ink replacement                    |
-| `silvery/chalk` | `packages/ink/src/chalk.ts` | Drop-in chalk replacement                  |
+| Specifier     | Resolves To               | Purpose                                |
+| ------------- | ------------------------- | -------------------------------------- |
+| silvery (.)   | src/index.ts              | Re-exports @silvery/ag-react + VERSION |
+| silvery/ink   | packages/ink/src/ink.ts   | Drop-in Ink replacement                |
+| silvery/chalk | packages/ink/src/chalk.ts | Drop-in chalk replacement              |
 
 ### `silvery` (root)
 
 Re-exports everything from `@silvery/ag-react` (see below) plus:
 
-| Export    | Kind  | Notes              |
-| --------- | ----- | ------------------ |
-| `VERSION` | value | `"0.0.1"` constant |
+| Export  | Kind  | Notes            |
+| ------- | ----- | ---------------- |
+| VERSION | value | "0.0.1" constant |
 
 ### `silvery/ink`
 
@@ -42,10 +42,10 @@ Curated Ink-compatible surface. No wildcard re-exports.
 
 ### Entry Points
 
-| Specifier             | Resolves To        |
-| --------------------- | ------------------ |
-| `@silvery/ansi` (`.`) | `src/index.ts`     |
-| `@silvery/ansi/*`     | `src/*` (wildcard) |
+| Specifier         | Resolves To      |
+| ----------------- | ---------------- |
+| @silvery/ansi (.) | src/index.ts     |
+| @silvery/ansi/*   | src/* (wildcard) |
 
 ### `.` (main)
 
@@ -62,18 +62,18 @@ Curated Ink-compatible surface. No wildcard re-exports.
 
 Exposes all files in `src/` directly. Includes:
 
-| File               | Public?  | Notes                                                                |
-| ------------------ | -------- | -------------------------------------------------------------------- |
-| `ansi.ts`          | Yes      | Terminal control sequences                                           |
-| `constants.ts`     | Yes      | ANSI escape code constants                                           |
-| `detection.ts`     | Yes      | Terminal capability detection                                        |
-| `hyperlink.ts`     | Yes      | OSC 8 hyperlinks                                                     |
-| `patch-console.ts` | Yes      | Console interception                                                 |
-| `term.ts`          | Yes      | Term factory                                                         |
-| `types.ts`         | Yes      | Shared types                                                         |
-| `underline.ts`     | Yes      | Extended underline styles                                            |
-| `utils.ts`         | Yes      | Strip ANSI, display length                                           |
-| `storybook.ts`     | **FLAG** | Executable demo script, not a library API. Should not be importable. |
+| File             | Public? | Notes                                                                |
+| ---------------- | ------- | -------------------------------------------------------------------- |
+| ansi.ts          | Yes     | Terminal control sequences                                           |
+| constants.ts     | Yes     | ANSI escape code constants                                           |
+| detection.ts     | Yes     | Terminal capability detection                                        |
+| hyperlink.ts     | Yes     | OSC 8 hyperlinks                                                     |
+| patch-console.ts | Yes     | Console interception                                                 |
+| term.ts          | Yes     | Term factory                                                         |
+| types.ts         | Yes     | Shared types                                                         |
+| underline.ts     | Yes     | Extended underline styles                                            |
+| utils.ts         | Yes     | Strip ANSI, display length                                           |
+| storybook.ts     | FLAG    | Executable demo script, not a library API. Should not be importable. |
 
 ---
 
@@ -81,12 +81,12 @@ Exposes all files in `src/` directly. Includes:
 
 ### Entry Points
 
-| Specifier                      | Resolves To                        |
-| ------------------------------ | ---------------------------------- |
-| `@silvery/ag-react` (`.`)      | `src/index.ts` -> `src/exports.ts` |
-| `@silvery/ag-react/hooks`      | `src/hooks/index.ts`               |
-| `@silvery/ag-react/reconciler` | `src/reconciler/index.ts`          |
-| `@silvery/ag-react/*`          | `src/*` (wildcard)                 |
+| Specifier                    | Resolves To                    |
+| ---------------------------- | ------------------------------ |
+| @silvery/ag-react (.)        | src/index.ts -> src/exports.ts |
+| @silvery/ag-react/hooks      | src/hooks/index.ts             |
+| @silvery/ag-react/reconciler | src/reconciler/index.ts        |
+| @silvery/ag-react/*          | src/* (wildcard)               |
 
 ### `.` (main) - via `exports.ts`
 
@@ -158,16 +158,16 @@ Low-level reconciler API:
 
 Exposes all `src/` files including:
 
-| File                    | Public?  | Notes                                                                |
-| ----------------------- | -------- | -------------------------------------------------------------------- |
-| `context.ts`            | Yes      | React contexts                                                       |
-| `edit-context.ts`       | Yes      | Terminal edit context                                                |
-| `exports.ts`            | **FLAG** | Implementation barrel file. Importing directly bypasses entry point. |
-| `focus.ts`              | Unclear  | Likely internal focus helpers                                        |
-| `jsx.d.ts`              | **FLAG** | Type declaration, not an importable module                           |
-| `react-reconciler.d.ts` | **FLAG** | Type shim for untyped `react-reconciler` package                     |
-| `render-string.tsx`     | Yes      | renderString API                                                     |
-| `render.tsx`            | Yes      | Main render API                                                      |
+| File                  | Public? | Notes                                                                |
+| --------------------- | ------- | -------------------------------------------------------------------- |
+| context.ts            | Yes     | React contexts                                                       |
+| edit-context.ts       | Yes     | Terminal edit context                                                |
+| exports.ts            | FLAG    | Implementation barrel file. Importing directly bypasses entry point. |
+| focus.ts              | Unclear | Likely internal focus helpers                                        |
+| jsx.d.ts              | FLAG    | Type declaration, not an importable module                           |
+| react-reconciler.d.ts | FLAG    | Type shim for untyped react-reconciler package                       |
+| render-string.tsx     | Yes     | renderString API                                                     |
+| render.tsx            | Yes     | Main render API                                                      |
 
 ---
 
@@ -175,14 +175,14 @@ Exposes all `src/` files including:
 
 ### Entry Points
 
-| Specifier                 | Resolves To            |
-| ------------------------- | ---------------------- |
-| `@silvery/create` (`.`)   | `src/index.ts`         |
-| `@silvery/create/core`    | `src/core/index.ts`    |
-| `@silvery/create/store`   | `src/store/index.ts`   |
-| `@silvery/create/tea`     | `src/tea/index.ts`     |
-| `@silvery/create/streams` | `src/streams/index.ts` |
-| `@silvery/create/*`       | `src/*` (wildcard)     |
+| Specifier               | Resolves To          |
+| ----------------------- | -------------------- |
+| @silvery/create (.)     | src/index.ts         |
+| @silvery/create/core    | src/core/index.ts    |
+| @silvery/create/store   | src/store/index.ts   |
+| @silvery/create/tea     | src/tea/index.ts     |
+| @silvery/create/streams | src/streams/index.ts |
+| @silvery/create/*       | src/* (wildcard)     |
 
 ### `.` (main)
 
@@ -220,9 +220,9 @@ AsyncIterable helpers: `merge`, `map`, `filter`, `filterMap`, `takeUntil`, `take
 
 Exposes all `src/` files. Notable internal files:
 
-| File         | Public?  | Notes                                                                                       |
-| ------------ | -------- | ------------------------------------------------------------------------------------------- |
-| `plugins.ts` | **FLAG** | Only exports `IncrementalRenderMismatchError` (already in main index). Thin re-export file. |
+| File       | Public? | Notes                                                                                     |
+| ---------- | ------- | ----------------------------------------------------------------------------------------- |
+| plugins.ts | FLAG    | Only exports IncrementalRenderMismatchError (already in main index). Thin re-export file. |
 
 ---
 
@@ -230,14 +230,14 @@ Exposes all `src/` files. Notable internal files:
 
 ### Entry Points
 
-| Specifier                   | Resolves To             |
-| --------------------------- | ----------------------- |
-| `@silvery/ag-term` (`.`)    | `src/index.ts`          |
-| `@silvery/ag-term/runtime`  | `src/runtime/index.ts`  |
-| `@silvery/ag-term/toolbelt` | `src/toolbelt/index.ts` |
-| `@silvery/ag-term/pipeline` | `src/pipeline/index.ts` |
-| `@silvery/ag-term/ansi`     | `src/ansi/index.ts`     |
-| `@silvery/ag-term/*`        | `src/*` (wildcard)      |
+| Specifier                 | Resolves To           |
+| ------------------------- | --------------------- |
+| @silvery/ag-term (.)      | src/index.ts          |
+| @silvery/ag-term/runtime  | src/runtime/index.ts  |
+| @silvery/ag-term/toolbelt | src/toolbelt/index.ts |
+| @silvery/ag-term/pipeline | src/pipeline/index.ts |
+| @silvery/ag-term/ansi     | src/ansi/index.ts     |
+| @silvery/ag-term/*        | src/* (wildcard)      |
 
 ### `.` (main)
 
@@ -284,16 +284,16 @@ ANSI primitives merged from the former `@silvery/ansi` package. Term factory, st
 
 Exposes all `src/` files. Notable internal files:
 
-| File                  | Public?  | Notes                                                                                        |
-| --------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `scheduler.ts`        | Internal | Full scheduler implementation, only `IncrementalRenderMismatchError` is intentionally public |
-| `browser-renderer.ts` | Unclear  | Browser-specific renderer                                                                    |
-| `input.ts`            | Internal | Low-level input parsing                                                                      |
-| `layout.ts`           | Internal | Layout utility (~660B, thin)                                                                 |
-| `pipeline.ts`         | Internal | Re-export shim (579B)                                                                        |
-| `screenshot.ts`       | Unclear  | Screenshot capture                                                                           |
-| `dom/index.ts`        | Yes      | DOM rendering support                                                                        |
-| `xterm/index.ts`      | Yes      | xterm.js integration                                                                         |
+| File                | Public?  | Notes                                                                                      |
+| ------------------- | -------- | ------------------------------------------------------------------------------------------ |
+| scheduler.ts        | Internal | Full scheduler implementation, only IncrementalRenderMismatchError is intentionally public |
+| browser-renderer.ts | Unclear  | Browser-specific renderer                                                                  |
+| input.ts            | Internal | Low-level input parsing                                                                    |
+| layout.ts           | Internal | Layout utility (~660B, thin)                                                               |
+| pipeline.ts         | Internal | Re-export shim (579B)                                                                      |
+| screenshot.ts       | Unclear  | Screenshot capture                                                                         |
+| dom/index.ts        | Yes      | DOM rendering support                                                                      |
+| xterm/index.ts      | Yes      | xterm.js integration                                                                       |
 
 ---
 
@@ -301,10 +301,10 @@ Exposes all `src/` files. Notable internal files:
 
 ### Entry Points
 
-| Specifier             | Resolves To        |
-| --------------------- | ------------------ |
-| `@silvery/test` (`.`) | `src/index.tsx`    |
-| `@silvery/test/*`     | `src/*` (wildcard) |
+| Specifier         | Resolves To      |
+| ----------------- | ---------------- |
+| @silvery/test (.) | src/index.tsx    |
+| @silvery/test/*   | src/* (wildcard) |
 
 ### `.` (main)
 
@@ -319,13 +319,13 @@ Exposes all `src/` files. Notable internal files:
 
 ### Wildcard (`@silvery/test/*`)
 
-| File                 | Public? | Notes                     |
-| -------------------- | ------- | ------------------------- |
-| `auto-locator.ts`    | Yes     | Auto-refreshing locators  |
-| `compare-buffers.ts` | Yes     | Buffer comparison         |
-| `debug.ts`           | Yes     | Debug tree printing       |
-| `debug-mismatch.ts`  | Yes     | Mismatch context building |
-| `locator.ts`         | Yes     | Locator API               |
+| File               | Public? | Notes                     |
+| ------------------ | ------- | ------------------------- |
+| auto-locator.ts    | Yes     | Auto-refreshing locators  |
+| compare-buffers.ts | Yes     | Buffer comparison         |
+| debug.ts           | Yes     | Debug tree printing       |
+| debug-mismatch.ts  | Yes     | Mismatch context building |
+| locator.ts         | Yes     | Locator API               |
 
 ---
 
@@ -333,10 +333,10 @@ Exposes all `src/` files. Notable internal files:
 
 ### Entry Points
 
-| Specifier              | Resolves To                                                         |
-| ---------------------- | ------------------------------------------------------------------- |
-| `@silvery/theme` (`.`) | `src/index.ts` -> re-exports from `theme.ts` and `ThemeContext.tsx` |
-| `@silvery/theme/*`     | `src/*` (wildcard)                                                  |
+| Specifier          | Resolves To                                                   |
+| ------------------ | ------------------------------------------------------------- |
+| @silvery/theme (.) | src/index.ts -> re-exports from theme.ts and ThemeContext.tsx |
+| @silvery/theme/*   | src/* (wildcard)                                              |
 
 ### `.` (main)
 
@@ -367,19 +367,19 @@ Exposes all `src/` files. Some are clearly internal (generator helpers, palette 
 
 ### Entry Points
 
-| Specifier                        | Resolves To              |
-| -------------------------------- | ------------------------ |
-| `@silvery/ag-react/ui` (`.`)     | `src/index.ts`           |
-| `@silvery/ag-react/ui/cli`       | `src/cli/index.ts`       |
-| `@silvery/ag-react/ui/react`     | `src/react/index.ts`     |
-| `@silvery/ag-react/ui/wrappers`  | `src/wrappers/index.ts`  |
-| `@silvery/ag-react/ui/ansi`      | `src/ansi/index.ts`      |
-| `@silvery/ag-react/ui/utils`     | `src/utils/index.ts`     |
-| `@silvery/ag-react/ui/progress`  | `src/progress/index.ts`  |
-| `@silvery/ag-react/ui/display`   | `src/display/index.ts`   |
-| `@silvery/ag-react/ui/input`     | `src/input/index.ts`     |
-| `@silvery/ag-react/ui/animation` | `src/animation/index.ts` |
-| `@silvery/ag-react/ui/*`         | `src/*` (wildcard)       |
+| Specifier                      | Resolves To            |
+| ------------------------------ | ---------------------- |
+| @silvery/ag-react/ui (.)       | src/index.ts           |
+| @silvery/ag-react/ui/cli       | src/cli/index.ts       |
+| @silvery/ag-react/ui/react     | src/react/index.ts     |
+| @silvery/ag-react/ui/wrappers  | src/wrappers/index.ts  |
+| @silvery/ag-react/ui/ansi      | src/ansi/index.ts      |
+| @silvery/ag-react/ui/utils     | src/utils/index.ts     |
+| @silvery/ag-react/ui/progress  | src/progress/index.ts  |
+| @silvery/ag-react/ui/display   | src/display/index.ts   |
+| @silvery/ag-react/ui/input     | src/input/index.ts     |
+| @silvery/ag-react/ui/animation | src/animation/index.ts |
+| @silvery/ag-react/ui/*         | src/* (wildcard)       |
 
 ### `.` (main)
 
@@ -425,12 +425,12 @@ Animation: `easings`, `resolveEasing`, `useAnimation`, `useTransition`, `useInte
 
 Exposes all `src/` files. Notable via-wildcard-only files:
 
-| File              | Public?  | Notes                                                             |
-| ----------------- | -------- | ----------------------------------------------------------------- |
-| `components.ts`   | **FLAG** | Barrel file for components. Likely internal.                      |
-| `animation.ts`    | **FLAG** | Thin re-export shim (641B). Not the same as `animation/index.ts`. |
-| `images.ts`       | Unclear  | Image-related utilities                                           |
-| `canvas/index.ts` | Yes      | Canvas rendering support                                          |
+| File            | Public? | Notes                                                           |
+| --------------- | ------- | --------------------------------------------------------------- |
+| components.ts   | FLAG    | Barrel file for components. Likely internal.                    |
+| animation.ts    | FLAG    | Thin re-export shim (641B). Not the same as animation/index.ts. |
+| images.ts       | Unclear | Image-related utilities                                         |
+| canvas/index.ts | Yes     | Canvas rendering support                                        |
 
 ---
 
@@ -493,3 +493,4 @@ Importing `@silvery/test` sets `globalThis.IS_REACT_ACT_ENVIRONMENT = true` and 
 ### 6. No underscore-prefixed or explicitly internal exports found
 
 All exports appear intentionally public. No `_internal` or underscore-prefixed modules detected in the export maps.
+

@@ -51,51 +51,51 @@ export interface Change {
 }
 ```
 
-> **Note on provenance routing.** Pre-v12 the `Change.origin` field controlled whether the FS-projection subscriber fired. That role has migrated to two cleaner mechanisms:
->
-> - **`actor`** — denormalized into its own `events` column for indexed queries and conflict resolution.
-> - **`source`** (an `EmitOptions` field, denormalized to `events.source`) — defensive marker for FS-import replay (e.g., `"fs-import"`).
-> - **`commit()` vs `apply()`** — `commit()` structurally bypasses `onApply` callbacks (FS projection), so replayed FS-origin changes can never echo-loop back to disk. `apply()` fires the full pipeline.
->
-> `origin` is preserved on the type so historical event payloads round-trip without information loss; new code should not read or write it.
+> Note on provenance routing. Pre-v12 the Change.origin field controlled whether the FS-projection subscriber fired. That role has migrated to two cleaner mechanisms:
+> 
+> * actor — denormalized into its own events column for indexed queries and conflict resolution.
+> * source (an EmitOptions field, denormalized to events.source) — defensive marker for FS-import replay (e.g., "fs-import").
+> * commit() vs apply() — commit() structurally bypasses onApply callbacks (FS projection), so replayed FS-origin changes can never echo-loop back to disk. apply() fires the full pipeline.
+> 
+> origin is preserved on the type so historical event payloads round-trip without information loss; new code should not read or write it.
 
 ### Node lifecycle changes
 
-| Type | Purpose | Emitted by | Payload shape |
-|------|---------|-----------|---------------|
-| `node_created` | A new node was inserted into the tree. | `emitNodeCreated()` in `packages/km-storage/src/emitter.ts:203` | `NodeCreatedData` (see below) |
-| `node_updated` | One or more fields on an existing node changed. | `emitNodeUpdated()` in emitter.ts:206 | `NodeUpdatedData` — `{ [key: string]: unknown }` (any changed fields) |
-| `node_moved` | A node was reparented (changed parent or sort order). | `emitNodeMoved()` in emitter.ts:209 | `NodeMovedData` — `{ parent_id: string \| null, parent_idx?: number }` |
-| `node_deleted` | A node was removed from the tree. | `emitNodeDeleted()` in emitter.ts:212 | `{ reason: string }` — e.g., "user delete", "fs sync" |
+| Type         | Purpose                                               | Emitted by                                                  | Payload shape                                                      |
+| ------------ | ----------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| node_created | A new node was inserted into the tree.                | emitNodeCreated() in packages/km-storage/src/emitter.ts:203 | NodeCreatedData (see below)                                        |
+| node_updated | One or more fields on an existing node changed.       | emitNodeUpdated() in emitter.ts:206                         | NodeUpdatedData — { [key: string]: unknown } (any changed fields)  |
+| node_moved   | A node was reparented (changed parent or sort order). | emitNodeMoved() in emitter.ts:209                           | NodeMovedData — { parent_id: string \| null, parent_idx?: number } |
+| node_deleted | A node was removed from the tree.                     | emitNodeDeleted() in emitter.ts:212                         | { reason: string } — e.g., "user delete", "fs sync"                |
 
 ### Task lifecycle changes
 
-| Type | Purpose | Emitted by | Payload shape |
-|------|---------|-----------|---------------|
-| `task_claimed` | A task was assigned to a user. | (internal or custom caller) | `{ assigned_to: string }` |
-| `task_released` | A task was unassigned. | (internal or custom caller) | `{ assigned_to: null }` |
-| `task_completed` | A task status changed to "done" or was marked as completed. | (internal or custom caller) | `{ status: "done", completed_at: number }` |
+| Type           | Purpose                                                     | Emitted by                  | Payload shape                            |
+| -------------- | ----------------------------------------------------------- | --------------------------- | ---------------------------------------- |
+| task_claimed   | A task was assigned to a user.                              | (internal or custom caller) | { assigned_to: string }                  |
+| task_released  | A task was unassigned.                                      | (internal or custom caller) | { assigned_to: null }                    |
+| task_completed | A task status changed to "done" or was marked as completed. | (internal or custom caller) | { status: "done", completed_at: number } |
 
 ### Session changes (for agents and interactive sessions)
 
-| Type | Purpose | Emitted by | Payload shape |
-|------|---------|-----------|---------------|
-| `session_started` | A new session (agent or REPL) began. | (agent framework) | `SessionStartedData` — `{ session_id: string, model: string, system_prompt_hash?: string }` |
-| `session_message` | A message was sent in a session. | (agent framework) | `SessionMessageData` — `{ session_id: string, role: "user" \| "assistant" \| "system", content: string, tokens?: number }` |
-| `session_tool_call` | A session invoked a tool. | (agent framework) | `SessionToolCallData` — `{ session_id: string, tool: string, args: Record<string, unknown>, result?: unknown, tokens?: number }` |
-| `session_ended` | A session completed or was cancelled. | (agent framework) | `SessionEndedData` — `{ session_id: string, status: "success" \| "error" \| "cancelled", total_tokens?: number, cost_usd?: number, files_modified?: string[], summary?: string, error?: string }` |
+| Type              | Purpose                               | Emitted by        | Payload shape                                                                                                                                                                                 |
+| ----------------- | ------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| session_started   | A new session (agent or REPL) began.  | (agent framework) | SessionStartedData — { session_id: string, model: string, system_prompt_hash?: string }                                                                                                       |
+| session_message   | A message was sent in a session.      | (agent framework) | SessionMessageData — { session_id: string, role: "user" \| "assistant" \| "system", content: string, tokens?: number }                                                                        |
+| session_tool_call | A session invoked a tool.             | (agent framework) | SessionToolCallData — { session_id: string, tool: string, args: Record<string, unknown>, result?: unknown, tokens?: number }                                                                  |
+| session_ended     | A session completed or was cancelled. | (agent framework) | SessionEndedData — { session_id: string, status: "success" \| "error" \| "cancelled", total_tokens?: number, cost_usd?: number, files_modified?: string[], summary?: string, error?: string } |
 
 ### Messaging
 
-| Type | Purpose | Emitted by | Payload shape |
-|------|---------|-----------|---------------|
-| `message` | A generic message (chat, notification, broadcast). | (custom caller) | `{ content: string, [key: string]: unknown }` |
+| Type    | Purpose                                            | Emitted by      | Payload shape                               |
+| ------- | -------------------------------------------------- | --------------- | ------------------------------------------- |
+| message | A generic message (chat, notification, broadcast). | (custom caller) | { content: string, [key: string]: unknown } |
 
 ### Sync and conflicts
 
-| Type | Purpose | Emitted by | Payload shape |
-|------|---------|-----------|---------------|
-| `conflict_created` | A merge conflict was detected (e.g., concurrent edits to the same node). | (sync resolver) | `{ conflicting_nodes: string[], resolution_status: "pending" \| "resolved" }` |
+| Type             | Purpose                                                                  | Emitted by      | Payload shape                                                               |
+| ---------------- | ------------------------------------------------------------------------ | --------------- | --------------------------------------------------------------------------- |
+| conflict_created | A merge conflict was detected (e.g., concurrent edits to the same node). | (sync resolver) | { conflicting_nodes: string[], resolution_status: "pending" \| "resolved" } |
 
 ## Data type interfaces
 
@@ -168,13 +168,13 @@ Three signals carry "who/what produced this change" and how subscribers should r
 - **`source`** (optional, on `EmitOptions` and the `events.source` column): replay marker. Set to `"fs-import"` by the loader when replaying events whose effects are already on disk; subscribers can use it to skip work.
 - **`emitter.commit()` vs `emitter.apply()`**: structural routing. `commit()` writes to the DB + events row + broadcast but does NOT fire `onApply` subscribers (the fs-writer is registered via `onApply`). `apply()` fires everything. The fs-watch path uses `commit()` so a watcher-detected change cannot echo-loop back to disk.
 
-| Scenario | actor | source | Method | Why |
-|---|---|---|---|---|
-| User edit in TUI | `"user"` | (none) | `apply()` | Full pipeline including FS projection |
-| File watcher detected change | `"fs-watch"` | (none) | `commit()` | Skip onApply — would re-write the file we just read |
-| Cold-load replay from events table | (preserved from event) | `"fs-import"` | `commit()` + `skipPersist: true` | Don't re-insert events row; don't re-project to FS |
-| Agent tool call | `"agent-<name>"` | (varies) | `apply()` | Agent edits should land in files |
-| System cleanup | `"system"` | (none) | `apply()` or `commit()` depending on whether it should propagate to FS |
+| Scenario                           | actor                  | source      | Method                                                             | Why                                                 |
+| ---------------------------------- | ---------------------- | ----------- | ------------------------------------------------------------------ | --------------------------------------------------- |
+| User edit in TUI                   | "user"                 | (none)      | apply()                                                            | Full pipeline including FS projection               |
+| File watcher detected change       | "fs-watch"             | (none)      | commit()                                                           | Skip onApply — would re-write the file we just read |
+| Cold-load replay from events table | (preserved from event) | "fs-import" | commit() + skipPersist: true                                       | Don't re-insert events row; don't re-project to FS  |
+| Agent tool call                    | "agent-<name>"         | (varies)    | apply()                                                            | Agent edits should land in files                    |
+| System cleanup                     | "system"               | (none)      | apply() or commit() depending on whether it should propagate to FS |                                                     |
 
 The legacy `Change.origin` field was retired in favor of this split. It still exists on the type for round-tripping pre-v12 payloads, but no live code reads or writes it.
 

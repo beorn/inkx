@@ -365,6 +365,7 @@ The deep research framed Kilo's OpenCode rebase as symbiotic consolidation. /pro
 ### The Hermes/Kern/PostQode/JONI/Slate/Codebuff cluster is "headless swarm bots," not human CLIs
 
 The OpenRouter long-tail at #9–17 is mostly GitHub-Action-triggered background agents — the silent shift from "copilot" to "coworker." They burn high token volume from cron-style loops. Specifically:
+
 - **Kern Agent** — Rust-based, modal-like background runner for headless tasks; #17 ranking driven by low-latency evals.
 - **Slate Agent** — swarm-native (10+ subagents); viral for parallel refactors.
 - **PostQode** — post-processing layer for agent outputs (diff optimization).
@@ -423,6 +424,7 @@ The deep research underplayed a major shift: **agent runtimes are moving from lo
 ### Implication for silvercode
 
 silvercode currently assumes local-pane execution. Two options:
+
 1. Treat cloud sandboxes as **first-class peers**, not afterthoughts. Each pane can target local OR Modal/Daytona/Codespace. ACP boundary stays the same.
 2. Stay local-only and accept that ~30% of "indie agent compute" lives elsewhere by 2027.
 
@@ -461,3 +463,4 @@ Recommendation: prototype cloud-sandbox panes via the Dagger `container-use` MCP
 - 2026-04-27 deep+pro enrichment artifacts: `/tmp/coding-agents-deep-result-2026-04-27.md` (OpenAI deep research, 14K words, fully cited) and `/tmp/coding-agents-pro-result-2026-04-27.md` (4-leg /pro: GPT-5.4 Pro + Kimi K2.6 + Gemini 3 Pro + Grok 4 + judge breakdown). Tracking bead: `km-all.coding-agent-landscape-2026-04-27`.
 
 Stars, ARR, funding rounds, and launch claims all move fast. Treat specific numbers as 2026-04-20 snapshots, not durable facts. The validation skepticism notes added 2026-04-27 (above) apply throughout — flag any number cited in this doc with the corresponding caveat.
+

@@ -172,27 +172,27 @@ The canvas + DOM mirror pattern is the architecture of every serious custom-rend
 
 Production apps use one of three DOM bridge strategies, depending on how much text/semantics they need:
 
-| Pattern                   | Description                                                                                                                             | Examples                                                                                                               |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Minimal bridge**        | One hidden textarea/contenteditable for keyboard/IME/clipboard. No semantic mirror.                                                     | Figma, Canva, most design/whiteboard tools                                                                             |
-| **Active-editor overlay** | When editing text, create a real DOM element positioned over the canvas object. On commit, write back to model and re-render to canvas. | Excalidraw, Konva (official guidance), Fabric.js IText                                                                 |
-| **Full semantic mirror**  | Maintain a transparent/offscreen DOM tree mirroring text/structure for accessibility, selection, find-in-page.                          | PDF.js (text layer + annotation layer), Google Docs (canvas mode), Flutter web (CanvasKit semantics overlay), xterm.js |
+| Pattern               | Description                                                                                                                             | Examples                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Minimal bridge        | One hidden textarea/contenteditable for keyboard/IME/clipboard. No semantic mirror.                                                     | Figma, Canva, most design/whiteboard tools                                                                             |
+| Active-editor overlay | When editing text, create a real DOM element positioned over the canvas object. On commit, write back to model and re-render to canvas. | Excalidraw, Konva (official guidance), Fabric.js IText                                                                 |
+| Full semantic mirror  | Maintain a transparent/offscreen DOM tree mirroring text/structure for accessibility, selection, find-in-page.                          | PDF.js (text layer + annotation layer), Google Docs (canvas mode), Flutter web (CanvasKit semantics overlay), xterm.js |
 
 ### Production Apps
 
-| App                         | Visual Surface                  | DOM Bridge Style                                                         | Key Detail                                                                                  |
-| --------------------------- | ------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| **Google Docs**             | Canvas 2D (since 2021)          | Custom text engine + hidden input + semantic a11y layer                  | Moved from DOM to canvas for performance/consistency. Warned extensions about DOM breakage. |
-| **PDF.js**                  | Canvas per page                 | Full text layer (positioned spans) + annotation layer (real links/forms) | The canonical FOSS reference architecture for canvas + DOM mirror.                          |
-| **xterm.js**                | Canvas/WebGL/DOM renderers      | Hidden textarea + accessibility tree                                     | Proves the pattern applies beyond documents to any custom-rendered text surface.            |
-| **Flutter web** (CanvasKit) | Skia via WASM/WebGL             | Framework-managed semantics tree projected as DOM overlay                | Formalizes the pattern at the framework level: rendering tree != semantics tree.            |
-| **Figma**                   | Custom rendered scene           | Minimal bridge (hidden input, custom hit-test)                           | Design canvas has limited semantic mirroring due to arbitrary geometry.                     |
-| **Excalidraw**              | Canvas                          | Active textarea overlay + clipboard bridge                               | Open-source, easiest to study. Classic active-editor overlay.                               |
-| **tldraw**                  | Mostly DOM/SVG/React            | Not a strict canvas mirror app                                           | Useful contrast: scene-graph UX without the mirror problem.                                 |
-| **PixiJS**                  | WebGL/canvas                    | Accessibility plugin creates DOM overlays for canvas objects             | One of the best FOSS generic a11y overlay approaches.                                       |
-| **Word web**                | More DOM-centric than Docs      | Custom model over DOM, strong ARIA                                       | No public canvas migration; relies more on native browser a11y.                             |
-| **Excel/PowerPoint web**    | Hybrid (virtualized grid/scene) | Native input for active cell/text box + custom rendering                 | Standard hybrid approach.                                                                   |
-| **iWork web**               | Likely hybrid/custom from start | Custom model + native input overlays                                     | Little public architecture info; Apple published no renderer deep-dive.                     |
+| App                     | Visual Surface                  | DOM Bridge Style                                                         | Key Detail                                                                                  |
+| ----------------------- | ------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Google Docs             | Canvas 2D (since 2021)          | Custom text engine + hidden input + semantic a11y layer                  | Moved from DOM to canvas for performance/consistency. Warned extensions about DOM breakage. |
+| PDF.js                  | Canvas per page                 | Full text layer (positioned spans) + annotation layer (real links/forms) | The canonical FOSS reference architecture for canvas + DOM mirror.                          |
+| xterm.js                | Canvas/WebGL/DOM renderers      | Hidden textarea + accessibility tree                                     | Proves the pattern applies beyond documents to any custom-rendered text surface.            |
+| Flutter web (CanvasKit) | Skia via WASM/WebGL             | Framework-managed semantics tree projected as DOM overlay                | Formalizes the pattern at the framework level: rendering tree != semantics tree.            |
+| Figma                   | Custom rendered scene           | Minimal bridge (hidden input, custom hit-test)                           | Design canvas has limited semantic mirroring due to arbitrary geometry.                     |
+| Excalidraw              | Canvas                          | Active textarea overlay + clipboard bridge                               | Open-source, easiest to study. Classic active-editor overlay.                               |
+| tldraw                  | Mostly DOM/SVG/React            | Not a strict canvas mirror app                                           | Useful contrast: scene-graph UX without the mirror problem.                                 |
+| PixiJS                  | WebGL/canvas                    | Accessibility plugin creates DOM overlays for canvas objects             | One of the best FOSS generic a11y overlay approaches.                                       |
+| Word web                | More DOM-centric than Docs      | Custom model over DOM, strong ARIA                                       | No public canvas migration; relies more on native browser a11y.                             |
+| Excel/PowerPoint web    | Hybrid (virtualized grid/scene) | Native input for active cell/text box + custom rendering                 | Standard hybrid approach.                                                                   |
+| iWork web               | Likely hybrid/custom from start | Custom model + native input overlays                                     | Little public architecture info; Apple published no renderer deep-dive.                     |
 
 ### Key Standards
 
@@ -211,3 +211,4 @@ Production apps use one of three DOM bridge strategies, depending on how much te
 - Bead: km-silvery.pretext (vision), km-silvery.pretext-prototype (concrete first step), km-silvery.pro-review-vision
 - Pretext integration: [pretext-integration.md](../v05-layout/pretext-integration.md)
 - Full stack vision: [architecture.md](../v10-terminal/architecture.md)
+

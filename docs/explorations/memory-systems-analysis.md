@@ -1,6 +1,6 @@
 # Memory Systems Analysis: ENGRAM/AutoMem/Hindsight for km recall
 
-> **See also**: [brain architecture doc](../future/brain.md) — the committed design that incorporates these findings (memory graph with ENGRAM cognitive types, chats as event source, entity schemas, solidification).
+> See also: brain architecture doc — the committed design that incorporates these findings (memory graph with ENGRAM cognitive types, chats as event source, entity schemas, solidification).
 
 Evaluates whether advanced memory system designs could improve km's recall architecture.
 Compares current FTS5-based retrieval with three research systems, estimates effort vs accuracy gain.
@@ -17,6 +17,7 @@ km recall uses a **flat FTS5-indexed SQLite database** (`~/.claude/session-index
 **Strengths**: Fast, simple, reliable. No external dependencies. Handles 30 days of sessions well.
 
 **Limitations**:
+
 - No semantic structure — everything is flat text snippets
 - No cognitive type separation (facts, events, instructions mixed together)
 - No confidence scoring or cross-session corroboration
@@ -44,15 +45,15 @@ Key innovation: each network prevents memory type conflicts. Observations are LL
 
 ## Opportunity Analysis
 
-| Opportunity | System | Effort | Accuracy Gain | Recommendation |
-|-------------|--------|--------|---------------|----------------|
-| Cognitive type separation | ENGRAM | Low | High (+31%) | **Do first** |
-| Confidence accumulation | ENGRAM/AutoMem | Low | Medium | Do second |
-| Per-category FTS5 indexes | ENGRAM | Low-Medium | Medium | Do second |
-| Multi-pathway retrieval | Hindsight | Medium | High | Do third |
-| Entity extraction | AutoMem/Hindsight | High | Medium | Defer |
-| Graph storage | AutoMem | High | Medium | Skip |
-| Embedding-based search | All three | Medium | Medium | Phase 2 (brain roadmap) |
+| Opportunity               | System            | Effort     | Accuracy Gain | Recommendation          |
+| ------------------------- | ----------------- | ---------- | ------------- | ----------------------- |
+| Cognitive type separation | ENGRAM            | Low        | High (+31%)   | Do first                |
+| Confidence accumulation   | ENGRAM/AutoMem    | Low        | Medium        | Do second               |
+| Per-category FTS5 indexes | ENGRAM            | Low-Medium | Medium        | Do second               |
+| Multi-pathway retrieval   | Hindsight         | Medium     | High          | Do third                |
+| Entity extraction         | AutoMem/Hindsight | High       | Medium        | Defer                   |
+| Graph storage             | AutoMem           | High       | Medium        | Skip                    |
+| Embedding-based search    | All three         | Medium     | Medium        | Phase 2 (brain roadmap) |
 
 ### Phase 1: Cognitive Type Tags (Low effort, high impact)
 
@@ -87,15 +88,17 @@ Key innovation: each network prevents memory type conflicts. Observations are LL
 ### Deferred: Entity Extraction & Graph Storage
 
 AutoMem's graph storage and Hindsight's entity extraction are powerful but require:
+
 - External services (FalkorDB, Qdrant) or significant SQLite graph modeling
 - LLM extraction pipeline during indexing (expensive, slow)
 - Entity resolution logic (deduplication, merging)
 
-> **Update**: km now absorbs Cloudi's memory system (see [brain architecture](../future/brain.md)). Entity extraction will be implemented in km via SPO triples and entity schemas — but as later phases of the roadmap, not in the initial recall improvements.
+> Update: km now absorbs Cloudi's memory system (see brain architecture). Entity extraction will be implemented in km via SPO triples and entity schemas — but as later phases of the roadmap, not in the initial recall improvements.
 
 ### Later: Embedding-Based Search
 
 Vector search (semantic similarity) requires:
+
 - Embedding model integration (API calls during indexing + query)
 - Vector storage (SQLite doesn't natively support ANN search)
 - Significant latency increase
@@ -112,7 +115,7 @@ km recall's FTS5 architecture is fundamentally sound. The cloudi research (ADR01
 
 Total estimated effort for meaningful improvement: ~10 hours across 3 phases. No external infrastructure needed — all SQLite-native.
 
-> **Update**: The full AutoMem/Hindsight architectures (entity extraction, graph storage, embeddings) are now part of km's roadmap via the [brain architecture](../future/brain.md) — km absorbs Cloudi's memory system. The phased approach above remains correct: recall ranking improvements first, SPO memory and entity schemas in later phases.
+> Update: The full AutoMem/Hindsight architectures (entity extraction, graph storage, embeddings) are now part of km's roadmap via the brain architecture — km absorbs Cloudi's memory system. The phased approach above remains correct: recall ranking improvements first, SPO memory and entity schemas in later phases.
 
 ## References
 
@@ -120,3 +123,4 @@ Total estimated effort for meaningful improvement: ~10 hours across 3 phases. No
 - Cloudi ADR01 memory system spec *(internal: `~/Code/pim/cloudi/specs/active/ADR01/`)*
 - [Plain-brain exploration](plain-brain.md) — original exploration (graduated to brain.md)
 - km recall implementation: `vendor/bearly/tools/recall.ts`, `recall/search.ts`
+

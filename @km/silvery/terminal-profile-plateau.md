@@ -107,12 +107,12 @@ Silvery terminal detection violates 'one way to do things' on every axis. Surfac
 ## Three smells
 
 1. **Three enum spellings of the same 4-state color level:**
-  - `@silvery/ansi` `ColorLevel` = `null | 'basic' | '256' | 'truecolor'`
-  - `TerminalCaps.colorLevel` = `'none' | 'basic' | '256' | 'truecolor'`
-  - `ag-term/runtime/run.tsx` `ColorTier` = `'mono' | 'ansi16' | '256' | 'truecolor'`
+- `@silvery/ansi` `ColorLevel` = `null | 'basic' | '256' | 'truecolor'`
+- `TerminalCaps.colorLevel` = `'none' | 'basic' | '256' | 'truecolor'`
+- `ag-term/runtime/run.tsx` `ColorTier` = `'mono' | 'ansi16' | '256' | 'truecolor'`
    Every edge is a coercion site.
-2. **Two redundant detection functions.** `detectColor()` (ansi/detection.ts) honors FORCE_COLOR + TERM_PROGRAM=Ghostty/iTerm/WezTerm. `detectTerminalCaps()` didn't. Both are callable; different paths call different ones. Recent fix (commit 48143ef0) had `detectTerminalCaps` delegate to `detectColor` — a patch, not a design.
-3. **`Term.caps` optional, populated in 1 of 3 constructors.** `term.ts:655` (main) populates; `term.ts:855` (alt) and `:935` (emulator) set `caps: undefined`. Callers read `term.caps ?? detectTerminalCaps()` — an invariant enforced by convention. `createTermless()` hardcodes `colorLevel: 'truecolor'` + `caps: undefined`. Real path detects. Tests pass while production breaks.
+6. **Two redundant detection functions.** `detectColor()` (ansi/detection.ts) honors FORCE_COLOR + TERM_PROGRAM=Ghostty/iTerm/WezTerm. `detectTerminalCaps()` didn't. Both are callable; different paths call different ones. Recent fix (commit 48143ef0) had `detectTerminalCaps` delegate to `detectColor` — a patch, not a design.
+7. **`Term.caps` optional, populated in 1 of 3 constructors.** `term.ts:655` (main) populates; `term.ts:855` (alt) and `:935` (emulator) set `caps: undefined`. Callers read `term.caps ?? detectTerminalCaps()` — an invariant enforced by convention. `createTermless()` hardcodes `colorLevel: 'truecolor'` + `caps: undefined`. Real path detects. Tests pass while production breaks.
 
 ## Reframe: TerminalProfile as the single source of truth
 

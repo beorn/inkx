@@ -23,6 +23,7 @@ Everything that follows (truth model, identity, recovery cascade, adapter archit
 km's write path parses any `.md` file to an AST, mutates the AST, then serializes back. The AST is intentionally a **curated subset of markdown** — it covers what Obsidian-typical vaults use, not the full universe of markdown.
 
 What round-trips losslessly (within the AST's coverage):
+
 - Headings, paragraphs, lists (incl. nested + task lists)
 - Wiki-links (`[[note]]`, `[[note#heading]]`, `[[note^anchor]]`), regular links, images
 - Frontmatter YAML (values preserved; key order is normalized, not preserved)
@@ -31,12 +32,14 @@ What round-trips losslessly (within the AST's coverage):
 - Code blocks (fenced + inline), emphasis, blockquotes, horizontal rules, tables
 
 What does NOT round-trip cleanly:
+
 - Exotic markdown extensions (Pandoc footnotes, definition lists, custom attribute syntax)
 - Plugin-specific syntax km doesn't know about (Dataview queries, math rendering, callouts without a first-class form)
 - Raw embedded HTML in non-trivial forms
 - Byte-level formatting choices (whitespace, list marker selection, blank-line counts, frontmatter key order) — normalized by AST serialization
 
 **What this means practically**:
+
 - `cat foo.md` shows human-readable, Obsidian-compatible markdown — always
 - External tools (grep, git, vim, Obsidian, LSP) work — always
 - The user's custom formatting and edge-case-markdown choices are lost on first km-write; known syntax round-trips fine
@@ -59,6 +62,7 @@ Each phase is a shippable product on its own; each unlocks real user value; each
 **Why FS-truth for Phase A**: (a) simpler implementation (no ingest pipeline / regen loop), (b) catastrophic-failure blast radius is smaller (DB corruption → rebuild from FS, contained), (c) no beyond-AST features shipping yet to force the issue, (d) matches today's code path.
 
 **What today's work contributes to later phases** (all already in §8):
+
 - Stable internal ULIDs → used in every phase
 - AST round-trip fidelity corpus → needed for any FS↔DB mapping
 - Content-as-CAS writeback → required for Phase C's "FS is a projection" semantics
@@ -86,23 +90,25 @@ For the current implementation phase:
 **Every DB column must be computable from (FS content + optional session.db).** If a column can't be derived from the FS, it's either a bug or a scope expansion that needs explicit justification.
 
 Consequences:
+
 - `km doctor rebuild` deletes `.km/state.db` and reconstructs from a fresh FS crawl. **No user-visible data loss** beyond session state.
 - Internal ULIDs (`KNode.id`) get freshly minted on rebuild. No external reference uses them, so no breakage crosses the FS boundary.
 - Backlinks, FTS, anchor index, structural metadata — all derived. Rebuild is deterministic from content.
 
 ### 1.6 What "identity" means at each layer
 
-| Domain | Truth source | Identity form | Failure mode of a mistake |
-|---|---|---|---|
-| **External** (links users type, Obsidian sees, git tracks) | FS | paths + `.name` strings | Broken link — visible to user, user-fixable |
-| **FS→DB sync** (rename detection, dupe handling) | FS wins | inode primary, path/`.name` fallback, content-hash+position last resort (§3) | Wrong ULID attributed internally — cosmetic, self-healing on next scan |
-| **Internal** (queries, joins, session references) | DB | ULIDs (stable within a DB lifetime) | Wrong join or lost session — cosmetic; session rebuild fixes |
+| Domain                                                 | Truth source | Identity form                                                              | Failure mode of a mistake                                              |
+| ------------------------------------------------------ | ------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| External (links users type, Obsidian sees, git tracks) | FS           | paths + .name strings                                                      | Broken link — visible to user, user-fixable                            |
+| FS→DB sync (rename detection, dupe handling)           | FS wins      | inode primary, path/.name fallback, content-hash+position last resort (§3) | Wrong ULID attributed internally — cosmetic, self-healing on next scan |
+| Internal (queries, joins, session references)          | DB           | ULIDs (stable within a DB lifetime)                                        | Wrong join or lost session — cosmetic; session rebuild fixes           |
 
 The "identity" users care about (`[[foo]]`, `@inbox`, `^rec`) lives entirely in the FS domain. ULIDs are never *emitted* to the FS; they are resolved if a user hand-writes one (§2.1).
 
 ### 1.7 Session state is durably-best-effort
 
 `~/.km/session.db` (§5.3) stores undo, workspace layout, last-opened. It references NodeIds where pragmatic, paths where safe. On `km doctor rebuild`:
+
 - entries whose NodeIds no longer resolve are silently pruned
 - path-anchored entries keep working
 - user-visible cost: cosmetic (cursor-was-here lost, recently-opened list shorter)
@@ -115,10 +121,10 @@ Session state is **not authoritative**. It's a fast-path for convenience. FS is 
 
 ### 2.1 Two layers — external vs internal
 
-| Layer | Where | Who sees it | Purpose |
-|---|---|---|---|
-| **External** | `.md` on disk | users + other tools (Obsidian, nvim, git) | wiki-links, anchors, tags — human-readable, Obsidian-native |
-| **Internal** | `.km/state.db` | km only | DB joins, indexes, session state — opaque ULID handle |
+| Layer    | Where        | Who sees it                               | Purpose                                                     |
+| -------- | ------------ | ----------------------------------------- | ----------------------------------------------------------- |
+| External | .md on disk  | users + other tools (Obsidian, nvim, git) | wiki-links, anchors, tags — human-readable, Obsidian-native |
+| Internal | .km/state.db | km only                                   | DB joins, indexes, session state — opaque ULID handle       |
 
 **Internally, the DB resolves paths-of-`.name` to ULIDs.** Externally, markdown normally contains only `.name` values. km never emits ULIDs during writeback — the identity mechanism doesn't need them in the file. But if a user writes a ULID-shaped reference by hand (`[[01HKXB2W...]]`), km recognizes and resolves it as a direct NodeId lookup. The rule is "don't generate them; handle them when seen; keep markdown pure by default," not "reject them."
 
@@ -139,6 +145,7 @@ workspace
 File `.name` is the **basename** (filename without `.md`), matching Obsidian's link semantics: `[[foo]]` resolves to any file whose basename is `foo`. The file's full repo-relative `path` is a separate field used for FS location and disambiguation when two files share a basename.
 
 Resolution examples:
+
 - `[[foo]]` → basename-index lookup → `[file:"foo"]` (if unambiguous)
 - `[[notes/foo]]` → path lookup → specific file (disambiguates across duplicate basenames)
 - `[[foo#my-heading]]` → basename lookup + heading-slug-index lookup within file (§2.5) → `[file:"foo", heading:"my-heading"]`
@@ -147,6 +154,7 @@ Resolution examples:
 - `#project` → `[tag:"project"]`
 
 **Name-scope rules** (basis for reconciliation in §3):
+
 - File `.name` (basename) is **not** required to be globally unique — Obsidian allows duplicate basenames across folders. Ambiguity resolves by nearest-path match or link specificity; path is the final arbiter.
 - Heading/block/tag `.name` is locally unique within parent scope.
 - Primary reconciliation match (§3.2) uses **path** for files (unambiguous) and **parent + `.name`** for children.
@@ -155,15 +163,15 @@ Resolution examples:
 
 A node's `.name` is the **string that appears in external references** to it. For each node kind:
 
-| Node kind | `.name` is | Example |
-|---|---|---|
-| Directory | basename of the directory | `notes/archive/` → `name="archive"` |
-| File | **basename** only (Obsidian link form) | `notes/foo.md` → `name="foo"`, `path="notes/foo.md"` |
-| Heading WITH anchor | the **anchor literal** (persisted wins over derived) | `## My Heading ^rec` → `name="rec"` |
-| Heading WITHOUT anchor | derived from heading text slug | `## My Heading` → `name="my-heading"` |
-| Block WITH anchor | the anchor literal | `...paragraph text. ^abc` → `name="abc"` |
-| Block WITHOUT anchor | no `.name` — not externally addressable | (nothing) |
-| Tag | the literal slug after the sigil | `@inbox` → `name="inbox"` |
+| Node kind              | .name is                                         | Example                                        |
+| ---------------------- | ------------------------------------------------ | ---------------------------------------------- |
+| Directory              | basename of the directory                        | notes/archive/ → name="archive"                |
+| File                   | basename only (Obsidian link form)               | notes/foo.md → name="foo", path="notes/foo.md" |
+| Heading WITH anchor    | the anchor literal (persisted wins over derived) | ## My Heading ^rec → name="rec"                |
+| Heading WITHOUT anchor | derived from heading text slug                   | ## My Heading → name="my-heading"              |
+| Block WITH anchor      | the anchor literal                               | ...paragraph text. ^abc → name="abc"           |
+| Block WITHOUT anchor   | no .name — not externally addressable            | (nothing)                                      |
+| Tag                    | the literal slug after the sigil                 | @inbox → name="inbox"                          |
 
 Directories are nodes in the tree (they carry their basename in `.name`) but are not user-addressable via wiki-links — they appear only as path segments of their children. Reconciliation for directories uses FS path + inode (§3.3).
 
@@ -182,6 +190,7 @@ type RepoId = string & { __brand: "RepoId" }   // per-mount, stored in .km/confi
 - `RepoId` — workspace mount identifier. Stored in `.km/config.toml`.
 
 `KNode` fields (after this revision):
+
 - `id: NodeId` — internal handle
 - `name?: string` — the locally-resolvable external identifier (per §2.3 rule)
 - `fs_path: string`, `fs_dev: number`, `fs_ino: number`, `fs_mtime: number`, `fs_size: number`, `fs_content_hash?: string` — file location + identity metadata. `fs_dev` pairs with `fs_ino` for reconciliation (§3.2); cross-device inode reuse is otherwise likely. `fs_size` + `fs_mtime` support the watcher fast-path (§7.4). `fs_content_hash` is lazily populated / invalidated on mtime change.
@@ -194,11 +203,11 @@ In Obsidian, `#` and `^` are distinct namespaces: `#heading` looks up headings b
 
 Lookup algorithm for `[[file<sigil><ident>]]`:
 
-| Link form | First-pass | Fallback | Notes |
-|---|---|---|---|
-| `[[file^rec]]` | `.name` lookup among blocks+anchored-headings with `name="rec"` | none | Obsidian-native block-anchor semantics |
-| `[[file#slug]]` | heading-slug index (content-derived from heading text) lookup for `slug` | `.name` lookup for `name="slug"` if no slug hits | Obsidian-native heading semantics; fallback picks up anchored headings people still reference as `#rec` |
-| `[[file]]` | basename index | path lookup if ambiguous | file-level |
+| Link form     | First-pass                                                             | Fallback                                     | Notes                                                                                                 |
+| ------------- | ---------------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [[file#^rec]] | .name lookup among blocks+anchored-headings with name="rec"            | none                                         | Obsidian-native block-anchor semantics                                                                |
+| [[file#slug]] | heading-slug index (content-derived from heading text) lookup for slug | .name lookup for name="slug" if no slug hits | Obsidian-native heading semantics; fallback picks up anchored headings people still reference as #rec |
+| [[file]]      | basename index                                                         | path lookup if ambiguous                     | file-level                                                                                            |
 
 The heading-slug index is content-derived from each heading's text and cached alongside the FTS index — not stored per-node. Since km already indexes heading text for FTS, the incremental cost is near-zero.
 
@@ -213,6 +222,7 @@ When km scans the filesystem, it maps each node it finds to its internal ULID (p
 ### 3.1 The model
 
 Every node in the tree has:
+
 - **External identity**: `path-of-.names` — for a block that's `[repo, "notes/foo", "my-heading", "rec"]`; for a heading that's `[repo, "notes/foo", "my-heading"]`; for a file that's `[repo, "notes/foo"]`. Files also carry a separate FS `path`.
 - **Internal identity**: a ULID in the DB.
 
@@ -225,6 +235,7 @@ Reconciliation on scan tries signals in order of certainty. For each fresh-scann
 **Step 1 — inode, when we have it.** If the current scan reports `(fs_dev, fs_ino)` matching a DB row in the expected repo, this is a **presumed match**. Inode is the strongest single signal — OS-level identity — and is the fast path for "user renamed the file in nvim or Finder" and "user edited in place."
 
 **Inode validation rule** (handles inode reuse after deletion):
+
 - Presumed match is confirmed if any of (path, stored content hash, stored mtime) also agrees
 - If inode matches but ALL THREE of path / stored content hash / mtime disagree, treat as inode reuse: tombstone the old DB row, mint a fresh ULID for the scanned node
 - This prevents silent misattribution after `git clean`, temp-file cycles, or disk restore that reuses inodes
@@ -244,18 +255,19 @@ Between Step 1 and Step 2 we cover the 90%+ case: files unchanged, files edited 
 
 When neither inode nor path-of-`.name` finds a DB row, fall through in this order. **Content-hash and position are combined** to disambiguate — either alone is weaker than the pair:
 
-| Signal | Scope | Fires when | Strength | Transport fragility |
-|---|---|---|---|---|
-| **Content-hash + parent-position** (composite) | File-level | Path + inode both changed, but byte-identical file sits at similar position in the tree → cross-FS or post-git rename | Strong when both match; disambiguates byte-identical duplicates | Fails on rename-with-any-edit |
-| **Content hash alone** (sha256 of full file bytes) | File-level | Path + inode both changed, body byte-identical, position ambiguous | Medium — can collide on duplicate/empty files | Fails on rename-with-any-edit |
-| **Parent-scope uniqueness** (heading with no anchor) | Within-file, heading | Heading with no anchor; text slug roughly preserved | Medium; works when parent scope unchanged | Intra-file only |
-| **Position among siblings** (unnamed block) | Within-file, block | Unnamed block edited; order preserved | Weak; cosmetic session-state only | Intra-file only |
+| Signal                                           | Scope                | Fires when                                                                                                            | Strength                                                        | Transport fragility           |
+| ------------------------------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------- |
+| Content-hash + parent-position (composite)       | File-level           | Path + inode both changed, but byte-identical file sits at similar position in the tree → cross-FS or post-git rename | Strong when both match; disambiguates byte-identical duplicates | Fails on rename-with-any-edit |
+| Content hash alone (sha256 of full file bytes)   | File-level           | Path + inode both changed, body byte-identical, position ambiguous                                                    | Medium — can collide on duplicate/empty files                   | Fails on rename-with-any-edit |
+| Parent-scope uniqueness (heading with no anchor) | Within-file, heading | Heading with no anchor; text slug roughly preserved                                                                   | Medium; works when parent scope unchanged                       | Intra-file only               |
+| Position among siblings (unnamed block)          | Within-file, block   | Unnamed block edited; order preserved                                                                                 | Weak; cosmetic session-state only                               | Intra-file only               |
 
 **Why combine content-hash with position**: a byte-identical empty file, or two short notes that happen to match, confuse content-hash alone. Tying it to parent-directory + sibling position makes the match specific: "same content AND same slot in the tree" is strong; "same content, different slot" is a coincidence to ignore.
 
 **Why `.name` isn't primary-primary** despite surviving every transport: when we *do* have inode, inode is stronger (it's OS identity, not a name that could collide). `.name` is the fallback that's always available; inode is the fast path that's often available.
 
 **Explicit non-goals**:
+
 - **Cross-file block moves are not reconciled.** If a user cuts a paragraph (with or without `^anchor`) from `foo.md` and pastes it into `bar.md` offline, km sees "deletion in foo" + "insertion in bar" and assigns a fresh ULID. User-visible cost: internal-only (broken backlinks manifest the same way Obsidian would show them).
 - **Rename + edit combined without inode** (path changed AND content changed AND inode unavailable/invalid, e.g., post-git-clone): no heuristic resolves this case; treated as delete + new. See §3.5. When inode *is* available (same-FS rename+edit), Step 1 resolves it normally.
 - **Structural similarity** (Levenshtein on heading text, Jaccard on line-set) is deliberately out of scope — a solo-dev tar pit without a concrete definition + property-based test harness. Reintroduce via §9 Deferred if evidence arrives.
@@ -270,6 +282,7 @@ Secondary signals only fire when Step 1 (inode) and Step 2 (`.name` path) both m
 ### 3.5 Ambiguous cases
 
 **Rename + edit simultaneously**:
+
 - **Same-FS, inode available** (user renamed + edited in nvim / Finder): **Step 1 (inode) resolves it**. ULID preserved.
 - **Cross-FS or post-git-clone** (inode reassigned): path changed + content changed + inode lost → all reconciliation signals miss → treated as delete + new. Internal ULID is lost on this case only; user sees no external breakage (links still point by path — same as without reconciliation).
 
@@ -279,13 +292,13 @@ Secondary signals only fire when Step 1 (inode) and Step 2 (`.name` path) both m
 
 If km confuses two unreferenced files or blocks, the damage is confined to km's internal bookkeeping:
 
-| What breaks | Severity |
-|---|---|
-| Backlink graph (externally) | **Unaffected** — links resolve by path/slug/literal, not by NodeId |
-| Session state (cursor, fold, recent) | Wrong state restored; cosmetic; user reopens |
-| Undo history | Wrong file gets undo — but undo has content preconditions, so fails cleanly rather than silently corrupting |
-| Search hits | Click-to-open uses path; no effect |
-| Markdown itself | Unaffected — markdown is truth; DB rebuild → correct identity |
+| What breaks                          | Severity                                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Backlink graph (externally)          | Unaffected — links resolve by path/slug/literal, not by NodeId                                              |
+| Session state (cursor, fold, recent) | Wrong state restored; cosmetic; user reopens                                                                |
+| Undo history                         | Wrong file gets undo — but undo has content preconditions, so fails cleanly rather than silently corrupting |
+| Search hits                          | Click-to-open uses path; no effect                                                                          |
+| Markdown itself                      | Unaffected — markdown is truth; DB rebuild → correct identity                                               |
 
 **Self-healing**: next correct rescan (edit, path change) catches the mismatch and reassigns. No permanent damage.
 
@@ -296,6 +309,7 @@ For blocks WITH `^abc` labels, identity **within a file** is by literal string m
 **Scoped caveat — cross-file moves.** If a user cuts `^abc` from `foo.md` and pastes it into `bar.md` offline, the anchor string is intact but the parent scope changed. Per §3.3's non-goal, km treats this as "delete in foo + insert in bar with fresh ULID." No misattribution occurs (literal match within each file succeeds on its own terms), but cross-file continuity is lost. Backlinks pointing to `[[foo^abc]]` become unresolved; this is identical to the Obsidian behaviour.
 
 Corruption scenarios that DO exist:
+
 1. User manually deletes `^abc` line marker in nvim → block loses external identity; `[[file^abc]]` refs become unresolved (same as Obsidian).
 2. User renames `^abc` → `^xyz` offline → dead ref + new orphan anchor; surfaced as broken/unresolved in km's backlinks panel.
 3. User moves `^abc` across files (see scoped caveat above) → ref to old location breaks; new location gets fresh ULID.
@@ -308,13 +322,13 @@ None is silent corruption. All surface as visible "unresolved" states, user-repa
 
 km parses sigil prefixes (`@`, `#`, `[[]]`, `^`) as namespace selectors for the name index. ULID-handling per §2.1.
 
-| Sigil | Example | Stored as | Identity scheme |
-|---|---|---|---|
-| `@` | `@inbox`, `@project/foo` | literal slug in markdown | `name` lookup scoped by sigil |
-| `#tag` | `#tag`, `#project/tag` | literal | `name` lookup scoped by sigil |
-| `[[]]` | `[[note-title]]` | literal | basename index (files) + path disambiguation |
-| `[[#]]` | `[[note-title#heading]]` | literal | heading-slug index → `.name` fallback within file (§2.5) |
-| `[[^]]` | `[[note-title^abc]]` | literal | `.name` string match within file |
+| Sigil | Example                | Stored as                | Identity scheme                                        |
+| ----- | ---------------------- | ------------------------ | ------------------------------------------------------ |
+| @     | @inbox, @project/foo   | literal slug in markdown | name lookup scoped by sigil                            |
+| #tag  | #tag, #project/tag     | literal                  | name lookup scoped by sigil                            |
+| [[]]  | [[note-title]]         | literal                  | basename index (files) + path disambiguation           |
+| [[]]  | [[note-title#heading]] | literal                  | heading-slug index → .name fallback within file (§2.5) |
+| [[]]  | [[note-title#^abc]]    | literal                  | .name string match within file                         |
 
 Renames of tags/files/headings are the same problem as in Obsidian — slugs change, references drift. Solved at the editor layer (optional "update backlinks on rename"), independent of the identity model.
 
@@ -327,6 +341,7 @@ Renames of tags/files/headings are the same problem as in Obsidian — slugs cha
 One `.km/state.db` per mounted repo. Workspace = set of mounted adapter instances.
 
 `.km/config.toml`:
+
 ```toml
 repo_id = "01HKXB2W7K9M1X4Y2Z3"       # stable per-clone
 ```
@@ -345,6 +360,7 @@ interface Workspace {
 ```
 
 Workspace config maps repo-aliases → RepoIds:
+
 ```toml
 [mounts.vault]
 repo_id = "01HKXB2W7K9M1X4Y2Z3"
@@ -361,11 +377,11 @@ Cross-repo URL: `km:/vault/notes/foo.md#^abc`. Parser resolves `vault` → RepoI
 
 (Distinct from §9's *sync* tiers — this is where data lives, not how it replicates.)
 
-| Scope | Example | Store |
-|---|---|---|
-| Content (per repo) | Files, headings, blocks, tags | `.km/state.db` per repo + `.md` on disk |
-| Session (per workspace) | Workspace layout, undo, recently-opened | `~/.km/session.db` |
-| Ephemeral (memory) | Cursor, hover, transient focus | In-memory only |
+| Scope                   | Example                                 | Store                               |
+| ----------------------- | --------------------------------------- | ----------------------------------- |
+| Content (per repo)      | Files, headings, blocks, tags           | .km/state.db per repo + .md on disk |
+| Session (per workspace) | Workspace layout, undo, recently-opened | ~/.km/session.db                    |
+| Ephemeral (memory)      | Cursor, hover, transient focus          | In-memory only                      |
 
 ### 5.4 Memory-only mode preserved
 
@@ -380,6 +396,7 @@ Point km at any directory without `.km/`: in-memory DB, no files written. `bun k
 `@km/storage` already has substantial FS separation — this section describes what's there and what the `km-storage.fs-mount` bead formalizes into a package boundary. It is a ~2-day refactor, not a green-field build.
 
 **What's already separated inside `@km/storage`**:
+
 - `store/base.ts` — abstract `BaseStore` with all read ops (getNode, getChildren, search, ancestors, …)
 - `store/memory.ts`, `store/fs.ts`, `store/sqlite.ts` — three concrete backends. `SqliteStore` is already FS-free (what a web/canvas km would use).
 - `fs/` (~1100 LOC) — CAS, file-tree, ignore, path-utils
@@ -404,6 +421,7 @@ Moves the FS-touching code out of `@km/storage` into a new `@km/fs-mount` packag
 ### 6.3 Scope owned by each layer
 
 **`@km/fs-mount`** owns:
+
 - File watcher (chokidar / `node:fs.watch`)
 - Path + `(fs_dev, fs_ino, fs_mtime, fs_size, fs_content_hash)` tracking
 - Content-hash rename detection + inode reconciliation (§3)
@@ -413,11 +431,13 @@ Moves the FS-touching code out of `@km/storage` into a new `@km/fs-mount` packag
 - Markdown fidelity serializer (minimal patching, corpus-gated)
 
 **`@km/storage`** owns:
+
 - RepoStore + query layer (derived index over commits)
 - `withReactive()` reactive decorator (§P1 lazy-hydration builds on this)
 - Workspace mount registry
 
 **Does NOT belong to either**:
+
 - Node types, Op types — `@km/core`
 - Markdown parse algorithm — `@km/markdown`
 
@@ -448,24 +468,27 @@ Option (c) is the correct shape; option (d) is the defensive stopgap that preven
 ### 7.1 Content-as-CAS contract
 
 Every in-memory file state carries `expectedContentHash`. On write:
+
 1. Read current file on disk
 2. Compute `actualContentHash = sha256(file)`
 3. If `actual !== expected`:
-   - Re-parse disk content
-   - Replay the intended change against the fresh state
-   - If conflict detected → surface to user (never silent overwrite)
-4. Atomic write (temp file + rename)
-5. Update `expectedContentHash` to reflect new on-disk state
+- Re-parse disk content
+- Replay the intended change against the fresh state
+- If conflict detected → surface to user (never silent overwrite)
+10. Atomic write (temp file + rename)
+11. Update `expectedContentHash` to reflect new on-disk state
 
 ### 7.2 Minimal patching
 
 Serializer preserves what it doesn't touch, within the AST's coverage (§1.2):
+
 - Whitespace in regions the serializer isn't rewriting (trailing, indentation, blank lines)
 - List marker choice (`-` vs `*`) for unchanged lists
 - Line endings
 - User-style preferences (tabs vs spaces)
 
 **Not preserved** — normalized on any write to the file:
+
 - Frontmatter key order (normalized on parse per §1.2; write emits canonical order)
 - Byte-level formatting inside any region the AST re-serializes
 
@@ -478,11 +501,13 @@ Rewrites only the exact byte ranges of changed regions. Noisy git diffs are a us
 **Decision**: Phase A (today) does NOT ship a resumable-on-crash multi-file journal. Operations spanning multiple files (rename + backlink update cascade) apply per-file; if a crash interrupts a cascade mid-way, the FS is left in a partial state.
 
 **What `km doctor` can and cannot do in Phase A**:
+
 - **Can**: rebuild the derived backlinks *index* (DB-side; fully deterministic from current FS content).
 - **Can**: surface unresolved references (`[[old-name]]` pointing nowhere because a rename cascade stopped mid-way).
 - **Cannot**: automatically *repair* the partial markdown cascade. A half-applied "rename foo → bar + update 40 backlinks" leaves some files pointing at `foo` (the renamed-away name) and some at `bar`; from current FS state alone, there's no deterministic way to know which links the user wanted. The user sees the unresolved-reference list and fixes the remaining files manually (or `rm` the new name if they want to undo).
 
 Rationale:
+
 - A resumable write-ahead log for markdown is a solo-dev tar pit (round-2 review) — many failure modes, large test surface.
 - Phase B's op log (§9) handles multi-file atomicity *properly* via semantic replay, a cleaner mechanism than a journal-alongside-markdown.
 - For Phase A's scenarios (rare cascade crashes), "surface the breakage, let the user repair" is an honest interim.
@@ -507,7 +532,9 @@ Why stateless over origin cookies or a short-term write cache: the hash is alrea
 Five work packages (WP0-WP4) plus one parallel. WP labels name work packages; bead priorities (P0-P4) are separate — see §11. **Schema shape first, then lazy-hydration, then FsMount, then corpus-gated writeback, then federation.** Critical dependencies: identity schema (§2) must land before lazy-hydration queries are written against it; the fidelity corpus gates all writeback work.
 
 ### WP0 (prereq, ~1-2 days). Identity schema migration (`km-storage.identity-schema`)
+
 Lands ahead of P1 to avoid re-doing SQLite queries. Scope:
+
 - Fold `KNode.block_id?` values into `.name` (anchor wins over slug; §2.3)
 - Introduce branded `NodeId`, `RepoId` types in `@km/core`
 - Split file `.name` (basename) from `path` (repo-relative); update resolver
@@ -518,6 +545,7 @@ Lands ahead of P1 to avoid re-doing SQLite queries. Scope:
 Today's `peekNode` / `peekChildIds` read from a full in-memory JS object graph that's built on startup (the 2x failure mode). Lazy-hydration swaps that source to SQLite-on-demand. **The reactive layer above does not change shape** — `withReactive()` (`packages/km-storage/src/store/reactive.ts`) already exists and is delta-driven + lazy-signal-creating. It keeps working unchanged; only the underlying `peek*` source shifts.
 
 Scope:
+
 - Swap `peekNode` / `peekChildIds` to SQLite-on-demand (indexed lookups, microseconds each)
 - Extend the reactive surface with `backlinksState(nodeId)` — subscribes to link-table changes through the commit delta; only visible nodes keep live signals
 - Ensure the commit delta carries link changes (so backlink signals invalidate targetedly, not via broad refresh)
@@ -530,12 +558,14 @@ Queries must target the `BaseStore` interface (what §6 formalizes as the backen
 ### WP2. FsMount + reconciliation (`km-storage.fs-mount`)
 
 Formalize the existing FS split (see §6.1) into a package boundary:
+
 - Move `fs/` + `watch/` + `store/fs.ts` from `@km/storage` into new `@km/fs-mount` package
 - Leave `BaseStore` + `MemoryStore` + `SqliteStore` + `withReactive()` in `@km/storage` (backend-agnostic)
 - Build-enforce: `@km/core` + `@km/storage` never import `node:fs`
 - Update the in-place reconciliation algorithm to the inode-primary cascade (§3) — most of the primary/secondary signals already exist in `watch/reconcile.ts` + `watch/node-differ.*`; this is a revision, not a rewrite
 
 **Reconciliation test harness** (`km-storage.reconciliation-harness`, blocking sub-task): extends the existing chaos + fuzz test suite, doesn't replace it. Relevant existing infrastructure:
+
 - `tests/sync/chaos/` — `chaos-fuzz.fuzz.ts`, `content-roundtrip.fuzz.ts`, `lifecycle-fuzz.fuzz.ts`, `concurrent.slow.test.ts`, `db-to-fs.slow.test.ts`
 - `tests/sync/chaos/fake-fs.ts`, `fake-repo.ts`, `fake-watcher.ts` — test doubles
 - `tests/sync/chaos/verifier.ts`, `transformers.ts`, `event-picker.ts` — property-test machinery
@@ -544,7 +574,9 @@ Formalize the existing FS split (see §6.1) into a package boundary:
 Harness bead scope: add scenario fixtures for inode-primary cascade cases (same-FS rename with inode preserved; cross-FS rename with inode reassigned; inode reuse after deletion; directory rename; split-file; merge-file), and extend the chaos verifier with ULID-stability invariants. Net: ~30% new test infrastructure, ~70% extending existing fuzz + chaos suites.
 
 ### WP3. Fidelity corpus → safe writeback (merged `km-storage.writeback-cas` + `km-storage.markdown-fidelity-corpus`)
+
 Corpus ships first; serializer only lands once corpus is green. Order within WP3:
+
 1. **Fidelity corpus**: regression corpus proving round-trip stability for the AST's declared coverage (§1.2). Includes hand-curated adversarial cases and fuzzed-from-real-vault samples.
 2. **Minimal patching serializer** (§7.2) — gated on corpus
 3. **Content-as-CAS contract** (§7.1) — gated on serializer
@@ -552,12 +584,14 @@ Corpus ships first; serializer only lands once corpus is green. Order within WP3
 5. **No multi-file journal in Phase A** — see §7.3.
 
 ### WP4. Federation (`km-storage.federation`)
+
 - `.km/config.toml` per repo with stable `RepoId`
 - Workspace mount config
 - Cross-repo URL resolution (`km:/<alias>/<path>`)
 - Orthogonal to scale fix; ships when multi-repo workflows actually bite
 
 ### Parallel: session state split (`km-storage.session-state-split`)
+
 - Move undo + workspace layout to `~/.km/session.db`
 - Not blocking; can ship any time
 
@@ -567,12 +601,12 @@ Corpus ships first; serializer only lands once corpus is green. Order within WP3
 
 §9 has two distinct axes — they're orthogonal but often mapped:
 
-| Storage pathway | Typical sync tier at that phase |
-|---|---|
-| Phase A (FS-truth) | Tier 0 (git) |
-| Phase B (op log) | Tier 2 (op-log-based sync) |
-| Phase C (DB-truth) | Tier 2 or Tier 3 |
-| Phase D (CRDT) | Tier 4 |
+| Storage pathway         | Typical sync tier at that phase     |
+| ----------------------- | ----------------------------------- |
+| Phase A (FS-truth)      | Tier 0 (git)                        |
+| Phase B (op log)        | Tier 2 (op-log-based sync)          |
+| Phase C (DB-truth)      | Tier 2 or Tier 3                    |
+| Phase D (CRDT)          | Tier 4                              |
 | Phase E (sync platform) | beyond tiers — infrastructure layer |
 
 Tiers 1 and 3 are **optional side paths**, not mandatory pathway phases. A product might go Phase A→B→D and skip some tiers; the tiers are reliability stopgaps, phases are value-unlock milestones.
@@ -581,13 +615,13 @@ Tiers 1 and 3 are **optional side paths**, not mandatory pathway phases. A produ
 
 km's sync story upgrades in tiers as reliability demands grow. Each tier stays within FS-truth (except Tier 4), and none require putting ULIDs in markdown.
 
-| Tier | Approach | Handles | Ships when |
-|---|---|---|---|
-| 0 | Git as sync layer | Basic offline edit, multi-device occasional push/pull | Today's default |
-| 1 | Tier 0 + identity sidecar (`.km/identity.toml` tracked) | Cross-peer stable ULIDs; survives renames across peers | When multi-device + renames are common |
-| 2 | Tier 1 + op log alongside files | Multi-file atomicity in sync; semantic-level merge | When file-level sync corruption becomes painful |
-| 3 | Custom bidirectional sync protocol (WSS) | Real-time-ish sync with vector clocks; conflicts surfaced, not auto-merged | When peer-to-peer sync is a shipping feature |
-| 4 | CRDT substrate | Auto-merge of concurrent fine-grained edits; real-time collab | Only if real-time collab is a product goal (still deferred; question mark) |
+| Tier | Approach                                              | Handles                                                                    | Ships when                                                                 |
+| ---- | ----------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 0    | Git as sync layer                                     | Basic offline edit, multi-device occasional push/pull                      | Today's default                                                            |
+| 1    | Tier 0 + identity sidecar (.km/identity.toml tracked) | Cross-peer stable ULIDs; survives renames across peers                     | When multi-device + renames are common                                     |
+| 2    | Tier 1 + op log alongside files                       | Multi-file atomicity in sync; semantic-level merge                         | When file-level sync corruption becomes painful                            |
+| 3    | Custom bidirectional sync protocol (WSS)              | Real-time-ish sync with vector clocks; conflicts surfaced, not auto-merged | When peer-to-peer sync is a shipping feature                               |
+| 4    | CRDT substrate                                        | Auto-merge of concurrent fine-grained edits; real-time collab              | Only if real-time collab is a product goal (still deferred; question mark) |
 
 **Open question flagged by round-2 review — does Tier 1 earn its keep?** The sidecar's only real job is "stabilize ULIDs across peers" — but Tier 0 + file-content-hash (§3.3) already handles renames within a single peer's history, and cross-peer rename conflicts (peer A renames foo→bar while peer B renames foo→baz) create a merge-conflict surface in the sidecar itself. If the sidecar just replays the same conflict the filesystem would have, it is net negative. The stronger case for Tier 1 is **empty files / byte-identical duplicates** (where content-hash is useless as a rename signal) and **cross-peer ULID continuity for agent state** (which cares about NodeId stability, not just link stability).
 
@@ -609,11 +643,11 @@ What Phase A ships: an Obsidian-compatible km that scales to 100k files, has dis
 
 **Phase B is "persist the existing `apply()` stream."** km already reduces `(action, state) → [state, effects]` via TEA-style state machines (see `docs/design/tea.md`); every user edit is already an op flowing through `apply()` before it touches the serializer. Phase B adds an append-only `.km/oplog/` that records those same ops to disk in addition to reducing them into state. FS remains truth; the log is a parallel authoritative record of *intent*.
 
-| Unlock | Why |
-|---|---|
-| Semantic multi-file atomicity | Replay a group of ops on recovery; no custom journal (§7.3) |
-| Cross-session semantic undo/redo | Undo is an op-level concept, not a text-diff |
-| Cleaner sync merge | Two peers exchange ops, not file diffs (still file-rooted under FS-truth) |
+| Unlock                           | Why                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------- |
+| Semantic multi-file atomicity    | Replay a group of ops on recovery; no custom journal (§7.3)               |
+| Cross-session semantic undo/redo | Undo is an op-level concept, not a text-diff                              |
+| Cleaner sync merge               | Two peers exchange ops, not file diffs (still file-rooted under FS-truth) |
 
 Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, and the op vocabulary itself (audited 2026-04-22).
 
@@ -631,16 +665,17 @@ Prereqs already in Phase A: stable ULIDs, CAS writeback, fidelity corpus, and th
 
 DB becomes the canonical store. FS is a deterministic projection of DB state. Ops from Phase B drive DB mutations directly instead of going through the markdown text round-trip.
 
-| Unlock | Why |
-|---|---|
-| Versioning + snapshots + rollback as product | DB-level history; not "use git, sorry" |
+| Unlock                                                    | Why                                       |
+| --------------------------------------------------------- | ----------------------------------------- |
+| Versioning + snapshots + rollback as product              | DB-level history; not "use git, sorry"    |
 | Typed per-block metadata (tags, status, priority, embeds) | Persists in DB without polluting markdown |
-| Agent state, live annotations, rich embeds as first-class | Not representable in AST → markdown |
-| Cross-device sync at op-granularity | More robust than file-level |
+| Agent state, live annotations, rich embeds as first-class | Not representable in AST → markdown       |
+| Cross-device sync at op-granularity                       | More robust than file-level               |
 
 Prereqs from Phase B: op vocabulary, op log, semantic replay. Prereqs from Phase A: ULIDs, fidelity corpus, CAS.
 
 **Gaps that MUST be specified before Phase C becomes live** (un-estimated — these are product-earthquake-scale):
+
 - Conflict-resolution UX when Obsidian edits a file while km has unsaved DB state
 - FS projection strategy — full, dirty-file, deletion handling
 - DB-query → FS-patch mapping — a block referenced in two files: which file owns its projected form?
@@ -654,11 +689,11 @@ Earlier drafts of this doc offered LOC estimates (~300-400 core + ~500-800 versi
 
 DB state is a CRDT (Yjs-style, Automerge-style, or a custom log of ordered ops). Concurrent edits from multiple peers or multiple agents auto-merge without custom conflict UX.
 
-| Unlock | Why |
-|---|---|
-| Real-time multi-user collaboration | Peer-to-peer over any transport |
-| Offline-online merge without surfaced conflicts | CRDT math handles most merges |
-| Safe concurrent multi-agent edits | Agents as additional "peers" |
+| Unlock                                          | Why                             |
+| ----------------------------------------------- | ------------------------------- |
+| Real-time multi-user collaboration              | Peer-to-peer over any transport |
+| Offline-online merge without surfaced conflicts | CRDT math handles most merges   |
+| Safe concurrent multi-agent edits               | Agents as additional "peers"    |
 
 Prereqs from Phase C: DB is truth; ops are already the mutation path. Adding CRDT is "make the DB mutations CRDT-reconcilable."
 
@@ -670,14 +705,14 @@ Prereqs from Phase C: DB is truth; ops are already the mutation path. Adding CRD
 
 Dropbox / Google Drive / iCloud-class sync built on the CRDT substrate of Phase D. km stops being "a local-first editor that can sync" and becomes "a sync platform with km on top."
 
-| Unlock | Why |
-|---|---|
-| Million-file workspaces across devices | CRDT gives merge semantics; infrastructure gives scale |
+| Unlock                                                                | Why                                                                                     |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Million-file workspaces across devices                                | CRDT gives merge semantics; infrastructure gives scale                                  |
 | Binary blobs (images, PDFs, audio, video, attachments) as first-class | Markdown alone doesn't handle these; DB-truth already treats files as addressable units |
-| Selective sync / partial hydration / on-demand fetch | Most users don't need the whole vault on every device |
-| Sharing primitives — folder sharing, permissions, invites | Phase D gives safe concurrent edits; Phase E gives the access model |
-| Storage tiering (hot/cold/archive) + true offline support | Sync platform responsibilities, not editor responsibilities |
-| Conflict-free sync across arbitrary transports (not just git) | Current Tier 0 (git) is a hack at this scale; CRDT + cloud storage is the real answer |
+| Selective sync / partial hydration / on-demand fetch                  | Most users don't need the whole vault on every device                                   |
+| Sharing primitives — folder sharing, permissions, invites             | Phase D gives safe concurrent edits; Phase E gives the access model                     |
+| Storage tiering (hot/cold/archive) + true offline support             | Sync platform responsibilities, not editor responsibilities                             |
+| Conflict-free sync across arbitrary transports (not just git)         | Current Tier 0 (git) is a hack at this scale; CRDT + cloud storage is the real answer   |
 
 Prereqs from Phase D: CRDT substrate is live; the native-rewrite perf path (Phase D escape hatch) is probably already done or concurrent — Phase E's throughput requirements push the same direction.
 
@@ -691,6 +726,7 @@ Prereqs from Phase D: CRDT substrate is live; the native-rewrite perf path (Phas
 #### What this pathway changes about today's work
 
 Very little, on purpose. Phase A (§8) is what we're executing. But knowing the pathway exists means:
+
 - Prefer an op-log-friendly op vocabulary in P2/P3 (edits should already be expressible as discrete ops — they mostly are)
 - Keep the serializer driven by ops, not by raw text diffing (aligns with P3)
 - Don't architect around "FS is forever truth" (e.g., don't hard-code assumptions that writing to FS first is the only path — leave room for DB-first later)
@@ -758,6 +794,8 @@ km-storage (scope epic, never closes)
 ```
 
 Adjacent (not under km-storage):
+
 - `km-all.shared-substrate-review` [P0] — cross-project extraction (due 2026-05-05)
 
 **Earlier supersessions**: `km-storage.source-of-truth-contract`, `km-storage.stable-ids`, `km-storage.three-seam-boundary`, `km-storage.scale-architecture`, `km-storage.scale-benchmarks` (shipped), `km-storage.block-hash-refs`, `km-storage.frontmatter-id-migration`, `km-storage.adapter-architecture` (v3 doc), `km-storage.multi-file-atomicity-decision` (Phase A ships without journal), `km-storage.crdt-trigger` (absorbed into `pathway-db-crdt`), `km-storage.automerge-store` (absorbed into `pathway-db-crdt` Phase D), `km-storage.typed-event-categories` (speculation, no driver).
+

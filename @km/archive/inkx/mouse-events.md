@@ -32,6 +32,7 @@ DOM-level mouse events for inkx — React DOM parity.
 ### Phase 2: Link Component (inkx)
 
 1. 
+
   <Link href="..."> component (wraps Text + sets OSC 8 hyperlink + registers onClick)
 2. LinkHandlerProvider context (scheme → handler registry, like Electron protocol)
 3. Default onClick dispatches to scheme handler (preventDefault skips navigation)

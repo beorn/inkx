@@ -66,10 +66,10 @@ Nothing.
 ## New tests
 
 1. useSelection.test.tsx:
-  - returns undefined when withDomEvents is mounted WITHOUT selection
-  - returns state (range=null) when mounted WITH selection, idle
-  - returns state (range={...}) after mouse drag
-  - re-renders when state changes
+- returns undefined when withDomEvents is mounted WITHOUT selection
+- returns state (range=null) when mounted WITH selection, idle
+- returns state (range={...}) after mouse drag
+- re-renders when state changes
 
 ## Definition of Done
 

@@ -35,10 +35,10 @@ Test: press key → verify the expected command ID appears in status/diagnostics
 
 1. Extract all keybindings from `defaultKeybindingLayers()`
 2. For each backend × keybinding:
-  - Spawn km via PTY (or use Term.sendInput for in-process)
-  - Send the key sequence via the backend's input encoding
-  - Verify the app received and resolved the expected command
-3. Flag keybindings that fail on specific backends (e.g., Cmd+Arrow on Ghostty)
+- Spawn km via PTY (or use Term.sendInput for in-process)
+- Send the key sequence via the backend's input encoding
+- Verify the app received and resolved the expected command
+8. Flag keybindings that fail on specific backends (e.g., Cmd+Arrow on Ghostty)
 
 **Deliverables**:
 

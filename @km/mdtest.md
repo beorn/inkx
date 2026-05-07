@@ -9,3 +9,4 @@ parent: "@km"
 # mdtest
 
 Markdown-driven test framework — `.spec.md` files that drive interactive TUI tests via the testEnv harness. Lives alongside vitestx integration. Sub-issues track scenario coverage, fixture stability, and the spec authoring surface.
+

@@ -49,13 +49,13 @@ packages/@km/storage/tests/:
 ## What this bead adds
 
 1. Scenario fixtures for the inode-primary cascade:
-  - same-FS rename with inode preserved (inode Step 1 should resolve)
-  - cross-FS rename with inode reassigned (falls to .name Step 2)
-  - inode reuse after deletion (validation rule in §3.2: disambiguate via path/hash/mtime; tombstone+new if all three disagree)
-  - directory rename
-  - split-file + merge-file (currently non-goals per §3.3)
-2. ULID-stability invariants in the chaos verifier (currently verifies content round-trip; add: 'ULID preserved when reconciliation should preserve it; fresh when it shouldn't')
-3. Migrate existing reconcile.test.ts scenarios to assert against §3's new cascade
+- same-FS rename with inode preserved (inode Step 1 should resolve)
+- cross-FS rename with inode reassigned (falls to .name Step 2)
+- inode reuse after deletion (validation rule in §3.2: disambiguate via path/hash/mtime; tombstone+new if all three disagree)
+- directory rename
+- split-file + merge-file (currently non-goals per §3.3)
+8. ULID-stability invariants in the chaos verifier (currently verifies content round-trip; add: 'ULID preserved when reconciliation should preserve it; fresh when it shouldn't')
+9. Migrate existing reconcile.test.ts scenarios to assert against §3's new cascade
 
 ## Why it blocks fs-mount
 

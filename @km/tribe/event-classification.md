@@ -58,9 +58,9 @@ Daemon delivers only **actionable** down the MCP channel. **Ambient** events acc
 2. Daemon routes: `actionable` → channel + inbox; `ambient` → inbox only.
 3. New tool `tribe.inbox({since?, kinds?, limit?})` — returns pending queue, advances read cursor.
 4. New tool `tribe.mode({mode: "focus" | "normal" | "ambient"})` — session-level filter applied AFTER kind classification:
-  - `focus` = only direct DMs and threshold-escalated alerts
-  - `normal` = current kind-based default
-  - `ambient` = everything to channel (escape hatch)
+- `focus` = only direct DMs and threshold-escalated alerts
+- `normal` = current kind-based default
+- `ambient` = everything to channel (escape hatch)
 
 ## Default classifications (configurable per plugin)
 

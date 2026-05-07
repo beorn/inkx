@@ -37,12 +37,12 @@ test("parseArgs handles --format flag", () => {
 
 ## Key Files
 
-| File                   | Purpose                              |
-| ---------------------- | ------------------------------------ |
-| `km-repl.ts`           | REPL harness for interactive testing |
-| `mdspec-plugin.ts`     | km command executor (bunShell)       |
-| `mdspec-sh-plugin.ts`  | Shell fallback plugin                |
-| `import/fake-asana.ts` | Mock Asana API for import tests      |
+| File                 | Purpose                              |
+| -------------------- | ------------------------------------ |
+| km-repl.ts           | REPL harness for interactive testing |
+| mdspec-plugin.ts     | km command executor (bunShell)       |
+| mdspec-sh-plugin.ts  | Shell fallback plugin                |
+| import/fake-asana.ts | Mock Asana API for import tests      |
 
 ## Ad-Hoc Testing
 

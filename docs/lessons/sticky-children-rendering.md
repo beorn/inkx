@@ -35,9 +35,7 @@ Three independent issues combined to cause mismatches:
 ## Blind Paths
 
 1. **Pre-clearing only current sticky positions** — Missed that OLD positions (from previous frames) also had stale bg in the cloned buffer. Had to clear the entire viewport.
-
 2. **Setting `hasPrevBuffer=false` without clearing buffer** — Thought disabling the fast-path was sufficient. But Text nodes read bg from the buffer regardless of `hasPrevBuffer` — they use `getCellBg`, which reads actual buffer cells, not flags.
-
 3. **`ancestorCleared=true` for sticky second pass** — Seemed logical (the viewport was just cleared), but it broke transparent overlays that exist within sticky header trees.
 
 ## Key Insight: getCellBg Coupling
@@ -47,6 +45,7 @@ The `getCellBg` coupling is the fundamental complication in incremental renderin
 **At the time a Text node renders, the buffer state at its position must be identical whether reached via incremental or fresh rendering.**
 
 This means:
+
 - Clearing to inherited bg ≠ clearing to null (fresh starts null)
 - Stale buffer content at old positions must be overwritten before Text renders
 - `ancestorCleared` must match what the buffer actually contains, not what was "logically" done
@@ -64,3 +63,4 @@ This means:
 - `vendor/silvery/src/pipeline/render-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
 - `docs/lessons/debugging-rendering.md` — General silvery debugging methodology
 - `docs/lessons/incremental-rendering.md` — Fast-path logic and common bug patterns
+

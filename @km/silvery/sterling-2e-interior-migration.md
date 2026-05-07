@@ -38,9 +38,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.sterling-2d-release
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling 2e: Migrate silvery interior + ship 0.19.0 breaking release @km/silvery #task #P1 @claude:4274df30

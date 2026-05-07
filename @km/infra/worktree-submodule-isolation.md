@@ -118,18 +118,18 @@ Use git 2.25+'s `--recurse-submodules` flag + per-worktree submodule modules so 
 ### Changes to `vendor/bearly/tools/worktree.ts`
 
 1. `worktree add <name>`:
-  - Replace `git worktree add <path> <branch>` with `git worktree add --recurse-submodules <path> <branch>`
-  - Verify `.git/worktrees/<name>/modules/<submodule>/` exists per submodule
-  - Do NOT `git submodule update --init` in superproject's parent — each worktree owns its own
-2. `worktree rm <name>`:
-  - Clean up `.git/worktrees/<name>/modules/*` before removing the worktree (git leaves orphans)
-  - Fail gracefully if per-worktree submodule modules have uncommitted/unpushed work
-3. `worktree list`:
-  - Show per-worktree submodule HEAD SHAs (so sessions can see divergence)
-4. Migration:
-  - Existing worktrees use the shared checkout — don't auto-migrate (destructive)
-  - Add `worktree migrate <name>` to opt-in convert a worktree to per-submodule isolation
-  - Document: new worktrees after this lands get isolation; old ones stay shared until migrated
+- Replace `git worktree add <path> <branch>` with `git worktree add --recurse-submodules <path> <branch>`
+- Verify `.git/worktrees/<name>/modules/<submodule>/` exists per submodule
+- Do NOT `git submodule update --init` in superproject's parent — each worktree owns its own
+6. `worktree rm <name>`:
+- Clean up `.git/worktrees/<name>/modules/*` before removing the worktree (git leaves orphans)
+- Fail gracefully if per-worktree submodule modules have uncommitted/unpushed work
+10. `worktree list`:
+- Show per-worktree submodule HEAD SHAs (so sessions can see divergence)
+13. Migration:
+- Existing worktrees use the shared checkout — don't auto-migrate (destructive)
+- Add `worktree migrate <name>` to opt-in convert a worktree to per-submodule isolation
+- Document: new worktrees after this lands get isolation; old ones stay shared until migrated
 
 ## Gotchas
 

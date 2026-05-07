@@ -22,3 +22,4 @@ Wikilink at end of line: prose prose prose [[End of line]]
 Wikilink immediately followed by punctuation: see [[Foo]], [[Bar]]; and [[Baz]].
 
 Wikilink adjacent to another: [[A]][[B]] with no spaces.
+

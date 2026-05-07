@@ -97,14 +97,12 @@ Three calls, each cheap:
 
 - `venture score --llm <id>` — runs `/pro` with a 4-perspective prompt:
   1. *VC perspective*: what's the TAM, exit, comparable deals?
-  2. *Founder perspective*: what's the time-to-MVP, who's customer #1?
-  3. *Customer perspective*: would I actually pay for this?
-  4. *Competitor perspective*: who else has this vantage?
+  1. *Founder perspective*: what's the time-to-MVP, who's customer #1?
+  1. *Customer perspective*: would I actually pay for this?
+  1. *Competitor perspective*: who else has this vantage?
 
-  Each LLM returns a 5-tuple score + rationale. Median + variance gets surfaced; human accepts or overrides. *Never* auto-write — always propose.
-
+  Each LLM returns a 5-tuple score + rationale. Median + variance gets surfaced; human accepts or overrides. Never auto-write — always propose.
 - `venture prior-art <id>` — `/llm` quick search for "is anyone already doing this?" Returns 3-5 closest existing products with one-line differentiation analysis.
-
 - `venture decay-check <id>` — `/deep` (web search) for "has anything changed in the last N months that affects this?" Triggers when a score is older than 6 months.
 
 ### Layer 3 — CLI surface
@@ -137,6 +135,7 @@ These are queries against bd; output as markdown tables (or JSON for piping). `b
 ### Layer 5 — UI (out of scope for v1)
 
 When the venture set is >50, a TUI helps:
+
 - Side-by-side score grid (cards or columns view from km-tui's vocabulary)
 - Sparkline per venture showing score history
 - Cluster overlay (visualize which ventures share wedge)
@@ -146,14 +145,14 @@ silvery + km-tui patterns directly apply. If we ever build it, it's a ~2-week pr
 
 ## Integration points (what already exists)
 
-| Capability | Provider | Use |
-|---|---|---|
-| Issue tracking | `bd` (beads) | Storage backend; one bead per venture |
-| Search across ventures | `bd search` + `bun recall` | Find ventures by keyword + cross-reference brainstorm docs |
-| LLM judgment | `/pro` / `/llm` / `/deep` | Score proposal, prior art, decay check |
-| Workflow integration | bd dependencies | A venture promoted to a project bead becomes that bead's parent |
-| Maintenance cadence | `/sop` framework | Quarterly re-score reminder; weekly "any unscored brainstorm docs?" check |
-| Cross-machine | matrix-shape (future) | Federate venture databases across teams once federation lands |
+| Capability             | Provider               | Use                                                                       |
+| ---------------------- | ---------------------- | ------------------------------------------------------------------------- |
+| Issue tracking         | bd (beads)             | Storage backend; one bead per venture                                     |
+| Search across ventures | bd search + bun recall | Find ventures by keyword + cross-reference brainstorm docs                |
+| LLM judgment           | /pro / /llm / /deep    | Score proposal, prior art, decay check                                    |
+| Workflow integration   | bd dependencies        | A venture promoted to a project bead becomes that bead's parent           |
+| Maintenance cadence    | /sop framework         | Quarterly re-score reminder; weekly "any unscored brainstorm docs?" check |
+| Cross-machine          | matrix-shape (future)  | Federate venture databases across teams once federation lands             |
 
 Nothing on this list needs to be built. The system's value-add is the *layering* — the rubric, the scoring conventions, the analytics — not new infrastructure.
 
@@ -207,7 +206,7 @@ Markdown + bd is genuinely good enough for a single user / small team.
 Running this rubric on "build the venture-evaluation system as an internal tool":
 
 | Real | Win | Worth | Wedge | Moat | Score | Kill? |
-|------|-----|-------|-------|------|-------|-------|
+| ---- | --- | ----- | ----- | ---- | ----- | ----- |
 | 4    | 5   | 2     | 5     | 1    | 17    | —     |
 
 - **Real (4)**: We just used it ourselves and got value; demand validated for at-least-N=1.
@@ -224,3 +223,4 @@ Verdict: 17 = "serious candidate, validate one assumption." The validation exper
 - [`acp-proxy-2026-04-27.md`](acp-proxy-2026-04-27.md) — the first worked example
 - [`hub/silvercode/future/ai-terminal/acp-proxy.md`](../silvercode/future/ai-terminal/acp-proxy.md) — the brainstorm doc that birthed the first batch
 - [`.claude/skills/sop/`](../../.claude/skills/sop/) — the cadence framework that schedules re-scoring
+

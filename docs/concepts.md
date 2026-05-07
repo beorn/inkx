@@ -41,12 +41,12 @@ View      ViewTree, Selection, Board          what you see and interact with
 
 Each layer has a primary abstraction (domain interface, domain object, or external system):
 
-| Layer | Domain Interface | State | Key Operations |
-|---|---|---|---|
-| **FS** | filesystem (external system) | `.md` files | read, write, watch |
-| **Repo** | `Repo` (domain object) | SQLite rows | `getNode`, `getChildren`, `addNode`, `moveNode` |
-| **Tree** | `KTree`, `TreeOp` | node tree | `KTree.nodes()`, `TreeOp.inverse()`, `withHistory()` |
-| **View** | `ViewTree`, `Selection`, `Board` | derived visual state | `ViewTree.nodes()`, `Selection.cursor()`, `Board.apply()` |
+| Layer | Domain Interface             | State                | Key Operations                                      |
+| ----- | ---------------------------- | -------------------- | --------------------------------------------------- |
+| FS    | filesystem (external system) | .md files            | read, write, watch                                  |
+| Repo  | Repo (domain object)         | SQLite rows          | getNode, getChildren, addNode, moveNode             |
+| Tree  | KTree, TreeOp                | node tree            | KTree.nodes(), TreeOp.inverse(), withHistory()      |
+| View  | ViewTree, Selection, Board   | derived visual state | ViewTree.nodes(), Selection.cursor(), Board.apply() |
 
 **Data flows down** (FS → Repo → View). **Mutations flow up** (command → op → apply → effects → change → FS sync). The **unified pipeline** connects them:
 
@@ -116,14 +116,14 @@ repo/
 
 10 types in 2 categories:
 
-````
+```
 Block (8)  — content blocks
   p, h, code, quote, table, hr, html, math
 
 Item (2)   — tree structure
   oi       — outline item (folder, file, section via fstype)
   li       — list item (bullets, numbered, tasks via markers)
-````
+```
 
 - **`oi`** (outline item) creates hierarchy. `fstype` distinguishes: `folder`, `file`, `mdfile`, `mdsection`.
 - **`li`** (list item) holds content. `item.list` for bullet style, `item.task` for task status.
@@ -134,10 +134,10 @@ Item (2)   — tree structure
 
 Two relation kinds, one canonical type — the **KLink** (see [docs/design/model/klink.md](design/model/klink.md)):
 
-| Type | Where | What it does | Example |
-|---|---|---|---|
-| **Link** (`rel: 'link'`) | KLink inside `KNode.content` | Clickable text that navigates to the target | `See [[project-alpha]]` or `@alice` |
-| **Embed** (`rel: 'embed'`) | KLink inside `KNode.content` | Transcludes target's content (inline or as sole node content) | `![[meeting-notes]]` |
+| Type                 | Where                      | What it does                                                  | Example                         |
+| -------------------- | -------------------------- | ------------------------------------------------------------- | ------------------------------- |
+| Link (rel: 'link')   | KLink inside KNode.content | Clickable text that navigates to the target                   | See [[project-alpha]] or @alice |
+| Embed (rel: 'embed') | KLink inside KNode.content | Transcludes target's content (inline or as sole node content) | ![[meeting-notes]]              |
 
 When a KNode's content is exactly one KLink with `rel='embed'` and nothing else, the node becomes an **embed node** — `embed_of` is runtime-materialized from the `links` cache (`SELECT host_id, href FROM links WHERE rel='embed'`) at load and resolved via the name index. The ViewTree exposes this through `viewNode.display`: always the renderable node.
 
@@ -155,17 +155,17 @@ See [ref/task-fields.md](ref/task-fields.md) for the full field reference — ma
 
 Every reference — wikilinks, embeds, sigils, external URLs — is a single canonical `KLink` type `{ href, rel, alias?, md? }` inline in `KNode.content`. A derived `links` cache table (`host_id`, `href`, `rel`) powers backlinks and indexed queries. See [docs/design/model/klink.md](design/model/klink.md) for the full model.
 
-| Notation            | `rel`    | `md.form` | `href`                  | Meaning                   |
-| ------------------- | -------- | --------- | ----------------------- | ------------------------- |
-| `[[Target]]`        | `link`   | `wiki`    | `km:Target`             | Wiki link                 |
-| `![[Target]]`       | `embed`  | `wiki`    | `km:Target`             | Embed (transclusion)      |
-| `[[#Section]]`      | `link`   | `wiki`    | `#Section`              | Self-ref (same host)      |
-| `@Alice`            | `link`   | `bare`    | `km:@Alice`             | Sigil (person)            |
-| `#urgent`           | `link`   | `bare`    | `km:%23urgent`          | Sigil (tag)               |
-| `+cleanup`          | `link`   | `bare`    | `km:+cleanup`           | Sigil (project)           |
-| `[text](url)`       | `link`   | `mdlink`  | `url` (+ `alias:text`)  | Standard Markdown link    |
-| `<https://x.com>`   | `link`   | `autolink`| `https://x.com`         | Autolink                  |
-| `https://x.com`     | `link`   | `bare`    | `https://x.com`         | Bare URL                  |
+| Notation      | rel   | md.form  | href               | Meaning                |
+| ------------- | ----- | -------- | ------------------ | ---------------------- |
+| [[Target]]    | link  | wiki     | km:Target          | Wiki link              |
+| ![[Target]]   | embed | wiki     | km:Target          | Embed (transclusion)   |
+| [[#Section]]  | link  | wiki     | #Section           | Self-ref (same host)   |
+| @Alice        | link  | bare     | km:@Alice          | Sigil (person)         |
+| #urgent       | link  | bare     | km:%23urgent       | Sigil (tag)            |
+| +cleanup      | link  | bare     | km:+cleanup        | Sigil (project)        |
+| text          | link  | mdlink   | url (+ alias:text) | Standard Markdown link |
+| https://x.com | link  | autolink | https://x.com      | Autolink               |
+| https://x.com | link  | bare     | https://x.com      | Bare URL               |
 
 ### Sigils
 
@@ -183,15 +183,14 @@ The closed `rel` enum for v1 is `'link' | 'embed'`. Typed relations from propert
 
 ## Two Modes
 
-| Mode       | Trigger       | Description                                                     |
-| ---------- | ------------- | --------------------------------------------------------------- |
-| **Memory** | No `.km/`     | SQLite in RAM. Changes go directly to `.md` files. No history.  |
-| **Disk**   | `.km/` exists | SQLite on disk. Full tracking: change history, stable IDs, sync. |
+| Mode   | Trigger     | Description                                                      |
+| ------ | ----------- | ---------------------------------------------------------------- |
+| Memory | No .km/     | SQLite in RAM. Changes go directly to .md files. No history.     |
+| Disk   | .km/ exists | SQLite on disk. Full tracking: change history, stable IDs, sync. |
 
 Both modes are **read-write**. The difference is where state lives:
 
 - **Memory**: SQLite rebuilt from `.md` files each run. Toggle tasks, browse structure. Changes write through to `.md` files but aren't tracked. Node IDs are ephemeral. Great for quick access or using km on any repo.
-
 - **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change is logged to the events table inside the same database, atomically with the state mutation. Stable node IDs, undo capability, sync support. Use for your own projects.
 
 ```bash
@@ -214,17 +213,17 @@ km init               # Enable tracking (creates .km/, disk mode)
 
 ## Query Language
 
-| Pattern        | Example          | Description             |
-| -------------- | ---------------- | ----------------------- |
-| `field:value`  | `status:todo`    | Field equals value      |
-| `field:func()` | `due:past()`     | Field matches function  |
-| `-field:value` | `-status:done`   | Negate match            |
-| `@ref #tag`    | `@bjorn #urgent` | Reference contains      |
-| `./path/*`     | `./inbox/**`     | Path pattern            |
-| `prop::value`  | `rating::5`      | Property equals value   |
-| `prop::>N`     | `rating::>3`     | Property comparison     |
-| `blocked:true` | `blocked:true`   | Has unresolved blockers |
-| `"text"`       | `"quarterly"`    | Full-text search        |
+| Pattern      | Example        | Description             |
+| ------------ | -------------- | ----------------------- |
+| field:value  | status:todo    | Field equals value      |
+| field:func() | due:past()     | Field matches function  |
+| -field:value | -status:done   | Negate match            |
+| @ref #tag    | @bjorn #urgent | Reference contains      |
+| ./path/*     | ./inbox/**     | Path pattern            |
+| prop::value  | rating::5      | Property equals value   |
+| prop::>N     | rating::>3     | Property comparison     |
+| blocked:true | blocked:true   | Has unresolved blockers |
+| "text"       | "quarterly"    | Full-text search        |
 
 See [guides/query.md](guides/query.md) for full query language specification.
 
@@ -248,35 +247,35 @@ The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/visual-spec.m
 
 See [glossary.md](glossary.md) for the full project glossary. Key terms for this page:
 
-| Term | Definition |
-|---|---|
-| **KNode** | Flat record with `parent_id`. Stored in SQLite. |
-| **TNode** | Recursive tree with `children[]`. For navigation. |
-| **domain object** | Stateful instance created by factory function. Examples: Repo, Term, Scope. |
-| **domain interface** | Type + pure function namespace sharing one name. Examples: KNode, Selection, ViewTree. |
-| **domain type** | Plain data shape, no function namespace. Examples: TextPoint, ID. |
-| **event** | Something that happened (keypress, file change, sync). |
-| **command** | Registered event handler (named, keybinding-mapped, palette-discoverable). |
-| **op** | Serializable data dispatched to `Machine.apply()`. |
-| **op handler** | Pure function implementing one op type, defined in a `createSlice()` handler map. |
-| **op() proxy** | Ergonomic wrapper: `op(model).method(args)` routes through `apply()` as serializable data. |
-| **selector** | Pure function deriving a value from state. |
-| **effect** | Side-effect instruction emitted by apply. |
-| **change** | Persisted record of what changed (e.g., `node_created`). |
+| Term             | Definition                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| KNode            | Flat record with parent_id. Stored in SQLite.                                          |
+| TNode            | Recursive tree with children[]. For navigation.                                        |
+| domain object    | Stateful instance created by factory function. Examples: Repo, Term, Scope.            |
+| domain interface | Type + pure function namespace sharing one name. Examples: KNode, Selection, ViewTree. |
+| domain type      | Plain data shape, no function namespace. Examples: TextPoint, ID.                      |
+| event            | Something that happened (keypress, file change, sync).                                 |
+| command          | Registered event handler (named, keybinding-mapped, palette-discoverable).             |
+| op               | Serializable data dispatched to Machine.apply().                                       |
+| op handler       | Pure function implementing one op type, defined in a createSlice() handler map.        |
+| op() proxy       | Ergonomic wrapper: op(model).method(args) routes through apply() as serializable data. |
+| selector         | Pure function deriving a value from state.                                             |
+| effect           | Side-effect instruction emitted by apply.                                              |
+| change           | Persisted record of what changed (e.g., node_created).                                 |
 
 ### SlateJS comparison
 
 km's tree layer descends from SlateJS. Terminology mapping:
 
-| SlateJS | km | Notes |
-|---|---|---|
-| `editor.deleteBackward()` | **command** | User-facing intent, keybinding-mapped |
-| `Transforms.splitNodes(editor)` | `repo.splitNode()` | Implementation helpers op handlers call. No separate namespace — methods on Repo/TreeMutator |
-| `TreeOp` | **op** (`TreeOp`) | Atomic, invertible, serializable |
-| `Editor.apply(op)` | `Machine.apply(state, op)` | State transition. Ours is pure (returns new state), SlateJS mutates |
-| `Editor.nodes()`, `Node.string()` | **selectors** | Read-only queries on the domain interface |
-| `Node`, `Path`, `Point`, `Range` | **domain interfaces** | Type + function namespace. We use stable IDs instead of index-based paths |
-| `TreeOp.inverse()` | `TreeOp.inverse(op)` | Same concept. Ours is a standalone function (moving to domain interface) |
+| SlateJS                       | km                       | Notes                                                                                        |
+| ----------------------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
+| editor.deleteBackward()       | command                  | User-facing intent, keybinding-mapped                                                        |
+| Transforms.splitNodes(editor) | repo.splitNode()         | Implementation helpers op handlers call. No separate namespace — methods on Repo/TreeMutator |
+| TreeOp                        | op (TreeOp)              | Atomic, invertible, serializable                                                             |
+| Editor.apply(op)              | Machine.apply(state, op) | State transition. Ours is pure (returns new state), SlateJS mutates                          |
+| Editor.nodes(), Node.string() | selectors                | Read-only queries on the domain interface                                                    |
+| Node, Path, Point, Range      | domain interfaces        | Type + function namespace. We use stable IDs instead of index-based paths                    |
+| TreeOp.inverse()              | TreeOp.inverse(op)       | Same concept. Ours is a standalone function (moving to domain interface)                     |
 
 Key differences: we use stable node IDs (not fragile index paths), effects are data (not imperative side effects), and state transitions are pure (return new state, not mutation).
 
@@ -288,3 +287,4 @@ Key differences: we use stable node IDs (not fragile index paths), effects are d
 - [storage.md](design/model/storage.md) — Mode detection, SQLite schema, sync
 - [guides/tasks.md](guides/tasks.md) — Task management, GTD workflow
 - [principles.md](principles.md) — Composability and architectural principles
+

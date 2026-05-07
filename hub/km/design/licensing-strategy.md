@@ -24,17 +24,18 @@
 
 The portfolio decomposes into three parallel "open-standard + proprietary canonical implementation + paid services" plays — the same shape Docker, MongoDB, Confluent use:
 
-| Open standard | Canonical implementation | Paid services tier |
-|---|---|---|
-| **silvery** (React TUI framework) | silvercode (integrated agentic IDE) | recall-hosted, ambient-context-safety, subscription-auth |
-| **tribe** (coordination wire + event vocab) | agentroom hosted gateway | multi-machine routing, hosted Matrix bridge, CrossAgentState orchestration |
-| **PlainBrain** (agentic-work repo format spec) | km (canonical workspace) | multi-device sync, recall index, team features, AI ops |
+| Open standard                              | Canonical implementation            | Paid services tier                                                         |
+| ------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
+| silvery (React TUI framework)              | silvercode (integrated agentic IDE) | recall-hosted, ambient-context-safety, subscription-auth                   |
+| tribe (coordination wire + event vocab)    | agentroom hosted gateway            | multi-machine routing, hosted Matrix bridge, CrossAgentState orchestration |
+| PlainBrain (agentic-work repo format spec) | km (canonical workspace)            | multi-device sync, recall index, team features, AI ops                     |
 
 **Docker analogy** — and cautionary tale: open spec → eventually OCI standard; open engine → moby/containerd; paid commercial UX → Docker Desktop + Hub. When the spec became infrastructure, value flowed *away* from Docker Inc. into k8s/containerd. Docker survived by pivoting to Docker Desktop UX + data-gravity moat. **Our moat must be the canonical-best-implementation + cloud services + brand**, not spec ownership alone.
 
 **Why three standards reinforce**: silvery captures AI-tool install base; tribe captures the coordination wire; PlainBrain captures the agentic-work substrate. Each brings traffic to the others; together they form a coherent platform story for fundraising / acquisition.
 
 **Sequencing — don't launch all three at once**:
+
 - Month 0-2: silvery promo (the locked plan)
 - Month 1-3: tribe wire v0 preview alongside silvery launch ("unstable draft")
 - Month 3-6: PlainBrain spec v0 preview after silvery has measurable traction
@@ -50,6 +51,7 @@ The commercial side of the portfolio. Three product surfaces and a hosted-servic
 Cursor analog for the terminal. The flagship commercial product built on silvery + tribe + PlainBrain. Subscription billing (planned).
 
 **The silvercode-specific application assembly** (proprietary; lives in silvercode private monorepo):
+
 - Multi-pane coding host (specific 2×2 layout, keybindings, session orchestration)
 - File-claim visualization (specific UX showing which agent owns which file)
 - Ambient-channel composition (AMBIENT vs ROOM channel split)
@@ -67,6 +69,7 @@ Cursor analog for the terminal. The flagship commercial product built on silvery
 Notion/Linear analog for agents+humans. The canonical commercial implementation of PlainBrain. Subscription billing (planned).
 
 **km-specific application assembly** (proprietary; lives in km private monorepo):
+
 - Board / cards / kanban UI for KNodes
 - Calendar surface, daily journal
 - Agent personas, persona working memory, durable plans
@@ -178,6 +181,7 @@ loggily + mdspec + emulators + alien-* + minor satellites
 - **Private @beorn/* + claude-tty-mcp** → proprietary.
 
 **Cluster brands**:
+
 - *Cluster 1 (open, Apache + CLA)*: silvery + flexily + termless + terminfo + loggily + mdspec + emulators + alien-* + minor satellites. Brand voice: rigorous, performance-conscious, terminal-native, multi-target.
 - *Cluster 2 (proprietary)*: silvercode + km + tribe-internal + hosted services. Brand voice: polished agentic-knowledge-work product line.
 
@@ -188,24 +192,28 @@ loggily + mdspec + emulators + alien-* + minor satellites
 The cut is **generic-component vs application-assembly**, not "polished vs unpolished." Both silvery and silvercode have polish; the difference is component-shape vs application-shape.
 
 **Open in silvery** (polished generic agent components — what every AI-tool builder wants):
+
 - All silvery framework primitives (`Box`, `Text`, `ListView`, `SelectList`, `TextInput`, `VirtualList`, `Tabs`, `Tree`, etc.)
 - Agent-domain hooks (`useAgentSession`, `useStreamingMessage`, `useToolUse`, `useRecall`, `useSquad`, `useHandoff`, `useContextSafety`)
 - Polished, opinionated, generic agent components (`<AgentChat>`, `<ToolUseRenderer>`, `<StreamingMessage>`, `<ConversationPane>`, `<RecallPanel>`, `<SquadView>`, `<HandoffViz>`, `<ContextSafetyMonitor>`) with sensible defaults, BYO API key out of the box
 - All rendering / interaction / state / theme / focus / mouse / layout machinery
 
 **Proprietary in silvercode** (the silvercode-shaped application assembly):
+
 - The multi-pane coding host (specific 2×2 layout, keybindings, session orchestration)
 - File-claim visualization, ambient-channel composition, two-region composer
 - Cross-agent state visualization
 - The integrated agent-coding loop UX — the Cursor analog
 
 **Proprietary in cluster-2 services**:
+
 - Auth flows, secret management, cloud state, network protocols
 - Ambient-context-safety pipeline logic, hosted recall index, CrossAgentState orchestration, agentroom gateway runtime, multi-machine coordination
 
 **Tiebreaker test**: *is it component-shape (any AI tool would want it, polished defaults) or application-shape (embeds silvercode's particular product choices)?* Component-shape → silvery. Application-shape → silvercode.
 
 **Traffic-light rubric** for ambiguous cases:
+
 - *Green (always silvery)*: rendering, layout, input, local state, theming, streaming components, polished generic agent components.
 - *Yellow (silvery + service-backed adapter)*: recall viz, context monitors, transcripts. Pluggable interface in silvery; ship local-only adapter (open) AND silvercode-cloud adapter (proprietary).
 - *Red (always cluster-2)*: secrets / auth / token-bearing flows; multi-tenant or multi-user state; managed tool execution with sandboxing/audit; orchestration across machines/sessions; durable storage and indexing; compliance.
@@ -229,6 +237,7 @@ This is the **API economy / Stripe Elements / Mapbox GL / Twilio SDK / Algolia I
 Components that follow this pattern: `<AgentSession>` (subscription-auth gateway + ambient-context-safety service), `<RecallPanel>` (vector index + LLM retrieval), `<TribeRoom>` (hosted agentroom gateway), `<SquadView>` (cross-pane coordination state), `<ContextSafety>` (safety guardrails server-side), `<TermlessRunner>` (hosted terminal matrix), `<TerminfoVerify>` (verified-data tier).
 
 **Customer choice cascade**:
+
 - *"I want to migrate from Ink"* → use silvery (free framework)
 - *"I want polished agent components in my own app"* → integrate (free), pay for backend service
 - *"I want the polished all-in-one coding product"* → buy silvercode subscription
@@ -260,6 +269,7 @@ LLCs       C-Corps   accounts
 ```
 
 **Key constraints**:
+
 - **Multi-member 50/50 Bjorn + Delei** — required for QSBS pass-through (2× $15M = $30M tax-free at 5+ year hold). Both must be members BEFORE HoldCo acquires C-Corp shares.
 - **HoldCo cannot generate active income** (SE-tax trap). Migration help / pre-C-Corp silvercode subscriptions go through Operating LLCs, future C-Corps, or personal Schedule C — not HoldCo directly.
 - **Defer CA foreign-reg until CA-source income** — saves $800/yr franchise tax until Phase 3 (2028-2030).
@@ -268,6 +278,7 @@ LLCs       C-Corps   accounts
 - **Founder shares post-July-2025** for new tiered QSBS exclusion (50/75/100% at 3/4/5 years).
 
 **The silvery portfolio slots in**:
+
 - *silvery + tribe + PlainBrain* (open-standard IP + trademarks + domains for silvery.dev / plainbrain.org / knowledgemachine.co etc.) → owned by Wyoming HoldCo (passive holding allowed).
 - *silvercode* → future Delaware C-Corp issued to HoldCo at PMF/investment trigger (PLEP Phase 2, 2027-2028).
 - *km / Knowledge Machine* → either folds into the planned Kimmi C-Corp or forms its own C-Corp (decision needed, since km/Kimmi are conceptually adjacent and Kimmi is already in the PLEP plan).
@@ -278,6 +289,7 @@ LLCs       C-Corps   accounts
 **For VC concerns about 50/50 spousal LLC**: standard solved by **Operating Agreement designating Bjorn as Managing Member with sole voting authority over portfolio C-Corp shares**. Delei retains 50% economic interest, no veto on operating decisions. Industry-standard for spousal HoldCos; competent corp counsel handles in 30 minutes.
 
 **Advisors**:
+
 - *First*: Jose Chu (existing US tax CPA) — confirm SMLLC vs partnership treatment, CA Form 568 mechanics, IP-contribution structure. ~2-3 hours, $600-900.
 - *Defer*: Cooley / Wilson Sonsini-class corporate counsel until first spin-out is imminent (~$15-25K).
 - *Not needed*: Norwegian or Canadian tax advisors for go-forward structure. Italo Voso continues only on Canadian wind-down (T1 + BeoULC).
@@ -352,6 +364,7 @@ Remaining work is cross-promotion + the silvery launch moment specifically, not 
 ## Outcome distribution + falsification triggers
 
 **Outcome distribution** (post-/pro-v2 recalibration):
+
 - **25-35%** — nominal traction (3-6K DL/wk; resumeware / background infra)
 - **40-50%** — meaningful niche (8-15K DL/wk at 18 months; brand halo intact; small services ACV)
 - **20-25%** — mid-tier reference migration (15-40K DL/wk; one >5K-star project migrates publicly; mid-six to low-seven figure services ACV)
@@ -360,6 +373,7 @@ Remaining work is cross-promotion + the silvery launch moment specifically, not 
 Strategy survives in the 50-75% case (meaningful niche + mid-tier).
 
 **Review cadence**:
+
 - *Day 30* (post-quiet-launch): hero shipped, 1 case study, 3+ engineering signals
 - *Day 45* (post-loud-launch): demo public, 1 lighthouse migration evaluation, HN traction
 - *Day 60*: 3+ migrations (1 not by us), 1-2 external committers, 3-5 inbounds; aim 2-3× DL/wk lift
@@ -370,6 +384,7 @@ Strategy survives in the 50-75% case (meaningful niche + mid-tier).
 **The /pro v2 dominant signal worth heeding** (Kimi's *demand thermocline* framing): 3K DL/wk has been stable for months despite shipped Ink-compat. The market has seen silvery and not moved. Could be a **category failure** (Ink users don't feel the migration itch), not a marketing failure. If after 90 days of disciplined execution we're still at the thermocline, diagnose category-bet-was-wrong → pivot back to Option 4 with services-only revenue.
 
 **Triggers to escalate** (all-in on silvery promo, delay silvercode 6+ months):
+
 - Lighthouse (>5K-star) migration committed within 60 days
 - Demo goes viral (>2K stars on demo repo, sustained 3-5× DL/wk spike)
 - 3+ inbound from mid-market teams asking for migration help
@@ -400,6 +415,7 @@ silvery.dev's missing flagship. km + silvercode can't fill the role (proprietary
 **Pivot to Option 5** (open silvery, sharp Ink-migration architectural position) confirmed by 4-of-4 final /pro models (GPT-5.4 Pro 20/20, Kimi K2.6 17/20, Grok 4 17/20, Gemini 3 Pro 13/20).
 
 **/pro v2 (2026-04-28 morning)** then critiqued the execution plan after empirical findings:
+
 - silvery/ink already shipped (98.6% per silvery.dev hero)
 - Cluster-1 sites already live
 - 3K DL/wk plateau may be a *demand thermocline* (Kimi)
@@ -409,6 +425,7 @@ silvery.dev's missing flagship. km + silvercode can't fill the role (proprietary
 - Codemod was over-engineered for a one-line import swap; PR-opening bot is the actual high-leverage tool
 
 **Three Seam Rule iterations** (2026-04-27 night → 2026-04-28):
+
 - *v1 "generic vs agent-shaped"* → rejected (cedes agentic chat to OpenTUI; the Ink-migration target users ARE building agent CLIs)
 - *v2 "client glue vs operational service"* → directionally right
 - *v3 "Vercel-shaped: hooks-only"* → rejected (silvery is a UI framework, not a hooks library; stripping polished components breaks brand promise)
@@ -433,11 +450,13 @@ silvery.dev's missing flagship. km + silvercode can't fill the role (proprietary
 ## Cross-references
 
 ### Upstream / vision
+
 - [`integrated-workdesk.md`](integrated-workdesk.md) — canonical product future plan
 - [`vision.md`](vision.md) — workspace framing (km + tribe + agents-as-bridges)
 - [`silvercode-squad-mode.md`](../../silvercode/future/ai-terminal/silvercode-squad-mode.md) — validated near-term wedge
 
 ### Family-office strategy
+
 - `~vault/areas/@office/CHARTER.md` — PLEP/MEES entity architecture + QSBS strategy
 - `~vault/areas/@office/Entities/HoldCo.md` — Wyoming HoldCo formation plan
 - `~vault/areas/@office/Entities/Mama_Muse_LLC.md` — separate Delei entity
@@ -445,12 +464,14 @@ silvery.dev's missing flagship. km + silvercode can't fill the role (proprietary
 - `~vault/projects/+founder-portfolio/entity-ledger.md` — historic entity inventory (Beowa, EOSC, Happylatte, etc.)
 
 ### Silvercode landscape
+
 - [`02-agent-integration.md`](../../silvercode/future/ai-terminal/02-agent-integration.md) — fork tripwires
 - [`09-agent-host-landscape.md`](../../silvercode/future/ai-terminal/09-agent-host-landscape.md)
 - [`10-agent-router-landscape.md`](../../silvercode/future/ai-terminal/10-agent-router-landscape.md)
 - [`hub/silvery/research/coding-agent-landscape.md`](../../silvery/research/coding-agent-landscape.md)
 
 ### Research artifacts (audit trail)
+
 - `/tmp/strategy-pro-v2-final-2026-04-28.md` — most recent /pro v2 review (4-leg, GPT-5.4 Pro + Kimi + GPT-5.4 Pro split-test, Kimi judge winner 19/20)
 - `/tmp/strategy-final-pro-result-2026-04-27.md` — final /pro convergence on Option 5 (4-leg, GPT-5.4 Pro 20/20)
 - `/tmp/strategy-meta-review-pro-result-2026-04-27.md` — meta-review across five options
@@ -459,6 +480,7 @@ silvery.dev's missing flagship. km + silvercode can't fill the role (proprietary
 - `/tmp/coding-agents-pro-result-2026-04-27.md` — coding-agent landscape
 
 ### Tracking beads
+
 - `km-all.vision-reframe-2026-04-27`
 - `km-all.kilo-opencode-fork-2026-04-27`
 - `km-all.coding-agent-landscape-2026-04-27`
@@ -472,3 +494,4 @@ silvery.dev's missing flagship. km + silvercode can't fill the role (proprietary
 Open silvery Apache + CLA. silvercode + km + cluster-2 services proprietary. tribe + PlainBrain follow silvery's open-spec / canonical-impl / paid-services pattern. Voice stays *"React for modern terminal apps"* with Ink-compat as a capability. Wyoming HoldCo (multi-member 50/50) holds the IP; Delaware C-Corp spin-outs at PMF for QSBS pass-through. Critical-path: case study + hero rewrite + outreach + audience capture this week; ACP-chat demo in 2-3 weeks; loud launch when proof is in hand. Falsify on Day 90 if 3K DL/wk plateau holds.
 
 Stop deliberating. Execute.
+

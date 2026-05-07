@@ -148,10 +148,7 @@ taskCommand
   .description("Create a new task")
   .argument("<content...>", "Task content (multiple words joined with spaces)")
   .option("--type <type>", "Bead-style type tag (bug, feature, epic, …; task is implicit)")
-  .option(
-    "--id <id>",
-    "Explicit canonical id (path-form @km/scope/foo materializes a file; bare scope/foo is inline)",
-  )
+  .option("--id <id>", "Explicit canonical id (path-form @km/scope/foo materializes a file; bare scope/foo is inline)")
   .option("--aliases <list>", "Comma-separated alias list (writes to data.aliases)")
   .option("--parent <ref>", "Explicit parent ref (id, path, or filename)")
   .option("--owner <user>", "Initial assignee (writes to node.assigned_to)")

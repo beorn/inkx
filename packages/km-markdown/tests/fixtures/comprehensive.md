@@ -1,10 +1,6 @@
 ---
 title: Comprehensive Test Fixture
 type: fixture
-tags:
-  - test
-  - comprehensive
-  - markdown
 author: test-user
 created: 2025-01-08
 priority: 1
@@ -25,13 +21,13 @@ They are treated as regular list items. Use standard marks only for reliable par
 
 ## Tasks with Metadata (Obsidian Tasks Format)
 
-- [ ] Task with due date 📅 2025-03-15
-- [ ] Task with scheduled date ⏳ 2025-03-10
+- [ ] Task with due date due:: 2025-03-15
+- [ ] Task with scheduled date start:: 2025-03-10
 - [ ] Task with high priority priority:: P1
 - [ ] Task with medium priority priority:: P2
 - [ ] Task with low priority priority:: P3
-- [ ] Task with recurrence 🔁 every week
-- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 priority:: P1 🔁 every day
+- [ ] Task with recurrence recur:: "every week"
+- [ ] Full metadata due:: 2025-04-01 start:: 2025-03-25 priority:: P1 recur:: "every day"
 
 ## Tasks with Tags
 
@@ -60,8 +56,8 @@ They are treated as regular list items. Use standard marks only for reliable par
 1. First item
 2. Second item
 3. Third item
-   1. Nested first
-   2. Nested second
+4. Nested first
+5. Nested second
 
 ## Blockquotes
 

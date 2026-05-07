@@ -11,10 +11,10 @@
 
 First cycle of the monthly elegance review. Two real plugins exist as primary evidence:
 
-| Plugin | Files | LOC | Ops | State fields | Role |
-|---|---|---|---|---|---|
-| **HelpOverlay** (Phase 0 mini-cutover) | 3 | 296 | 4 | 2 | simplest-possible dialog |
-| **SearchDialog** (Phase 1 real validator) | 3 | 417 | 5 | 4 | hard case — text input, focus scope, multi-slice close |
+| Plugin                                | Files | LOC | Ops | State fields | Role                                                   |
+| ------------------------------------- | ----- | --- | --- | ------------ | ------------------------------------------------------ |
+| HelpOverlay (Phase 0 mini-cutover)    | 3     | 296 | 4   | 2            | simplest-possible dialog                               |
+| SearchDialog (Phase 1 real validator) | 3     | 417 | 5   | 4            | hard case — text input, focus scope, multi-slice close |
 
 Measured via `wc -l` on:
 
@@ -71,13 +71,13 @@ Bridge files carry all feature-flag + react-adapter code. Plugin files themselve
 
 ### 6. Falsifiable quality gates
 
-| Gate | Target | Actual | Pass? |
-|---|---|---|---|
-| Minimum viable plugin LOC | ≤50 | 296 (HelpOverlay, 3 files) / 213 (plugin file alone) | FAIL |
-| Zero `as` casts in plugin code | 0 | 0 | PASS |
-| Zero string-literal effect namespacing | 0 | 9+ (`"help.show"`, `"search.show"`, …) | FAIL |
-| `pipe(wrongOrder)` produces type error | Yes | No (pipe not enforced at type level) | FAIL |
-| External dev builds plugin from docs in <2h | Yes | Untested — no public docs | N/A |
+| Gate                                        | Target | Actual                                               | Pass? |
+| ------------------------------------------- | ------ | ---------------------------------------------------- | ----- |
+| Minimum viable plugin LOC                   | ≤50    | 296 (HelpOverlay, 3 files) / 213 (plugin file alone) | FAIL  |
+| Zero as casts in plugin code                | 0      | 0                                                    | PASS  |
+| Zero string-literal effect namespacing      | 0      | 9+ ("help.show", "search.show", …)                   | FAIL  |
+| pipe(wrongOrder) produces type error        | Yes    | No (pipe not enforced at type level)                 | FAIL  |
+| External dev builds plugin from docs in <2h | Yes    | Untested — no public docs                            | N/A   |
 
 **Overall score: 4.7/10** — functional, testable, not yet adoptable.
 
@@ -126,14 +126,14 @@ export const helpOverlay = definePlugin({
 ### What the framework has to ship to make this work
 
 1. `definePlugin<State, Ops>({...})` factory that:
-   - Infers `State` from `state:` initializer
-   - Infers op union from `ops:` keys + optional payload types
-   - Auto-namespaces op types (`${name}.${opKey}`) — no manual string literals in user code
-   - Returns an object with `.dispatch(op)`, `.getState()`, `.subscribe()`, `.reset()` already wired (zustand-shape)
-2. `useStore(plugin)` React hook (one-import replacement for the `useXxx.ts` file)
-3. `keys: {...}` shorthand — processed by a `withKeys(plugin)` higher-order plugin that registers key bindings with whatever key-routing plugin sits upstream
-4. Optional `effects: (s, op) => Effect[]` escape hatch for ops that need to return non-empty effects (today's `[state, effects]` tuple pattern) — NOT required in common case
-5. **NO** `role:` tag at the factory level for now — see pro verdict below
+- Infers `State` from `state:` initializer
+- Infers op union from `ops:` keys + optional payload types
+- Auto-namespaces op types (`${name}.${opKey}`) — no manual string literals in user code
+- Returns an object with `.dispatch(op)`, `.getState()`, `.subscribe()`, `.reset()` already wired (zustand-shape)
+7. `useStore(plugin)` React hook (one-import replacement for the `useXxx.ts` file)
+8. `keys: {...}` shorthand — processed by a `withKeys(plugin)` higher-order plugin that registers key bindings with whatever key-routing plugin sits upstream
+9. Optional `effects: (s, op) => Effect[]` escape hatch for ops that need to return non-empty effects (today's `[state, effects]` tuple pattern) — NOT required in common case
+10. **NO** `role:` tag at the factory level for now — see pro verdict below
 
 ### Honest delta vs reality
 
@@ -203,3 +203,4 @@ Tracking bead: `km-silvery.definePlugin` (filed this cycle).
 ---
 
 **Next cycle date: 2026-05-21 (monthly cadence)**
+

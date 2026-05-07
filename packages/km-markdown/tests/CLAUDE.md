@@ -18,12 +18,12 @@
 
 Located in `helpers/test-utils.ts`:
 
-| Helper                    | Purpose                                          |
-| ------------------------- | ------------------------------------------------ |
-| `parse(md)`               | Parse markdown string to KNode array             |
-| `roundtrip(md)`           | Parse then serialize — output should match input |
-| `makeTestNode(overrides)` | Create a KNode with sensible defaults            |
-| `normalizeMarkdown(md)`   | Whitespace normalization for assertions          |
+| Helper                  | Purpose                                          |
+| ----------------------- | ------------------------------------------------ |
+| parse(md)               | Parse markdown string to KNode array             |
+| roundtrip(md)           | Parse then serialize — output should match input |
+| makeTestNode(overrides) | Create a KNode with sensible defaults            |
+| normalizeMarkdown(md)   | Whitespace normalization for assertions          |
 
 ## Patterns
 

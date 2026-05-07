@@ -105,3 +105,4 @@ Generated 2026-04-02 based on content audit of 253 pages across 6 sites.
 **Most shareable (HN/Reddit/X):**
 
 - #9 (why 80 chars), #4 (terminal vs browser for AI), #16 (terminal rendering is hard)
+

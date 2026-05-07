@@ -25,25 +25,23 @@ Quick capture for unprocessed items.
 - [ ] Reference-style link [docs][1]
 - [ ] Auto-link: review https://github.com/org/repo/issues/42
 
-[1]: https://docs.example.com
-
 ## Inline Fields (Dataview style)
 
-- [ ] Task with due date [due:: 2025-02-01]
+- [ ] Task with due date [ due:: 2025-02-01]
 - [ ] Task with priority priority:: P1
-- [ ] Task with multiple fields [due:: 2025-01-20] priority:: P2
-- [ ] Task with custom field [status:: waiting] [context:: work]
-- [ ] Task with assignee [assigned:: @alice]
+- [ ] Task with multiple fields [ priority:: P2 due:: 2025-01-20]
+- [ ] Task with custom field [ status:: waiting] [context:: work]
+- [ ] Task with assignee [ assigned:: @alice]
 
 ## Obsidian Tasks Metadata
 
-- [ ] Due with emoji 📅 2025-01-25
-- [ ] Scheduled with emoji ⏳ 2025-01-18
+- [ ] Due with emoji due:: 2025-01-25
+- [ ] Scheduled with emoji start:: 2025-01-18
 - [ ] High priority priority:: P1
 - [ ] Medium priority priority:: P2
 - [ ] Low priority priority:: P3
-- [ ] Recurring task 🔁 every week
-- [ ] Full metadata 📅 2025-02-01 ⏳ 2025-01-15 priority:: P1 🔁 every month
+- [ ] Recurring task recur:: "every week"
+- [ ] Full metadata due:: 2025-02-01 start:: 2025-01-15 priority:: P1 recur:: "every month"
 
 ## Tags and Mentions
 
@@ -57,7 +55,7 @@ Quick capture for unprocessed items.
 
 - [ ] Very long task description that should test wrapping behavior when displayed in narrow columns or constrained TUI views that need proper truncation with ellipsis
 - [ ] Short
-- [ ] Empty inline field [note:: ]
+- [ ] Empty inline field [ note:: ]
 - [ ] Special chars: "quotes", 'apostrophes', & ampersand, <brackets>
 - [ ] Unicode: emoji 🎯 and symbols → ← ↔ ✓ ✗
 - [ ] Nested [[link with **bold** inside]]

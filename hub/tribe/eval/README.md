@@ -17,6 +17,7 @@ Three independent axes — published memory benchmarks (LongMemEval, LoCoMo) onl
 ### Axis A — Conversational retrieval (Q1: per-query precision/recall)
 
 For each pair `(conversation_prefix, expected_relevant_session_ids[], expected_irrelevant_session_ids[])`:
+
 - Run the recall pipeline as it would fire today
 - Score: did `expected_relevant` appear in top-K? Did `expected_irrelevant` appear?
 - Aggregate: precision@5, recall@5, MRR for relevant; trap-hit rate for irrelevant
@@ -32,6 +33,7 @@ Tracked under sibling bead `km-tribe.recall-eval-external-data`. Same runner, di
 ### Axis C — Per-thread redundancy (Q2: compiled-state value test)
 
 For each multi-turn pair `(conversation_thread_with_N_turns, expected_relevant_per_turn[][])`:
+
 - Run the recall pipeline at each turn boundary
 - Measure overlap of surfaced top-K across consecutive turns
 - High overlap (>60%) → compiled-state caching is a real optimization
@@ -81,6 +83,7 @@ For multi-turn entries, `conversation_prefix` is a list of turn-boundaries:
 Adversarial means: include cases the system gets wrong today.
 
 Sources:
+
 1. **Real session history** — pick conversation prefixes from `~/.claude/projects/.../*.jsonl`, then label which past sessions a human would actually want surfaced
 2. **The probe log itself** — every cycle in `~/.cache/mem-thought-hypothesis.log` is a candidate pair; mark it relevant/irrelevant by hand
 3. **Token-overlap traps** — explicitly find sessions whose snippets contain tokens from the query but are about something different (the recall corpus's TestSuite analog)
@@ -91,6 +94,7 @@ Initial target: 30 single-query pairs + 5 multi-turn threads. Enough to detect �
 ## Runner
 
 `tools/recall-eval.ts` (TODO):
+
 - `--corpus <path>` — defaults to `hub/tribe/eval/recall-corpus.yaml`
 - `--mode baseline` — current production behavior
 - `--mode salience-trigger` — A/B against salience-driven query construction
@@ -104,6 +108,7 @@ Per-pair output: `pair_id, mode, top_k_session_ids, hit_relevant_count, hit_irre
 ## Acceptance gates for downstream Tier 3 beads
 
 Once corpus + runner exist, the following beads become measurable:
+
 - `km-tribe.recall-salience-trigger` — must improve precision@5 by ≥10% vs baseline
 - `km-tribe.recall-drop-synthesis-from-ambient` — must not regress recall@5
 - `km-tribe.recall-compiled-state` — must show ≥40% per-thread overlap on multi-turn pairs (else it's not earning its complexity)
@@ -115,3 +120,4 @@ Without clearing these gates, those changes don't ship.
 - Should pairs include the prompt-cache state? (Compiled-state Q2 may need to model what's already cached vs cold.)
 - How to label "mixed"? — current label is binary relevant/irrelevant per session-id. May need fractional weights.
 - How often do we regenerate the corpus? — corpus drifts as session-history grows; needs annual review at least.
+

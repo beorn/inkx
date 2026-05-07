@@ -23,17 +23,17 @@ Create a /design-review (or /eye-for-design) skill that uses multimodal AI to fi
 
 1. **Screenshot capture** — use Playwright to capture the current state
 2. **Multi-LLM visual analysis** — send screenshots to visual LLMs for design critique:
-  - Claude (built-in) — can already see images via Read tool
-  - Gemini (via /llm skill) — strong visual understanding
-  - GPT-4o (via /llm skill) — good at UI critique
-3. **Pixel-level measurement** — Python/PIL scripts to measure margins, alignment, spacing
-4. **Design heuristics** — check against rules:
-  - Consistent margins/padding (measure all 4 sides)
-  - Alignment (are elements on the same grid?)
-  - Contrast (text readable against background?)
-  - Visual hierarchy (headings larger than body?)
-  - Whitespace balance (not cramped, not empty)
-  - Color consistency (semantic tokens used correctly?)
+- Claude (built-in) — can already see images via Read tool
+- Gemini (via /llm skill) — strong visual understanding
+- GPT-4o (via /llm skill) — good at UI critique
+8. **Pixel-level measurement** — Python/PIL scripts to measure margins, alignment, spacing
+9. **Design heuristics** — check against rules:
+- Consistent margins/padding (measure all 4 sides)
+- Alignment (are elements on the same grid?)
+- Contrast (text readable against background?)
+- Visual hierarchy (headings larger than body?)
+- Whitespace balance (not cramped, not empty)
+- Color consistency (semantic tokens used correctly?)
 
 ## Usage
 

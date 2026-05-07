@@ -1321,8 +1321,8 @@ describe("turn lifecycle: turn-end fires on every settle path", () => {
     const errors = events.filter((e) => e.kind === "error")
     expect(
       errors.some((e) => e.kind === "error" && /never settled|unsettled/i.test(e.message)),
-      "self-heal must surface a diagnostic error so the cause is visible",
-    ).toBe(true)
+      "self-heal is a recoverable lifecycle repair and must not surface as a user-facing error",
+    ).toBe(false)
 
     // Cleanup: let the first prompt resolve so its promise doesn't leak.
     firstPromptResolve!()

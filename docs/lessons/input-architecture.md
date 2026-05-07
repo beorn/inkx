@@ -19,6 +19,7 @@ During review, the user asked: "I thought input handling happened in a command/k
 The dialogs use `useInputLayer` because they have text input — raw character capture that the command system can't represent. That's the correct use of the primitive. But the planner saw "dialogs use `useInputLayer` for their keys" and generalized to "components should use `useInputLayer` for their keys." The distinction between text input (raw characters) and discrete commands (h/j/k) was never examined.
 
 Meanwhile, the command system already had everything needed:
+
 - `isInDetailPane` in `KeybindingContext` — the context flag existed
 - `when` predicates on keybindings — conditional resolution existed
 - `CLOSE_DETAIL_PANE` action type — the action existed (now removed; Escape falls through to `close_or_quit`)
@@ -31,16 +32,14 @@ A 5-minute exploration of `@km/commands` would have revealed all of this. The pl
 **Before changing how a subsystem works, understand why it works that way.**
 
 1. **Explore adjacent systems.** The task touched input handling, but the planner only read view components. Reading the command system (`packages/km-commands/`) would have shown the intended architecture immediately.
-
 2. **Don't pattern-match — understand the abstraction.** Dialogs use `useInputLayer` for text input. DetailPane needs discrete command routing. These are different problems requiring different solutions. Pattern-matching "component handles keys → useInputLayer" skipped the critical distinction.
-
 3. **Question the plan.** "Add `useInputLayer` to DetailPane" should have triggered: "Why would a rendering component handle input? How does the rest of the app handle discrete commands?" Instead it was executed mechanically.
-
 4. **Guards are a smell.** The `inlineEditNodeId` guard in board-input.ts was a workaround for `useInput`/`useInputLayer` not participating in the same consumption stack. The planning session treated the guard as "something to clean up" rather than asking "why does this conflict exist, and what's the right fix?"
 
 ## Root Cause Fix
 
 The architecture wasn't documented where agents would see it. Added:
+
 - `.claude/skills/tui/design.md` — Input Architecture section with the rule
 - `vendor/silvery/CLAUDE.md` — Architecture Note clarifying `useInputLayer` purpose
 - This document
@@ -137,3 +136,4 @@ If any hits live inside a `useInput`, `useEffect`, or `useLayoutEffect`,
 refactor to the plugin/effect pattern before commit. `dispatchBoard` calls
 are fine (zustand layer), but document them with a comment pointing to this
 lesson so the next reader doesn't confuse the two layers.
+

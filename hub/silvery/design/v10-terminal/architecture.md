@@ -81,7 +81,7 @@ The host tree. Lightweight node objects with props, children, parent references.
 
 Owned by the framework binding (React reconciler creates/updates/removes nodes). Consumed by everything below.
 
-> **Direction:** The target architecture collapses AgNode into a composition layer on Flexily's tree (`withAg()` plugin — one tree, no dual tree). See [exploration.md](../../vision/exploration.md) for the composable `pipe(createFlexily(), withFlexbox(), withPretext(), withAg())` pattern and incremental refactoring plan.
+> Direction: The target architecture collapses AgNode into a composition layer on Flexily's tree (withAg() plugin — one tree, no dual tree). See exploration.md for the composable pipe(createFlexily(), withFlexbox(), withPretext(), withAg()) pattern and incremental refactoring plan.
 
 ### Flexily (layout) — Shipping
 
@@ -233,17 +233,17 @@ Research across all major systems that own their interaction layer ($6.77, GPT 5
 
 **Best-in-class reference table:**
 
-| System           | What it owns                                  | Architecture pattern                          | Main strength                            | Source                      |
-| ---------------- | --------------------------------------------- | --------------------------------------------- | ---------------------------------------- | --------------------------- |
-| **tldraw**       | drag, selection, hover, pan/zoom, tools       | hierarchical statechart (`StateNode`)         | best open-source editor interaction      | tldraw.dev                  |
-| **Flutter**      | gestures, focus, scroll, selection, semantics | recognizers + GestureArena                    | best formal gesture architecture         | docs.flutter.dev            |
-| **dnd-kit**      | drag lifecycle, collision, auto-scroll        | sensors + centralized drag store              | best modern React custom DnD             | docs.dndkit.com             |
-| **ProseMirror**  | doc model, selection, transactions, clipboard | transactional model + DOM sync + plugins      | most robust rich-text foundation         | prosemirror.net             |
-| **Monaco**       | selection, cursor, scroll, focus, viewport    | hidden textarea + custom controller           | most "own everything" editor             | github.com/microsoft/vscode |
-| **CodeMirror 6** | state, selection, viewport, mouse, hover      | immutable state + view plugins + DOM observer | best hybrid code editor                  | codemirror.net              |
-| **Konva**        | hit-testing, events, drag, hover              | scene-graph event system                      | easy canvas interaction model            | konvajs.org                 |
-| **PixiJS**       | pointer events, hit-testing, hover            | federated event system                        | fast low-level base                      | pixijs.com                  |
-| **Excalidraw**   | selection, drag, transform, pan/zoom          | state flags + reducers                        | simpler alternative to tldraw statechart | github.com/excalidraw       |
+| System       | What it owns                                  | Architecture pattern                          | Main strength                            | Source                      |
+| ------------ | --------------------------------------------- | --------------------------------------------- | ---------------------------------------- | --------------------------- |
+| tldraw       | drag, selection, hover, pan/zoom, tools       | hierarchical statechart (StateNode)           | best open-source editor interaction      | tldraw.dev                  |
+| Flutter      | gestures, focus, scroll, selection, semantics | recognizers + GestureArena                    | best formal gesture architecture         | docs.flutter.dev            |
+| dnd-kit      | drag lifecycle, collision, auto-scroll        | sensors + centralized drag store              | best modern React custom DnD             | docs.dndkit.com             |
+| ProseMirror  | doc model, selection, transactions, clipboard | transactional model + DOM sync + plugins      | most robust rich-text foundation         | prosemirror.net             |
+| Monaco       | selection, cursor, scroll, focus, viewport    | hidden textarea + custom controller           | most "own everything" editor             | github.com/microsoft/vscode |
+| CodeMirror 6 | state, selection, viewport, mouse, hover      | immutable state + view plugins + DOM observer | best hybrid code editor                  | codemirror.net              |
+| Konva        | hit-testing, events, drag, hover              | scene-graph event system                      | easy canvas interaction model            | konvajs.org                 |
+| PixiJS       | pointer events, hit-testing, hover            | federated event system                        | fast low-level base                      | pixijs.com                  |
+| Excalidraw   | selection, drag, transform, pan/zoom          | state flags + reducers                        | simpler alternative to tldraw statechart | github.com/excalidraw       |
 
 ### Rendering Targets (platforms)
 
@@ -326,3 +326,4 @@ Today the terminal path shortcuts steps 2, 3, and 5 (no style resolution, monosp
 - km docs: [tea.md](../../../../docs/design/tea.md) — TEA principle
 - km docs: [universal-editor.md](../../../../docs/future/universal-editor.md) — docily/textily vision
 - Beads: km-silvery.engine (vision), km-silvery.engine.text (text subsystem), km-silvery.tea (signals), km-silvery.pro-review-vision
+

@@ -6,7 +6,11 @@
 import { describe, expect, test } from "vitest"
 import { createScope } from "@silvery/scope"
 import { createChannelQueue } from "../../src/channel-queue.ts"
-import { MIN_INTER_EVENT_MS, createDebouncedEmit, makeNotificationEventId } from "../../src/notification-adapters/types.ts"
+import {
+  MIN_INTER_EVENT_MS,
+  createDebouncedEmit,
+  makeNotificationEventId,
+} from "../../src/notification-adapters/types.ts"
 import { ROLE_PREFIX_SENTINEL } from "../../src/notification-sanitize.ts"
 // Trigger token literal kept out of source per § 9 of apps/silvercode/docs/channels.md.
 const ROLE_HUMAN = String.fromCharCode(72, 117, 109, 97, 110)

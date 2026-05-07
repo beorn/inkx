@@ -159,3 +159,4 @@ Structural diffing        → NOT YET — biggest optimization opportunity
 
 6. **Benchmark against Ratatui** — cell diff bytes vs structural diff bytes for common operations. Data for a future blog post.
 7. **Verify with Ghostty/terminfo.dev** — confirm IL/DL/SU/SD support across terminals
+

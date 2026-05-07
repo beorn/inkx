@@ -115,3 +115,39 @@ These don't move through phases — they track the destination. Each has its own
 - **Closing** a bead: just `km bd close`. The link's status indicator updates. Optionally remove the line if it's clutter; the history stays in the bead.
 - **`hub/backlog.md`** is the previous-generation backlog (stale; still says "Now: W3 omnibox"). Retire it once this doc has earned trust.
 
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+

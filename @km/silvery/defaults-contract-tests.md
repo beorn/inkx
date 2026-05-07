@@ -48,13 +48,15 @@ Tests always set options explicitly → default path is never exercised → doc�
 One test file per public surface (run, createApp, render, createTermless, createTerm). Each file:
 
 1. **Omitted-option → behavior tests**: for every option with a documented default, instantiate the consumer with `undefined` for the option; assert observable behavior matches the docstring. E.g.:
-  ```ts
-  test('selection defaults to true when mouse is enabled', async () => {
-    using term = createTermless()
-    const handle = await run(<App />, term, { mouse: true })  // no selection
-    // dispatch a drag; assert a selection range appears
-  })
-  ```
+
+```ts
+test('selection defaults to true when mouse is enabled', async () => {
+  using term = createTermless()
+  const handle = await run(<App />, term, { mouse: true })  // no selection
+  // dispatch a drag; assert a selection range appears
+})
+```
+
 2. **Env-var precedence tests**: for every env var listed in a docstring, assert the mapping at BOTH the detection helper AND the runtime boundary. Covers the `detectTerminalCaps` gap.
 3. **State-machine transition tests**: for public state machines (mouse selection, search, keyboard focus), one test per arc. Named like `state:X --action:Y--> state:Z`. Seeded by the @km/silvery/mouse-drag-vs-click fix.
 4. **Cross-consumer parity**: an identical run-color-level-style matrix but replayed against each entry point (run / createApp().run() / render / createTermless) — catches the drift that caused the blank-screen bug.

@@ -1,8 +1,8 @@
 # What the Architecture Enables
 
-> **Deprecated (2026-03-16).** Deep dive into capabilities enabled by silvery's TEA architecture, written against the pre-Era 2 API (`@silvery/ag-term/core`, `dispatch`, `batch`). Code examples reference old API names. Superseded by [era2/05-app.md](../era2/05-app.md) (plugin composition) and [era2/06-scopes.md](../era2/06-scopes.md) (structured concurrency). Concepts remain valid; API surface has changed.
+> Deprecated (2026-03-16). Deep dive into capabilities enabled by silvery's TEA architecture, written against the pre-Era 2 API (@silvery/ag-term/core, dispatch, batch). Code examples reference old API names. Superseded by era2/05-app.md (plugin composition) and era2/06-scopes.md (structured concurrency). Concepts remain valid; API surface has changed.
 
-> **Internal** — Explores the advanced capabilities that fall out of Silvery's TEA-based architecture: undo/redo, replay, AI automation, server-side rendering, cross-target portability.
+> Internal — Explores the advanced capabilities that fall out of Silvery's TEA-based architecture: undo/redo, replay, AI automation, server-side rendering, cross-target portability.
 
 Because all state lives in the model, all changes flow through `update`, and all effects are data, a set of powerful capabilities fall out naturally.
 
@@ -40,14 +40,14 @@ function update(msg: AppEvent, model: Model): [Model, Effect[]] {
 }
 ```
 
-| Combinator                 | What it does                                    |
-| -------------------------- | ----------------------------------------------- |
-| `none`                     | No-op (placeholder)                             |
-| `batch(e1, e2, ...)`       | Multiple effects, flattened                     |
-| `dispatch(msg)`            | Queue another message                           |
-| `debounce(id, ms, effect)` | Cancel previous with same id, wait ms, then run |
-| `throttle(id, ms, effect)` | Run at most once per ms window                  |
-| `delay(ms, effect)`        | Run effect after ms                             |
+| Combinator               | What it does                                    |
+| ------------------------ | ----------------------------------------------- |
+| none                     | No-op (placeholder)                             |
+| batch(e1, e2, ...)       | Multiple effects, flattened                     |
+| dispatch(msg)            | Queue another message                           |
+| debounce(id, ms, effect) | Cancel previous with same id, wait ms, then run |
+| throttle(id, ms, effect) | Run at most once per ms window                  |
+| delay(ms, effect)        | Run effect after ms                             |
 
 Because effects are data, the kernel can inspect, log, and replay them. `debounce("search", ...)` with an id means the kernel tracks active timers — cancel-and-restart is automatic.
 
@@ -184,3 +184,4 @@ This is the payoff of the full architecture: every moment is a snapshot, every t
 - [Event Handling](../../../silvery/docs/guides/event-handling.md) — plugin API reference
 - [State Management](../../../silvery/docs/guides/state-management.md) — ops and effects API reference
 - [Runtime Layers](../../../silvery/docs/guides/runtime-layers.md) — createStore, plugin composition API
+

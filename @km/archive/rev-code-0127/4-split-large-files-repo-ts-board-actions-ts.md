@@ -17,9 +17,9 @@ closed_at: 2026-01-27T14:40:44Z
 Priority 1 (>1200 lines):
 
 1. packages/@km/storage/src/repo.ts (1,385 lines)
-  - Split into: repo-core.ts, repo-hooks.ts, repo-mutations.ts, repo-test.ts
-2. apps/@km/tui/src/board-actions.ts (1,230 lines)
-  - Split by category: zoom, nav, selection, edit, core
+- Split into: repo-core.ts, repo-hooks.ts, repo-mutations.ts, repo-test.ts
+4. apps/@km/tui/src/board-actions.ts (1,230 lines)
+- Split by category: zoom, nav, selection, edit, core
 
 Priority 2 (>800 lines):
 3. apps/@km/tui/src/views/Board.tsx (825 lines)

@@ -60,11 +60,11 @@ Hard-won lessons from big refactoring projects. Follow these to avoid common tra
 2. **Remove OldWay overloads immediately** - Don't support both signatures. Force callers to update.
 3. **Search for pattern usage** - `grep -r "render(<" examples/` would have found all OldWay examples
 4. **Definition of Done includes docs** - Migration isn't complete until:
-   - Code uses NewWay
-   - Tests use NewWay
-   - Examples use NewWay
-   - README uses NewWay
-   - API docs use NewWay
+- Code uses NewWay
+- Tests use NewWay
+- Examples use NewWay
+- README uses NewWay
+- API docs use NewWay
 
 **The fix**: Remove OldWay overloads entirely, add default `term` export for convenience, update all documentation in one pass.
 
@@ -181,6 +181,7 @@ function oldApi(args) {
 **Right approach**: Triage-first. Not all functions need refactoring.
 
 **Triage results** (33 functions scored 25-64):
+
 - 9 functions refactored below 30 using extract-method patterns
 - 24 functions suppressed with `oxlint-disable` comments + reason
 - 0 functions needed no action (already below threshold)
@@ -189,12 +190,12 @@ function oldApi(args) {
 
 **Patterns that worked**:
 
-| Pattern | Score reduction | Example |
-|---------|----------------|---------|
-| Orchestrator + phase helpers | 64 → 28 | `listTasks` → resolveInput + renderTaskList |
-| Strategy extraction | 47 → 18 | `resolveNode` → 5 strategy functions |
-| Shared loop helper | 36 → 18 | `progressiveSelectAll` → `buildSelectAllSet(scope)` |
-| DRY INSERT helper | 39 → 24 | `parseDeferredSequential` → shared `insertNodeRow` |
+| Pattern                      | Score reduction | Example                                         |
+| ---------------------------- | --------------- | ----------------------------------------------- |
+| Orchestrator + phase helpers | 64 → 28         | listTasks → resolveInput + renderTaskList       |
+| Strategy extraction          | 47 → 18         | resolveNode → 5 strategy functions              |
+| Shared loop helper           | 36 → 18         | progressiveSelectAll → buildSelectAllSet(scope) |
+| DRY INSERT helper            | 39 → 24         | parseDeferredSequential → shared insertNodeRow  |
 
 **Execution**: Two batches of parallel agents (5 + 4), parent-only verification. Total: 9 refactored functions, 24 suppressed, warnings reduced from ~64 to ~42.
 
@@ -217,11 +218,8 @@ function oldApi(args) {
 **Lessons**:
 
 1. **Bead checklist items must be verified with exact /complete criteria before marking done.** Not from memory — with grep/ls/read. "Move X from A to B" means: grep X in A (0 hits), grep X in B (>0 hits).
-
 2. **When you deviate from the plan, update the bead immediately.** Kept chalk instead of deleting it? Rewrote instead of extracted? That's fine engineering — but update the bead description to match reality BEFORE marking the item done. Don't mark the original item as done when you did something different.
-
 3. **"Phase N done" must mean "every checklist item verified", not "I did work related to Phase N."** If 4 of 5 items are done and 1 was skipped, mark the 4 as done, mark the 1 as "SKIPPED: reason", and note the deviation.
-
 4. **Bead drift grows silently.** Each phase builds on the assumption that previous phases are accurate. By Phase 6, the bead may describe a completely different system than what exists. Nobody notices until a systematic audit.
 
 ---
@@ -239,6 +237,7 @@ function oldApi(args) {
 **Root cause — move verification not part of the commit**: "Move X from A to B" should be verified atomically: (1) B exports X, (2) A re-exports from B (or is deleted). The implementation verified (1) but not (2).
 
 **Lesson**: After any "move X from A to B" operation, in the SAME commit:
+
 1. Verify B has X: `grep X in B` (>0)
 2. Replace A's local copy with `export { X } from "B"` (re-export, not local code)
 3. Run tests to verify the re-export chain works
@@ -302,6 +301,7 @@ Definition of Done (migration complete when ALL updated):
 **Problem**: Silvery's monolithic `@silvery/tea` package (6,253 LOC, 29 files) needed decomposition into focused packages: `@silvery/headless`, `@silvery/commands`, `@silvery/scope`, `@silvery/signals`, `@silvery/model`.
 
 **What went right**:
+
 - Package rename (@silvery/tea → @silvery/create) was clean: `sed` replaced 70+ imports in one pass, zero source hits remaining
 - New packages extracted with tests from day one (100 + 19 + 17 + 10 + 5 + 7 = 158 tests)
 - Barrel cleanup was thorough: AppHandle, RenderAdapter, TermDef all removed from public exports
@@ -309,13 +309,9 @@ Definition of Done (migration complete when ALL updated):
 **What went wrong**:
 
 1. **Docstrings promised unimplemented APIs**. `compose.ts` header listed `withTest()` as if it existed — LLMs and developers reading the file would assume it's available. *Fix*: Only document what's shipped. Future APIs belong in design docs, not source comments.
-
 2. **"Absorb without Purge" creates dual paths**. New packages (@silvery/headless, @silvery/commands) were created by *copying* code from @silvery/create, not *moving* it. Both locations now have the same code. Old consumers still work — nothing forces migration. *Fix*: After copying to new package, immediately delete from old package and fix breaks. Or if deletion is too risky, create a tracking bead with explicit timeline.
-
 3. **Ambitious /complete criteria never enforced**. Bead era2a-6 said "grep for RenderAdapter → 0 hits" but the file has 14 internal consumers (browser adapters). The criteria was written before implementation revealed the dependency. *Fix*: Write /complete criteria AFTER understanding the blast radius, not before. Update criteria when scope changes.
-
 4. **New packages without tests get shipped**. @silvery/commands was extracted without a test file. Found during audit, not during implementation. *Fix*: Every new package gets at least one test file in the same commit. No exceptions — even if it's just `test("imports work", () => expect(createCommandRegistry).toBeDefined())`.
-
 5. **Barrel exports as discoverability gate**. `withApp()` was implemented and tested but not exported from the main barrel. Users importing `@silvery/create` couldn't find it without knowing the subpath. *Fix*: If it's ready for use, export it from the barrel. If it's not ready, don't ship it at all.
 
 **Lessons for multi-package extraction**:
@@ -349,6 +345,7 @@ Same as Failure 2 but generalized: **agents do not measure numeric targets befor
 ### The fix in /complete
 
 These three failure modes are now the FIRST step of `/complete`:
+
 1. **Renamed, not deleted** — grep for the new name AND the old name
 2. **Wrapped, not eliminated** — measure the structural metric (call count), not just the rename
 3. **Numeric targets ignored** — run every measurement command from every closed bead
@@ -372,3 +369,4 @@ See `.claude/skills/complete/SKILL.md` Step 1 for the protocol.
 ### Archive (supplementary detail)
 
 - [docs/archive/domain-object-migration.md](../archive/domain-object-migration.md) - Full migration story
+

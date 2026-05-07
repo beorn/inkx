@@ -1,6 +1,6 @@
 # Silvery: React Terminal UIs Where Components Know Their Size
 
-> **Internal** — Draft launch blog post. Not published. Covers the core value proposition (two-phase rendering, layout feedback) and positioning against Ink.
+> Internal — Draft launch blog post. Not published. Covers the core value proposition (two-phase rendering, layout feedback) and positioning against Ink.
 
 React components have never been able to know their own dimensions during render. In the DOM, you reach for `ResizeObserver` and accept a layout jank flash. In React Native, you guess at `FlatList` item heights and hope the scroll doesn't stutter. In terminal UIs built with [Ink](https://github.com/vadimdemedes/ink), you thread `width` props through every level of the component tree.
 
@@ -22,7 +22,6 @@ This is the same insight behind [WPF's Measure/Arrange](https://learn.microsoft.
 If you're building a CLI assistant, an AI coding tool, or any terminal application that works with an LLM, you've probably hit two problems:
 
 1. **Variable-length AI output** -- LLM responses range from a single line to hundreds of lines. You need scrollable containers that adapt to available space, not fixed-height viewports with manual virtualization.
-
 2. **Programmatic control** -- An AI agent needs to read the screen, discover available commands, and execute them. Most terminal UI frameworks treat this as an afterthought.
 
 Silvery was designed with both of these as first-class concerns.
@@ -160,9 +159,9 @@ Real numbers on Apple M1 Max, Bun 1.3.9 (February 2026). Reproducible via `bun r
 
 **The number that matters -- typical interactive update:**
 
-| Scenario                        | Silvery    | Ink     |                          |
-| ------------------------------- | ---------- | ------- | ------------------------ |
-| User presses a key (1000 nodes) | **169 us** | 20.7 ms | **Silvery 100x+ faster** |
+| Scenario                        | Silvery | Ink     |                      |
+| ------------------------------- | ------- | ------- | -------------------- |
+| User presses a key (1000 nodes) | 169 us  | 20.7 ms | Silvery 100x+ faster |
 
 When a user presses `j` to move a cursor, Silvery's dirty tracking updates only the changed nodes -- bypassing React entirely. Ink must re-render the full React tree for any state change.
 
@@ -276,3 +275,4 @@ If you're building terminal UIs for AI tools and you want components that know t
 - [Documentation](https://github.com/beorn/silvery/tree/main/docs)
 - [Silvery vs Ink](https://github.com/beorn/silvery/blob/main/docs/silvery-vs-ink.md)
 - [CLAUDE.md](https://github.com/beorn/silvery/blob/main/CLAUDE.md) (the AI-readable reference)
+

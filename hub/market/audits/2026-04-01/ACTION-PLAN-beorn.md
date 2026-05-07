@@ -30,6 +30,7 @@ export default defineConfig({
 If VitePress built-in sitemap doesn't handle base correctly, use a post-build script to prefix all URLs, or switch to `vitepress-plugin-sitemap` which handles it.
 
 **Also:** Add the root homepage URL to one of the sitemaps (or create a root sitemap):
+
 ```xml
 <url><loc>https://beorn.codes/</loc></url>
 ```
@@ -39,6 +40,7 @@ If VitePress built-in sitemap doesn't handle base correctly, use a post-build sc
 **Problem:** Schema, og:site_name, and og:description all say "mdtest" instead of "mdspec".
 
 **Fix:** In mdspec's VitePress config:
+
 ```ts
 export default defineConfig({
   title: 'mdspec',
@@ -113,6 +115,7 @@ Add to `<head>` of the root `index.html`:
 Add unique `description` frontmatter to every markdown page across all three subpaths. Examples:
 
 **Flexily:**
+
 ```yaml
 ---
 # guide/getting-started.md
@@ -126,6 +129,7 @@ description: "Complete Flexily API reference: createFlexily(), Node methods, lay
 ```
 
 **Loggily:**
+
 ```yaml
 ---
 # guide/journey.md
@@ -139,6 +143,7 @@ description: "Complete loggily API reference: createLogger(), log levels, spans,
 ```
 
 **mdspec:**
+
 ```yaml
 ---
 # guide/getting-started.md
@@ -166,6 +171,7 @@ head: [
 Flexily already has llms.txt. Create equivalent files:
 
 **Root (`/llms.txt`):**
+
 ```
 # Bjorn Stabell
 
@@ -289,6 +295,7 @@ Enable `cleanUrls: true` to remove `.html` extensions. Slightly cleaner URLs for
 ### 4.3 Cross-Link Between Subpaths
 
 Add "See also" links in documentation:
+
 - Flexily docs mention "Used by [Silvery](https://silvery.dev) for terminal layout"
 - Loggily docs mention "Used by Silvery, Termless, and terminfo.dev"
 - mdspec docs mention "Used by Silvery and Termless for executable documentation"
@@ -329,15 +336,16 @@ Add FAQ structured data to comparison/migration pages (highly citable by AI sear
 
 ## Expected Score After P1+P2
 
-| Dimension | Current | After P1+P2 |
-|-----------|---------|-------------|
-| Technical SEO | 52 | 82 |
-| Content Quality | 58 | 72 |
-| On-Page SEO | 48 | 70 |
-| Schema | 42 | 50 |
-| Performance | 78 | 78 |
-| AI Readiness | 25 | 55 |
-| Images | 30 | 60 |
-| **Overall** | **50** | **72** |
+| Dimension       | Current | After P1+P2 |
+| --------------- | ------- | ----------- |
+| Technical SEO   | 52      | 82          |
+| Content Quality | 58      | 72          |
+| On-Page SEO     | 48      | 70          |
+| Schema          | 42      | 50          |
+| Performance     | 78      | 78          |
+| AI Readiness    | 25      | 55          |
+| Images          | 30      | 60          |
+| Overall         | 50      | 72          |
 
 After completing P3 as well: estimated **80+/100**.
+

@@ -41,12 +41,12 @@ Required primitive: repo.moveNodeWithRefs(id, { newName?, newParentId? }) that:
 1. Computes the new path-form (frontmatter id) from name/parent change
 2. Walks all .md files in the vault
 3. Rewrites:
-  - Wikilinks: [[old-path]] → [[new-path]], [[old-path|alias]] → [[new-path|alias]], ![[old-path]] → ![[new-path]]
-  - Frontmatter aliases referencing old-path (when migrated beads add new-path to aliases of unchanged files)
-  - Inline mentions matching the rewriteLegacyIdMentions regex (bare @<prefix>/old-path)
-  - Dep edges: blocks::/blocked-by::/related:: lists
-4. Updates the moved file: id frontmatter + filesystem path
-5. Returns { rewroteFiles: number, rewroteRefs: number } for reporting
+- Wikilinks: [[old-path]] → [[new-path]], [[old-path|alias]] → [[new-path|alias]], ![[old-path]] → ![[new-path]]
+- Frontmatter aliases referencing old-path (when migrated beads add new-path to aliases of unchanged files)
+- Inline mentions matching the rewriteLegacyIdMentions regex (bare @<prefix>/old-path)
+- Dep edges: blocks::/blocked-by::/related:: lists
+11. Updates the moved file: id frontmatter + filesystem path
+12. Returns { rewroteFiles: number, rewroteRefs: number } for reporting
 
 Wiring:
 

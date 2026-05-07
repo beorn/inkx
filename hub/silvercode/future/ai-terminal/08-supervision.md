@@ -33,6 +33,7 @@ Properties:
 - **Lifecycle uniformity** — start / stop / restart / health-check are the same operations whether the child is a local thread, a subprocess, a container, or a remote VM.
 
 Prior art we'd align with:
+
 - Erlang/OTP (the reference model)
 - Akka (JVM port)
 - s6 / s6-overlay, runit, supervisord, daemontools (Unix supervision trees)
@@ -54,12 +55,14 @@ Suggested line shape:
 ```
 
 Why fd3:
+
 - **stdout (fd1)** stays for humans — prompts, tables, REPL output, piping-to-other-tools
 - **stderr (fd2)** stays for errors that should be surfaced immediately
 - **stdlog (fd3)** is for the program's view of itself — every event, decision, state transition
 - No overloading; no `$LOG_FORMAT=json` env-var switch; no "is this stdout text or JSON?" mode-guessing
 
 Consumers:
+
 - Commander's `<BlockList>` renders stdlog events as typed blocks (tables for rows, progress bars for progress events, charts for series)
 - Supervisors audit-log to disk
 - Tracing systems correlate spans across apps
@@ -88,6 +91,7 @@ Sample calls:
 ```
 
 Surface:
+
 - `ask_user(prompt, schema)` — child asks parent to resolve a user interaction
 - `wants_permission(intent, scope)` — child requests capability grant (ties to CAP permissions; see 05)
 - `progress(current, total, label)` — child reports progress (alternative: stdlog event)
@@ -95,11 +99,13 @@ Surface:
 - `query(name, args)` — RPC to child
 
 Why separate from stdlog:
+
 - stdlog is one-way (child → parent), unordered events
 - stdapi is bidirectional, request-response with correlation IDs
 - stdlog = "what happened"; stdapi = "what should happen next"
 
 Relationship to MCP:
+
 - **MCP uses stdin/stdout for JSON-RPC** → occupies fd0/fd1 → can't coexist with human IO in the same process.
 - **stdapi on fd4** → stdin/stdout stay for humans → coexists trivially.
 - stdapi is effectively a Unix-native MCP flavor: same JSON-RPC shape, different FDs.
@@ -121,15 +127,15 @@ This is the sharpest frame for why the above matters. It's `docs/principles.md �
 
 Application deployment is a pile of **misaligned** abstractions. Same concepts, different names at every layer:
 
-| Concept | Dev | Docker | Compose | k8s | Helm | systemd | Lambda |
-|---|---|---|---|---|---|---|---|
-| Where the code lives | `src/` | `COPY` | `build.context` | `image` | `image.repository` | `ExecStart` | `CodeUri` |
-| Port it listens on | `PORT` | `EXPOSE` | `ports` | `containerPort` / `servicePort` / `targetPort` | templatized | `ListenStream` | `Events.Api.Properties.Port` |
-| Env configuration | `.env` | `ENV` | `environment` | `envFrom` / `env.valueFrom` | `values.yaml` | `Environment=` | `Environment.Variables` |
-| Restart policy | (none) | `--restart` | `restart` | `restartPolicy` | values | `Restart=` | (implicit) |
-| Logs | `console.log` | `docker logs` | `compose logs` | `kubectl logs` | helm-k8s-same | `journalctl` | CloudWatch |
-| Health check | (ad-hoc) | `HEALTHCHECK` | `healthcheck` | `livenessProbe` / `readinessProbe` | values | `ExecStart+Watchdog` | (implicit) |
-| Scale out | (none) | (none) | `deploy.replicas` | `replicas` / HPA | values | `templates` instances | auto |
+| Concept              | Dev         | Docker      | Compose         | k8s                                      | Helm             | systemd             | Lambda                     |
+| -------------------- | ----------- | ----------- | --------------- | ---------------------------------------- | ---------------- | ------------------- | -------------------------- |
+| Where the code lives | src/        | COPY        | build.context   | image                                    | image.repository | ExecStart           | CodeUri                    |
+| Port it listens on   | PORT        | EXPOSE      | ports           | containerPort / servicePort / targetPort | templatized      | ListenStream        | Events.Api.Properties.Port |
+| Env configuration    | .env        | ENV         | environment     | envFrom / env.valueFrom                  | values.yaml      | Environment=        | Environment.Variables      |
+| Restart policy       | (none)      | --restart   | restart         | restartPolicy                            | values           | Restart=            | (implicit)                 |
+| Logs                 | console.log | docker logs | compose logs    | kubectl logs                             | helm-k8s-same    | journalctl          | CloudWatch                 |
+| Health check         | (ad-hoc)    | HEALTHCHECK | healthcheck     | livenessProbe / readinessProbe           | values           | ExecStart+Watchdog  | (implicit)                 |
+| Scale out            | (none)      | (none)      | deploy.replicas | replicas / HPA                           | values           | templates instances | auto                       |
 
 Every level renames. Every level requires a fresh config file with a fresh schema. Every level is a leaky abstraction over the one below. The `{ ...props }` equivalent doesn't exist.
 
@@ -169,6 +175,7 @@ This is how you get agent density: one laptop can host a supervision tree with h
 [12factor.net](https://12factor.net) is the modern baseline for deployable apps. It aligned a lot: env-based config, stateless processes, disposability, dev/prod parity. Our extension:
 
 **12 classic factors** (unchanged):
+
 1. Codebase (one codebase tracked in revision control, many deploys)
 2. Dependencies (explicitly declared and isolated)
 3. Config (store in the environment)
@@ -200,15 +207,15 @@ Any app that follows 12-factor already has 90% of the shape. Adding fd3/fd4 + a 
 
 Everything in 07-sessions.md is a specialization of "supervised actor":
 
-| Sessions doc says | Supervision view |
-|---|---|
-| Session ≈ pane / agent / shell / sub-agent / watcher | Each is a supervised actor with stable address |
-| `jobs` lists sessions | `jobs` walks the supervision tree rooted at current workspace |
-| `fg` / `bg` / `kill` | Supervisor operations: attach-focus, detach-keep-running, send-cancel |
-| `tee A B`, `link A B` | Typed pipes between actors via their mailboxes |
-| Tribe bus | The mailbox layer — typed broadcasts |
-| Policy + budget | Supervisor config (OTP-style max-restarts + resource limits) |
-| Replay | Mailbox log + supervisor audit trail → deterministic reconstruction |
+| Sessions doc says                                    | Supervision view                                                      |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| Session ≈ pane / agent / shell / sub-agent / watcher | Each is a supervised actor with stable address                        |
+| jobs lists sessions                                  | jobs walks the supervision tree rooted at current workspace           |
+| fg / bg / kill                                       | Supervisor operations: attach-focus, detach-keep-running, send-cancel |
+| tee A B, link A B                                    | Typed pipes between actors via their mailboxes                        |
+| Tribe bus                                            | The mailbox layer — typed broadcasts                                  |
+| Policy + budget                                      | Supervisor config (OTP-style max-restarts + resource limits)          |
+| Replay                                               | Mailbox log + supervisor audit trail → deterministic reconstruction   |
 
 The right way to read 07 after this doc lands: sessions is "the user-visible subset of the supervision tree + job-control verbs over it."
 
@@ -216,19 +223,20 @@ The right way to read 07 after this doc lands: sessions is "the user-visible sub
 
 CAP's five pieces map cleanly:
 
-| CAP piece | Supervision-era form |
-|---|---|
-| Manifest | Unchanged — still a JSON document declaring flags, intents, permissions, outputs |
-| Typed output streams (blocks) | **stdlog on fd3** — replace `CAP_OUTPUT=blocks` env var |
-| Bidirectional control | **stdapi on fd4** — replace "side-channel FD" hand-wave |
-| Typed completion | Unchanged — `--cap-complete` still works |
-| App-as-MCP-server | stdapi-on-fd4 IS MCP with a different transport |
+| CAP piece                     | Supervision-era form                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| Manifest                      | Unchanged — still a JSON document declaring flags, intents, permissions, outputs |
+| Typed output streams (blocks) | stdlog on fd3 — replace CAP_OUTPUT=blocks env var                                |
+| Bidirectional control         | stdapi on fd4 — replace "side-channel FD" hand-wave                              |
+| Typed completion              | Unchanged — --cap-complete still works                                           |
+| App-as-MCP-server             | stdapi-on-fd4 IS MCP with a different transport                                  |
 
 Revised CAP: manifest describes what the app offers; stdlog/stdapi are the wire. Drop the env-var mode-switch; just say "CAP-aware apps MAY write to fd3 and fd4 when those fds are wired."
 
 ### Commander (L3) → UI over the supervision tree
 
 Commander's view is literally the supervision tree:
+
 - Each pane is a supervised actor
 - The tree is navigable (expand/collapse, focus, hover)
 - Per-actor panels: status, stdlog live-tail, stdapi RPC form, flag-form-for-rerun
@@ -274,15 +282,10 @@ Every track in this folder specializes this foundation:
 ## What this unlocks that we didn't have before
 
 1. **"Unix-native MCP"** — stdapi-on-fd4 is MCP with a different transport; any CAP-aware app is also an MCP-callable tool when its stdapi is exposed. The path from "I wrote a small CLI" to "my CLI is an MCP tool" is zero config.
-
 2. **Cross-language supervision** — stdlog/stdapi are byte-level conventions. Any language can emit them (3 lines of code). The supervision tree spans TypeScript + Python + Rust + Bash scripts uniformly.
-
 3. **Fault tolerance is a commander feature, not a per-app feature** — restart-on-failure, exponential backoff, circuit breakers all live at the supervisor. Individual apps don't reimplement.
-
 4. **The terminal IS the dashboard** — legion/thoughts.md wanted this in 2018-ish. With silvery's component model, commander can render the supervision tree with flame-graphs, Warp-style blocks, interleaved-logs-with-lifeline, clickable processes, dynamic log-level-setting. None of it is bolted on.
-
 5. **Systemd / launchd / Docker / k8s integrate cleanly** — our local supervisor can delegate to OS-level supervisors for persistence; no reinvention. Prefect (in legion's naming) is the adapter layer.
-
 6. **Replay across process boundaries** — a single supervisor's audit log captures every fd3/fd4 message to and from its children. Deterministic replay of the whole subtree becomes possible.
 
 ## What this does NOT solve
@@ -331,3 +334,4 @@ Every track in this folder specializes this foundation:
 - `~/Code/legion/docs/thoughts.md` — terminal-as-process-manager ideation + actor-system notes
 - `~/Code/legion/centurion/README.md` — structured concurrency primitives
 - `~/Code/legion/docs/naming-roman-legion.md` — the hierarchy naming
+

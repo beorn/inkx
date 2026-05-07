@@ -28,6 +28,8 @@ def bar():
 ```
 
 ```
+
 ```
 
 (Empty fence above — zero lines between the open and close markers.)
+

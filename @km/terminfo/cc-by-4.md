@@ -24,13 +24,13 @@ Add CC BY 4.0 license to terminfo.dev and make the repo public. Follows the cani
 2. Add license badge to README
 3. Add license notice to site footer
 4. Review repo for anything that shouldn't be public:
-  - No secrets in code (API tokens are in GitHub secrets, not committed)
-  - No proprietary algorithms (it's data + VitePress site)
-  - Cloudflare account ID is in deploy.yml (this is fine — it's not a secret)
-5. Make repo public: `gh repo edit beorn/terminfo.dev --visibility public`
-6. Enable GitHub Issues (for community contributions)
-7. Update test script + submit page to use the now-public issue tracker
-8. Add CONTRIBUTING.md with data contribution guide
+- No secrets in code (API tokens are in GitHub secrets, not committed)
+- No proprietary algorithms (it's data + VitePress site)
+- Cloudflare account ID is in deploy.yml (this is fine — it's not a secret)
+12. Make repo public: `gh repo edit beorn/terminfo.dev --visibility public`
+13. Enable GitHub Issues (for community contributions)
+14. Update test script + submit page to use the now-public issue tracker
+15. Add CONTRIBUTING.md with data contribution guide
 
 ## Why
 

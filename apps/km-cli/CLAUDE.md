@@ -13,11 +13,11 @@ sits in the layer stack.
 
 The CLI is split into two parallel verb families:
 
-| Surface          | Owns                                                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `km <verb>`      | Generic node-graph verbs (`set`, `clear`, `move`, `rename`, `children`, `stale`, `query`, `list`, `show`, `new`, …) |
-| `km task <verb>` | Task-workflow-specific verbs (board view, ready/blocked, claim/release/close/drop/reopen, dep)                      |
-| `km bd <verb>`   | Beads-compatible on-ramp for users migrating from `bd`. Shared engine with `km task` / `km`; transitional, not permanent. |
+| Surface        | Owns                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- |
+| km <verb>      | Generic node-graph verbs (set, clear, move, rename, children, stale, query, list, show, new, …)                     |
+| km task <verb> | Task-workflow-specific verbs (board view, ready/blocked, claim/release/close/drop/reopen, dep)                      |
+| km bd <verb>   | Beads-compatible on-ramp for users migrating from bd. Shared engine with km task / km; transitional, not permanent. |
 
 The "tasks are nodes" mental model: anything generic to nodes lives at
 top-level `km`. Only verbs that genuinely need task-domain knowledge
@@ -35,41 +35,41 @@ doesn't exist.** Source of truth: `apps/km-cli/src/program.ts`.
 
 ### Generic node-graph verbs (operate on any node — task, doc, page, …)
 
-| Command                         | What                                                                                |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| `km list` / `ls`                | List / search nodes with FTS + query DSL filtering                                  |
-| `km show <id>`                  | Show node details. `--tree` walks the subtree                                       |
-| `km new`                        | Quick capture to inbox                                                              |
-| `km set <id...> field:value...` | Generic field mutation; accepts multiple ids and field:value pairs                  |
-| `km clear <id...> field...`     | Generic field clear                                                                 |
-| `km move <node> <parent>`       | Re-parent a node (canonical engine; `repo.moveNodeWithRefs` rewrites incoming refs) |
-| `km rename <id> <target>`       | Alias of `km move` (muscle memory)                                                  |
-| `km children <id>`              | Alias of `km show <id> -c`                                                          |
-| `km stale [-d N]`               | Any-node stale lister (untouched ≥ N days)                                          |
-| `km query <dsl>`                | Alias of `km list --raw <dsl>`                                                      |
-| `km status <id> [new]`          | View / set task status (single-field convenience over `km set`)                     |
-| `km add <target> <source...>`   | Add tasks to a board/list                                                           |
-| `km open <id>`                  | Open the markdown file for a node in `$EDITOR` (universal — any node)               |
+| Command                       | What                                                                              |
+| ----------------------------- | --------------------------------------------------------------------------------- |
+| km list / ls                  | List / search nodes with FTS + query DSL filtering                                |
+| km show <id>                  | Show node details. --tree walks the subtree                                       |
+| km new                        | Quick capture to inbox                                                            |
+| km set <id...> field:value... | Generic field mutation; accepts multiple ids and field:value pairs                |
+| km clear <id...> field...     | Generic field clear                                                               |
+| km move <node> <parent>       | Re-parent a node (canonical engine; repo.moveNodeWithRefs rewrites incoming refs) |
+| km rename <id> <target>       | Alias of km move (muscle memory)                                                  |
+| km children <id>              | Alias of km show <id> -c                                                          |
+| km stale [-d N]               | Any-node stale lister (untouched ≥ N days)                                        |
+| km query <dsl>                | Alias of km list --raw <dsl>                                                      |
+| km status <id> [new]          | View / set task status (single-field convenience over km set)                     |
+| km add <target> <source...>   | Add tasks to a board/list                                                         |
+| km open <id>                  | Open the markdown file for a node in $EDITOR (universal — any node)               |
 
 ### Task-workflow surface (singular `task`, alias `tasks`)
 
-| Command                                    | What                                                                                                                                         |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `km task`                                  | Board view (open tasks, sorted by priority)                                                                                                  |
-| `km task ready`                            | Todo + unblocked                                                                                                                             |
-| `km task blocked`                          | Tasks with at least one unresolved blocker                                                                                                   |
-| `km task stale [-d N]`                     | Untouched-≥N-days tasks                                                                                                                      |
-| `km task orphans`                          | Commit-referenced but still open                                                                                                             |
-| `km task show <id>`                        | Alias of `km show <id>` for ergonomics                                                                                                       |
-| `km task new <title> [...]`                | Create task with task-defaults (`type=task`); accepts `--due`, `--start`, `--type`, `--id`, `--aliases`, `--parent`, `--priority`, `--owner` |
-| `km task set <id> field:val`               | Alias of `km set` with task-field validation                                                                                                 |
-| `km task clear <id> field`                 | Alias of `km clear`                                                                                                                          |
-| `km task close <id> [--reason TEXT]`       | Lifecycle: status=done + closed_at + reason                                                                                                  |
-| `km task drop <id> [--reason TEXT]`        | Lifecycle: status=dropped + closed_at + reason                                                                                               |
-| `km task reopen <id>`                      | Lifecycle: done/dropped → todo (clears closed_at + assigned_to)                                                                              |
-| `km task claim <id>`                       | Lifecycle: status=wip + assigned_to=$USER (validates not-already-claimed-by-other)                                                           |
-| `km task release <id>`                     | Lifecycle: status=todo + clear assigned_to                                                                                                   |
-| `km task dep add/rm/ls <id> <blockers...>` | Manage blocked-by edges (Wave 5 via shared km link infra)                                                                                    |
+| Command                                  | What                                                                                                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| km task                                  | Board view (open tasks, sorted by priority)                                                                                |
+| km task ready                            | Todo + unblocked                                                                                                           |
+| km task blocked                          | Tasks with at least one unresolved blocker                                                                                 |
+| km task stale [-d N]                     | Untouched-≥N-days tasks                                                                                                    |
+| km task orphans                          | Commit-referenced but still open                                                                                           |
+| km task show <id>                        | Alias of km show <id> for ergonomics                                                                                       |
+| km task new <title> [...]                | Create task with task-defaults (type=task); accepts --due, --start, --type, --id, --aliases, --parent, --priority, --owner |
+| km task set <id> field:val               | Alias of km set with task-field validation                                                                                 |
+| km task clear <id> field                 | Alias of km clear                                                                                                          |
+| km task close <id> [--reason TEXT]       | Lifecycle: status=done + closed_at + reason                                                                                |
+| km task drop <id> [--reason TEXT]        | Lifecycle: status=dropped + closed_at + reason                                                                             |
+| km task reopen <id>                      | Lifecycle: done/dropped → todo (clears closed_at + assigned_to)                                                            |
+| km task claim <id>                       | Lifecycle: status=wip + assigned_to=$USER (validates not-already-claimed-by-other)                                         |
+| km task release <id>                     | Lifecycle: status=todo + clear assigned_to                                                                                 |
+| km task dep add/rm/ls <id> <blockers...> | Manage blocked-by edges (Wave 5 via shared km link infra)                                                                  |
 
 ### Beads-compatible alias surface
 
@@ -91,28 +91,28 @@ This means `km bd` is **not a permanent parallel surface** — it's transitional
 
 ### Workspace + I/O
 
-| Command                         | What                                                                                                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `km view [root]`                | Interactive TUI (board/tree; press 'v' to toggle)                                                                                                       |
-| `km init`                       | Create `.km/` for disk-mode storage                                                                                                                     |
-| `km sync [--watch]`             | Sync filesystem (one-shot or continuous)                                                                                                                |
-| `km watch`                      | Deprecated alias for `km sync --watch`                                                                                                                  |
-| `km doctor`                     | Diagnose + repair stores                                                                                                                                |
-| `km daemon {start,stop,status}` | Background daemon for ambient indexing                                                                                                                  |
-| `km import <source> ...`        | Asana / CSV / etc. importers. `km import asana --fetch`                                                                                                 |
-| `km inbox`                      | GTD-style inbox processing                                                                                                                              |
-| `km config [<key>[=<value>]]`   | Generic config get/set (cosmiconfig walk-up + env-paths). **Yes — this exists at top level via `mountConfigCommand` from `@silvery/config/commander`.** |
+| Command                       | What                                                                                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| km view [root]                | Interactive TUI (board/tree; press 'v' to toggle)                                                                                               |
+| km init                       | Create .km/ for disk-mode storage                                                                                                               |
+| km sync [--watch]             | Sync filesystem (one-shot or continuous)                                                                                                        |
+| km watch                      | Deprecated alias for km sync --watch                                                                                                            |
+| km doctor                     | Diagnose + repair stores                                                                                                                        |
+| km daemon {start,stop,status} | Background daemon for ambient indexing                                                                                                          |
+| km import <source> ...        | Asana / CSV / etc. importers. km import asana --fetch                                                                                           |
+| km inbox                      | GTD-style inbox processing                                                                                                                      |
+| km config [<key>[=<value>]]   | Generic config get/set (cosmiconfig walk-up + env-paths). Yes — this exists at top level via mountConfigCommand from @silvery/config/commander. |
 
 ### Diagnostics + meta
 
-| Command                  | What                               |
-| ------------------------ | ---------------------------------- |
-| `km stats [path]`        | Repo statistics                    |
-| `km screenshot [root]`   | Capture TUI as text                |
-| `km perf analyze <file>` | Performance trace analysis         |
-| `km termtest`            | Visual terminal capability test    |
-| `km sh [root]`           | Scripting shell for TUI2 debugging |
-| `km agent`               | AI agent management                |
+| Command                | What                               |
+| ---------------------- | ---------------------------------- |
+| km stats [path]        | Repo statistics                    |
+| km screenshot [root]   | Capture TUI as text                |
+| km perf analyze <file> | Performance trace analysis         |
+| km termtest            | Visual terminal capability test    |
+| km sh [root]           | Scripting shell for TUI2 debugging |
+| km agent               | AI agent management                |
 
 ### Output convention (every list-shaped command should support)
 
@@ -129,14 +129,14 @@ After @km/cli/task-bd-collapse Wave 3, **lifecycle verbs are workflow
 transitions, NOT raw field writes**. They have validation,
 side-effects, and a distinct on-disk shape.
 
-| Verb                   | Sets `closed_at`? | Validates source state?                              | Notes                                             |
-| ---------------------- | ----------------- | ---------------------------------------------------- | ------------------------------------------------- |
-| `task close <id>`      | Yes (ISO now)     | Yes (rejects already-done)                           | Records optional `--reason` to `data.closeReason` |
-| `task drop <id>`       | Yes (ISO now)     | Yes (rejects already-dropped)                        | Records optional `--reason` to `data.dropReason`  |
-| `task reopen <id>`     | Clears it         | Yes (requires done/dropped)                          | Also clears assigned_to and reason markers        |
-| `task claim <id>`      | (untouched)       | Yes (rejects claimed-by-other; rejects done/dropped) | Sets status=wip, assigned_to=$USER                |
-| `task release <id>`    | (untouched)       | Yes (rejects unclaimed; rejects done/dropped)        | Clears assigned_to, sets status=todo              |
-| `set <id> status:done` | **No**            | **No**                                               | Raw field write — no closed_at, no validation     |
+| Verb                 | Sets closed_at? | Validates source state?                              | Notes                                         |
+| -------------------- | --------------- | ---------------------------------------------------- | --------------------------------------------- |
+| task close <id>      | Yes (ISO now)   | Yes (rejects already-done)                           | Records optional --reason to data.closeReason |
+| task drop <id>       | Yes (ISO now)   | Yes (rejects already-dropped)                        | Records optional --reason to data.dropReason  |
+| task reopen <id>     | Clears it       | Yes (requires done/dropped)                          | Also clears assigned_to and reason markers    |
+| task claim <id>      | (untouched)     | Yes (rejects claimed-by-other; rejects done/dropped) | Sets status=wip, assigned_to=$USER            |
+| task release <id>    | (untouched)     | Yes (rejects unclaimed; rejects done/dropped)        | Clears assigned_to, sets status=todo          |
+| set <id> status:done | No              | No                                                   | Raw field write — no closed_at, no validation |
 
 **Why the distinction**: `set status:done` is the escape hatch for
 power users who want a raw column write (e.g. fixing a corrupt status,
@@ -198,12 +198,12 @@ Tests pass even while silvery is mid-flight in vendor.
 
 ## Tests
 
-| Layer          | Where                                         | What                                                             |
-| -------------- | --------------------------------------------- | ---------------------------------------------------------------- |
-| Pure planner   | `apps/km-cli/tests/<verb>-plan.test.ts`       | Validation logic, error messages, field shapes                   |
-| Action handler | `apps/km-cli/tests/<verb>.test.ts`            | Planner + storage writer integration                             |
-| Property/fuzz  | `apps/km-cli/tests/<verb>-properties.test.ts` | L5 — random sequences, invariant pinning                         |
-| mdspec         | `apps/km-cli/tests/<verb>.spec.md`            | Command output, end-to-end, with `memory: true` for in-memory DB |
+| Layer          | Where                                       | What                                                           |
+| -------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| Pure planner   | apps/km-cli/tests/<verb>-plan.test.ts       | Validation logic, error messages, field shapes                 |
+| Action handler | apps/km-cli/tests/<verb>.test.ts            | Planner + storage writer integration                           |
+| Property/fuzz  | apps/km-cli/tests/<verb>-properties.test.ts | L5 — random sequences, invariant pinning                       |
+| mdspec         | apps/km-cli/tests/<verb>.spec.md            | Command output, end-to-end, with memory: true for in-memory DB |
 
 ```bash
 bun vitest run apps/km-cli/tests/                              # all

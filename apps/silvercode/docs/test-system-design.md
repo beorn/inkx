@@ -223,11 +223,13 @@ Every "we catch this" row in the matrix above has a companion mutation test in `
 3. Layout invariants — overflow, icon alignment, mode row, side panel visible, command input present.
 4. 7 canonical scenarios: welcome, helloWorld, multiTurn, bashTool, longToolResult, permissionRequest, markdownRich.
 5. 3 visual test files:
+
 - `visual/scenarios.test.tsx` — runs every scenario, asserts invariants + small fixture diff on key regions
 - `visual/markdown.test.tsx` — renders markdownRich at 4 widths, fixture diff per width
 - `visual/side-panel.test.tsx` — mode glyph + label + color per mode (parsed, not coordinate-based)
-14. 1 mutation test file: `visual/mutations.test.ts` — proves the above tests catch 5 concrete injected regressions.
-15. `regressions/` seed + README — culture mechanism for user-reported bugs.
+
+22. 1 mutation test file: `visual/mutations.test.ts` — proves the above tests catch 5 concrete injected regressions.
+23. `regressions/` seed + README — culture mechanism for user-reported bugs.
 
 ### v2 backlog (tracked as new beads)
 
@@ -328,11 +330,11 @@ Vitest's `toMatchSnapshot()` stores snapshots next to the test under `__snapshot
 New mini-skill: `.claude/skills/silvercode/regression-from-bug.md` (future work). Rule:
 
 > When silvercode rendering bug is reported, before fixing:
-> 
-> * Read the bug + reproduce interactively.
-> * Add a scenario OR a tests/regressions/<date>-<slug>.test.tsx that FAILS.
-> * Fix code.
-> * Test now passes; never delete the test.
+>
+> - Read the bug + reproduce interactively.
+> - Add a scenario OR a tests/regressions/<date>-<slug>.test.tsx that FAILS.
+> - Fix code.
+> - Test now passes; never delete the test.
 
 A single bead tag `silvercode-visual-regression` groups all such beads for pattern inventory.
 
@@ -392,12 +394,12 @@ Followups (new beads):
 
 Bead `km-silvercode.test-api-fakes` (closed 2026-04-24) extended ScriptedFakeSession's "fake the Claude session" coverage to every other third-party boundary the app touches. Each boundary now has a factory the harness installs before render and restores after.
 
-| Boundary           | What's faked                                                                       | Override entry point                                                                                            |
-| ------------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Claude CLI version | async spawn("claude", "--version") lazily on first <Suspense> consumer             | setVersionFactoryOverride() + SILVERCODE_FAKE_CLAUDE_VERSION env var (override resets the cached probe promise) |
-| Git branch         | .git/HEAD walk in gitBranchFor(cwd)                                                | setGitFactoryOverride((cwd) => name) + SILVERCODE_FAKE_BRANCH env var                                           |
-| Account / quota    | accountly's checkProfileQuota, keychain reads, ~/.cache/km/quota-*.json disk cache | setAccountFactoryOverride({ readCached, probe })                                                                |
-| Filesystem         | ~/.cache/km/, ~/.km/ writes                                                        | installFakes({ fsRoot }) allocates a tmp dir and overrides HOME + XDG_CACHE_HOME                                |
+| Boundary           | What's faked                                                                        | Override entry point                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Claude CLI version | async spawn("claude", "--version") lazily on first <Suspense> consumer              | setVersionFactoryOverride() + SILVERCODE_FAKE_CLAUDE_VERSION env var (override resets the cached probe promise) |
+| Git branch         | .git/HEAD walk in gitBranchFor(cwd)                                                 | setGitFactoryOverride((cwd) => name) + SILVERCODE_FAKE_BRANCH env var                                           |
+| Account / quota    | accountly's checkProfileQuota, keychain reads, ~/.cache/km/quota-\*.json disk cache | setAccountFactoryOverride({ readCached, probe })                                                                |
+| Filesystem         | ~/.cache/km/, ~/.km/ writes                                                         | installFakes({ fsRoot }) allocates a tmp dir and overrides HOME + XDG_CACHE_HOME                                |
 
 ### How the wiring lands without touching components
 
@@ -437,10 +439,10 @@ Bead `km-silvercode.test-live-mode` (closed 2026-04-24) introduces a parallel "r
 
 ### Invocation
 
-| Mode | Command                                                    | What runs                                                |
-| ---- | ---------------------------------------------------------- | -------------------------------------------------------- |
-| Fake | bun vitest run apps/silvercode/tests/                      | Default — every visual scenario via fakes                |
-| Live | SILVERCODE_REAL=1 bun vitest run --project silvercode-live | *.live.test.tsx only — real Claude CLI + accountly + git |
+| Mode | Command                                                    | What runs                                                 |
+| ---- | ---------------------------------------------------------- | --------------------------------------------------------- |
+| Fake | bun vitest run apps/silvercode/tests/                      | Default — every visual scenario via fakes                 |
+| Live | SILVERCODE_REAL=1 bun vitest run --project silvercode-live | \*.live.test.tsx only — real Claude CLI + accountly + git |
 
 ### Pattern
 
@@ -453,4 +455,3 @@ The live project lives at `silvercode-live` in `vitest.config.ts` and is exclude
 - **Welcome** — empty session, real spawnSync of `claude --version`, real `.git/HEAD` walk, real keychain quota read.
 - **Single-turn hello** — sends a literal "say hi" prompt to the real CLI, asserts an assistant glyph + non-empty body in the rendered frame.
 - **Quota display** — real accountly probe; asserts the SidePanel renders ≥1 QuotaWindow row (specific %s vary; we assert structure, not values).
-

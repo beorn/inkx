@@ -61,9 +61,9 @@ Formalize the existing FS split inside @km/storage into a package boundary. ~2-d
 2. Leave BaseStore + MemoryStore + SqliteStore + withReactive() in @km/storage (backend-agnostic)
 3. Enforce via tsconfig: @km/core + @km/storage fail typecheck if they import node:fs
 4. Update in-place reconciliation to inode-primary cascade per hub/km/storage-architecture.md §3
-  - Most primary/secondary signals already in watch/reconcile.ts + watch/node-differ.*
-  - This is a revision, not a rewrite
-5. Add fs_dev to KNode schema (required by §3.2 inode logic)
+- Most primary/secondary signals already in watch/reconcile.ts + watch/node-differ.*
+- This is a revision, not a rewrite
+11. Add fs_dev to KNode schema (required by §3.2 inode logic)
 
 ## Boundary
 

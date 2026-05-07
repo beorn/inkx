@@ -71,9 +71,7 @@ export function planClear(fields: readonly string[]): ClearFieldPlan {
     // Smart hint — suggest the canonical key on near-miss
     // (e.g. `prioirty` → "Did you mean `priority`?").
     const suggestion = suggestField(key, CLEARABLE_FIELD_KEYS)
-    warnings.push(
-      suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
-    )
+    warnings.push(suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`)
   }
   return { updates, warnings }
 }

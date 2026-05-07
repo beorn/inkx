@@ -1,6 +1,6 @@
 # Silvery Architecture
 
-> **The core innovation isn't "terminal rendering" — it's two-phase rendering with synchronous layout feedback.**
+> The core innovation isn't "terminal rendering" — it's two-phase rendering with synchronous layout feedback.
 
 This document describes Silvery's higher-level architecture and identifies where its patterns can add value beyond terminals.
 
@@ -8,11 +8,11 @@ This document describes Silvery's higher-level architecture and identifies where
 
 Silvery solves a universal problem across React renderers: **components can't know their size during render**.
 
-| Problem                                | React DOM               | React Native      | Silvery         |
-| -------------------------------------- | ----------------------- | ----------------- | --------------- |
-| Component knows its size during render | No                      | No                | **Yes**         |
-| Layout-dependent content               | Effect + ResizeObserver | onLayout callback | **Synchronous** |
-| Pluggable layout algorithm             | Browser only            | Yoga only         | **Any**         |
+| Problem                                | React DOM               | React Native      | Silvery     |
+| -------------------------------------- | ----------------------- | ----------------- | ----------- |
+| Component knows its size during render | No                      | No                | Yes         |
+| Layout-dependent content               | Effect + ResizeObserver | onLayout callback | Synchronous |
+| Pluggable layout algorithm             | Browser only            | Yoga only         | Any         |
 
 ### Prior Art
 
@@ -325,10 +325,10 @@ interface ComputedLayout {
 
 ### Current Engines
 
-| Engine                | Bundle Size | Speed       | Notes                         |
-| --------------------- | ----------- | ----------- | ----------------------------- |
-| **Flexily** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
-| **Yoga**              | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
+| Engine            | Bundle Size | Speed       | Notes                         |
+| ----------------- | ----------- | ----------- | ----------------------------- |
+| Flexily (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
+| Yoga              | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
 
 ## Package Decomposition (Future)
 
@@ -392,3 +392,4 @@ The architecture supports splitting into separate packages:
 
 - [roadmap.md](../vision/roadmap.md) - Maximum roadmap for future targets
 - [performance.md](performance.md) - Performance characteristics and optimization
+

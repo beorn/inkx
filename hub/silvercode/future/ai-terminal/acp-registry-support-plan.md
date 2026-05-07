@@ -32,39 +32,39 @@ OpenACP has shipped this. We can read their installer for the reference implemen
 
 ## The 31 agents (snapshot 2026-04-28)
 
-| id | version | dist | license |
-|---|---|---|---|
-| agoragentic-acp | 1.3.0 | npx | MIT |
-| amp-acp | 0.7.0 | binary | Apache-2.0 |
-| auggie | 0.24.0 | npx | proprietary |
-| autohand | 0.2.1 | npx | Apache-2.0 |
-| claude-acp | 0.31.3 | npx | proprietary |
-| cline | 2.17.0 | npx | Apache-2.0 |
-| codebuddy-code | 2.94.1 | npx | Proprietary |
-| codex-acp | 0.12.0 | binary, npx | Apache-2.0 |
-| cortex-code | 1.0.58 | binary | proprietary |
-| corust-agent | 0.5.1 | binary | GPL-3.0-or-later |
-| crow-cli | 0.1.20 | binary | Apache-2.0 |
-| cursor | 2026.03.30 | binary | proprietary |
-| deepagents | 0.1.7 | npx | MIT |
-| dirac | 0.3.1 | npx | Apache-2.0 |
-| factory-droid | 0.109.3 | npx | proprietary |
-| fast-agent | 0.6.25 | uvx | Apache-2.0 |
-| gemini | 0.39.1 | npx | Apache-2.0 |
-| github-copilot-cli | 1.0.38 | npx | proprietary |
-| goose | 1.32.0 | binary | Apache-2.0 |
-| junie | 1417.47.0 | binary | proprietary |
-| kilo | 7.2.25 | binary, npx | MIT |
-| kimi | 1.40.0 | binary | MIT |
-| minion-code | 0.1.44 | uvx | AGPL-3.0 |
-| mistral-vibe | 2.8.1 | binary | Apache-2.0 |
-| nova | 1.1.0 | npx | proprietary |
-| opencode | 1.14.28 | binary | MIT |
-| pi-acp | 0.0.26 | npx | MIT |
-| poolside | 1.0.0 | binary | proprietary |
-| qoder | 0.2.3 | npx | proprietary |
-| qwen-code | 0.15.4 | npx | Apache-2.0 |
-| stakpak | 0.3.77 | binary | Apache-2.0 |
+| id                 | version    | dist        | license          |
+| ------------------ | ---------- | ----------- | ---------------- |
+| agoragentic-acp    | 1.3.0      | npx         | MIT              |
+| amp-acp            | 0.7.0      | binary      | Apache-2.0       |
+| auggie             | 0.24.0     | npx         | proprietary      |
+| autohand           | 0.2.1      | npx         | Apache-2.0       |
+| claude-acp         | 0.31.3     | npx         | proprietary      |
+| cline              | 2.17.0     | npx         | Apache-2.0       |
+| codebuddy-code     | 2.94.1     | npx         | Proprietary      |
+| codex-acp          | 0.12.0     | binary, npx | Apache-2.0       |
+| cortex-code        | 1.0.58     | binary      | proprietary      |
+| corust-agent       | 0.5.1      | binary      | GPL-3.0-or-later |
+| crow-cli           | 0.1.20     | binary      | Apache-2.0       |
+| cursor             | 2026.03.30 | binary      | proprietary      |
+| deepagents         | 0.1.7      | npx         | MIT              |
+| dirac              | 0.3.1      | npx         | Apache-2.0       |
+| factory-droid      | 0.109.3    | npx         | proprietary      |
+| fast-agent         | 0.6.25     | uvx         | Apache-2.0       |
+| gemini             | 0.39.1     | npx         | Apache-2.0       |
+| github-copilot-cli | 1.0.38     | npx         | proprietary      |
+| goose              | 1.32.0     | binary      | Apache-2.0       |
+| junie              | 1417.47.0  | binary      | proprietary      |
+| kilo               | 7.2.25     | binary, npx | MIT              |
+| kimi               | 1.40.0     | binary      | MIT              |
+| minion-code        | 0.1.44     | uvx         | AGPL-3.0         |
+| mistral-vibe       | 2.8.1      | binary      | Apache-2.0       |
+| nova               | 1.1.0      | npx         | proprietary      |
+| opencode           | 1.14.28    | binary      | MIT              |
+| pi-acp             | 0.0.26     | npx         | MIT              |
+| poolside           | 1.0.0      | binary      | proprietary      |
+| qoder              | 0.2.3      | npx         | proprietary      |
+| qwen-code          | 0.15.4     | npx         | Apache-2.0       |
+| stakpak            | 0.3.77     | binary      | Apache-2.0       |
 
 _New since OpenACP's bundled snapshot (2026-04-28 vs ~2026-04-24): `agoragentic-acp`, `cortex-code`, `dirac`, `poolside`._
 
@@ -94,6 +94,7 @@ We already speak ACP via `@agentclientprotocol/sdk` (or our internal Claude wrap
 Each agent has its own auth model and feature surface. ACP's `AgentCapabilities` declaration handles most of it, but there are real gotchas:
 
 **Auth caveats by agent class** (verified 2026-04-26 — see `10-agent-router-landscape.md`):
+
 - **Claude (`claude-acp`)** — explicitly **blocks Claude.ai subscription accounts** in the official wrapper (`dist/acp-agent.js:1360` throws on `subscriptionType`). API-key auth only. **For Pro/Max users we have to wrap the `claude` binary's stream-json mode ourselves** — every Registry alternative inherits the same block.
 - **Codex (`codex-acp`)** — ChatGPT subscription supported; no remote-project OAuth (needs local browser).
 - **Gemini** — Google account OAuth (free tier 60 req/min, 1k req/day, no API key needed).
@@ -144,3 +145,4 @@ Total: ~3 sessions to cover all 31 registry agents + UI. Most of the work is plu
 - [acp-proxy.md](acp-proxy.md) — venture brainstorm
 - [hub/ventures/acp-proxy-2026-04-27.md](../../../ventures/acp-proxy-2026-04-27.md) — venture scoring
 - bead `km-silvercode.acp-comp-marketplace-dialogs` — UI scope (update with this snapshot)
+

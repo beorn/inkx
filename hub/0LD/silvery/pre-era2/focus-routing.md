@@ -1,6 +1,6 @@
 # Focus-Based Input Routing
 
-> **Deprecated (2026-03-16).** Deep dive into focus routing and context-key-based input dispatch. The focus/input architecture has been redesigned in Era 2. Superseded by [era2/04-input.md](../era2/04-input.md) (keymaps, `when()` predicates, dispatch pipeline).
+> Deprecated (2026-03-16). Deep dive into focus routing and context-key-based input dispatch. The focus/input architecture has been redesigned in Era 2. Superseded by era2/04-input.md (keymaps, when() predicates, dispatch pipeline).
 
 Prescribed pattern for command-driven apps built on Silvery. Routes all keyboard input through a centralized command/keybinding system using context predicates instead of per-component key handlers.
 
@@ -137,3 +137,4 @@ expect(normalResult).toBeNull() // No binding without textInputFocused
 | Help display   | Manually maintained           | Auto-generated from bindings  |
 | AI automation  | Opaque key sequences          | Command IDs + metadata        |
 | Testing        | Mount component + send keys   | Resolve binding from context  |
+

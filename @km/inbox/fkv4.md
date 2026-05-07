@@ -17,14 +17,14 @@ Create an end-to-end visual testing suite for the TUI using visual testing mode 
 
 1. **Test both TUI1 (Ink) and TUI2 (OpenTUI)** with a switch to select which to test
 2. **For each view mode** (List, Columns, Tabs):
-  - Moving between columns and cards
-  - Multi-select (Shift+j/k, A for progressive select)
-  - Overflow and non-overflow scenarios in both directions
-3. **Visual Critique**: For each captured screenshot:
-  - Check visual content against actual content systematically
-  - Look for layout defects (misalignment, clipping bugs)
-  - Verify selection highlighting appears correctly
-  - Check that content is readable and properly formatted
+- Moving between columns and cards
+- Multi-select (Shift+j/k, A for progressive select)
+- Overflow and non-overflow scenarios in both directions
+8. **Visual Critique**: For each captured screenshot:
+- Check visual content against actual content systematically
+- Look for layout defects (misalignment, clipping bugs)
+- Verify selection highlighting appears correctly
+- Check that content is readable and properly formatted
 
 ## Test Matrix
 

@@ -23,3 +23,4 @@ The combination of fast tests and isolated infrastructure prevents this entire c
 - [Fast Tests by Default](../principles.md#principle-5-second-test-loops) - In-memory infrastructure, <5s feedback loop
 - [Fail Fast](../principles.md#principle-fail-loud-fail-now) - Throw on programming errors immediately
 - [testing.md](../dev/testing.md) - Testing strategy and test types
+

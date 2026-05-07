@@ -71,16 +71,14 @@ Add `elevation={0|1|2|3}` to Box, which maps to theme tokens (`$bg`, `$surface`,
 ### Implementation Plan
 
 1. **Add `$default` to the theme color resolver**:
-   - In `resolveThemeColor()`, if token is `$default`, return a sentinel value (e.g., `"\x1b[49m"` or a special string like `__DEFAULT_BG__`).
-   - The render phase already handles `backgroundColor` — it would need to recognize the sentinel and emit `\x1b[49m` instead of a 24-bit color sequence.
-
-2. **Update the render phase** (`pipeline/render-text.ts` and `pipeline/render-phase.ts`):
-   - When a cell's `bg` is the sentinel, emit `\x1b[49m` (SGR 49 = default background) instead of `\x1b[48;2;R;G;Bm`.
-   - This is different from "no background" (transparent) — it actively resets to default.
-
-3. **Update ModalDialog default**:
-   - Change from `backgroundColor="$surface-bg"` to `backgroundColor="$surface-bg"` (keep current behavior, but document `$default` as an option).
-   - Applications can override: `<ModalDialog borderColor="$border" backgroundColor="$default">`.
+- In `resolveThemeColor()`, if token is `$default`, return a sentinel value (e.g., `"\x1b[49m"` or a special string like `__DEFAULT_BG__`).
+- The render phase already handles `backgroundColor` — it would need to recognize the sentinel and emit `\x1b[49m` instead of a 24-bit color sequence.
+5. **Update the render phase** (`pipeline/render-text.ts` and `pipeline/render-phase.ts`):
+- When a cell's `bg` is the sentinel, emit `\x1b[49m` (SGR 49 = default background) instead of `\x1b[48;2;R;G;Bm`.
+- This is different from "no background" (transparent) — it actively resets to default.
+9. **Update ModalDialog default**:
+- Change from `backgroundColor="$surface-bg"` to `backgroundColor="$surface-bg"` (keep current behavior, but document `$default` as an option).
+- Applications can override: `<ModalDialog borderColor="$border" backgroundColor="$default">`.
 
 ### Key Challenges
 
@@ -91,3 +89,4 @@ Add `elevation={0|1|2|3}` to Box, which maps to theme tokens (`$bg`, `$surface`,
 ### Effort Estimate
 
 Medium. Requires changes to the theme resolver, buffer cell representation, and output phase. Testing needs to verify the output escape sequences are correct across fullscreen and inline modes.
+

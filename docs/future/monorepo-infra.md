@@ -314,3 +314,4 @@ infra/                     # All shared config
 - [typescript-eslint Monorepos](https://typescript-eslint.io/troubleshooting/typed-linting/monorepos/) - TS linting in monorepos
 - [Nx](https://nx.dev/) - Zero-config project discovery
 - [@zemd/eslint-flat-config](https://github.com/zemd/eslint-flat-config) - Modern ESLint preset example
+

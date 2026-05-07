@@ -28,12 +28,12 @@ Content marketing plan for four developer tool websites. All content is AI-gener
 
 Each site publishes content in 4 categories:
 
-| Pillar          | Purpose                | Example                           |
-| --------------- | ---------------------- | --------------------------------- |
-| **Tutorials**   | Step-by-step guides    | "Build a Git TUI in 100 lines"    |
-| **Deep Dives**  | Architecture/internals | "How incremental rendering works" |
-| **Comparisons** | Honest evaluations     | "Silvery vs Ink: 2026 benchmark"  |
-| **Ecosystem**   | Community/integrations | "Using silvery with Zustand"      |
+| Pillar      | Purpose                | Example                           |
+| ----------- | ---------------------- | --------------------------------- |
+| Tutorials   | Step-by-step guides    | "Build a Git TUI in 100 lines"    |
+| Deep Dives  | Architecture/internals | "How incremental rendering works" |
+| Comparisons | Honest evaluations     | "Silvery vs Ink: 2026 benchmark"  |
+| Ecosystem   | Community/integrations | "Using silvery with Zustand"      |
 
 ### Voice & Tone
 
@@ -458,14 +458,14 @@ _Includes vt100.js and vterm.js content_
 
 ### Primary Channels
 
-| Channel       | Strategy                                       | Frequency       |
-| ------------- | ---------------------------------------------- | --------------- |
-| **Own blog**  | Canonical source, full SEO                     | 1/week per site |
-| **dev.to**    | Auto-cross-post via RSS, canonical back-link   | Same day        |
-| **Hashnode**  | Auto-cross-post via RSS, canonical back-link   | Same day        |
-| **Twitter/X** | Thread with key takeaways + link               | Same day        |
-| **HN**        | Manual submission for high-value articles      | 2-3/month total |
-| **Reddit**    | r/programming, r/typescript, r/terminal, r/cli | 2-3/month total |
+| Channel   | Strategy                                       | Frequency       |
+| --------- | ---------------------------------------------- | --------------- |
+| Own blog  | Canonical source, full SEO                     | 1/week per site |
+| dev.to    | Auto-cross-post via RSS, canonical back-link   | Same day        |
+| Hashnode  | Auto-cross-post via RSS, canonical back-link   | Same day        |
+| Twitter/X | Thread with key takeaways + link               | Same day        |
+| HN        | Manual submission for high-value articles      | 2-3/month total |
+| Reddit    | r/programming, r/typescript, r/terminal, r/cli | 2-3/month total |
 
 ### Subreddit Targeting
 
@@ -624,13 +624,13 @@ That's ~140 indexed pages from structured data. But we're leaving massive SEO va
 
 ### Estimated Page Count After Programmatic SEO
 
-| Site                | Current Pages | New Programmatic                          | Total    |
-| ------------------- | ------------- | ----------------------------------------- | -------- |
-| terminfo.dev        | ~140          | ~200 (comparisons + use-cases + adoption) | ~340     |
-| silvery.dev         | ~50 (docs)    | ~45 (components + protocols)              | ~95      |
-| beorn.codes/flexily | ~20 (docs)    | ~20 (properties)                          | ~40      |
-| termless.dev        | ~15 (docs)    | ~10 (backend pages)                       | ~25      |
-| **Total**           | **~225**      | **~275**                                  | **~500** |
+| Site                | Current Pages | New Programmatic                          | Total |
+| ------------------- | ------------- | ----------------------------------------- | ----- |
+| terminfo.dev        | ~140          | ~200 (comparisons + use-cases + adoption) | ~340  |
+| silvery.dev         | ~50 (docs)    | ~45 (components + protocols)              | ~95   |
+| beorn.codes/flexily | ~20 (docs)    | ~20 (properties)                          | ~40   |
+| termless.dev        | ~15 (docs)    | ~10 (backend pages)                       | ~25   |
+| Total               | ~225          | ~275                                      | ~500  |
 
 500 indexed URLs from structured data — no manual writing needed. This is the Greg Isenberg "1000+ pages in 52 minutes" approach applied to our ecosystem.
 
@@ -770,13 +770,13 @@ Build authority and thought leadership. Alternate between silvery.dev narrative 
 
 ### Full Timeline Summary
 
-| Phase                      | Weeks | Output                                               | Type         |
-| -------------------------- | ----- | ---------------------------------------------------- | ------------ |
-| **0: Infrastructure**      | 1-2   | SEO foundations, blog setup, newsletter              | Setup        |
-| **1: Programmatic Blitz**  | 3-5   | ~290 generated pages on terminfo.dev                 | Programmatic |
-| **2: First Editorial**     | 4-8   | 12 hand-crafted articles                             | Editorial    |
-| **3: Origin + Deep Dives** | 9-14  | 12 articles (silvery narrative + terminfo reference) | Editorial    |
-| **4: Sustained**           | 15+   | 1/week alternating sites                             | Ongoing      |
+| Phase                  | Weeks | Output                                               | Type         |
+| ---------------------- | ----- | ---------------------------------------------------- | ------------ |
+| 0: Infrastructure      | 1-2   | SEO foundations, blog setup, newsletter              | Setup        |
+| 1: Programmatic Blitz  | 3-5   | ~290 generated pages on terminfo.dev                 | Programmatic |
+| 2: First Editorial     | 4-8   | 12 hand-crafted articles                             | Editorial    |
+| 3: Origin + Deep Dives | 9-14  | 12 articles (silvery narrative + terminfo reference) | Editorial    |
+| 4: Sustained           | 15+   | 1/week alternating sites                             | Ongoing      |
 
 **6-month total**: ~290 programmatic pages + ~36 editorial articles + infrastructure = **~330 new indexed URLs**
 
@@ -802,13 +802,9 @@ _Full review: `/tmp/llm-f8196c1c-review-this-content-marketing-n1r1.txt` ($5.29,
 ### Critical Adjustments
 
 1. **Cut volume dramatically**: 200 blog posts is unrealistic at quality. Target **24-40 truly strong pages in 6 months** + structured reference pages on terminfo.dev. Aim for "200 URLs over time" (docs, references, matrices, examples) not "200 blog posts."
-
 2. **Make terminfo.dev co-first with silvery.dev**: terminfo has the clearest search intent, strongest linkability, best chance of becoming a reference site, and data competitors don't have. Recommended effort split: **terminfo 40%, silvery 35%, termless 15%, flexily 10%**.
-
 3. **Shift from "AI-generated" to "expert-reviewed proof content"**: Developer audiences are allergic to generic AI copy. Better framing: "Drafted with AI assistance, reviewed and tested by the maintainers." Add: test status, versions, benchmark repo, reviewer name.
-
 4. **Four blogs dilute authority**: Consider a shared editorial hub/newsletter for the ecosystem, with docs remaining on each product site.
-
 5. **Missing distribution channels**: GitHub-native distribution (README links, Discussions, release notes), Lobsters, newsletters (JS/TS/React/testing), email capture/digest, Bluesky.
 
 ### Revised Priority Order (First 12 Articles)
@@ -935,10 +931,10 @@ The story of building a TUI framework from scratch, told without exposing the dr
 | A2  | From Monolith to Plugins: When Your Renderer Outgrows Itself | Testing needed a virtual renderer. Desktop targets needed adapters. The monolith was good for one use case but brittle for others.                                                                  | origin, refactoring    |
 | A3  | The 100x Rendering Optimization We Didn't Plan               | Per-node dirty flags (7 independent flags) + cell-level compositing. Incremental rendering emerged from separating layout, render, and paint into three independent phases.                         | origin, performance    |
 | A4  | How Terminal Protocols Became Our Secret Weapon              | We started with basic ANSI. Then discovered Kitty keyboard, SGR mouse, synchronized output, OSC hyperlinks — 100+ sequences that make terminal apps feel native. Auto-negotiation made it seamless. | origin, protocols      |
-| A5  | The Silvery Way: 10 Principles That Emerged From Building    | Each principle solves a real failure mode we hit. SelectList vs manual cursor tracking. Theme tokens vs hardcoded ANSI. `using` cleanup vs memory leaks.                                            | origin, principles     |
+| A5  | The Silvery Way: 10 Principles That Emerged From Building    | Each principle solves a real failure mode we hit. SelectList vs manual cursor tracking. Theme tokens vs hardcoded ANSI. using cleanup vs memory leaks.                                              | origin, principles     |
 | A6  | Framework Independence: The Day We Split React Out           | The renderer doesn't care about React. Same node tree works for Svelte, Solid, even Canvas. Splitting into @silvery/ag + @silvery/ag-react + @silvery/ag-term unlocked everything.                  | origin, architecture   |
-| A7  | Pure State Machines: When Components Stopped Needing React   | SelectList, TextInput, CommandPalette — all became pure `(action, state) → state` functions. Same machine works in React, DOM, headless servers, and AI agents.                                     | origin, state-machines |
-| A8  | Designing a Plugin System That Composes Like Unix Pipes      | `pipe(create(), withAg(), withTerm(), withReact())` — each plugin wraps the previous apply(). No registration, no globals, no god objects.                                                          | origin, composition    |
+| A7  | Pure State Machines: When Components Stopped Needing React   | SelectList, TextInput, CommandPalette — all became pure (action, state) → state functions. Same machine works in React, DOM, headless servers, and AI agents.                                       | origin, state-machines |
+| A8  | Designing a Plugin System That Composes Like Unix Pipes      | pipe(create(), withAg(), withTerm(), withReact()) — each plugin wraps the previous apply(). No registration, no globals, no god objects.                                                            | origin, composition    |
 
 ### Series B: Terminal History & Lore (terminfo.dev)
 
@@ -949,7 +945,7 @@ Deep historical research with surprising facts. The kind of content developers s
 | B1  | Why Your Terminal Is 80 Characters Wide: A Story Starting in 1928 | Punch cards → IBM 3270 sonic delay lines → MOS shift registers → 80x24. The chain of causation from 1928 to every terminal today.                                                                                                                     | history, standards       |
 | B2  | ANSI Escape Codes Aren't ANSI: The Standard Was Withdrawn in 1994 | ECMA committee (European) and ANSI committee (American) produced "nearly identical" standards, merged into ISO 6429. ANSI withdrew its own standard. The name persists from 1979.                                                                     | history, standards       |
 | B3  | One Person, 30 Years: The Thomas Dickey Story                     | Thomas Dickey has maintained xterm, ncurses, AND terminfo since 1996. The most extreme example of critical OSS infrastructure maintained by one individual.                                                                                           | history, people          |
-| B4  | The $TERM Deception: Why Every Terminal Pretends to Be xterm      | When Ghostty experimented with a pure `ghostty` TERM value, too many apps broke because they string-search for "xterm". Every new terminal must pretend.                                                                                              | compatibility, standards |
+| B4  | The $TERM Deception: Why Every Terminal Pretends to Be xterm      | When Ghostty experimented with a pure ghostty TERM value, too many apps broke because they string-search for "xterm". Every new terminal must pretend.                                                                                                | compatibility, standards |
 | B5  | How a Game Created the Terminal Library Stack                     | curses was written at Berkeley ~1980 specifically to support Rogue. Bill Joy created termcap in 1978 to support vi. The entire terminal UI stack exists because of a dungeon crawler.                                                                 | history, games           |
 | B6  | From C to Zig: 40 Years of Terminal Emulator Languages            | xterm (C, 1984) → Kitty (C+Python, 2017) → Alacritty (Rust, 2017) → WezTerm (Rust, 2018) → Ghostty (Zig, 2024). What each language brought to terminal development.                                                                                   | history, languages       |
 | B7  | The Great Terminal Renaissance: Why 2017 Changed Everything       | Alacritty proved GPU rendering could dramatically improve performance. Kitty invented new protocols. WezTerm replaced tmux. Then Ghostty arrived aiming for total spec compliance. More innovation in 7 years than the previous 20.                   | history, modern          |
@@ -963,7 +959,7 @@ The most surprising, magical, and forgotten terminal capabilities. Each article 
 
 | #   | Title                                                                                  | Surprise Factor                                                                                                                                                                                                        | Tags                        |
 | --- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| C1  | Your Terminal Talks Back: Device Status Reports and Mode Queries                       | 5/5 — Send `ESC [ 5 n` and the terminal responds "I'm OK." Send `ESC [ ? 2004 $ p` and it tells you if bracketed paste is on. Terminal introspection is real.                                                          | protocol, bidirectional     |
+| C1  | Your Terminal Talks Back: Device Status Reports and Mode Queries                       | 5/5 — Send ESC [ 5 n and the terminal responds "I'm OK." Send ESC [ ? 2004 $ p and it tells you if bracketed paste is on. Terminal introspection is real.                                                              | protocol, bidirectional     |
 | C2  | OSC 52: The Escape Sequence That Reads Your Clipboard Over SSH                         | 5/5 — Any terminal process can read/write your system clipboard. Magic for remote work. Terrifying for security. Most terminals now disable read access by default.                                                    | protocol, security          |
 | C3  | Ctrl+I and Tab Have Been Identical Since the 1970s (Kitty Keyboard Protocol)           | 5/5 — Traditional terminal input is fundamentally broken. Same byte for Ctrl+I/Tab, Ctrl+M/Enter, Escape/escape-sequence-start. Applications use timing hacks. Kitty fixed it with opt-in progressive enhancement.     | protocol, keyboard          |
 | C4  | Sixel Graphics: Terminal Images From 1983, Now Making a Comeback                       | 5/5 — DEC invented inline terminal graphics for the VT240. 6 vertical pixels per character. Designed for dot-matrix printers. Now revived in modern terminals. gnuplot has a Sixel driver with truecolor and TrueType. | protocol, graphics          |
@@ -991,7 +987,7 @@ Technical architecture series explaining silvery's plugin-based composition syst
 
 | #   | Title                                                                  | Description                                                                                                                                                                                  | Tags                        |
 | --- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| E1  | One Pipeline, Many Platforms: Decoupling Rendering from Frameworks     | The plugin composition model. `pipe(create(), withAg(), withTerm(), withReact())`. Each plugin wraps dispatch/apply. Swap withReact() for withSvelte(), swap withTerm() for withWeb().       | architecture, composition   |
+| E1  | One Pipeline, Many Platforms: Decoupling Rendering from Frameworks     | The plugin composition model. pipe(create(), withAg(), withTerm(), withReact()). Each plugin wraps dispatch/apply. Swap withReact() for withSvelte(), swap withTerm() for withWeb().         | architecture, composition   |
 | E2  | Three Levels of Framework, One Gradient of Adoption                    | Foundation → Rendering → App. Not every app needs signals or commands. Start with useState, upgrade when needed. Most frameworks are all-or-nothing; this isn't.                             | architecture, progressive   |
 | E3  | Five Graphs: How a TUI App's Architecture Interconnects                | Plugin chain (Stack), Ag node tree (Tree), Reactive data graph (DAG), Command tree (Tree), Async scope tree (Tree). How a keypress traverses all five.                                       | architecture, graphs        |
 | E4  | TextFrame: The Immutable Cell Grid That Tests Everything               | Immutable snapshots of terminal output. Bridges rendering and testing. Same TextFrame works for terminal, canvas, and DOM. Simple idea, huge impact.                                         | architecture, testing       |
@@ -999,3 +995,4 @@ Technical architecture series explaining silvery's plugin-based composition syst
 | E6  | Commands as Data: Decoupling Behavior from State                       | Commands are functions + optional args schema, not state-aware actions. Work with any state system (signals, Zustand, useState). Same commands for keyboard, menu, AI agent.                 | architecture, commands      |
 | E7  | The Framework × Platform Matrix: Rendering to Terminal, Web, or Canvas | One codebase, multiple targets. React + Terminal (today), React + Web (future), Svelte + Terminal (future). Closable gaps vs fundamental gaps.                                               | architecture, composability |
 | E8  | The Decision Log: 37 Architectural Choices and Why We Made Them        | Append-only, numbered, cross-referenceable. alien-signals (D26), callable accessors (D29), state-agnostic commands (D30), era2a/era2b split (D37). Decision logs as living design artifacts. | architecture, process       |
+

@@ -29,12 +29,12 @@ General-purpose backend for auto-updating internal links when files/sections are
 | Format          | Example                     | Notes          |
 | --------------- | --------------------------- | -------------- |
 | Wiki link       | [[note]]                    | Basic          |
-| Aliased         | [[note\|display]]           | Pipe separator |
+| Aliased         | [[note\\|display]]          | Pipe separator |
 | Section         | [[note#heading]]            | Heading anchor |
-| Section aliased | [[note#heading\|text]]      | Combined       |
+| Section aliased | [[note#heading\\|text]]     | Combined       |
 | Embed           | ![[note]] or ![[image.png]] | Obsidian embed |
-| Markdown link   | [text](path.md)             | Standard       |
-| Relative path   | [text](../folder/file.md)   | Cross-folder   |
+| Markdown link   | text                        | Standard       |
+| Relative path   | text                        | Cross-folder   |
 
 ## Refactoring Operations
 

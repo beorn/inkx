@@ -67,6 +67,7 @@ The originating insight: standardize the seam, ship the integrations once.
 ACP (Agent Client Protocol) is to coding-agent traffic what OpenRouter is to LLM-API traffic and what LSP is to language traffic.
 
 silvercode today is **already** a proxy in shape, just not in name:
+
 - Speaks ACP downstream (to spawned codex-acp, gemini-cli, claude-acp, copilot, pi-acp).
 - Owns the conversation with the user.
 - Aggregates cross-session state (CrossAgentState).
@@ -134,6 +135,7 @@ What it costs:
 This is qualitatively different from §3.1–3.3 (transforms, security, observability) — those are mostly stateless. A persistent LLM sub-agent in the proxy is a **new architectural primitive**: not a rule, not a route, not a cache — a co-resident agent that thinks alongside the foreground agent and pushes deltas into its prompt.
 
 Other candidates for proxy-hosted persistent sub-agents (same shape, different purpose):
+
 - **Compiler / type-check / lint sub-agent** — watches edits, runs checkers, surfaces issues as ambient
 - **Critic sub-agent** — second opinion on every plan, raises concerns when it disagrees (`/pro`-as-always-on)
 - **Style/convention sub-agent** — knows the codebase's patterns, flags drift before commit
@@ -220,18 +222,18 @@ Multi-agent systems fail in predictable ways — both edit the same file, both c
 
 **Coordination primitives the proxy exposes:**
 
-| Primitive | Solves |
-|---|---|
-| **Plan / todo board** | Unified task list across agents; humans see who's doing what |
-| **Atomic claim** | Two agents can't both pick "refactor extractBody" |
-| **Dependencies** | "Task B blocks on task A"; gateway computes critical path |
-| **Soft locks** | "I'm editing src/foo.ts" — advisory, agents avoid stomping |
-| **Hard locks** | "No other agent runs migrations until I'm done" — enforced |
-| **Progress events** | "30% done with refactor"; humans see real burndown |
-| **Decisions** | "We decided approach X" — canonical, queryable, inherited by future sessions |
-| **Findings** | "While doing this, I learned Y" — knowledge accumulates passively |
-| **Notifications / handoffs** | "@codex done with my part — your turn" |
-| **Asks** | "I need human decision on Z before continuing" — queues, doesn't block other agents |
+| Primitive                | Solves                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| Plan / todo board        | Unified task list across agents; humans see who's doing what                        |
+| Atomic claim             | Two agents can't both pick "refactor extractBody"                                   |
+| Dependencies             | "Task B blocks on task A"; gateway computes critical path                           |
+| Soft locks               | "I'm editing src/foo.ts" — advisory, agents avoid stomping                          |
+| Hard locks               | "No other agent runs migrations until I'm done" — enforced                          |
+| Progress events          | "30% done with refactor"; humans see real burndown                                  |
+| Decisions                | "We decided approach X" — canonical, queryable, inherited by future sessions        |
+| Findings                 | "While doing this, I learned Y" — knowledge accumulates passively                   |
+| Notifications / handoffs | "@codex done with my part — your turn"                                              |
+| Asks                     | "I need human decision on Z before continuing" — queues, doesn't block other agents |
 
 **Patterns this enables:**
 
@@ -350,6 +352,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 ### Concrete topologies
 
 **A. In-silvercode (local, in-process)**
+
 - Host: silvercode app, same process
 - Events: subscribe to the session-store directly
 - Delta: ambient channel queue → prompt-assembly
@@ -358,6 +361,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - This is the v1 default for mem-thought.
 
 **B. Tribe-daemon-hosted (local, out-of-process)**
+
 - Host: `bun tribe daemon` (already running per machine)
 - Events: tribe wire (silvercode forwards events; daemon owns state)
 - Delta: tribe push → silvercode injects as ambient
@@ -366,6 +370,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Natural Phase-2 shape after A.
 
 **C. ACP-proxy-hosted (cloud agent-in-the-middle)**
+
 - Host: cloud proxy on the ACP wire
 - Events: intercepts ACP traffic between silvercode and foreground agent
 - Delta: prompt augmentation in-flight (transparent to client)
@@ -374,6 +379,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - The §3.4 / §6.d agent-in-the-middle play.
 
 **D. MCP server (passive memory service)**
+
 - Host: anywhere — local daemon or cloud
 - Events: subscribed to incoming MCP traffic
 - Delta: exposes `memory.subscribe`, `memory.query` MCP tools — foreground polls
@@ -382,6 +388,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Trades reactivity for universality.
 
 **E. Editor extension / VSCode plugin**
+
 - Host: IDE extension process
 - Events: hooks into editor APIs (file changes, diagnostics, terminal output)
 - Delta: ambient sidebar pane + optional MCP push to active agent
@@ -390,6 +397,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Same architectural pattern, different distribution surface.
 
 **F. Per-repo daemon (autostart on `cd`)**
+
 - Host: small daemon started per-repo (direnv hook or git-aware wrapper)
 - Events: file-watcher + git-hooks + LSP introspection
 - Delta: writes to a per-repo file or local socket; clients pull
@@ -397,6 +405,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Best for: persistent repo-scoped knowledge that any tool can consult; long-lived state independent of any IDE session
 
 **G. Federated / matrix-shape (peer-to-peer team)**
+
 - Host: per-developer machine, sub-agents sync state via tribe matrix-shape
 - Events: own session + peer broadcasts
 - Delta: emits locally, federated sync to teammates' sub-agents
@@ -405,6 +414,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Aligns with the matrix-shape direction already in tribe.
 
 **H. Hybrid local + cloud**
+
 - Host: local sub-agent for index + private state, cloud sub-agent for compute-heavy LLM steps
 - Events: local watches, cloud receives summaries
 - Delta: local injects into foreground; cloud assists local on demand
@@ -412,6 +422,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Best for: privacy-sensitive code + budget-conscious LLM compute (cloud has cheaper big-model access via prompt cache pools)
 
 **I. Browser extension / web-AI sidecar**
+
 - Host: browser extension
 - Events: observes user's chats with web-based AI tools (ChatGPT, Claude.ai, Cursor web)
 - Delta: side panel + optional clipboard injection
@@ -420,6 +431,7 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 - Different distribution but same agent shape.
 
 **J. Phone / sidecar device (always-on personal)**
+
 - Host: phone app or always-on home device
 - Events: push notifications from any tool that can reach it
 - Delta: query API
@@ -429,18 +441,18 @@ The choice isn't "where does mem-thought live"; it's "where does *each* persiste
 
 ### Tradeoff matrix
 
-| Topology | Latency | Privacy | Multi-agent | Multi-machine | Multi-tenant | Engineering complexity |
-|---|---|---|---|---|---|---|
-| A in-silvercode | very low | strong | one app | no | no | low |
-| B tribe daemon | low | strong | per-machine | no | no | medium |
-| C ACP proxy cloud | medium | weak | yes | yes | yes | high |
-| D MCP server | low–medium | configurable | yes | yes | yes | medium |
-| E IDE extension | low | strong | one editor | no | no | medium |
-| F per-repo daemon | low | strong | tool-agnostic | no | no | medium |
-| G federated/matrix | medium | strong | yes | yes (team) | no | high |
-| H hybrid local+cloud | medium | medium | yes | partial | partial | high |
-| I browser extension | low | configurable | one browser | yes (account) | no | medium |
-| J phone/sidecar | high | strong | yes | yes | no | high |
+| Topology             | Latency    | Privacy      | Multi-agent   | Multi-machine | Multi-tenant | Engineering complexity |
+| -------------------- | ---------- | ------------ | ------------- | ------------- | ------------ | ---------------------- |
+| A in-silvercode      | very low   | strong       | one app       | no            | no           | low                    |
+| B tribe daemon       | low        | strong       | per-machine   | no            | no           | medium                 |
+| C ACP proxy cloud    | medium     | weak         | yes           | yes           | yes          | high                   |
+| D MCP server         | low–medium | configurable | yes           | yes           | yes          | medium                 |
+| E IDE extension      | low        | strong       | one editor    | no            | no           | medium                 |
+| F per-repo daemon    | low        | strong       | tool-agnostic | no            | no           | medium                 |
+| G federated/matrix   | medium     | strong       | yes           | yes (team)    | no           | high                   |
+| H hybrid local+cloud | medium     | medium       | yes           | partial       | partial      | high                   |
+| I browser extension  | low        | configurable | one browser   | yes (account) | no           | medium                 |
+| J phone/sidecar      | high       | strong       | yes           | yes           | no           | high                   |
 
 ### Mapping topologies to sub-agent jobs
 
@@ -546,19 +558,19 @@ The 2026 competitive landscape sorts cleanly into four positions in the agent st
 
 ### Where each 2026 competitor sits
 
-| Product / category | P1 host | P2 proxy | P3 sub-agent | P4 coord | Notes |
-|---|---|---|---|---|---|
-| **Foreground CLI agents** (Claude Code, Codex, Gemini, Cursor, Cline, Aider, Goose, OpenHands, Qwen, pi, Continue, Codebuff) | ❌ | ❌ | ❌ | ❌ | Above us — they're what we host |
-| **Hermes Agent** (Nous, Feb 2026) | ❌ | ❌ | partial — self-managed memory + skills (Tier 1+4 only) | ❌ | Closest single-agent memory product; doesn't span |
-| **gbrain** (Garry Tan, v0.9) | ❌ | ❌ | partial — 3 of 4 tiers (Tier 1+2+4 for personal-life corpus; Tier 3 absent) | ❌ | Closest framework validation; same architecture, different corpus |
-| **Kilo Code** (Kilo-Org) | partial — VS Code + CLI multi-model | ❌ | ❌ | ❌ | Closest multi-model agent; not ACP-host-shaped |
-| **OpenRouter** | ❌ | partial — transform-only | ❌ | ❌ | Pure model router |
-| **LiteLLM Proxy / Portkey / Helicone / Vercel AI Gateway / LangSmith** | ❌ | partial — transform-only | ❌ | ❌ | LLM gateways, no agent state |
-| **MCP servers / Continue** | ❌ | ❌ | partial — pull tools | ❌ | Client-side orchestration, not a proxy |
-| **AutoGen / CrewAI** | partial — multi-role | ❌ | ❌ | ❌ | Same-process orchestration; not IDE/proxy |
-| **LangGraph Cloud** | ❌ | ❌ | partial — could build | ❌ | Framework, not packaged product with shape |
-| **Vercel chat-sdk** | ❌ | ❌ | ❌ | ❌ | Chatbot transport, different layer |
-| **silvercode + tribe** | ✅ ships | 🎯 in design | 🎯 mem-thought v1 next | ✅ ships (matrix-shape designed) | Spans all four |
+| Product / category                                                                                                       | P1 host                             | P2 proxy                 | P3 sub-agent                                                                | P4 coord                        | Notes                                                             |
+| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------ | --------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------- |
+| Foreground CLI agents (Claude Code, Codex, Gemini, Cursor, Cline, Aider, Goose, OpenHands, Qwen, pi, Continue, Codebuff) | ❌                                   | ❌                        | ❌                                                                           | ❌                               | Above us — they're what we host                                   |
+| Hermes Agent (Nous, Feb 2026)                                                                                            | ❌                                   | ❌                        | partial — self-managed memory + skills (Tier 1+4 only)                      | ❌                               | Closest single-agent memory product; doesn't span                 |
+| gbrain (Garry Tan, v0.9)                                                                                                 | ❌                                   | ❌                        | partial — 3 of 4 tiers (Tier 1+2+4 for personal-life corpus; Tier 3 absent) | ❌                               | Closest framework validation; same architecture, different corpus |
+| Kilo Code (Kilo-Org)                                                                                                     | partial — VS Code + CLI multi-model | ❌                        | ❌                                                                           | ❌                               | Closest multi-model agent; not ACP-host-shaped                    |
+| OpenRouter                                                                                                               | ❌                                   | partial — transform-only | ❌                                                                           | ❌                               | Pure model router                                                 |
+| LiteLLM Proxy / Portkey / Helicone / Vercel AI Gateway / LangSmith                                                       | ❌                                   | partial — transform-only | ❌                                                                           | ❌                               | LLM gateways, no agent state                                      |
+| MCP servers / Continue                                                                                                   | ❌                                   | ❌                        | partial — pull tools                                                        | ❌                               | Client-side orchestration, not a proxy                            |
+| AutoGen / CrewAI                                                                                                         | partial — multi-role                | ❌                        | ❌                                                                           | ❌                               | Same-process orchestration; not IDE/proxy                         |
+| LangGraph Cloud                                                                                                          | ❌                                   | ❌                        | partial — could build                                                       | ❌                               | Framework, not packaged product with shape                        |
+| Vercel chat-sdk                                                                                                          | ❌                                   | ❌                        | ❌                                                                           | ❌                               | Chatbot transport, different layer                                |
+| silvercode + tribe                                                                                                       | ✅ ships                             | 🎯 in design             | 🎯 mem-thought v1 next                                                      | ✅ ships (matrix-shape designed) | Spans all four                                                    |
 
 **No 2026 competitor spans all four positions.** Hermes is the closest single-quadrant match (P3 partial, self-managed). Kilo is the closest hybrid agent (partial P1). Everything else is single-position.
 
@@ -572,6 +584,7 @@ Each individual position has at least one competitor. Some have many. **The prod
 - **P4 (coordination) without P1/P2/P3** = Slack/Discord — agent-coordination via human comms, not infrastructure
 
 silvercode + tribe + the persistent-sub-agent platform + the proxy deployment topology = the only shape that **multiplies** across positions:
+
 - Any P3 sub-agent (memory, critic, lint, ...) deployed via P2 (cloud proxy) reaches every user of every P1-hosted agent
 - P4 coordination (tribe wire) lets P3 sub-agents share state across P1 hosts
 - P1 host quality improves as P3 sub-agents accumulate (richer ambient context)
@@ -592,16 +605,16 @@ The product narrative is: **silvercode is to agents what kubectl is to container
 
 A /deep prior-art audit on the persistent-sub-agent composition found **no exact match** in the gateway/proxy market. Specifically:
 
-| Product | Category | Hosts persistent stateful sub-agent? |
-|---|---|---|
-| OpenRouter | LLM router | ❌ stateless |
-| LiteLLM Proxy | LLM gateway | ❌ stateless |
-| Portkey | LLM gateway | ❌ stateless |
-| Helicone | LLM observability | ❌ stateless |
-| Vercel AI Gateway | LLM gateway | ❌ stateless |
-| LangSmith | tracing/observability | ❌ stateless |
-| LangGraph Cloud | stateful agent graphs | ⚠️ could *build* it, not packaged |
-| MCP servers / Continue | client-side orchestration | ❌ no proxy |
+| Product                | Category                  | Hosts persistent stateful sub-agent? |
+| ---------------------- | ------------------------- | ------------------------------------ |
+| OpenRouter             | LLM router                | ❌ stateless                          |
+| LiteLLM Proxy          | LLM gateway               | ❌ stateless                          |
+| Portkey                | LLM gateway               | ❌ stateless                          |
+| Helicone               | LLM observability         | ❌ stateless                          |
+| Vercel AI Gateway      | LLM gateway               | ❌ stateless                          |
+| LangSmith              | tracing/observability     | ❌ stateless                          |
+| LangGraph Cloud        | stateful agent graphs     | ⚠️ could build it, not packaged      |
+| MCP servers / Continue | client-side orchestration | ❌ no proxy                           |
 
 The gap is unique to the agent-protocol layer (ACP/MCP). LLM-API gateways exist; agent-protocol *transform* gateways exist (the §3.1–3.3 capabilities). What doesn't exist: gateways that **host persistent LLM sub-agents** that watch session events and emit deltas to the foreground agent.
 
@@ -664,13 +677,13 @@ done
 npm view @beorno/chatly version
 ```
 
-| Theme | Reserved (all live, all `0.0.1`) | What it evokes |
-|---|---|---|
-| **ACP-direct** | `acproxy`, `acplane`, `acplex`, `acpdock`, `acpmux`, `proxyacp` | Literal — what the thing is. Highest signal-to-search-friction. `acproxy` is the simplest. |
-| **Agent-prefix** | `agentplex`, `agentward`, `interagent`, `crossagent`, `agentanywhere` | Broader brand — works if upstream goes beyond ACP (e.g., A2A, future agent protocols). |
-| **`-ly` suffix family** | `fleetly`, `brokerly` | Matches `silvery` / `bearly` / `loggily` / `accountly`. Best continuity with the existing house style. |
-| **Ambient / observation** | `overhear`, `overheard` | "I overheard that…" — the framing the agent uses for ambient blocks. Brandable beyond ACP into general observation infrastructure. |
-| **Location-aware** | `aiwhere`, `aianywhere` | The "AI runs anywhere" pitch — works if cross-machine federation matures. |
+| Theme                 | Reserved (all live, all 0.0.1)                              | What it evokes                                                                                                                     |
+| --------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ACP-direct            | acproxy, acplane, acplex, acpdock, acpmux, proxyacp         | Literal — what the thing is. Highest signal-to-search-friction. acproxy is the simplest.                                           |
+| Agent-prefix          | agentplex, agentward, interagent, crossagent, agentanywhere | Broader brand — works if upstream goes beyond ACP (e.g., A2A, future agent protocols).                                             |
+| -ly suffix family     | fleetly, brokerly                                           | Matches silvery / bearly / loggily / accountly. Best continuity with the existing house style.                                     |
+| Ambient / observation | overhear, overheard                                         | "I overheard that…" — the framing the agent uses for ambient blocks. Brandable beyond ACP into general observation infrastructure. |
+| Location-aware        | aiwhere, aianywhere                                         | The "AI runs anywhere" pitch — works if cross-machine federation matures.                                                          |
 
 **Maintenance note**: these are placeholder publishes. They have no `repository` field, no real `package.json` content, no README. When the actual product ships, the chosen name's published artifact gets replaced with a real package; the unused names stay as 0.0.1 squats. If a real owner emerges who wants one of the unused names and contacts us, transfer is cheap and worth doing.
 
@@ -717,3 +730,4 @@ These were on the candidate list but skipped — either because the unscoped nam
 
 - [openacp-deep-dive-2026-04-28.md](openacp-deep-dive-2026-04-28.md) — closest prior art (chat-platform bridge, mid-conversation `/switch` with context carry-over). Architectural validation for this venture; their wedge does NOT overlap ours (chat vs editor, single-user vs multi-tenant, no coordination layer).
 - [acp-registry-support-plan.md](acp-registry-support-plan.md) — silvercode plan to consume all 31 ACP Registry agents (npx + binary + uvx distributions), 3-phase rollout.
+

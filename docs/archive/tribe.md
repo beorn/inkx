@@ -1,10 +1,10 @@
 # Tribe Design — ARCHIVED from km 2026-04-17
 
-> **Tribe is a [bearly](../../vendor/bearly/plugins/tribe/) plugin**, not a km concern. This 868-line design doc lived in km's docs for historical reasons; the content belongs in `vendor/bearly/plugins/tribe/` if bearly wants a detailed design companion to its README.
+> Tribe is a bearly plugin, not a km concern. This 868-line design doc lived in km's docs for historical reasons; the content belongs in vendor/bearly/plugins/tribe/ if bearly wants a detailed design companion to its README.
 
-# Tribe: Cross-Session Coordination for Claude Code
+## Tribe: Cross-Session Coordination for Claude Code
 
-> **Status: Phase 1 implemented** — Channel plugin at `vendor/bearly/tools/tribe.ts`, tests at `vendor/bearly/tests/tribe.test.ts`.
+> Status: Phase 1 implemented — Channel plugin at vendor/bearly/tools/tribe.ts, tests at vendor/bearly/tests/tribe.test.ts.
 
 Tribe is a coordination layer that lets multiple independent Claude Code sessions discover each other, exchange messages, and coordinate work. One session acts as **chief** (coordinator); the rest are **members** (workers). The chief bridges to the outside world via existing channel plugins (Telegram, etc.).
 
@@ -57,13 +57,13 @@ Tribe fills the gap: **real-time inter-session messaging**.
 
 ### Layers
 
-| Layer | Primitive | Role | Status |
-|-------|-----------|------|--------|
-| Tasks | Beads | Create, assign, track, close work items | Exists |
-| Knowledge | Recall | Search past session insights | Exists |
-| External | Telegram channel | Bridge to users/world | Exists |
-| Isolation | Git worktrees | Parallel edits without conflicts | Exists |
-| **Messaging** | **Tribe channel** | **Real-time inter-session communication** | **Build** |
+| Layer     | Primitive        | Role                                    | Status |
+| --------- | ---------------- | --------------------------------------- | ------ |
+| Tasks     | Beads            | Create, assign, track, close work items | Exists |
+| Knowledge | Recall           | Search past session insights            | Exists |
+| External  | Telegram channel | Bridge to users/world                   | Exists |
+| Isolation | Git worktrees    | Parallel edits without conflicts        | Exists |
+| Messaging | Tribe channel    | Real-time inter-session communication   | Build  |
 
 ## Shared State: tribe.db
 
@@ -122,10 +122,10 @@ CREATE INDEX idx_aliases_session ON aliases(session_id);
 
 **Two names, decoupled:**
 
-| Name | Set by | Changed by | Used for |
-|------|--------|------------|----------|
-| Claude Code session name | `/rename` | `/rename` | Display in Claude Code UI |
-| Tribe member name | MCP server args / env | `tribe_rename()` tool | Message routing in tribe.db |
+| Name                     | Set by                | Changed by          | Used for                    |
+| ------------------------ | --------------------- | ------------------- | --------------------------- |
+| Claude Code session name | /rename               | /rename             | Display in Claude Code UI   |
+| Tribe member name        | MCP server args / env | tribe_rename() tool | Message routing in tribe.db |
 
 They are independent. `/rename` in Claude Code does NOT affect tribe identity. Tribe name is set at startup:
 
@@ -183,15 +183,15 @@ If the chief renames, all members need to update who they send `status` and `req
 
 ### Message Types
 
-| Type | Direction | Purpose |
-|------|-----------|---------|
-| `assign` | chief → member | "Please claim bead X" |
-| `status` | member → chief | "Bead X done, committed abc123" |
-| `query` | any → any | "What's the state of the scroll container?" |
-| `response` | any → any | Reply to a query (via `ref`) |
-| `notify` | any → * | Broadcast: "I just refactored the theme system" |
-| `request` | member → chief | "I need to modify a shared file, OK?" |
-| `verdict` | chief → member | "Approved" / "Wait, member B is editing that" |
+| Type     | Direction      | Purpose                                         |
+| -------- | -------------- | ----------------------------------------------- |
+| assign   | chief → member | "Please claim bead X"                           |
+| status   | member → chief | "Bead X done, committed abc123"                 |
+| query    | any → any      | "What's the state of the scroll container?"     |
+| response | any → any      | Reply to a query (via ref)                      |
+| notify   | any → *        | Broadcast: "I just refactored the theme system" |
+| request  | member → chief | "I need to modify a shared file, OK?"           |
+| verdict  | chief → member | "Approved" / "Wait, member B is editing that"   |
 
 ## Tribe Channel Plugin
 
@@ -298,11 +298,13 @@ When a member reports status, update the relevant bead and reply to Telegram if 
 ## Coordinator (Chief) Responsibilities
 
 The chief is just a Claude Code session with:
+
 1. The Telegram channel loaded (external bridge)
 2. The tribe channel loaded (internal bridge)
 3. System prompt instructions for coordination
 
 Its job:
+
 - **Receive** external requests (Telegram) → create beads → assign to members
 - **Route** inter-member queries (if member A needs info from member B's domain)
 - **Aggregate** status from members → report to external
@@ -314,6 +316,7 @@ The chief does NOT control member lifecycle. Members start/stop independently.
 ## Member Responsibilities
 
 Each member:
+
 1. Loads the tribe channel with its name and domains
 2. Monitors for `assign` messages from the chief
 3. Claims beads, does work, commits, reports `status`
@@ -386,47 +389,47 @@ Chief checks: is anyone else editing silvery?
 
 ### From nanoclaw (validated patterns)
 
-| Pattern | Nanoclaw | Tribe |
-|---------|----------|-------|
-| Message bus | SQLite + filesystem IPC | SQLite WAL (no filesystem IPC needed) |
-| Cursor tracking | `lastAgentTimestamp` per group, rollback on failure | `cursors` table, same rollback logic |
-| Concurrency | Per-group queue, global max containers | Advisory — chief sequences risky ops |
-| Authorization | Directory ownership (can't escape mount) | `sender` field in messages (self-reported but trusted — all sessions are local) |
-| Heartbeat | Container idle timeout (30min) | Session heartbeat (10s interval, 30s timeout) |
-| Priority | Tasks > messages (tasks won't be re-discovered) | `assign` > `request` > `query` > `status` > `notify` |
-| Memory tiers | Global CLAUDE.md → group CLAUDE.md → session | Coordinator prompt → member prompt → session context |
+| Pattern         | Nanoclaw                                          | Tribe                                                                         |
+| --------------- | ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Message bus     | SQLite + filesystem IPC                           | SQLite WAL (no filesystem IPC needed)                                         |
+| Cursor tracking | lastAgentTimestamp per group, rollback on failure | cursors table, same rollback logic                                            |
+| Concurrency     | Per-group queue, global max containers            | Advisory — chief sequences risky ops                                          |
+| Authorization   | Directory ownership (can't escape mount)          | sender field in messages (self-reported but trusted — all sessions are local) |
+| Heartbeat       | Container idle timeout (30min)                    | Session heartbeat (10s interval, 30s timeout)                                 |
+| Priority        | Tasks > messages (tasks won't be re-discovered)   | assign > request > query > status > notify                                    |
+| Memory tiers    | Global CLAUDE.md → group CLAUDE.md → session      | Coordinator prompt → member prompt → session context                          |
 
 ### From openclaw (adapted patterns)
 
-| Pattern | OpenClaw | Tribe |
-|---------|----------|-------|
-| Routing | Config-driven bindings (channel+peer → agent) | Capability-based (chief routes by domain match) |
-| Session identity | Session keys encoding (agent, channel, peer) | Session name + domains |
-| Subagent coordination | Subagent registry (spawn → await → announce) | Beads (create → assign → close) |
-| Async execution | Ack immediately, result streams later | Member acks implicitly by claiming bead |
+| Pattern               | OpenClaw                                      | Tribe                                           |
+| --------------------- | --------------------------------------------- | ----------------------------------------------- |
+| Routing               | Config-driven bindings (channel+peer → agent) | Capability-based (chief routes by domain match) |
+| Session identity      | Session keys encoding (agent, channel, peer)  | Session name + domains                          |
+| Subagent coordination | Subagent registry (spawn → await → announce)  | Beads (create → assign → close)                 |
+| Async execution       | Ack immediately, result streams later         | Member acks implicitly by claiming bead         |
 
 ### What tribe does NOT inherit
 
-| System | Pattern | Why not |
-|--------|---------|---------|
-| PAM | CRDT branch isolation | Git worktrees already provide isolation |
-| PAM | Staged side effects + approval | Overcomplicated for trusted local sessions |
-| PAM | Trust escalation matrix | All sessions are the same user, same trust |
-| OpenClaw | Central gateway daemon | No daemon — SQLite is enough |
-| NanoClaw | Container lifecycle management | Sessions are independent; no spawn/kill |
-| Cloudi | Gmail as storage backend | Local SQLite is simpler and faster |
+| System   | Pattern                        | Why not                                    |
+| -------- | ------------------------------ | ------------------------------------------ |
+| PAM      | CRDT branch isolation          | Git worktrees already provide isolation    |
+| PAM      | Staged side effects + approval | Overcomplicated for trusted local sessions |
+| PAM      | Trust escalation matrix        | All sessions are the same user, same trust |
+| OpenClaw | Central gateway daemon         | No daemon — SQLite is enough               |
+| NanoClaw | Container lifecycle management | Sessions are independent; no spawn/kill    |
+| Cloudi   | Gmail as storage backend       | Local SQLite is simpler and faster         |
 
 ## Relation to km Agent System
 
 The existing [agents.md](../future/agents.md) describes an **in-process** agent system where km spawns and manages agents via `km agent spawn`. Tribe is complementary:
 
-| Dimension | km agents | Tribe |
-|-----------|-----------|-------|
-| Scope | Agents within a single km process | Independent Claude Code sessions |
-| Lifecycle | km spawns/stops agents | Sessions start/stop independently |
-| Communication | Unix socket + changes.jsonl | SQLite message bus + MCP channel |
-| Coordination | Hub TUI dashboard | Chief session + beads |
-| Use case | Specialized km workers (reviewer, researcher) | Parallel Claude Code sessions on same project |
+| Dimension     | km agents                                     | Tribe                                         |
+| ------------- | --------------------------------------------- | --------------------------------------------- |
+| Scope         | Agents within a single km process             | Independent Claude Code sessions              |
+| Lifecycle     | km spawns/stops agents                        | Sessions start/stop independently             |
+| Communication | Unix socket + changes.jsonl                   | SQLite message bus + MCP channel              |
+| Coordination  | Hub TUI dashboard                             | Chief session + beads                         |
+| Use case      | Specialized km workers (reviewer, researcher) | Parallel Claude Code sessions on same project |
 
 Future integration: km agents could register as tribe members, bridging the two systems.
 
@@ -434,12 +437,12 @@ Future integration: km agents could register as tribe members, bridging the two 
 
 The recall history shows a vision for a tRPC-based agent hub where apps self-describe capabilities. Tribe is a stepping stone:
 
-| Tribe concept | Future tRPC equivalent |
-|---------------|----------------------|
+| Tribe concept                        | Future tRPC equivalent                           |
+| ------------------------------------ | ------------------------------------------------ |
 | Session registration (name, domains) | Agent hub registration (capabilities, endpoints) |
-| `tribe_send` / `tribe_broadcast` | tRPC procedure calls |
-| Chief routing by domain | Hub routing by capability |
-| SQLite bus | WebSocket transport |
+| tribe_send / tribe_broadcast         | tRPC procedure calls                             |
+| Chief routing by domain              | Hub routing by capability                        |
+| SQLite bus                           | WebSocket transport                              |
 
 Once tribe validates the coordination patterns, the same design can extend to km's `withAI()` mode, pam executors, and cross-app agent networks.
 
@@ -451,15 +454,16 @@ Members don't coordinate on everything — only on **state transitions** and **b
 
 The tribe plugin watches for these events and auto-sends status messages:
 
-| Event | Trigger | Message |
-|-------|---------|---------|
-| Heartbeat | Every 10s, check if alive | (Silent, just updates `heartbeat` column) |
-| Bead claimed | `git log` detects "Claimed" message | `status` to chief: "Claimed km-tui.X" |
-| Commit pushed | `git log` new commit in this session's worktree | `status` to chief: "Committed {hash}, message: {summary}" |
-| Bead closed | Detects `km bd close` command | `status` to chief: "Closed km-tui.X {reason}" |
-| Bead reopened | Detects `km bd update --status open` | `status` to chief: "Reopened km-tui.X" |
+| Event         | Trigger                                       | Message                                                 |
+| ------------- | --------------------------------------------- | ------------------------------------------------------- |
+| Heartbeat     | Every 10s, check if alive                     | (Silent, just updates heartbeat column)                 |
+| Bead claimed  | git log detects "Claimed" message             | status to chief: "Claimed km-tui.X"                     |
+| Commit pushed | git log new commit in this session's worktree | status to chief: "Committed {hash}, message: {summary}" |
+| Bead closed   | Detects km bd close command                   | status to chief: "Closed km-tui.X {reason}"             |
+| Bead reopened | Detects km bd update --status open            | status to chief: "Reopened km-tui.X"                    |
 
 The plugin can watch these via:
+
 - **Git hooks** (post-commit, post-push) — if in a worktree
 - **File system watch** on `.beads/` — if bead changes are visible
 - **Polling** `km bd list` periodically — less elegant but doesn't require integration
@@ -468,15 +472,15 @@ The plugin can watch these via:
 
 The member's system prompt guides Claude when to send messages:
 
-| Situation | Action | Why |
-|-----------|--------|-----|
-| Root cause found during investigation | `status` to chief + commit hash | Chief can unblock dependents or update external |
-| Blocked on another member's work | `status` to chief immediately | Chief can reprioritize or ask other member to accelerate |
-| Need to edit a shared/foundational file | `request` to chief before editing | Chief checks if another member is also editing it |
-| Made a breaking API change | `notify` broadcast | Everyone on the project needs to know |
-| Discovered a related bug while investigating | `notify` broadcast + `km bd create` | Prevent others from wasting time on the same discovery |
-| All assigned beads closed, ready for more | `status` to chief: "Available" | Chief knows capacity |
-| Soft-blocked (uncertain, need advice) | `query` to relevant member | "How does the scroll cache invalidate on resize?" |
+| Situation                                    | Action                          | Why                                                      |
+| -------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| Root cause found during investigation        | status to chief + commit hash   | Chief can unblock dependents or update external          |
+| Blocked on another member's work             | status to chief immediately     | Chief can reprioritize or ask other member to accelerate |
+| Need to edit a shared/foundational file      | request to chief before editing | Chief checks if another member is also editing it        |
+| Made a breaking API change                   | notify broadcast                | Everyone on the project needs to know                    |
+| Discovered a related bug while investigating | notify broadcast + km bd create | Prevent others from wasting time on the same discovery   |
+| All assigned beads closed, ready for more    | status to chief: "Available"    | Chief knows capacity                                     |
+| Soft-blocked (uncertain, need advice)        | query to relevant member        | "How does the scroll cache invalidate on resize?"        |
 
 Example system prompt snippet for members:
 
@@ -504,6 +508,7 @@ Every 5 minutes:
 ```
 
 If a member doesn't respond to a query within 2 minutes, the chief assumes they're AFK and may:
+
 - Reassign their beads
 - Notify Telegram of the blockage
 - Ask another member to take over
@@ -573,23 +578,23 @@ CREATE INDEX idx_events_session ON events(session);
 
 ### Event Types
 
-| Type | When | Data |
-|------|------|------|
-| `tribe.started` | First session registers | `{ chief: "name" }` |
-| `tribe.ended` | Chief closes tribe | `{ duration_ms, members_count, beads_total }` |
-| `session.joined` | Session registers | `{ name, role, domains }` |
-| `session.died` | Heartbeat timeout detected | `{ name, last_heartbeat, beads_in_progress }` |
-| `bead.assigned` | Chief assigns bead to member | `{ bead_id, assignee, assigner }` |
-| `bead.claimed` | Member claims bead | `{ bead_id, member, latency_ms }` (time from assign → claim) |
-| `bead.blocked` | Member reports blocked | `{ bead_id, member, blocked_by, reason }` |
-| `bead.unblocked` | Blocker resolved | `{ bead_id, member, blocked_duration_ms }` |
-| `bead.committed` | Member commits | `{ bead_id, member, commit_hash }` |
-| `bead.closed` | Bead completed | `{ bead_id, member, cycle_time_ms }` (assign → close) |
-| `bead.reassigned` | Chief moves bead to different member | `{ bead_id, from, to, reason }` |
-| `conflict.detected` | Two members editing same file/area | `{ file, members[], resolution }` |
-| `query.unanswered` | Query timed out without response | `{ from, to, content, waited_ms }` |
-| `external.received` | Request came in via Telegram | `{ source, summary }` |
-| `external.replied` | Chief replied to external | `{ source, summary, total_latency_ms }` (received → replied) |
+| Type              | When                                 | Data                                                       |
+| ----------------- | ------------------------------------ | ---------------------------------------------------------- |
+| tribe.started     | First session registers              | { chief: "name" }                                          |
+| tribe.ended       | Chief closes tribe                   | { duration_ms, members_count, beads_total }                |
+| session.joined    | Session registers                    | { name, role, domains }                                    |
+| session.died      | Heartbeat timeout detected           | { name, last_heartbeat, beads_in_progress }                |
+| bead.assigned     | Chief assigns bead to member         | { bead_id, assignee, assigner }                            |
+| bead.claimed      | Member claims bead                   | { bead_id, member, latency_ms } (time from assign → claim) |
+| bead.blocked      | Member reports blocked               | { bead_id, member, blocked_by, reason }                    |
+| bead.unblocked    | Blocker resolved                     | { bead_id, member, blocked_duration_ms }                   |
+| bead.committed    | Member commits                       | { bead_id, member, commit_hash }                           |
+| bead.closed       | Bead completed                       | { bead_id, member, cycle_time_ms } (assign → close)        |
+| bead.reassigned   | Chief moves bead to different member | { bead_id, from, to, reason }                              |
+| conflict.detected | Two members editing same file/area   | { file, members[], resolution }                            |
+| query.unanswered  | Query timed out without response     | { from, to, content, waited_ms }                           |
+| external.received | Request came in via Telegram         | { source, summary }                                        |
+| external.replied  | Chief replied to external            | { source, summary, total_latency_ms } (received → replied) |
 
 ### Derived Metrics
 
@@ -660,11 +665,11 @@ SELECT * FROM events WHERE ts BETWEEN :tribe_start AND :tribe_end ORDER BY ts;
 
 **4. Persist** — Save insights across three systems:
 
-| Destination | What | Why |
-|-------------|------|-----|
-| `km bd remember` | Coordination lessons | Searchable across all future sessions via recall |
-| Bead notes | Per-bead timing data | Attached to the work item for history |
-| `tribe.db` retros table | Full retro record | Queryable for trend analysis |
+| Destination           | What                 | Why                                              |
+| --------------------- | -------------------- | ------------------------------------------------ |
+| km bd remember        | Coordination lessons | Searchable across all future sessions via recall |
+| Bead notes            | Per-bead timing data | Attached to the work item for history            |
+| tribe.db retros table | Full retro record    | Queryable for trend analysis                     |
 
 ```sql
 CREATE TABLE retros (
@@ -744,17 +749,18 @@ The `tribe_health()` tool is particularly useful — it returns a diagnostic:
 
 Beyond per-bead blockers, retros must track **infrastructure-level coordination failures** — shared resources that cause implicit blocking between members:
 
-| Blocker Type | Symptom | Detection | Coordination Protocol |
-|-------------|---------|-----------|----------------------|
-| **Git worktree/branch conflict** | Two members editing the same branch, merge conflicts | Member reports `request` before shared file edits; chief checks `cwd` field | Chief assigns worktree isolation: "Use `bun worktree` for this work" |
-| **CPU contention** | Multiple members running `test:all` simultaneously, everything slows | Member reports "tests running slow"; chief checks who else is testing | Chief sequences test runs: "Wait for member-X to finish tests before running yours" |
-| **Broken codebase** | Member A's refactor leaves code in a half-migrated state, member B can't build | Member B reports blocked; `bun fix` or `bun run test:fast` fails | Chief holds off new assignments until refactor is complete, or directs to worktree |
-| **Unpublished npm packages** | Member A published a new API in silvery, member B needs the npm version | Member B reports "need @silvery/foo@x.y.z but it's not on npm yet" | Chief asks member A to `npm publish`, or uses workspace overrides |
-| **Shared file hotspot** | Multiple members need to edit the same file (theme.ts, package.json) | Repeated `request`/`verdict` on same file across a session | Chief identifies hotspot in retro; future sessions use worktree isolation by default for that file |
-| **Stale .km/state.db** | Member's changes to storage/materialization require DB reset; other members' TUI breaks | Member reports "TUI shows wrong data" after another member's commit | Chief broadcasts: "Delete .km/state.db and relaunch" after storage changes |
-| **Lock file conflicts** | bun.lock, .beads/ Dolt lock, SQLite locks | "database is locked" errors, bun install conflicts | Chief sequences package installs; tribe.db already uses WAL + busy_timeout |
+| Blocker Type                 | Symptom                                                                                 | Detection                                                               | Coordination Protocol                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Git worktree/branch conflict | Two members editing the same branch, merge conflicts                                    | Member reports request before shared file edits; chief checks cwd field | Chief assigns worktree isolation: "Use bun worktree for this work"                                 |
+| CPU contention               | Multiple members running test:all simultaneously, everything slows                      | Member reports "tests running slow"; chief checks who else is testing   | Chief sequences test runs: "Wait for member-X to finish tests before running yours"                |
+| Broken codebase              | Member A's refactor leaves code in a half-migrated state, member B can't build          | Member B reports blocked; bun fix or bun run test:fast fails            | Chief holds off new assignments until refactor is complete, or directs to worktree                 |
+| Unpublished npm packages     | Member A published a new API in silvery, member B needs the npm version                 | Member B reports "need @silvery/foo@x.y.z but it's not on npm yet"      | Chief asks member A to npm publish, or uses workspace overrides                                    |
+| Shared file hotspot          | Multiple members need to edit the same file (theme.ts, package.json)                    | Repeated request/verdict on same file across a session                  | Chief identifies hotspot in retro; future sessions use worktree isolation by default for that file |
+| Stale .km/state.db           | Member's changes to storage/materialization require DB reset; other members' TUI breaks | Member reports "TUI shows wrong data" after another member's commit     | Chief broadcasts: "Delete .km/state.db and relaunch" after storage changes                         |
+| Lock file conflicts          | bun.lock, .beads/ Dolt lock, SQLite locks                                               | "database is locked" errors, bun install conflicts                      | Chief sequences package installs; tribe.db already uses WAL + busy_timeout                         |
 
 **Members must report** when they:
+
 - Experience slowdowns (CPU contention from concurrent test runs, etc.)
 - Begin or complete a multi-file refactor (codebase stability)
 - Publish or need an npm package (dependency chain)
@@ -762,12 +768,14 @@ Beyond per-bead blockers, retros must track **infrastructure-level coordination 
 - Modify shared config files (package.json, tsconfig, .mcp.json)
 
 **On `/tribe sync`**, members should additionally report:
+
 - Active worktrees and their purpose
 - Any in-flight refactors that leave the codebase in a transitional state
 - npm packages they've changed but not yet published
 - Any slowdowns or resource contention they're experiencing
 
 **Retro analysis for systemic blockers:**
+
 ```
 For each tribe session, compute:
 - Git conflict count (merge conflicts resolved)
@@ -800,19 +808,19 @@ When the chief receives a sync report, it should suggest renames if members are 
 
 Over multiple retros, patterns emerge. Classify and track:
 
-| Failure Mode | Detection | Remedy |
-|-------------|-----------|--------|
-| **Silent block** | Member blocked but didn't report for >10 min | Add periodic self-check to member prompt |
-| **Wrong domain** | Chief assigned to member without relevant domain | Improve domain declarations or add skill matching |
-| **Conflict miss** | Two members edited same file, no request sent | Auto-detect via git status polling, not just behavioral |
-| **Zombie member** | Member alive (heartbeat) but not working | Add activity detection beyond heartbeat (commits, messages) |
-| **Scope creep** | Member created 5 new beads while working on 1 | Chief should gate new bead creation or review |
-| **External silence** | Telegram user waiting >15 min with no update | Chief sends interim "still working on it" automatically |
-| **Cascade failure** | Member dies, blocked beads pile up | Chief reassigns within 2 min of heartbeat timeout |
-| **Git conflict** | Merge conflict on shared branch | Use worktree isolation; chief tracks who's on which branch |
-| **CPU starvation** | Overlapping test suites slow everyone | Chief sequences test runs across members |
-| **Half-migrated code** | Refactor in progress breaks other members' builds | Chief holds assignments until refactor complete; direct others to worktree |
-| **Package lag** | npm publish needed before dependent work can proceed | Chief tracks publish chain; sequences dependent assignments |
+| Failure Mode       | Detection                                            | Remedy                                                                     |
+| ------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| Silent block       | Member blocked but didn't report for >10 min         | Add periodic self-check to member prompt                                   |
+| Wrong domain       | Chief assigned to member without relevant domain     | Improve domain declarations or add skill matching                          |
+| Conflict miss      | Two members edited same file, no request sent        | Auto-detect via git status polling, not just behavioral                    |
+| Zombie member      | Member alive (heartbeat) but not working             | Add activity detection beyond heartbeat (commits, messages)                |
+| Scope creep        | Member created 5 new beads while working on 1        | Chief should gate new bead creation or review                              |
+| External silence   | Telegram user waiting >15 min with no update         | Chief sends interim "still working on it" automatically                    |
+| Cascade failure    | Member dies, blocked beads pile up                   | Chief reassigns within 2 min of heartbeat timeout                          |
+| Git conflict       | Merge conflict on shared branch                      | Use worktree isolation; chief tracks who's on which branch                 |
+| CPU starvation     | Overlapping test suites slow everyone                | Chief sequences test runs across members                                   |
+| Half-migrated code | Refactor in progress breaks other members' builds    | Chief holds assignments until refactor complete; direct others to worktree |
+| Package lag        | npm publish needed before dependent work can proceed | Chief tracks publish chain; sequences dependent assignments                |
 
 Track frequency of each failure type in retros to measure improvement over time.
 
@@ -821,6 +829,7 @@ Track frequency of each failure type in retros to measure improvement over time.
 ### Phase 1: Channel plugin (MVP)
 
 Build `tribe-channel.ts` — the MCP channel server:
+
 - Session registration + heartbeat
 - Message send/broadcast/history tools
 - Poll loop + channel notifications
@@ -831,6 +840,7 @@ Deliverable: Two Claude Code sessions can exchange messages.
 ### Phase 2: Chief instructions
 
 Write system prompt instructions for the chief role:
+
 - Telegram → bead → assign workflow
 - Status aggregation → Telegram reply
 - Dead member detection → reassignment
@@ -841,6 +851,7 @@ Deliverable: Chief can coordinate a small team.
 ### Phase 3: CLI integration
 
 Add `tribe` subcommand to km or bd:
+
 - `tribe status` — show active sessions
 - `tribe send <to> <message>` — send from CLI
 - `tribe log` — recent messages
@@ -851,6 +862,7 @@ Deliverable: User can inspect and interact with tribe from terminal.
 ### Phase 4: Hub integration
 
 Bridge tribe with km's agent system:
+
 - km agents register as tribe members
 - Hub TUI shows tribe sessions alongside km agents
 - Unified work queue view
@@ -870,3 +882,4 @@ Bridge tribe with km's agent system:
 - [Claude Code channels reference](https://code.claude.com/docs/en/channels-reference) — MCP channel protocol
 - nanoclaw (`~/Code/nanoclaw/`) — Single-process orchestrator with filesystem IPC
 - openclaw (`~/Code/openclaw/`) — Central gateway with WebSocket routing
+

@@ -18,10 +18,10 @@ After each fix, the bug returned with a new terminal size × data distribution. 
 
 Two systems were computing "what's visible in this scroll container" from the same tree:
 
-| System | Space | Heights used | Output |
-|---|---|---|---|
-| `useVirtualizer` (React) | count-space | estimated `+` measured | `start`, `end`, `leadingHeight`, `trailingHeight` |
-| `calculateScrollState` (ag-term layout-phase) | pixel-space | measured only | `firstVisibleChild`, `lastVisibleChild`, `scrollOffset`, `hiddenAbove`, `hiddenBelow` |
+| System                                      | Space       | Heights used         | Output                                                                      |
+| ------------------------------------------- | ----------- | -------------------- | --------------------------------------------------------------------------- |
+| useVirtualizer (React)                      | count-space | estimated + measured | start, end, leadingHeight, trailingHeight                                   |
+| calculateScrollState (ag-term layout-phase) | pixel-space | measured only        | firstVisibleChild, lastVisibleChild, scrollOffset, hiddenAbove, hiddenBelow |
 
 Neither subscribed to the other. They ran the same question through different math and hoped to arrive at the same answer. Under short-first-items + tall-viewport + variable heights, they'd disagree — the virtualizer would render a window that didn't fill the scroll container's viewport, producing blank rows.
 
@@ -57,3 +57,4 @@ Bootstrap (first render, before layout): use estimates. Steady state: read `useS
 - Principle: [No Parallel Derivation](../principles.md#no-parallel-derivation)
 - Principle: [Signal Ownership](../principles.md#signal-ownership) — closely related, covers single-writer-per-signal within one process
 - Beads: `@km/tui/column-top-disappears`, `@km/silvery/virtualizer-from-layout`, `@km/silvery/implicit-invariants-audit`
+

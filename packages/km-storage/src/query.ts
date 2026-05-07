@@ -74,13 +74,14 @@ export function executeQuery(db: Database, ast: QueryAST, baseType?: string, opt
     sql += " AND task_status IS NOT NULL"
   }
 
+  const outerTable = needsCte ? "n" : "nodes"
+
   // Apply AST conditions
-  for (const cond of ast.conditions) sql += buildFieldCondition(cond, params)
-  for (const ref of ast.refs) sql += buildRefCondition(ref, params)
+  for (const cond of ast.conditions) sql += buildFieldCondition(cond, params, outerTable)
+  for (const ref of ast.refs) sql += buildRefCondition(ref, params, outerTable)
   for (const propCond of ast.propConditions) {
     sql += buildPropCondition(propCond, params)
   }
-  const outerTable = needsCte ? "n" : "nodes"
   for (const special of ast.specials) {
     sql += buildBlockedCondition(special, outerTable)
   }
@@ -348,14 +349,14 @@ export class QueryFieldError extends Error {
 }
 
 /** Handle date shortcut resolution and general field conditions */
-function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
+function buildFieldCondition(cond: QueryCondition, params: (string | number)[], outerTable: string): string {
   const { field, op, value } = cond
 
   // priority column dropped at SCHEMA_VERSION=11 — `priority:P1` queries
   // route through `data.tags` (canonical authored form per
   // docs/future/beads.md). The column was a denormalization.
   if (field === "priority") {
-    return buildPriorityTagCondition(op, value, params)
+    return buildPriorityTagCondition(op, value, params, outerTable)
   }
 
   // Validate field name against the schema allowlist BEFORE composing SQL
@@ -446,7 +447,7 @@ function buildDateCondition(field: string, op: string, dateRange: DateRange, par
  * Phase 1; the JSON sidecar reader fallback in `getNodePriority`
  * stays for fixture-seeded test data only.
  */
-function buildPriorityTagCondition(op: string, value: string, params: (string | number)[]): string {
+function buildPriorityTagCondition(op: string, value: string, params: (string | number)[], outerTable: string): string {
   const values = value.split(",").filter((v) => v.length > 0)
   if (values.length === 0) return ""
 
@@ -455,20 +456,20 @@ function buildPriorityTagCondition(op: string, value: string, params: (string | 
   if (op === "=") {
     if (values.length === 1) {
       params.push(priorityHref(value))
-      return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
+      return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = ${outerTable}.id AND links.href = ?)`
     }
     const placeholders = values.map(() => "?").join(", ")
     params.push(...values.map(priorityHref))
-    return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href IN (${placeholders}))`
+    return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = ${outerTable}.id AND links.href IN (${placeholders}))`
   }
   if (op === "!=") {
     if (values.length === 1) {
       params.push(priorityHref(value))
-      return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
+      return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = ${outerTable}.id AND links.href = ?)`
     }
     const placeholders = values.map(() => "?").join(", ")
     params.push(...values.map(priorityHref))
-    return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href IN (${placeholders}))`
+    return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = ${outerTable}.id AND links.href IN (${placeholders}))`
   }
   // Comparison ops (>, <, >=, <=) compare canonical priority strings —
   // P0 < P1 < P2 < P3 < P4 by ASCII order. The links-table href is
@@ -477,7 +478,7 @@ function buildPriorityTagCondition(op: string, value: string, params: (string | 
     params.push(`km:%23${value}`)
     return ` AND EXISTS (
       SELECT 1 FROM links
-      WHERE links.host_id = nodes.id
+      WHERE links.host_id = ${outerTable}.id
         AND links.href GLOB 'km:%23P[0-4]'
         AND links.href ${op} ?
     )`
@@ -505,14 +506,14 @@ function buildPriorityTagCondition(op: string, value: string, params: (string | 
  * Switched from `data.{mentions,tags,projects}` JSON LIKE in
  * @km/all/L5-deprecation-purge Phase 1.
  */
-function buildRefCondition(ref: QueryRef, params: (string | number)[]): string {
+function buildRefCondition(ref: QueryRef, params: (string | number)[], outerTable: string): string {
   const sigil = ref.type === "person" ? "@" : ref.type === "tag" ? "#" : "+"
   const href = sigilHref(sigil, ref.value)
   params.push(href)
   if (ref.negated) {
-    return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
+    return ` AND NOT EXISTS (SELECT 1 FROM links WHERE links.host_id = ${outerTable}.id AND links.href = ?)`
   }
-  return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = nodes.id AND links.href = ?)`
+  return ` AND EXISTS (SELECT 1 FROM links WHERE links.host_id = ${outerTable}.id AND links.href = ?)`
 }
 
 /**

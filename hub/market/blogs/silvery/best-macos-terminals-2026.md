@@ -1,6 +1,8 @@
 ---
-title: "Comparing macOS Terminal Emulators in 2026"
-description: "Data-driven comparison of Ghostty, Kitty, WezTerm, iTerm2, Warp, and Terminal.app — feature support, protocol coverage, and daily-driver impressions."
+title: Comparing macOS Terminal Emulators in 2026
+description: Data-driven comparison of Ghostty, Kitty, WezTerm, iTerm2, Warp,
+  and Terminal.app — feature support, protocol coverage, and daily-driver
+  impressions.
 date: 2026-04-02
 ---
 
@@ -20,7 +22,7 @@ terminfo.dev runs 164 probes covering SGR text styling, cursor handling, editing
 | Ghostty      | 93.3% (153/164) | 1.3.1              |
 | Kitty        | 93.3% (153/164) | 0.46.2             |
 | Warp         | 89.6% (147/164) | 2026.03            |
-| WezTerm      | 89% (144/161)\* | 0.1.0-fork.5       |
+| WezTerm      | 89% (144/161)*  | 0.1.0-fork.5       |
 | Terminal.app | 86.0% (141/164) | 2.15 (macOS Tahoe) |
 
 \*WezTerm is tested via the headless wezterm-term backend, which covers 161 of 164 probes. Three probes that require a native terminal window aren't measured.
@@ -124,3 +126,4 @@ If you want programmable configuration: **WezTerm**. I haven't found another ter
 If you want something that works without thinking about it: **Terminal.app**. At 86%, it handles most of what you'll throw at it.
 
 The full probe results for all terminals -- including per-feature breakdowns, version history, and support tables -- are available at [terminfo.dev](https://terminfo.dev).
+

@@ -6,21 +6,21 @@ Modes, KNode schema, events, and bidirectional sync.
 
 ## Two Modes
 
-| Mode       | Trigger       | SQLite         | Change Log                          | Node IDs  |
-| ---------- | ------------- | -------------- | ----------------------------------- | --------- |
-| **Memory** | No `.km/`     | `:memory:`     | None                                | Ephemeral |
-| **Disk**   | `.km/` exists | `.km/state.db` | `events` table inside `.km/state.db` | Stable    |
+| Mode   | Trigger     | SQLite       | Change Log                       | Node IDs  |
+| ------ | ----------- | ------------ | -------------------------------- | --------- |
+| Memory | No .km/     | :memory:     | None                             | Ephemeral |
+| Disk   | .km/ exists | .km/state.db | events table inside .km/state.db | Stable    |
 
 **Both modes are read-write.** The key differences:
 
-| Aspect         | Memory Mode                 | Disk Mode                                                              |
-| -------------- | --------------------------- | ---------------------------------------------------------------------- |
-| **SQLite**     | Rebuilt from `.md` each run | Persisted in `.km/state.db`                                            |
-| **Change log** | None                        | All changes in the `events` table inside state.db (atomic with mutate) |
-| **Node IDs**   | `path:line` (session-local) | ULIDs (permanent)                                                      |
-| **Write path** | Direct to `.md` files       | Change → SQLite (nodes + events row) → (optionally sync to `.md`)      |
-| **Startup**    | Scan filesystem             | Load SQLite                                                            |
-| **History**    | None                        | Full audit trail                                                       |
+| Aspect     | Memory Mode               | Disk Mode                                                            |
+| ---------- | ------------------------- | -------------------------------------------------------------------- |
+| SQLite     | Rebuilt from .md each run | Persisted in .km/state.db                                            |
+| Change log | None                      | All changes in the events table inside state.db (atomic with mutate) |
+| Node IDs   | path:line (session-local) | ULIDs (permanent)                                                    |
+| Write path | Direct to .md files       | Change → SQLite (nodes + events row) → (optionally sync to .md)      |
+| Startup    | Scan filesystem           | Load SQLite                                                          |
+| History    | None                      | Full audit trail                                                     |
 
 ### Memory Mode
 
@@ -253,36 +253,36 @@ interface KNode {
 
 ### Field Reference
 
-| Field            | Type           | Description                                   |
-| ---------------- | -------------- | --------------------------------------------- |
-| `id`             | string         | ULID (disk mode) or `path:line` (memory mode) |
-| `type`           | NodeType       | Node classification (see Node Types below)    |
-| `parent_id`      | string \| null | ID of parent node (null for repo root only)   |
-| `parent_idx`     | number         | Fractional index for sibling ordering         |
-| `embed_of`       | string \| null | Target node ID for an embed (runtime-materialized from `links` table where `rel='embed'`) |
-| `fs_path`        | string         | Absolute filesystem path                      |
-| `fs_ino`         | number         | Filesystem inode (for rename detection)       |
-| `fs_mtime`       | number         | File modification time at last sync (ms)      |
-| `name`           | string         | Identifier slug (filename or heading slug)    |
-| `md_pos`         | number         | Byte offset in markdown file                  |
-| `md_line`        | number         | Line number (0-indexed)                       |
-| `md_slug`        | string         | **DEPRECATED**: Use `name` instead            |
-| `task_status`    | TaskStatus     | Task workflow status                          |
-| `task_mark`      | TaskMark       | Checkbox character                            |
-| `assigned_to`    | string         | Assignee (user or agent ID)                   |
-| `due_date`       | string         | Due date in YYYY-MM-DD format                 |
-| `scheduled_date` | string         | Scheduled date in YYYY-MM-DD format           |
-| `priority`       | number         | Priority 0-4 (P0=urgent, P4=backlog)          |
-| `rrule`          | string         | iCal RRULE (e.g., `FREQ=WEEKLY;BYDAY=MO;FROM=DUE`) |
-| `recur_prev`     | string         | Links to previous recurrence instance         |
-| `content`        | string         | Node text content                             |
-| `content_hash`   | string         | CAS hash for large content                    |
-| `title`          | string         | Display title (for sections)                  |
-| `rules`          | NodeRules      | Column/section behavior rules                 |
-| `data`           | object         | Props (serialized as YAML frontmatter on disk) |
-| `created_at`     | number         | Creation timestamp (Unix ms)                  |
-| `updated_at`     | number         | Last update timestamp (Unix ms)               |
-| `version`        | string         | Change ID of last modification                |
+| Field          | Type           | Description                                                                           |
+| -------------- | -------------- | ------------------------------------------------------------------------------------- |
+| id             | string         | ULID (disk mode) or path:line (memory mode)                                           |
+| type           | NodeType       | Node classification (see Node Types below)                                            |
+| parent_id      | string \| null | ID of parent node (null for repo root only)                                           |
+| parent_idx     | number         | Fractional index for sibling ordering                                                 |
+| embed_of       | string \| null | Target node ID for an embed (runtime-materialized from links table where rel='embed') |
+| fs_path        | string         | Absolute filesystem path                                                              |
+| fs_ino         | number         | Filesystem inode (for rename detection)                                               |
+| fs_mtime       | number         | File modification time at last sync (ms)                                              |
+| name           | string         | Identifier slug (filename or heading slug)                                            |
+| md_pos         | number         | Byte offset in markdown file                                                          |
+| md_line        | number         | Line number (0-indexed)                                                               |
+| md_slug        | string         | DEPRECATED: Use name instead                                                          |
+| task_status    | TaskStatus     | Task workflow status                                                                  |
+| task_mark      | TaskMark       | Checkbox character                                                                    |
+| assigned_to    | string         | Assignee (user or agent ID)                                                           |
+| due_date       | string         | Due date in YYYY-MM-DD format                                                         |
+| scheduled_date | string         | Scheduled date in YYYY-MM-DD format                                                   |
+| priority       | number         | Priority 0-4 (P0=urgent, P4=backlog)                                                  |
+| rrule          | string         | iCal RRULE (e.g., FREQ=WEEKLY;BYDAY=MO;FROM=DUE)                                      |
+| recur_prev     | string         | Links to previous recurrence instance                                                 |
+| content        | string         | Node text content                                                                     |
+| content_hash   | string         | CAS hash for large content                                                            |
+| title          | string         | Display title (for sections)                                                          |
+| rules          | NodeRules      | Column/section behavior rules                                                         |
+| data           | object         | Props (serialized as YAML frontmatter on disk)                                        |
+| created_at     | number         | Creation timestamp (Unix ms)                                                          |
+| updated_at     | number         | Last update timestamp (Unix ms)                                                       |
+| version        | string         | Change ID of last modification                                                        |
 
 ### NodeRules
 
@@ -301,7 +301,7 @@ interface NodeRules {
 
 ### Node Types
 
-````typescript
+~~~~typescript
 type NodeType =
   // Structural
   | "folder" // Directory
@@ -323,9 +323,9 @@ type NodeType =
   | "board" // Board section/column
   | "agent" // Persistent agent
   | "embed" // Embedded reference (![[target]]) linking to another node
-````
+~~~~
 
-> **Current: km-ast v2** — 8 block types: p, h, code, quote, table, hr, html, math. Embed is orthogonal (`embed_of` on any type). See [design/model/kast.md](design/model/kast.md).
+> Current: km-ast v2 — 8 block types: p, h, code, quote, table, hr, html, math. Embed is orthogonal (embed_of on any type). See design/model/kast.md.
 
 ### Task Status
 
@@ -340,13 +340,13 @@ type TaskStatus =
 
 ### Task Marks
 
-| Mark       | Status  | Display |
-| ---------- | ------- | ------- |
-| ` `        | todo    | `[ ]`   |
-| `/`        | wip     | `[/]`   |
-| `!`        | blocked | `[!]`   |
-| `x` or `X` | done    | `[x]`   |
-| `-`        | dropped | `[-]`   |
+| Mark   | Status  | Display |
+| ------ | ------- | ------- |
+|        | todo    | [ ]     |
+| /      | wip     | [/]     |
+| !      | blocked | [!]     |
+| x or X | done    | [x]     |
+| -      | dropped | [-]     |
 
 ### Embeds
 
@@ -372,10 +372,10 @@ interface KNode {
 
 ## ID Strategy
 
-| Mode   | Format      | Example               |
-| ------ | ----------- | --------------------- |
-| Disk   | ULID        | `01H5XJKM7B...`       |
-| Memory | `path:line` | `projects/todo.md:42` |
+| Mode   | Format    | Example             |
+| ------ | --------- | ------------------- |
+| Disk   | ULID      | 01H5XJKM7B...       |
+| Memory | path:line | projects/todo.md:42 |
 
 Memory IDs are session-local. Write-back uses `fs_path` + `md_line`, not ID.
 
@@ -511,7 +511,7 @@ Used for tracking change replay cursor and other internal state.
 
 Changes are rows in the `events` table inside `.km/state.db`. The `emit()` function is the central mutation path in @km/storage; every commit writes the events row inside the same SAVEPOINT as the state mutation, so the snapshot and journal cannot drift.
 
-> **Planned**: The [brain architecture](future/brain.md) evolves the events table into per-chat tables, where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
+> Planned: The brain architecture evolves the events table into per-chat tables, where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
 
 ### The 4-Path Multiplexer
 
@@ -529,12 +529,12 @@ emit(change)
 
 The `actor` field controls which paths fire:
 
-| Actor      | Persist | Project | Broadcast | File Sync |
-| ---------- | :-----: | :-----: | :-------: | :-------: |
-| `user`     |    ✓    |    ✓    |     ✓     |     ✓     |
-| `fs-watch` |    ✓    |    ✓    |     ✓     |     ✗     |
-| `agent-*`  |    ✓    |    ✓    |     ✓     |     ✓     |
-| `system`   |    ✓    |    ✓    |     ✓     |     ✗     |
+| Actor    | Persist | Project | Broadcast | File Sync |
+| -------- | :-----: | :-----: | :-------: | :-------: |
+| user     | ✓       | ✓       | ✓         | ✓         |
+| fs-watch | ✓       | ✓       | ✓         | ✗         |
+| agent-*  | ✓       | ✓       | ✓         | ✓         |
+| system   | ✓       | ✓       | ✓         | ✗         |
 
 `fs-watch` skips file sync to prevent write-back loops.
 
@@ -619,13 +619,13 @@ interface LoadOptions {
 
 `loadRepo()` yields progress through these phases:
 
-| Phase           | Memory Mode                   | Disk Mode                         |
-| --------------- | ----------------------------- | --------------------------------- |
-| **discover**    | Count markdown files          | Read pending events from state.db |
-| **parse**       | Parse files → generate events | (skipped - events already parsed) |
-| **apply**       | Insert nodes into SQLite      | Apply events to SQLite            |
-| **resolve**     | Resolve wikilinks             | (skipped - resolved during apply) |
-| **materialize** | Evaluate km.add:: rules        | Evaluate km.add:: rules            |
+| Phase       | Memory Mode                   | Disk Mode                         |
+| ----------- | ----------------------------- | --------------------------------- |
+| discover    | Count markdown files          | Read pending events from state.db |
+| parse       | Parse files → generate events | (skipped - events already parsed) |
+| apply       | Insert nodes into SQLite      | Apply events to SQLite            |
+| resolve     | Resolve wikilinks             | (skipped - resolved during apply) |
+| materialize | Evaluate km.add:: rules       | Evaluate km.add:: rules           |
 
 ### Disk-mode replay cursor & self-heal
 
@@ -637,11 +637,11 @@ When `meta.last_event_seq` is **absent entirely** (not just zero) AND the `nodes
 
 `km doctor gc` runs `retainEvents()` with three tiers (defaults configurable via `--retention-days` and `--bykey-days`):
 
-| Window | Policy |
-|---|---|
-| 0 to `fullRetentionDays` (default 30 days) | Keep every event verbatim — full audit + undo |
-| `fullRetentionDays` to `byKeyRetentionDays` (default 90 days) | Keep only latest `seq` per `(target, type)` — by-key compaction |
-| `byKeyRetentionDays`+ | Drop everything except `node_created` (kept forever) |
+| Window                                                    | Policy                                                      |
+| --------------------------------------------------------- | ----------------------------------------------------------- |
+| 0 to fullRetentionDays (default 30 days)                  | Keep every event verbatim — full audit + undo               |
+| fullRetentionDays to byKeyRetentionDays (default 90 days) | Keep only latest seq per (target, type) — by-key compaction |
+| byKeyRetentionDays+                                       | Drop everything except node_created (kept forever)          |
 
 `node_created` retention is permanent because it's cheap (~5K nodes × ~200 B = ~1 MB on the user's vault) and enables the "when did I first write this note?" query that PKM users rely on.
 
@@ -663,20 +663,20 @@ interface LoadResult {
 
 The old functions still work but delegate to `loadRepo()`:
 
-| Old Function        | New Equivalent                    |
-| ------------------- | --------------------------------- |
-| `ensureState(root)` | `loadRepo(root)`                  |
-| `rebuildState()`    | `loadRepo(root, { force: true })` |
-| `syncState()`       | `loadRepo(root)`                  |
+| Old Function      | New Equivalent                  |
+| ----------------- | ------------------------------- |
+| ensureState(root) | loadRepo(root)                  |
+| rebuildState()    | loadRepo(root, { force: true }) |
+| syncState()       | loadRepo(root)                  |
 
 ### Cold Start vs Hot Path
 
 `loadRepo()` is for **cold start** (initial loading). For incremental updates after loading:
 
-| Path       | Function       | When                           |
-| ---------- | -------------- | ------------------------------ |
-| Cold start | `loadRepo()`   | CLI startup, initial load      |
-| Hot path   | `applyEvent()` | Real-time file watcher changes |
+| Path       | Function     | When                           |
+| ---------- | ------------ | ------------------------------ |
+| Cold start | loadRepo()   | CLI startup, initial load      |
+| Hot path   | applyEvent() | Real-time file watcher changes |
 
 The `withSync()` decorator handles the hot path via file watching → `reconcileDirectory()` → `repo.apply()`.
 
@@ -718,11 +718,11 @@ interface ProcessedMarkdown {
 
 Transform functions convert `ProcessedMarkdown` to different formats for different use cases:
 
-| Function            | Purpose                         | Used By      |
-| ------------------- | ------------------------------- | ------------ |
-| `toNodeEvents()`    | Convert to node_created events  | Loading path |
-| `toPendingLinks()`  | Extract links for batch resolve | Loading path |
-| `toResolvedLinks()` | Resolve links via LinkResolver  | Syncing path |
+| Function          | Purpose                         | Used By      |
+| ----------------- | ------------------------------- | ------------ |
+| toNodeEvents()    | Convert to node_created events  | Loading path |
+| toPendingLinks()  | Extract links for batch resolve | Loading path |
+| toResolvedLinks() | Resolve links via LinkResolver  | Syncing path |
 
 ### Usage Example
 
@@ -787,11 +787,11 @@ render the same props differently. Use "props" in the data layer; use
 
 km distinguishes between three concepts. **None of them are equal to each other** — there is no "the path is the id" or "the id is the name."
 
-| Concept | Stored as | Example | Unique? | Stable across renames? | Purpose |
-|---------|-----------|---------|---------|------------------------|---------|
-| **id** | `nodes.id` (PRIMARY KEY) | `01H5XJKM7B...` (ULID) | Yes | Yes — internal handle never changes | Internal reference; what `parent_id`, `embed_of`, deps `target` all carry |
-| **name** | `nodes.name` (indexed) | `@km`, `beads`, `foo` | No (per-parent unique for fs-materialized nodes — see `idx_nodes_parent_name_fstype`) | Changes when the node is renamed | One **path segment** per node — the slug at this level |
-| **path** | DERIVED — composed by parent walk; cached in `nodes.fs_path` for fs-materialized nodes | `@km/beads/foo` | Yes (within a vault) | Changes when any ancestor's name changes | Human-facing form; what wikilinks `[[@km/beads/foo]]` and CLI flags use |
+| Concept | Stored as                                                                            | Example              | Unique?                                                                             | Stable across renames?                   | Purpose                                                               |
+| ------- | ------------------------------------------------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| id      | nodes.id (PRIMARY KEY)                                                               | 01H5XJKM7B... (ULID) | Yes                                                                                 | Yes — internal handle never changes      | Internal reference; what parent_id, embed_of, deps target all carry   |
+| name    | nodes.name (indexed)                                                                 | @km, beads, foo      | No (per-parent unique for fs-materialized nodes — see idx_nodes_parent_name_fstype) | Changes when the node is renamed         | One path segment per node — the slug at this level                    |
+| path    | DERIVED — composed by parent walk; cached in nodes.fs_path for fs-materialized nodes | @km/beads/foo        | Yes (within a vault)                                                                | Changes when any ancestor's name changes | Human-facing form; what wikilinks [[@km/beads/foo]] and CLI flags use |
 
 **Key insights:**
 
@@ -805,10 +805,10 @@ km distinguishes between three concepts. **None of them are equal to each other*
 
 The (segment, composed) split above is one axis. The orthogonal axis is **logical model vs filesystem materialization**: every name and path has a tree-side (the data model) and an fs-side (how it's mirrored to disk for human editing). Crossing the two axes gives a 2×2 with one canonical primitive per cell:
 
-|              | **Tree (logical)**                   | **FS (materialized)**                                                   |
-|--------------|--------------------------------------|-------------------------------------------------------------------------|
-| **segment**  | tree-name — `node.name`              | fs-name — basename on disk (`foo.md` for files; `foo` for folders)      |
-| **composed** | tree-path — `KTree.path(tree, id)`   | fs-path — `node.fs_path` cache (`./@km/beads/foo.md`); read via `fsPathOf` |
+|          | Tree (logical)                   | FS (materialized)                                                    |
+| -------- | -------------------------------- | -------------------------------------------------------------------- |
+| segment  | tree-name — node.name            | fs-name — basename on disk (foo.md for files; foo for folders)       |
+| composed | tree-path — KTree.path(tree, id) | fs-path — node.fs_path cache (./@km/beads/foo.md); read via fsPathOf |
 
 The tree-row is the canonical model (what the data IS); the fs-row is the materialization (how it's mirrored to disk for human editing). `fsPathOf(node)` strips fs-isms (`./` prefix, `.md` extension) from `node.fs_path` to yield the user-facing path-form — it lives in the **fs-path** cell. `KTree.path(tree, id)` does a pure parent walk and lives in the **tree-path** cell; never reads `fs_path`.
 
@@ -886,6 +886,7 @@ This is a paragraph with an ID. ^my-block-id
 ```
 
 Block IDs are:
+
 - Added on-demand (only when first referenced)
 - Short, human-readable strings (not UUIDs)
 - Used in links: `[[file#^my-block-id]]`
@@ -909,18 +910,21 @@ function resolveNode(query: string, type?: string): Node | null
 #### Resolution Order (Detailed)
 
 **For explicit paths** (`/path`, `./path`, `../path`):
+
 1. Exact absolute fs_path match
 2. Try with `.md` extension
 3. Try `index.md` inside directory
 4. Stop (don't fall through to fuzzy matching)
 
 **For relative paths** (contains `/` like `docs/readme`):
+
 1. fs_path suffix match
 2. Try with `.md` extension
 3. Exact ID match (IDs can contain `/`)
 4. Stop
 
 **For bare names** (no `/` like `readme`):
+
 1. Exact ID match (unambiguous)
 2. Name field match (may be ambiguous)
 3. Name with `.md` extension
@@ -958,7 +962,7 @@ km view @next              # Filename (resolves @next.md)
 | Toggle checkboxes          | Yes    | Yes  |
 | Change history             | No     | Yes  |
 | Stable IDs across sessions | No     | Yes  |
-| `km show <id>` works later | No     | Yes  |
+| km show <id> works later   | No     | Yes  |
 | Undo/history               | No     | Yes  |
 | Sync support               | No     | Yes  |
 
@@ -1000,12 +1004,12 @@ Three mechanisms prevent infinite loops:
 
 When file changes in both filesystem and database:
 
-| Strategy          | Behavior                            |
-| ----------------- | ----------------------------------- |
-| `last_write_wins` | Use whichever changed more recently |
-| `fs_wins`         | Filesystem always wins              |
-| `db_wins`         | Database always wins                |
-| `merge`           | Attempt three-way merge             |
+| Strategy        | Behavior                            |
+| --------------- | ----------------------------------- |
+| last_write_wins | Use whichever changed more recently |
+| fs_wins         | Filesystem always wins              |
+| db_wins         | Database always wins                |
+| merge           | Attempt three-way merge             |
 
 Configuration in `.km/config.yaml`:
 
@@ -1033,3 +1037,4 @@ km doctor reset       # Reset from worktree only (trust filesystem)
 - [concepts.md](concepts.md) — Core concepts, two modes overview
 - [architecture.md](architecture.md) — Change system, data flow
 - [guides/markdown.md](guides/markdown.md) — Parsing .md to nodes
+

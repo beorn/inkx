@@ -1,6 +1,6 @@
 # Selection
 
-> **silvery.dev guide** for `@silvery/selection` -- a pure-function selection state machine with reactive projections. Draft; internal until promoted to `vendor/silvery/docs/guide/`.
+> silvery.dev guide for @silvery/selection -- a pure-function selection state machine with reactive projections. Draft; internal until promoted to vendor/silvery/docs/guide/.
 
 _Status: v1 draft (2026-04-03). Based on [ui/selection.md](../../../../../docs/design/ui/selection.md) (internal spec) and [selection-landscape.md](../../../../../docs/design/selection-landscape.md) (industry analysis). Source: `packages/silvery-selection/src/`._
 
@@ -151,16 +151,16 @@ const sel = createSelection(app)
 
 The primary selection layer. Which nodes are selected.
 
-| Member                            | Type              | Description                                                                                |
-| --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------ |
-| `sel.node.cursor()`               | `ID \| null`      | Computed. The primary selected node. Always in `ids`.                                      |
-| `sel.node.anchor()`               | `ID \| null`      | Computed. The extend-range origin. Always in `ids` (or null).                              |
-| `sel.node.ids()`                  | `OrderedSet<ID>`  | Computed. All selected IDs in tree-walk order. Has O(1) `.has()`.                          |
-| `sel.node.select(ids, toggle?)`   | `void`            | Replace selection, or XOR toggle. IDs normalized to tree-walk order. Clears sub-selection. |
-| `sel.node.extend(cursor)`         | `void`            | Range select: anchor stays, cursor moves, fills between. Clears sub-selection.             |
-| `sel.node.collapse()`             | `void`            | Multi to single. Keeps cursor, resets anchor to cursor.                                    |
-| `sel.node.remove(id)`             | `void`            | Remove one ID. Repairs cursor/anchor if needed.                                            |
-| `sel.node.selectableAncestor(id)` | `ID \| undefined` | Walk up tree to outermost node in current walk order. Click sub-item, get the card.        |
+| Member                          | Type            | Description                                                                                |
+| ------------------------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| sel.node.cursor()               | ID \| null      | Computed. The primary selected node. Always in ids.                                        |
+| sel.node.anchor()               | ID \| null      | Computed. The extend-range origin. Always in ids (or null).                                |
+| sel.node.ids()                  | OrderedSet<ID>  | Computed. All selected IDs in tree-walk order. Has O(1) .has().                            |
+| sel.node.select(ids, toggle?)   | void            | Replace selection, or XOR toggle. IDs normalized to tree-walk order. Clears sub-selection. |
+| sel.node.extend(cursor)         | void            | Range select: anchor stays, cursor moves, fills between. Clears sub-selection.             |
+| sel.node.collapse()             | void            | Multi to single. Keeps cursor, resets anchor to cursor.                                    |
+| sel.node.remove(id)             | void            | Remove one ID. Repairs cursor/anchor if needed.                                            |
+| sel.node.selectableAncestor(id) | ID \| undefined | Walk up tree to outermost node in current walk order. Click sub-item, get the card.        |
 
 **Invariants:**
 
@@ -172,27 +172,27 @@ The primary selection layer. Which nodes are selected.
 
 #### Cursor/anchor rules
 
-| Operation                                      | Cursor               | Anchor                                   |
-| ---------------------------------------------- | -------------------- | ---------------------------------------- |
-| `select(ids)` replace                          | `ids[0]`             | `ids.at(-1)`                             |
-| `select(ids, true)` toggle add                 | first of newly added | preserved                                |
-| `select(ids, true)` toggle remove (non-cursor) | preserved            | preserved (or cursor if anchor gone)     |
-| `select(ids, true)` toggle remove (cursor)     | first remaining      | reset to new cursor                      |
-| `extend(cursor)`                               | the new cursor       | preserved (range fills anchor to cursor) |
-| `collapse()`                                   | preserved            | reset to cursor                          |
-| `remove(id)` non-cursor                        | preserved            | preserved (or cursor if anchor gone)     |
-| `remove(id)` cursor                            | first remaining      | reset to new cursor                      |
+| Operation                                    | Cursor               | Anchor                                   |
+| -------------------------------------------- | -------------------- | ---------------------------------------- |
+| select(ids) replace                          | ids[0]               | ids.at(-1)                               |
+| select(ids, true) toggle add                 | first of newly added | preserved                                |
+| select(ids, true) toggle remove (non-cursor) | preserved            | preserved (or cursor if anchor gone)     |
+| select(ids, true) toggle remove (cursor)     | first remaining      | reset to new cursor                      |
+| extend(cursor)                               | the new cursor       | preserved (range fills anchor to cursor) |
+| collapse()                                   | preserved            | reset to cursor                          |
+| remove(id) non-cursor                        | preserved            | preserved (or cursor if anchor gone)     |
+| remove(id) cursor                            | first remaining      | reset to new cursor                      |
 
 ### `sel.text` -- Text Sub-selection
 
 Text editing within the cursor node. A sub-selection -- only active when you enter it.
 
-| Member                              | Type                    | Description                                                          |
-| ----------------------------------- | ----------------------- | -------------------------------------------------------------------- |
-| `sel.text()`                        | `TextSelection \| null` | Computed. `{ kind: "text", nodeId, cursor, anchor? }` or null.       |
-| `sel.text.edit(nodeId, offset)`     | `void`                  | Enter text mode. Ensures the parent selectable node is selected.     |
-| `sel.text.select(cursor?, anchor?)` | `void`                  | Move caret (1 arg) or set range (2 args). No-op if not in text mode. |
-| `sel.text.deselect()`               | `void`                  | Exit text mode. Node selection preserved.                            |
+| Member                            | Type                  | Description                                                          |
+| --------------------------------- | --------------------- | -------------------------------------------------------------------- |
+| sel.text()                        | TextSelection \| null | Computed. { kind: "text", nodeId, cursor, anchor? } or null.         |
+| sel.text.edit(nodeId, offset)     | void                  | Enter text mode. Ensures the parent selectable node is selected.     |
+| sel.text.select(cursor?, anchor?) | void                  | Move caret (1 arg) or set range (2 args). No-op if not in text mode. |
+| sel.text.deselect()               | void                  | Exit text mode. Node selection preserved.                            |
 
 **Signal pattern:** `sel.text()` returns plain data (no methods, tiny allocation). `sel.text.edit/select/deselect` are stable methods on the function object -- created once at store creation. For fine-grained subscription, derive: `computed(() => sel.text()?.nodeId)`.
 
@@ -200,23 +200,23 @@ Text editing within the cursor node. A sub-selection -- only active when you ent
 
 Same accessor pattern as text, for vector path point editing. Methods are no-ops until wired.
 
-| Member                 | Type                    | Description                                              |
-| ---------------------- | ----------------------- | -------------------------------------------------------- |
-| `sel.path()`           | `PathSelection \| null` | Computed. `{ kind: "path", shapeId, pointIds }` or null. |
-| `sel.path.edit(...)`   | `void`                  | Stub -- no-op.                                           |
-| `sel.path.select(...)` | `void`                  | Stub -- no-op.                                           |
-| `sel.path.deselect()`  | `void`                  | Exit path mode.                                          |
+| Member               | Type                  | Description                                            |
+| -------------------- | --------------------- | ------------------------------------------------------ |
+| sel.path()           | PathSelection \| null | Computed. { kind: "path", shapeId, pointIds } or null. |
+| sel.path.edit(...)   | void                  | Stub -- no-op.                                         |
+| sel.path.select(...) | void                  | Stub -- no-op.                                         |
+| sel.path.deselect()  | void                  | Exit path mode.                                        |
 
 ### `sel.crop` -- Crop Sub-selection (stub)
 
 Same accessor pattern, for image/frame crop regions.
 
-| Member                 | Type                    | Description                                           |
-| ---------------------- | ----------------------- | ----------------------------------------------------- |
-| `sel.crop()`           | `CropSelection \| null` | Computed. `{ kind: "crop", objectId, rect }` or null. |
-| `sel.crop.edit(...)`   | `void`                  | Stub -- no-op.                                        |
-| `sel.crop.select(...)` | `void`                  | Stub -- no-op.                                        |
-| `sel.crop.deselect()`  | `void`                  | Exit crop mode.                                       |
+| Member               | Type                  | Description                                         |
+| -------------------- | --------------------- | --------------------------------------------------- |
+| sel.crop()           | CropSelection \| null | Computed. { kind: "crop", objectId, rect } or null. |
+| sel.crop.edit(...)   | void                  | Stub -- no-op.                                      |
+| sel.crop.select(...) | void                  | Stub -- no-op.                                      |
+| sel.crop.deselect()  | void                  | Exit crop mode.                                     |
 
 ### `sel.sub` -- Raw Sub-selection
 
@@ -234,12 +234,12 @@ sel.subComputed // signal function for use in computed() chains
 
 For selection drags (area-select, text-drag). **Not** for manipulation drags (translate/resize/rotate) -- those emit a `"manipulation-drag"` effect for the app to handle.
 
-| Member                        | Type                | Description                                             |
-| ----------------------------- | ------------------- | ------------------------------------------------------- |
-| `sel.drag()`                  | `DragState \| null` | Computed. `{ hit, origin, startState }` or null.        |
-| `sel.drag.start(hit, origin)` | `void`              | Snapshot full state, start drag mode.                   |
-| `sel.drag.end()`              | `void`              | Commit -- current state becomes the truth, drag clears. |
-| `sel.drag.cancel()`           | `void`              | Revert entire state to `startState`.                    |
+| Member                      | Type              | Description                                             |
+| --------------------------- | ----------------- | ------------------------------------------------------- |
+| sel.drag()                  | DragState \| null | Computed. { hit, origin, startState } or null.          |
+| sel.drag.start(hit, origin) | void              | Snapshot full state, start drag mode.                   |
+| sel.drag.end()              | void              | Commit -- current state becomes the truth, drag clears. |
+| sel.drag.cancel()           | void              | Revert entire state to startState.                      |
 
 **Drag previews are baseline-based.** During area-select, each pointer-move recomputes from `drag.startState`, not from the previous preview. This prevents oscillation during Cmd+toggle drag.
 
@@ -249,11 +249,11 @@ During drag, `sel.node.ids` and `sel.text()` always show the effective (preview)
 
 Constrain selection to a subtree. Groups, frames, zoom, embeds -- all just a root change.
 
-| Member             | Type         | Description                                           |
-| ------------------ | ------------ | ----------------------------------------------------- |
-| `sel.root.id()`    | `ID \| null` | Computed. null = top level.                           |
-| `sel.root.set(id)` | `void`       | Enter: constrain to this subtree.                     |
-| `sel.root.up()`    | `void`       | Exit: pop root to its parent (or null for top level). |
+| Member           | Type       | Description                                           |
+| ---------------- | ---------- | ----------------------------------------------------- |
+| sel.root.id()    | ID \| null | Computed. null = top level.                           |
+| sel.root.set(id) | void       | Enter: constrain to this subtree.                     |
+| sel.root.up()    | void       | Exit: pop root to its parent (or null for top level). |
 
 All operations respect the root. `sel.node.select` normalizes IDs against the root's walk order. `selectableAncestor` walks up within the root scope.
 
@@ -554,16 +554,16 @@ text --Esc--> node --Esc--> idle --click/j--> node --Enter--> text
 
 ### Standard bindings
 
-| Mode | Key               | Effect                                                                   |
-| ---- | ----------------- | ------------------------------------------------------------------------ |
-| node | j / k (or arrows) | `sel.node.select([nextId])`                                              |
-| node | Shift+j/k         | `sel.node.extend(nextId)`                                                |
-| node | Enter             | `sel.text.edit(nodeId, 0)`                                               |
-| node | A                 | `sel.selectAll()`                                                        |
-| node | Escape            | `sel.node.collapse()` -> `sel.deselect()`                                |
-| text | Arrow keys        | `sel.text.select(newOffset)`                                             |
-| text | Shift+Arrow       | `sel.text.select(newOffset, sel.text()?.anchor \|\| sel.text()?.cursor)` |
-| text | Escape            | `sel.text.deselect()`                                                    |
+| Mode | Key               | Effect                                                                 |
+| ---- | ----------------- | ---------------------------------------------------------------------- |
+| node | j / k (or arrows) | sel.node.select([nextId])                                              |
+| node | Shift+j/k         | sel.node.extend(nextId)                                                |
+| node | Enter             | sel.text.edit(nodeId, 0)                                               |
+| node | A                 | sel.selectAll()                                                        |
+| node | Escape            | sel.node.collapse() -> sel.deselect()                                  |
+| text | Arrow keys        | sel.text.select(newOffset)                                             |
+| text | Shift+Arrow       | sel.text.select(newOffset, sel.text()?.anchor \|\| sel.text()?.cursor) |
+| text | Escape            | sel.text.deselect()                                                    |
 
 ### Mode-based dispatch
 
@@ -791,18 +791,18 @@ it("click on unselected node emits node.select", () => {
 
 All side-effect rules in one place:
 
-| State change                              | Side effects                                        |
-| ----------------------------------------- | --------------------------------------------------- |
-| Node op (`sel.node.*`)                    | Clears `sel.sub`                                    |
-| Root change (`sel.root.*`)                | Cancel drag first, then reconcile                   |
-| Tree change (ag tree mutated)             | Cancel drag first, then reconcile                   |
-| `sel.sub = ...` (low-level)               | Node state unchanged                                |
-| `sel.text.edit()` (typed helper)          | Ensures cursor node is selected -- may update nodes |
-| `sel.drag` active                         | Operations write to preview                         |
-| `sel.drag.cancel()`                       | Reverts entire state to `startState`                |
-| `sel.text.select()` when not in text mode | No-op                                               |
-| `sel.path.select()` when not in path mode | No-op                                               |
-| Same result as current state              | No write, no signal notifications                   |
+| State change                            | Side effects                                        |
+| --------------------------------------- | --------------------------------------------------- |
+| Node op (sel.node.*)                    | Clears sel.sub                                      |
+| Root change (sel.root.*)                | Cancel drag first, then reconcile                   |
+| Tree change (ag tree mutated)           | Cancel drag first, then reconcile                   |
+| sel.sub = ... (low-level)               | Node state unchanged                                |
+| sel.text.edit() (typed helper)          | Ensures cursor node is selected -- may update nodes |
+| sel.drag active                         | Operations write to preview                         |
+| sel.drag.cancel()                       | Reverts entire state to startState                  |
+| sel.text.select() when not in text mode | No-op                                               |
+| sel.path.select() when not in path mode | No-op                                               |
+| Same result as current state            | No write, no signal notifications                   |
 
 ---
 
@@ -873,15 +873,15 @@ function handleBoardKey(key: string) {
 
 ### Migration from scattered state
 
-| Before (km legacy)                             | After (`@silvery/selection`)             |
+| Before (km legacy)                             | After (@silvery/selection)               |
 | ---------------------------------------------- | ---------------------------------------- |
-| `cursorNodeId` (Zustand)                       | `sel.node.cursor()`                      |
-| `multiSelected` (Zustand)                      | `sel.node.ids()`                         |
-| `selectionAnchor` (Zustand)                    | `sel.node.anchor()`                      |
-| `inlineEditBlock` (Zustand)                    | `sel.text()`                             |
-| `selectAllLevel` (Zustand)                     | not needed -- derived from current state |
-| `CursorStore` (pub/sub)                        | deleted -- subsumed                      |
-| 5 state fields across 6 files                  | one `sel` object, one state atom         |
+| cursorNodeId (Zustand)                         | sel.node.cursor()                        |
+| multiSelected (Zustand)                        | sel.node.ids()                           |
+| selectionAnchor (Zustand)                      | sel.node.anchor()                        |
+| inlineEditBlock (Zustand)                      | sel.text()                               |
+| selectAllLevel (Zustand)                       | not needed -- derived from current state |
+| CursorStore (pub/sub)                          | deleted -- subsumed                      |
+| 5 state fields across 6 files                  | one sel object, one state atom           |
 | 3 reactive systems (Zustand, pub/sub, signals) | alien-signals only                       |
 
 ---
@@ -914,3 +914,4 @@ agNode.dropTarget // written by drag system
 ### Framework independence
 
 The pure transitions (`apply.ts`, `pointer.ts`) are framework-agnostic. The store uses alien-signals, but the architecture works with any reactive primitive (Zustand, Jotai, React's `useSyncExternalStore`). The silvery-specific part is reading the ag tree for ordering/hierarchy -- in React DOM, you would pass an ordered ID list explicitly.
+

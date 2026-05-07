@@ -1,14 +1,14 @@
 # Theme System v2 — ARCHIVED 2026-04-17
 
-> **Concern owned by silvery.** km uses silvery's theme tokens — see [silvery.dev/guide/styling](https://silvery.dev/guide/styling) and [silvery.dev/guide/theming](https://silvery.dev/guide/theming) for current docs. Any km-specific configuration belongs in a km UI design section, not as a standalone doc.
+> Concern owned by silvery. km uses silvery's theme tokens — see silvery.dev/guide/styling and silvery.dev/guide/theming for current docs. Any km-specific configuration belongs in a km UI design section, not as a standalone doc.
 
-# Theme System v2: Semantic Tokens + Progressive Enhancement
+## Theme System v2: Semantic Tokens + Progressive Enhancement
 
-> **SUPERSEDED**: This design spec predates the swatch redesign (2026-03).
+> SUPERSEDED: This design spec predates the swatch redesign (2026-03).
 > The actual implementation uses ColorScheme (22 terminal colors) → Theme (33 shadcn-style tokens).
-> See `vendor/silvery/packages/theme/CLAUDE.md` for the current architecture.
-> Token names below (`$text`, `$chromebg`, etc.) are outdated — current tokens use
-> `$fg`, `$inverse`, `$surface`, etc. See the CLAUDE.md semantic tokens table.
+> See vendor/silvery/packages/theme/CLAUDE.md for the current architecture.
+> Token names below ($text, $chromebg, etc.) are outdated — current tokens use
+> $fg, $inverse, $surface, etc. See the CLAUDE.md semantic tokens table.
 
 ## Goals
 
@@ -56,6 +56,7 @@ Not a token -- a **Box prop** that multiplies all descendant colors toward backg
 ```
 
 Implementation by tier:
+
 - **ANSI 16**: opacity < 0.5 -> dimColor on all descendants. Binary (dim or not).
 - **256-color**: Map each color to a dimmer 256-color equivalent. 2-3 levels.
 - **Truecolor**: True alpha blending toward $bg. Continuous.
@@ -74,13 +75,13 @@ the full rationale and derivation rules.
 
 See the [theme package reference](../../vendor/silvery/packages/theme/README.md) for backward-compatible aliases.
 
-| Alias Token     | Resolves To    |
-|-----------------|--------------- |
-| `$accent`       | `$primary`     |
-| `$muted`        | `$text2`       |
-| `$raisedbg`     | `$surface`     |
-| `$background`   | `$bg`          |
-| `$border`       | `$separator`   |
+| Alias Token | Resolves To |
+| ----------- | ----------- |
+| $accent     | $primary    |
+| $muted      | $text2      |
+| $raisedbg   | $surface    |
+| $background | $bg         |
+| $border     | $separator  |
 
 ### Cross-Platform Binding
 
@@ -90,27 +91,27 @@ properties and React context examples.
 
 ## Where Each Token Is Used in km
 
-| Token | UI Elements |
-|-------|-------------|
-| `$primary` | Active tab dot, board heading, column header (focused), shortcut keys in help, favorite keys |
-| `$link` | Inline links, `@board` references, wiki-links |
-| `$control` | Keyboard shortcut badges, input borders, chord hint keys |
-| `$selected` | Cursor row background, selected card bg, picker selected row |
-| `$selectedfg` | Text on cursor row, text on selected items |
-| `$focusborder` | Focused pane border, editing card border, active input outline |
-| `$text` | Node titles, body text, fold markers, column headers |
-| `$text2` | Node descriptions, metadata labels, unfocused column headers |
-| `$text3` | Child counts, timestamps, dot leaders, chord separators, footer hints |
-| `$text4` | Ghost fold dots, empty column placeholders, grid empty cells |
-| `$bg` | Main background (usually terminal default) |
-| `$surface` (`$raisedbg` alias) | Dialog/modal background, picker dropdown, tooltip bg |
-| `$separator` | All borders (auto-default), divider lines, column separators |
-| `$chromebg` | Status bar bg, title bar bg (inverted) |
-| `$chromefg` | Status bar text, title bar text (inverted) |
-| `$error` | Overdue dates, P0/P1 priority, blocked status, validation errors, broken embeds |
-| `$warning` | In-progress status (WIP icon), unsaved indicator, P2 priority |
-| `$success` | Done status (checkmark), actionable dates, start dates |
-| `$color0`--`$color15` | Board-specific colors, tag colors, calendar event colors |
+| Token                      | UI Elements                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| $primary                   | Active tab dot, board heading, column header (focused), shortcut keys in help, favorite keys |
+| $link                      | Inline links, @board references, wiki-links                                                  |
+| $control                   | Keyboard shortcut badges, input borders, chord hint keys                                     |
+| $selected                  | Cursor row background, selected card bg, picker selected row                                 |
+| $selectedfg                | Text on cursor row, text on selected items                                                   |
+| $focusborder               | Focused pane border, editing card border, active input outline                               |
+| $text                      | Node titles, body text, fold markers, column headers                                         |
+| $text2                     | Node descriptions, metadata labels, unfocused column headers                                 |
+| $text3                     | Child counts, timestamps, dot leaders, chord separators, footer hints                        |
+| $text4                     | Ghost fold dots, empty column placeholders, grid empty cells                                 |
+| $bg                        | Main background (usually terminal default)                                                   |
+| $surface ($raisedbg alias) | Dialog/modal background, picker dropdown, tooltip bg                                         |
+| $separator                 | All borders (auto-default), divider lines, column separators                                 |
+| $chromebg                  | Status bar bg, title bar bg (inverted)                                                       |
+| $chromefg                  | Status bar text, title bar text (inverted)                                                   |
+| $error                     | Overdue dates, P0/P1 priority, blocked status, validation errors, broken embeds              |
+| $warning                   | In-progress status (WIP icon), unsaved indicator, P2 priority                                |
+| $success                   | Done status (checkmark), actionable dates, start dates                                       |
+| $color0--$color15          | Board-specific colors, tag colors, calendar event colors                                     |
 
 ### Help Dialog Color Spec
 
@@ -140,32 +141,32 @@ properties and React context examples.
 
 ### Token Mapping
 
-| Old (km.*)              | New Token    | Notes                                  |
-|-------------------------|-------------|----------------------------------------|
-| `km.selectionBg`        | `$selected`  | Promoted to theme token                |
-| `km.selectionFg`        | `$selectedfg`| Promoted to theme token                |
-| `km.selectionDim`       | `$selected` + opacity | Unfocused = parent opacity   |
-| `km.inputFocusRing`     | `$focusborder` | Promoted to theme token                |
-| `km.cardBorderEditing`  | `$focusborder` | Same as focus ring (editing = focused) |
-| `km.cardBorderSelected` | `$selected`  | Selected card border = selection color |
-| `km.textPrimary`        | `$text`      | Direct mapping                         |
-| `km.textLink`           | `$link`      | Promoted to theme token                |
-| `km.paneBorderFocused`  | `$text`      | Focused pane = normal text border      |
-| `km.columnHeaderColor`  | `$text`      | Column headers = primary text          |
-| `km.hintKey`            | `$primary`   | Keys in popups = brand color           |
-| `km.hintKeyDim`         | `$text3`     | Dimmed keys = tertiary text            |
-| `km.modeMagenta`        | `$color5`    | Mode indicator via palette             |
-| `km.overlayBg`          | `$surface`   | Overlay background = raised surface    |
-| `km.dialogBorder`       | `$separator` | Dialog border = separator              |
-| `km.dialogTitle`        | `$text`      | Dialog title = primary text (bold)     |
-| `km.dialogBody`         | `$text`      | Dialog body = primary text             |
-| `km.dialogDim`          | `$text2`     | Secondary dialog text                  |
-| `km.dialogSelectedBg`   | `$selected`  | Same selection token everywhere        |
-| `km.dialogSelectedFg`   | `$selectedfg`| Same selection fg everywhere           |
-| `km.dialogInputBorder`  | `$focusborder` | Input border = focus ring              |
-| `km.dialogShortcut`     | `$control`   | Shortcut hints = interactive chrome    |
-| `km.helpSectionHeading` | `$primary`   | Help headings = brand color (bold)     |
-| `km.helpKey`            | `$control`   | Help keys = interactive chrome         |
+| Old (km.*)            | New Token           | Notes                                  |
+| --------------------- | ------------------- | -------------------------------------- |
+| km.selectionBg        | $selected           | Promoted to theme token                |
+| km.selectionFg        | $selectedfg         | Promoted to theme token                |
+| km.selectionDim       | $selected + opacity | Unfocused = parent opacity             |
+| km.inputFocusRing     | $focusborder        | Promoted to theme token                |
+| km.cardBorderEditing  | $focusborder        | Same as focus ring (editing = focused) |
+| km.cardBorderSelected | $selected           | Selected card border = selection color |
+| km.textPrimary        | $text               | Direct mapping                         |
+| km.textLink           | $link               | Promoted to theme token                |
+| km.paneBorderFocused  | $text               | Focused pane = normal text border      |
+| km.columnHeaderColor  | $text               | Column headers = primary text          |
+| km.hintKey            | $primary            | Keys in popups = brand color           |
+| km.hintKeyDim         | $text3              | Dimmed keys = tertiary text            |
+| km.modeMagenta        | $color5             | Mode indicator via palette             |
+| km.overlayBg          | $surface            | Overlay background = raised surface    |
+| km.dialogBorder       | $separator          | Dialog border = separator              |
+| km.dialogTitle        | $text               | Dialog title = primary text (bold)     |
+| km.dialogBody         | $text               | Dialog body = primary text             |
+| km.dialogDim          | $text2              | Secondary dialog text                  |
+| km.dialogSelectedBg   | $selected           | Same selection token everywhere        |
+| km.dialogSelectedFg   | $selectedfg         | Same selection fg everywhere           |
+| km.dialogInputBorder  | $focusborder        | Input border = focus ring              |
+| km.dialogShortcut     | $control            | Shortcut hints = interactive chrome    |
+| km.helpSectionHeading | $primary            | Help headings = brand color (bold)     |
+| km.helpKey            | $control            | Help keys = interactive chrome         |
 
 After migration, `km` constants reduce from ~25 to **0** -- all colors come from
 theme tokens. The `km` object and `theme.ts` in km-tui are deleted.
@@ -267,3 +268,4 @@ palette.toml -> deriveTheme() -> ghostty.conf    (terminal theme)
 
 This is out of scope for v2 but the `ThemePalette` interface is designed to support it.
 The 14-color input (6 surface + 8 hues) is expressive enough to generate any of these configs.
+

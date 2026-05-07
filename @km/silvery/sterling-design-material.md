@@ -27,9 +27,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.design-package-rename
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [ ] Sterling Phase 5: @silvery/design-material reference impl @km/silvery #task #P4

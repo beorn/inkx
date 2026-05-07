@@ -39,8 +39,8 @@ close_reason: >-
 
   Tests: 2 new vendor tests (textarea-shift-enter, listview-flex-scrollbar), 232
   silvercode tests pass, regression sweep clean. Two unrelated stale tests
-  updated (mutations.test.tsx mutation regex now handles ChatPane's '▎'
-  focus marker added 14h ago; side-panel-stays-visible.test.tsx now documents
+  updated (mutations.test.tsx mutation regex now handles ChatPane's '▎' focus
+  marker added 14h ago; side-panel-stays-visible.test.tsx now documents
   post-CSS-flip silvery defaults instead of inverted historical premise).
 started_at: 2026-04-26T05:20:30Z
 owner: bjorn@stabell.org
@@ -69,3 +69,4 @@ Mechanism: silvery's TextArea + Kitty keyboard protocol distinguishes shift+ente
 If TextArea doesn't expose a 'submit predicate' API, we may need to grow one in silvery (vendor/silvery/packages/ag-react/src/ui/components/TextArea.tsx) — submitKey already supports 'enter' and 'ctrl+enter'; consider adding the inverse 'shift-enter-is-newline' option, or accept submitKey as a function.
 
 Reference: queue-region TextArea uses submitKey='ctrl+enter' so plain Enter inserts newline (the inverse of what command region needs).
+

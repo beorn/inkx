@@ -102,3 +102,4 @@ Considered: a `withSurfaces({ mcp, rest, json-rpc })` factory that registers all
 - [hub/architecture.md](./architecture.md) — what's shipped today.
 - [hub/composition.md](./composition.md) — how shipped pieces compose.
 - 2026-04-27 retrospective — the editorial-drift incidents that motivated the split.
+

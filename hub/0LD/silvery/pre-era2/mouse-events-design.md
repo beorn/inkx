@@ -1,8 +1,8 @@
 # Mouse Events Design — React DOM Parity
 
-> **Internal** — Design rationale for the mouse event system. Documents the React DOM parity principle and SGR mouse protocol handling.
->
-> **Status: Implemented** — Mouse events are available in production. This document describes the design rationale.
+> Internal — Design rationale for the mouse event system. Documents the React DOM parity principle and SGR mouse protocol handling.
+> 
+> Status: Implemented — Mouse events are available in production. This document describes the design rationale.
 
 ## Principle
 
@@ -69,9 +69,9 @@ interface SilveryWheelEvent extends SilveryMouseEvent {
 1. Parse SGR mouse sequence → get (x, y, button, action, modifiers)
 2. **Hit test**: Walk the render tree to find the deepest node whose `screenRect` contains (x, y)
 3. **Bubble phase**: Fire handlers from deepest → root (same as DOM)
-   - Each node in the ancestor chain gets the event with `currentTarget` set to itself
-   - `stopPropagation()` stops the bubble
-4. `mouseenter`/`mouseleave` do NOT bubble (same as DOM spec)
+- Each node in the ancestor chain gets the event with `currentTarget` set to itself
+- `stopPropagation()` stops the bubble
+9. `mouseenter`/`mouseleave` do NOT bubble (same as DOM spec)
 
 ### Hit Test Implementation
 
@@ -184,14 +184,14 @@ function DetailPane({ content }: DetailPaneProps) {
 
 ## Migration from km-tui
 
-| Current (km-tui manual)                | New (Silvery DOM events)                |
-| -------------------------------------- | --------------------------------------- |
-| `resolveMouseToNode(ctx, x, y)`        | `<Box onClick={(e) => ...}>`            |
-| `resolveMouseToColumn(ctx, x)`         | `<Box onClick={(e) => ...}>` on column  |
-| `columnScrollAnchor` in UIState        | VirtualList handles internally          |
-| `detailScrollOffset` manual updates    | `Box overflow="scroll"` handles wheel   |
-| Global `handleMouse()` in board-app.ts | Component-level event handlers          |
-| `HitRegistry` + `useHitRegion`         | Automatic (render tree = hit structure) |
+| Current (km-tui manual)              | New (Silvery DOM events)                |
+| ------------------------------------ | --------------------------------------- |
+| resolveMouseToNode(ctx, x, y)        | <Box onClick={(e) => ...}>              |
+| resolveMouseToColumn(ctx, x)         | <Box onClick={(e) => ...}> on column    |
+| columnScrollAnchor in UIState        | VirtualList handles internally          |
+| detailScrollOffset manual updates    | Box overflow="scroll" handles wheel     |
+| Global handleMouse() in board-app.ts | Component-level event handlers          |
+| HitRegistry + useHitRegion           | Automatic (render tree = hit structure) |
 
 ## Implementation Order
 
@@ -424,3 +424,4 @@ New additions:
 - No pointer events (onPointerDown) — pointer is a superset for touch, irrelevant for terminal
 - No synthetic focus events from click — click-to-focus is handled by the FocusManager automatically
 - No onChange, onSubmit — these are form-level concepts, handled by TextInput
+

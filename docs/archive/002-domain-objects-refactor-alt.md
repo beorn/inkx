@@ -1,7 +1,7 @@
 # ADR-002-ALT: Domain Object Architecture (Original Design)
 
-> **Status:** SUPERSEDED by [ADR-002](./002-domain-objects-refactor.md)
->
+> Status: SUPERSEDED by ADR-002
+> 
 > This document captures the original design that treated FileStore and DataStore as peer stores implementing the same interface.
 
 ---
@@ -51,13 +51,13 @@ A **store** is a tree of content (markdown/text and binary files) that can be st
 
 All stores share the same API surface — query, mutate, watch. Stores can be synced: `sync(store1, store2)`.
 
-| Name           | What it is                                                 |
-| -------------- | ---------------------------------------------------------- |
-| **store**      | A tree of content (tasks, notes, projects) with common API |
-| **file store** | Store backed by markdown files you can edit                |
-| **data store** | Store backed by database + blobs (what km operates on)     |
-| **sync**       | Bidirectional update between two stores                    |
-| **config**     | Settings (cosmicconfig: `km.config.yaml`, `.kmrc`, etc.)   |
+| Name       | What it is                                                 |
+| ---------- | ---------------------------------------------------------- |
+| store      | A tree of content (tasks, notes, projects) with common API |
+| file store | Store backed by markdown files you can edit                |
+| data store | Store backed by database + blobs (what km operates on)     |
+| sync       | Bidirectional update between two stores                    |
+| config     | Settings (cosmicconfig: km.config.yaml, .kmrc, etc.)       |
 
 ---
 
@@ -66,16 +66,15 @@ All stores share the same API surface — query, mutate, watch. Stores can be sy
 When you run `km` on a file store (point it at a folder or markdown file):
 
 1. **If `.km/` exists:**
-   - Load config via cosmicconfig rooted at repo path
-   - Open DataStore from `.km/store/` (database, blobs) + `.km/store-events.jsonl`
-   - Sync is **opt-in** — call `vault.sync()` or `vault.watch()` to start
-   - Both stores persist independently
-
-2. **If no `.km/` exists:**
-   - Create an in-memory DataStore (cache for fast queries)
-   - FileStore (markdown files) IS the persistence
-   - Changes sync immediately back to files
-   - `km init` creates `.km/` for persistent DataStore
+- Load config via cosmicconfig rooted at repo path
+- Open DataStore from `.km/store/` (database, blobs) + `.km/store-events.jsonl`
+- Sync is **opt-in** — call `vault.sync()` or `vault.watch()` to start
+- Both stores persist independently
+7. **If no `.km/` exists:**
+- Create an in-memory DataStore (cache for fast queries)
+- FileStore (markdown files) IS the persistence
+- Changes sync immediately back to files
+- `km init` creates `.km/` for persistent DataStore
 
 **Key distinction:**
 
@@ -110,7 +109,7 @@ When you run `km` on a file store (point it at a folder or markdown file):
 
 **All stores have the same API surface** — file stores and data stores implement the same interface:
 
-> **Important:** DataStore is the canonical query path for interactive use. FileStore implements Store semantics to enable diff/sync operations, but its operations are expensive (O(n) file parsing). Never use FileStore for product queries.
+> Important: DataStore is the canonical query path for interactive use. FileStore implements Store semantics to enable diff/sync operations, but its operations are expensive (O(n) file parsing). Never use FileStore for product queries.
 
 ```typescript
 interface Store extends Disposable {
@@ -230,12 +229,12 @@ async function viewCommand(path: string) {
 
 While FileStore and DataStore share the Store interface, their performance profiles differ dramatically:
 
-| Operation         | DataStore            | FileStore                        |
-| ----------------- | -------------------- | -------------------------------- |
-| `getNode(id)`     | O(1) indexed lookup  | O(n) parse all files to find     |
-| `getChildren(id)` | O(log n) indexed     | O(n) parse files                 |
-| `search(query)`   | O(log n) via FTS5    | O(n) parse all, filter in memory |
-| `watch()`         | Event log / triggers | fs.watch() + reparse             |
+| Operation       | DataStore            | FileStore                        |
+| --------------- | -------------------- | -------------------------------- |
+| getNode(id)     | O(1) indexed lookup  | O(n) parse all files to find     |
+| getChildren(id) | O(log n) indexed     | O(n) parse files                 |
+| search(query)   | O(log n) via FTS5    | O(n) parse all, filter in memory |
+| watch()         | Event log / triggers | fs.watch() + reparse             |
 
 **How FileStore implements Store:**
 
@@ -285,10 +284,10 @@ interface Change {
 
 **Current implementation (to be refactored):**
 
-| Direction | Current                                         | Target                                   |
-| --------- | ----------------------------------------------- | ---------------------------------------- |
-| FS → DB   | `reconcileDirectory()` (inode/mtime comparison) | `fileStore.watch()` → apply to dataStore |
-| DB → FS   | `applyEventToFs()` (event-driven regeneration)  | `dataStore.watch()` → apply to fileStore |
+| Direction | Current                                       | Target                                 |
+| --------- | --------------------------------------------- | -------------------------------------- |
+| FS → DB   | reconcileDirectory() (inode/mtime comparison) | fileStore.watch() → apply to dataStore |
+| DB → FS   | applyEventToFs() (event-driven regeneration)  | dataStore.watch() → apply to fileStore |
 
 **Key insight:** The current `reconcileDirectory()` is really `diff(fileStore, dataStore)` but with FS-specific optimizations (inode tracking, mtime comparison). The refactored version should:
 
@@ -421,17 +420,17 @@ createFakeRepo(options?: { nodes?: KNode[] }): Repo
 
 **Naming convention:**
 
-| Creates            | Factory name            | Example                                  |
-| ------------------ | ----------------------- | ---------------------------------------- |
-| Repo (full)        | `createRepo()`          | `createRepo("/path")`                    |
-| Repo (data-only)   | `createDataRepo()`      | `createDataRepo(dataStore)`              |
-| Repo (testing)     | `createFakeRepo()`      | `createFakeRepo({ nodes })`              |
-| DataStore (disk)   | `createDiskDataStore()` | `createDiskDataStore("/path/.km/store")` |
-| DataStore (memory) | `createMemDataStore()`  | `createMemDataStore()`                   |
-| DataStore (maps)   | `createMapDataStore()`  | `createMapDataStore()`                   |
-| FileStore (disk)   | `createDiskFileStore()` | `createDiskFileStore("/path")`           |
-| FileStore (memory) | `createMemFileStore()`  | `createMemFileStore()`                   |
-| Tasks (view)       | `createTasks()`         | `createTasks(store)`                     |
+| Creates            | Factory name          | Example                                |
+| ------------------ | --------------------- | -------------------------------------- |
+| Repo (full)        | createRepo()          | createRepo("/path")                    |
+| Repo (data-only)   | createDataRepo()      | createDataRepo(dataStore)              |
+| Repo (testing)     | createFakeRepo()      | createFakeRepo({ nodes })              |
+| DataStore (disk)   | createDiskDataStore() | createDiskDataStore("/path/.km/store") |
+| DataStore (memory) | createMemDataStore()  | createMemDataStore()                   |
+| DataStore (maps)   | createMapDataStore()  | createMapDataStore()                   |
+| FileStore (disk)   | createDiskFileStore() | createDiskFileStore("/path")           |
+| FileStore (memory) | createMemFileStore()  | createMemFileStore()                   |
+| Tasks (view)       | createTasks()         | createTasks(store)                     |
 
 ---
 
@@ -471,12 +470,12 @@ id: abc123
 
 ## Composition Principles
 
-| Principle                   | Test                                            | Example                  |
-| --------------------------- | ----------------------------------------------- | ------------------------ |
-| **Peers, not nested**       | "Do A and B sync?" → peers                      | files ↔ data are peers   |
-| **Bundle for consistency**  | "If I swap X, does Y swap?" → bundle            | nodes + blobs + events   |
-| **Separate if independent** | "Does X change when Y changes?" → no → separate | config vs data           |
-| **Optional when possible**  | "Can this work without X?" → nullable           | files: FileStore \| null |
+| Principle               | Test                                            | Example                  |
+| ----------------------- | ----------------------------------------------- | ------------------------ |
+| Peers, not nested       | "Do A and B sync?" → peers                      | files ↔ data are peers   |
+| Bundle for consistency  | "If I swap X, does Y swap?" → bundle            | nodes + blobs + events   |
+| Separate if independent | "Does X change when Y changes?" → no → separate | config vs data           |
+| Optional when possible  | "Can this work without X?" → nullable           | files: FileStore \| null |
 
 ---
 
@@ -563,13 +562,13 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 
 ## Files to Remove/Consolidate
 
-| File                         | Action                               |
-| ---------------------------- | ------------------------------------ |
-| `db-instance.ts`             | Keep only `getDbPath()`, `closeDb()` |
-| `store.ts`                   | Delete - use Repo instead            |
-| Singleton exports in `db.ts` | Remove                               |
-| `isMemoryMode()`             | Delete - use explicit mode           |
-| `runWithDb()`                | Delete - tests use env.db            |
+| File                       | Action                           |
+| -------------------------- | -------------------------------- |
+| db-instance.ts             | Keep only getDbPath(), closeDb() |
+| store.ts                   | Delete - use Repo instead        |
+| Singleton exports in db.ts | Remove                           |
+| isMemoryMode()             | Delete - use explicit mode       |
+| runWithDb()                | Delete - tests use env.db        |
 
 ---
 
@@ -580,3 +579,4 @@ bun tsc --noEmit        # No getDb/setDb errors
 bun run test:fast       # Tests pass
 bun km view /tmp/repo  # TUI works
 ```
+

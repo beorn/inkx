@@ -19,8 +19,8 @@ be arbitrary.
 ## All 1s (auto-numbered on render)
 
 1. First
-1. Second
-1. Third
+2. Second
+3. Third
 
 ## Non-sequential (HTML renders as 1,2,3)
 
@@ -32,6 +32,6 @@ be arbitrary.
 
 1. Dot marker
 2. Dot marker
+3. Paren marker
+4. Paren marker
 
-1) Paren marker
-2) Paren marker

@@ -21,32 +21,32 @@
 
 ### `query-test-helpers.ts`
 
-| Helper                        | Purpose                           |
-| ----------------------------- | --------------------------------- |
-| `createTestDatabase()`        | In-memory SQLite with full schema |
-| `seedTestData(db, nodes)`     | Bulk insert nodes for query tests |
-| `formatDate(d)`               | Date formatting for assertions    |
-| `today()`, `offsetDate(days)` | Date factory helpers              |
+| Helper                    | Purpose                           |
+| ------------------------- | --------------------------------- |
+| createTestDatabase()      | In-memory SQLite with full schema |
+| seedTestData(db, nodes)   | Bulk insert nodes for query tests |
+| formatDate(d)             | Date formatting for assertions    |
+| today(), offsetDate(days) | Date factory helpers              |
 
 ### `sync-test-helpers` (from `@km/fs-mount`)
 
 Lives at `packages/km-fs-mount/tests/watch/sync-test-helpers.ts` (moved out with the `watch/` subsystem). Tests import it via relative path `../../../km-fs-mount/tests/watch/sync-test-helpers.ts`.
 
-| Helper                                | Purpose                                            |
-| ------------------------------------- | -------------------------------------------------- |
-| `createTestSync(db, path, overrides)` | Sync with fast debounces, no worker thread         |
-| `setupSync(stack, sync, emitter)`     | Lifecycle with AsyncDisposableStack cleanup        |
-| `waitForReady(sync)`                  | Wait for watcher initialization                    |
-| `createStateChangeWaiter()`           | Wait for reconciling → idle cycle (callback-based) |
+| Helper                              | Purpose                                            |
+| ----------------------------------- | -------------------------------------------------- |
+| createTestSync(db, path, overrides) | Sync with fast debounces, no worker thread         |
+| setupSync(stack, sync, emitter)     | Lifecycle with AsyncDisposableStack cleanup        |
+| waitForReady(sync)                  | Wait for watcher initialization                    |
+| createStateChangeWaiter()           | Wait for reconciling → idle cycle (callback-based) |
 
 ### `sync/chaos/` (fuzz testing)
 
-| File              | Purpose                                                |
-| ----------------- | ------------------------------------------------------ |
-| `fake-fs.ts`      | Mock filesystem for reproducible chaos                 |
-| `event-picker.ts` | Random event generation from state                     |
-| `transformers.ts` | Event sequence mutations                               |
-| `verifier.ts`     | Invariant checking (concurrent safety, data integrity) |
+| File            | Purpose                                                |
+| --------------- | ------------------------------------------------------ |
+| fake-fs.ts      | Mock filesystem for reproducible chaos                 |
+| event-picker.ts | Random event generation from state                     |
+| transformers.ts | Event sequence mutations                               |
+| verifier.ts     | Invariant checking (concurrent safety, data integrity) |
 
 ## Patterns
 
@@ -117,11 +117,11 @@ test("quick check: my scenario", async () => {
 
 ## Related Test Types
 
-| Type           | Location               | When                                                                |
-| -------------- | ---------------------- | ------------------------------------------------------------------- |
-| **Chaos/fuzz** | `sync/chaos/*.fuzz.ts` | Randomized concurrent edit sequences. Run with `bun run test:fuzz`. |
-| **Benchmarks** | `*.bench.ts`           | Sync pipeline performance. Run with `bun run bench`.                |
-| **E2E**        | `e2e/`                 | Full app lifecycle (slow).                                          |
+| Type       | Location              | When                                                              |
+| ---------- | --------------------- | ----------------------------------------------------------------- |
+| Chaos/fuzz | sync/chaos/\*.fuzz.ts | Randomized concurrent edit sequences. Run with bun run test:fuzz. |
+| Benchmarks | \*.bench.ts           | Sync pipeline performance. Run with bun run bench.                |
+| E2E        | e2e/                  | Full app lifecycle (slow).                                        |
 
 ## See Also
 

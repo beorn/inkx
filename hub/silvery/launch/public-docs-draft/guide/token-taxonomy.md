@@ -1,6 +1,7 @@
 ---
 title: Token Taxonomy
-description: Sterling's channel-role-state grammar — every token, when to use it, and how the flat and nested forms compose.
+description: Sterling's channel-role-state grammar — every token, when to use
+  it, and how the flat and nested forms compose.
 ---
 
 # Token Taxonomy
@@ -23,132 +24,132 @@ Sterling uses a **channel-role-state** grammar borrowed from GitHub's Primer, wi
 
 ### Channels
 
-| Channel   | What it colors                            |
-|-----------|-------------------------------------------|
-| `fg-*`    | Text, icons                               |
-| `bg-*`    | Area fills, surfaces                      |
-| `border-*`| Borders, outlines, dividers               |
-| `cursor-*`| Cursor fg / bg                            |
+| Channel  | What it colors              |
+| -------- | --------------------------- |
+| fg-*     | Text, icons                 |
+| bg-*     | Area fills, surfaces        |
+| border-* | Borders, outlines, dividers |
+| cursor-* | Cursor fg / bg              |
 
 ### Roles
 
-| Role      | Communicates                              | Interactive? |
-|-----------|-------------------------------------------|--------------|
-| `accent`  | Interactive brand / links / focus         | yes          |
-| `info`    | Neutral information                       | bg only      |
-| `success` | Completed, passing, OK                    | bg only      |
-| `warning` | Caution, deprecation                      | bg only      |
-| `error`   | Failure, invalid                          | bg only      |
-| `muted`   | Secondary text, captions                  | no           |
+| Role    | Communicates                      | Interactive? |
+| ------- | --------------------------------- | ------------ |
+| accent  | Interactive brand / links / focus | yes          |
+| info    | Neutral information               | bg only      |
+| success | Completed, passing, OK            | bg only      |
+| warning | Caution, deprecation              | bg only      |
+| error   | Failure, invalid                  | bg only      |
+| muted   | Secondary text, captions          | no           |
 
 ### Surface levels
 
 Surfaces are hierarchical, independent of role:
 
-| Level            | Use                                   |
-|------------------|---------------------------------------|
-| `surface-default`| Default app background (== `bg`)      |
-| `surface-subtle` | Hover rows, inline muted chips        |
-| `surface-raised` | Panels, dialogs, cards                |
-| `surface-overlay`| Tooltips, dropdowns, toasts           |
+| Level           | Use                            |
+| --------------- | ------------------------------ |
+| surface-default | Default app background (== bg) |
+| surface-subtle  | Hover rows, inline muted chips |
+| surface-raised  | Panels, dialogs, cards         |
+| surface-overlay | Tooltips, dropdowns, toasts    |
 
 Each surface has `$bg-surface-*`; they all pair with the default `$fg`.
 
 ### States
 
-| State       | When                                       |
-|-------------|--------------------------------------------|
-| `-hover`    | Mouse hover                                |
-| `-active`   | Pressed / held                             |
-| `-selected` | Selected item (kept for future use)        |
-| `-disabled` | Inactive                                   |
-| `-focus`    | Keyboard focus                             |
+| State     | When                                |
+| --------- | ----------------------------------- |
+| -hover    | Mouse hover                         |
+| -active   | Pressed / held                      |
+| -selected | Selected item (kept for future use) |
+| -disabled | Inactive                            |
+| -focus    | Keyboard focus                      |
 
 State variants apply to **interactive surfaces**. Only `accent` emits `fg-*-hover/-active` (interactive text); status-role text isn't interactive.
 
 ### Emphasis / kind
 
-| Modifier     | Use                                                            |
-|--------------|----------------------------------------------------------------|
-| `fg-on-<r>`  | Text color when placed on a `bg-<role>` fill (e.g., `fg-on-error`) |
-| `-subtle`    | De-emphasized variant                                           |
-| `-muted`     | Muted variant                                                   |
-| `-emphasis`  | High-emphasis variant                                           |
+| Modifier  | Use                                                            |
+| --------- | -------------------------------------------------------------- |
+| fg-on-<r> | Text color when placed on a bg-<role> fill (e.g., fg-on-error) |
+| -subtle   | De-emphasized variant                                          |
+| -muted    | Muted variant                                                  |
+| -emphasis | High-emphasis variant                                          |
 
 ## Every token Sterling ships
 
 ### Foreground (text)
 
-| Token               | Use                                           |
-|---------------------|-----------------------------------------------|
-| `$fg`               | Default body text                             |
-| `$fg-muted`         | Secondary — captions, hints                   |
-| `$fg-disabled`      | Inactive                                      |
-| `$fg-accent`        | Interactive brand — links, selected, headings |
-| `$fg-accent-hover`  | Accent text on hover                          |
-| `$fg-accent-active` | Accent text on press                          |
-| `$fg-info`          | Info text (non-interactive)                   |
-| `$fg-success`       | Success text                                  |
-| `$fg-warning`       | Warning text                                  |
-| `$fg-error`         | Error text                                    |
-| `$fg-on-accent`     | Text on `$bg-accent`                          |
-| `$fg-on-info`       | Text on `$bg-info`                            |
-| `$fg-on-success`    | Text on `$bg-success`                         |
-| `$fg-on-warning`    | Text on `$bg-warning`                         |
-| `$fg-on-error`      | Text on `$bg-error`                           |
+| Token             | Use                                           |
+| ----------------- | --------------------------------------------- |
+| $fg               | Default body text                             |
+| $fg-muted         | Secondary — captions, hints                   |
+| $fg-disabled      | Inactive                                      |
+| $fg-accent        | Interactive brand — links, selected, headings |
+| $fg-accent-hover  | Accent text on hover                          |
+| $fg-accent-active | Accent text on press                          |
+| $fg-info          | Info text (non-interactive)                   |
+| $fg-success       | Success text                                  |
+| $fg-warning       | Warning text                                  |
+| $fg-error         | Error text                                    |
+| $fg-on-accent     | Text on $bg-accent                            |
+| $fg-on-info       | Text on $bg-info                              |
+| $fg-on-success    | Text on $bg-success                           |
+| $fg-on-warning    | Text on $bg-warning                           |
+| $fg-on-error      | Text on $bg-error                             |
 
 ### Background (fills)
 
-| Token                     | Use                                     |
-|---------------------------|-----------------------------------------|
-| `$bg`                     | Default app background                  |
-| `$bg-surface-subtle`      | Subtle surface (hover rows, chips)      |
-| `$bg-surface-raised`      | Elevated surface (panels, dialogs)      |
-| `$bg-surface-overlay`     | Overlay (tooltips, dropdowns, toasts)   |
-| `$bg-surface-subtle-hover`| Surface-subtle hover state              |
-| `$bg-surface-raised-hover`| Surface-raised hover state              |
-| `$bg-accent`              | Accent fill (primary buttons, tags)     |
-| `$bg-accent-hover`        | Accent fill hover                       |
-| `$bg-accent-active`       | Accent fill active                      |
-| `$bg-info`                | Info fill                               |
-| `$bg-info-hover`          | Info fill hover                         |
-| `$bg-info-active`         | Info fill active                        |
-| `$bg-success`             | Success fill                            |
-| `$bg-success-hover`       | Success fill hover                      |
-| `$bg-success-active`      | Success fill active                     |
-| `$bg-warning`             | Warning fill                            |
-| `$bg-warning-hover`       | Warning fill hover                      |
-| `$bg-warning-active`      | Warning fill active                     |
-| `$bg-error`               | Error fill                              |
-| `$bg-error-hover`         | Error fill hover                        |
-| `$bg-error-active`        | Error fill active                       |
+| Token                    | Use                                   |
+| ------------------------ | ------------------------------------- |
+| $bg                      | Default app background                |
+| $bg-surface-subtle       | Subtle surface (hover rows, chips)    |
+| $bg-surface-raised       | Elevated surface (panels, dialogs)    |
+| $bg-surface-overlay      | Overlay (tooltips, dropdowns, toasts) |
+| $bg-surface-subtle-hover | Surface-subtle hover state            |
+| $bg-surface-raised-hover | Surface-raised hover state            |
+| $bg-accent               | Accent fill (primary buttons, tags)   |
+| $bg-accent-hover         | Accent fill hover                     |
+| $bg-accent-active        | Accent fill active                    |
+| $bg-info                 | Info fill                             |
+| $bg-info-hover           | Info fill hover                       |
+| $bg-info-active          | Info fill active                      |
+| $bg-success              | Success fill                          |
+| $bg-success-hover        | Success fill hover                    |
+| $bg-success-active       | Success fill active                   |
+| $bg-warning              | Warning fill                          |
+| $bg-warning-hover        | Warning fill hover                    |
+| $bg-warning-active       | Warning fill active                   |
+| $bg-error                | Error fill                            |
+| $bg-error-hover          | Error fill hover                      |
+| $bg-error-active         | Error fill active                     |
 
 ### Borders
 
-| Token             | Use                                        |
-|-------------------|--------------------------------------------|
-| `$border-default` | Structural dividers (1.5:1 contrast)       |
-| `$border-muted`   | Faint secondary divider                    |
-| `$border-input`   | Input / button border (3:1)                |
-| `$border-focus`   | Focus ring                                 |
-| `$border-accent`  | Accent border                              |
-| `$border-error`   | Error border                               |
-| `$border-warning` | Warning border                             |
-| `$border-success` | Success border                             |
-| `$border-info`    | Info border                                |
+| Token           | Use                                  |
+| --------------- | ------------------------------------ |
+| $border-default | Structural dividers (1.5:1 contrast) |
+| $border-muted   | Faint secondary divider              |
+| $border-input   | Input / button border (3:1)          |
+| $border-focus   | Focus ring                           |
+| $border-accent  | Accent border                        |
+| $border-error   | Error border                         |
+| $border-warning | Warning border                       |
+| $border-success | Success border                       |
+| $border-info    | Info border                          |
 
 ### Cursor
 
-| Token        | Use                           |
-|--------------|-------------------------------|
-| `$cursor-fg` | Text under cursor             |
-| `$cursor-bg` | Cursor block / line color     |
+| Token      | Use                       |
+| ---------- | ------------------------- |
+| $cursor-fg | Text under cursor         |
+| $cursor-bg | Cursor block / line color |
 
 ### Raw ANSI palette
 
-| Token                | Use                                         |
-|----------------------|---------------------------------------------|
-| `$color0`–`$color15` | User's ANSI slots verbatim (for tagging / syntax / diff) |
+| Token            | Use                                                      |
+| ---------------- | -------------------------------------------------------- |
+| $color0–$color15 | User's ANSI slots verbatim (for tagging / syntax / diff) |
 
 ## Decision tree — picking the right token
 
@@ -229,17 +230,17 @@ theme.{role}.{state}.{kind}       →  {kind}-{role}-{state}      (same)
 theme.{role}.fgOn                 →  fg-on-{role}
 ```
 
-| Nested                           | Flat                         |
-|----------------------------------|------------------------------|
-| `theme.accent.bg`                | `bg-accent`                  |
-| `theme.accent.fg`                | `fg-accent`                  |
-| `theme.accent.fgOn`              | `fg-on-accent`               |
-| `theme.accent.hover.bg`          | `bg-accent-hover`            |
-| `theme.accent.active.bg`         | `bg-accent-active`           |
-| `theme.surface.subtle`           | `bg-surface-subtle`          |
-| `theme.surface.subtle.hover`     | `bg-surface-subtle-hover`    |
-| `theme.border.focus`             | `border-focus`               |
-| `theme.error.bg`                 | `bg-error`                   |
+| Nested                     | Flat                    |
+| -------------------------- | ----------------------- |
+| theme.accent.bg            | bg-accent               |
+| theme.accent.fg            | fg-accent               |
+| theme.accent.fgOn          | fg-on-accent            |
+| theme.accent.hover.bg      | bg-accent-hover         |
+| theme.accent.active.bg     | bg-accent-active        |
+| theme.surface.subtle       | bg-surface-subtle       |
+| theme.surface.subtle.hover | bg-surface-subtle-hover |
+| theme.border.focus         | border-focus            |
+| theme.error.bg             | bg-error                |
 
 Both populated at derive time; no runtime lookup penalty.
 
@@ -281,3 +282,4 @@ Sterling's tokens cover the common ground. For app-specific needs (priority leve
 - [`@silvery/design` reference](/reference/theme) — Theme type and DesignSystem contract.
 
 <!-- TODO: verify after 0.19.0 ships — confirm full list of border tokens (are `border-error/-warning/-success/-info` shipped?), exact hover/active variants for surfaces, the `destructive` default mapping location. -->
+

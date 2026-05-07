@@ -4,11 +4,6 @@ id: 01HVQZ3MZYX0RNK8QKM7B1F4TF
 type: retrospective
 created: 2026-04-01T09:00:00+00:00
 updated: 2026-04-20T16:42:00+00:00
-tags:
-  - retro
-  - q1-2026
-  - engineering
-  - fixture
 participants:
   - bjorn
   - mike
@@ -176,7 +171,7 @@ sequenceDiagram
 
 > [!note] Lesson: OIDC libraries are inconsistent on refresh
 > We evaluated 5 OIDC client libraries. Three of them silently dropped the
-> `refresh_token` when the server returned `Cache-Control: no-store`. We
+> refresh_token when the server returned Cache-Control: no-store. We
 > picked the one that didn't, but wrote a contract test for refresh semantics
 > that all future candidates must pass.
 
@@ -383,3 +378,4 @@ Full dashboard: [[Dashboards/Engineering-Q1-2026]].
 Next: [[Planning/2026-Q2]].
 
 <!-- end of retrospective — edit history tracked in git -->
+

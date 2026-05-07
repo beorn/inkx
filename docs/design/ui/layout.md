@@ -6,7 +6,7 @@ For visibility rules (which nodes appear), see [visibility.md](visibility.md). F
 
 ---
 
-# Horizontal Virtualization Design
+## Horizontal Virtualization Design
 
 ## Status: Design Draft
 
@@ -25,6 +25,7 @@ const effectiveVisibleColumns = state.columns.slice(
 ```
 
 This works but:
+
 1. Duplicates logic across views (Board.tsx, CardsView duplicates column slicing)
 2. Inconsistent API with vertical VirtualList
 3. No reusable component for horizontal virtualization
@@ -58,12 +59,14 @@ import { HorizontalVirtualList } from 'Silvery';
 ```
 
 **Pros:**
+
 - Clear, explicit API
 - Optimized for horizontal use case
 - Matches existing VirtualList pattern
 - Simple mental model
 
 **Cons:**
+
 - Two separate components to maintain
 - Users must choose correct component
 
@@ -83,10 +86,12 @@ Extend existing VirtualList with direction:
 ```
 
 **Pros:**
+
 - Single component to learn
 - Potentially less code duplication
 
 **Cons:**
+
 - More complex implementation
 - Confusing prop semantics (height vs width changes meaning)
 - Harder to optimize for each direction
@@ -110,10 +115,12 @@ For cases needing both horizontal AND vertical virtualization:
 ```
 
 **Pros:**
+
 - Handles bidirectional virtualization
 - Single component for complex grids
 
 **Cons:**
+
 - More complex API
 - Overkill for simple horizontal lists
 - Board view uses nested virtualization (columns → cards) not flat grid
@@ -304,12 +311,14 @@ This requires extending silvery's overflow indicator system to support horizonta
 ### 1. Variable Column Widths
 
 Board columns can have different widths. Solutions:
+
 - Pass `itemWidth` as function: `(col, i) => calcWidth(col)`
 - Or simplify to fixed widths (current behavior)
 
 ### 2. Gap/Separator Handling
 
 Columns have separators (│). Options:
+
 - `gap` prop for consistent spacing
 - Include separator in `renderItem`
 - `renderSeparator` prop for custom separators
@@ -317,6 +326,7 @@ Columns have separators (│). Options:
 ### 3. Nested Virtualization
 
 Board already uses VirtualList inside columns. HorizontalVirtualList wrapping VirtualList creates:
+
 - Outer: HorizontalVirtualList (columns)
   - Inner: VirtualList (cards within each column)
 
@@ -325,6 +335,7 @@ This is fine - they're independent. Inner VirtualList only renders when outer in
 ### 4. Horizontal Overflow in silvery
 
 Current silvery `overflow="scroll"` is vertical-only. Need to:
+
 1. Add horizontal scroll support to silvery Box
 2. Or implement HorizontalVirtualList using pure React windowing (no silvery scroll)
 
@@ -332,59 +343,54 @@ Option 2 is simpler and doesn't require silvery changes.
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `vendor/silvery/src/components/HorizontalVirtualList.tsx` | New component |
-| `vendor/silvery/src/index.ts` | Export HorizontalVirtualList |
-| `vendor/silvery/CLAUDE.md` | Document HorizontalVirtualList |
-| `apps/km-tui/src/views/Board.tsx` | Migrate to HorizontalVirtualList |
-| `apps/km-tui/src/views/CardsView.tsx` | Migrate if applicable |
+| File                                                    | Change                           |
+| ------------------------------------------------------- | -------------------------------- |
+| vendor/silvery/src/components/HorizontalVirtualList.tsx | New component                    |
+| vendor/silvery/src/index.ts                             | Export HorizontalVirtualList     |
+| vendor/silvery/CLAUDE.md                                | Document HorizontalVirtualList   |
+| apps/km-tui/src/views/Board.tsx                         | Migrate to HorizontalVirtualList |
+| apps/km-tui/src/views/CardsView.tsx                     | Migrate if applicable            |
 
 ## Testing Plan
 
 1. Unit tests for HorizontalVirtualList
-   - Fixed item widths
-   - Variable item widths (function)
-   - Edge-based scrolling
-   - Overscan behavior
-   - Empty list
-   - Single item
-
-2. Integration tests
-   - Board with many columns (20+)
-   - Keyboard navigation (h/l)
-   - Scroll indicators
-
-3. Performance benchmark
-   - Compare manual slicing vs HorizontalVirtualList
-   - Measure with 50+ columns
+- Fixed item widths
+- Variable item widths (function)
+- Edge-based scrolling
+- Overscan behavior
+- Empty list
+- Single item
+9. Integration tests
+- Board with many columns (20+)
+- Keyboard navigation (h/l)
+- Scroll indicators
+14. Performance benchmark
+- Compare manual slicing vs HorizontalVirtualList
+- Measure with 50+ columns
 
 ## Open Questions
 
 1. **Should gap be part of itemWidth or separate?**
-   - Separate `gap` prop is cleaner
-   - But complicates width calculations
-
-2. **Support bidirectional scroll in single Box?**
-   - Would require silvery changes
-   - Defer to VirtualGrid if needed
-
-3. **Indicator style - border vs overlay?**
-   - Current VerticalScrollIndicator uses full-height bar
-   - HorizontalVirtualList could use top/bottom indicators
+- Separate `gap` prop is cleaner
+- But complicates width calculations
+5. **Support bidirectional scroll in single Box?**
+- Would require silvery changes
+- Defer to VirtualGrid if needed
+9. **Indicator style - border vs overlay?**
+- Current VerticalScrollIndicator uses full-height bar
+- HorizontalVirtualList could use top/bottom indicators
 
 ## Next Steps
 
-1. [ ] Create bead for this feature
-2. [ ] Implement HorizontalVirtualList in silvery
-3. [ ] Add tests
-4. [ ] Migrate Board.tsx
-5. [ ] Update documentation
-
+- [ ] Create bead for this feature
+- [ ] Implement HorizontalVirtualList in silvery
+- [ ] Add tests
+- [ ] Migrate Board.tsx
+- [ ] Update documentation
 
 ---
 
-# Outliner Behavior Specification
+## Outliner Behavior Specification
 
 Shared spec for outliner editing operations across km (TUI) and Decker (web). Defines behavior for every operation in every cursor context. Tests are derived from this spec.
 
@@ -396,46 +402,46 @@ Shared spec for outliner editing operations across km (TUI) and Decker (web). De
 
 ## Semantic Intents
 
-| Intent | km key | Decker key | Description |
-|---|---|---|---|
-| `splitBlock` | Enter | Return | Split/create at cursor position |
-| `indent` | Tab | Tab | Reparent under previous sibling |
-| `outdent` | Shift+Tab | Shift+Tab | Reparent as sibling of parent |
-| `joinBackward` | Backspace (at start) | Backspace (at start) | Merge/degrade backward |
-| `joinForward` | Delete (at end) | Delete (at end) | Merge forward |
-| `deleteBlock` | d (normal mode) | — | Delete entire block |
-| `navigateDown` | j | j | Next visible block (spatial) |
-| `navigateUp` | k | k | Previous visible block (spatial) |
+| Intent       | km key               | Decker key           | Description                      |
+| ------------ | -------------------- | -------------------- | -------------------------------- |
+| splitBlock   | Enter                | Return               | Split/create at cursor position  |
+| indent       | Tab                  | Tab                  | Reparent under previous sibling  |
+| outdent      | Shift+Tab            | Shift+Tab            | Reparent as sibling of parent    |
+| joinBackward | Backspace (at start) | Backspace (at start) | Merge/degrade backward           |
+| joinForward  | Delete (at end)      | Delete (at end)      | Merge forward                    |
+| deleteBlock  | d (normal mode)      | —                    | Delete entire block              |
+| navigateDown | j                    | j                    | Next visible block (spatial)     |
+| navigateUp   | k                    | k                    | Previous visible block (spatial) |
 
 ## Context Variables
 
 Derived from node position + state. Compound guards simplify cases.
 
-| Variable | Description |
-|---|---|
-| `isItem` | `node.item != null` — structural node, can have children |
-| `isTask` | Has `item.task` (`node.item?.task != null`) |
-| `isFirstChild` | No previous sibling |
-| `isLastChild` | No next sibling |
-| `hasVisibleChildren` | Has children AND they're expanded (not collapsed) |
-| `isEmpty` | No text content |
-| `cursorAtStart` | Cursor at position 0 in title |
-| `cursorAtEnd` | Cursor at end of title |
-| `isRoot` | Top-level node (column child) |
-| `canIndent` | `isItem && !isFirstChild` — combines the two guards into one check |
-| `canOutdent` | `isItem && !isRoot` — has grandparent to outdent to |
+| Variable           | Description                                                      |
+| ------------------ | ---------------------------------------------------------------- |
+| isItem             | node.item != null — structural node, can have children           |
+| isTask             | Has item.task (node.item?.task != null)                          |
+| isFirstChild       | No previous sibling                                              |
+| isLastChild        | No next sibling                                                  |
+| hasVisibleChildren | Has children AND they're expanded (not collapsed)                |
+| isEmpty            | No text content                                                  |
+| cursorAtStart      | Cursor at position 0 in title                                    |
+| cursorAtEnd        | Cursor at end of title                                           |
+| isRoot             | Top-level node (column child)                                    |
+| canIndent          | isItem && !isFirstChild — combines the two guards into one check |
+| canOutdent         | isItem && !isRoot — has grandparent to outdent to                |
 
 **Compound guards** (`canIndent`, `canOutdent`, `hasVisibleChildren`) eliminate repeated multi-condition checks in operations.
 
 ## splitBlock (Enter)
 
-| Context | Behavior | Note |
-|---|---|---|
-| `cursorAtStart` | Create empty sibling BEFORE, enter edit | Content stays on current |
-| `cursorAtMiddle` | Split at cursor: before stays, after becomes new sibling | Children move to new node |
-| `cursorAtEnd` + `hasVisibleChildren` | Create new first CHILD, enter edit | WorkFlowy/Dynalist convention |
-| `cursorAtEnd` + `!hasVisibleChildren` | Create sibling AFTER, enter edit | Collapsed children or no children |
-| `isEmpty` | Create sibling AFTER, enter edit | Don't split empty |
+| Context                           | Behavior                                                 | Note                              |
+| --------------------------------- | -------------------------------------------------------- | --------------------------------- |
+| cursorAtStart                     | Create empty sibling BEFORE, enter edit                  | Content stays on current          |
+| cursorAtMiddle                    | Split at cursor: before stays, after becomes new sibling | Children move to new node         |
+| cursorAtEnd + hasVisibleChildren  | Create new first CHILD, enter edit                       | WorkFlowy/Dynalist convention     |
+| cursorAtEnd + !hasVisibleChildren | Create sibling AFTER, enter edit                         | Collapsed children or no children |
+| isEmpty                           | Create sibling AFTER, enter edit                         | Don't split empty                 |
 
 ### Split Inheritance
 
@@ -443,10 +449,10 @@ New node inherits from source via `extractProps()` (denylist model — SYSTEM_KE
 
 ## indent (Tab)
 
-| Context | Behavior |
-|---|---|
-| `canIndent` | Reparent as last child of previous sibling |
-| `!canIndent` | **No-op + bell** |
+| Context    | Behavior                                   |
+| ---------- | ------------------------------------------ |
+| canIndent  | Reparent as last child of previous sibling |
+| !canIndent | No-op + bell                               |
 
 `canIndent = isItem && !isFirstChild`. One check, no separate guards.
 
@@ -458,10 +464,10 @@ New node inherits from source via `extractProps()` (denylist model — SYSTEM_KE
 
 ## outdent (Shift+Tab)
 
-| Context | Behavior |
-|---|---|
-| `canOutdent` | Reparent as sibling after parent (at grandparent level) |
-| `!canOutdent` | **No-op + bell** |
+| Context     | Behavior                                                |
+| ----------- | ------------------------------------------------------- |
+| canOutdent  | Reparent as sibling after parent (at grandparent level) |
+| !canOutdent | No-op + bell                                            |
 
 `canOutdent = isItem && !isRoot`. One check.
 
@@ -469,15 +475,15 @@ New node inherits from source via `extractProps()` (denylist model — SYSTEM_KE
 
 Degradation ladder — strip traits before merging. Try each in order, stop at first match:
 
-| Step | Guard | Action |
-|---|---|---|
-| 1 | `isTask` | Remove task trait (clear `item.task`) |
-| 2 | `isItem` | Remove item trait (set item: undefined → becomes block) |
-| 3 | `type !== "p"` | Convert to paragraph (h/quote/code → p) |
-| 4 | `isEmpty && !hasVisibleChildren` | Delete node, cursor to end of previous |
-| 5 | `!isFirstChild` + prev is childless | Merge: prepend prev content, delete prev |
-| 6 | `!isFirstChild` + prev has children | Reparent: move as last child of prev |
-| 7 | `isFirstChild` | Outdent (move to parent's level) |
+| Step | Guard                             | Action                                                  |
+| ---- | --------------------------------- | ------------------------------------------------------- |
+| 1    | isTask                            | Remove task trait (clear item.task)                     |
+| 2    | isItem                            | Remove item trait (set item: undefined → becomes block) |
+| 3    | type !== "p"                      | Convert to paragraph (h/quote/code → p)                 |
+| 4    | isEmpty && !hasVisibleChildren    | Delete node, cursor to end of previous                  |
+| 5    | !isFirstChild + prev is childless | Merge: prepend prev content, delete prev                |
+| 6    | !isFirstChild + prev has children | Reparent: move as last child of prev                    |
+| 7    | isFirstChild                      | Outdent (move to parent's level)                        |
 
 Steps 1-3 degrade one trait per backspace press. The user keeps pressing to strip all traits, then merges. This matches Logseq/Roam behavior.
 
@@ -487,20 +493,20 @@ Steps 1-3 degrade one trait per backspace press. The user keeps pressing to stri
 
 ## joinForward (Delete at end)
 
-| Context | Behavior | Note |
-|---|---|---|
-| Next is empty + no children | Delete next | Simple case |
-| Next has content + no children | Append next's text, delete next | Standard merge |
-| Next has children | **No-op** | Conservative — Decker + Notion precedent |
+| Context                        | Behavior                        | Note                                     |
+| ------------------------------ | ------------------------------- | ---------------------------------------- |
+| Next is empty + no children    | Delete next                     | Simple case                              |
+| Next has content + no children | Append next's text, delete next | Standard merge                           |
+| Next has children              | No-op                           | Conservative — Decker + Notion precedent |
 
 **Design decision**: km currently merges text + adopts children. GPT 5.4 Pro recommends aligning with Decker's conservative no-op for child-bearing next blocks. This avoids surprising reparenting and is safer for CRDT.
 
 ## deleteBlock (d in normal mode)
 
-| Context | Behavior |
-|---|---|
-| Empty, no children, no backlinks | Delete immediately |
-| Has children/backlinks/metadata | Confirm first, then recursive delete |
+| Context                          | Behavior                             |
+| -------------------------------- | ------------------------------------ |
+| Empty, no children, no backlinks | Delete immediately                   |
+| Has children/backlinks/metadata  | Confirm first, then recursive delete |
 
 Cursor moves to: next sibling → previous sibling → parent.
 
@@ -510,11 +516,11 @@ Cursor moves to: next sibling → previous sibling → parent.
 
 **Not tree traversal**. Not sibling-only. Pure visual/spatial — whatever is rendered above/below in the column.
 
-| Context | Behavior |
-|---|---|
-| Normal | Move to next/prev visible block in column |
-| At boundary (top/bottom of column) | Bell — don't cross columns |
-| Collapsed card | Skip hidden children, move to next visible |
+| Context                            | Behavior                                   |
+| ---------------------------------- | ------------------------------------------ |
+| Normal                             | Move to next/prev visible block in column  |
+| At boundary (top/bottom of column) | Bell — don't cross columns                 |
+| Collapsed card                     | Skip hidden children, move to next visible |
 
 **Implementation**: Flatten column into rendered visible-block list, j/k moves by ±1 index.
 
@@ -542,13 +548,13 @@ The `wouldBeValid` check uses the same `validate()` system — dry-run the mutat
 
 These are NOT part of the shared spec — each product defines them:
 
-| Policy | km | Decker |
-|---|---|---|
-| `canIndent(node)` | `isItem && !isFirstChild` | `!isFirstChild` (all blocks indentable) |
-| `splitInheritancePolicy` | `extractProps()` denylist | Slate `splitNodes` default |
-| `navigateModel` | Spatial (visible blocks) | Sibling-only (same depth) |
-| `deleteForwardChildBearing` | No-op (align with Decker) | No-op |
-| `maxUndoGrouping` | Batch related ops | Yjs undo manager |
+| Policy                    | km                        | Decker                                |
+| ------------------------- | ------------------------- | ------------------------------------- |
+| canIndent(node)           | isItem && !isFirstChild   | !isFirstChild (all blocks indentable) |
+| splitInheritancePolicy    | extractProps() denylist   | Slate splitNodes default              |
+| navigateModel             | Spatial (visible blocks)  | Sibling-only (same depth)             |
+| deleteForwardChildBearing | No-op (align with Decker) | No-op                                 |
+| maxUndoGrouping           | Batch related ops         | Yjs undo manager                      |
 
 ## Test Matrix
 
@@ -573,3 +579,4 @@ Tests should be executable JSON fixtures that both km and Decker can consume:
 2. **Cross-type merge**: When heading merges with paragraph, which type survives? (Current: paragraph)
 3. **Rich text split**: How do inline spans (bold, link) behave at split point? (Decker concern)
 4. **Concurrent operations**: CRDT normalization for concurrent indent/split. (Decker concern via Yjs)
+

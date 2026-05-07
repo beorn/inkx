@@ -26,13 +26,13 @@ Any node can become a task by having a status:
 
 ### Five Statuses
 
-| Mark  | Status    | Meaning                      |
-| ----- | --------- | ---------------------------- |
-| `[ ]` | `todo`    | Available to work on         |
-| `[/]` | `wip`     | Actively being worked on     |
-| `[!]` | `blocked` | Waiting on something/someone |
-| `[x]` | `done`    | Completed                    |
-| `[-]` | `dropped` | Cancelled, won't do          |
+| Mark | Status  | Meaning                      |
+| ---- | ------- | ---------------------------- |
+| [ ]  | todo    | Available to work on         |
+| [/]  | wip     | Actively being worked on     |
+| [!]  | blocked | Waiting on something/someone |
+| [x]  | done    | Completed                    |
+| [-]  | dropped | Cancelled, won't do          |
 
 Status answers: **Can I work on this?**
 
@@ -58,11 +58,11 @@ todo [ ] ──→ wip [/] ──→ done [x]
 
 Sigils create links to nodes:
 
-| Sigil | Convention       | Example               |
-| ----- | ---------------- | --------------------- |
-| `@`   | People, contexts | `@bjorn`, `@phone`    |
-| `#`   | Tags, categories | `#finance`, `#urgent` |
-| `+`   | Projects         | `+website`, `+q1`     |
+| Sigil | Convention       | Example           |
+| ----- | ---------------- | ----------------- |
+| @     | People, contexts | @bjorn, @phone    |
+| #     | Tags, categories | #finance, #urgent |
+| +     | Projects         | +website, +q1     |
 
 Any reference can have a board — it's just a markdown file (`@bjorn.md`, `+website.md`).
 
@@ -77,12 +77,12 @@ All references create links to boards. The first `@` becomes the **assigned pers
 
 ## Task Fields
 
-| Field     | Syntax                  | Purpose                      |
-| --------- | ----------------------- | ---------------------------- |
-| `due::`   | `due:: 2026-01-15`     | When it's due                |
-| `start::` | `start:: 2026-01-20`   | Don't show until this date   |
-| `priority::` | `priority:: P1`     | Priority (P0-P4 convention)  |
-| `recur::` | `recur:: every 2 weeks` | Recurrence rule (RRULE + FROM) |
+| Field      | Syntax                | Purpose                        |
+| ---------- | --------------------- | ------------------------------ |
+| due::      | due:: 2026-01-15      | When it's due                  |
+| start::    | start:: 2026-01-20    | Don't show until this date     |
+| priority:: | priority:: P1         | Priority (P0-P4 convention)    |
+| recur::    | recur:: every 2 weeks | Recurrence rule (RRULE + FROM) |
 
 Legacy `key:value` syntax (single colon, no space) is also accepted for
 backward compatibility.
@@ -138,12 +138,12 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 Columns can have rules that control task membership:
 
-| Attribute    | Syntax                  | Effect                               |
-| ------------ | ----------------------- | ------------------------------------ |
-| `km.add`     | `km.add:: query`        | Pull in tasks matching query         |
-| `km.sync`    | `km.sync:: field:value` | Bidirectional: move here ↔ set field |
+| Attribute | Syntax                | Effect                               |
+| --------- | --------------------- | ------------------------------------ |
+| km.add    | km.add:: query        | Pull in tasks matching query         |
+| km.sync   | km.sync:: field:value | Bidirectional: move here ↔ set field |
 
-> **Note:** `km.sync::` parsing is supported (stored in `node.rules.sync`), but automatic sync evaluation is planned for a future release. Currently, `km.sync::` rules serve as documentation of intended column behavior.
+> Note: km.sync:: parsing is supported (stored in node.rules.sync), but automatic sync evaluation is planned for a future release. Currently, km.sync:: rules serve as documentation of intended column behavior.
 
 **`km.add:: query`** — Continuously pulls in matching tasks:
 
@@ -177,11 +177,11 @@ Columns can have rules that control task membership:
 
 The first non-collapsed, non-removed column is the default target for `km add`. Override with `km.default:: true`.
 
-| Attribute            | Effect                                          |
-| -------------------- | ----------------------------------------------- |
-| `km.collapse:: true` | Collapsed in UI                                 |
-| `km.limit:: N`       | WIP limit (visual warning)                      |
-| `km.default:: true`  | Override: new items go here instead of first col |
+| Attribute          | Effect                                           |
+| ------------------ | ------------------------------------------------ |
+| km.collapse:: true | Collapsed in UI                                  |
+| km.limit:: N       | WIP limit (visual warning)                       |
+| km.default:: true  | Override: new items go here instead of first col |
 
 ### Embeds
 
@@ -189,8 +189,8 @@ Board items are **embeds** of tasks. The `![[...]]` syntax creates an embed link
 
 | Operation Type | Target | Rationale                                      |
 | -------------- | ------ | ---------------------------------------------- |
-| **Positional** | Embed  | Board organization is independent of task data |
-| **Content**    | Target | Task data has single source of truth           |
+| Positional     | Embed  | Board organization is independent of task data |
+| Content        | Target | Task data has single source of truth           |
 
 - **Moving** a card within the board moves the embed
 - **Status/priority changes** update the original task
@@ -201,10 +201,10 @@ Board items are **embeds** of tasks. The `![[...]]` syntax creates an embed link
 
 ## Standard GTD Boards
 
-| Board      | Purpose           | Populated By                                             |
-| ---------- | ----------------- | -------------------------------------------------------- |
-| `@next`    | Next actions      | Inbox column (`km.add:: ./inbox/**(.)`), overdue/starting rules |
-| `@someday` | Maybe/later       | Manual curation only                                     |
+| Board    | Purpose      | Populated By                                                  |
+| -------- | ------------ | ------------------------------------------------------------- |
+| @next    | Next actions | Inbox column (km.add:: ./inbox/**(.)), overdue/starting rules |
+| @someday | Maybe/later  | Manual curation only                                          |
 
 ---
 
@@ -269,15 +269,15 @@ km @next          # Open next actions board
 
 ## GTD Mapping
 
-| GTD Concept   | km Implementation                       |
-| ------------- | --------------------------------------- |
-| Inbox         | `inbox/` folder → `@next/inbox` column  |
-| Next Actions  | `@next` board (curated)                 |
-| Waiting For   | `@next/waiting` column (status=blocked) |
-| Someday/Maybe | `@someday` board                        |
-| Projects      | `+project` references                   |
-| Contexts      | `@context` references                   |
-| Reference     | Nodes without status                    |
+| GTD Concept   | km Implementation                     |
+| ------------- | ------------------------------------- |
+| Inbox         | inbox/ folder → @next/inbox column    |
+| Next Actions  | @next board (curated)                 |
+| Waiting For   | @next/waiting column (status=blocked) |
+| Someday/Maybe | @someday board                        |
+| Projects      | +project references                   |
+| Contexts      | @context references                   |
+| Reference     | Nodes without status                  |
 
 **Key insight:** GTD "lists" are boards. Status indicates whether you can work on it.
 
@@ -443,3 +443,4 @@ km init gtd --dry-run      # Preview what would be created
 - [ref/task-fields.md](../ref/task-fields.md) — Task fields, cross-system mapping
 - [guides/query.md](../guides/query.md) — Query language
 - [storage.md](../design/model/storage.md) — Node schema details
+

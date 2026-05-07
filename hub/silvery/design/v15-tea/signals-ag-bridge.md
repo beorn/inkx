@@ -160,3 +160,4 @@ This subsumes the "skip unused pipeline phases" optimization (P2, boolean flags)
 3. **v1.5**: Level 2 @silvery/solid (~1-2 weeks) — THE framework-agnostic differentiator
 4. **Later**: Reactive pipeline phases — subsume boolean flags
 5. **Never**: Custom silvery signals API — SolidJS already exists
+

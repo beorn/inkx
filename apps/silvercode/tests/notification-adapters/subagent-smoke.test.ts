@@ -2,7 +2,7 @@
  * End-to-end smoke test — synthetic Task tool spawn lands a START event,
  * synthetic completion lands a COMPLETE event. This is the proof that
  * the controller's `tool-use` / `tool-result` subscription path drives
- * real notification events all the way through sanitize → debounce → enqueue.
+ * real notification events all the way through sanitize → enqueue.
  *
  * Standalone (no controller dependency) so it runs in fast tests; the
  * controller integration is exercised indirectly here by feeding the
@@ -17,7 +17,7 @@ import { registerSubagentNotificationAdapterHandle } from "../../src/notificatio
 describe("notification-adapter/subagent — smoke (synthetic Task lifecycle)", () => {
   test("spawn → START event lands; result → COMPLETE event lands", () => {
     const scope = createScope("smoke")
-    let t = 1_000
+    const t = 1_000
     const queue = createChannelQueue(scope)
     const handle = registerSubagentNotificationAdapterHandle({ scope, queue, now: () => t })
 
@@ -46,8 +46,7 @@ describe("notification-adapter/subagent — smoke (synthetic Task lifecycle)", (
       fromSessionId: "session-smoke",
     })
 
-    // ── 2. Advance the clock past MIN_INTER_EVENT_MS ────────────────
-    t += 1_000
+    // ── 2. Keep the same clock tick; parallel lifecycle events must not drop.
 
     // ── 3. Synthetic Task completion ────────────────────────────────
     handle.notifyTaskToolResult({

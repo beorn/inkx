@@ -12,10 +12,10 @@ A regular paragraph without trailing spaces so we can diff the two behaviours.
 
 Paragraph one.
 
-
 Paragraph two, separated by two blank lines.
 
 - List item
 - Another item
 
 Final paragraph.
+

@@ -8,18 +8,17 @@ But I would change two big things:
 
 1. **Move docs/API simplification earlier.**  
    Your biggest adoption problem is not only dependency shape; it is that the public story teaches the hardest path first. Fix that immediately, even before the refactor is fully complete.
-
 2. **Use a cleaner layering model than “term absorbs everything.”**  
    I would introduce a **small internal core layer** now, and only make it public later if it proves useful. Terminal input parsing and focus should stay terminal-specific; geometry/tree/shared model types can live in core.
 
 My strongest opinion:
 
-> **Silvery should be positioned as “React terminal UI that starts as simply as Ink, but scales much further.”**  
-> TEA should become an **optional scaling path**, not part of the default mental model.
+> Silvery should be positioned as “React terminal UI that starts as simply as Ink, but scales much further.”
+> TEA should become an optional scaling path, not part of the default mental model.
 
 Also: don’t underestimate this point:
 
-> A developer choosing between Ink and silvery is often actually choosing between **Ink, prompt libraries, or “just stdout”** — not just Ink vs silvery.
+> A developer choosing between Ink and silvery is often actually choosing between Ink, prompt libraries, or “just stdout” — not just Ink vs silvery.
 
 So the winning story is not “we have more layers,” it’s:
 
@@ -31,7 +30,7 @@ So the winning story is not “we have more layers,” it’s:
 
 ---
 
-## 2. Key details and facts
+### 2. Key details and facts
 
 ---
 
@@ -194,7 +193,7 @@ The “way” should support the docs, not lead them.
 
 ---
 
-## B. Adoption barriers you may be missing
+### B. Adoption barriers you may be missing
 
 You already identified the big ones. Here are the important missing ones.
 
@@ -222,7 +221,7 @@ Silvery should explain:
 
 A great positioning line would be:
 
-> **Use silvery when your CLI stops being a prompt and starts becoming an app.**
+> Use silvery when your CLI stops being a prompt and starts becoming an app.
 
 That is much stronger than “we have more components.”
 
@@ -334,9 +333,9 @@ Many CLI developers still trip over:
 
 Also, one detail in your plan conflicts:
 
-> “Pure ESM”  
-> and  
-> `node -e "require('silvery')"`
+> “Pure ESM”
+> and
+> node -e "require('silvery')"
 
 Those do not line up.
 
@@ -429,7 +428,7 @@ Possibly even consider whether `@silvery/tea` should remain the public name, ver
 
 ---
 
-## C. Package architecture: should there be a `@silvery/core`?
+### C. Package architecture: should there be a `@silvery/core`?
 
 ### My recommendation
 
@@ -497,17 +496,17 @@ Put something in tea if it is architectural/state specific:
 
 ### My opinion on your specific items
 
-| Item                                                    | Best home                                                           |
-| ------------------------------------------------------- | ------------------------------------------------------------------- |
-| `AgNode` / node model                                   | **core** if shared; otherwise keep internal, not public             |
-| `BoxProps`, `TextProps`                                 | public surface of main package, implementation may live outside tea |
-| `Rect`                                                  | core                                                                |
-| `parseKey`, `splitRawInput`, `keyToAnsi`, `matchHotkey` | term                                                                |
-| `FocusManager`, focus events/queries                    | term initially                                                      |
-| `merge`, `filter`, `takeUntil`                          | internal utils, not necessarily public core                         |
-| `tree-utils`                                            | core or internal shared utils                                       |
-| `createStore`, `dispatch`, `silveryUpdate`              | tea                                                                 |
-| `text-cursor`, `text-ops`                               | depends; likely shared utility or text module, not tea by default   |
+| Item                                            | Best home                                                           |
+| ----------------------------------------------- | ------------------------------------------------------------------- |
+| AgNode / node model                             | core if shared; otherwise keep internal, not public                 |
+| BoxProps, TextProps                             | public surface of main package, implementation may live outside tea |
+| Rect                                            | core                                                                |
+| parseKey, splitRawInput, keyToAnsi, matchHotkey | term                                                                |
+| FocusManager, focus events/queries              | term initially                                                      |
+| merge, filter, takeUntil                        | internal utils, not necessarily public core                         |
+| tree-utils                                      | core or internal shared utils                                       |
+| createStore, dispatch, silveryUpdate            | tea                                                                 |
+| text-cursor, text-ops                           | depends; likely shared utility or text module, not tea by default   |
 
 ---
 
@@ -602,7 +601,7 @@ If it must be public, `AgNode` is the wrong name because it falsely ties a rende
 
 ---
 
-## D. Competitive positioning: what you may not be seeing
+### D. Competitive positioning: what you may not be seeing
 
 ### The strongest switch reasons are not all in your current positioning
 
@@ -626,7 +625,7 @@ Usually one of these:
 
 Silvery can win by saying:
 
-> **Start with the same React mental model. When your CLI becomes a real app, you don’t need to outgrow the framework.**
+> Start with the same React mental model. When your CLI becomes a real app, you don’t need to outgrow the framework.
 
 That means:
 
@@ -698,7 +697,7 @@ This is a much stronger market story than generic “terminal UI.”
 
 A sharp positioning line could be:
 
-> **Silvery is for building serious terminal apps: chat UIs, dashboards, forms, log viewers, not just prompts.**
+> Silvery is for building serious terminal apps: chat UIs, dashboards, forms, log viewers, not just prompts.
 
 ---
 
@@ -713,19 +712,17 @@ Instead of:
 I would test something like:
 
 1. **Start as simply as Ink**
-   - `render(<Text>Hello</Text>)`
-   - hooks-first
-   - no store required
-
-2. **Scale into real terminal apps**
-   - inputs, focus, lists, scrollback, theming, testing
-   - optional app architecture when complexity grows
-
-3. **Works where CLIs actually live**
-   - zero native deps
-   - bundler-friendly
-   - cross-platform
-   - good in CI/SSH/non-TTY environments
+- `render(<Text>Hello</Text>)`
+- hooks-first
+- no store required
+6. **Scale into real terminal apps**
+- inputs, focus, lists, scrollback, theming, testing
+- optional app architecture when complexity grows
+10. **Works where CLIs actually live**
+- zero native deps
+- bundler-friendly
+- cross-platform
+- good in CI/SSH/non-TTY environments
 
 That is a stronger adoption story.
 
@@ -753,7 +750,7 @@ Those are sticky.
 
 ---
 
-## E. Risks and anti-patterns in the plan
+### E. Risks and anti-patterns in the plan
 
 ---
 
@@ -930,7 +927,7 @@ If silvery really has a good optional app architecture story, that is still a di
 
 The right framing is:
 
-> **Hooks first. Architecture when you need it.**
+> Hooks first. Architecture when you need it.
 
 Not:
 
@@ -939,7 +936,7 @@ Not:
 
 ---
 
-## F. Creative ideas you have not considered
+### F. Creative ideas you have not considered
 
 Here are the highest-leverage ones.
 
@@ -1105,7 +1102,7 @@ A dedicated “Build AI-native terminal apps” track could be very effective.
 
 ---
 
-## 3. Different perspectives / approaches
+### 3. Different perspectives / approaches
 
 There are at least three viable strategic approaches here.
 
@@ -1166,7 +1163,7 @@ This gives:
 
 ---
 
-## 4. Recent developments / current state
+### 4. Recent developments / current state
 
 A few broader ecosystem realities matter here.
 
@@ -1233,7 +1230,7 @@ Silvery should align with that expectation. TEA can still be a strong advanced s
 
 ---
 
-## 5. Sources and references
+### 5. Sources and references
 
 I can’t verify live npm/package metrics from here, so for anything you publish publicly — especially dependency counts, unpacked size, install size, and competitor comparisons — I would validate against the current release manifests and tooling at launch time.
 
@@ -1241,22 +1238,16 @@ Useful primary references:
 
 - **Ink repository / docs**  
   https://github.com/vadimdemedes/ink
-
 - **React docs (`useState`, hooks, rendering model)**  
   https://react.dev/
-
 - **The Elm Architecture (for TEA background)**  
   https://guide.elm-lang.org/architecture/
-
 - **TypeScript 5.2: Explicit Resource Management / `using`**  
   https://devblogs.microsoft.com/typescript/announcing-typescript-5-2/
-
 - **Node.js ECMAScript modules documentation**  
   https://nodejs.org/api/esm.html
-
 - **Yoga layout engine**  
   https://github.com/facebook/yoga
-
 - **Zustand docs**  
   https://github.com/pmndrs/zustand
 
@@ -1270,8 +1261,9 @@ For final launch materials, I’d also verify:
 
 ---
 
-## Final recommendation in one paragraph
+### Final recommendation in one paragraph
 
 The plan is right, but I would make it more **product-led**: add a **simple `render()` onboarding API**, move **docs/examples before or alongside the code split**, create a **small internal core package** rather than dumping everything into term, keep **terminal-specific concerns in term** and **app architecture in tea**, and reposition silvery not as “the TEA framework with a renderer,” but as **the easiest way to build serious terminal apps in React — with TEA as an optional scaling path**. If you do that, the strongest switch reasons from Ink become clear: **same familiar React start, less install pain, richer built-in UX, and a better path when the app becomes complex.**
 
 If you want, I can also turn this into a **concrete proposed package graph + import map + migration plan**, including example `exports` fields and a phased semver rollout.
+

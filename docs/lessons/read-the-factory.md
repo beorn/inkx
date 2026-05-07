@@ -18,6 +18,7 @@ None worked. The agent was stuck because it assumed the board driver (`createBoa
 The fix was trivial: `createBoardApp(storeParams).run(createTermless())` — the app factory already supports running with any terminal backend, including termless (in-process xterm.js). This exercises the full 5-phase pipeline. The board driver builds the identical `storeParams` — it just never passes a real terminal.
 
 The agent didn't discover this because:
+
 - It read `driver.ts` (the wrapper) thoroughly
 - It read `board-app.ts` lines 0-50 (imports) but not line 1132 (`createBoardApp()`)
 - The test skill docs only document `createBoardDriver` and `testEnv`, not `createBoardApp().run(term)`
@@ -55,11 +56,11 @@ Test helper (testEnv, createBoardDriver)
 
 Test helpers pick a single path through the factory. But the factory supports multiple paths:
 
-| Helper | Factory call | What it exercises |
-|--------|-------------|-------------------|
-| `testEnv()` | `createRenderer()` | Buffer only (phases 1-4) |
-| `createBoardDriver()` | `createBoardApp()` + headless | Buffer + state (phases 1-4) |
-| `createBoardApp().run(termless)` | Full pipeline | All 5 phases including ANSI output |
+| Helper                         | Factory call                | What it exercises                  |
+| ------------------------------ | --------------------------- | ---------------------------------- |
+| testEnv()                      | createRenderer()            | Buffer only (phases 1-4)           |
+| createBoardDriver()            | createBoardApp() + headless | Buffer + state (phases 1-4)        |
+| createBoardApp().run(termless) | Full pipeline               | All 5 phases including ANSI output |
 
 The third option was always available — nobody wired it up for tests because the wrappers were "good enough."
 
@@ -67,3 +68,4 @@ The third option was always available — nobody wired it up for tests because t
 
 - [Discoverable Interfaces](discoverable-interfaces.md) — put operations on core objects, not ad-hoc helpers
 - [Testing Escape Hatches](testing-escape-hatches.md) — when the test infra doesn't cover a case
+

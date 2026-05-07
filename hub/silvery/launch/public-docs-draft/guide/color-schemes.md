@@ -1,6 +1,7 @@
 ---
 title: Color Schemes
-description: The 22-slot color scheme, Sterling's preservative derivation, and the 84 bundled schemes silvery ships.
+description: The 22-slot color scheme, Sterling's preservative derivation, and
+  the 84 bundled schemes silvery ships.
 ---
 
 # Color Schemes
@@ -62,25 +63,25 @@ Derivation is **OKLCH-native** throughout — blends, lightness adjustments, and
 
 Sterling preserves the user's 22 colors and fills gaps:
 
-| Token                 | Derivation                                      |
-|-----------------------|-------------------------------------------------|
-| `fg-error`            | `scheme.red`                                    |
-| `fg-warning`          | `scheme.yellow`                                 |
-| `fg-success`          | `scheme.green`                                  |
-| `fg-info`             | `scheme.primary` (distinct role, same default hex as accent) |
-| `fg-accent`           | `scheme.primary`                                |
-| `bg-accent`           | `scheme.primary`                                |
-| `bg-accent-hover`     | OKLCH +0.04L on `bg-accent`                     |
-| `bg-accent-active`    | OKLCH +0.08L on `bg-accent`                     |
-| `fg-on-accent`        | contrast-pick(fg, bg) for WCAG AA against `bg-accent` |
-| `fg-muted`            | blend(fg, bg, 0.5)                              |
-| `bg-surface-default`  | `scheme.background`                             |
-| `bg-surface-subtle`   | blend(bg, fg, 0.05)                             |
-| `bg-surface-raised`   | blend(bg, fg, 0.08)                             |
-| `bg-surface-overlay`  | blend(bg, fg, 0.12)                             |
-| `border-focus`        | `scheme.primary`                                |
-| `cursor-bg`           | `scheme.cursorColor`                            |
-| `cursor-fg`           | `scheme.cursorText`                             |
+| Token              | Derivation                                                 |
+| ------------------ | ---------------------------------------------------------- |
+| fg-error           | scheme.red                                                 |
+| fg-warning         | scheme.yellow                                              |
+| fg-success         | scheme.green                                               |
+| fg-info            | scheme.primary (distinct role, same default hex as accent) |
+| fg-accent          | scheme.primary                                             |
+| bg-accent          | scheme.primary                                             |
+| bg-accent-hover    | OKLCH +0.04L on bg-accent                                  |
+| bg-accent-active   | OKLCH +0.08L on bg-accent                                  |
+| fg-on-accent       | contrast-pick(fg, bg) for WCAG AA against bg-accent        |
+| fg-muted           | blend(fg, bg, 0.5)                                         |
+| bg-surface-default | scheme.background                                          |
+| bg-surface-subtle  | blend(bg, fg, 0.05)                                        |
+| bg-surface-raised  | blend(bg, fg, 0.08)                                        |
+| bg-surface-overlay | blend(bg, fg, 0.12)                                        |
+| border-focus       | scheme.primary                                             |
+| cursor-bg          | scheme.cursorColor                                         |
+| cursor-fg          | scheme.cursorText                                          |
 
 Scheme authors can override specific tokens; the OKLCH defaults cover most cases.
 
@@ -88,13 +89,13 @@ Scheme authors can override specific tokens; the OKLCH defaults cover most cases
 
 State variants (`-hover`, `-active`) apply to **interactive-surface tokens**, not to text tokens in general. Only text that is itself interactive (accent / links) gets state variants.
 
-| Token                                 | State variants?                |
-|---------------------------------------|--------------------------------|
-| `bg-accent`, `bg-error`, `bg-warning`, `bg-success`, `bg-info` | always (hover / active) |
-| `bg-surface-*`                         | hover                          |
-| `fg-on-<role>`                         | no (fg-on-X text doesn't change when the bg-X under it hovers) |
-| `fg-accent`                            | hover / active (interactive text) |
-| `fg-error`, `fg-warning`, `fg-success`, `fg-info`, `fg-muted` | no (non-interactive status text) |
+| Token                                                | State variants?                                                |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| bg-accent, bg-error, bg-warning, bg-success, bg-info | always (hover / active)                                        |
+| bg-surface-*                                         | hover                                                          |
+| fg-on-<role>                                         | no (fg-on-X text doesn't change when the bg-X under it hovers) |
+| fg-accent                                            | hover / active (interactive text)                              |
+| fg-error, fg-warning, fg-success, fg-info, fg-muted  | no (non-interactive status text)                               |
 
 ### Derivation algorithm — adaptive OKLCH L-shift
 
@@ -268,3 +269,4 @@ bunx silvery theme detect                 # probe current terminal
 - [`@silvery/design` reference](/reference/theme) — Theme type, derivation adjustments.
 
 <!-- TODO: verify after 0.19.0 ships — confirm `schemes` barrel shape, `getScheme` / `listSchemes` / `fingerprintMatch` exports, `deriveFromSchemeWithBrand` signature (brand as string vs `{ brand }`). -->
+

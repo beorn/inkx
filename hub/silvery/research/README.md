@@ -8,16 +8,16 @@ Silvery is positioning as a modern, correctness-first TUI framework. This folder
 
 One high-level map (`competitors-overview.md`), several deep-dive docs per competitor or theme, and a small set of market/company research docs. Deep-dives cite sources inline; the overview doc is the fast-read index that links everything together.
 
-| Doc                                                                  | Kind          | What                                                                      |
-| -------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------- |
-| [`competitors-overview.md`](./competitors-overview.md)               | Overview      | Silvery vs every serious TUI framework at a glance. The map.              |
-| [`opentui-opencode.md`](./opentui-opencode.md)                       | Relationship  | OpenTUI ↔ opencode is the same team. Why that matters.                    |
-| [`opentui-vs-silvery.md`](./opentui-vs-silvery.md)                   | Deep dive     | Full feature-by-feature comparison, matching `silvery-vs-ink.md` depth.   |
-| [`anomaly-company.md`](./anomaly-company.md)                         | Company       | Anomaly (ex-SST) — founders, funding, trajectory, what they're good at.   |
-| [`coding-agent-landscape.md`](./coding-agent-landscape.md)           | Market        | Every serious open-source + commercial coding agent, grouped by UI stack. |
-| [`svelte-vue-tui-options.md`](./svelte-vue-tui-options.md)           | Framework gap | What a Svelte or Vue team can actually use today.                         |
-| [`structural-diffing-research.md`](./structural-diffing-research.md) | Technical     | Reference research on diffing algorithms (prior work).                    |
-| [`terminal-rendering-research.md`](./terminal-rendering-research.md) | Technical     | Reference research on terminal rendering (prior work).                    |
+| Doc                            | Kind          | What                                                                      |
+| ------------------------------ | ------------- | ------------------------------------------------------------------------- |
+| competitors-overview.md        | Overview      | Silvery vs every serious TUI framework at a glance. The map.              |
+| opentui-opencode.md            | Relationship  | OpenTUI ↔ opencode is the same team. Why that matters.                    |
+| opentui-vs-silvery.md          | Deep dive     | Full feature-by-feature comparison, matching silvery-vs-ink.md depth.     |
+| anomaly-company.md             | Company       | Anomaly (ex-SST) — founders, funding, trajectory, what they're good at.   |
+| coding-agent-landscape.md      | Market        | Every serious open-source + commercial coding agent, grouped by UI stack. |
+| svelte-vue-tui-options.md      | Framework gap | What a Svelte or Vue team can actually use today.                         |
+| structural-diffing-research.md | Technical     | Reference research on diffing algorithms (prior work).                    |
+| terminal-rendering-research.md | Technical     | Reference research on terminal rendering (prior work).                    |
 
 Public guide doc (for reference, not internal): [`../../silvery/docs/guide/silvery-vs-ink.md`](../../silvery/docs/guide/silvery-vs-ink.md) — the shippable silvery-vs-ink page; template for tone and depth of comparison docs.
 
@@ -46,3 +46,4 @@ Public guide doc (for reference, not internal): [`../../silvery/docs/guide/silve
 - **`charmbracelet/`** — Bubble Tea, Lip Gloss, Glow, VHS, Crush. The Go TUI incumbent.
 - **`Aider-AI/aider`** — benchmark methodology. When we eventually ship our own agent-adjacent thing, Aider is the bar for benchmark discipline.
 - **Commercial shifts** — Cursor, Windsurf, Zed, Devin. Not direct competitors but they define the market shape agents are pushed into.
+

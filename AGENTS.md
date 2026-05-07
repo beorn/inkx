@@ -61,6 +61,18 @@ DEBUG=km:*,silvery:* DEBUG_LOG=/tmp/debug.log bun km view <path>
 tail -f /tmp/debug.log    # in another terminal
 ```
 
+## Codex skill invocations
+
+Codex's native slash menu is for built-in CLI commands. In this repo, if a user
+message that starts with `/name` reaches the agent, treat it as a Codex skill
+request, not a shell command. Load `.agents/skills/<name>/SKILL.md` when it
+exists, pass the remaining text as arguments, and follow that skill's protocol.
+For guaranteed explicit skill invocation in Codex, `$name` is also valid.
+
+Common slash skills: `/big`, `/complete`, `/refactor`, `/max`, `/eli5`, `/pro`,
+`/deep`, `/llm`, `/ask`, `/commit`, `/merge`, `/beads`, and `/recall`. If no
+matching skill exists, say that briefly and use the closest available workflow.
+
 ## Issue tracking (beads)
 
 This project uses **bd** for issue tracking. Bead IDs follow `km-<scope>.<slug>`.

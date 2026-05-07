@@ -33,9 +33,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.sterling-2c-km-migration
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling 2d: internal cleanup (0.18.x patch — not breaking) @km/silvery #task #P1 @claude:4274df30

@@ -38,6 +38,7 @@ Each domain groups: **constructor** (creates state), **selectors** (read state),
 ### Selection path (parallel)
 
 Selection uses **transitions** (direct pure functions) rather than dispatched ops:
+
 - **gesture** = physical interaction with lifecycle (start, morph, commit/cancel)
 - **selecting kind** = classification (`node`, `node-toggle`, `node-area`, etc.)
 - **Selecting.\*** = transition functions computing next Selection from current + inputs
@@ -103,6 +104,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **command palette** — A searchable dialog listing all available commands. Opened via `:`. Users can fuzzy-search and invoke any command by name.
 
 **commit** — Two meanings:
+
 - *gesture*: writing a gesture's `selecting` preview into committed `selected` state. Triggered by mouseup or shift release.
 - *event*: persisting a storage event to the database, journal, and broadcasting it. Distinct from *save* (which writes to the filesystem).
 
@@ -169,6 +171,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **ESM** — ECMAScript Modules. km and all vendor packages use ESM exclusively — no CommonJS. Vendor packages publish raw TypeScript source.
 
 **event** — Two meanings:
+
 - *storage*: a canonical state mutation record stored as a row in the `events` table inside `state.db`. Types: `node_created`, `node_updated`, `node_moved`, `node_deleted`, etc. Each row carries an `actor` (e.g. `"user"`, `"fs-watch"`, `"system"`, agent id) and an optional `source` (e.g. `"fs-import"`) that determines how downstream subscribers route the change. The final stage of the command path: command -> transform -> operation -> event.
 - *input*: a DOM-style occurrence (key press, mouse click, resize) delivered by the terminal. These are raw signals, not to be confused with storage events.
 
@@ -303,6 +306,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **node-toggle** — A selecting kind produced by Cmd+click. Toggles a single node in/out of the multi-selection. Committed immediately.
 
 **normalize/normalization** — Two meanings:
+
 - *tree*: enforcing schema constraints after every mutation via `withNormalization()`. Ensures structural invariants hold.
 - *selection*: repairing a selection after tree changes (deleted nodes, reordered siblings) so it remains valid.
 
@@ -335,6 +339,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **pipe** — A composition function that threads a base value through plugins: `pipe(createApp(), withFocus(), withCommands())`. Returns the fully composed result.
 
 **pipeline** — Two meanings:
+
 - *rendering*: silvery's three-phase process: layout -> render -> output.
 - *data*: composable async generator flows for parsing, syncing, and transforming content.
 
@@ -345,6 +350,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **plugin** — A function that extends an object's capabilities by wrapping or augmenting it. In silvery: `withFocus()`, `withCommands()`, composed via `pipe()`. In km-tree: `withHistory()`, `withNormalization()`.
 
 **Point** — Two meanings:
+
 - *tree operations*: `{ nodeId: string; offset: number }` — a position within a node's text content using stable IDs.
 - *selection model*: see *TextPoint*.
 
@@ -359,6 +365,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **property invariant** — A fuzz test pattern that verifies algebraic properties hold across random inputs. Examples: render idempotence, no-op stability, inverse operations.
 
 **provider** — Two meanings:
+
 - *React*: a context that supplies shared state to a subtree (e.g., `Term`, `SelectionProvider`).
 - *architecture*: structurally similar to plugins but representing shared concerns rather than extensions.
 
@@ -369,6 +376,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 ### R
 
 **Range** — Two meanings:
+
 - *tree operations*: `{ anchor: Point; focus: Point }` — a span of text within or across nodes. When collapsed, represents a cursor position.
 - *selection model*: the text portion of a `Selection`, represented as one or two `TextPoint` values on the cursor node.
 
@@ -415,6 +423,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **Selecting.\*** — A namespace of gesture algebra functions that compute the next Selection from inputs. Takes `visibleNodes` explicitly for ordering context. Separate from `Selection.*` because selecting is an action, Selection is data.
 
 **selection** — Two meanings:
+
 - *effective*: the computed value `selecting ?? selected` — what consumers read, overlaying any in-progress gesture preview on committed state.
 - *type*: see *Selection*.
 
@@ -441,6 +450,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **sticky** — A layout feature in flexily where a node sticks to the top or bottom of its scroll container as the user scrolls.
 
 **store** — Two meanings:
+
 - *Store*: the minimal storage contract for node data (`peekNode`, `peekChildIds`, `commit`). Extended by `Observable` and `Replicated`. `withReactive(store)` adds per-node signals.
 - *SelectionStore*: the per-scope selection state. See *SelectionStore*.
 
@@ -509,6 +519,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **VisibleLens** — The second lens in the visibility pipeline. `createVisibleLens(view, { collapsedNodes, taskStatusFilter, cardFilter })` wraps a *ViewLens* with column collapse, task-status filtering, and card-level predicate filtering. Same TreeLens interface as the parent — only `children()` and `walkOrder` are modified to exclude collapsed and filtered cards. Cards in collapsed columns are excluded from `walkOrder` so the cursor cannot land on them. **Use directly only from non-React code.**
 
 **visibility model** — Three independent visibility mechanisms, each at a different layer of the lens pipeline. See [docs/design/ui/visibility.md](design/ui/visibility.md) for the full picture.
+
 - **Structural exclusion** (ViewLens construction): nodes never appear in `walkOrder` — `isCollapsedChild`, `isDetailOnly`, `hiddenNodeIds`
 - **Collapsed columns** (VisibleLens construction): card children of collapsed columns excluded
 - **Per-node fold** (NodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `@km/tui/view-mode-feature-parity`
@@ -542,3 +553,4 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **zoom** — Changing the board root to drill into or out of the node tree. Enter zooms in, u/Backspace zooms out. Navigation history tracks zoom changes.
 
 **Zustand** — (historical) A minimal React state management library formerly used by silvery's store layer. Replaced by alien-signals-based signal stores. Not to be confused with *Store* (the storage contract) or *SelectionStore* (per-scope selection state).
+

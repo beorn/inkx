@@ -135,10 +135,10 @@ OpenTUI promised better layout with:
 
 ## Action Items
 
-1. [ ] Mark km-tui2 epic as deferred
-2. [ ] File OpenTUI bugs upstream (#002, #003)
-3. [ ] Create km-tui1-improve issue for Constraint Components
-4. [ ] Update CLAUDE.md with decision
+- [ ] Mark km-tui2 epic as deferred
+- [ ] File OpenTUI bugs upstream (#002, #003)
+- [ ] Create km-tui1-improve issue for Constraint Components
+- [ ] Update CLAUDE.md with decision
 
 ## References
 
@@ -146,3 +146,4 @@ OpenTUI promised better layout with:
 - [@km/tui-eval/2 Analysis](../../../.beads/km-tui-eval.2-analysis.md) - OpenTUI bugs
 - [@km/tui-eval/3 Analysis](../../../.beads/km-tui-eval.3-analysis.md) - Abstraction approaches
 - [docs/dev/ink-patterns.md](../../dev/ink-patterns.md) - Ink workarounds and patterns guide
+

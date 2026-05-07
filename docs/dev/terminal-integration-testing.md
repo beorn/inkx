@@ -7,6 +7,7 @@ Design document for testing Kitty keyboard protocol, modifier key tracking, mous
 Tests using `createRenderer` pass, but features don't work in the real app. The event dispatch paths are fundamentally different:
 
 **createRenderer (test renderer):**
+
 ```
 app.press(key) / app.stdin.write(raw)
   → splitRawInput(data)
@@ -16,6 +17,7 @@ app.press(key) / app.stdin.write(raw)
 ```
 
 **createApp (production runtime):**
+
 ```
 stdin data event
   → termProvider.events() (splitRawInput → parseKey → queue)
@@ -31,17 +33,17 @@ stdin data event
 
 ### Key differences
 
-| Feature | createRenderer | createApp |
-|---------|---------------|-----------|
-| Input parsing | `inputEmitter.emit("input", raw)` then each listener calls `parseKey` | `termProvider` does `parseKey`, events arrive pre-parsed |
-| Modifier-only events | Passed to RuntimeContext as raw input, `useInput`/`useModifierKeys` filter locally | Bridged to runtimeInputListeners first, THEN filtered before app handlers |
-| Key release events | Passed through `inputEmitter` | Bridged to listeners, then skipped for app handlers via `k.eventType === "release"` |
-| Focus navigation | Tab/Shift+Tab/Escape handled directly in `sendInput` | `handleFocusNavigation()` in `processEventBatch` |
-| Mouse events | `processMouseEvent` called directly from `app.click()`/`app.hover()` | Mouse events arrive via term provider, dispatched through `runEventHandler` |
-| Selection | Not supported | Intercepts mouse events in `runEventHandler` |
-| Event batching | Each keystroke triggers immediate render | `processEventBatch` coalesces events, renders once |
-| Render timing | Synchronous: `act()` + `doRender()` in `sendInput` | Async: `await processEventBatch()` with microtask flushes |
-| Focus events | Not supported | `term:focus` events bridged to `runtimeFocusListeners` |
+| Feature              | createRenderer                                                                 | createApp                                                                         |
+| -------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Input parsing        | inputEmitter.emit("input", raw) then each listener calls parseKey              | termProvider does parseKey, events arrive pre-parsed                              |
+| Modifier-only events | Passed to RuntimeContext as raw input, useInput/useModifierKeys filter locally | Bridged to runtimeInputListeners first, THEN filtered before app handlers         |
+| Key release events   | Passed through inputEmitter                                                    | Bridged to listeners, then skipped for app handlers via k.eventType === "release" |
+| Focus navigation     | Tab/Shift+Tab/Escape handled directly in sendInput                             | handleFocusNavigation() in processEventBatch                                      |
+| Mouse events         | processMouseEvent called directly from app.click()/app.hover()                 | Mouse events arrive via term provider, dispatched through runEventHandler         |
+| Selection            | Not supported                                                                  | Intercepts mouse events in runEventHandler                                        |
+| Event batching       | Each keystroke triggers immediate render                                       | processEventBatch coalesces events, renders once                                  |
+| Render timing        | Synchronous: act() + doRender() in sendInput                                   | Async: await processEventBatch() with microtask flushes                           |
+| Focus events         | Not supported                                                                  | term:focus events bridged to runtimeFocusListeners                                |
 
 ### Proven failure
 
@@ -69,6 +71,7 @@ Layer 0: xterm.js / real terminal  -- actual terminal emulator
 ### What each test infrastructure provides
 
 **createRenderer** (`@silvery/test`):
+
 - Virtual buffer (no ANSI output)
 - Synchronous rendering via `act()`
 - `app.press(key)` converts to ANSI via `keyToAnsi`/`keyToKittyAnsi`
@@ -78,6 +81,7 @@ Layer 0: xterm.js / real terminal  -- actual terminal emulator
 - `kittyMode` option makes `press()` use `keyToKittyAnsi`
 
 **createTermless** (`@silvery/test`):
+
 - Creates a Term backed by xterm.js
 - Real ANSI processing through xterm emulator
 - Used with `run()` for "production pipeline" tests
@@ -85,6 +89,7 @@ Layer 0: xterm.js / real terminal  -- actual terminal emulator
 - Missing: NO way to inject keyboard input into the event pipeline
 
 **createDriverTest** (`km-tui`):
+
 - Wraps `createRenderer` with board fixtures
 - Adds `board.press()`, `board.expect()`, `board.command()` fluent API
 - Injects fake repo, board state, theme
@@ -93,6 +98,7 @@ Layer 0: xterm.js / real terminal  -- actual terminal emulator
 ### Gap: the middle ground is missing
 
 There is no test infrastructure that provides BOTH:
+
 1. Real `createApp` event pipeline (processEventBatch, focus navigation, modifier filtering, selection)
 2. Deterministic, synchronous test control (no timing, no real PTY)
 
@@ -174,6 +180,7 @@ async stdinWrite(data: string) {
 ### Recommendation: Both, but Term.sendInput is primary
 
 **Term.sendInput** is the right abstraction because:
+
 1. It makes the Term a complete input/output abstraction (currently it's output-only for emulators)
 2. It composes naturally with `run()` and `createApp()` -- events flow through the real pipeline
 3. Tests can inject ANY raw sequence (Kitty protocol, mouse SGR, focus events, bracketed paste)
@@ -188,6 +195,7 @@ async stdinWrite(data: string) {
 **File:** `vendor/silvery/packages/ag-term/src/ansi/types.ts`
 
 Add to `TermEmulator` interface:
+
 ```typescript
 /** Inject raw terminal input bytes (keyboard sequences, mouse events).
  *  Parsed and pushed into the event queue for the event loop. */
@@ -197,6 +205,7 @@ sendInput?(data: string): void
 **File:** `vendor/silvery/packages/ag-term/src/ansi/term.ts`
 
 In `createBackendTerm()`:
+
 ```typescript
 import { splitRawInput, parseKey } from "@silvery/tea/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
@@ -241,6 +250,7 @@ Note: This exactly mirrors the `termProvider.events()` parsing pipeline in `term
 **File:** `vendor/silvery/packages/ag-term/src/ansi/term.ts` (Term interface)
 
 Add to the Term interface:
+
 ```typescript
 /** Inject raw terminal input (as if the user typed it).
  *  Only available on emulator-backed terms. Throws on node/headless terms. */
@@ -252,10 +262,13 @@ sendInput(data: string): void
 **File:** `vendor/silvery/tests/features/key-release.test.tsx`
 
 Change:
+
 ```typescript
 term.write("\x1b[57444;9:1u")
 ```
+
 To:
+
 ```typescript
 term.sendInput("\x1b[57444;9:1u")
 ```
@@ -308,16 +321,19 @@ function getModifierBit(name: string): number {
 ```
 
 This enables:
+
 ```typescript
 keyToKittyAnsi("leftsuper")  // "\x1b[57444;9:1u" (press event)
 ```
 
 For release events, add a modifier:
+
 ```typescript
 keyToKittyAnsi("leftsuper:release")  // "\x1b[57444;1:3u" (release, no modifiers held after release)
 ```
 
 Or add a separate function:
+
 ```typescript
 keyToKittyRelease(key: string): string  // Same as keyToKittyAnsi but with :3 event type
 ```
@@ -327,6 +343,7 @@ keyToKittyRelease(key: string): string  // Same as keyToKittyAnsi but with :3 ev
 **File:** `vendor/silvery/packages/ag-term/src/runtime/run.tsx`
 
 The `RunHandle` should expose `sendInput` for termless tests:
+
 ```typescript
 export interface RunHandle {
   // ... existing ...
@@ -413,6 +430,7 @@ This is NOT a replacement for `createRenderer` (which is faster and synchronous)
 ### createRenderer is fine for most tests
 
 `createRenderer` is correct for testing:
+
 - Component rendering (layout, styles, text)
 - useInput handlers (press/release via stdin.write with raw Kitty sequences)
 - useModifierKeys (via stdin.write with raw Kitty sequences)
@@ -428,30 +446,27 @@ Board tests don't need the production event pipeline. They test user journeys (k
 
 ## Testing Matrix
 
-| Feature | createRenderer | termless + run() | createTestApp (proposed) |
-|---------|:-------------:|:----------------:|:------------------------:|
-| Component rendering | Yes | Yes | Yes |
-| useInput (press) | Yes | Yes (handle.press) | Yes |
-| useInput (release) | Yes (stdin.write raw) | **Broken** (no input injection) | Yes |
-| useModifierKeys | Yes (stdin.write raw) | **Broken** | Yes |
-| Modifier-only keys | Yes (stdin.write raw) | **Broken** | Yes |
-| Focus reporting | No | No (events not bridged) | Yes |
-| Selection (mouse drag) | No | Not testable | Yes |
-| Event batching | No (sync, one-at-a-time) | Yes | Yes |
-| Virtual scrollback | No | Not testable | Yes |
-| Kitty protocol detection | No | Yes (kitty: true option) | Yes |
-| Buffer/ANSI assertions | Buffer only | Screen (post-ANSI) | Screen (post-ANSI) |
-| Speed | Fast (~1ms/test) | Medium (~30-100ms) | Medium (~30-100ms) |
-| Deterministic timing | Yes (synchronous) | No (async, needs setTimeout) | No (async, needs setTimeout) |
+| Feature                  | createRenderer           | termless + run()             | createTestApp (proposed)     |
+| ------------------------ | :----------------------: | :--------------------------: | :--------------------------: |
+| Component rendering      | Yes                      | Yes                          | Yes                          |
+| useInput (press)         | Yes                      | Yes (handle.press)           | Yes                          |
+| useInput (release)       | Yes (stdin.write raw)    | Broken (no input injection)  | Yes                          |
+| useModifierKeys          | Yes (stdin.write raw)    | Broken                       | Yes                          |
+| Modifier-only keys       | Yes (stdin.write raw)    | Broken                       | Yes                          |
+| Focus reporting          | No                       | No (events not bridged)      | Yes                          |
+| Selection (mouse drag)   | No                       | Not testable                 | Yes                          |
+| Event batching           | No (sync, one-at-a-time) | Yes                          | Yes                          |
+| Virtual scrollback       | No                       | Not testable                 | Yes                          |
+| Kitty protocol detection | No                       | Yes (kitty: true option)     | Yes                          |
+| Buffer/ANSI assertions   | Buffer only              | Screen (post-ANSI)           | Screen (post-ANSI)           |
+| Speed                    | Fast (~1ms/test)         | Medium (~30-100ms)           | Medium (~30-100ms)           |
+| Deterministic timing     | Yes (synchronous)        | No (async, needs setTimeout) | No (async, needs setTimeout) |
 
 ## Implementation Priority
 
 1. **Term.sendInput()** -- Unblocks all termless testing of Kitty features. Fixes the proven failure. Small change.
-
 2. **keyToKittyAnsi for modifier-only keys** -- Enables `app.press("leftsuper")` in createRenderer tests and `term.sendInput(keyToKittyAnsi("leftsuper"))` in termless tests.
-
 3. **Fix the failing test** -- Change `term.write(...)` to `term.sendInput(...)` in `key-release.test.tsx`.
-
 4. **createTestApp helper** -- Nice to have for km-tui tests that need the full pipeline. Low priority since most features are testable with createRenderer.
 
 ## Questions Answered
@@ -473,7 +488,6 @@ Not as a replacement, but as a complement. A `createTestApp()` helper wrapping `
 Two mechanisms:
 
 - **createRenderer tests:** `app.stdin.write("\x1b[57444;9:1u")` -- goes through `inputEmitter.emit("input", raw)`, listeners call `parseKey(raw)`. Works today for useInput/useModifierKeys.
-
 - **termless/run tests:** `term.sendInput("\x1b[57444;9:1u")` -- parses the raw bytes (splitRawInput → parseKey) and pushes events into the Term's event queue, flowing through `termProvider.events()` → createApp's `processEventBatch`. Does NOT exist yet -- this is the primary proposed change.
 
 For `keyToKittyAnsi` support for modifier-only keys like "leftsuper": add codepoint mapping and self-modifier bitfield calculation so `keyToKittyAnsi("leftsuper")` produces `"\x1b[57444;9:1u"`. This enables `app.press("leftsuper")` in kittyMode.
@@ -483,6 +497,7 @@ For `keyToKittyAnsi` support for modifier-only keys like "leftsuper": add codepo
 Minimal changes needed in termless itself. The gap is in silvery's `Term` abstraction, not termless. The `createTermless()` function creates a Term with an xterm.js backend, and that Term is then passed to `run()`. Adding `sendInput()` to the emulator-backed Term is a silvery change, not a termless change.
 
 However, termless could benefit from:
+
 - A `keyToKittyAnsi()` export (or re-export from silvery) for test convenience
 - Documentation on how to test Kitty protocol features using `term.sendInput()`
 
@@ -529,5 +544,7 @@ However, termless could benefit from:
 The key principle: **createRenderer tests components in isolation; termless tests the full pipeline end-to-end**. Features that only need component behavior (useInput handler, modifier state tracking, key release callbacks) use createRenderer. Features that depend on the event pipeline (event batching, selection, lifecycle key interception, focus reporting) use termless.
 
 When both are needed (e.g., "modifier-only events are filtered from useInput but still reach useModifierKeys"), write both:
+
 1. A createRenderer test proving the component behavior
 2. A termless test proving the pipeline delivers the events correctly
+

@@ -114,3 +114,4 @@ If step-3 (`underlineColor`) or step-4 (`borderColor`) proves too invasive, ship
 3. km-tui migration — `refactor(km-tui): drop colorOverride for color="inherit" where applicable`
 
 Every commit references `Bead: km-silvery.color-inherit`.
+

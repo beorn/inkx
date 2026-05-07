@@ -538,12 +538,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       stopReason: "end_turn",
       ts: Date.now(),
     })
-    emit({
-      kind: "error",
-      sessionId,
-      message: `acp: forced turn-end (${reason}) — prior turn ${stale} never settled`,
-      ts: Date.now(),
-    })
+    dWire("self-healed stuck turn: reason=%s stale=%s", reason, stale)
     currentTurnId = null
     lastMessageTurnId = null
   }

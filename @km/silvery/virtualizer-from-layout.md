@@ -134,9 +134,9 @@ Make scroll-phase the single source of truth. Virtualizer subscribes to its outp
 2. Add ScrollStateSignals to layout-signals.ts (peer of RectSignals): per-node signals for firstVisibleChild, lastVisibleChild, scrollOffset, hidden counts. Sync via syncRectSignals after each layout pass.
 3. New hook useScrollState(node?: AgNode) → returns reactive { startIdx, endIdx, scrollOffset, hiddenAbove, hiddenBelow }. Re-renders only when those values change.
 4. useVirtualizer becomes a thin consumer:
-  - Bootstrap (no measurements yet): use estimateHeight to pick a small initial window
-  - Steady state: read useScrollState, render items [firstVisibleChild - overscan, lastVisibleChild + overscan]
-  - leadingHeight / trailingHeight derived from sumHeights using scroll-phase's index boundaries — guaranteed to match scrollOffset by construction (since scroll-phase computed them from the same heights)
+- Bootstrap (no measurements yet): use estimateHeight to pick a small initial window
+- Steady state: read useScrollState, render items [firstVisibleChild - overscan, lastVisibleChild + overscan]
+- leadingHeight / trailingHeight derived from sumHeights using scroll-phase's index boundaries — guaranteed to match scrollOffset by construction (since scroll-phase computed them from the same heights)
 
 This eliminates divergence by topology: there's only one place that decides visibility (scroll-phase). Virtualizer is a one-frame-lagging consumer, like CSS contain:strict on the web.
 

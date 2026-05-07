@@ -7,30 +7,30 @@
 
 **Key constraint:** NO cross-dependencies between term/tui and Silvery/@silvery/ansi.
 
-| Package        | Purpose                                   | Dependencies          |
-| -------------- | ----------------------------------------- | --------------------- |
-| @beorn/term    | Terminal detection, styling, patchConsole | Standalone            |
-| @beorn/tui     | React TUI rendering                       | Standalone (own impl) |
-| Silvery  | React TUI (existing)                      | Separate package      |
-| @silvery/ansi  | ANSI utilities (existing)                 | Separate package      |
+| Package       | Purpose                                   | Dependencies          |
+| ------------- | ----------------------------------------- | --------------------- |
+| @beorn/term   | Terminal detection, styling, patchConsole | Standalone            |
+| @beorn/tui    | React TUI rendering                       | Standalone (own impl) |
+| Silvery       | React TUI (existing)                      | Separate package      |
+| @silvery/ansi | ANSI utilities (existing)                 | Separate package      |
 
 ## Phase 1: term Package (Standalone)
 
 ### @silvery/ansi Features to Migrate
 
-| Feature                                             | File         | Status   | Notes                                   |
-| --------------------------------------------------- | ------------ | -------- | --------------------------------------- |
-| Extended underlines (curly, dotted, dashed, double) | underline.ts | **DONE** | In term/utils.ts                        |
-| Underline color (underlineColor, styledUnderline)   | underline.ts | **DONE** | In term/utils.ts                        |
-| Hyperlinks (OSC 8)                                  | hyperlink.ts | **DONE** | In term/utils.ts                        |
-| stripAnsi, displayLength                            | utils.ts     | **DONE** | In term/utils.ts                        |
-| Extended underline detection                        | detection.ts | **DONE** | In term/detection.ts                    |
-| setExtendedUnderlineSupport                         | detection.ts | TODO     | Export from term (for testing)          |
-| resetDetectionCache                                 | detection.ts | TODO     | Export from term (for testing)          |
-| bgOverride, BG_OVERRIDE_CODE                        | index.ts     | TODO     | Move to tui (silvery-specific)          |
-| UNDERLINE_CODES constants                           | constants.ts | SKIP     | Internal in term (not exported)         |
-| chalkX convenience object                           | index.ts     | SKIP     | Not needed - term has flattened styling |
-| storybook.ts                                        | storybook.ts | TODO     | Port to term (useful for demos)         |
+| Feature                                             | File         | Status | Notes                                   |
+| --------------------------------------------------- | ------------ | ------ | --------------------------------------- |
+| Extended underlines (curly, dotted, dashed, double) | underline.ts | DONE   | In term/utils.ts                        |
+| Underline color (underlineColor, styledUnderline)   | underline.ts | DONE   | In term/utils.ts                        |
+| Hyperlinks (OSC 8)                                  | hyperlink.ts | DONE   | In term/utils.ts                        |
+| stripAnsi, displayLength                            | utils.ts     | DONE   | In term/utils.ts                        |
+| Extended underline detection                        | detection.ts | DONE   | In term/detection.ts                    |
+| setExtendedUnderlineSupport                         | detection.ts | TODO   | Export from term (for testing)          |
+| resetDetectionCache                                 | detection.ts | TODO   | Export from term (for testing)          |
+| bgOverride, BG_OVERRIDE_CODE                        | index.ts     | TODO   | Move to tui (silvery-specific)          |
+| UNDERLINE_CODES constants                           | constants.ts | SKIP   | Internal in term (not exported)         |
+| chalkX convenience object                           | index.ts     | SKIP   | Not needed - term has flattened styling |
+| storybook.ts                                        | storybook.ts | TODO   | Port to term (useful for demos)         |
 
 ### @silvery/ansi Consumers in km
 
@@ -112,3 +112,4 @@ Current names are fine:
 - [ ] **@km/term-2/5**: Remove tui's dependency on Silvery (P1)
 - [ ] @km/term-2/1: Export detection override functions from term
 - [ ] @km/term-2/2: Port storybook demo to term
+

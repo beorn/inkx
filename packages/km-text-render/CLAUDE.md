@@ -1,3 +1,8 @@
+---
+mentions:
+  - km
+---
+
 # @km/text-render
 
 Shared inline-text parsing primitives — markdown + km-syntax (wikilinks, `@mentions`, `#tags`, `+projects`, `key::value` fields, `[[wikilinks]]`, bare URLs) → `InlineNode[]` AST.

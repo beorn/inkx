@@ -19,8 +19,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/storage/tree"
+    type: list
+    values:
+      - type: link
+        target: km-tree
+      - type: link
+        target: "@km/storage/tree"
 ---
 
 # [ ] Reshape withOutliner: method bag → (state, op) → [state, effects] @km/tree #task #P3

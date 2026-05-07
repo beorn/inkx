@@ -2,7 +2,7 @@ import React from "react"
 import { Box, ListView, Text, type ListViewHandle, type PopoverContent } from "silvery"
 import type { ChatLeaf, ChatRawRef, ChatWidth } from "../chat/types.ts"
 import { Chat } from "./Chat.tsx"
-import { ChatEntryDisclosure } from "./ChatEntryDisclosure.tsx"
+import { EntryDisclosure } from "./EntryDisclosure.tsx"
 import { Content } from "./Content.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
@@ -104,7 +104,7 @@ function DetailDisclosure({ leaf, children }: { leaf: ChatLeaf; children: React.
   const canExpand = canInspect && leaf.detailAccess.includes("expand")
   const popover = canInspect && leaf.detailAccess.includes("cmd-hover") ? detailPopover(detail) : null
   return (
-    <ChatEntryDisclosure popover={popover} canExpand={canExpand} interactive={canInspect} defaultExpanded={false}>
+    <EntryDisclosure popover={popover} canExpand={canExpand} interactive={canInspect} defaultExpanded={false}>
       {({ surfaceProps, isHovered, expanded }) => (
         <Box
           {...surfaceProps}
@@ -124,7 +124,7 @@ function DetailDisclosure({ leaf, children }: { leaf: ChatLeaf; children: React.
           ) : null}
         </Box>
       )}
-    </ChatEntryDisclosure>
+    </EntryDisclosure>
   )
 }
 

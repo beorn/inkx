@@ -79,9 +79,7 @@ Conceptual frame: we are a **two-sided translator that must lie coherently in bo
 ### Forcing functions (get these wrong, nothing works)
 
 1. **Nested rendering isolation.** Child's byte stream must terminate entirely in vterm (never reaches the real terminal). vterm maintains grid; silvery renders grid as cells. No escape sequence leaks past pane bounds.
-
 2. **Capability lying (both sides).** See [01-building-blocks.md](01-building-blocks.md) § Capability-translation layer. Claims must be deliverable via silvery's bridge. Some cheap (mouse reporting), some expensive (graphics), some impossible (GPU compositing on non-GPU host).
-
 3. **Input encoding modality.** Track child's active keyboard mode (legacy / CSI u / fixterms / kitty protocol), mouse mode (X10 / SGR 1006 / URXVT / pixel), bracketed paste. Decode host input, re-encode for child's current mode. Disciplined input queue with flow control.
 
 ### Rendering correctness
@@ -182,3 +180,4 @@ Conceptual frame: we are a **two-sided translator that must lie coherently in bo
 - https://cmux.com
 - https://github.com/manaflow-ai/cmux
 - https://soloterm.com/cmux-vs-tmux
+

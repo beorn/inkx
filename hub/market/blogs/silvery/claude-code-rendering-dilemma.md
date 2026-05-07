@@ -1,23 +1,24 @@
 ---
-title: "Claude Code's Rendering Dilemma"
-description: "Why Claude Code flickers, why NO_FLICKER mode loses scrollback, and how a different rendering architecture solves both."
+title: Claude Code's Rendering Dilemma
+description: Why Claude Code flickers, why NO_FLICKER mode loses scrollback, and
+  how a different rendering architecture solves both.
 date: 2026-04-02
 ---
 
-> **⚠️ DRAFT — NEEDS FACT-CHECK BEFORE PUBLISHING**
->
-> GPT-5.4 Pro review (2026-04-09) identified overclaims in the original "three axes of atomicity" framing. Key corrections applied:
->
-> - ~~"Ink doesn't use synchronized output"~~ → Ink 7 DOES use DEC 2026
-> - ~~"React fiber yields between Yoga and commit"~~ → Ink's commit IS synchronous
-> - ~~"Ink renders at width:0 for all components"~~ → only for measurement-dependent components (useBoxMetrics)
-> - Claude Code's missing-component issue is likely their custom incremental renderer, not Ink's pipeline
->
-> What IS defensible: layout-first (useBoxRect vs useBoxMetrics two-pass) + direct-to-buffer rendering (no string→cell reconstruction).
->
-> See bead `km-silvery.positioning` for full analysis. Pro review output at `/tmp/pro-blog-review-v2.md`.
-
 # Claude Code's Rendering Dilemma
+
+> ⚠️ DRAFT — NEEDS FACT-CHECK BEFORE PUBLISHING
+> 
+> GPT-5.4 Pro review (2026-04-09) identified overclaims in the original "three axes of atomicity" framing. Key corrections applied:
+> 
+> * "Ink doesn't use synchronized output" → Ink 7 DOES use DEC 2026
+> * "React fiber yields between Yoga and commit" → Ink's commit IS synchronous
+> * "Ink renders at width:0 for all components" → only for measurement-dependent components (useBoxMetrics)
+> * Claude Code's missing-component issue is likely their custom incremental renderer, not Ink's pipeline
+> 
+> What IS defensible: layout-first (useBoxRect vs useBoxMetrics two-pass) + direct-to-buffer rendering (no string→cell reconstruction).
+> 
+> See bead km-silvery.positioning for full analysis. Pro review output at /tmp/pro-blog-review-v2.md.
 
 Claude Code just [shipped NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329) — an experimental renderer that switches to the alternate screen buffer to eliminate terminal flickering. It's the latest move in a long engineering effort:
 
@@ -210,21 +211,21 @@ Split into two zones: a small live region at the bottom (React components, incre
 
 ## How the approaches compare
 
-|                               | Ink 7.0                        | NO_FLICKER (Claude Code)                  | Ratatui (Rust)                   | Silvery                              |
-| ----------------------------- | ------------------------------ | ----------------------------------------- | -------------------------------- | ------------------------------------ |
-| **Mode**                      | Inline (main buffer)           | Fullscreen (alt buffer)                   | Both (`Viewport::Inline` or alt) | Both (one-line switch)               |
-| **Scrollback quality**        | Native, but trashed by redraws | None; reimplemented in-app                | Native in inline mode            | Native (graduated content)           |
-| **Output efficiency**         | Line-level; full redraw        | Cell-level; v2.1.89 flickering            | Cell-level                       | Cell-level; 28-192x less output      |
-| **Diffing strategy**          | log-update (line-level)        | Cell-level buffer                         | Cell-level                       | Cell-level buffer + incremental      |
-| **Layout timing**             | Render → layout (Yoga)         | Render → layout (Yoga)                    | Immediate (no components)        | Layout → render                      |
-| **Dimensions during render?** | Post-layout via useEffect      | Post-layout via useEffect                 | N/A (no components)              | Yes (`useBoxRect()` first pass)      |
-| **Memory in long sessions**   | Grows (full tree)              | Flat (visible only)                       | Flat (rebuilt/frame)             | Flat (graduated = strings)           |
-| **Layout engine**             | Yoga (WASM, ~45KB gzipped)     | Yoga (WASM, ~45KB)                        | Manual (Rust)                    | Flexily (pure TS, ~2KB)              |
-| **Total gzipped size**        | ~116.6 KB (Ink + Yoga)         | Same as Ink                               | Compiled binary (N/A)            | ~114.9 KB (runtime; parity)          |
-| **Cmd+F in inline**           | Native (but flickers)          | Alt-screen only; reimpl Cmd+O             | Native                           | Native (graduated content)           |
-| **Text selection native**     | Yes (flickers)                 | Alt-screen only; reimpl                   | Yes                              | Yes (graduated content)              |
-| **GC pressure**               | High (full tree)               | Medium (visible + alt)                    | None (Rust)                      | Low (small live tree)                |
-| **Rendering stability**       | ~1/3 of sessions still flicker | v2.1.89 has missing-component regressions | N/A                              | Direct-to-buffer (no reconstruction) |
+|                           | Ink 7.0                        | NO_FLICKER (Claude Code)                  | Ratatui (Rust)                 | Silvery                              |
+| ------------------------- | ------------------------------ | ----------------------------------------- | ------------------------------ | ------------------------------------ |
+| Mode                      | Inline (main buffer)           | Fullscreen (alt buffer)                   | Both (Viewport::Inline or alt) | Both (one-line switch)               |
+| Scrollback quality        | Native, but trashed by redraws | None; reimplemented in-app                | Native in inline mode          | Native (graduated content)           |
+| Output efficiency         | Line-level; full redraw        | Cell-level; v2.1.89 flickering            | Cell-level                     | Cell-level; 28-192x less output      |
+| Diffing strategy          | log-update (line-level)        | Cell-level buffer                         | Cell-level                     | Cell-level buffer + incremental      |
+| Layout timing             | Render → layout (Yoga)         | Render → layout (Yoga)                    | Immediate (no components)      | Layout → render                      |
+| Dimensions during render? | Post-layout via useEffect      | Post-layout via useEffect                 | N/A (no components)            | Yes (useBoxRect() first pass)        |
+| Memory in long sessions   | Grows (full tree)              | Flat (visible only)                       | Flat (rebuilt/frame)           | Flat (graduated = strings)           |
+| Layout engine             | Yoga (WASM, ~45KB gzipped)     | Yoga (WASM, ~45KB)                        | Manual (Rust)                  | Flexily (pure TS, ~2KB)              |
+| Total gzipped size        | ~116.6 KB (Ink + Yoga)         | Same as Ink                               | Compiled binary (N/A)          | ~114.9 KB (runtime; parity)          |
+| Cmd+F in inline           | Native (but flickers)          | Alt-screen only; reimpl Cmd+O             | Native                         | Native (graduated content)           |
+| Text selection native     | Yes (flickers)                 | Alt-screen only; reimpl                   | Yes                            | Yes (graduated content)              |
+| GC pressure               | High (full tree)               | Medium (visible + alt)                    | None (Rust)                    | Low (small live tree)                |
+| Rendering stability       | ~1/3 of sessions still flicker | v2.1.89 has missing-component regressions | N/A                            | Direct-to-buffer (no reconstruction) |
 
 <!-- VISUAL: VHS recording (.tape) of ScrollbackList in action — items streaming, completing, graduating to scrollback, user scrolling back through history -->
 
@@ -251,3 +252,4 @@ If you're building a terminal app that streams output — an AI agent, a test ru
 3. Use dynamic scrollback (inline + incremental + graduation)
 
 This is the pattern I built into Silvery through `ScrollbackList` and `ScrollbackView`. The [scrollback example](https://silvery.dev/examples/scrollback) and [AI agent example](https://silvery.dev/examples/ai-chat) show it in practice.
+

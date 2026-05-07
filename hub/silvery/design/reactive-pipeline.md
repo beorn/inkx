@@ -35,14 +35,12 @@ alien-signals as a dependency would:
 1. **Couple Flexily to a specific reactive library.** alien-signals is
    excellent, but Flexily shouldn't require it. Users who want Yoga-compatible
    layout without signals would pay for an unused dependency.
-
 2. **Create parallel dirty tracking.** Flexily already has a reliable,
    battle-tested `isDirty()` propagation: `markDirty()` walks up to the root,
    `calculateLayout()` checks `root.isDirty()`. Wrapping this in signals creates
    a second tracking system that must stay in sync with the first. This is
    exactly the class of bug we fixed by deleting `layoutDirty` from silvery's
    render flags -- a silvery-side dirty flag that duplicated Flexily's truth.
-
 3. **Mix imperative and reactive semantics.** Flexily's layout is a batch
    operation: measure all constraints, compute all positions, emit all results.
    Signals are incremental: each write can trigger downstream effects. Running
@@ -79,10 +77,8 @@ copy imperative state into signals:
 - **`syncRectSignals(node)`** -- called from `notifyLayoutSubscribers()` after
   layout. Copies `node.boxRect`, `node.scrollRect`, `node.screenRect` into
   writable signals. Only touches nodes that have subscribers (WeakMap lookup).
-
 - **`syncTextContentSignal(node)`** -- called from the reconciler's
   `commitTextUpdate`. Copies `node.textContent` into a signal.
-
 - **`syncFocusedSignal(node, focused)`** -- called from FocusManager when
   focus changes.
 
@@ -109,13 +105,10 @@ value changes, the effect calls `forceUpdate()` to trigger a re-render.
 - `useBoxRect()` / `useBoxRect(callback)` -- inner content rect (border-box
   minus padding/border). Reactive form re-renders on change; callback form
   fires without re-rendering (for hot paths like large lists).
-
 - `useScrollRect()` / `useScrollRect(callback)` -- scroll-adjusted position,
   pre-sticky clamping.
-
 - `useScreenRect()` / `useScreenRect(callback)` -- actual paint position
   (the `getBoundingClientRect()` analogue).
-
 - `useAgNode()` -- returns `{ node, signals }` for raw access to the AgNode
   and its RectSignals. Used when a component needs to subscribe to multiple
   signals or do custom reactive logic.
@@ -166,12 +159,10 @@ It was deferred because:
    `stylePropsDirty`, `bgDirty`, `subtreeDirty`) already control which nodes
    re-render. Making them reactive doesn't add capability -- it adds a second
    mechanism tracking the same state.
-
 2. **The output phase diffs buffers, not trees.** The ANSI output phase
    compares the current buffer with the previous buffer cell-by-cell. It
    doesn't need to know which nodes changed -- it discovers changes from
    the buffer diff. Signals would be overhead with no consumer.
-
 3. **The render phase is a batch operation.** Like layout, rendering walks
    the tree in one pass. Injecting reactive effects mid-render could cause
    partial reads or infinite loops.
@@ -185,15 +176,12 @@ terminal updates, damage tracking for canvas targets).
 
 - **Zero cost for nodes without subscribers.** `syncRectSignals` does a
   WeakMap lookup and returns immediately if no signals exist.
-
 - **O(n) sync per frame** where n = nodes with subscribers (typically
   a small fraction of the tree -- only nodes where a React hook called
   `getRectSignals`).
-
 - **Equality-checked writes.** Each sync writes at most 3 values per node
   (boxRect, scrollRect, screenRect). alien-signals skips propagation when
   values are reference-equal.
-
 - **No polling.** React hooks use `effect()` subscriptions, not interval-based
   checks. Updates are push-based from the signal graph.
 
@@ -210,3 +198,4 @@ canvas damage tracking), it would follow the established pattern:
 
 This preserves the principle: imperative engines own the computation,
 signals are for consumers.
+

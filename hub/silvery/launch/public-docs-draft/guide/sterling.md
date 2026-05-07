@@ -1,6 +1,7 @@
 ---
 title: Sterling
-description: Silvery's default design system — Primer grammar, Material vocabulary, terminal scheme input, 84 themes out of the box.
+description: Silvery's default design system — Primer grammar, Material
+  vocabulary, terminal scheme input, 84 themes out of the box.
 ---
 
 # Sterling
@@ -39,12 +40,12 @@ Flat `$token` strings in JSX:
 
 Tokens read **channel-role-state** order — matches Primer and CSS custom property conventions:
 
-| Token | Reads as |
-|---|---|
-| `bg-accent` | background of accent |
-| `bg-accent-hover` | background of accent, in hover state |
-| `fg-on-error` | foreground when on an error fill |
-| `border-focus` | focus-state border |
+| Token           | Reads as                             |
+| --------------- | ------------------------------------ |
+| bg-accent       | background of accent                 |
+| bg-accent-hover | background of accent, in hover state |
+| fg-on-error     | foreground when on an error fill     |
+| border-focus    | focus-state border                   |
 
 Full grammar in [Token Taxonomy](./token-taxonomy).
 
@@ -73,14 +74,14 @@ Full details in [Theming](./theming#two-shapes-one-object).
 
 Sterling ships six semantic roles plus surface + border primitives:
 
-| Role      | What it means                      | Has state variants? |
-|-----------|------------------------------------|---------------------|
-| `accent`  | interactive brand / links / focus  | yes (hover, active) |
-| `info`    | neutral information                | bg state only       |
-| `success` | completed, passing                 | bg state only       |
-| `warning` | caution, deprecation               | bg state only       |
-| `error`   | failure, invalid                   | bg state only       |
-| `muted`   | secondary text, captions           | no                  |
+| Role    | What it means                     | Has state variants? |
+| ------- | --------------------------------- | ------------------- |
+| accent  | interactive brand / links / focus | yes (hover, active) |
+| info    | neutral information               | bg state only       |
+| success | completed, passing                | bg state only       |
+| warning | caution, deprecation              | bg state only       |
+| error   | failure, invalid                  | bg state only       |
+| muted   | secondary text, captions          | no                  |
 
 Plus:
 
@@ -109,15 +110,15 @@ Sterling takes a 22-color terminal scheme (ANSI 0–15 + base fg/bg + 4 semantic
 
 ## Comparisons
 
-| Axis                    | Sterling (default)        | Primer                   | Material 3              | shadcn                         |
-|-------------------------|---------------------------|--------------------------|-------------------------|--------------------------------|
-| Grammar                 | `fg-*` / `bg-*` / `-hover`| Same                     | camelCase `onPrimary`   | flat CSS vars                  |
-| Vocabulary              | error / warning / success | danger / attention       | error / warning         | destructive / muted            |
-| Input shape             | 22-color terminal scheme  | designer JSON            | 1 seed color            | curated light/dark pair        |
-| Derivation              | **Preservative** OKLCH    | hand-curated             | generative HCT          | none (curated)                 |
-| Token shape             | Nested JS + flat keys     | flat CSS vars            | nested JS               | flat CSS vars                  |
-| Runtime swap            | yes                       | —                        | yes                     | via CSS vars                   |
-| Auto-detect from env    | **yes (OSC 10/11)**       | —                        | Android wallpaper only  | —                              |
+| Axis                 | Sterling (default)        | Primer             | Material 3             | shadcn                  |
+| -------------------- | ------------------------- | ------------------ | ---------------------- | ----------------------- |
+| Grammar              | fg-* / bg-* / -hover      | Same               | camelCase onPrimary    | flat CSS vars           |
+| Vocabulary           | error / warning / success | danger / attention | error / warning        | destructive / muted     |
+| Input shape          | 22-color terminal scheme  | designer JSON      | 1 seed color           | curated light/dark pair |
+| Derivation           | Preservative OKLCH        | hand-curated       | generative HCT         | none (curated)          |
+| Token shape          | Nested JS + flat keys     | flat CSS vars      | nested JS              | flat CSS vars           |
+| Runtime swap         | yes                       | —                  | yes                    | via CSS vars            |
+| Auto-detect from env | yes (OSC 10/11)           | —                  | Android wallpaper only | —                       |
 
 Full matrix in the [design spec](https://github.com/beorn/silvery/blob/main/docs/design/design-system.md#appendix-a--10-system-comparison-informs-vocabulary-choice).
 
@@ -145,3 +146,4 @@ Officially-maintained alternatives: `@silvery/design-material`, `@silvery/design
 - [`@silvery/design` reference](/reference/theme) — the Theme type and DesignSystem contract.
 
 <!-- TODO: verify after 0.19.0 ships — confirm `material.deriveFromColor` signature, `@silvery/design-polaris` package name, and the exact `sterling` export path. -->
+

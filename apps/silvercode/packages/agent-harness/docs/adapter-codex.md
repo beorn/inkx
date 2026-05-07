@@ -50,6 +50,7 @@ await connectAcpRegistry(scope, "codex", {
   lets the UI offer the appropriate flow.
 - **`npx -y` always pulls the latest published version.** For
   reproducible setups, install globally and override the registry args:
+
   ```ts
   await connectAcp(scope, { command: "codex-acp", cwd: ... })
   ```
@@ -97,4 +98,3 @@ remains deferred.
 
 The Registry entry is asserted in
 `tests/registry-adapters.test.ts` (test id `codex`).
-

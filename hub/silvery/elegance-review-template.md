@@ -52,6 +52,7 @@ Recurring /pro review template for `km-silvery.authoring-elegance` (P1). Run mon
 ### 5. Prior-art comparison
 
 Compare to:
+
 - **Redux + Redux-Saga**: verbosity, boilerplate ratio, type inference
 - **Zustand**: single-file simplicity, subscription clarity
 - **Solid Signals + Stores**: reactivity, ergonomics
@@ -70,6 +71,7 @@ Where does silvery land vs each? What's it copying well? What is it re-inventing
 ### 7. Falsifiable quality gates
 
 Each gate should have a concrete test:
+
 - [ ] Minimum viable plugin ≤50 LOC (test: count a real one)
 - [ ] Zero manual `as` casts in plugin code (test: grep)
 - [ ] Zero string-literal effect namespacing (test: grep for `"board:"`, `"dialog:"`)
@@ -129,6 +131,7 @@ bun llm pro -y --no-recover --context-file /tmp/elegance-ctx.md "$(cat hub/silve
 ## Record history
 
 After each review:
+
 - Append the scores to `hub/silvery/elegance-history.jsonl` (create if absent)
 - Note the one test/change to run before next review
 - File follow-up beads for concrete actions
@@ -140,3 +143,4 @@ After each review:
 - Treating one cutover as sufficient evidence (run on multiple plugin types)
 - Running the review WITHOUT a recent real migration (paper review is theater)
 - Taking the pro score as canonical — treat it as one input, user judgment is final
+

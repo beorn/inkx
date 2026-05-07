@@ -16,12 +16,12 @@ Actually integrate the command system that was built but never wired up:
 
 1. Update Board.tsx to use processInkKey from @km/commands
 2. Handle actions returned by the command system:
-  - BoardAction → dispatch to boardReducer (needs to be added)
-  - UIAction → dispatch to uiReducer
-  - TaskSetStatusAction → update storage + refresh
-  - HistoryAction → undo/redo (future)
-3. Fall back to keyboard-handler.ts for unhandled keys
-4. Test that all navigation works through command system
+- BoardAction → dispatch to boardReducer (needs to be added)
+- UIAction → dispatch to uiReducer
+- TaskSetStatusAction → update storage + refresh
+- HistoryAction → undo/redo (future)
+9. Fall back to keyboard-handler.ts for unhandled keys
+10. Test that all navigation works through command system
 
 Infrastructure exists in:
 

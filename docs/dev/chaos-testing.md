@@ -20,13 +20,13 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 
 ## Current Status
 
-| Component              | Status      | Location                                 |
-| ---------------------- | ----------- | ---------------------------------------- |
-| `@beorn/watcher-chaos` | ✅ Complete | `vendor/watcher-chaos/`            |
-| WatcherInterface DI    | ✅ Complete | `packages/km-storage/src/watch/types.ts` |
-| withSync watcher injection | ✅ Complete | `config.watcher` option                  |
-| 25+ chaos tests        | ✅ Passing  | `packages/km-storage/tests/sync/chaos/`  |
-| 11 chaos scenarios     | ✅ Built-in | See table below                          |
+| Component                  | Status     | Location                               |
+| -------------------------- | ---------- | -------------------------------------- |
+| @beorn/watcher-chaos       | ✅ Complete | vendor/watcher-chaos/                  |
+| WatcherInterface DI        | ✅ Complete | packages/km-storage/src/watch/types.ts |
+| withSync watcher injection | ✅ Complete | config.watcher option                  |
+| 25+ chaos tests            | ✅ Passing  | packages/km-storage/tests/sync/chaos/  |
+| 11 chaos scenarios         | ✅ Built-in | See table below                        |
 
 ---
 
@@ -67,6 +67,7 @@ Uses vimonkey's `test.fuzz` with composable async iterable stream transformers.
 ```
 
 **Key properties:**
+
 - `take()` records events after all transformations for shrinking
 - Replay yields from saved sequence directly — bypasses gen() and transformers
 - Shrinking finds minimal failing event sequence via delta-debugging
@@ -78,19 +79,19 @@ Uses vimonkey's `test.fuzz` with composable async iterable stream transformers.
 
 The `@beorn/watcher-chaos` package provides 11 built-in scenarios:
 
-| Scenario            | What It Simulates                       | Real-World Cause                       |
-| ------------------- | --------------------------------------- | -------------------------------------- |
-| `SLOW_DISK`         | Events delayed 2-5 seconds              | Network drives, busy disks             |
-| `QUEUE_OVERFLOW`    | 20% of events dropped randomly          | inotify overflow, FSEvents buffer full |
-| `EDITOR_ATOMIC`     | Write becomes delete + add pair         | Vim, VSCode, Emacs save patterns       |
-| `EVENT_STORM`       | Bursts of 100+ events                   | npm install, git checkout              |
-| `REORDER_CHAOS`     | Events arrive out of order              | Non-deterministic delivery             |
-| `PARTIAL_WRITES`    | Multiple change events for one write    | Large file writes, slow saves          |
-| `RENAME_STORM`      | Rapid file renames in chains            | Refactoring tools, bulk rename         |
-| `FSEVENTS_COALESCE` | Parent dir event instead of file events | macOS FSEvents hierarchical coalescing |
-| `INIT_GAP`          | Changes during watcher init             | Files created between scan and ready   |
-| `RAPID_SUCCESSION`  | Many edits in milliseconds              | Rapid typing with autosave             |
-| `NO_CHAOS`          | Events pass through unchanged           | Baseline testing                       |
+| Scenario          | What It Simulates                       | Real-World Cause                       |
+| ----------------- | --------------------------------------- | -------------------------------------- |
+| SLOW_DISK         | Events delayed 2-5 seconds              | Network drives, busy disks             |
+| QUEUE_OVERFLOW    | 20% of events dropped randomly          | inotify overflow, FSEvents buffer full |
+| EDITOR_ATOMIC     | Write becomes delete + add pair         | Vim, VSCode, Emacs save patterns       |
+| EVENT_STORM       | Bursts of 100+ events                   | npm install, git checkout              |
+| REORDER_CHAOS     | Events arrive out of order              | Non-deterministic delivery             |
+| PARTIAL_WRITES    | Multiple change events for one write    | Large file writes, slow saves          |
+| RENAME_STORM      | Rapid file renames in chains            | Refactoring tools, bulk rename         |
+| FSEVENTS_COALESCE | Parent dir event instead of file events | macOS FSEvents hierarchical coalescing |
+| INIT_GAP          | Changes during watcher init             | Files created between scan and ready   |
+| RAPID_SUCCESSION  | Many edits in milliseconds              | Rapid typing with autosave             |
+| NO_CHAOS          | Events pass through unchanged           | Baseline testing                       |
 
 ### Using Scenarios
 
@@ -112,15 +113,15 @@ const watcher = new ChaosWatcher({
 
 ### Factory Functions
 
-| Function                           | Purpose                   | Parameters                   |
-| ---------------------------------- | ------------------------- | ---------------------------- |
-| `slowDisk(min, max)`               | Custom delay range        | `minDelayMs`, `maxDelayMs`   |
-| `queueOverflow(rate)`              | Custom drop rate          | `dropRate` (0.0-1.0)         |
-| `editorAtomic(delay)`              | Custom rename delay       | `renameDelayMs`              |
-| `eventStorm(interval)`             | Custom burst interval     | `burstIntervalMs`            |
-| `reorderChaos(window)`             | Custom reorder window     | `maxReorderWindow`           |
-| `fseventsCoalesce(threshold)`      | Custom coalesce threshold | `coalesceThreshold`          |
-| `rapidSuccession(edits, interval)` | Custom edit frequency     | `editsPerFile`, `intervalMs` |
+| Function                         | Purpose                   | Parameters               |
+| -------------------------------- | ------------------------- | ------------------------ |
+| slowDisk(min, max)               | Custom delay range        | minDelayMs, maxDelayMs   |
+| queueOverflow(rate)              | Custom drop rate          | dropRate (0.0-1.0)       |
+| editorAtomic(delay)              | Custom rename delay       | renameDelayMs            |
+| eventStorm(interval)             | Custom burst interval     | burstIntervalMs          |
+| reorderChaos(window)             | Custom reorder window     | maxReorderWindow         |
+| fseventsCoalesce(threshold)      | Custom coalesce threshold | coalesceThreshold        |
+| rapidSuccession(edits, interval) | Custom edit frequency     | editsPerFile, intervalMs |
 
 ---
 
@@ -261,16 +262,16 @@ FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 
 The sync system should maintain these properties under any chaos:
 
-| Invariant             | Description                               |
-| --------------------- | ----------------------------------------- |
-| `noDataLoss`          | All FS files exist in DB after sync       |
-| `noDuplicateNodes`    | No path appears twice in DB               |
-| `noOrphanedNodes`     | All nodes have valid parent (or are root) |
-| `fsMatchesDb`         | FS content equals DB content              |
-| `dbMatchesFs`         | DB nodes correspond to FS files           |
-| `treeIsConnected`     | Single root, no cycles in tree            |
-| `pathsAreCanonical`   | No double slashes, trailing slashes, etc. |
-| `eventualConsistency` | System converges after heartbeat          |
+| Invariant           | Description                               |
+| ------------------- | ----------------------------------------- |
+| noDataLoss          | All FS files exist in DB after sync       |
+| noDuplicateNodes    | No path appears twice in DB               |
+| noOrphanedNodes     | All nodes have valid parent (or are root) |
+| fsMatchesDb         | FS content equals DB content              |
+| dbMatchesFs         | DB nodes correspond to FS files           |
+| treeIsConnected     | Single root, no cycles in tree            |
+| pathsAreCanonical   | No double slashes, trailing slashes, etc. |
+| eventualConsistency | System converges after heartbeat          |
 
 ---
 
@@ -295,10 +296,10 @@ const queue = new WriteQueue({
 
 **Error Classification:**
 
-| Classification | Behavior           | Example Codes                                             |
-| -------------- | ------------------ | --------------------------------------------------------- |
-| Transient      | Retry with backoff | `EBUSY`, `EAGAIN`, `EMFILE`, `ENOSPC`, `EIO`, `ETIMEDOUT` |
-| Permanent      | Fail immediately   | `ENOENT`, `EACCES`, `EPERM`, `EISDIR`, `EROFS`            |
+| Classification | Behavior           | Example Codes                                 |
+| -------------- | ------------------ | --------------------------------------------- |
+| Transient      | Retry with backoff | EBUSY, EAGAIN, EMFILE, ENOSPC, EIO, ETIMEDOUT |
+| Permanent      | Fail immediately   | ENOENT, EACCES, EPERM, EISDIR, EROFS          |
 
 **Backoff Schedule (default config):**
 
@@ -343,11 +344,11 @@ const queue = new WriteQueue({
 
 **Conflict Strategies:**
 
-| Strategy          | Behavior                              | Use Case                               |
-| ----------------- | ------------------------------------- | -------------------------------------- |
-| `last_write_wins` | Always write, emit conflict event     | Default; TUI changes override external |
-| `fs_wins`         | Discard pending write if file changed | Prefer external editor changes         |
-| `db_wins`         | Write anyway, emit warning            | Prefer TUI changes, log conflicts      |
+| Strategy        | Behavior                              | Use Case                               |
+| --------------- | ------------------------------------- | -------------------------------------- |
+| last_write_wins | Always write, emit conflict event     | Default; TUI changes override external |
+| fs_wins         | Discard pending write if file changed | Prefer external editor changes         |
+| db_wins         | Write anyway, emit warning            | Prefer TUI changes, log conflicts      |
 
 **Listening for conflicts:**
 
@@ -405,9 +406,9 @@ The WriteQueue provides detailed permission error handling with actionable sugge
 
 | Error Code | Type                    | User-Facing Suggestion                                       |
 | ---------- | ----------------------- | ------------------------------------------------------------ |
-| `EACCES`   | Permission denied       | Check file permissions, suggest `chmod u+rw`                 |
-| `EPERM`    | Operation not permitted | File may be owned by another user or have special attributes |
-| `EROFS`    | Read-only filesystem    | Filesystem is mounted read-only                              |
+| EACCES     | Permission denied       | Check file permissions, suggest chmod u+rw                   |
+| EPERM      | Operation not permitted | File may be owned by another user or have special attributes |
+| EROFS      | Read-only filesystem    | Filesystem is mounted read-only                              |
 
 **Listening for permission errors:**
 
@@ -450,11 +451,11 @@ if (symlinks.length > 0) {
 
 Different filesystems handle case differently:
 
-| Filesystem                | Case Behavior                          |
-| ------------------------- | -------------------------------------- |
-| Linux ext4                | Case-sensitive (`File.md` ≠ `file.md`) |
-| macOS HFS+/APFS (default) | Case-insensitive, case-preserving      |
-| Windows NTFS              | Case-insensitive, case-preserving      |
+| Filesystem                | Case Behavior                      |
+| ------------------------- | ---------------------------------- |
+| Linux ext4                | Case-sensitive (File.md ≠ file.md) |
+| macOS HFS+/APFS (default) | Case-insensitive, case-preserving  |
+| Windows NTFS              | Case-insensitive, case-preserving  |
 
 **Detecting filesystem case sensitivity:**
 
@@ -589,41 +590,41 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 
 1. **Disable heartbeat in tests:**
 
-   ```typescript
-   syncManager = withSync({
-     debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
-     heartbeat: { enabled: false },
-   })(repo)
-   ```
+```typescript
+syncManager = withSync({
+  debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
+  heartbeat: { enabled: false },
+})(repo)
+```
 
 2. **Use `tickAsync(ms)` instead of `runAllAsync()`:**
 
-   ```typescript
-   // DANGEROUS - can infinite loop with setInterval
-   await clock.runAllAsync()
+```typescript
+// DANGEROUS - can infinite loop with setInterval
+await clock.runAllAsync()
 
-   // SAFE - bounded time advancement
-   await clock.tickAsync(1000)
-   ```
+// SAFE - bounded time advancement
+await clock.tickAsync(1000)
+```
 
 ### Test Locations
 
-| File                       | Purpose                                               |
-| -------------------------- | ----------------------------------------------------- |
-| `concurrent.test.ts`       | Deterministic concurrent edit tests using fake timers |
-| `chaos-fuzz.fuzz.ts`  | Property-based fuzz tests using vimonkey gen/take      |
+| File               | Purpose                                               |
+| ------------------ | ----------------------------------------------------- |
+| concurrent.test.ts | Deterministic concurrent edit tests using fake timers |
+| chaos-fuzz.fuzz.ts | Property-based fuzz tests using vimonkey gen/take     |
 
 ---
 
 ## Roadmap
 
-| Milestone                    | Status | Description                                     |
-| ---------------------------- | ------ | ----------------------------------------------- |
-| M1: Foundation               | ✅     | Watcher DI, ChaosWatcher, initial tests         |
-| M2: Full FS Mocking          | ✅     | FakeFileSystem class for fast testing            |
-| M3: Invariant Framework      | ✅     | Verifier class, structured reports               |
-| M4: vimonkey Integration      | ✅     | gen/take + stream transformers + test.fuzz        |
-| M5: Auto-Regression          | ✅     | __fuzz_cases__/ auto-saved on failure             |
+| Milestone                | Status | Description                                |
+| ------------------------ | ------ | ------------------------------------------ |
+| M1: Foundation           | ✅      | Watcher DI, ChaosWatcher, initial tests    |
+| M2: Full FS Mocking      | ✅      | FakeFileSystem class for fast testing      |
+| M3: Invariant Framework  | ✅      | Verifier class, structured reports         |
+| M4: vimonkey Integration | ✅      | gen/take + stream transformers + test.fuzz |
+| M5: Auto-Regression      | ✅      | fuzz_cases/ auto-saved on failure          |
 
 **Performance:** In-memory FakeFileSystem provides ~9x speedup (~60ms vs ~560ms/iteration).
 
@@ -634,10 +635,13 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 This document is part of the **Exploration Testing** family. See [testing.md#dynamic-testing-taxonomy](testing.md#dynamic-testing-taxonomy) for how these relate.
 
 **Related exploration tests:**
+
 - [`/explore`](../../.claude/skills/explore/SKILL.md) — TUI monkey testing (keyboard surface)
 - [vendor/flexily/](../../vendor/flexily/) — Layout engine with Yoga differential fuzz
 
 **Implementation:**
+
 - [testing.md](testing.md) — General testing guide
 - [vendor/watcher-chaos/](../../vendor/watcher-chaos/) — Watcher chaos package
 - [packages/km-storage/tests/sync/chaos/](../../packages/km-storage/tests/sync/chaos/) — Chaos test suite
+

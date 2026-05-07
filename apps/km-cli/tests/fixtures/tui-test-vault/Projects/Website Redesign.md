@@ -32,17 +32,17 @@ A complete overhaul of the company website with [[Resources/Design System|our de
 
 ## Tasks with Priorities
 
-- [ ] Critical security fix priority:: P1 📅 2025-01-15
+- [ ] Critical security fix due:: 2025-01-15 priority:: P1
 - [ ] Update hero section priority:: P2
 - [ ] Optimize images priority:: P3
 - [ ] Nice-to-have animations priority:: P4
 
 ## Tasks with Dates
 
-- [ ] Launch deadline 📅 2025-03-01
-- [ ] Start development ⏳ 2025-01-20
-- [ ] Both dates 📅 2025-02-15 ⏳ 2025-01-25
-- [ ] Inline style due:2025-02-01 start:: 2025-01-15
+- [ ] Launch deadline due:: 2025-03-01
+- [ ] Start development start:: 2025-01-20
+- [ ] Both dates due:: 2025-02-15 start:: 2025-01-25
+- [ ] Inline style due:: 2025-02-01 start:: 2025-01-15
 
 ## Tasks with Assignments
 

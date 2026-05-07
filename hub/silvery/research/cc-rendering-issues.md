@@ -12,25 +12,25 @@ Research date: 2026-04-05. Sources: GitHub issues, HN threads, chrislloyd's publ
 
 ## Timeline
 
-| Date          | Event                                                                                                                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2025-04-08    | **#769 filed** — original flicker bug, inline full-buffer redraws during status updates                                                                                                           |
-| 2025-05-08    | bcherny (Anthropic) comments "This should be feeling better in newer versions"                                                                                                                    |
-| 2025-07-16    | **#3648 filed** — terminal scrolling uncontrollably in VS Code/Cursor (now 694 upvotes)                                                                                                           |
-| 2025-10-20    | **#9935 filed** — measured 4,000–6,700 scroll events/second in tmux                                                                                                                               |
-| 2025-11-25    | **#10794 filed** — VS Code crashes from flicker (43 upvotes)                                                                                                                                      |
-| 2025-12-17    | **chrislloyd posts detailed rendering rewrite announcement** on #769 — cell-based diffing, double buffering, damage tracking, DEC 2026 sync. Enabled for 10% of users, targeting v2.0.72 default. |
-| 2025-12-17    | **#3648 closed** (state_reason: completed)                                                                                                                                                        |
-| 2025-12-19    | **#14632 filed/closed** — blank areas on Windows (closed as duplicate)                                                                                                                            |
-| Late Dec 2025 | **chrislloyd rolls back the rendering rewrite** due to typing latency reports. "Won't re-land until after the new year."                                                                          |
-| 2025-12-31    | Community analysis: Gemini CLI (Jacob's Ink fork) uses append-only rendering + alternate buffer; Claude Code (bcherny's Ink fork) uses DEC atomic updates                                         |
-| ~2026-01-13   | VS Code 1.108 adds synchronized output support; some users report improvement                                                                                                                     |
-| 2026-03-13    | F1LT3R user reports flickering in tmux is "making me feel very nauseous"                                                                                                                          |
-| 2026-03-31    | **F1LT3R discovers `CLAUDE_CODE_NO_FLICKER` env var** in leaked source code — was set for Anthropic employees only                                                                                |
-| 2026-04-01    | **v2.1.89 ships with NO_FLICKER (alternate screen) enabled by default**                                                                                                                           |
-| 2026-04-01    | Immediate wave of new issues: scrollback destroyed, CJK text broken, keybindings swallowed                                                                                                        |
-| 2026-04-03    | **#42010 filed** — community reverse-engineering of Ink rendering corruption (DECSTBM scroll contamination, style cache collision, emoji edge bugs)                                               |
-| 2026-04-03–05 | 30+ new issues filed about NO_FLICKER problems (scrollback loss, rendering artifacts, broken input, multiplexer conflicts)                                                                        |
+| Date          | Event                                                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2025-04-08    | #769 filed — original flicker bug, inline full-buffer redraws during status updates                                                                                                           |
+| 2025-05-08    | bcherny (Anthropic) comments "This should be feeling better in newer versions"                                                                                                                |
+| 2025-07-16    | #3648 filed — terminal scrolling uncontrollably in VS Code/Cursor (now 694 upvotes)                                                                                                           |
+| 2025-10-20    | #9935 filed — measured 4,000–6,700 scroll events/second in tmux                                                                                                                               |
+| 2025-11-25    | #10794 filed — VS Code crashes from flicker (43 upvotes)                                                                                                                                      |
+| 2025-12-17    | chrislloyd posts detailed rendering rewrite announcement on #769 — cell-based diffing, double buffering, damage tracking, DEC 2026 sync. Enabled for 10% of users, targeting v2.0.72 default. |
+| 2025-12-17    | #3648 closed (state_reason: completed)                                                                                                                                                        |
+| 2025-12-19    | #14632 filed/closed — blank areas on Windows (closed as duplicate)                                                                                                                            |
+| Late Dec 2025 | chrislloyd rolls back the rendering rewrite due to typing latency reports. "Won't re-land until after the new year."                                                                          |
+| 2025-12-31    | Community analysis: Gemini CLI (Jacob's Ink fork) uses append-only rendering + alternate buffer; Claude Code (bcherny's Ink fork) uses DEC atomic updates                                     |
+| ~2026-01-13   | VS Code 1.108 adds synchronized output support; some users report improvement                                                                                                                 |
+| 2026-03-13    | F1LT3R user reports flickering in tmux is "making me feel very nauseous"                                                                                                                      |
+| 2026-03-31    | F1LT3R discovers CLAUDE_CODE_NO_FLICKER env var in leaked source code — was set for Anthropic employees only                                                                                  |
+| 2026-04-01    | v2.1.89 ships with NO_FLICKER (alternate screen) enabled by default                                                                                                                           |
+| 2026-04-01    | Immediate wave of new issues: scrollback destroyed, CJK text broken, keybindings swallowed                                                                                                    |
+| 2026-04-03    | #42010 filed — community reverse-engineering of Ink rendering corruption (DECSTBM scroll contamination, style cache collision, emoji edge bugs)                                               |
+| 2026-04-03–05 | 30+ new issues filed about NO_FLICKER problems (scrollback loss, rendering artifacts, broken input, multiplexer conflicts)                                                                    |
 
 ## Pre-NO_FLICKER Issues (inline mode, pre-v2.1.89)
 
@@ -152,13 +152,9 @@ Described the pipeline as "a small game engine": React -> layout elements -> ras
 fruitriin analyzed the v2.1.88 rendering internals (96 source modules) and identified:
 
 1. **DECSTBM scroll contamination** (most likely cause): The scroll optimization mutates the previous frame buffer in-place by shifting rows. The mutated screen moves to the back buffer position and is reused as the write target for the next render. Contamination accumulates during streaming (10-50 SSE events/sec). Resize is the only code path that replaces both frame buffers with fresh screens.
-
 2. **Style transition cache key collision** (latent bug): Style pool's transition cache uses packed numeric keys. When unique styles exceed ~524K, keys overflow and different style pairs collide. The style pool is never reset during a session.
-
 3. **Multi-codepoint emoji viewport edge miscalculation**: Flag emoji/ZWJ sequences use a stricter boundary check than CJK, causing valid cells at viewport edge to be skipped.
-
 4. **Style segment desync in wrapped text**: Whitespace-skipping heuristic for character index synchronization after wrapping has edge cases.
-
 5. **Character cache cliff-edge eviction**: Full cache clear at ~16K entries causes CPU spike and frame timing disruption.
 
 ### F1LT3R's Discovery (2026-03-31)
@@ -264,3 +260,4 @@ Multiple agents writing to same TTY causes byte-level interleaving. #43571.
 ### 8. Input / keybinding swallowed
 
 NO_FLICKER mode consuming or breaking keybindings. Ctrl+J in tmux, Shift+Enter in Warp, right-click in Ghostty. #42821, #42501, #42908.
+

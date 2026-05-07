@@ -24,10 +24,10 @@ named, documented, and asserted under SILVERY_STRICT.
 The C3a v3 corpus (105 termless app teardowns, 11 538 pass-cause records,
 across the silvery + km-tui test suites) confirmed:
 
-| Pass index | Commits |
-|---:|---:|
-| 0 | 80 (11 silvery + 69 km-tui) |
-| 1+ | 0 |
+| Pass index | Commits                     |
+| ---------: | --------------------------: |
+| 0          | 80 (11 silvery + 69 km-tui) |
+| 1+         | 0                           |
 
 No test reached pass 1+. Dominant edge: layout-invalidate (84-98%) via
 `scrollRect`, `screenRect`, `boxRect` rect-signal changes in
@@ -45,14 +45,14 @@ discriminated union and signals "we expect to emit this" when no path will.
 
 ### Kept (6)
 
-| Category | Producer | Bound |
-|---|---|---|
-| `layout-invalidate` | `pipeline/layout-phase.ts:notifyLayoutSubscribers` (boxRect / scrollRect / screenRect, subscriber-gated) | 0 extra passes |
-| `intrinsic-shrinkwrap` | `pipeline/measure-phase.ts:measurePhase` (snug-content width / fit-content height across passes) | 0 extra passes |
-| `scrollto-settle` | `pipeline/layout-phase.ts:calculateScrollState` (scrollTo:newIntent / scrollTo:recovery) | 0 extra passes |
-| `sticky-resettle` | `pipeline/layout-phase.ts` (stickyChildren array changed) | 0 extra passes |
-| `viewport-resize` | `runtime/renderer.ts` (terminal dim change) | 0 extra passes |
-| `unknown` | 3 exhaustion synthesis sites in renderer.ts + create-app.tsx | 0 extra passes |
+| Category             | Producer                                                                                               | Bound          |
+| -------------------- | ------------------------------------------------------------------------------------------------------ | -------------- |
+| layout-invalidate    | pipeline/layout-phase.ts:notifyLayoutSubscribers (boxRect / scrollRect / screenRect, subscriber-gated) | 0 extra passes |
+| intrinsic-shrinkwrap | pipeline/measure-phase.ts:measurePhase (snug-content width / fit-content height across passes)         | 0 extra passes |
+| scrollto-settle      | pipeline/layout-phase.ts:calculateScrollState (scrollTo:newIntent / scrollTo:recovery)                 | 0 extra passes |
+| sticky-resettle      | pipeline/layout-phase.ts (stickyChildren array changed)                                                | 0 extra passes |
+| viewport-resize      | runtime/renderer.ts (terminal dim change)                                                              | 0 extra passes |
+| unknown              | 3 exhaustion synthesis sites in renderer.ts + create-app.tsx                                           | 0 extra passes |
 
 Every kept category has a per-cause bound of **0 extra passes** because the
 canonical settle pass (the +1 in `MAX_CONVERGENCE_PASSES = 1 + 1 + sum`)
@@ -61,17 +61,17 @@ budget.
 
 ### Removed (9, with rationale)
 
-| Category | Reason for removal |
-|---|---|
-| `wrap-reflow` | Subsumed by `intrinsic-shrinkwrap`. Silvery wraps inside `computeSnugContentWidth` (binary search) — there's no separate wrap producer. |
-| `font-metrics-changed` | Terminals have fixed cell width, no font fallback path. Theme density is a one-shot setState, not a within-frame loop. |
-| `decoration-remap` | `useDecorations` subscribers fire as `layout-invalidate` (rect signal change). No separate decoration-loop producer. |
-| `focus-scroll-into-view` | Programmatic scroll already fires `scrollto-settle`. The focus manager calls into the scroll pipeline, not as a distinct edge. |
-| `async-image-size` | Silvery's Kitty graphics protocol sets dims at register time, not lazy. No async image-resolution path. |
-| `theme-metric-changed` | Theme tokens propagate via React setState, not within-frame mutation. The re-render is a normal React commit, not a feedback loop. |
-| `resize-resettle` | Subsumed: rect changes after resize fire as `layout-invalidate` against the new dims. The "follow-on" was a duplicate category. |
-| `viewport-dependent` | Legacy bucket replaced by `viewport-resize` (more precise) + `layout-invalidate` (the actual feedback edge). |
-| `text-measurement-feedback` | Legacy bucket replaced by `intrinsic-shrinkwrap` (the only measure-phase producer). |
+| Category                  | Reason for removal                                                                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| wrap-reflow               | Subsumed by intrinsic-shrinkwrap. Silvery wraps inside computeSnugContentWidth (binary search) — there's no separate wrap producer. |
+| font-metrics-changed      | Terminals have fixed cell width, no font fallback path. Theme density is a one-shot setState, not a within-frame loop.              |
+| decoration-remap          | useDecorations subscribers fire as layout-invalidate (rect signal change). No separate decoration-loop producer.                    |
+| focus-scroll-into-view    | Programmatic scroll already fires scrollto-settle. The focus manager calls into the scroll pipeline, not as a distinct edge.        |
+| async-image-size          | Silvery's Kitty graphics protocol sets dims at register time, not lazy. No async image-resolution path.                             |
+| theme-metric-changed      | Theme tokens propagate via React setState, not within-frame mutation. The re-render is a normal React commit, not a feedback loop.  |
+| resize-resettle           | Subsumed: rect changes after resize fire as layout-invalidate against the new dims. The "follow-on" was a duplicate category.       |
+| viewport-dependent        | Legacy bucket replaced by viewport-resize (more precise) + layout-invalidate (the actual feedback edge).                            |
+| text-measurement-feedback | Legacy bucket replaced by intrinsic-shrinkwrap (the only measure-phase producer).                                                   |
 
 ## Per-cause bound proofs
 
@@ -149,6 +149,7 @@ budget to consume.
 
 **Reason**: unknown fires when a pass commits React work but no specific
 PassCause was attributed during the pass. Either:
+
 1. A new feedback edge needs a PassCause category, OR
 2. A pure-React feedback loop slipped past the pipeline's instrumentation.
 
@@ -247,3 +248,4 @@ and 2 534 / 2 534 km-tui).
   by the structural one-shot guard, no extra passes.
 - `km-silvery.renderer-feedback-trace` (C3a, prerequisite) — already shipped.
 - `km-silvery.structural-hardening` (parent epic).
+

@@ -42,15 +42,15 @@ Flexbox should handle this automatically:
 ## Action Items
 
 1. Identify all manual dimension calculations in views:
-  - Board.tsx
-  - CardColumn.tsx
-  - ColumnsView.tsx
-  - ListView.tsx
-  - TabsView.tsx
-  - TreeNode.tsx
-2. For each, determine if it can be replaced with flexbox auto-layout
-3. Test that auto-layout works correctly with inkx/Yoga
-4. Document cases where manual sizing is truly necessary
+- Board.tsx
+- CardColumn.tsx
+- ColumnsView.tsx
+- ListView.tsx
+- TabsView.tsx
+- TreeNode.tsx
+9. For each, determine if it can be replaced with flexbox auto-layout
+10. Test that auto-layout works correctly with inkx/Yoga
+11. Document cases where manual sizing is truly necessary
 
 ## Related
 

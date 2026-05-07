@@ -32,6 +32,7 @@ VS Code's editor area uses a **SerializableGrid** -- a recursive binary tree of 
 ### SwiftUI / AppKit / UIKit
 
 **NavigationSplitView** provides 2-column or 3-column layouts (sidebar + content, or sidebar + content + detail). The framework handles platform adaptation automatically:
+
 - macOS: Translucent sidebar, side-by-side columns
 - iPadOS landscape: Side-by-side columns
 - iPadOS portrait / iPhone: Collapses to NavigationStack (push/pop)
@@ -44,6 +45,7 @@ VS Code's editor area uses a **SerializableGrid** -- a recursive binary tree of 
 ### Flutter
 
 No built-in split view widget. Developers create responsive splits by changing layout at breakpoints:
+
 ```dart
 if (width > 600) {
   return Row(children: [sidebar, Expanded(child: content)]);
@@ -89,6 +91,7 @@ No built-in split view. `react-native-navigation` (Wix) has iOS-only `SplitView`
 ### Web Platform
 
 No native split-pane component. Libraries fill the gap:
+
 - **react-resizable-panels** (bvaughn): Declarative `<PanelGroup>` + `<Panel>` + `<PanelResizeHandle>`. Supports min/max constraints, collapsible panels, persistence, keyboard resize.
 - **allotment**: React component for VS Code-style resizable split views. Snap-to-collapse, min/max constraints.
 - **Split.js**: Framework-agnostic, pure CSS for resizing, minimal JS for drag handling.
@@ -119,12 +122,14 @@ CSS `resize` property exists but only works on overflow-able elements and provid
 ### Document Tabs vs Navigation Tabs
 
 Two fundamentally different patterns:
+
 - **Document tabs** (VS Code, browser, editor): Closable, reorderable, represent open documents. Overflow requires scrolling or dropdown. Can have dirty state indicators.
 - **Navigation tabs** (iOS tab bar, Android bottom nav): Fixed set of top-level destinations. Not closable. Often have badges. Usually 3-5 items.
 
 ### VS Code / Electron
 
 Each `EditorGroupView` has a tab bar. Tabs support:
+
 - Drag reordering within and between groups
 - Close (middle-click, X button, Ctrl+W)
 - Pin (locks position, smaller appearance)
@@ -165,6 +170,7 @@ Each tab maintains separate state and navigation stacks (important for preservin
 ### Web Platform
 
 No native tab component (though `<role="tablist">` + `<role="tab">` + `<role="tabpanel">` provides ARIA semantics). Every framework implements its own. Key patterns from ARIA APG:
+
 - Arrow keys navigate between tabs
 - Home/End jump to first/last tab
 - Tab key moves focus into the tab panel content
@@ -189,6 +195,7 @@ No native tab component (though `<role="tablist">` + `<role="tab">` + `<role="ta
 ### VS Code / Electron
 
 The workbench has **three** sidebar-like areas:
+
 1. **Activity Bar** (far left): Icon strip for switching between views (Explorer, Search, Source Control, Extensions, etc.). Two sizes: default and compact.
 2. **Primary Sidebar** (left): Shows the active view's content. Collapsible.
 3. **Auxiliary Bar / Secondary Sidebar** (right): Additional views. Collapsible.
@@ -222,6 +229,7 @@ The sidebar column is special -- it gets platform-native styling (translucent on
 ### Terminal TUI Frameworks
 
 TUI apps commonly implement sidebars as a fixed-width left pane in a horizontal layout. Examples:
+
 - File tree (left) + editor (right) -- like `helix`, `lazygit`
 - List (left) + detail (right) -- the classic master-detail
 
@@ -272,12 +280,14 @@ Flutter has the most fully realized focus system:
 **Focus Tree**: A sparse mirror of the widget tree. `FocusNode` objects are long-lived (persist across rebuilds). The tree has `FocusNode` (leaf) and `FocusScopeNode` (group) nodes.
 
 **Focus Scopes** (`FocusScopeNode` / `FocusScope` widget):
+
 - Group focus nodes into navigable subtrees
 - Track currently focused node within the scope
 - Maintain focus history for **restoration** -- when a scope regains focus, it restores to the previously focused child
 - Limit traversal to within the scope (unless explicitly focused outside)
 
 **Focus Traversal**:
+
 - `ReadingOrderTraversalPolicy` (default): Spatial positioning + reading order
 - `OrderedTraversalPolicy`: Explicit numeric or lexical ordering
 - `FocusTraversalGroup` widget groups items for traversal and applies custom ordering
@@ -286,6 +296,7 @@ Flutter has the most fully realized focus system:
 **Focus Restoration**: `FocusScopeNode` remembers the last focused child. When focus returns to the scope, it restores to that child. `unfocus(disposition: UnfocusDisposition.previouslyFocusedChild)` explicitly triggers restoration.
 
 **Key API**:
+
 - `canRequestFocus`: Whether a node can receive focus
 - `skipTraversal`: Skip in tab order but still focusable programmatically
 - `descendantsAreFocusable`: Block entire subtree from receiving focus
@@ -314,6 +325,7 @@ Focus is more implicit than Flutter -- SwiftUI manages the focus tree automatica
 **focusGroup()**: Groups composables for sequential navigation (all items in group get focus before moving on).
 
 **focusProperties**: Controls entry/exit behavior with directional overrides:
+
 ```kotlin
 Modifier.focusProperties {
     exit = { direction ->
@@ -337,6 +349,7 @@ Modifier.focusProperties {
 **Tab navigation**: Built into the platform via `tabindex`. Sequential focus order.
 
 **Spatial navigation**: The `focusgroup` attribute (proposed, in development) standardizes arrow-key navigation:
+
 - `focusgroup="inline"`: Left/right arrows only
 - `focusgroup="block"`: Up/down arrows only
 - `focusgroup="grid"`: 2D navigation
@@ -379,6 +392,7 @@ Focus management is platform-dependent. On iOS, relies on UIKit's focus system (
 ### VS Code / Electron
 
 Two variants sharing the same UI component:
+
 - **Command Palette** (Ctrl+Shift+P): Commands with `>` prefix. Sorted alphabetically (not by relevance) to keep the list stable and memorable. Recent commands shown at top.
 - **Quick Open** (Ctrl+P): File search. Fuzzy matching against file/symbol names.
 
@@ -393,6 +407,7 @@ Architecture: `QuickPick` is a generic UI component. Extensions register command
 Built-in command palette (Ctrl+P) with the most complete TUI implementation:
 
 **Provider architecture**: `command.Provider` subclass with async lifecycle:
+
 - `startup()`: Called when palette opens (e.g., scan files)
 - `search(query)`: Yields `Hit` objects with scores
 - `discover()`: Yields `DiscoveryHit` for empty-query suggestions
@@ -409,6 +424,7 @@ Built-in command palette (Ctrl+P) with the most complete TUI implementation:
 ### Other Frameworks
 
 No other framework has a built-in command palette:
+
 - **SwiftUI**: Uses the native menu system + Cmd+Shift+P for Help menu search (macOS only)
 - **Flutter / Compose / React Native**: Must be built from scratch
 - **GTK4**: No built-in command palette
@@ -529,6 +545,7 @@ Multi-window support varies by platform. On desktop (Windows, macOS, Linux), Flu
 ### Terminal TUI Frameworks
 
 Multi-window doesn't exist in TUI frameworks in the native sense. The terminal is one "window." Approaches:
+
 - **tmux**: Multiple "windows" (full-screen views) in a session, switched with `Ctrl+B n/p/number`
 - **Textual**: Multiple `Screen` objects that can be pushed/popped as a modal stack
 - **Blessed**: Multiple `Screen` objects (one per terminal), but typically one screen
@@ -542,34 +559,25 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 ### The Big Gaps in TUI Frameworks
 
 1. **No structured focus management**: Every TUI framework has at most linear Tab/Shift+Tab traversal. None have Flutter-style focus trees, focus scopes, traversal policies, or focus restoration. This is the single biggest architectural gap.
-
 2. **No interactive resizable splits**: tmux has it, but no TUI *framework* provides it as a component. Developers hardcode ratios or re-implement resize handling.
-
 3. **No document tabs**: Tab headers exist (ratatui, textual) but the full document-tab experience (closable, reorderable, dirty state, overflow handling, lazy content management) doesn't exist as a component.
-
 4. **No command palette** (except Textual): VS Code made it a standard UX pattern. Only Textual has built it into a TUI framework.
-
 5. **No menu system** (except ratatui's rat-widget): Menu bars and context menus are rare in TUI frameworks.
 
 ### Design Patterns Worth Adopting
 
 1. **VS Code's SerializableGrid**: One unified grid for the entire workbench. Sidebar, editor, panel -- all the same mechanism. Serializable for persistence. This is more flexible than SwiftUI's opinionated 2/3-column splits.
-
 2. **Flutter's Focus Tree**: FocusNode + FocusScopeNode with traversal policies and restoration history. The most complete focus system across any framework. The `focusgroup` web proposal is also excellent -- its memory, wrapping, and grid support cover additional edge cases.
-
 3. **Textual's Command Palette Architecture**: Async providers with startup/search/discover/shutdown lifecycle. Screen-specific commands. Error isolation. Fuzzy matching with scoring and highlighting.
-
 4. **SwiftUI's Adaptive Collapse**: NavigationSplitView automatically transforms between side-by-side and push/pop based on available width. This pattern translates to terminals -- a sidebar could collapse into a modal overlay on narrow terminals.
-
 5. **Compose's Focus Properties**: The `exit`/`enter` hooks for directional focus routing are elegant. You can declaratively say "when focus exits right, go to this other component" or "when focus exits right, trap it."
-
 6. **GTK's Model-Based Menus**: Defining menus as data (GMenu) and rendering them in different presentations (bar, popover, context) from the same model. Good separation of concerns.
-
 7. **Web Focusgroup's Grid Navigation**: 2D arrow-key navigation with row-wrap, col-wrap, row-flow, col-flow options. Essential for any grid-like UI (kanban boards, file grids, settings panels).
 
 ### Architectural Recommendations
 
 **Focus System**: Build a focus tree (like Flutter) with scopes (like Flutter/web focusgroup) and directional navigation (like Compose focusProperties + web focusgroup grid). This would be genuinely novel for TUI frameworks. Key features:
+
 - Focus scopes for grouping (panels, dialogs, sidebars)
 - Focus restoration within scopes (re-entering a panel restores to last-focused item)
 - Directional traversal policies (reading order, explicit order, spatial)
@@ -577,6 +585,7 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - `inert` equivalent for non-interactive regions
 
 **Split/Pane System**: A resizable split component with:
+
 - Horizontal and vertical orientation
 - Constraint-based sizing (min, max, ratio, fixed)
 - Keyboard resize (arrow keys when handle focused)
@@ -585,6 +594,7 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - Serializable state for persistence
 
 **Tab System**: A complete document-tab component with:
+
 - Closable tabs with dirty state
 - Keyboard navigation (Ctrl+Tab, Ctrl+W)
 - Overflow handling (scroll or dropdown)
@@ -592,6 +602,7 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - Tab-to-panel-content focus transition (Tab key enters content, Escape returns to tabs)
 
 **Command Palette**: Textual's architecture is the template:
+
 - Provider-based command sources
 - Async search with fuzzy matching and scoring
 - Screen/context-specific providers
@@ -603,6 +614,7 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 ## Sources
 
 ### VS Code / Electron
+
 - [VS Code Custom Layout](https://code.visualstudio.com/docs/configure/custom-layout)
 - [VS Code Extending Workbench](https://code.visualstudio.com/api/extension-capabilities/extending-workbench)
 - [VS Code User Interface](https://code.visualstudio.com/docs/getstarted/userinterface)
@@ -611,6 +623,7 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - [VS Code Quick Picks API](https://code.visualstudio.com/api/ux-guidelines/quick-picks)
 
 ### SwiftUI / Apple
+
 - [NavigationSplitView Documentation](https://developer.apple.com/documentation/swiftui/navigationsplitview)
 - [Mastering NavigationSplitView](https://swiftwithmajid.com/2022/10/18/mastering-navigationsplitview-in-swiftui/)
 - [SwiftUI Focus Management](https://swiftwithmajid.com/2020/12/02/focus-management-in-swiftui/)
@@ -622,18 +635,21 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - [Window Management in SwiftUI](https://swiftwithmajid.com/2022/11/02/window-management-in-swiftui/)
 
 ### Flutter
+
 - [Flutter Responsive Split View](https://codewithandrea.com/articles/flutter-responsive-layouts-split-view-drawer-navigation/)
 - [Flutter Tabs Cookbook](https://docs.flutter.dev/cookbook/design/tabs)
 - [Flutter Focus System](https://docs.flutter.dev/ui/interactivity/focus)
 - [FocusScope Class](https://api.flutter.dev/flutter/widgets/FocusScope-class.html)
 
 ### GTK4 / Libadwaita
+
 - [GtkPaned Documentation](https://docs.gtk.org/gtk4/class.Paned.html)
 - [Libadwaita Adaptive Layouts](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1.5/adaptive-layouts.html)
 - [AdwOverlaySplitView](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1.4/class.OverlaySplitView.html)
 - [AdwNavigationSplitView](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/class.NavigationSplitView.html)
 
 ### Compose Multiplatform
+
 - [Compose Desktop Components](https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-desktop-components.html)
 - [Adaptive Layouts in Compose Multiplatform](https://touchlab.co/adaptive-layouts-cmp)
 - [Compose Tab Navigation Tutorial](https://github.com/JetBrains/compose-multiplatform/blob/master/tutorials/Tab_Navigation/README.md)
@@ -642,12 +658,14 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - [Change Focus Behavior in Compose](https://developer.android.com/develop/ui/compose/touch-input/focus/change-focus-behavior)
 
 ### React Native
+
 - [React Native Tab View](https://reactnavigation.org/docs/tab-view/)
 - [Bottom Tab Navigator](https://reactnavigation.org/docs/bottom-tab-navigator/)
 - [SplitView - React Native Navigation](https://wix.github.io/react-native-navigation/api/layout-splitView/)
 - [Managing Focus in React Native](https://dev.to/amazonappdev/5-ways-of-managing-focus-in-react-native-3kfd)
 
 ### Web Platform
+
 - [Focusgroup Explainer - Open UI](https://open-ui.org/components/focusgroup.explainer/)
 - [W3C Keyboard Interface Practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/)
 - [WICG Spatial Navigation](https://github.com/WICG/spatial-navigation)
@@ -657,6 +675,7 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - [allotment](https://github.com/johnwalley/allotment)
 
 ### Terminal TUI Frameworks
+
 - [Ratatui Layout](https://ratatui.rs/concepts/layout/)
 - [Ratatui Popup Example](https://ratatui.rs/examples/apps/popup/)
 - [rat-focus](https://crates.io/crates/rat-focus)
@@ -670,3 +689,4 @@ Multi-window doesn't exist in TUI frameworks in the native sense. The terminal i
 - [Blessed GitHub](https://github.com/chjj/blessed)
 - [stmux](https://github.com/rse/stmux)
 - [tmux Cheat Sheet](https://tmuxcheatsheet.com/)
+

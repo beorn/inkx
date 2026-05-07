@@ -16,9 +16,11 @@ to stash TODO context.
 -->
 
 - List item before comment
-- <!-- comment inside a list item --> List item with leading comment
+- 
+  <!-- comment inside a list item --> List item with leading comment
 - List item after comment
 
 <!-- HTML comment that looks almost like a block-level tag: <p>not a tag</p> -->
 
 End of file.
+

@@ -229,9 +229,7 @@ export function planSetFields(repo: Repo, taskId: string, fields: readonly strin
       }
       default: {
         const suggestion = suggestField(key, ALL_TASK_FIELD_KEYS)
-        warnings.push(
-          suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
-        )
+        warnings.push(suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`)
       }
     }
   }
@@ -264,9 +262,7 @@ export function planClearFields(fields: readonly string[]): ClearFieldPlan {
       continue
     }
     const suggestion = suggestField(key, clearableKeys)
-    warnings.push(
-      suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`,
-    )
+    warnings.push(suggestion ? `Unknown field: ${key} (did you mean \`${suggestion}\`?)` : `Unknown field: ${key}`)
   }
   return { updates, warnings }
 }

@@ -1,13 +1,13 @@
 # Silvery: Next-Generation Terminal UI Renderer
 
-> **Internal** — The founding design document. Captures the original vision and motivations.
->
-> **Historical Document** — This was the original design RFC for Silvery (early 2025).
+> Internal — The founding design document. Captures the original vision and motivations.
+> 
+> Historical Document — This was the original design RFC for Silvery (early 2025).
 > Many details (naming, layout engine, hook names) have changed since implementation.
-> For current architecture, see [architecture.md](../deep-dives/architecture.md).
-> For current API, use `useBoxRect()` (not `useLayout()`).
+> For current architecture, see architecture.md.
+> For current API, use useBoxRect() (not useLayout()).
 
-> **Note**: For high-level architecture and future targets (Canvas, React Native), see [architecture.md](../deep-dives/architecture.md) and [roadmap.md](../../silvery/docs/roadmap.md). This document focuses on terminal-specific implementation details.
+> Note: For high-level architecture and future targets (Canvas, React Native), see architecture.md and roadmap.md. This document focuses on terminal-specific implementation details.
 
 ## Executive Summary
 
@@ -755,9 +755,9 @@ Explicit expectations for what works and what doesn't:
 | React 19 breaks reconciler              | Medium     | High   | Pin to React 18; add React version integration tests          |
 | Memory leaks from callbacks             | Medium     | Medium | Use WeakMap; test with long-running apps                      |
 | Unicode edge cases                      | High       | Low    | Use Intl.Segmenter; comprehensive Unicode test fixtures       |
-| **CJK/IME input issues**                | High       | High   | Test thoroughly; DEC 2026 sync update now enabled by default  |
-| **Terminal multiplexer rendering**      | Medium     | High   | DEC 2026 sync update prevents tearing in tmux/Zellij          |
-| **Keyboard protocol limitations**       | Medium     | Medium | Document limitations; plan Kitty protocol support             |
+| CJK/IME input issues                    | High       | High   | Test thoroughly; DEC 2026 sync update now enabled by default  |
+| Terminal multiplexer rendering          | Medium     | High   | DEC 2026 sync update prevents tearing in tmux/Zellij          |
+| Keyboard protocol limitations           | Medium     | Medium | Document limitations; plan Kitty protocol support             |
 
 _Note: CJK/IME and terminal multiplexer risks added based on analysis of Ink's real-world issues (January 2026). These are Ink's top pain points and likely to affect Silvery users too._
 
@@ -863,3 +863,4 @@ See [silvery-vs-ink.md](../../silvery/docs/silvery-vs-ink.md) for comprehensive 
 ### Further Reading
 
 - [7 Things Building a TUI Framework](https://www.textualize.io/blog/7-things-ive-learned-building-a-modern-tui-framework/) - Lessons from Textual
+

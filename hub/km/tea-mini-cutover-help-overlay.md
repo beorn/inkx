@@ -155,3 +155,4 @@ bun km view /some/vault                                # real app with legacy pa
 ## Do not delete
 
 This evidence doc is intentionally preserved alongside the tea-nav-spike / tea-lifecycle-spike READMEs as Phase 1 preflight material. When Phase 1 completes and `withDialogs()` ships, this doc demotes to `archive/` but stays available as "why we had confidence before Phase 1 started".
+

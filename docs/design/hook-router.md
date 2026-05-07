@@ -35,18 +35,18 @@ Existing `tribe hook session-start` / `session-end` / `prompt` / `pre-compact` n
 
 Source-agnostic (same vocab used by Claude, Codex, Gemini, OpenCode, km-self, or any future source):
 
-| Event | Fires on |
-|---|---|
-| `session_start` | Session init |
-| `session_end` | Session teardown |
-| `user_prompt_submit` | User pressed enter on a prompt |
-| `pre_tool_use` | About to run a tool |
-| `post_tool_use` | Tool finished successfully |
-| `post_tool_use_failure` | Tool returned an error |
-| `stop` | Assistant finished responding |
-| `subagent_stop` | A spawned sub-agent finished |
-| `notification` | Generic notification (with subtype) |
-| `permission_request` | Agent is blocked pending user approval |
+| Event                 | Fires on                               |
+| --------------------- | -------------------------------------- |
+| session_start         | Session init                           |
+| session_end           | Session teardown                       |
+| user_prompt_submit    | User pressed enter on a prompt         |
+| pre_tool_use          | About to run a tool                    |
+| post_tool_use         | Tool finished successfully             |
+| post_tool_use_failure | Tool returned an error                 |
+| stop                  | Assistant finished responding          |
+| subagent_stop         | A spawned sub-agent finished           |
+| notification          | Generic notification (with subtype)    |
+| permission_request    | Agent is blocked pending user approval |
 
 ### Enrichment flags
 
@@ -84,6 +84,7 @@ export default {
 Plain-object form needs no imports — works out of the box. Users who want type safety can `import { defineListener } from "bearly/hook-router"` once bearly exports it on npm.
 
 The router:
+
 1. Loads all listener modules each invocation (fork-per-event in v1)
 2. Filters by `events` and `sources`
 3. Invokes each matching listener with a timeout
@@ -175,3 +176,4 @@ km appears as a first-class runtime on any Cline Kanban board without touching k
 ## History
 
 Original Phase 1 landed as `packages/km-hooks/` in km commit `10c95617d` (2026-04-23). During the post-ship /big audit, bearly was discovered to already own the hook-dispatch territory (`tools/lib/tribe/hook-dispatch.ts`, `tools/tribe-cli.ts hook <event>` subcommand, wired into `~/.claude/settings.json`). Original commit reverted; router re-landed in bearly at `vendor/bearly/tools/lib/hooks/`.
+

@@ -85,13 +85,13 @@ This finding is independent of the cyan-strip bug. File a separate bead under `@
 After fixing @km/all/test-system/test-board-empty-frame (testBoard now renders a real 352×117 frame), reran the strip detector. Findings:
 
 1. The strip detector has been refined to:
-  - Group strip-color runs into vertically-contiguous **rectangles** (not individual rows). The cursor card's full body is a tall (>= 3 rows) rectangle and gets filtered out as legitimate.
-  - Exempt rows that contain the current cursor (the cursor sub-item paints a 1-row-tall stripe of `$bg-selected`, also legitimate).
-  - Only flag short (1-2 row) bg-selected rectangles in non-cursor areas — the actual residue signature.
-2. With these refinements, **zero residue strips reproduce** through ~280 presses (cursor walks, edit toggles, fold/unfold, view-mode cycles, post-view-mode edit toggles, scrub passes). The cyan-strip the user saw in the screenshot may be a different visual artefact than what the detector targets, or the specific action sequence to reproduce remains elusive.
-3. **Wide-character STRICT regression discovered.** The new harness exposed a real STRICT_OUTPUT divergence: regional-indicator flag emoji (e.g. `🇺🇸`) replacing narrow text in the same row leaves stale chars at the continuation cell. silvery's render walk produces correct buffer state (wide=true at col N, cont=true at col N+1) but the vt100 emulator used by STRICT counts the emoji as 1 column, so the prior frame's narrow char survives at col N+1. Filed as @km/silvery/strict-output-flag-emoji-width-divergence (P2).
+- Group strip-color runs into vertically-contiguous **rectangles** (not individual rows). The cursor card's full body is a tall (>= 3 rows) rectangle and gets filtered out as legitimate.
+- Exempt rows that contain the current cursor (the cursor sub-item paints a 1-row-tall stripe of `$bg-selected`, also legitimate).
+- Only flag short (1-2 row) bg-selected rectangles in non-cursor areas — the actual residue signature.
+6. With these refinements, **zero residue strips reproduce** through ~280 presses (cursor walks, edit toggles, fold/unfold, view-mode cycles, post-view-mode edit toggles, scrub passes). The cyan-strip the user saw in the screenshot may be a different visual artefact than what the detector targets, or the specific action sequence to reproduce remains elusive.
+7. **Wide-character STRICT regression discovered.** The new harness exposed a real STRICT_OUTPUT divergence: regional-indicator flag emoji (e.g. `🇺🇸`) replacing narrow text in the same row leaves stale chars at the continuation cell. silvery's render walk produces correct buffer state (wide=true at col N, cont=true at col N+1) but the vt100 emulator used by STRICT counts the emoji as 1 column, so the prior frame's narrow char survives at col N+1. Filed as @km/silvery/strict-output-flag-emoji-width-divergence (P2).
 
-  The user's screenshot may have actually been showing this wide-char displacement bug rather than a separate "cyan strip residue" — 🇺🇸bun and 🇺🇸 US overlapping with adjacent text could read visually as a horizontal stripe. Worth verifying with a fresh screenshot once the wide-char bug is fixed.
+The user's screenshot may have actually been showing this wide-char displacement bug rather than a separate "cyan strip residue" — 🇺🇸bun and 🇺🇸 US overlapping with adjacent text could read visually as a horizontal stripe. Worth verifying with a fresh screenshot once the wide-char bug is fixed.
 
 ### Next concrete step
 

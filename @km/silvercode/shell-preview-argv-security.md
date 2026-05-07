@@ -52,16 +52,17 @@ A leading-metachar check is **not** a security model. `bash -lc`, `python -c`, w
 ## Fix
 
 1. **Schema change**: `command` becomes a structured form, not a string:
-  ```yaml
-  syntaxlinks:
-    - pattern: "~repo"
-      preview: shell
-      command:
-        exec: git
-        args: ['-C', '${resolves_to}', 'log', '-5', '--oneline']
-  ```
 
-  Each args entry is interpolated per-token (${resolves_to} substituted), never concatenated into a shell string.
+```yaml
+syntaxlinks:
+  - pattern: "~repo"
+    preview: shell
+    command:
+      exec: git
+      args: ['-C', '${resolves_to}', 'log', '-5', '--oneline']
+```
+
+Each args entry is interpolated per-token (${resolves_to} substituted), never concatenated into a shell string.
 2. **Argv form only**: `Bun.spawn` already accepts argv arrays; pass `{cmd: [exec, ...args], shell: false, env: ...}`. No `sh -c` anywhere.
 3. **Sanitize output before rendering**: strip ANSI escape sequences (`\x1b[...`), C0 control chars, OSC sequences (`\x1b]...`), and DCS sequences from shell-output text before piping into the popover. Whitelist: tabs, newlines, printable ASCII, valid UTF-8.
 4. **Tighten env**: minimal env (`PATH`, `HOME`, `LANG`, `TERM=dumb`); don't inherit user's shell aliases / functions.

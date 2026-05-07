@@ -103,18 +103,17 @@ Reviewed 9 representative test files from different layers (2,714 tests total ac
 ### Priority 1 (Create Beads)
 
 1. **Investigate splitting query.test.ts** (1635 lines, 106 tests)
-   - Consider: query-filters.test.ts, query-execution.test.ts, query-syntax.test.ts
-   - Bead: km-test-2
-
-2. **Investigate splitting roundtrip.test.ts** (1800 lines, 104 tests)
-   - Consider splitting by markdown feature
-   - Bead: km-markdown-3
+- Consider: query-filters.test.ts, query-execution.test.ts, query-syntax.test.ts
+- Bead: km-test-2
+5. **Investigate splitting roundtrip.test.ts** (1800 lines, 104 tests)
+- Consider splitting by markdown feature
+- Bead: km-markdown-3
 
 ### Priority 2 (Documentation)
 
 3. **Document test file size guidelines**
-   - Add to testing.md: "Files >500 lines should be split by logical concerns"
-   - Add to testing.md: "Use `test()` not `it()` for consistency"
+- Add to testing.md: "Files >500 lines should be split by logical concerns"
+- Add to testing.md: "Use `test()` not `it()` for consistency"
 
 ### Priority 3 (Future)
 
@@ -131,11 +130,12 @@ Main improvement area: **split very large test files** (>1500 lines) for maintai
 
 | Metric              | Status | Notes                               |
 | ------------------- | ------ | ----------------------------------- |
-| Test Names          | ✅     | Clear and descriptive               |
-| Coverage            | ✅     | Good edge case coverage             |
-| Isolation           | ✅     | Proper use of fixtures and helpers  |
-| Speed               | ✅     | Appropriate for layer               |
-| Smells              | ✅     | No tautology or mock-testing issues |
+| Test Names          | ✅      | Clear and descriptive               |
+| Coverage            | ✅      | Good edge case coverage             |
+| Isolation           | ✅      | Proper use of fixtures and helpers  |
+| Speed               | ✅      | Appropriate for layer               |
+| Smells              | ✅      | No tautology or mock-testing issues |
 | File Organization   | ⚠️     | 2 files >1500 lines                 |
-| Syntax Consistency  | ⚠️     | Mix of `test()` and `it()`          |
-| Documentation Value | ✅     | Spec tests serve as docs            |
+| Syntax Consistency  | ⚠️     | Mix of test() and it()              |
+| Documentation Value | ✅      | Spec tests serve as docs            |
+

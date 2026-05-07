@@ -20,20 +20,20 @@ Do NOT write directly into `vendor/silvery/docs/` before 0.19.0 — the currentl
 
 ## Files
 
-| Path                                | Status           | Source of truth                                                      | Notes                                                              |
-|-------------------------------------|------------------|----------------------------------------------------------------------|--------------------------------------------------------------------|
-| `guide/sterling.md`                 | **new**          | `hub/silvery/launch/sterling-introduction.md`, `design/v10-terminal/design-system.md` | Reference-context tightening of the blog post                      |
-| `guide/styling.md`                  | **rewritten**    | `vendor/silvery/docs/guide/styling.md` (old 10 principles)           | Ten principles rebuilt around Sterling flat tokens                 |
-| `guide/theming.md`                  | **rewritten**    | `vendor/silvery/docs/guide/theming.md`                               | Theme-as-value, ThemeProvider, runtime swap, DesignSystem packages |
-| `guide/token-taxonomy.md`           | **rewritten**    | `vendor/silvery/docs/guide/token-taxonomy.md`                        | Channel-role-state grammar, every Sterling token                   |
-| `guide/custom-tokens.md`            | **rewritten**    | `vendor/silvery/docs/guide/custom-tokens.md`                         | Token packs + writing a DesignSystem                               |
-| `guide/color-schemes.md`            | **updated**      | `vendor/silvery/docs/guide/color-schemes.md`                         | 22-slot scheme, 84 catalog, derivation rules, auto-lift guardrails |
-| `guide/the-silvery-way.md`          | **surgical**     | `vendor/silvery/docs/guide/the-silvery-way.md`                       | Principle 6 updated; other 9 untouched                             |
-| `reference/theme.md`                | **rewritten**    | `vendor/silvery/docs/reference/theme.md`                             | Theme type (flat + nested), DesignSystem contract, derivation      |
-| `reference/theming.md`              | **merged stub**  | `vendor/silvery/docs/reference/theming.md`                           | Redirects to `reference/theme.md` + migration notes                |
-| `reference/style.md`                | **updated**      | `vendor/silvery/docs/reference/style.md`                             | `@silvery/ansi` chainable API + Sterling token resolution          |
-| `components/ThemeProvider.md`       | **updated**      | `vendor/silvery/docs/components/ThemeProvider.md`                    | Props, nesting, runtime swap, cross-system adapters                |
-| `themes.md`                         | **minor**        | `vendor/silvery/docs/themes.md`                                      | Updated tagline + cross-links; `<ThemeExplorer />` Vue component preserved |
+| Path                        | Status      | Source of truth                                                                   | Notes                                                                    |
+| --------------------------- | ----------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| guide/sterling.md           | new         | hub/silvery/launch/sterling-introduction.md, design/v10-terminal/design-system.md | Reference-context tightening of the blog post                            |
+| guide/styling.md            | rewritten   | vendor/silvery/docs/guide/styling.md (old 10 principles)                          | Ten principles rebuilt around Sterling flat tokens                       |
+| guide/theming.md            | rewritten   | vendor/silvery/docs/guide/theming.md                                              | Theme-as-value, ThemeProvider, runtime swap, DesignSystem packages       |
+| guide/token-taxonomy.md     | rewritten   | vendor/silvery/docs/guide/token-taxonomy.md                                       | Channel-role-state grammar, every Sterling token                         |
+| guide/custom-tokens.md      | rewritten   | vendor/silvery/docs/guide/custom-tokens.md                                        | Token packs + writing a DesignSystem                                     |
+| guide/color-schemes.md      | updated     | vendor/silvery/docs/guide/color-schemes.md                                        | 22-slot scheme, 84 catalog, derivation rules, auto-lift guardrails       |
+| guide/the-silvery-way.md    | surgical    | vendor/silvery/docs/guide/the-silvery-way.md                                      | Principle 6 updated; other 9 untouched                                   |
+| reference/theme.md          | rewritten   | vendor/silvery/docs/reference/theme.md                                            | Theme type (flat + nested), DesignSystem contract, derivation            |
+| reference/theming.md        | merged stub | vendor/silvery/docs/reference/theming.md                                          | Redirects to reference/theme.md + migration notes                        |
+| reference/style.md          | updated     | vendor/silvery/docs/reference/style.md                                            | @silvery/ansi chainable API + Sterling token resolution                  |
+| components/ThemeProvider.md | updated     | vendor/silvery/docs/components/ThemeProvider.md                                   | Props, nesting, runtime swap, cross-system adapters                      |
+| themes.md                   | minor       | vendor/silvery/docs/themes.md                                                     | Updated tagline + cross-links; <ThemeExplorer /> Vue component preserved |
 
 ## What needed the most work
 
@@ -65,13 +65,13 @@ These stay on their current content until separate bead/PR work updates them.
 
 Internal links I used across these drafts, for sanity-checking during promotion:
 
-| From                              | To                                                 |
-|-----------------------------------|----------------------------------------------------|
-| every page's "See also"            | `/guide/sterling`, `/guide/styling`, `/guide/theming`, `/guide/token-taxonomy`, `/guide/color-schemes`, `/guide/custom-tokens`, `/reference/theme`, `/themes` |
-| `guide/sterling`                  | external design spec link at `github.com/beorn/silvery/blob/main/docs/design/design-system.md` (the public mirror; internal spec lives in `hub/silvery/design/v10-terminal/design-system.md`) |
-| `guide/the-silvery-way` principle 6 | `/guide/sterling`, `/guide/styling`, `/guide/token-taxonomy`, `/themes` |
-| `reference/theming`               | Collapsed into `/reference/theme`                   |
-| `components/ThemeProvider`        | `/guide/theming`, `/guide/sterling`, `/reference/theme`, `/guide/custom-tokens`, `./Box` |
+| From                              | To                                                                                                                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| every page's "See also"           | /guide/sterling, /guide/styling, /guide/theming, /guide/token-taxonomy, /guide/color-schemes, /guide/custom-tokens, /reference/theme, /themes                                             |
+| guide/sterling                    | external design spec link at github.com/beorn/silvery/blob/main/docs/design/design-system.md (the public mirror; internal spec lives in hub/silvery/design/v10-terminal/design-system.md) |
+| guide/the-silvery-way principle 6 | /guide/sterling, /guide/styling, /guide/token-taxonomy, /themes                                                                                                                           |
+| reference/theming                 | Collapsed into /reference/theme                                                                                                                                                           |
+| components/ThemeProvider          | /guide/theming, /guide/sterling, /reference/theme, /guide/custom-tokens, ./Box                                                                                                            |
 
 ## Consistency conventions across the drafts
 
@@ -108,3 +108,4 @@ All drafts end with a `<!-- TODO: verify after 0.19.0 ships -->` comment. The mo
 - All files match `vendor/silvery/docs/<path>` 1:1 — copy-in without renaming on promotion.
 - VitePress-compatible markdown throughout (`::: tip`, `<Badge>`, `<script setup>` for `themes.md`).
 - No `vendor/silvery/` changes — draft-only.
+

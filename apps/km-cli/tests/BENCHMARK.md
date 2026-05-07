@@ -13,10 +13,10 @@ Comparison of subprocess (bunShell) vs in-process (km-repl) execution.
 
 ### Results (2026-01-26)
 
-| Approach                 | Time       | Speedup      |
-| ------------------------ | ---------- | ------------ |
-| Subprocess (bunShell)    | 3.992s     | baseline     |
-| **In-Process (km-repl)** | **0.246s** | **16.2x** ⚡ |
+| Approach              | Time   | Speedup  |
+| --------------------- | ------ | -------- |
+| Subprocess (bunShell) | 3.992s | baseline |
+| In-Process (km-repl)  | 0.246s | 16.2x ⚡ |
 
 ✅ **EXCEEDED TARGET:** 8-15x speedup goal
 

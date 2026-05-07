@@ -10,26 +10,26 @@ If you want the full backstory, read the [Sterling guide](./sterling). This page
 
 Most Silvery components already use the correct semantic colors by default. **The best color code is no color code.**
 
-| Component              | What's automatic                                                              |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `<Text>`               | `$fg` text color                                                              |
-| `<TextInput>`          | `$border-input` → `$border-focus` on focus, cursor                            |
-| `<TextArea>`           | `$border-input` → `$border-focus` on focus                                    |
-| `<ModalDialog>`        | `$bg-surface-raised` bg, `$border-default` border, `$fg-accent` title         |
-| `<CommandPalette>`     | `$bg-surface-raised` bg, `$border-default` border                             |
-| `<Toast>`              | `$bg-surface-overlay` bg, `$border-default` border                            |
-| `<SelectList>`         | inverse for selection, `$fg-muted` for disabled                               |
-| `<Alert variant="…">`     | Tone → `$bg-<tone>-subtle` + `$fg-<tone>`                                     |
-| `<Button variant="…">`    | Tone → `$bg-<tone>` + `$fg-on-<tone>`                                         |
-| `<ErrorBoundary>`      | `$border-error`                                                               |
-| `<Divider>`            | `$border-muted`                                                               |
-| `<ProgressBar>`        | `$fg-muted` empty portion                                                     |
-| `<Spinner>`            | `$fg`                                                                         |
-| `<H1>`, `<H2>`, `<H3>` | `$fg-accent` / bold / bold — see presets below                                |
-| `<Muted>`              | `$fg-muted`                                                                   |
-| `<Small>`              | `$fg-muted` (pre-dimmed)                                                      |
-| `<Code>`               | `$bg-surface-subtle` background                                               |
-| `<Blockquote>`         | `$border-muted` + italic                                                      |
+| Component            | What's automatic                                                |
+| -------------------- | --------------------------------------------------------------- |
+| <Text>               | $fg text color                                                  |
+| <TextInput>          | $border-input → $border-focus on focus, cursor                  |
+| <TextArea>           | $border-input → $border-focus on focus                          |
+| <ModalDialog>        | $bg-surface-raised bg, $border-default border, $fg-accent title |
+| <CommandPalette>     | $bg-surface-raised bg, $border-default border                   |
+| <Toast>              | $bg-surface-overlay bg, $border-default border                  |
+| <SelectList>         | inverse for selection, $fg-muted for disabled                   |
+| <Alert variant="…">  | Tone → $bg-<tone>-subtle + $fg-<tone>                           |
+| <Button variant="…"> | Tone → $bg-<tone> + $fg-on-<tone>                               |
+| <ErrorBoundary>      | $border-error                                                   |
+| <Divider>            | $border-muted                                                   |
+| <ProgressBar>        | $fg-muted empty portion                                         |
+| <Spinner>            | $fg                                                             |
+| <H1>, <H2>, <H3>     | $fg-accent / bold / bold — see presets below                    |
+| <Muted>              | $fg-muted                                                       |
+| <Small>              | $fg-muted (pre-dimmed)                                          |
+| <Code>               | $bg-surface-subtle background                                   |
+| <Blockquote>         | $border-muted + italic                                          |
 
 ::: tip Shiny
 
@@ -74,15 +74,15 @@ Rebuilding what the component already does.
 
 TUIs can't vary font size — bold, dim, and italic are the only typographic tools. Use intentional combinations of color + weight.
 
-| Level           | Style                 | Visual effect                           |
-| --------------- | --------------------- | --------------------------------------- |
-| H1 — Page title | `$fg-accent` + bold   | Colored, bold — maximum emphasis        |
-| H2 — Section    | bold                  | Bright, bold — distinct from H1         |
-| H3 — Group      | bold                  | Same as H2 at slightly tighter tracking |
-| Body            | `$fg`                 | Default                                 |
-| Meta / caption  | `$fg-muted`           | Secondary                               |
-| Fine print      | `$fg-muted` (Small)   | Captions, footnotes                     |
-| Disabled        | `$fg-disabled`        | Clearly inactive                        |
+| Level           | Style             | Visual effect                           |
+| --------------- | ----------------- | --------------------------------------- |
+| H1 — Page title | $fg-accent + bold | Colored, bold — maximum emphasis        |
+| H2 — Section    | bold              | Bright, bold — distinct from H1         |
+| H3 — Group      | bold              | Same as H2 at slightly tighter tracking |
+| Body            | $fg               | Default                                 |
+| Meta / caption  | $fg-muted         | Secondary                               |
+| Fine print      | $fg-muted (Small) | Captions, footnotes                     |
+| Disabled        | $fg-disabled      | Clearly inactive                        |
 
 ::: tip Rule — `dim` is a rendering detail, not a design primitive
 
@@ -181,17 +181,17 @@ Every fillable surface has a matching text token. Set both or set neither — ne
 `<Box theme={t}>` auto-inherits `$fg` for descendant text and auto-fills `$bg` as the background. Just set `theme` and the layout props.
 :::
 
-| Background role       | Text token             | Use for                          |
-| --------------------- | ---------------------- | -------------------------------- |
-| `$bg`                 | `$fg`                  | Default app background           |
-| `$bg-surface-subtle`  | `$fg`                  | Hover rows, inline muted chips   |
-| `$bg-surface-raised`  | `$fg`                  | Panels, dialogs, cards           |
-| `$bg-surface-overlay` | `$fg`                  | Tooltips, dropdowns, toasts      |
-| `$bg-accent`          | `$fg-on-accent`        | Primary fills — buttons, chips   |
-| `$bg-error`           | `$fg-on-error`         | Error fills                      |
-| `$bg-warning`         | `$fg-on-warning`       | Warning fills                    |
-| `$bg-success`         | `$fg-on-success`       | Success fills                    |
-| `$bg-info`            | `$fg-on-info`          | Info fills                       |
+| Background role     | Text token     | Use for                        |
+| ------------------- | -------------- | ------------------------------ |
+| $bg                 | $fg            | Default app background         |
+| $bg-surface-subtle  | $fg            | Hover rows, inline muted chips |
+| $bg-surface-raised  | $fg            | Panels, dialogs, cards         |
+| $bg-surface-overlay | $fg            | Tooltips, dropdowns, toasts    |
+| $bg-accent          | $fg-on-accent  | Primary fills — buttons, chips |
+| $bg-error           | $fg-on-error   | Error fills                    |
+| $bg-warning         | $fg-on-warning | Warning fills                  |
+| $bg-success         | $fg-on-success | Success fills                  |
+| $bg-info            | $fg-on-info    | Info fills                     |
 
 Surface subtle / raised / overlay share the same `$fg`. Status fills and accent fills each have their own `$fg-on-<role>`.
 
@@ -233,12 +233,12 @@ A token designed for one surface placed on another means contrast is unpredictab
 
 Color-blind users can't distinguish red from green. At ANSI 16, `$fg-warning` and `$fg-accent` may be the same yellow. **Always pair status colors with icons or text labels.**
 
-| Role      | Icon convention |
-| --------- | --------------- |
-| `success` | ✓ ✔ ◆           |
-| `warning` | ⚠ △             |
-| `error`   | ✗ ✘ ●           |
-| `info`    | ℹ ○             |
+| Role    | Icon convention |
+| ------- | --------------- |
+| success | ✓ ✔ ◆           |
+| warning | ⚠ △             |
+| error   | ✗ ✘ ●           |
+| info    | ℹ ○             |
 
 ::: tip Shiny
 
@@ -285,18 +285,19 @@ Don't use it for:
 <Text bold color="$fg-accent">BETA</Text>
 <Text bold color="$fg-accent">→</Text>
 ```
+
 :::
 
 ## 7. Let Components Handle Borders
 
 Three border tiers — structural, interactive, focused — and components handle transitions automatically. You just set `borderStyle`.
 
-| Tier                    | Token            | Applied by                      |
-| ----------------------- | ---------------- | ------------------------------- |
-| Structural              | `$border-default`| Box (automatic default)         |
-| Interactive (unfocused) | `$border-input`  | TextInput, TextArea             |
-| Focused                 | `$border-focus`  | TextInput, TextArea             |
-| Muted divider           | `$border-muted`  | Divider                         |
+| Tier                    | Token           | Applied by              |
+| ----------------------- | --------------- | ----------------------- |
+| Structural              | $border-default | Box (automatic default) |
+| Interactive (unfocused) | $border-input   | TextInput, TextArea     |
+| Focused                 | $border-focus   | TextInput, TextArea     |
+| Muted divider           | $border-muted   | Divider                 |
 
 ::: tip Shiny
 
@@ -307,6 +308,7 @@ Three border tiers — structural, interactive, focused — and components handl
   <Text>Panel</Text>
 </Box>
 ```
+
 :::
 
 ::: danger Tarnished
@@ -435,11 +437,11 @@ Supports tokens, named colors, and hex. Amount is 0–100% or 0.0–1.0.
 
 ### Tiers
 
-| Tier            | Behavior                                     |
-| --------------- | -------------------------------------------- |
+| Tier            | Behavior                                          |
+| --------------- | ------------------------------------------------- |
 | truecolor / 256 | OKLab blend toward neutral — perceptually uniform |
-| ANSI 16         | SGR 2 stamped on cells — single-channel      |
-| mono            | no-op — borders carry separation             |
+| ANSI 16         | SGR 2 stamped on cells — single-channel           |
+| mono            | no-op — borders carry separation                  |
 
 ::: tip Shiny — modal variant
 
@@ -489,33 +491,33 @@ useEffect(() => { /* animate fade up to 0.7 in a 50ms loop */ }, [])
 
 ### Smell summary
 
-| Smell                                         | Meaning                                              |
-| --------------------------------------------- | ---------------------------------------------------- |
-| `color="$fg"`                                 | Writing the default — remove it                      |
-| `color="red"` or `"#hex"`                     | Hardcoded — use a `$`-token                          |
-| `$fg-success` / `$fg-error` for headings      | Status for hierarchy — use `$fg-accent` or presets   |
-| `borderColor={focused ? ... : ...}`           | Manual focus — let the component handle it           |
-| `backgroundColor` without matching text       | Unpaired surface — add `$fg-on-<role>` or `$fg`      |
-| `$fg-success` / `$fg-error` without icon     | Color-only status — add redundant signal             |
-| `dim` / `dimColor` in view code               | Rendering detail — use `$fg-muted` / `<Small>`       |
-| Palette colors for UI chrome                  | Palette is for data; use `$border-*` / `$fg-accent`  |
-| Specifying colors a component already handles | Fighting the framework — remove                      |
-| Hardcoded hex for a tinted surface            | Use `mix($bg, $token, N%)`                           |
-| `<Link>` in colored container forcing `$fg-accent` | Use `color="inherit"`                           |
+| Smell                                          | Meaning                                          |
+| ---------------------------------------------- | ------------------------------------------------ |
+| color="$fg"                                    | Writing the default — remove it                  |
+| color="red" or "#hex"                          | Hardcoded — use a $-token                        |
+| $fg-success / $fg-error for headings           | Status for hierarchy — use $fg-accent or presets |
+| borderColor={focused ? ... : ...}              | Manual focus — let the component handle it       |
+| backgroundColor without matching text          | Unpaired surface — add $fg-on-<role> or $fg      |
+| $fg-success / $fg-error without icon           | Color-only status — add redundant signal         |
+| dim / dimColor in view code                    | Rendering detail — use $fg-muted / <Small>       |
+| Palette colors for UI chrome                   | Palette is for data; use $border-* / $fg-accent  |
+| Specifying colors a component already handles  | Fighting the framework — remove                  |
+| Hardcoded hex for a tinted surface             | Use mix($bg, $token, N%)                         |
+| <Link> in colored container forcing $fg-accent | Use color="inherit"                              |
 
 ### Contrast guarantees
 
 `deriveFromScheme()` enforces minimum contrast ratios on every text/bg pair — auto-lifting OKLCH L (preserving hue + chroma) until the target is met. For user-authored schemes the lift is silent; for the 84 bundled schemes, failure blocks CI.
 
-| Pair                                                                 | Target    | Rationale                            |
-| -------------------------------------------------------------------- | --------- | ------------------------------------ |
-| Body text (`$fg`) on `$bg` / `$bg-surface-*`                         | 4.5:1 (AA)| Primary text must be readable         |
-| Muted text (`$fg-muted`) on `$bg`                                    | 4.5:1     | Secondary text must be readable       |
-| Disabled text (`$fg-disabled`) on `$bg`                              | 3.0:1     | Intentionally dim but visible         |
-| Role text (`$fg-accent`, `$fg-error`, …) on `$bg`                    | 4.5:1     | Colored text on the root bg           |
-| `$fg-on-<role>` on `$bg-<role>`                                      | 4.5:1     | Role fills                            |
-| `$border-default` on `$bg`                                           | 1.5:1     | Faint structural dividers             |
-| `$border-input` on `$bg`                                             | 3.0:1     | WCAG 1.4.11 non-text minimum          |
+| Pair                                        | Target     | Rationale                       |
+| ------------------------------------------- | ---------- | ------------------------------- |
+| Body text ($fg) on $bg / $bg-surface-*      | 4.5:1 (AA) | Primary text must be readable   |
+| Muted text ($fg-muted) on $bg               | 4.5:1      | Secondary text must be readable |
+| Disabled text ($fg-disabled) on $bg         | 3.0:1      | Intentionally dim but visible   |
+| Role text ($fg-accent, $fg-error, …) on $bg | 4.5:1      | Colored text on the root bg     |
+| $fg-on-<role> on $bg-<role>                 | 4.5:1      | Role fills                      |
+| $border-default on $bg                      | 1.5:1      | Faint structural dividers       |
+| $border-input on $bg                        | 3.0:1      | WCAG 1.4.11 non-text minimum    |
 
 Derivation uses adaptive OKLCH L-shifts (±0.04 / ±0.08) for hover/active, and falls back to chroma reduction near the luminance endpoints.
 
@@ -533,3 +535,4 @@ Derivation uses adaptive OKLCH L-shifts (±0.04 / ±0.08) for hover/active, and 
 - **[Token Taxonomy](./token-taxonomy)** — channel-role-state grammar, every token Sterling ships.
 - **[Color Schemes](./color-schemes)** — the 22-slot scheme model and the 84 bundled themes.
 - **[Custom Tokens](./custom-tokens)** — writing your own DesignSystem.
+

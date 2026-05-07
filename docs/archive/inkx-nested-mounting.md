@@ -1,10 +1,10 @@
 # InkX Nested Mounting — ARCHIVED 2026-04-17
 
-> **Ink is retired**; km uses [silvery](../../vendor/silvery/). This speculative design won't ship.
+> Ink is retired; km uses silvery. This speculative design won't ship.
 
-# Nested Mounting API for Silvery
+## Nested Mounting API for Silvery
 
-> **Status: Future** — Speculative design, no concrete use case yet.
+> Status: Future — Speculative design, no concrete use case yet.
 
 Allow rendering into sub-regions of an existing Silvery app, similar to React's `createRoot(container)` pattern.
 
@@ -101,6 +101,7 @@ const content = await render(layout.locator('[testID="content"]'), <Board />)
 How do independent React roots communicate?
 
 **Options:**
+
 - A: External state manager (zustand, jotai)
 - B: Event bus pattern
 - C: Shared context via custom provider
@@ -110,6 +111,7 @@ How do independent React roots communicate?
 When multiple roots update, what order do they paint?
 
 **Options:**
+
 - A: Parent-first (layout, then children)
 - B: Last-updated-wins (simple, may flicker)
 - C: Batched (collect all updates, single repaint)
@@ -119,6 +121,7 @@ When multiple roots update, what order do they paint?
 AutoLocators are designed for querying, not mounting. Is this the right abstraction?
 
 **Alternatives:**
+
 - Named slots: `<Slot name="header" />`
 - Ref-based: `useRef()` + `render(ref, <Child />)`
 - Portal-based: `createPortal(<Child />, region)`
@@ -128,6 +131,7 @@ AutoLocators are designed for querying, not mounting. Is this the right abstract
 When terminal resizes, how do nested mounts re-layout?
 
 **Options:**
+
 - A: Each root handles resize independently
 - B: Parent broadcasts new dimensions to children
 - C: Single resize handler coordinates all roots
@@ -136,12 +140,12 @@ When terminal resizes, how do nested mounts re-layout?
 
 ## Risks
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Multiple reconcilers = complexity | High | Start with single use case |
-| No shared React context | Medium | Document, provide alternatives |
-| Performance overhead | Medium | Benchmark before committing |
-| AutoLocator misuse | Low | Consider alternative API |
+| Risk                              | Impact | Mitigation                     |
+| --------------------------------- | ------ | ------------------------------ |
+| Multiple reconcilers = complexity | High   | Start with single use case     |
+| No shared React context           | Medium | Document, provide alternatives |
+| Performance overhead              | Medium | Benchmark before committing    |
+| AutoLocator misuse                | Low    | Consider alternative API       |
 
 ---
 
@@ -196,6 +200,7 @@ Explicit composition via props.
 km-tui is a single-tree app where all components share context (repo, layout, UI state). Nested mounting would add complexity without clear benefit.
 
 **Potential future use:**
+
 - If km adds plugin support with isolated rendering
 - If different views need completely separate state trees
 
@@ -214,6 +219,7 @@ AutoLocators are designed for *querying* the rendered output (testing), not for 
 ### Multiple React Reconcilers = Complexity
 
 The proposal suggests "each render creates independent React reconciler root." This means:
+
 - Separate state trees (no shared context without manual wiring)
 - Coordination problems (what happens when both want to update?)
 - Performance overhead from multiple reconciler instances
@@ -252,3 +258,4 @@ The proposal suggests "each render creates independent React reconciler root." T
 - [inkx-render-api.md](inkx-render-api.md) — Generator-based unified render API (higher priority)
 - React 18 `createRoot()` — [React docs](https://react.dev/reference/react-dom/client/createRoot)
 - Micro-frontends — [martinfowler.com](https://martinfowler.com/articles/micro-frontends.html)
+

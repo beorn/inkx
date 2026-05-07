@@ -64,24 +64,24 @@ km@1e3a2768c: `chore(bearly): bump — tribe-daemon inject scrub + haiku rewrite
 Two-layer defense in `broadcastToConnected`:
 
 1. **Regex scrub** (always on, opt-out `TRIBE_SCRUB=0`, ~0 ms)
-  - Strips leading role markers (Human:/Assistant:/User: ± ### prefix)
-  - Strips angle-bracket tags (<system-reminder>, <channel>, <recall-memory>,
+- Strips leading role markers (Human:/Assistant:/User: ± ### prefix)
+- Strips angle-bracket tags (<system-reminder>, <channel>, <recall-memory>,
      <snippet>, <context-protocol>, <user_prompt>) — inner content preserved
-  - Strips "UserPromptSubmit hook success/error/additional context" phrases
-2. **Haiku paraphrase** (default on, opt-out `TRIBE_REWRITE=off`, ~200-500 ms)
-  - Triggered only when content matches a trigger pattern OR the regex scrub
+- Strips "UserPromptSubmit hook success/error/additional context" phrases
+6. **Haiku paraphrase** (default on, opt-out `TRIBE_REWRITE=off`, ~200-500 ms)
+- Triggered only when content matches a trigger pattern OR the regex scrub
      changed it — trigger-free content like "compose left" or
      "Committed: <hash> <subject>" passes through verbatim
-  - Strong system prompt with 10 examples covering tribe broadcast shapes
+- Strong system prompt with 10 examples covering tribe broadcast shapes
      (Committed:, [push], [workflow], session events, done:/starting:,
      CPU/git-lock warnings, adversarial inputs)
-  - Explicit "keep verbatim" list: commit hashes, version numbers, file
+- Explicit "keep verbatim" list: commit hashes, version numbers, file
      paths, package/session names, quoted strings, URLs, numbers, structural
      prefixes
-  - Length discipline: under-100-char inputs within 20% expansion; short
+- Length discipline: under-100-char inputs within 20% expansion; short
      status lines output verbatim
-  - Silent fallback to regex-only on LLM timeout (2000ms) or unavailability
-  - Regex scrub runs again on Haiku output as safety net
+- Silent fallback to regex-only on LLM timeout (2000ms) or unavailability
+- Regex scrub runs again on Haiku output as safety net
 
 Verified end-to-end with natural traffic: daemon journal (raw) vs delivered
 content shows paraphrase only when needed, verbatim pass-through otherwise.

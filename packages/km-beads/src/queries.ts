@@ -331,7 +331,11 @@ function resolveType(node: KNode, repo: Repo | undefined): BeadTypeKeyword | und
 
 function extractTagsFromContent(content: string | undefined): string[] {
   if (!content) return []
-  return [...content.matchAll(/(?:^|\s|[([{.,;:!?])#([A-Za-z][A-Za-z0-9_-]*)\b/g)].map((m) => m[1]!)
+  const out: string[] = []
+  for (const m of content.matchAll(/(?:^|\s|[([{.,;:!?])#([A-Za-z][A-Za-z0-9_-]*)\b/g)) {
+    if (m[1] !== undefined) out.push(m[1])
+  }
+  return out
 }
 
 /**

@@ -1,6 +1,6 @@
-> **SUPERSEDED (2026-04-20)**: This design was retired when tribe was simplified to reuse km primitives. See [`hub/km/design/tribe-matrix.md`](../../km/design/tribe-matrix.md) for the current design. Kept here as historical context.
-
 # Tribe v2: Discovery Broker + Direct Peer Connections
+
+> SUPERSEDED (2026-04-20): This design was retired when tribe was simplified to reuse km primitives. See hub/km/design/tribe-matrix.md for the current design. Kept here as historical context.
 
 ## Problem
 
@@ -9,11 +9,8 @@ The tribe daemon hardcodes beads coupling, acts as both message router and coord
 ## Design Principles
 
 1. **Daemon is a discovery broker, not a message router.** It knows who's alive and who has what. It never touches data, never routes messages, never reads the filesystem.
-
 2. **One proxy socket, multiplexed resources.** Logical resource granularity per plugin. Physical: one socket per proxy. Per-plugin sockets add complexity without isolation (same process).
-
 3. **Socket bind is the lock.** Resource ownership is decided by who successfully binds the deterministic resource socket. No distributed locking protocol needed.
-
 4. **Messages are best-effort direct.** Durable coordination belongs in project state (beads, git), not in tribe. The daemon stores coordination _state_, not message history.
 
 ## Architecture
@@ -393,3 +390,4 @@ Project-level overrides via `.tribe/plugins.yaml` for pinning or disabling speci
 | Plugin crash     | Kills daemon                  | Kills one proxy              |
 | Scaling          | Daemon bottleneck             | Peer-to-peer                 |
 | Project identity | Directory basename (collides) | Hash of realpath (canonical) |
+

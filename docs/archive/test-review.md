@@ -8,24 +8,24 @@ Reference for reviewing, pruning, and organizing the km test suite.
 
 ## Test Types Overview
 
-| Suffix            | Location                     | Speed  | Purpose                            |
-| ----------------- | ---------------------------- | ------ | ---------------------------------- |
-| `.test.ts`        | `packages/*/tests/`          | Fast   | Core tests (logic, domain objects) |
-| `.slow.test.ts`   | `packages/*/tests/`          | Medium | Slow tests (sync, multi-component) |
-| `.spec.md`        | `apps/km-cli/tests/sh/`      | Medium | CLI acceptance tests (mdspec)      |
-| `.playwright.ts`  | `apps/km-tui/tests/`         | Slow   | Visual TUI tests (deprecated)      |
-| `sync/chaos/*.ts` | `packages/km-storage/tests/` | Slow   | Property-based sync fuzzing        |
+| Suffix          | Location                   | Speed  | Purpose                            |
+| --------------- | -------------------------- | ------ | ---------------------------------- |
+| .test.ts        | packages/*/tests/          | Fast   | Core tests (logic, domain objects) |
+| .slow.test.ts   | packages/*/tests/          | Medium | Slow tests (sync, multi-component) |
+| .spec.md        | apps/km-cli/tests/sh/      | Medium | CLI acceptance tests (mdspec)      |
+| .playwright.ts  | apps/km-tui/tests/         | Slow   | Visual TUI tests (deprecated)      |
+| sync/chaos/*.ts | packages/km-storage/tests/ | Slow   | Property-based sync fuzzing        |
 
 ## Test Distribution
 
-| Layer                   | Target % | Test Focus               | Database?      |
-| ----------------------- | -------- | ------------------------ | -------------- |
-| Parser (`@km/markdown`) | ~5%      | Parse/serialize logic    | No             |
-| Storage (`@km/storage`) | ~40%     | Domain + Sync + Chaos    | Yes (isolated) |
-| Tree (`@km/tree`)       | ~5%      | Query logic              | No             |
-| Board (`@km/board`)     | ~15%     | State machine (fixtures) | No             |
-| TUI (`apps/km-tui`)     | ~20%     | Acceptance + mdspec      | No             |
-| CLI (`apps/km-cli`)     | ~15%     | Acceptance (mdspec)      | Yes            |
+| Layer                 | Target % | Test Focus               | Database?      |
+| --------------------- | -------- | ------------------------ | -------------- |
+| Parser (@km/markdown) | ~5%      | Parse/serialize logic    | No             |
+| Storage (@km/storage) | ~40%     | Domain + Sync + Chaos    | Yes (isolated) |
+| Tree (@km/tree)       | ~5%      | Query logic              | No             |
+| Board (@km/board)     | ~15%     | State machine (fixtures) | No             |
+| TUI (apps/km-tui)     | ~20%     | Acceptance + mdspec      | No             |
+| CLI (apps/km-cli)     | ~15%     | Acceptance (mdspec)      | Yes            |
 
 **Health check**: Fast tests (~24s) should catch 90% of regressions. Slow tests for edge cases only.
 
@@ -106,13 +106,13 @@ Reference for reviewing, pruning, and organizing the km test suite.
 
 Property-based fuzzing for sync edge cases. **High value** - catches real bugs.
 
-| File                      | Purpose                                  |
-| ------------------------- | ---------------------------------------- |
-| `chaos.slow.test.ts`      | Main fuzzer with seeded random scenarios |
-| `concurrent.slow.test.ts` | Concurrent read/write operations         |
-| `db-to-fs.slow.test.ts`   | Database → filesystem sync               |
-| `regression.test.ts`      | Known bug regression tests               |
-| `roundtrip.test.ts`       | Parse → serialize → parse equivalence    |
+| File                    | Purpose                                  |
+| ----------------------- | ---------------------------------------- |
+| chaos.slow.test.ts      | Main fuzzer with seeded random scenarios |
+| concurrent.slow.test.ts | Concurrent read/write operations         |
+| db-to-fs.slow.test.ts   | Database → filesystem sync               |
+| regression.test.ts      | Known bug regression tests               |
+| roundtrip.test.ts       | Parse → serialize → parse equivalence    |
 
 **Chaos scenarios** (from `scenarios.ts`):
 
@@ -137,10 +137,10 @@ Property-based fuzzing for sync edge cases. **High value** - catches real bugs.
 
 Visual TUI testing via ttyd + chromium headless.
 
-| File                         | Purpose                                  |
-| ---------------------------- | ---------------------------------------- |
-| `tui.playwright.ts`          | View switching, navigation, help overlay |
-| `body-content.playwright.ts` | Body content rendering                   |
+| File                       | Purpose                                  |
+| -------------------------- | ---------------------------------------- |
+| tui.playwright.ts          | View switching, navigation, help overlay |
+| body-content.playwright.ts | Body content rendering                   |
 
 **Pattern**:
 
@@ -200,16 +200,16 @@ $ echo -e "move_down\nstate" | km sh -r $PWD/repo @inbox.md
 
 Delete if **ANY** of these apply:
 
-| Criterion                      | Example                                         | Why Delete                      |
-| ------------------------------ | ----------------------------------------------- | ------------------------------- |
-| **Tautology**                  | Test logic mirrors implementation exactly       | No value - passes by definition |
-| **Tests the mock**             | Assertions verify mock was called, not behavior | Tests infrastructure, not code  |
-| **Obsolete feature**           | Tests code that no longer exists                | Dead code                       |
-| **Flaky (>1% fail)**           | Random failures, timing-dependent               | Creates noise, erodes trust     |
-| **Subset duplicate**           | Another test covers this AND more               | Redundant maintenance           |
-| **Covered by types**           | Test validates what TypeScript ensures          | Compiler already checks         |
-| **>30s without justification** | Slow test with no E2E value                     | Blocks development              |
-| **Line hitter**                | Achieves coverage without meaningful assertions | False confidence                |
+| Criterion                  | Example                                         | Why Delete                      |
+| -------------------------- | ----------------------------------------------- | ------------------------------- |
+| Tautology                  | Test logic mirrors implementation exactly       | No value - passes by definition |
+| Tests the mock             | Assertions verify mock was called, not behavior | Tests infrastructure, not code  |
+| Obsolete feature           | Tests code that no longer exists                | Dead code                       |
+| Flaky (>1% fail)           | Random failures, timing-dependent               | Creates noise, erodes trust     |
+| Subset duplicate           | Another test covers this AND more               | Redundant maintenance           |
+| Covered by types           | Test validates what TypeScript ensures          | Compiler already checks         |
+| >30s without justification | Slow test with no E2E value                     | Blocks development              |
+| Line hitter                | Achieves coverage without meaningful assertions | False confidence                |
 
 **Kent Beck's heuristic**: "I want the fewest possible system-level tests to give me the desired confidence."
 
@@ -241,7 +241,8 @@ Move down when:
 
 Move up when:
 
-- > 50% of test is mock setup
+- 
+  > 50% of test is mock setup
 - Tests implementation details (breaks on refactor)
 - Tests boundaries between layers
 - Tests configuration/wiring, not algorithm
@@ -320,11 +321,11 @@ emitNodeUpdated("user", id, { task_status: "done" }) // Internal function
 
 ## Known Duplication (km-specific)
 
-| Files                                                                            | Issue                        | Resolution                                          |
-| -------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
-| `repo.test.ts` + `node-crud.test.ts`                                             | Both test mutations          | Keep repo tests (public API), consolidate node-crud |
-| `navigation.test.ts` + `cursor-navigation.test.ts` + `visual-navigation.test.ts` | Overlapping cursor logic     | Clarify ownership or merge                          |
-| `markdown.test.ts`                                                               | Mixes parser + tree concerns | Split by layer                                      |
+| Files                                                                      | Issue                        | Resolution                                          |
+| -------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
+| repo.test.ts + node-crud.test.ts                                           | Both test mutations          | Keep repo tests (public API), consolidate node-crud |
+| navigation.test.ts + cursor-navigation.test.ts + visual-navigation.test.ts | Overlapping cursor logic     | Clarify ownership or merge                          |
+| markdown.test.ts                                                           | Mixes parser + tree concerns | Split by layer                                      |
 
 ---
 
@@ -411,3 +412,4 @@ This guide synthesizes:
 - [Google SWE Book - Test Doubles](https://abseil.io/resources/swe-book/html/ch13.html)
 - [Software Testing Anti-patterns](https://blog.codepipes.com/testing/software-testing-antipatterns.html)
 - [Kent Beck - Additional Testing After Refactoring](https://tidyfirst.substack.com/p/additional-testing-after-refactoring)
+

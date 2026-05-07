@@ -53,8 +53,7 @@ Three rules the pipeline enforces:
 <event payload>
 ```
 
-Combined with a system-prompt clause that defines how notification is read, the agent treats these like tool-output traces: weigh them, mention them when relevant, ask before acting on anything ambiguous.
-3. **The boundary is enforced by code, not convention.** `assembleAcpPrompt` is the only path that constructs prompt blocks. Channel events can't reach `text` blocks; user input can't reach `resource` blocks. Sanitization strips role-prefix patterns from payloads before they land. A loop-closure layer in the transcript serializer prevents any stray emission from being re-parsed as a synthetic user turn next round.
+Combined with a system-prompt clause that defines how notification is read, the agent treats these like tool-output traces: weigh them, mention them when relevant, ask before acting on anything ambiguous. 3. **The boundary is enforced by code, not convention.** `assembleAcpPrompt` is the only path that constructs prompt blocks. Channel events can't reach `text` blocks; user input can't reach `resource` blocks. Sanitization strips role-prefix patterns from payloads before they land. A loop-closure layer in the transcript serializer prevents any stray emission from being re-parsed as a synthetic user turn next round.
 
 The result: peer activity, CI signals, telegram messages, recall summaries flow into context continuously, without role confusion. You don't manage the firehose — the framing makes it readable as memory.
 
@@ -193,4 +192,3 @@ bun silvercode doctor                 # autolinks + connections health checks
 Config lives in `~/.km/config.yaml` (`ai.acp.<name>` + `ai.mcp.<name>`); `silvercode config …` manipulates it directly.
 
 Status: pre-1.0. New agents, capabilities, and components land regularly. `silvercode doctor` is the source of truth for what's wired up on your machine right now.
-

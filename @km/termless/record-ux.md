@@ -29,12 +29,12 @@ In the current CLI output, it's hard to tell when recording started/ended. The p
    🔴 REC — km view
    Restored to original title after recording.
 3. Post-session summary with:
-  - Duration
-  - Keystroke count + output event count
-  - Frame count (if image output)
-  - File sizes for each output
-  - Preview command (open km2.gif)
-4. NO alt screen — preserves scrollback, avoids nested alt screen issues with TUI apps
-5. For very long sessions, consider a periodic status in the window title:
+- Duration
+- Keystroke count + output event count
+- Frame count (if image output)
+- File sizes for each output
+- Preview command (open km2.gif)
+12. NO alt screen — preserves scrollback, avoids nested alt screen issues with TUI apps
+13. For very long sessions, consider a periodic status in the window title:
    🔴 REC 2:34 — km view
 

@@ -17,11 +17,8 @@ The fix was a one-line change: make navigation read from the same ViewTree that 
 ## The Causal Chain
 
 1. **Bead contained a plausible-but-wrong diagnosis.** The description said "getVisibleDescendantIds limits to depth=1" — which was true but not the cause. The diagnosis was treated as fact instead of hypothesis.
-
 2. **Reproduction used synthetic fixtures instead of real data.** Test fixtures were 1-level deep (`item("board", item("col", item("task")))`) when the real vault had 2-3 levels of nested headings with children. The synthetic structure couldn't reproduce the actual bug.
-
 3. **Code analysis substituted for observation.** Reading `getVisibleDescendantIds` and seeing the depth limit felt like finding the bug. But the real issue was that navigation used a different data source than rendering — something only visible when running against the user's actual vault structure.
-
 4. **Each "fix" passed synthetic tests.** Because the test fixtures didn't match real data, each fix appeared correct. The tests were green, confidence was high, but the user's bug persisted.
 
 ---
@@ -51,3 +48,4 @@ If the screen shows a card, the keyboard should be able to reach it. Navigation 
 - [Refactoring Lessons](refactoring.md) — related case studies on migration and deletion discipline
 - [TDD Skill](../../.claude/skills/tdd/SKILL.md) — reproduction tool picker and escalation ladder
 - [Bug Workflow](../../.claude/skills/pm/workflows/bugs.md) — bead lifecycle for bug fixes
+

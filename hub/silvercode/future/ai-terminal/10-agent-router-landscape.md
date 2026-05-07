@@ -23,10 +23,10 @@ Two orthogonal axes. Together they classify everything in the agent-tooling stac
 
 **The cells:**
 
-|  | B1 HTTP/SDK | B2 Subprocess CLI | B3 Inverted MCP |
-|---|---|---|---|
-| **L1 own** | **Type M** — agent hosts (Claude Code, Cline, opencode, aider, Continue, Cursor, Copilot, sketch, maige, pi-mono, hermes-agent today) | impossible by definition | impossible by definition |
-| **L2 delegated** | rare oddity¹ | **Type A** — agent routers (OpenClaw, claude-squad, opcode, vibe-kanban, happy, conductor, hermes-agent planned) | **Type R** — agent-side primitives (container-use) |
+|              | B1 HTTP/SDK                                                                                                                       | B2 Subprocess CLI                                                                                            | B3 Inverted MCP                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| L1 own       | Type M — agent hosts (Claude Code, Cline, opencode, aider, Continue, Cursor, Copilot, sketch, maige, pi-mono, hermes-agent today) | impossible by definition                                                                                     | impossible by definition                       |
+| L2 delegated | rare oddity¹                                                                                                                      | Type A — agent routers (OpenClaw, claude-squad, opcode, vibe-kanban, happy, conductor, hermes-agent planned) | Type R — agent-side primitives (container-use) |
 
 ¹ A delegated-loop process talking only to model APIs would just be a thin proxy/gateway — present in the wild as model-routing layers (LiteLLM proxy, Helicone, OpenRouter), but those don't run an agent loop, they just shuttle bytes. Out of scope here.
 
@@ -149,35 +149,36 @@ The architectural split between `pi-acp` (external process bridge) and `@victor-
 
 **Zed ACP Registry — 25 ACP-speaking agents shipping as of 2026-04-26** (verified from the in-Zed Registry browser). Far broader than the 7 that surfaced in earlier adoption research. Not all are equally polished, but the breadth of vendors implementing ACP is a stronger ecosystem signal than the research initially credited.
 
-| Agent | Registry ID | Version | What it is |
-|---|---|---|---|
-| **Amp** | `amp-acp` | 0.7.0 | ACP wrapper for Amp (Sourcegraph's frontier coding agent) |
-| **Auggie CLI** | `auggie` | 0.24.0 | Augment Code's coding agent |
-| **Autohand Code** | `autohand` | 0.2.1 | Autohand AI coding agent |
-| **Claude Agent** | `claude-acp` | 0.31.8 | ACP wrapper for Anthropic's Claude (the `@agentclientprotocol/claude-agent-acp` package — Zed-published, not Anthropic) |
-| **Cline** | `cline` | 2.17.0 | OSS autonomous coding agent (newly ACP-native) |
-| **Codebuddy Code** | `codebuddy-code` | 2.93.6 | Tencent Cloud's official coding agent |
-| **Codex CLI** | `codex-acp` | 0.12.0 | ACP adapter for OpenAI Codex (the `@zed-industries/codex-acp` package) |
-| **Corust Agent** | `corust-agent` | 0.5.1 | Rust-focused coding agent |
-| **crow-cli** | `crow-cli` | 0.1.20 | Minimal ACP-native coding agent |
-| **Cursor** | `cursor` | 2026.03.30 | Cursor's coding agent (no longer "in progress" — shipping) |
-| **DeepAgents** | `deepagents` | 0.1.7 | Batteries-included AI coding + general-purpose agent |
-| **Factory Droid** | `factory-droid` | 0.108.1 | Factory AI's coding agent |
-| **Gemini CLI** | `gemini` | 0.39.1 | Google's official CLI for Gemini |
-| **Github Copilot** | `github-copilot-cli` | 1.0.36 | GitHub's AI pair programmer |
-| **goose** | `goose` | 1.32.0 | Square's open-source extensible AI agent |
-| **Junie** | `junie` | 1417.47.0 | JetBrains' AI coding agent |
-| **Kilo** | `kilo` | 7.2.24 | Open-source coding agent |
-| **Kimi CLI** | `kimi` | 1.39.0 | Moonshot AI's coding assistant |
-| **Mistral Vibe** | `mistral-vibe` | 2.8.1 | Mistral AI's open-source coding assistant |
-| **Nova** | `nova` | 1.0.180 | Compass AI's "fully-fledged software engineer" agent |
-| **OpenCode** | `opencode` | 1.14.25 | sst/opencode (the visual-parity target — also an agent) |
-| **Pi ACP** | `pi-acp` | 0.8.26 | ACP adapter for pi (badlogic's coding agent) |
-| **Qoder CLI** | `qoder` | 0.1.48 | Qoder's agentic coding agent |
-| **Qwen Code** | `qwen-code` | 0.15.3 | Alibaba's Qwen coding assistant |
-| **Stakpak** | `stakpak` | 3.74 | Rust-based DevOps agent with enterprise security |
+| Agent          | Registry ID        | Version    | What it is                                                                                                            |
+| -------------- | ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| Amp            | amp-acp            | 0.7.0      | ACP wrapper for Amp (Sourcegraph's frontier coding agent)                                                             |
+| Auggie CLI     | auggie             | 0.24.0     | Augment Code's coding agent                                                                                           |
+| Autohand Code  | autohand           | 0.2.1      | Autohand AI coding agent                                                                                              |
+| Claude Agent   | claude-acp         | 0.31.8     | ACP wrapper for Anthropic's Claude (the @agentclientprotocol/claude-agent-acp package — Zed-published, not Anthropic) |
+| Cline          | cline              | 2.17.0     | OSS autonomous coding agent (newly ACP-native)                                                                        |
+| Codebuddy Code | codebuddy-code     | 2.93.6     | Tencent Cloud's official coding agent                                                                                 |
+| Codex CLI      | codex-acp          | 0.12.0     | ACP adapter for OpenAI Codex (the @zed-industries/codex-acp package)                                                  |
+| Corust Agent   | corust-agent       | 0.5.1      | Rust-focused coding agent                                                                                             |
+| crow-cli       | crow-cli           | 0.1.20     | Minimal ACP-native coding agent                                                                                       |
+| Cursor         | cursor             | 2026.03.30 | Cursor's coding agent (no longer "in progress" — shipping)                                                            |
+| DeepAgents     | deepagents         | 0.1.7      | Batteries-included AI coding + general-purpose agent                                                                  |
+| Factory Droid  | factory-droid      | 0.108.1    | Factory AI's coding agent                                                                                             |
+| Gemini CLI     | gemini             | 0.39.1     | Google's official CLI for Gemini                                                                                      |
+| Github Copilot | github-copilot-cli | 1.0.36     | GitHub's AI pair programmer                                                                                           |
+| goose          | goose              | 1.32.0     | Square's open-source extensible AI agent                                                                              |
+| Junie          | junie              | 1417.47.0  | JetBrains' AI coding agent                                                                                            |
+| Kilo           | kilo               | 7.2.24     | Open-source coding agent                                                                                              |
+| Kimi CLI       | kimi               | 1.39.0     | Moonshot AI's coding assistant                                                                                        |
+| Mistral Vibe   | mistral-vibe       | 2.8.1      | Mistral AI's open-source coding assistant                                                                             |
+| Nova           | nova               | 1.0.180    | Compass AI's "fully-fledged software engineer" agent                                                                  |
+| OpenCode       | opencode           | 1.14.25    | sst/opencode (the visual-parity target — also an agent)                                                               |
+| Pi ACP         | pi-acp             | 0.8.26     | ACP adapter for pi (badlogic's coding agent)                                                                          |
+| Qoder CLI      | qoder              | 0.1.48     | Qoder's agentic coding agent                                                                                          |
+| Qwen Code      | qwen-code          | 0.15.3     | Alibaba's Qwen coding assistant                                                                                       |
+| Stakpak        | stakpak            | 3.74       | Rust-based DevOps agent with enterprise security                                                                      |
 
 Coverage by vendor category:
+
 - **Frontier-model wrappers** (use Anthropic/OpenAI/Google APIs): Claude Agent, Codex CLI, Gemini CLI
 - **Major IDE / IDE-vendor agents**: Cursor, Junie (JetBrains), Cline, Github Copilot, Auggie (Augment Code)
 - **OSS/general agents**: goose (Square), OpenCode (sst), Cline, Kilo, crow-cli
@@ -187,15 +188,15 @@ Coverage by vendor category:
 
 Plus the supporting npm ecosystem:
 
-| Package | Direction | What |
-|---|---|---|
-| **`@agentclientprotocol/sdk`** | both | Official ACP TypeScript SDK — schemas, JSON-RPC plumbing |
-| **`@agentclientprotocol/claude-agent-acp`** | server | ACP server backed by `@anthropic-ai/claude-agent-sdk`. Tool calls, permissions, edit review, todos, interactive+background terminals, slash commands, client MCP servers |
-| **`@zed-industries/codex-acp`** | server | ACP server for OpenAI Codex |
-| **`pi-acp`** | server | ACP server for pi via `pi --mode rpc` bridge |
-| **`@victor-software-house/pi-acp`** | server | ACP server for pi via SDK embed |
-| **`acpx`** | client | Headless ACP CLI — talk to any ACP server |
-| **`@openacp/cli`** | client + bridge | Type-A-via-ACP messaging gateway (Telegram/Discord/Slack) |
+| Package                               | Direction       | What                                                                                                                                                                   |
+| ------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| @agentclientprotocol/sdk              | both            | Official ACP TypeScript SDK — schemas, JSON-RPC plumbing                                                                                                               |
+| @agentclientprotocol/claude-agent-acp | server          | ACP server backed by @anthropic-ai/claude-agent-sdk. Tool calls, permissions, edit review, todos, interactive+background terminals, slash commands, client MCP servers |
+| @zed-industries/codex-acp             | server          | ACP server for OpenAI Codex                                                                                                                                            |
+| pi-acp                                | server          | ACP server for pi via pi --mode rpc bridge                                                                                                                             |
+| @victor-software-house/pi-acp         | server          | ACP server for pi via SDK embed                                                                                                                                        |
+| acpx                                  | client          | Headless ACP CLI — talk to any ACP server                                                                                                                              |
+| @openacp/cli                          | client + bridge | Type-A-via-ACP messaging gateway (Telegram/Discord/Slack)                                                                                                              |
 
 **Implication for silvercode** (recalibration of the earlier verdict):
 
@@ -210,19 +211,20 @@ The adoption-sentiment research said "ACP at the boundary, not as canonical, unt
 **Subscription-plan auth caveat — re-verified 2026-04-26**: each Registry agent inherits its underlying CLI's auth model, but Anthropic's `claude-agent-acp` *explicitly blocks* Claude.ai subscription accounts (`dist/acp-agent.js:1360` throws `"This integration does not support using claude.ai subscriptions."`). The Claude Agent SDK that `claude-agent-acp` wraps requires API billing for programmatic use; subscription quota is reserved for Claude Code's interactive surfaces. So **for Claude with Pro / Max subscriptions, no Registry-shipping ACP server works** — silvercode has to build its own ACP wrapper around the `claude` binary's stream-json mode.
 
 **Other binary-wrap ACP packages exist but are abandoned**:
+
 - `claude-code-acp@0.1.1` (carlrannaberg/cc-acp) — wraps `@anthropic-ai/claude-code` (the binary) instead of `@anthropic-ai/claude-agent-sdk`. Source contains explicit subscription-auth strings: `"Validating Claude Code subscription authentication"`, `"subscription authentication validated successfully"`, `"subscription login or CLAUDE_API_KEY"`. Architecturally proves the pattern works. **But abandoned**: 1★, 1 fork, single contributor, last commit 2025-09-03 (8 months stale).
 - `claude-code-acp-agent@0.1.0` — single version, also wraps `@anthropic-ai/claude-code`, also abandoned (2025-08-28).
 - Active forks of `claude-agent-acp` (`@sudocode-ai/claude-code-acp`, `claude-code-acp-ts`) all inherit the subscription block.
 
 **Per-vendor subscription support — verified 2026-04-26 from package READMEs and source**. Anthropic is the outlier; others are fine:
 
-| Vendor | ACP path | Subscription auth | Verified from |
-|---|---|---|---|
-| **Claude** | `@agentclientprotocol/claude-agent-acp` | ❌ blocked at init | `dist/acp-agent.js:1360` throws on `account.subscriptionType` |
-| **Codex** | `@zed-industries/codex-acp` | ✅ "ChatGPT subscription" first-class | README explicitly lists it as auth method (caveat: doesn't work in remote projects — needs local browser for OAuth) |
-| **Gemini** | `@google/gemini-cli` (built-in ACP, registry id `gemini`) | ✅ "Sign in with Google" OAuth | README: free tier 60 req/min + 1000 req/day, no API key needed |
-| **Copilot** | `@github/copilot` (registry id `github-copilot-cli`) | ✅ Copilot subscription required | README: "active Copilot subscription" + `/login` GitHub auth |
-| **Pi** | `pi-acp` (third-party) | ✅ pi's own provider config (auth unaffected by ACP layer) | n/a |
+| Vendor  | ACP path                                              | Subscription auth                                         | Verified from                                                                                                       |
+| ------- | ----------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Claude  | @agentclientprotocol/claude-agent-acp                 | ❌ blocked at init                                         | dist/acp-agent.js:1360 throws on account.subscriptionType                                                           |
+| Codex   | @zed-industries/codex-acp                             | ✅ "ChatGPT subscription" first-class                      | README explicitly lists it as auth method (caveat: doesn't work in remote projects — needs local browser for OAuth) |
+| Gemini  | @google/gemini-cli (built-in ACP, registry id gemini) | ✅ "Sign in with Google" OAuth                             | README: free tier 60 req/min + 1000 req/day, no API key needed                                                      |
+| Copilot | @github/copilot (registry id github-copilot-cli)      | ✅ Copilot subscription required                           | README: "active Copilot subscription" + /login GitHub auth                                                          |
+| Pi      | pi-acp (third-party)                                  | ✅ pi's own provider config (auth unaffected by ACP layer) | n/a                                                                                                                 |
 
 This means **silvercode's custom-wrapper work is only needed for Claude**. For Codex (ChatGPT Plus/Pro), Gemini (Google), Copilot (GitHub Copilot), and pi — silvercode just consumes the existing Registry packages. The custom adapters (`acp-adapter-codex`, `acp-adapter-gemini`) are **not just "likely redundant" — they are redundant for subscription users**. silvercode loads them only as fallbacks for users with API keys who don't want to install the Registry ACP wrappers.
 
@@ -373,7 +375,7 @@ silvercode-acp-fake --script ./fixtures/edit-file-with-permission.json
 
 ## Type R — agent-side primitives (the inverse)
 
-#### container-use (Type R) — github.com/dagger/container-use
+### container-use (Type R) — github.com/dagger/container-use
 
 **This is not an agent harness.** It is the inverse: an MCP server *consumed by* agent CLIs.
 
@@ -400,6 +402,7 @@ Included in this survey because the *registration adapter pattern* (one Go file 
 **Closest analog**: pi-ai is to coding agents what LiteLLM is to general LLM apps — a multi-provider SDK. pi-coding-agent is to pi-ai what Claude Code is to the Anthropic SDK — a reference consumer.
 
 **Where pi sits in the family**:
+
 - vs OpenClaw: completely different layer. OpenClaw would *spawn* `pi-coding-agent` as a subprocess backend; pi-coding-agent would never spawn another agent.
 - vs Claude Code / opencode / Cline / Continue / aider: same layer (Type M), comparable architectural choices, different model coverage and feature set.
 - vs hermes-agent (today): peer Type M, both model-agnostic. pi-mono is broader on model coverage; hermes is broader on execution-environment coverage (Daytona/Modal/Singularity).
@@ -408,15 +411,15 @@ Included in this survey because the *registration adapter pattern* (one Go file 
 
 ## Comparison matrix — Type A only
 
-| Project | Transport | Backends | Backend seam | Session | Auth/MCP | Surface | Cleanness | LOC/backend |
-|---|---|---|---|---|---|---|---|---|
-| **OpenClaw** | A1 stream-json | claude-cli, codex-cli, google-gemini-cli, pi (declarative) | **declarative config** | `--session-id` + `--resume` | rotated, injected | messaging gateway | clean | ~50–150 LOC |
-| **opcode** | A1 stream-json | Claude Code only | bespoke (single backend) | Claude session-id | inherits env | desktop GUI | thin | n/a |
-| **vibe-kanban** | A1 stream-json | claude, codex, gemini, cursor, droid, copilot, opencode, qwen, amp | bespoke trait + per-agent normalizer | per-agent | inherits env | kanban + worktree | typed but expensive | **~1,500 LOC** |
-| **claude-squad** | A2 PTY/scrape | claude, aider, gemini (hard-coded) + free-form | substring matching + `if program == X` | tmux persistence | inherits env (sources rc) | TUI + worktree | small but coupled | n/a |
-| **happy** | A3 fd3 sideband | claude (deep), codex, gemini (separate dirs) | per-agent code path | Claude session-id | inherits env | mobile relay | bespoke | ~300–550 LOC |
-| **conductor** | unknown (closed) | claude, codex | unknown | unknown | unknown | desktop GUI + worktree | unknown | unknown |
-| **hermes-agent (planned)** | A4 PTY+ACP | claude, codex, gemini, aider, goose, opencode | trait (planned) | per-agent (planned) | inherits env (planned) | TUI | unshipped | n/a |
+| Project                | Transport        | Backends                                                           | Backend seam                         | Session                 | Auth/MCP                  | Surface                | Cleanness           | LOC/backend  |
+| ---------------------- | ---------------- | ------------------------------------------------------------------ | ------------------------------------ | ----------------------- | ------------------------- | ---------------------- | ------------------- | ------------ |
+| OpenClaw               | A1 stream-json   | claude-cli, codex-cli, google-gemini-cli, pi (declarative)         | declarative config                   | --session-id + --resume | rotated, injected         | messaging gateway      | clean               | ~50–150 LOC  |
+| opcode                 | A1 stream-json   | Claude Code only                                                   | bespoke (single backend)             | Claude session-id       | inherits env              | desktop GUI            | thin                | n/a          |
+| vibe-kanban            | A1 stream-json   | claude, codex, gemini, cursor, droid, copilot, opencode, qwen, amp | bespoke trait + per-agent normalizer | per-agent               | inherits env              | kanban + worktree      | typed but expensive | ~1,500 LOC   |
+| claude-squad           | A2 PTY/scrape    | claude, aider, gemini (hard-coded) + free-form                     | substring matching + if program == X | tmux persistence        | inherits env (sources rc) | TUI + worktree         | small but coupled   | n/a          |
+| happy                  | A3 fd3 sideband  | claude (deep), codex, gemini (separate dirs)                       | per-agent code path                  | Claude session-id       | inherits env              | mobile relay           | bespoke             | ~300–550 LOC |
+| conductor              | unknown (closed) | claude, codex                                                      | unknown                              | unknown                 | unknown                   | desktop GUI + worktree | unknown             | unknown      |
+| hermes-agent (planned) | A4 PTY+ACP       | claude, codex, gemini, aider, goose, opencode                      | trait (planned)                      | per-agent (planned)     | inherits env (planned)    | TUI                    | unshipped           | n/a          |
 
 ---
 
@@ -472,27 +475,27 @@ A Type-M agent can expose an ACP server interface. A Type-A router can consume t
 
 ### What each one actually defines
 
-| Concern | Type M | Type A (stream-json today) | ACP |
-|---|---|---|---|
-| **What it is** | Architectural decision: own the loop | Architectural decision: delegate the loop | JSON-RPC 2.0 wire schema, capability-negotiated |
-| **Who picks it** | Product author | Product author | Both ends agree at session start |
-| **Wire format** | (n/a — internal) | Per-vendor: Claude `system/assistant/user/tool_use/result`, codex variant, gemini variant | One schema for everyone |
-| **Schema versioning** | (n/a) | Implicit — vendor changes break wrappers | Explicit — `initialize` exchanges `protocolVersion` |
-| **Capability negotiation** | (n/a) | None — flags are best-effort | `clientCapabilities` ↔ `agentCapabilities` |
-| **Session lifecycle** | Internal | `--session-id <uuid>` + `--resume` | `session/new`, `session/load`, `session/cancel` |
-| **Streaming events** | Internal | `--output-format stream-json` JSONL | `session/update` notifications: `agent_message_chunk`, `agent_thought_chunk`, `tool_call`, `tool_call_update`, `plan`, `available_commands_update`, `current_mode_update` |
-| **Tool calls** | Internal | Embedded as opaque blocks in stream-json | First-class typed `ToolCall` + `ToolCallUpdate` with `kind`, `status`, `locations[]` for follow-along navigation |
-| **Permission flow** | Internal | Agent prompts via own UI; or `--permission-mode bypassPermissions` to skip | `session/request_permission { toolCall, options }` → `{ outcome: { selected \| cancelled } }`. Typed and client-rendered. |
-| **File operations** | Internal | **Agent does its own file IO directly** | **Client-mediated**: agent calls `fs/read_text_file` / `fs/write_text_file` on the client. Inversion of control. |
-| **Terminal commands** | Internal | Bash tool runs in agent's process | `terminal/create`, `terminal/output`, `terminal/wait_for_exit`, `terminal/kill` — client owns the PTY |
-| **Cancellation** | Internal | SIGINT or close stdin (varies by agent) | `session/cancel { sessionId }` — typed |
-| **Authentication** | Internal | Env vars (`ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, …) | `authenticate { methodId }` with `authMethods` enumerated up front |
-| **MCP integration** | Internal | Bundled config file passed via flag | `mcpServers` array passed in `session/new` params |
-| **Bidirectionality** | n/a | Mostly one-way (stdin in, stdout out) | Full duplex JSON-RPC — both sides issue requests |
-| **Slash commands** | Internal | Inline in user prompt | `available_commands_update` notification — client can render as menu |
-| **Maturity** | Decades of practice | 2023–present, every Type-A project | 2024–present, Zed-led, expanding |
-| **Adoption (agents)** | n/a | Universal — every shipping agent CLI has some `-p stream-json` mode | Claude Code (via plugin), codex-cli, gemini-cli, opencode have ACP servers; growing |
-| **Adoption (clients)** | n/a | Every Type-A router | Zed editor (primary), Neovim plugins, hermes-agent (planned) |
+| Concern                | Type M                               | Type A (stream-json today)                                                              | ACP                                                                                                                                                       |
+| ---------------------- | ------------------------------------ | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What it is             | Architectural decision: own the loop | Architectural decision: delegate the loop                                               | JSON-RPC 2.0 wire schema, capability-negotiated                                                                                                           |
+| Who picks it           | Product author                       | Product author                                                                          | Both ends agree at session start                                                                                                                          |
+| Wire format            | (n/a — internal)                     | Per-vendor: Claude system/assistant/user/tool_use/result, codex variant, gemini variant | One schema for everyone                                                                                                                                   |
+| Schema versioning      | (n/a)                                | Implicit — vendor changes break wrappers                                                | Explicit — initialize exchanges protocolVersion                                                                                                           |
+| Capability negotiation | (n/a)                                | None — flags are best-effort                                                            | clientCapabilities ↔ agentCapabilities                                                                                                                    |
+| Session lifecycle      | Internal                             | --session-id <uuid> + --resume                                                          | session/new, session/load, session/cancel                                                                                                                 |
+| Streaming events       | Internal                             | --output-format stream-json JSONL                                                       | session/update notifications: agent_message_chunk, agent_thought_chunk, tool_call, tool_call_update, plan, available_commands_update, current_mode_update |
+| Tool calls             | Internal                             | Embedded as opaque blocks in stream-json                                                | First-class typed ToolCall + ToolCallUpdate with kind, status, locations[] for follow-along navigation                                                    |
+| Permission flow        | Internal                             | Agent prompts via own UI; or --permission-mode bypassPermissions to skip                | session/request_permission { toolCall, options } → { outcome: { selected \| cancelled } }. Typed and client-rendered.                                     |
+| File operations        | Internal                             | Agent does its own file IO directly                                                     | Client-mediated: agent calls fs/read_text_file / fs/write_text_file on the client. Inversion of control.                                                  |
+| Terminal commands      | Internal                             | Bash tool runs in agent's process                                                       | terminal/create, terminal/output, terminal/wait_for_exit, terminal/kill — client owns the PTY                                                             |
+| Cancellation           | Internal                             | SIGINT or close stdin (varies by agent)                                                 | session/cancel { sessionId } — typed                                                                                                                      |
+| Authentication         | Internal                             | Env vars (ANTHROPIC_API_KEY, CLAUDE_CODE_OAUTH_TOKEN, …)                                | authenticate { methodId } with authMethods enumerated up front                                                                                            |
+| MCP integration        | Internal                             | Bundled config file passed via flag                                                     | mcpServers array passed in session/new params                                                                                                             |
+| Bidirectionality       | n/a                                  | Mostly one-way (stdin in, stdout out)                                                   | Full duplex JSON-RPC — both sides issue requests                                                                                                          |
+| Slash commands         | Internal                             | Inline in user prompt                                                                   | available_commands_update notification — client can render as menu                                                                                        |
+| Maturity               | Decades of practice                  | 2023–present, every Type-A project                                                      | 2024–present, Zed-led, expanding                                                                                                                          |
+| Adoption (agents)      | n/a                                  | Universal — every shipping agent CLI has some -p stream-json mode                       | Claude Code (via plugin), codex-cli, gemini-cli, opencode have ACP servers; growing                                                                       |
+| Adoption (clients)     | n/a                                  | Every Type-A router                                                                     | Zed editor (primary), Neovim plugins, hermes-agent (planned)                                                                                              |
 
 ### The architectural inversion that matters
 
@@ -545,19 +548,19 @@ ACP's schema (`github.com/zed-industries/agent-client-protocol/schema/schema.jso
 
 Coverage check — every Claude Code stream-json event has a clean ACP target:
 
-| Claude stream-json | ACP target |
-|---|---|
-| `system/init` (session_id) | `InitializeResponse` + `NewSessionResponse` |
-| `assistant` text chunk | `SessionUpdate.agent_message_chunk` |
-| `assistant` thinking | `SessionUpdate.agent_thought_chunk` |
-| `tool_use` block | `SessionUpdate.tool_call` (`status: pending`, `locations[]`) |
-| `tool_result` block | `SessionUpdate.tool_call_update` (`status: completed`, `content[]`) |
-| `result` (stop) | `PromptResponse { stopReason }` |
-| permission prompt | `RequestPermissionRequest` (typed `options[]`) |
-| `partial_message` chunks | repeated `agent_message_chunk` |
-| slash commands | `AvailableCommandsUpdate` |
-| Plan/Act mode | `CurrentModeUpdate` + `SessionMode` |
-| compaction | `ExtNotification` (no native equivalent — use the escape hatch) |
+| Claude stream-json       | ACP target                                                    |
+| ------------------------ | ------------------------------------------------------------- |
+| system/init (session_id) | InitializeResponse + NewSessionResponse                       |
+| assistant text chunk     | SessionUpdate.agent_message_chunk                             |
+| assistant thinking       | SessionUpdate.agent_thought_chunk                             |
+| tool_use block           | SessionUpdate.tool_call (status: pending, locations[])        |
+| tool_result block        | SessionUpdate.tool_call_update (status: completed, content[]) |
+| result (stop)            | PromptResponse { stopReason }                                 |
+| permission prompt        | RequestPermissionRequest (typed options[])                    |
+| partial_message chunks   | repeated agent_message_chunk                                  |
+| slash commands           | AvailableCommandsUpdate                                       |
+| Plan/Act mode            | CurrentModeUpdate + SessionMode                               |
+| compaction               | ExtNotification (no native equivalent — use the escape hatch) |
 
 Codex and Gemini map similarly. The ~1,500 LOC/agent that vibe-kanban paid for `NormalizedEntry`+`ConversationPatch` was reimplementing a vocabulary ACP already standardizes.
 
@@ -619,6 +622,7 @@ Research into ACP adoption sentiment (April 2026) surfaced four signals that fli
 - **Re-evaluate quarterly**: if Zed reaches 100% spec coverage in its own client *and* the protocol version bumps to 2 with a real deprecation policy, consider promoting ACP types to canonical and dropping the silvercode-types layer. Until both happen, keep the layer.
 
 **Adoption is real but uneven** (research detail):
+
 - ✅ shipping ACP servers: Goose, OpenCode (`opencode acp` subcommand), Gemini CLI, Augment/Auggie, GitHub Copilot CLI, plus Zed-built wrappers for Claude Code and Codex
 - ✅ ACP clients beyond Zed: JetBrains (native, co-drove the spec), Neovim (CodeCompanion, avante.nvim, agentic.nvim), Emacs (agent-shell), marimo
 - ✗ no VSCode ACP client found
@@ -763,48 +767,48 @@ Driven directly by ACP's `SessionUpdate` discriminated union plus the four clien
 
 **Streaming-update renderers** (one per `SessionUpdate` variant — 11 cases):
 
-| `SessionUpdate.sessionUpdate` | Component | Source |
-|---|---|---|
-| `user_message_chunk` | `<UserMessage>` | uses existing `<MessageList>` slot — exists |
-| `agent_message_chunk` | `<AssistantMessage>` | uses existing `<MessageList>` slot — exists |
-| `agent_thought_chunk` | `<ThinkingBlock>` | new — collapsed-by-default disclosure |
-| `tool_call` | `<ToolCallBlock>` | new — header + status badge + body slot |
-| `tool_call_update` | (mutation only — re-renders existing `<ToolCallBlock>`) | n/a |
-| `plan` | `<PlanView>` | new — checklist with `PlanEntryStatus` icons + `PlanEntryPriority` |
-| `available_commands_update` | `<SlashCommandPalette>` | partly exists (silvercode CommandBox); needs ACP binding |
-| `current_mode_update` | `<ModeIndicator>` | new — small label in StatusLine |
-| `config_option_update` | `<SessionConfigPanel>` | new — typed selectors (model, thinking-level) |
-| `session_info_update` | (status-line refresh only) | n/a |
-| `usage_update` | `<UsageBadge>` | new — token + cost in StatusLine |
+| SessionUpdate.sessionUpdate | Component                                             | Source                                                         |
+| --------------------------- | ----------------------------------------------------- | -------------------------------------------------------------- |
+| user_message_chunk          | <UserMessage>                                         | uses existing <MessageList> slot — exists                      |
+| agent_message_chunk         | <AssistantMessage>                                    | uses existing <MessageList> slot — exists                      |
+| agent_thought_chunk         | <ThinkingBlock>                                       | new — collapsed-by-default disclosure                          |
+| tool_call                   | <ToolCallBlock>                                       | new — header + status badge + body slot                        |
+| tool_call_update            | (mutation only — re-renders existing <ToolCallBlock>) | n/a                                                            |
+| plan                        | <PlanView>                                            | new — checklist with PlanEntryStatus icons + PlanEntryPriority |
+| available_commands_update   | <SlashCommandPalette>                                 | partly exists (silvercode CommandBox); needs ACP binding       |
+| current_mode_update         | <ModeIndicator>                                       | new — small label in StatusLine                                |
+| config_option_update        | <SessionConfigPanel>                                  | new — typed selectors (model, thinking-level)                  |
+| session_info_update         | (status-line refresh only)                            | n/a                                                            |
+| usage_update                | <UsageBadge>                                          | new — token + cost in StatusLine                               |
 
 **Tool-call body renderers** (one per `ToolKind` — `read | edit | execute | search | move | delete | other` — pluggable registry):
 
-| `ToolKind` | Component |
-|---|---|
-| `read` | `<FilePreview>` keyed on `ToolCallLocation` (path, optional line) |
-| `edit` | `<DiffView>` consuming `ToolCallContent.diff: { oldText, newText }` |
-| `execute` | `<TerminalPane>` if interactive; `<CommandOutput>` for one-shot |
-| `search` | `<SearchResults>` for grep/find tools |
-| `move`/`delete` | `<FsOpSummary>` |
-| `other` (fallback) | `<GenericToolCall>` rendering raw `ToolCallContent[]` |
+| ToolKind         | Component                                                       |
+| ---------------- | --------------------------------------------------------------- |
+| read             | <FilePreview> keyed on ToolCallLocation (path, optional line)   |
+| edit             | <DiffView> consuming ToolCallContent.diff: { oldText, newText } |
+| execute          | <TerminalPane> if interactive; <CommandOutput> for one-shot     |
+| search           | <SearchResults> for grep/find tools                             |
+| move/delete      | <FsOpSummary>                                                   |
+| other (fallback) | <GenericToolCall> rendering raw ToolCallContent[]               |
 
 **Content-block renderers** (one per `ContentBlock` variant — same shape as MCP):
 
-| `ContentBlock.type` | Component |
-|---|---|
-| `text` | `<TextContent>` — markdown via existing `<MarkdownView>` |
-| `image` | `<ImageContent>` — needs Sixel/Kitty-graphics adapter on terminal target |
-| `audio` | `<AudioContent>` — placeholder on terminal; first-class on canvas/DOM |
-| `resource_link` | `<ResourceLink>` — typed clickable to open in workspace |
-| `resource` (embedded) | `<EmbeddedResource>` — recurse into resource type |
+| ContentBlock.type   | Component                                                              |
+| ------------------- | ---------------------------------------------------------------------- |
+| text                | <TextContent> — markdown via existing <MarkdownView>                   |
+| image               | <ImageContent> — needs Sixel/Kitty-graphics adapter on terminal target |
+| audio               | <AudioContent> — placeholder on terminal; first-class on canvas/DOM    |
+| resource_link       | <ResourceLink> — typed clickable to open in workspace                  |
+| resource (embedded) | <EmbeddedResource> — recurse into resource type                        |
 
 **Client-capability surfaces** (the four request methods the client implements):
 
-| Capability | Component / runtime |
-|---|---|
-| `requestPermission` | `<PermissionDialog>` rendering `RequestPermissionRequest.options[]` typed by `PermissionOptionKind` |
-| `fs.readTextFile` / `fs.writeTextFile` | `<WorkspaceProvider>` runtime — virtualizable: real disk / sandbox / git-worktree / staged-edits |
-| `terminal/create` … `terminal/wait_for_exit` | `<TerminalBackend>` runtime + `<TerminalPane>` view. **Pipes-first at v0** — plain `Bun.spawn` with stdio:pipe covers ~80% of agent commands (tests, builds, greps, file tools). Strategy plugins: `pipeBackend` (default), `recordingBackend` (storybook + tape, spawn-free), `ptyBackend` (when `@silvery/pty` lands; for interactive REPLs / TUIs / `gh pr create`-style prompts). Same `TerminalBackend` interface; agent never knows which is in use. PTY is no longer on silvercode's MVP critical path. |
+| Capability                               | Component / runtime                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| requestPermission                        | <PermissionDialog> rendering RequestPermissionRequest.options[] typed by PermissionOptionKind                                                                                                                                                                                                                                                                                                                                                                                            |
+| fs.readTextFile / fs.writeTextFile       | <WorkspaceProvider> runtime — virtualizable: real disk / sandbox / git-worktree / staged-edits                                                                                                                                                                                                                                                                                                                                                                                           |
+| terminal/create … terminal/wait_for_exit | <TerminalBackend> runtime + <TerminalPane> view. Pipes-first at v0 — plain Bun.spawn with stdio:pipe covers ~80% of agent commands (tests, builds, greps, file tools). Strategy plugins: pipeBackend (default), recordingBackend (storybook + tape, spawn-free), ptyBackend (when @silvery/pty lands; for interactive REPLs / TUIs / gh pr create-style prompts). Same TerminalBackend interface; agent never knows which is in use. PTY is no longer on silvercode's MVP critical path. |
 
 **Session/connection plumbing**:
 
@@ -828,32 +832,33 @@ That's the whole inventory. Most of it is silvery components that already exist 
 The component inventory above is derived from ACP primitives (SessionUpdate × ToolKind × ContentBlock × capability surfaces). Two adjacent projects ship richer component sets and are worth borrowing from: **opencode** (the visual-parity target — sst/opencode, SolidJS-based desktop/web pivot as of 2026-04, ships ~95 components) and **OpenTUI** (anomalyco/opencode, 10.5k stars, the native Zig TUI core that powers opencode's terminal showcase and terminal.shop).
 
 Important context corrections from research:
+
 - **opencode pivoted off the terminal.** Current `dev` branch is SolidJS desktop/web (Electron-shelled). No more Bubble Tea / Ink / Go TUI in the current tree. Visual parity now means parity with a desktop chat UI, not a TUI — but the component vocabulary is the right reference because it's what users compare against.
 - **opencode confirmed has ACP support** at `packages/opencode/src/acp/{agent,session,types}.ts`. The agent core is ACP-native; the renderer choice (SolidJS) is independent.
 - **OpenTUI is the native Zig TUI core with a C ABI** + React reconciler + Solid reconciler. opencode-the-TUI was built on it; terminal.shop is also using it.
 
 **What opencode ships beyond the ACP-derived list** (worth adopting for parity):
 
-| Category | Components opencode has that we don't |
-|---|---|
-| Session-turn anatomy | `session-turn` (top-level turn container with retry/reveal animations), `message-divider`, `session-retry` (inline retry-on-error), `AgentPart` (sub-agent spawn rendering — nested turn-within-turn) |
-| Tool rendering | `BasicTool` / `GenericTool` (collapsible header+body card, animated), `tool-status-title` (animated title morph: "Reading file…" → "Read 3 files"), `tool-count-summary` + `tool-count-label` (rolling-digit counters), `tool-error-card`, `apply-patch-file` (Aider-style search/replace blocks, distinct from regular edit diff) |
-| Diff | `diff-changes` with **inline `line-comment` / `line-comment-annotations`** — PR-review-style annotations on individual diff lines |
-| Composer | `prompt-input` suite: `slash-popover`, `context-items` (@-mentions), `image-attachments`, `drag-overlay`, `paste`, `history`, `placeholder`, `editor-dom` (rich contenteditable). Plus `dock-prompt` / `dock-surface` (bottom-docked composer surface) |
-| Workspace shell | `sidebar-shell`, `sidebar-workspace`, `sidebar-project`, `sidebar-items`, `titlebar` + `titlebar-history`, `session-side-panel`, `file-tabs` + `file-tab-scroll`, `session-sortable-tab`, `session-sortable-terminal-tab` — multi-pane with sortable tabs |
-| Terminal-as-tab | `terminal.tsx` + `terminal-panel.tsx` + `terminal-label.ts` — embedded xterm-style terminals as session tabs |
-| Token budget | `session-context-usage` + `session-context-breakdown` + `session-context-metrics` — token/context-window meters with breakdown popover |
-| Model marketplace | `dialog-connect-provider`, `dialog-custom-provider`, `dialog-manage-models`, `dialog-select-model`, `dialog-select-provider`, `model-tooltip`, ~20 provider icons |
-| MCP UX | `dialog-select-mcp`, `dialog-select-server` |
-| Settings | 5 settings panels (`general`, `keybinds`, `list`, `models`, `providers`) + a dedicated `Keybind` display component |
-| Session lifecycle | `dialog-fork` (session forking), `dialog-release-notes` (in-app changelog), `session-history` dropdown, `dialog-select-directory`, `dialog-select-file` |
-| Status indicators | `status-popover` + `status-popover-body` (status pill in titlebar with popover) |
-| Streaming-text effects | `text-shimmer`, `text-reveal`, `typewriter`, `text-strikethrough` (used during streaming) |
-| Animation vocabulary | `animated-number`, `motion-spring`, framer-motion-style spring animations on accordion, dock entrance, count summaries, todo panel |
-| Generic primitives | Polaris-shaped library: `accordion`, `collapsible`, `tabs`, `popover`, `hover-card`, `tooltip`, `dropdown-menu`, `context-menu`, `resize-handle`, `sticky-accordion-header`, `radio-group`, `switch`, `progress-circle`, `tag`, `avatar`, `image-preview`, `app-icon`, `file-icon`, `provider-icon`, `favicon`, `logo`, `font` |
-| Theme system | **37 JSON themes** at `ui/src/theme/themes/*.json` — Catppuccin, Tokyo Night, Dracula, Gruvbox, Synthwave84, etc. Published JSON Schema (`desktop-theme.schema.json`). Dedicated `Font` component as a first-class theme primitive. |
-| Stories | Every component has `*.stories.tsx`; `packages/storybook` hosts |
-| Mid-turn input | Question/Answer parts rendered as inline form widgets — agent asks the user a structured question mid-turn, user answers inline (this maps cleanly to ACP's `RequestPermission` + a `prompt`-input continuation) |
+| Category               | Components opencode has that we don't                                                                                                                                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session-turn anatomy   | session-turn (top-level turn container with retry/reveal animations), message-divider, session-retry (inline retry-on-error), AgentPart (sub-agent spawn rendering — nested turn-within-turn)                                                                                                                        |
+| Tool rendering         | BasicTool / GenericTool (collapsible header+body card, animated), tool-status-title (animated title morph: "Reading file…" → "Read 3 files"), tool-count-summary + tool-count-label (rolling-digit counters), tool-error-card, apply-patch-file (Aider-style search/replace blocks, distinct from regular edit diff) |
+| Diff                   | diff-changes with inline line-comment / line-comment-annotations — PR-review-style annotations on individual diff lines                                                                                                                                                                                              |
+| Composer               | prompt-input suite: slash-popover, context-items (@-mentions), image-attachments, drag-overlay, paste, history, placeholder, editor-dom (rich contenteditable). Plus dock-prompt / dock-surface (bottom-docked composer surface)                                                                                     |
+| Workspace shell        | sidebar-shell, sidebar-workspace, sidebar-project, sidebar-items, titlebar + titlebar-history, session-side-panel, file-tabs + file-tab-scroll, session-sortable-tab, session-sortable-terminal-tab — multi-pane with sortable tabs                                                                                  |
+| Terminal-as-tab        | terminal.tsx + terminal-panel.tsx + terminal-label.ts — embedded xterm-style terminals as session tabs                                                                                                                                                                                                               |
+| Token budget           | session-context-usage + session-context-breakdown + session-context-metrics — token/context-window meters with breakdown popover                                                                                                                                                                                     |
+| Model marketplace      | dialog-connect-provider, dialog-custom-provider, dialog-manage-models, dialog-select-model, dialog-select-provider, model-tooltip, ~20 provider icons                                                                                                                                                                |
+| MCP UX                 | dialog-select-mcp, dialog-select-server                                                                                                                                                                                                                                                                              |
+| Settings               | 5 settings panels (general, keybinds, list, models, providers) + a dedicated Keybind display component                                                                                                                                                                                                               |
+| Session lifecycle      | dialog-fork (session forking), dialog-release-notes (in-app changelog), session-history dropdown, dialog-select-directory, dialog-select-file                                                                                                                                                                        |
+| Status indicators      | status-popover + status-popover-body (status pill in titlebar with popover)                                                                                                                                                                                                                                          |
+| Streaming-text effects | text-shimmer, text-reveal, typewriter, text-strikethrough (used during streaming)                                                                                                                                                                                                                                    |
+| Animation vocabulary   | animated-number, motion-spring, framer-motion-style spring animations on accordion, dock entrance, count summaries, todo panel                                                                                                                                                                                       |
+| Generic primitives     | Polaris-shaped library: accordion, collapsible, tabs, popover, hover-card, tooltip, dropdown-menu, context-menu, resize-handle, sticky-accordion-header, radio-group, switch, progress-circle, tag, avatar, image-preview, app-icon, file-icon, provider-icon, favicon, logo, font                                   |
+| Theme system           | 37 JSON themes at ui/src/theme/themes/*.json — Catppuccin, Tokyo Night, Dracula, Gruvbox, Synthwave84, etc. Published JSON Schema (desktop-theme.schema.json). Dedicated Font component as a first-class theme primitive.                                                                                            |
+| Stories                | Every component has *.stories.tsx; packages/storybook hosts                                                                                                                                                                                                                                                          |
+| Mid-turn input         | Question/Answer parts rendered as inline form widgets — agent asks the user a structured question mid-turn, user answers inline (this maps cleanly to ACP's RequestPermission + a prompt-input continuation)                                                                                                         |
 
 **What OpenTUI ships beyond what silvery has** (primitives worth adopting at the framework level, separate from silvercode):
 
@@ -877,6 +882,7 @@ Important context corrections from research:
 **Punch list — additions to silvery / silvercode for parity**:
 
 *silvery framework primitives* (cross-app, useful for km too):
+
 - `<Diff>` — unified diff with hunk highlighting
 - `<Code>` — tree-sitter syntax-highlighted code block
 - `<Textarea>` — multi-line editor (selection, undo-redo, paste, wrap, highlights)
@@ -899,6 +905,7 @@ Important context corrections from research:
 - Tree-sitter pipeline as an optional package (workers + grammar download + cache)
 
 *silvercode-specific* (parity with opencode's chat UI):
+
 - `<SessionTurn>` — top-level turn container with retry / reveal animations / sub-agent nesting
 - `<MessageDivider>` — between-turns divider
 - `<SessionRetry>` — inline retry-on-error
@@ -978,15 +985,10 @@ ACP doesn't define cross-session sharing. Each `sessionId` is its own conversati
 **Layers of shared state:**
 
 1. **silvercode's own state — the source of truth.** A signal-backed store (alien-signals + projections) holding cross-agent claims, file locks, plan, pending handoffs, recent broadcasts. All agents' activity feeds it; all agents draw from it.
-
 2. **Filesystem (real or virtual).** Coarse but cheap. All agents working on the same git worktree share via the FS. silvercode's virtual paths (`km://`, `coordinator://shared/active-claims`) extend this — each agent reads via `fs/read_text_file`; silvercode resolves to live state.
-
 3. **Shared MCP servers.** Pass `coordinator-mcp` and `tribe-mcp` to all sessions in `session/new`. Tools: `coordinator_claim_file`, `coordinator_release_file`, `coordinator_handoff`, `coordinator_status`, `tribe_broadcast`, `tribe_history`. Each agent calls when it needs to coordinate. Silvercode mediates conflicts. **This is the canonical multi-agent coordination path in ACP.**
-
 4. **Curated prompt assembly per agent.** Each agent's next prompt includes a slice of cross-agent state relevant to its task. The Claude session sees "codex is refactoring src/auth.ts; don't touch it"; the codex session sees "claude is analyzing src/utils.ts." silvercode decides what each sees by projecting from its store.
-
 5. **Tribe (UDS underneath).** silvercode is itself a tribe peer. Cross-instance coordination — multiple silvercode processes on different machines, or tabs, or worktrees — happens at the silvercode-to-silvercode layer. From the agent's view it's silvercode-internal; from silvercode's view, it's tribe.
-
 6. **Cross-session reads via `session/list` + `session/load`.** silvercode can read another session's transcript and present it as a `ResourceLink` (`silvercode://session/<id>/recent`) in the current agent's prompt. ACP supports this directly.
 
 **Concrete architecture**:
@@ -1015,6 +1017,7 @@ ACP doesn't define cross-session sharing. Each `sessionId` is its own conversati
 ```
 
 **Silvercode's responsibilities**:
+
 - Maintain cross-agent state as a signal-backed store
 - Mediate `coordinator_*` MCP calls (validate claims, prevent conflicts, broadcast acknowledgements)
 - Project relevant state slices into each agent's prompt assembly
@@ -1022,6 +1025,7 @@ ACP doesn't define cross-session sharing. Each `sessionId` is its own conversati
 - Optionally run a meta-orchestrator agent (small fast model) that decides who works on what
 
 **What this rules out**:
+
 - Direct ACP message passing between agents — not supported, don't try
 - Agents discovering each other via ACP — `session/list` returns one agent's sessions, not other agents'
 - Cross-session subscriptions — ACP is request/response per session
@@ -1045,21 +1049,22 @@ OpenClaw built exactly this architecture — tool-driven, gateway-mediated, with
 
 km already uses tribe broadcasts heavily for synchronization (chief election, claim coordination, CI alerts, sub-agent updates). The architecture is in place; what's missing is the agent-facing MCP wrapper. OpenClaw's pattern is the template:
 
-| OpenClaw | silvercode (proposed) |
-|---|---|
-| Gateway runtime | silvercode itself |
-| Gateway session registry | tribe peers + silvercode's `crossAgentState$` signal store |
-| `sessions_send` tool | `tribe-mcp` exposing `tribe_send` |
-| `sessions_list` tool | `tribe-mcp` exposing `tribe_members` |
-| `sessions_history` tool | `tribe-mcp` exposing `tribe_history` |
-| `sessions.changed` SSE | tribe `member_joined` / `member_left` broadcasts → silvercode UI subscription |
-| Spawn tree (parent/child) | tribe roles (chief / member) + ACP `session/list` for in-process |
-| `tools.agentToAgent` policy | per-MCP-server permission scopes; ACP `RequestPermission` flow |
-| Permission gate (dangerous-tools) | ACP `RequestPermission` on tribe-mcp mutating tools |
+| OpenClaw                          | silvercode (proposed)                                                     |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| Gateway runtime                   | silvercode itself                                                         |
+| Gateway session registry          | tribe peers + silvercode's crossAgentState$ signal store                  |
+| sessions_send tool                | tribe-mcp exposing tribe_send                                             |
+| sessions_list tool                | tribe-mcp exposing tribe_members                                          |
+| sessions_history tool             | tribe-mcp exposing tribe_history                                          |
+| sessions.changed SSE              | tribe member_joined / member_left broadcasts → silvercode UI subscription |
+| Spawn tree (parent/child)         | tribe roles (chief / member) + ACP session/list for in-process            |
+| tools.agentToAgent policy         | per-MCP-server permission scopes; ACP RequestPermission flow              |
+| Permission gate (dangerous-tools) | ACP RequestPermission on tribe-mcp mutating tools                         |
 
 **The architectural insight**: tribe is silvercode's *transport* for cross-instance synchronization (broadcasts arrive over UDS); `tribe-mcp` is the *agent-facing wrapper* that exposes those broadcasts as typed MCP tools. The agents themselves participate in the synchronization rather than only silvercode-the-orchestrator. OpenClaw demonstrates this works at production scale.
 
 **Concrete plan**:
+
 1. Wrap tribe's UDS API as an MCP server (`tribe-mcp`) — `tribe_send`, `tribe_broadcast`, `tribe_members`, `tribe_history`, `tribe_claim_chief`, `tribe_release_chief`, `tribe_join`. Same shape as the current MCP tool surface (which is already exposed to Claude Code today via the `mcp__plugin_tribe_tribe__*` namespace).
 2. Pass `tribe-mcp` in every silvercode `session/new { mcpServers: [...] }`. All wrapped agents get tribe access as MCP tools.
 3. silvercode subscribes to tribe directly (separate from the agent's MCP path) — uses tribe events to populate `crossAgentState$` and project relevant slices into each agent's prompt assembly.
@@ -1264,6 +1269,7 @@ await agent.newSession({
 ```
 
 Why this fixes the confusion:
+
 - Agent decides *when* to query memory — only fetches when contextually relevant
 - Result arrives as a tool result, structurally distinct from user input
 - Result is in agent-scoped context, not pre-committed to conversation history (compaction-friendly)
@@ -1350,6 +1356,7 @@ function buildPrompt(userText: string): ContentBlock[] {
 ```
 
 Why this is right:
+
 - Agent reads via the same primitive as real files; tool renderers (`<FilePreview>`, `<DiffView>`) work uniformly
 - Selection is a live signal in km; every read returns current state
 - Sandboxed: agent can only access what silvercode resolves
@@ -1364,14 +1371,14 @@ Why this is right:
 
 These are orthogonal:
 
-|  | ACP commands | MCP tools |
-|---|---|---|
-| Direction | agent → client (advertise) | agent → external server (call) |
-| Who invokes | the user | the agent |
-| Discoverability | client renders palette | agent reasons over schema |
-| Defined by | the agent | the MCP server |
-| Typed input | `AvailableCommandInput` | MCP tool schema |
-| Use case | user shortcuts | agent capabilities |
+|                 | ACP commands               | MCP tools                      |
+| --------------- | -------------------------- | ------------------------------ |
+| Direction       | agent → client (advertise) | agent → external server (call) |
+| Who invokes     | the user                   | the agent                      |
+| Discoverability | client renders palette     | agent reasons over schema      |
+| Defined by      | the agent                  | the MCP server                 |
+| Typed input     | AvailableCommandInput      | MCP tool schema                |
+| Use case        | user shortcuts             | agent capabilities             |
 
 **Custom tools in ACP** are not defined *by ACP* — ACP just transports `ToolCall` notifications and tool results. The tools themselves come from:
 
@@ -1395,3 +1402,4 @@ So if silvercode wants to give the agent custom km capabilities (mutate the boar
 - maige — github.com/RubricLab/maige (Type M, server-side bot)
 - sketch — github.com/boldsoftware/sketch (Type M, web IDE in container)
 - ACP (Agent Client Protocol) — agentclientprotocol.com, zed.dev, github.com/zed-industries/zed — schema-versioned JSON-RPC contract for editor↔agent
+

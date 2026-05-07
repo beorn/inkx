@@ -10,12 +10,12 @@
 
 Three files — all new, additive, non-breaking:
 
-| File                                                                                       | LOC | Role |
-| ------------------------------------------------------------------------------------------ | --: | ---- |
-| `vendor/silvery/packages/create/src/definePlugin.ts`                                       | ~170 (incl. comments) | Factory + types |
-| `vendor/silvery/packages/create/src/useStore.ts`                                           | ~40  | React hook |
-| `apps/km-tui/src/plugins/help-overlay.v2.ts`                                                | **35** | HelpOverlay re-cutover |
-| `apps/km-tui/tests/plugins/help-overlay-v2.test.ts`                                         | ~170 | Unit + parity tests |
+| File                                               | LOC                   | Role                   |
+| -------------------------------------------------- | --------------------: | ---------------------- |
+| vendor/silvery/packages/create/src/definePlugin.ts | ~170 (incl. comments) | Factory + types        |
+| vendor/silvery/packages/create/src/useStore.ts     | ~40                   | React hook             |
+| apps/km-tui/src/plugins/help-overlay.v2.ts         | 35                    | HelpOverlay re-cutover |
+| apps/km-tui/tests/plugins/help-overlay-v2.test.ts  | ~170                  | Unit + parity tests    |
 
 Registration: `definePlugin`, `Plugin`, `OpOf`, `PluginHandle`, `useStore` are exported from `@silvery/create` (see `index.ts`).
 
@@ -76,10 +76,10 @@ The `PayloadOf<R>` helper discriminates on `Parameters` length — 1-arg reducer
 
 ## LOC comparison
 
-| Variant | Files | LOC | Ratio vs v1 |
-| --- | ---: | ---: | --- |
-| **v1** `with-help-overlay.ts` + `use-help-overlay.ts` + `HelpOverlayBridge.tsx` | 3 | **296** | 1.0× |
-| **v2** `help-overlay.v2.ts` (plugin + feature flag) | 1 | **35** | **0.12×** |
+| Variant                                                               | Files | LOC | Ratio vs v1 |
+| --------------------------------------------------------------------- | ----: | --: | ----------- |
+| v1 with-help-overlay.ts + use-help-overlay.ts + HelpOverlayBridge.tsx | 3     | 296 | 1.0×        |
+| v2 help-overlay.v2.ts (plugin + feature flag)                         | 1     | 35  | 0.12×       |
 
 The v2 file contains: 13 lines of JSDoc (intent + scope), 1 import, 12 lines of plugin spec, 1 line for the flag helper, blank lines. The reducer is 5 lines. The keys map is 1 line. That's the whole plugin.
 
@@ -97,14 +97,14 @@ The v1→v2 delta cut:
 
 ## Ergonomics — scored against the 6 elegance criteria
 
-| # | Criterion | v1 Cycle 1 | v2 spike | Delta |
-| --- | --- | --- | --- | --- |
-| 1 | Minimum viable plugin ≤50 LOC | FAIL (296) | **PASS (35)** | +PASS |
-| 2 | Zero `as` casts in plugin code | PASS (0) | **PASS (0)** | — |
-| 3 | Zero manual `${name}.${op}` string literals | FAIL (9+) | **PASS (0)** | +PASS |
-| 4 | Types flow without hand-typed op unions | PARTIAL | **PASS** — `OpOf<Name, Ops>` discriminated union derived from the spec | +PASS |
-| 5 | Precedence bugs caught at `pipe()` time | FAIL | **DEFERRED** — still no role-lane type-level tag (by design, per pro review) | — |
-| 6 | External dev builds plugin from docs in <2h | N/A | N/A — docs beyond this spike report are bead `km-silvery.plugin-authoring-doc` | — |
+| #   | Criterion                                   | v1 Cycle 1 | v2 spike                                                                     | Delta |
+| --- | ------------------------------------------- | ---------- | ---------------------------------------------------------------------------- | ----- |
+| 1   | Minimum viable plugin ≤50 LOC               | FAIL (296) | PASS (35)                                                                    | +PASS |
+| 2   | Zero as casts in plugin code                | PASS (0)   | PASS (0)                                                                     | —     |
+| 3   | Zero manual ${name}.${op} string literals   | FAIL (9+)  | PASS (0)                                                                     | +PASS |
+| 4   | Types flow without hand-typed op unions     | PARTIAL    | PASS — OpOf<Name, Ops> discriminated union derived from the spec             | +PASS |
+| 5   | Precedence bugs caught at pipe() time       | FAIL       | DEFERRED — still no role-lane type-level tag (by design, per pro review)     | —     |
+| 6   | External dev builds plugin from docs in <2h | N/A        | N/A — docs beyond this spike report are bead km-silvery.plugin-authoring-doc | —     |
 
 **Criteria 1, 3, 4 flipped from FAIL to PASS.** The other pass-through criteria (2, 5, 6) were already in their target state or deferred.
 
@@ -156,3 +156,4 @@ That's 20 LOC for the plugin body, same as HelpOverlay. The full SearchDialog v2
 ## Next cycle gate (2026-05-21)
 
 Criterion to measure at Cycle 2: **SearchDialog v2 at ≤80 LOC total (plugin file + app-concern bridge), with the plugin body ≤35 LOC.** If yes, the `definePlugin` primitive generalizes; if no, diagnose which dialog-chrome primitive silvery is missing.
+

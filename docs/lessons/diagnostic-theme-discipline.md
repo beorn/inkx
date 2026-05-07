@@ -55,13 +55,9 @@ After three /silvery agents and 11 rounds couldn't reproduce, the implicit concl
 ## Rules for next time
 
 1. **New pipeline regression tests run at `diagnosticTheme` by default.** If the test asserts on cell-level bg/fg/attrs, use the theme where every distinct token is a distinct visible color.
-
 2. **Multi-theme matrix for visible-pixel tests.** Run pipeline regression tests across `[diagnostic, nord, tokyo-night, default-dark]`. ansi16 is intentionally excluded — it's the structural collapse the matrix detects-around-of, not against.
-
 3. **When a test passes but the user sees a bug, suspect the test harness, not the bug report.** Check: does the test theme make the bug's signal visible? Does the test fixture construct the trigger shape? Is the assertion checking the right cell property?
-
 4. **STRICT is a trap when both walkers have the same bug.** If incremental == fresh but the user still sees something wrong, the bug is in shared infrastructure both walkers call. STRICT can't catch it.
-
 5. **Capture user's real ANSI bytes early.** Decoding a real-session `SILVERY_CAPTURE_OUTPUT` through `createTermless` (xterm-headless) localizes the bug to exact (row, col, color, char) within minutes — much faster than synthetic-test-iteration with the wrong shape.
 
 ## Cross-references
@@ -72,3 +68,4 @@ After three /silvery agents and 11 rounds couldn't reproduce, the implicit concl
 - `@km/silvery/diagnostic-theme-matrix` — extend the pattern to other regression tests
 - `@km/silvery/clip-parity-invariant` — STRICT-mode check that catches the bug class structurally
 - `docs/lessons/debugging-rendering.md` — sibling lesson about using diagnostic infrastructure (which the cyan-strip didn't have until now)
+

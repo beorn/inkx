@@ -47,17 +47,17 @@ useFocusManager(): {
 
 ## Key differences
 
-| Feature                   | Silvery                           | Ink                                   |
-| ------------------------- | --------------------------------- | ------------------------------------- |
-| **Hook name**             | useFocusable                      | useFocus                              |
-| **Options arg**           | No — reads from node props        | Yes — options object                  |
-| **id/testID**             | `testID` prop on Box              | `id` in options                       |
-| **autoFocus**             | Prop on Box                       | Options arg                           |
-| **isActive**              | Missing                           | Yes (disable without losing position) |
-| **Return field name**     | `focused`                         | `isFocused`                           |
-| **Focus origin tracking** | Yes (keyboard/mouse/programmatic) | No                                    |
-| **useFocusWithin**        | Yes (parent-level)                | No                                    |
-| **Focus scopes**          | Yes (withFocus provider)          | No                                    |
+| Feature               | Silvery                           | Ink                                   |
+| --------------------- | --------------------------------- | ------------------------------------- |
+| Hook name             | useFocusable                      | useFocus                              |
+| Options arg           | No — reads from node props        | Yes — options object                  |
+| id/testID             | testID prop on Box                | id in options                         |
+| autoFocus             | Prop on Box                       | Options arg                           |
+| isActive              | Missing                           | Yes (disable without losing position) |
+| Return field name     | focused                           | isFocused                             |
+| Focus origin tracking | Yes (keyboard/mouse/programmatic) | No                                    |
+| useFocusWithin        | Yes (parent-level)                | No                                    |
+| Focus scopes          | Yes (withFocus provider)          | No                                    |
 
 ## Ink's advantages
 
@@ -81,30 +81,26 @@ useFocusManager(): {
 ### Plan
 
 1. **Add `useFocus(options?)` hook**
-   - Matches Ink's signature exactly
-   - Returns `{ isFocused, focus }` (Ink-compatible shape)
-   - Internally uses the same FocusManager as useFocusable
-   - When `id` provided, stores on the node (overrides testID)
-   - When `autoFocus: true`, triggers focus on mount
-   - When `isActive: false`, disables this component's focus target
-
-2. **Keep useFocusable as internal hook**
-   - Used by components that need focus origin tracking
-   - Used by internals that need scope-aware behavior
-   - Not removed — different use case (richer return)
-
-3. **Add `activeId` to useFocusManager return**
-   - Matches Ink's API
-   - Trivial — it's already in the snapshot
-
-4. **Add `enableFocus` / `disableFocus` to useFocusManager**
-   - These match Ink's global focus toggle
-   - Silvery should support this for parity
-
-5. **The ink-hooks.ts compat layer already has `useFocus`**
-   - `vendor/silvery/packages/ink/src/ink-hooks.ts:22`
-   - Verify it matches Ink 7.0 signature
-   - Move to public hooks (not just ink compat) — it's a good API
+- Matches Ink's signature exactly
+- Returns `{ isFocused, focus }` (Ink-compatible shape)
+- Internally uses the same FocusManager as useFocusable
+- When `id` provided, stores on the node (overrides testID)
+- When `autoFocus: true`, triggers focus on mount
+- When `isActive: false`, disables this component's focus target
+9. **Keep useFocusable as internal hook**
+- Used by components that need focus origin tracking
+- Used by internals that need scope-aware behavior
+- Not removed — different use case (richer return)
+14. **Add `activeId` to useFocusManager return**
+- Matches Ink's API
+- Trivial — it's already in the snapshot
+18. **Add `enableFocus` / `disableFocus` to useFocusManager**
+- These match Ink's global focus toggle
+- Silvery should support this for parity
+22. **The ink-hooks.ts compat layer already has `useFocus`**
+- `vendor/silvery/packages/ink/src/ink-hooks.ts:22`
+- Verify it matches Ink 7.0 signature
+- Move to public hooks (not just ink compat) — it's a good API
 
 ## Implementation sketch
 
@@ -179,3 +175,4 @@ export function useFocus(options: UseFocusOptions = {}): UseFocusResult {
 - New useFocus tests cover id/autoFocus/isActive matrix
 - Port Ink useFocus examples to silvery — should work unchanged
 - Migration doc: before/after for Ink users
+

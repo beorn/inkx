@@ -29,18 +29,18 @@ useBoxMetrics(ref: RefObject<DOMElement>): BoxMetrics & { hasMeasured: boolean }
 
 ## Key differences
 
-| Feature                     | Silvery                          | Ink                                         |
-| --------------------------- | -------------------------------- | ------------------------------------------- |
-| **Invocation**              | Component-internal (NodeContext) | `useBoxMetrics(ref)`                        |
-| **Shape**                   | `{ x, y, width, height }`        | `{ width, height, left, top, hasMeasured }` |
-| **Position semantics**      | Absolute in content space        | Parent-relative (getComputedLayout)         |
-| **hasMeasured flag**        | Missing                          | Yes                                         |
-| **Field name for position** | `x, y`                           | `left, top`                                 |
-| **Scroll-aware**            | useScreenRect yes                | No (Ink has no scroll)                      |
-| **Sticky-aware**            | usescreenRect yes                | No                                          |
-| **Zero-rerender variant**   | Yes (`*Callback`)                | No                                          |
-| **Resize subscription**     | Via pipeline layoutSubscribers   | Explicit stdout.on('resize')                |
-| **Subtree-level re-render** | Yes (node.layoutSubscribers)     | Yes (addLayoutListener on root)             |
+| Feature                 | Silvery                          | Ink                                       |
+| ----------------------- | -------------------------------- | ----------------------------------------- |
+| Invocation              | Component-internal (NodeContext) | useBoxMetrics(ref)                        |
+| Shape                   | { x, y, width, height }          | { width, height, left, top, hasMeasured } |
+| Position semantics      | Absolute in content space        | Parent-relative (getComputedLayout)       |
+| hasMeasured flag        | Missing                          | Yes                                       |
+| Field name for position | x, y                             | left, top                                 |
+| Scroll-aware            | useScreenRect yes                | No (Ink has no scroll)                    |
+| Sticky-aware            | usescreenRect yes                | No                                        |
+| Zero-rerender variant   | Yes (*Callback)                  | No                                        |
+| Resize subscription     | Via pipeline layoutSubscribers   | Explicit stdout.on('resize')              |
+| Subtree-level re-render | Yes (node.layoutSubscribers)     | Yes (addLayoutListener on root)           |
 
 ## Ink's advantages
 
@@ -61,36 +61,33 @@ useBoxMetrics(ref: RefObject<DOMElement>): BoxMetrics & { hasMeasured: boolean }
 ### Plan
 
 1. **Add `useBoxMetrics(ref?)` as a new hook**
-   - With ref: ref-based (compat with Ink)
-   - Without ref: uses NodeContext (silvery idiom)
-   - Returns `{ width, height, left, top, hasMeasured }`
-   - Derives left/top from parent-relative position (boxRect.x - parent.boxRect.x)
+- With ref: ref-based (compat with Ink)
+- Without ref: uses NodeContext (silvery idiom)
+- Returns `{ width, height, left, top, hasMeasured }`
+- Derives left/top from parent-relative position (boxRect.x - parent.boxRect.x)
+7. **Add `hasMeasured` to the return type**
+- Also add to useBoxRect / useScreenRect / usescreenRect as optional extension
+- Pre-first-render: `hasMeasured: false`, width/height = 0
+- Post-layout: `hasMeasured: true`, real values
+12. **Keep useBoxRect + useScreenRect + usescreenRect**
+- They're not redundant — useScreenRect and usescreenRect are unique silvery features
+- Don't rename them — silvery's model is richer than Ink's
+- But document useBoxMetrics as the "Ink-compatible" entry point
+17. **Migration guide update**
 
-2. **Add `hasMeasured` to the return type**
-   - Also add to useBoxRect / useScreenRect / usescreenRect as optional extension
-   - Pre-first-render: `hasMeasured: false`, width/height = 0
-   - Post-layout: `hasMeasured: true`, real values
+```tsx
+// Ink code — works as-is after switching import
+import { useBoxMetrics } from "silvery"
+const ref = useRef(null)
+const { width, height, left, top, hasMeasured } = useBoxMetrics(ref)
 
-3. **Keep useBoxRect + useScreenRect + usescreenRect**
-   - They're not redundant — useScreenRect and usescreenRect are unique silvery features
-   - Don't rename them — silvery's model is richer than Ink's
-   - But document useBoxMetrics as the "Ink-compatible" entry point
-
-4. **Migration guide update**
-
-   ```tsx
-   // Ink code — works as-is after switching import
-   import { useBoxMetrics } from "silvery"
-   const ref = useRef(null)
-   const { width, height, left, top, hasMeasured } = useBoxMetrics(ref)
-
-   // Or silvery idiom (no ref required)
-   const { width, height } = useBoxMetrics()
-   ```
+// Or silvery idiom (no ref required)
+const { width, height } = useBoxMetrics()
+```
 
 5. **Export from barrel**
-   - `silvery/hooks` subpath export
-   - `silvery` main barrel
+- `silvery/hooks` subpath export
+- `silvery` main barrel
 
 ## Implementation sketch
 
@@ -146,12 +143,11 @@ export function useBoxMetrics(ref?: RefObject<AgNode | null>): BoxMetrics {
 ## Open questions
 
 1. **Do we expose AgNode refs?** Currently silvery doesn't have a ref mechanism like Ink's `ref={someRef}`. If we want ref-based useBoxMetrics, we need to add forwardRef support to Box/Text.
-   - **Decision**: Start without ref support (just NodeContext). Add ref support when migrating from Ink is actually needed. That's a separate, bigger change.
-
-2. **Should we update useBoxRect to include hasMeasured?**
-   - Pro: Consistent API
-   - Con: Breaking change for callers expecting just Rect
-   - **Decision**: Add as optional property via type extension, non-breaking
+- **Decision**: Start without ref support (just NodeContext). Add ref support when migrating from Ink is actually needed. That's a separate, bigger change.
+4. **Should we update useBoxRect to include hasMeasured?**
+- Pro: Consistent API
+- Con: Breaking change for callers expecting just Rect
+- **Decision**: Add as optional property via type extension, non-breaking
 
 ## Effort
 
@@ -166,3 +162,4 @@ export function useBoxMetrics(ref?: RefObject<AgNode | null>): BoxMetrics {
 - New useBoxMetrics tests cover hasMeasured, ref/no-ref paths
 - Example: port an Ink useBoxMetrics example unchanged
 - Migration doc shows before/after for Ink users
+

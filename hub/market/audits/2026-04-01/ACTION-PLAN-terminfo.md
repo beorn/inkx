@@ -29,6 +29,7 @@ The `{{ p.terminalName }}`, `{{ p.featureName }}`, `{{ p.categoryName }}`, and `
 `og-image.svg` is 548 bytes but **no major social platform renders SVG** for card previews. Twitter/X, Facebook, LinkedIn, Discord, Slack all require raster formats (PNG, JPG).
 
 **Fix:**
+
 1. Convert `og-image.svg` to PNG at 1200x630px: `rsvg-convert og-image.svg -w 1200 -h 630 -o og-image.png`
 2. Update all `og:image` references from `.svg` to `.png`
 3. Add `og:image:width`, `og:image:height`, `og:image:type` meta tags
@@ -44,12 +45,14 @@ The `{{ p.terminalName }}`, `{{ p.featureName }}`, `{{ p.categoryName }}`, and `
 **Score lift:** +8 on On-Page SEO
 
 Missing on ALL pages:
+
 - `og:type` -- set to `"website"` for index pages, `"article"` for content pages
 - `og:url` -- set to match canonical URL
 - `og:site_name` -- set to `"Terminfo.dev"`
 - `og:locale` -- set to `"en_US"`
 
 Missing on homepage, about, api:
+
 - `og:title` -- needs to be generated (fix in enrich plugin's fallback)
 - `og:description` -- needs to be generated
 
@@ -65,6 +68,7 @@ Missing on homepage, about, api:
 These 3 pages still use the generic tagline "Can your terminal do that? Feature support tables for terminal emulators." as their meta description.
 
 **Suggested descriptions:**
+
 - **Homepage:** "Compare 164 terminal features across 14+ emulators. Support matrices for SGR, cursor, modes, extensions, Unicode, and more. Data from automated headless probing."
 - **About:** "How terminfo.dev tests terminal emulator compatibility. Three data sources, 153 features, 13 categories, automated headless probing with Termless."
 - **API:** "Free JSON API for terminal emulator feature support data. Programmatic access to 164 feature tests across 14 terminals. Badges, schemas, and usage examples."
@@ -76,6 +80,7 @@ These 3 pages still use the generic tagline "Can your terminal do that? Feature 
 **Score lift:** +5 on Technical SEO
 
 These pages are referenced in BreadcrumbList JSON-LD as parent nodes but return 404:
+
 - `/compare` -- should list all 91 comparison pages
 - `/baseline` -- should introduce the 4 baseline tiers
 - `/framework` -- should list all 6 framework pages
@@ -95,6 +100,7 @@ No `<lastmod>` on any of the 328 URLs. Google uses lastmod to prioritize which p
 **Effort:** Medium (add to enrich plugin)
 
 Terminal profile pages (`/terminals/ghostty`, `/terminals/kitty`, etc.) describe software applications and should use `SoftwareApplication` schema:
+
 ```json
 {
   "@type": "SoftwareApplication",
@@ -125,6 +131,7 @@ Category and standards pages have descriptions exceeding 300-500 characters. Goo
 **Effort:** Medium
 
 The glossary has 100+ defined terms. Each could be marked up as:
+
 ```json
 {
   "@type": "DefinedTermSet",
@@ -141,6 +148,7 @@ The glossary has 100+ defined terms. Each could be marked up as:
 **Effort:** Small
 
 The terminal compatibility data is a structured dataset with an API. Mark it up:
+
 ```json
 {
   "@type": "Dataset",
@@ -180,6 +188,7 @@ The terminal compatibility data is a structured dataset with an API. Mark it up:
 **Effort:** Medium-High
 
 Feature pages would benefit from FAQ sections:
+
 - "Does Ghostty support bold text?" -> "Yes, Ghostty has supported bold (SGR 1) since version 1.0."
 - "Which terminals don't support curly underline?" -> "Terminal.app and GNU Screen lack curly underline support."
 
@@ -191,6 +200,7 @@ Mark up with FAQPage schema for rich results.
 **Effort:** Small (Cloudflare setting)
 
 Enable `Strict-Transport-Security` in Cloudflare dashboard or via `_headers` file:
+
 ```
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 ```
@@ -260,6 +270,7 @@ Fundamentals articles (TTY Architecture, Security, etc.) qualify for TechArticle
 **Effort:** High
 
 The 593KB homepage HTML contains the full feature matrix. Options:
+
 - Lazy-load below-the-fold matrix sections
 - Use virtual scrolling for the matrix
 - Generate a summary view with expandable sections
@@ -271,6 +282,7 @@ The 593KB homepage HTML contains the full feature matrix. Options:
 **Effort:** High (build-time image generation)
 
 Generate unique OG images for high-traffic page types:
+
 - Terminal profiles: Show terminal name + score percentage
 - Comparison pages: Show "A vs B" with scores
 - Category pages: Show category name + feature count
@@ -286,42 +298,43 @@ Add Person schema for the author with `sameAs` links to GitHub, Twitter, etc.
 
 ## Implementation Priority Matrix
 
-| # | Item | Impact | Effort | Priority |
-|---|------|--------|--------|----------|
-| 1 | Fix breadcrumb template vars | Very High | Small | **P0** |
-| 2 | PNG OG image | Very High | Small | **P0** |
-| 3 | Add missing OG tags | High | Small | **P0** |
-| 4 | Unique descriptions for 3 pages | High | Small | **P1** |
-| 5 | Create /compare, /baseline, /framework index pages | High | Medium | **P1** |
-| 6 | Add sitemap lastmod | Medium | Small | **P1** |
-| 7 | SoftwareApplication schema | Medium | Medium | **P1** |
-| 8 | Truncate long descriptions | Medium | Small | **P1** |
-| 9 | DefinedTermSet schema | Medium | Medium | **P2** |
-| 10 | Dataset schema | Medium | Small | **P2** |
-| 11 | SearchAction schema | Medium | Small | **P2** |
-| 12 | FAQ content + schema | Medium | High | **P2** |
-| 13 | HSTS header | Low | Small | **P2** |
-| 14 | www redirect | Low | Small | **P2** |
-| 15 | Fix sitemap duplicate | Low | Trivial | **P2** |
-| 16 | AI crawler directives | Low | Trivial | **P2** |
-| 17 | Logo alt text | Low | Trivial | **P2** |
-| 18 | llms-full.txt | Low | Medium | **P3** |
-| 19 | Article schema for fundamentals | Low | Medium | **P3** |
-| 20 | Optimize homepage size | Medium | High | **P3** |
-| 21 | Per-page OG images | Medium | High | **P3** |
-| 22 | Organization/Person schema | Low | Small | **P3** |
+| #   | Item                                               | Impact    | Effort  | Priority |
+| --- | -------------------------------------------------- | --------- | ------- | -------- |
+| 1   | Fix breadcrumb template vars                       | Very High | Small   | P0       |
+| 2   | PNG OG image                                       | Very High | Small   | P0       |
+| 3   | Add missing OG tags                                | High      | Small   | P0       |
+| 4   | Unique descriptions for 3 pages                    | High      | Small   | P1       |
+| 5   | Create /compare, /baseline, /framework index pages | High      | Medium  | P1       |
+| 6   | Add sitemap lastmod                                | Medium    | Small   | P1       |
+| 7   | SoftwareApplication schema                         | Medium    | Medium  | P1       |
+| 8   | Truncate long descriptions                         | Medium    | Small   | P1       |
+| 9   | DefinedTermSet schema                              | Medium    | Medium  | P2       |
+| 10  | Dataset schema                                     | Medium    | Small   | P2       |
+| 11  | SearchAction schema                                | Medium    | Small   | P2       |
+| 12  | FAQ content + schema                               | Medium    | High    | P2       |
+| 13  | HSTS header                                        | Low       | Small   | P2       |
+| 14  | www redirect                                       | Low       | Small   | P2       |
+| 15  | Fix sitemap duplicate                              | Low       | Trivial | P2       |
+| 16  | AI crawler directives                              | Low       | Trivial | P2       |
+| 17  | Logo alt text                                      | Low       | Trivial | P2       |
+| 18  | llms-full.txt                                      | Low       | Medium  | P3       |
+| 19  | Article schema for fundamentals                    | Low       | Medium  | P3       |
+| 20  | Optimize homepage size                             | Medium    | High    | P3       |
+| 21  | Per-page OG images                                 | Medium    | High    | P3       |
+| 22  | Organization/Person schema                         | Low       | Small   | P3       |
 
 ---
 
 ## Expected Score After P0+P1 Fixes
 
-| Dimension | Current | After P0+P1 | Change |
-|-----------|---------|-------------|--------|
-| Technical SEO | 78 | 85 | +7 |
-| Content Quality | 82 | 84 | +2 |
-| On-Page SEO | 70 | 85 | +15 |
-| Schema | 48 | 72 | +24 |
-| Performance | 68 | 70 | +2 |
-| AI Readiness | 80 | 82 | +2 |
-| Images/Social | 35 | 70 | +35 |
-| **Weighted Total** | **72** | **82** | **+10** |
+| Dimension       | Current | After P0+P1 | Change |
+| --------------- | ------- | ----------- | ------ |
+| Technical SEO   | 78      | 85          | +7     |
+| Content Quality | 82      | 84          | +2     |
+| On-Page SEO     | 70      | 85          | +15    |
+| Schema          | 48      | 72          | +24    |
+| Performance     | 68      | 70          | +2     |
+| AI Readiness    | 80      | 82          | +2     |
+| Images/Social   | 35      | 70          | +35    |
+| Weighted Total  | 72      | 82          | +10    |
+

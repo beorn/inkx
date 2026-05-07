@@ -5,7 +5,6 @@ aliases:
   - km-kzfe
 ---
 
-
 ## Update 2026-05-06 — primitive layer added: useResponsiveDisplay
 
 User question: "what about `const display = useResponsiveDisplay(...); <Box {...display}>`?"

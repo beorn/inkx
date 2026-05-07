@@ -26,16 +26,16 @@ closed_at: 2026-01-21T09:36:01Z
 ## Remaining Opportunities
 
 1. **Dialog Handlers** (~200 lines)
-  - Extract to use-board-dialogs.ts or expand existing
-  - ProjectPicker, NewItemDialog, HelpOverlay coordination
-2. **Keyboard Logic** (~300 lines)
-  - Some keyboard handling still in Board.tsx
-  - Should route through @km/commands (see @km/cmd/migrate)
-3. **Mouse/Paste/Drop Handlers** (~150 lines)
-  - Extract to separate adapter modules
-4. **Effect Chains** (~100 lines)
-  - Multiple useEffect hooks managing different concerns
-  - Consider custom hooks for each concern
+- Extract to use-board-dialogs.ts or expand existing
+- ProjectPicker, NewItemDialog, HelpOverlay coordination
+5. **Keyboard Logic** (~300 lines)
+- Some keyboard handling still in Board.tsx
+- Should route through @km/commands (see @km/cmd/migrate)
+9. **Mouse/Paste/Drop Handlers** (~150 lines)
+- Extract to separate adapter modules
+12. **Effect Chains** (~100 lines)
+- Multiple useEffect hooks managing different concerns
+- Consider custom hooks for each concern
 
 ## Recommendation
 

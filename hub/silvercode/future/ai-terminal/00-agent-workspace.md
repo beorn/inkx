@@ -26,7 +26,6 @@ This is the "minimum viable product" expansion of the original "minimum viable a
 
 - Multiple Claude Code sessions concurrent, each riding the user's existing Pro/Max subscription via subprocess.
 - Canonical spawn:
-
   ```
   claude --bare -p \
     --input-format stream-json \
@@ -35,12 +34,11 @@ This is the "minimum viable product" expansion of the original "minimum viable a
     --verbose
   ```
 
-  Not one-shot. `-p` is non-interactive (no REPL) but **with `--input-format stream-json` it opens a persistent bidirectional JSON channel** on stdin/stdout. Harness writes user/permission events to stdin; Claude streams turn-start, tool-use, tool-result, permission-request, turn-end events back. Equivalent to an interactive session with structured I/O. `--verbose` required for partial messages + tool events; `--include-partial-messages` for token streaming. `--bare` suppresses user's local hooks/plugins/MCP/skills for determinism (Anthropic indicated `--bare` will likely become the `-p` default).
+  Not one-shot. -p is non-interactive (no REPL) but with --input-format stream-json it opens a persistent bidirectional JSON channel on stdin/stdout. Harness writes user/permission events to stdin; Claude streams turn-start, tool-use, tool-result, permission-request, turn-end events back. Equivalent to an interactive session with structured I/O. --verbose required for partial messages + tool events; --include-partial-messages for token streaming. --bare suppresses user's local hooks/plugins/MCP/skills for determinism (Anthropic indicated --bare will likely become the -p default).
 
-  Resume/fork across invocations: `--resume <session-id>` or `-c`. One-shot calls drop the stream-json flags.
+  Resume/fork across invocations: --resume <session-id> or -c. One-shot calls drop the stream-json flags.
 
-  `--input-format stream-json` is undocumented beyond the CLI flag table ([#24594](https://github.com/anthropics/claude-code/issues/24594)). `@silvery/agent-harness` owns the parser so the rest of the app never touches raw stream-json. Side-effect: ships the first standalone TS stream-json parser.
-
+  --input-format stream-json is undocumented beyond the CLI flag table (#24594). @silvery/agent-harness owns the parser so the rest of the app never touches raw stream-json. Side-effect: ships the first standalone TS stream-json parser.
 - Local transcript tail of `~/.claude/projects/<proj>/<session-id>.jsonl` in parallel for crash recovery + search.
 
 **2. Claude Code-equivalent UI surface**
@@ -114,7 +112,8 @@ Assistant output is markdown; we need to render it correctly, not show raw text.
 - Layout breakpoints by terminal width:
   - <80 cols: single session card, side panels collapsed
   - 80–140: 2-up cards, side panels overlay
-  - >140: 4-up cards, side panels persistent
+  - 
+    > 140: 4-up cards, side panels persistent
 - Popovers anchor relative to source, reposition to stay on screen
 - Touch-friendly hit targets even though this is a terminal (mouse hover/click is first-class per silvery's positioning)
 
@@ -248,6 +247,7 @@ Why this is in MVP, not deferred: **it's the single biggest differentiator** aga
 The smallest possible end-to-end thing. Nothing pretty. Proves the spawn + parse + render loop works at all.
 
 **M0 — Spawn + render (1 week)**
+
 - `@silvery/agent-harness` skeleton: spawn `claude --bare -p --input-format stream-json --output-format stream-json --include-partial-messages --verbose`, parse the event stream, emit typed events to a callback.
 - Trivial silvery app: one `<SessionCard>`, renders `<MessageList>` of user/assistant turns and unstyled `<ToolCallBlock>` / `<ToolResultBlock>` (just JSON.stringify the output for now).
 - One `<TextInput>` at the bottom for user prompts; submit writes to the harness stdin.
@@ -258,51 +258,61 @@ The smallest possible end-to-end thing. Nothing pretty. Proves the spawn + parse
 Layered onto MVA. Each milestone independently shippable; each is a testable, dogfoodable improvement.
 
 **M1 — Tool blocks + Popover (1 week)**
+
 - Lift `<Popover>` from km-logview → `@silvery/ag-react/Popover`
 - Click-to-expand `<ToolCallBlock>` and `<ToolResultBlock>` showing full args/output
 - `<TodoPanel>` rendering TodoWrite state
 - `<StatusLine>` with model, cost, mode, session ID
 
 **M2 — km MCP attached (1 week)**
+
 - `@km/mcp-server` v1 (read-only: search, get_node, get_board, render_path)
 - Wire to `.claude/settings.json` (or `CLAUDE_CONFIG_DIR` per-session) so the spawned session sees the MCP
 - Dogfood: ask Claude "what's in km bead km-silvery.silvercode" — tool call hits the MCP, result renders inline
 
 **M3 — Auto-injection pipeline (1 week)**
+
 - Harness injection-pipeline plumbing: registry of injectors, per-turn invocation, append `additionalContext` to user-message events before stdin write
 - Sample injectors: km active context (current bead, worktree), km bd prime equivalent
 - Dogfood: every session knows what bead it's on without the user having to say
 
 **M4 — Tribe MCP + channel injection (1 week)**
+
 - `@silvery/tribe-mcp` v1 (send/receive/history via existing tribe daemon)
 - Tribe-as-session-name auto-join (session name = tribe identity)
 - Channel-event injector — when a peer session sends a tribe message addressed to this session, inject `[channel from <peer>: <msg>]` into next user-prompt
 - Dogfood: two Silvercode sessions, send a tribe message between them, see it land in the recipient's context on the next turn
 
 **M5 — Multi-session layout (1 week)**
+
 - 2-up grid of session cards
 - Click a session to focus; keyboard nav between sessions
 - Each session has its own harness + tribe identity + km MCP
 
 **M6 — Permission inbox (1 week)**
+
 - `<PermissionInbox>` aggregating tool-approval requests across sessions
 - Diff preview for Edit tool inputs
 - Approve/deny with mouse or keyboard
 - `<ModeSwitcher>` (plan / accept-edits / auto)
 
 **M7 — Markdown rendering (1 week)**
+
 - `@silvery/markdown` package: mdast parser → silvery components (tables via existing Table, lists, headings, code fences, blockquotes, inline)
 - Code fences route to placeholder for syntax (next milestone)
 
 **M8 — Code syntax + diff (1 week)**
+
 - `@silvery/syntax` package: Shiki-based, bundled grammars for top-10 languages, themed via `$tokens`
 - Diff renderer for Edit tool inputs (before/after with color + gutter)
 
 **M9 — Bead + file + URL detection popovers (1.5 weeks)**
+
 - Auto-scanner over assistant text + tool outputs for bead IDs, file paths, URLs, km node refs, code-fence file:line refs
 - Popover content per detection type: `km bd show`, file tree position + recent edits, WebFetch preview, km node summary
 
 **M10 — Replay + search + handoff (2 weeks)**
+
 - Tape recording via mdtest
 - FTS5 recall index over session JSONLs + canonical event log
 - `<HistoryDialog>` — searchable past-sessions list with deep-link to replay
@@ -310,11 +320,13 @@ Layered onto MVA. Each milestone independently shippable; each is a testable, do
 - Worktree-aware session cards (git state, branch, dirty/uncommitted)
 
 **M11 — Track 2 (SDK adapter) (1 week)**
+
 - `@silvery/agent-harness` Track 2 adapter wrapping `@anthropic-ai/claude-agent-sdk`
 - Behind the same interface as Track 1
 - Dogfood: same UI, one session on Track 1 (subscription) + one on Track 2 (API key)
 
 **M12 — Codex backend (2 weeks)**
+
 - Codex Track 1 (spawn `codex` CLI; map events to canonical schema)
 - Codex Track 2 (Codex SDK)
 - Cross-vendor handoff (hand a task from Claude to Codex via the same handoff verb)
@@ -326,6 +338,7 @@ Layered onto MVA. Each milestone independently shippable; each is a testable, do
 **Account switching** — promoted from "polish" to "differentiator." Important enough to call out up front, but **not required for MVA / first ship**. The pain is real (Anthropic's tightening rate limits, users juggling 2–4 accounts manually) and nobody else has solved it: Cursor/Cline/opencode are API-key-only and structurally can't; Claude Code itself doesn't offer it. Silvercode is uniquely positioned. Worth shipping right after MVP as the v1.1 headline feature. See "Multi-account support" below for surface design.
 
 **Other post-MVP**:
+
 - Theming + customization
 - `@km/mcp-server` v2 gated mutation tools (create_node, move_card, link, archive)
 - Plugin marketplace integration (consume Anthropic's; ship `@km/claude-plugin` to it)
@@ -368,29 +381,29 @@ Everything in the original brainstorm that isn't in MVP scope stays in this fold
 
 ## What the remaining docs are for, now
 
-| Doc | Status | Relevance to MVP |
-|---|---|---|
-| [01-building-blocks.md](01-building-blocks.md) | Active | Stack inventory. PTY no longer critical-path — the missing atoms for MVP are the SDK wrapper + canonical event log. |
-| [02-agent-integration.md](02-agent-integration.md) | Active | Agent harness design. Feature-parity matrix. Industry comparison. The primary design doc for the MVP's core integration. |
-| [03-agent-authoring.md](03-agent-authoring.md) | **Speculative** | Building our own agent-host products. Post-MVP. |
-| [04-multiplex.md](04-multiplex.md) | **Speculative** | tmux components. Not needed unless we embed shells. |
-| [05-cap-protocol.md](05-cap-protocol.md) | **Speculative** | Public protocol design. Keep as internal IR idea only. |
-| [06-commander.md](06-commander.md) | **Speculative** | Super-shell. Scope trap per pro. |
-| [07-sessions.md](07-sessions.md) | Partial | Handoff is MVP; the extended verbs (tee/link/compose) are speculative. |
-| [08-supervision.md](08-supervision.md) | **Speculative** | Legion-scope supervision + stdlog/stdapi. Deep future idea. |
-| [09-agent-host-landscape.md](09-agent-host-landscape.md) | Active | Competitive intelligence. Informs positioning. |
-| [big-ideas.md](big-ideas.md) | Mixed | /big lens additions; many are MVP-relevant (permissions, observability, accessibility); some are speculative. |
-| [feasibility.md](feasibility.md) | Active | Blockers + sequencing. Needs update for the simpler MVP path. |
-| [pro-review-2026-04-24.md](pro-review-2026-04-24.md) | Reference | GPT-5.4 Pro's full review. The basis for this reshape. |
+| Doc                        | Status      | Relevance to MVP                                                                                                         |
+| -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 01-building-blocks.md      | Active      | Stack inventory. PTY no longer critical-path — the missing atoms for MVP are the SDK wrapper + canonical event log.      |
+| 02-agent-integration.md    | Active      | Agent harness design. Feature-parity matrix. Industry comparison. The primary design doc for the MVP's core integration. |
+| 03-agent-authoring.md      | Speculative | Building our own agent-host products. Post-MVP.                                                                          |
+| 04-multiplex.md            | Speculative | tmux components. Not needed unless we embed shells.                                                                      |
+| 05-cap-protocol.md         | Speculative | Public protocol design. Keep as internal IR idea only.                                                                   |
+| 06-commander.md            | Speculative | Super-shell. Scope trap per pro.                                                                                         |
+| 07-sessions.md             | Partial     | Handoff is MVP; the extended verbs (tee/link/compose) are speculative.                                                   |
+| 08-supervision.md          | Speculative | Legion-scope supervision + stdlog/stdapi. Deep future idea.                                                              |
+| 09-agent-host-landscape.md | Active      | Competitive intelligence. Informs positioning.                                                                           |
+| big-ideas.md               | Mixed       | /big lens additions; many are MVP-relevant (permissions, observability, accessibility); some are speculative.            |
+| feasibility.md             | Active      | Blockers + sequencing. Needs update for the simpler MVP path.                                                            |
+| pro-review-2026-04-24.md   | Reference   | GPT-5.4 Pro's full review. The basis for this reshape.                                                                   |
 
 ## The billing / auth reality (2026-04-24 update)
 
 **Important correction to the SDK-first decision below.** Anthropic's January 2026 enforcement (clarified in ToS Feb 19, 2026; full cutoff April 4, 2026) makes subscription OAuth tokens (Pro / Max) unusable outside the official Claude Code product. The Agent SDK explicitly requires an API key. This creates a hard fork in the architecture:
 
-| Auth path | Billing | Tooling options | Who it's for |
-|---|---|---|---|
-| **Subscription OAuth (Pro / Max)** | Flat $20 / $100 / $200 per month | **Official Claude Code CLI only** (`claude --bare -p --output-format stream-json`). Plus Anthropic's own VS Code extension, which IS Claude Code under the hood. | Users who already pay for Pro/Max and want to leverage that quota |
-| **API key** | Per-token, ~$13/dev/active-day for typical CC workloads | Claude Agent SDK, third-party tools (Cline, Continue, aider, opencode, etc.) | Users willing to pay API rates for more flexibility |
+| Auth path                      | Billing                                                 | Tooling options                                                                                                                                            | Who it's for                                                      |
+| ------------------------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Subscription OAuth (Pro / Max) | Flat $20 / $100 / $200 per month                        | Official Claude Code CLI only (claude --bare -p --output-format stream-json). Plus Anthropic's own VS Code extension, which IS Claude Code under the hood. | Users who already pay for Pro/Max and want to leverage that quota |
+| API key                        | Per-token, ~$13/dev/active-day for typical CC workloads | Claude Agent SDK, third-party tools (Cline, Continue, aider, opencode, etc.)                                                                               | Users willing to pay API rates for more flexibility               |
 
 Equivalent fork exists for OpenAI:
 
@@ -556,3 +569,4 @@ This is the "one platform, many surfaces" story pro warned us about overselling 
 **Silvercode** — decided 2026-04-24. Internal codename only. Do not promote to public docs, public silvery site, marketing materials, GitHub repo names, or anything externally visible until we explicitly decide to ship publicly.
 
 Public name (if/when shipped) is a separate decision and not in scope until Phase 3.
+

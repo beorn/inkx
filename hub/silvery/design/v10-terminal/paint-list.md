@@ -167,3 +167,4 @@ Combined with useSignalProps (bypasses React): ~0.001ms total. That's the O(1) e
 Is the paint list worth the complexity? The zero-alloc bead's quick wins (#1 layout-on-demand, #7 expanded fast path, #13 ANSI caching) may get us to ~0.1ms/frame without the paint list. The paint list's ~0.01ms is dramatically better but at significant implementation cost.
 
 Recommend: ship the quick wins first, measure, then decide if the paint list's additional 10× is needed.
+

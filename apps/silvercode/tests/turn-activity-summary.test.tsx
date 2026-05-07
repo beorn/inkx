@@ -174,6 +174,36 @@ describe("TurnActivitySummary", () => {
     expect(app.text.match(/Plan updated/g)?.length ?? 0).toBe(1)
   })
 
+  test("renders completed agent tool calls with lifecycle context", () => {
+    const entry = makeEntry({
+      ops: [
+        tool(
+          "agent-1",
+          "Agent",
+          { description: "Sleep 16s #2", prompt: "Run sleep 16 via the Bash tool" },
+          "agent 2: done sleeping 16s",
+        ),
+      ],
+    })
+
+    const app = renderList([entry])
+
+    expect(app.text).toContain("Agent completed - agent 2: done sleeping 16s")
+    expect(app.text).not.toContain("Agent completed - Sleep 16s #2")
+  })
+
+  test("does not render an Agent tool prompt echo as assistant narration", () => {
+    const prompt = "Run sleep 16 via the Bash tool, then report AGENT-PROMPT-ECHO-MARKER."
+    const entry = makeEntry({
+      ops: [tool("agent-1", "Agent", { description: "Sleep 16s #2", prompt }), { kind: "text", text: prompt }],
+    })
+
+    const app = renderList([entry])
+
+    expect(app.text).toContain("Agent running - Sleep 16s #2")
+    expect(app.text).not.toContain("AGENT-PROMPT-ECHO-MARKER")
+  })
+
   test("keeps multiline generic tool results disclosed under the tool row", async () => {
     using term = createTermless({ cols: 110, rows: 12 })
     const entry = makeEntry({

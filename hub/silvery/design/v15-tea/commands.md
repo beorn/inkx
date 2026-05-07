@@ -1,6 +1,6 @@
 # Command-Centric Design
 
-> **Deep-dive** for [era2-overview.md](../../reference/era2-overview.md) § Command Tree. Command-centric philosophy, surface projection, availability. Last synced: 2026-03-19.
+> Deep-dive for era2-overview.md § Command Tree. Command-centric philosophy, surface projection, availability. Last synced: 2026-03-19.
 
 _Commands are the foundation for discoverable, testable, automatable apps. Every action is named, typed, and projectable to CLI, palette, MCP, and AI agents. See [AI Mode](../v-undecided/ai-mode.md) (era3) for what AI agents do with this architecture._
 
@@ -36,15 +36,15 @@ This is good for AI (see [AI Mode](../v-undecided/ai-mode.md)), but it's good fo
 
 There are roughly seven ways to programmatically control an app, and they all share a failure:
 
-| Approach                           | How it works                          | The problem                        |
-| ---------------------------------- | ------------------------------------- | ---------------------------------- |
-| **Vision**                         | Screenshots → OCR → coordinate clicks | Slow, brittle, no semantics        |
-| **UI tree** (DOM, a11y)            | Traverse element tree → click/fill    | Element-level, not semantic intent |
-| **CLI**                            | Subcommands + flags + stdout          | Separate code path from the UI     |
-| **API / SDK**                      | Typed function calls                  | Separate code path from the UI     |
-| **Remote tools** (MCP¹)            | JSON Schema tool discovery            | Schema bloat, separate from UI     |
-| **Extensions** (IPC, scripting)    | Event bus, embedded language          | Partial coverage, app-specific     |
-| **App Actions** (Apple, Microsoft) | Declared action manifest              | Separate from UI — annotation gap  |
+| Approach                       | How it works                          | The problem                        |
+| ------------------------------ | ------------------------------------- | ---------------------------------- |
+| Vision                         | Screenshots → OCR → coordinate clicks | Slow, brittle, no semantics        |
+| UI tree (DOM, a11y)            | Traverse element tree → click/fill    | Element-level, not semantic intent |
+| CLI                            | Subcommands + flags + stdout          | Separate code path from the UI     |
+| API / SDK                      | Typed function calls                  | Separate code path from the UI     |
+| Remote tools (MCP¹)            | JSON Schema tool discovery            | Schema bloat, separate from UI     |
+| Extensions (IPC, scripting)    | Event bus, embedded language          | Partial coverage, app-specific     |
+| App Actions (Apple, Microsoft) | Declared action manifest              | Separate from UI — annotation gap  |
 
 _¹ MCP = Model Context Protocol, a JSON-based tool API format for AI agents._
 
@@ -135,7 +135,7 @@ function withNavigation() {
 
 The `args` schema serves triple duty: it defines what parameters a command accepts, resolves defaults from signals, and determines availability. If a signal default is nullish, `parse()` fails — command unavailable. No separate `when` field needed for args-based availability.
 
-> **Signal defaults use function-call syntax:** `z.number().default(() => cursor())`, not `z.number().default(cursor)` (cursor is a signal accessor, not a number). `.parse({})` calls the function, reads `cursor()` at parse time — if nullish, parse fails and the command is unavailable. In non-interactive contexts (CLI, MCP) there's no signal, so the function returns undefined and the param becomes required.
+> Signal defaults use function-call syntax: z.number().default(() => cursor()), not z.number().default(cursor) (cursor is a signal accessor, not a number). .parse({}) calls the function, reads cursor() at parse time — if nullish, parse fails and the command is unavailable. In non-interactive contexts (CLI, MCP) there's no signal, so the function returns undefined and the param becomes required.
 
 **`resolveInvocation()`** is the shared resolver used by all surfaces — keymap, mouseMap, `app.command()`, CLI, MCP:
 
@@ -162,12 +162,12 @@ available(commands, provided?)    // filter to invocable commands
 missingParams(command, provided?) // which args aren't resolvable
 ```
 
-| Surface             | Query                 | Purpose                                  |
-| ------------------- | --------------------- | ---------------------------------------- |
-| **Command palette** | `available(commands)` | Show what user can do now                |
-| **CLI --help**      | `missingParams(cmd)`  | Show required flags (no signal defaults) |
-| **MCP tools**       | `missingParams(cmd)`  | Tell AI what params to provide           |
-| **Keyboard help**   | `available(commands)` | Dim unavailable shortcuts                |
+| Surface         | Query               | Purpose                                  |
+| --------------- | ------------------- | ---------------------------------------- |
+| Command palette | available(commands) | Show what user can do now                |
+| CLI --help      | missingParams(cmd)  | Show required flags (no signal defaults) |
+| MCP tools       | missingParams(cmd)  | Tell AI what params to provide           |
+| Keyboard help   | available(commands) | Dim unavailable shortcuts                |
 
 Three sources of args are handled uniformly:
 
@@ -216,14 +216,14 @@ function withEditor() {
 
 The nesting does all the work by default:
 
-| Surface              | Derived from tree path                       | Example                          |
-| -------------------- | -------------------------------------------- | -------------------------------- |
-| **CLI**              | `task.toggle_done` → `km task toggle-done`   | Nesting = subcommand hierarchy   |
-| **Menu**             | `task.toggle_done` → Task → Toggle Done      | Nesting = menu/submenu structure |
-| **Command palette**  | `task.toggle_done` → "Task: Toggle Done"     | Nesting = category prefix        |
-| **Domain object**    | `task.toggle_done` → `task.toggle_done()`    | Nesting = typed object methods   |
-| **TypeScript types** | `task.toggle_done` → `KM.task.toggle_done()` | Nesting = interface hierarchy    |
-| **MCP tool**         | `task.toggle_done` → tool with dotted name   | Nesting = tool grouping          |
+| Surface          | Derived from tree path                   | Example                          |
+| ---------------- | ---------------------------------------- | -------------------------------- |
+| CLI              | task.toggle_done → km task toggle-done   | Nesting = subcommand hierarchy   |
+| Menu             | task.toggle_done → Task → Toggle Done    | Nesting = menu/submenu structure |
+| Command palette  | task.toggle_done → "Task: Toggle Done"   | Nesting = category prefix        |
+| Domain object    | task.toggle_done → task.toggle_done()    | Nesting = typed object methods   |
+| TypeScript types | task.toggle_done → KM.task.toggle_done() | Nesting = interface hierarchy    |
+| MCP tool         | task.toggle_done → tool with dotted name | Nesting = tool grouping          |
 
 Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `title` and `fn`, plus `args` if they take parameters.
 
@@ -231,18 +231,18 @@ Each command definition has a **universal core** (title, description, fn, args) 
 
 The framework auto-derives every surface from the tree:
 
-| Surface             | Auto-generated                                |
-| ------------------- | --------------------------------------------- |
-| **Keyboard**        | `x` triggers `task.toggle_done`               |
-| **CLI**             | `km task toggle-done --node-id abc`           |
-| **Command palette** | "Task: Toggle Done" (fuzzy searchable)        |
-| **MCP tool**        | `{ name: "task.toggle_done", ... }`           |
-| **Menu**            | Task → Toggle Done                            |
-| **Domain object**   | `task.toggle_done({ nodeId: "abc" })`         |
-| **Tests**           | `await task.toggle_done(); expect(...)`       |
-| **Docs**            | "Toggle Done — Toggle the done state..."      |
-| **Cheat sheet**     | `x` — Toggle Done                             |
-| **TypeScript**      | `interface KM { task: { toggle_done(...) } }` |
+| Surface         | Auto-generated                              |
+| --------------- | ------------------------------------------- |
+| Keyboard        | x triggers task.toggle_done                 |
+| CLI             | km task toggle-done --node-id abc           |
+| Command palette | "Task: Toggle Done" (fuzzy searchable)      |
+| MCP tool        | { name: "task.toggle_done", ... }           |
+| Menu            | Task → Toggle Done                          |
+| Domain object   | task.toggle_done({ nodeId: "abc" })         |
+| Tests           | await task.toggle_done(); expect(...)       |
+| Docs            | "Toggle Done — Toggle the done state..."    |
+| Cheat sheet     | x — Toggle Done                             |
+| TypeScript      | interface KM { task: { toggle_done(...) } } |
 
 No other approach gets all of these from one definition.
 
@@ -306,13 +306,13 @@ for (const card of model.columns[0].cardNodes) {
 
 No. The distinction matters:
 
-| Dimension          | API/SDK                                | Command registry                                |
-| ------------------ | -------------------------------------- | ----------------------------------------------- |
-| **Relation to UI** | Separate code path                     | Same code path — commands drive the UI          |
-| **Completeness**   | Whatever the dev chose to expose       | 100% by construction — every user action exists |
-| **Granularity**    | Data-oriented (CRUD on resources)      | Intent-oriented (what the user wants to do)     |
-| **Discovery**      | External docs, OpenAPI specs           | Runtime `cmd.all()` — the app describes itself  |
-| **Maintenance**    | Second thing to build and keep in sync | Derived from model methods — surfaces auto-sync |
+| Dimension      | API/SDK                                | Command registry                                |
+| -------------- | -------------------------------------- | ----------------------------------------------- |
+| Relation to UI | Separate code path                     | Same code path — commands drive the UI          |
+| Completeness   | Whatever the dev chose to expose       | 100% by construction — every user action exists |
+| Granularity    | Data-oriented (CRUD on resources)      | Intent-oriented (what the user wants to do)     |
+| Discovery      | External docs, OpenAPI specs           | Runtime cmd.all() — the app describes itself    |
+| Maintenance    | Second thing to build and keep in sync | Derived from model methods — surfaces auto-sync |
 
 An API is _about_ the data. A command is _about_ what the user wants to accomplish. `PATCH /tasks/123 { done: true }` vs `toggle_done`. The command carries context (what's selected, what mode we're in), has a human-readable name, and runs the same code path the UI does.
 
@@ -338,19 +338,19 @@ Even if you don't care about AI agents, you want all of these.
 
 The industry is converging on "define once, surface everywhere" — but every system except Emacs separates the automation layer from the UI code:
 
-| System                           | Approach                                                      | Gap                                              |
-| -------------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
-| **Emacs** (1976)                 | Every operation is a named command (M-x, keybinding, Lisp)    | Closest precedent — no gap                       |
-| **VS Code**                      | Extensions register commands for palette, shortcuts, menus    | Handlers registered separately from UI rendering |
-| **Apple App Intents** (2022+)    | Schema-first: `AppIntent` struct → Shortcuts, Siri, Spotlight | Separate Swift structs from view controllers     |
-| **Microsoft App Actions** (2025) | JSON manifest + `IActionProvider`                             | Separate manifest from UI code                   |
-| **Google App Actions**           | Built-in Intents (BIIs) — predefined semantic patterns        | Platform-controlled, most conservative           |
+| System                       | Approach                                                    | Gap                                              |
+| ---------------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
+| Emacs (1976)                 | Every operation is a named command (M-x, keybinding, Lisp)  | Closest precedent — no gap                       |
+| VS Code                      | Extensions register commands for palette, shortcuts, menus  | Handlers registered separately from UI rendering |
+| Apple App Intents (2022+)    | Schema-first: AppIntent struct → Shortcuts, Siri, Spotlight | Separate Swift structs from view controllers     |
+| Microsoft App Actions (2025) | JSON manifest + IActionProvider                             | Separate manifest from UI code                   |
+| Google App Actions           | Built-in Intents (BIIs) — predefined semantic patterns      | Platform-controlled, most conservative           |
 
 Command-centric design closes the gap: commands and UI share the same code path. Nothing separate to maintain, nothing that can drift.
 
 ---
 
-# Part 2: Application in Silvery
+## Part 2: Application in Silvery
 
 The concepts above are framework-agnostic. This section describes how Silvery implements them — and why command-centric design is a core reason to choose Silvery.
 
@@ -396,31 +396,26 @@ Plugins compose the tree: a chat plugin defines `commands.chat.submit` and `comm
 
 Examining a real app's 173 commands:
 
-| Pattern              | Count      | CLI mapping                         |
-| -------------------- | ---------- | ----------------------------------- |
-| **Zero-arg**         | ~101 (58%) | `km cursor-down`                    |
-| **Implicit context** | ~23 (13%)  | `km delete-node` or `--node-id abc` |
-| **Explicit target**  | ~3 (2%)    | `km goto @inbox`                    |
-| **Interactive-only** | ~46 (27%)  | Not CLI-relevant                    |
+| Pattern          | Count      | CLI mapping                     |
+| ---------------- | ---------- | ------------------------------- |
+| Zero-arg         | ~101 (58%) | km cursor-down                  |
+| Implicit context | ~23 (13%)  | km delete-node or --node-id abc |
+| Explicit target  | ~3 (2%)    | km goto @inbox                  |
+| Interactive-only | ~46 (27%)  | Not CLI-relevant                |
 
 58% map directly to subcommands. The 27% interactive-only commands don't belong in a CLI. A CLI surface exposes the stateless subset via a filter on command metadata.
 
 ## Open Questions
 
 - **Nesting depth.** Two levels (domain.command) covers most cases. Three levels for complex areas like `task.priority.set`. Convention or enforced?
-
 - ~~**Typed parameters on CommandDef.**~~ **Resolved.** The `args` field with `.parse()` interface handles this elegantly. 58% of commands are zero-arg and simply omit `args`. No overhead for simple commands, full validation and signal-default resolution for complex ones.
-
 - **Entity queries for parameter resolution.** When `goto` needs a board target, where do the options come from? Apple's `EntityQuery` model solves this. Should commands declare parameter sources?
-
 - ~~**Context predicates.**~~ **Resolved.** `when()` lives on keymap bindings, not commands. The `args` schema handles availability for args-based predicates (nullish signal default → `parse()` fails → unavailable). Mode-based predicates are channel-specific (`when(isNormal, ...)` on keymaps).
-
 - **Surface overrides.** Sometimes you want a different CLI name or menu position than the tree implies. Override syntax is probably optional fields on the command def.
-
 - **Cross-app discovery.** How does an external consumer detect a command-centric app? Options: `km describe`, well-known CLI subcommand, or env var. Should be zero-config.
-
 - **OS-level manifest generation.** The command tree has enough metadata to generate Apple App Intents or Microsoft App Actions manifests automatically. Worth building in?
 
 ---
 
 _See also: [architecture-overview.md](../../archive/pre-era2/architecture-overview.md) (entry point connecting all design docs), [app-composition.md](../v10-terminal/app-composition.md) (plugin composition, `op()` ergonomics), [AI Mode](../v-undecided/ai-mode.md) (AI agents driving command-centric apps)._
+

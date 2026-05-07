@@ -141,9 +141,9 @@ describe("repo.tryClaim — atomic CAS", () => {
       data: { id: "fresh-bead" },
     })
     // Sanity: no task_status on this row.
-    const row = repo.database.prepare("SELECT task_status FROM nodes WHERE id = ?").get(id) as
-      | { task_status: string | null }
-      | null
+    const row = repo.database.prepare("SELECT task_status FROM nodes WHERE id = ?").get(id) as {
+      task_status: string | null
+    } | null
     expect(row?.task_status ?? null).toBeNull()
 
     const result = repo.tryClaim(id, "alice", ONE_HOUR)

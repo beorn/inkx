@@ -73,13 +73,15 @@ Discovered via /pro review of the llm tool (Kimi K2.6, 2026-04-26): findings 3.1
 Reduce /pro skill to ~80 lines structured as:
 
 1. **Decision table at the top** (first 20 lines):
-  ```
-  User wants                    → Mode    → Command
-  Quick answer                  → ask     → bun llm "..."
-  Code review (fast, with code) → pro     → bun llm pro --context-file <f> "..."
-  Code review (deep web search) → deep    → bun llm --deep --model gpt-5.4-pro ...
-  Multi-model opinion poll      → opinion → bun llm opinion ...
-  ```
+
+```
+User wants                    → Mode    → Command
+Quick answer                  → ask     → bun llm "..."
+Code review (fast, with code) → pro     → bun llm pro --context-file <f> "..."
+Code review (deep web search) → deep    → bun llm --deep --model gpt-5.4-pro ...
+Multi-model opinion poll      → opinion → bun llm opinion ...
+```
+
 2. **Brief context-gathering rules** (use --context-file not --context; full files not snippets)
 3. **Brief recovery rules** (--no-recover for fresh; bun llm recover for incomplete deep)
 4. Pointer to `bun llm pro --discover --json` for the rare review-round case

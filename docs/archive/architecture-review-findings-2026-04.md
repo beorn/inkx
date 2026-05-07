@@ -34,18 +34,19 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 
 ### State Ownership
 
-| State | Owner | Derived By | Read By |
-|-------|-------|-----------|---------|
-| cursorNodeId (→ `sel.node.cursor`) | BoardState (3 defs) | CursorStore *(legacy, deleted)* via deriveCursorAncestors (legacy) or deriveCursorPath (ViewNode) | ~100+ places |
-| foldDepths | BoardState | buildViewTree, countVisibleNodes, driver.ts | view-navigation, use-columns, board-reducer, persistence |
-| collapsedNodes | BoardState | board-reducer via TOGGLE_COLLAPSE | view-navigation, board-layout, board-app-store |
-| node data | Repo (SQLite) | deriveColumnsFromRepo, buildViewTree | every layer |
-| rootId | BoardState | board-reducer via SET_ROOT/ZOOM_IN | navigation, rendering, cursor derivation |
-| columns/cards | derived (not stored) | use-columns.ts (legacy) AND view-tree.ts (new) | Board, CardColumn, TreeNode components |
+| State                            | Owner                | Derived By                                                                                      | Read By                                                  |
+| -------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| cursorNodeId (→ sel.node.cursor) | BoardState (3 defs)  | CursorStore (legacy, deleted) via deriveCursorAncestors (legacy) or deriveCursorPath (ViewNode) | ~100+ places                                             |
+| foldDepths                       | BoardState           | buildViewTree, countVisibleNodes, driver.ts                                                     | view-navigation, use-columns, board-reducer, persistence |
+| collapsedNodes                   | BoardState           | board-reducer via TOGGLE_COLLAPSE                                                               | view-navigation, board-layout, board-app-store           |
+| node data                        | Repo (SQLite)        | deriveColumnsFromRepo, buildViewTree                                                            | every layer                                              |
+| rootId                           | BoardState           | board-reducer via SET_ROOT/ZOOM_IN                                                              | navigation, rendering, cursor derivation                 |
+| columns/cards                    | derived (not stored) | use-columns.ts (legacy) AND view-tree.ts (new)                                                  | Board, CardColumn, TreeNode components                   |
 
 ### Special Case Counts
 
 **Body-related** (12 files, ~142 total occurrences)
+
 - `isBody`: 7 files, ~21 occurrences
 - `extractBody()`: 7 files, ~30 occurrences
 - `__body__` prefix: 12 files, ~46 occurrences
@@ -54,17 +55,20 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 - **Key redundancy**: `splitBodyAndColumns()` in view-navigation.ts reimplements `extractBody()` from @km/tree
 
 **Embed-related** (41 files, ~200+ occurrences)
+
 - `symlink_to`: 40 files, ~150 occurrences
 - `resolvedEmbed` (ViewNode): 2 files, ~10
 - `resolvedNode` (CardView): 5 files, ~22
 - **Key redundancy**: 3 independent embed resolution paths (CardView.resolvedNode, ViewNode.resolvedEmbed, embed-display.ts resolveEmbed())
 
 **Collapse-related** (26 files)
+
 - `isCollapsedChild()`: **duplicated** between view-tree.ts and use-columns.ts
 - `isWellKnownMetadataSection()`: **duplicated** between same two files
 - `collapsedNodes` state: ~20 files, ~80 occurrences
 
 **Cursor hint** (concentrated in 3 files)
+
 - `cursorCardNodeId`: ~8 files, ~35 occurrences
 - `cursorColumnNodeId`: ~7 files, ~25 occurrences
 - 3 separate equivalence checks in board-app-store.ts comparing legacy vs ViewNode
@@ -78,12 +82,14 @@ Files: repo-loader.ts -> discovery.ts -> parser.ts -> ast2nodes.ts -> repo-loade
 Type chain: `string` -> `Root` (mdast) -> `KNode[]` -> `Event[]` -> SQLite rows -> `KNode[]` -> ViewLens -> React elements -> ANSI
 
 Re-derivations:
+
 1. **extractBody called 3x per board render** — once in deriveColumnsFromRepo for root, once in kNodeToDerivedColumn per column, once in deriveColumnsIncremental
 2. **parseHeadingRules called multiple times** — at AST parse time (interpretHeadingRules) and again in use-columns.ts (getCollapseRules, kNodeToDerivedColumn)
 3. **KNode item decomposition/recomposition** — item:{list, task:{marker, status}} decomposed to flat SQL columns on write, recomposed on read
 4. **WIP limits extracted twice** — extractWipLimits scans all columns, then each column also checks rules.limit
 
 Complexity hotspots:
+
 - H1 merge (mergeH1IntoFileNode) — first H1 merged into file node, creates special cases throughout
 - Folder-index file expansion (~100 lines of special-case logic)
 - Virtual body column — synthetic `__body__<rootId>` node doesn't exist in repo
@@ -94,10 +100,12 @@ Complexity hotspots:
 Files: board-app.ts -> command-bridge.ts -> board-actions.ts -> board-actions-edit.ts -> repo.ts -> db-ops.ts -> emitter.ts -> sync.ts -> event-handlers.ts -> writequeue.ts
 
 Re-derivations:
+
 1. **Entire file re-serialized on any field change** — single node update triggers getSubtree -> nodesToMarkdown for the whole file
 2. **N mutations cause N version bumps** — batch edits (multi-select status cycle) each bump version independently
 
 Special cases:
+
 - Embeds: toggle task status on embed updates the TARGET node, not the embed
 - Recurrence: toggling recurring task to "done" clones task with next due date (one keystroke, two mutations)
 
@@ -106,6 +114,7 @@ Special cases:
 Files: board-app.ts -> board-actions.ts -> view-navigation.ts -> cursor-store.ts
 
 **THE major re-derivation hotspot:**
+
 1. **extractBody re-derived on EVERY navigation** — navigateVertical/Horizontal call splitBodyAndColumns(), duplicating what useColumns already computed
 2. **Cursor classified twice** — once in view-navigation.ts (isAtBoardLevel/isAtColumnLevel/etc.), again in cursor-store.ts (deriveCursorAncestors)
 3. **findAncestorAtDepth walks parent chain from scratch** — called multiple times per navigation, no caching
@@ -117,6 +126,7 @@ Files: board-app.ts -> board-actions.ts -> view-navigation.ts -> cursor-store.ts
 Files: watcher.ts -> worker-bridge.ts -> sync.ts -> reconcile.ts -> applier.ts -> update-handler.ts -> emitter.ts -> repo.ts -> use-columns.ts
 
 Re-derivations:
+
 1. **Complete file re-parse on any change** — even one-line edit triggers full parseMarkdownWithLinks
 2. **Re-scans entire directory** — chokidar identifies changed files, but reconcile re-stats every file in the directory
 3. **Two reconciliation implementations** — repo-loader.ts reconcileFilesystem (initial) and watch/reconcile.ts (runtime)
@@ -139,6 +149,7 @@ Re-derivations:
 10. **Search** — 3 files (most isolated)
 
 Top 3 files per concern:
+
 - Embeds: packages/km-storage/ (20+ files), use-columns.ts, view-tree.ts
 - Cursor: board-app-store.ts (69), view-navigation.ts (48), board-actions.ts (40)
 - Fold: use-columns.ts (31), board-actions.ts (23), board-reducer.ts (18)
@@ -150,18 +161,21 @@ Top 3 files per concern:
 ### Plugin Factorability
 
 **Easy to extract** (isolated state, clear boundaries):
+
 - Search — 3 files, already modular
 - Move mode — 11 files, clear action shape (MOVE_START/COMMIT/CANCEL)
 - Edit mode — 7 files, clear enter/exit transitions
 - Hidden nodes — core logic in hidden.ts (194 lines), natural filter middleware
 
 **Hard to extract** (deeply entangled):
+
 - Cursor/Selection — IS the core coordination point, every action reads/writes it
 - Fold — 4-way entanglement with undo, navigation, view derivation, persistence
 - Embeds — fundamental data model property spanning all layers
 - Undo — two competing mechanisms (imperative UndoStack + TEA history-plugin), must intercept all mutations
 
 **Already being addressed by ViewNode**:
+
 - Body detection — ViewNode.isBody flag
 - Collapse (rule-based) — ViewNode mirrors collapse filtering
 - Cursor classification — deriveCursorPath() via parent pointers
@@ -178,30 +192,35 @@ Top 3 files per concern:
 ### Top 5 Simplification Opportunities
 
 **1. Unify column derivation — eliminate use-columns.ts duplication**
+
 - Now: use-columns.ts (772 lines) and view-tree.ts (476 lines) duplicate isCollapsedChild, isDetailOnly, deduplicateByFsPath, createVirtualBodyNode, expandIndexFileColumns
 - Target: ViewLens is sole authority; use-columns.ts provides non-reactive materialization via deriveColumnsFromRepo()
 - Impact: ~400 lines removed, derivation drift bug class eliminated
 - ViewNode status: IS the Phase 3 target
 
 **2. Unify cursor classification — replace deriveCursorAncestors with ViewNode**
+
 - Now: deriveCursorAncestors (150 lines in cursor-store.ts), deriveCursorIndices (use-columns.ts), parallel validation (board-app-store.ts)
 - Target: viewIndex.get(sel.node.cursor) + walk parent pointers (~20 lines)
 - Impact: ~180 lines removed, 3 files simplified, classification disagreement bug class eliminated
 - ViewNode status: parallel validation active, ready once equivalence proven
 
 **3. Simplify navigation via ViewNode tree**
+
 - Now: view-navigation.ts (1292 lines) — legacy repo-walking (lines 78-730) + ViewNode-based (lines 732-1180)
 - Target: ViewNode navigation only, delete legacy functions
 - Impact: ~500 lines removed, view-navigation.ts: 1292 -> ~700 lines
 - ViewNode status: ViewNode functions exist but need equivalence validation
 
 **4. Consolidate undo mechanisms**
+
 - Now: imperative UndoStack (117 lines) + undoable-repo (3 files, ~250 lines) + TEA history-plugin (~250 lines) + manual undo entries scattered in board-actions.ts (~50 lines)
 - Target: single unified undo system with auto-recording + cursor/fold state capture
 - Impact: ~200 lines removed, 6+ files simplified
 - ViewNode status: not addressed (orthogonal)
 
 **5. Filter hidden nodes in ViewNode tree**
+
 - Now: hiddenNodeIds threaded through OpCtx, NavState, view-navigation.ts (75 occurrences), board-actions.ts (13)
 - Target: buildViewTree() excludes hidden nodes; navigation never sees them
 - Impact: ~50 lines of filtering removed from view-navigation.ts, 5+ files simplified
@@ -210,3 +229,4 @@ Top 3 files per concern:
 ### Gravity Well
 
 The most entangled file is apps/km-tui/src/board/board-actions.ts (2647 lines) — touches 8 of 10 cross-cutting concerns. It is the single biggest simplification target but cannot be addressed directly. Completing opportunities 1-3 (ViewNode unification) reduces its dependency surface; opportunity 4 (undo consolidation) removes ~50 lines of manual undo entries from it.
+

@@ -47,7 +47,18 @@ type ResizableTerm = TermlessTerm & { resize?: (cols: number, rows: number) => v
 type InputTerm = TermlessTerm & { sendInput?: (data: string) => void }
 
 describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stability)", () => {
-  test("initial paint converges to ≤ 2 distinct layouts during startup cascade", async () => {
+  test("initial paint converges to ≤ 3 distinct layouts during startup cascade", async () => {
+    // Under deferred useBoxRect semantics (bead
+    // `@km/silvery/use-deferred-box-rect-and-post-commit-observers`) a
+    // multi-layer measurement chain (Welcome > MeasuredBox > Banner reads
+    // its own box) genuinely needs one batch per layer to settle, on top
+    // of the async session-injection batch that replays installed fakes.
+    // The test allows ≤ 3 distinct layouts during the startup window:
+    // (a) the empty-rect first paint, (b) a transient as the async session
+    // fixture lands, (c) the settled layout. Resize / cmux / focus / panel
+    // toggle cells (below) still assert ≤ 1 transient + 1 stable per
+    // event, because those run after layout has settled and exercise the
+    // single-batch in-flight-idempotence contract directly.
     const fakes = installFakes({})
     const fake: ScriptedFakeSession = createFakeSession({ sessionId: SESSION })
     using term: TermlessTerm = createTermless({ cols: COLS, rows: ROWS })
@@ -67,7 +78,7 @@ describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stabil
       expect(frames.length, "termless poller never observed any frame").toBeGreaterThan(0)
       expectStableLayouts(frames, {
         label: "welcome.initial-paint",
-        kMax: 2,
+        kMax: 3,
       })
     } finally {
       handle.unmount()

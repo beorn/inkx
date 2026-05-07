@@ -44,7 +44,7 @@ After the sub-owner refactor the public Term interface still carries convenience
 | Legacy             | Replacement                                                                     |
 | ------------------ | ------------------------------------------------------------------------------- |
 | term.write(s)      | term.output.write(s) (or term.modes mutations)                                  |
-| term.writeLine(s)  | term.output.write(s + "\\n")                                                    |
+| term.writeLine(s)  | term.output.write(s + "\n")                                                     |
 | term.cols (number) | term.size.cols()                                                                |
 | term.rows (number) | term.size.rows()                                                                |
 | term.hasInput()    | term.input !== undefined                                                        |

@@ -31,16 +31,16 @@ export type TreeEffect =
 
 ### TreeEffect catalog
 
-| Type | Arguments | Purpose | Emitted by |
-|------|-----------|---------|-----------|
-| `persist` | `description: string` | Request runtime to save tree state to disk. Description is a human-readable note (e.g., "indent node-123"). | All structural mutations (indent, outdent, split, merge, delete, insert). Emitted once per op, not per node. |
-| `focus` | `nodeId: string, cursorOffset: number` | Move focus (cursor) to a specific node and byte position within its content. `cursorOffset` is 0-based. | Split, merge, insert, delete ops that require cursor repositioning. |
-| `bell` | (none) | Auditory feedback (system beep). Indicates a blocked operation (e.g., can't outdent root, can't move past boundary). | Failed indent, outdent, or move operations. |
-| `node_created` | `nodeId: string` | Informs runtime that a new node was inserted. Used to trigger selection and rendering. | `INSERT_NODE` op. |
-| `node_deleted` | `nodeId: string` | Informs runtime that a node was removed from the tree. | `DELETE_NODE` op. |
-| `node_moved` | `nodeId: string, fromParentId, toParentId` | Informs runtime that a node changed parents (reparented). Used for layout recalculation. | `INDENT`, `OUTDENT`, `MOVE_UP`, `MOVE_DOWN` ops. |
-| `nodes_merged` | `survivorId: string, deletedId: string \| null` | Informs runtime that two nodes were joined. `deletedId` is the node removed; `null` if joining only merged content (forward join). | `MERGE_BLOCK` op (backward and forward directions). |
-| `node_split` | `beforeId: string, afterId: string` | Informs runtime that one node was split into two at cursor. Both nodes are new IDs post-split. | `SPLIT_BLOCK` op. |
+| Type         | Arguments                                     | Purpose                                                                                                                        | Emitted by                                                                                                   |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| persist      | description: string                           | Request runtime to save tree state to disk. Description is a human-readable note (e.g., "indent node-123").                    | All structural mutations (indent, outdent, split, merge, delete, insert). Emitted once per op, not per node. |
+| focus        | nodeId: string, cursorOffset: number          | Move focus (cursor) to a specific node and byte position within its content. cursorOffset is 0-based.                          | Split, merge, insert, delete ops that require cursor repositioning.                                          |
+| bell         | (none)                                        | Auditory feedback (system beep). Indicates a blocked operation (e.g., can't outdent root, can't move past boundary).           | Failed indent, outdent, or move operations.                                                                  |
+| node_created | nodeId: string                                | Informs runtime that a new node was inserted. Used to trigger selection and rendering.                                         | INSERT_NODE op.                                                                                              |
+| node_deleted | nodeId: string                                | Informs runtime that a node was removed from the tree.                                                                         | DELETE_NODE op.                                                                                              |
+| node_moved   | nodeId: string, fromParentId, toParentId      | Informs runtime that a node changed parents (reparented). Used for layout recalculation.                                       | INDENT, OUTDENT, MOVE_UP, MOVE_DOWN ops.                                                                     |
+| nodes_merged | survivorId: string, deletedId: string \| null | Informs runtime that two nodes were joined. deletedId is the node removed; null if joining only merged content (forward join). | MERGE_BLOCK op (backward and forward directions).                                                            |
+| node_split   | beforeId: string, afterId: string             | Informs runtime that one node was split into two at cursor. Both nodes are new IDs post-split.                                 | SPLIT_BLOCK op.                                                                                              |
 
 **Handler location**: `packages/km-tree/src/outliner-reducer.ts:169–371` shows where each effect is emitted. No separate handler module; effects are applied immediately by `captureTreeState()` in the reducer result.
 
@@ -71,21 +71,21 @@ export type BoardEffect =
 
 ### BoardEffect catalog
 
-| Type | Arguments | Purpose | Handler |
-|------|-----------|---------|---------|
-| `SELECT` | `nodeId: string` | Move cursor to node and update selection. | `apps/km-tui/src/board/board-effect-runner.ts:54` — calls `ctx.sel.node.select([nodeId])`. |
-| `FOLD_SET` | `depths: Map<string, number>` | Replace fold state with a new depth map. Used for fold_all/unfold_all operations. | Line 56–57 — calls `ctx.setFoldDepths(depths)`. |
-| `SCROLL_ANCHOR_CLEAR` | (none) | Clear the sticky scroll anchor (viewport returns to following cursor). | Line 59–60 — calls `ctx.setUI({ columnScrollAnchor: null })`. |
-| `REPO_MOVE_NODE` | `nodeId, newParentId, sortOrder` | Reparent a node to a new parent at a specific sort order. Triggers selection transform. | Line 64–74 — calls `ctx.repo.moveNode(...)` and updates selection context. |
-| `REPO_ADD_NODE` | `parentId, node: Partial<KNode>, selectAfter: boolean` | Insert a new node. If `selectAfter` is true, enters inline edit. | Line 76–87 — calls `ctx.repo.addNode(...)` and optionally enters text edit. |
-| `REPO_DELETE_NODE` | `nodeId: string` | Remove a node from the tree. Transforms selection to avoid dangling cursor. | Line 89–95 — calls `ctx.repo.deleteNode(...)` and updates selection. |
-| `REPO_UPDATE_NODE` | `nodeId, updates: Partial<KNode>` | Apply field mutations to an existing node (content, title, status, etc.). | Line 97–99 — calls `ctx.repo.updateNode(nodeId, updates)`. |
-| `INLINE_EDIT` | `nodeId, blockIndex: number` | Enter text-editing mode for a specific block within a card. `blockIndex` 0 = title, 1+ = body. | Line 102–104 — calls `ctx.sel.text.edit(nodeId, 0)` and sets `ctx.textEditHints`. |
-| `RENDER_FLUSH` | (none) | Signal renderer to commit pending changes and redraw (synchronous render). | Line 106–107 — calls `requestRenderFlush()`. |
-| `CLEAR_SELECTION` | (none) | Deselect all multi-selected nodes. | Line 109–110 — calls `clearSelection(ctx)`. |
-| `UNDO_SET_CURSOR` | `nodeId: string \| null` | Inform undo/redo system of current cursor position (for undo recovery). | Line 114–115 — calls `ctx.undoHandle.setCursor(nodeId)`. |
-| `UNDO_START_BATCH` | `label: string` | Begin an undo batch (group subsequent changes under one undo entry). | Line 117–118 — calls `ctx.undoHandle.startBatch(label)`. |
-| `UNDO_END_BATCH` | (none) | End the current undo batch. | Line 120–121 — calls `ctx.undoHandle.endBatch()`. |
+| Type                | Arguments                                            | Purpose                                                                                      | Handler                                                                                |
+| ------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| SELECT              | nodeId: string                                       | Move cursor to node and update selection.                                                    | apps/km-tui/src/board/board-effect-runner.ts:54 — calls ctx.sel.node.select([nodeId]). |
+| FOLD_SET            | depths: Map<string, number>                          | Replace fold state with a new depth map. Used for fold_all/unfold_all operations.            | Line 56–57 — calls ctx.setFoldDepths(depths).                                          |
+| SCROLL_ANCHOR_CLEAR | (none)                                               | Clear the sticky scroll anchor (viewport returns to following cursor).                       | Line 59–60 — calls ctx.setUI({ columnScrollAnchor: null }).                            |
+| REPO_MOVE_NODE      | nodeId, newParentId, sortOrder                       | Reparent a node to a new parent at a specific sort order. Triggers selection transform.      | Line 64–74 — calls ctx.repo.moveNode(...) and updates selection context.               |
+| REPO_ADD_NODE       | parentId, node: Partial<KNode>, selectAfter: boolean | Insert a new node. If selectAfter is true, enters inline edit.                               | Line 76–87 — calls ctx.repo.addNode(...) and optionally enters text edit.              |
+| REPO_DELETE_NODE    | nodeId: string                                       | Remove a node from the tree. Transforms selection to avoid dangling cursor.                  | Line 89–95 — calls ctx.repo.deleteNode(...) and updates selection.                     |
+| REPO_UPDATE_NODE    | nodeId, updates: Partial<KNode>                      | Apply field mutations to an existing node (content, title, status, etc.).                    | Line 97–99 — calls ctx.repo.updateNode(nodeId, updates).                               |
+| INLINE_EDIT         | nodeId, blockIndex: number                           | Enter text-editing mode for a specific block within a card. blockIndex 0 = title, 1+ = body. | Line 102–104 — calls ctx.sel.text.edit(nodeId, 0) and sets ctx.textEditHints.          |
+| RENDER_FLUSH        | (none)                                               | Signal renderer to commit pending changes and redraw (synchronous render).                   | Line 106–107 — calls requestRenderFlush().                                             |
+| CLEAR_SELECTION     | (none)                                               | Deselect all multi-selected nodes.                                                           | Line 109–110 — calls clearSelection(ctx).                                              |
+| UNDO_SET_CURSOR     | nodeId: string \| null                               | Inform undo/redo system of current cursor position (for undo recovery).                      | Line 114–115 — calls ctx.undoHandle.setCursor(nodeId).                                 |
+| UNDO_START_BATCH    | label: string                                        | Begin an undo batch (group subsequent changes under one undo entry).                         | Line 117–118 — calls ctx.undoHandle.startBatch(label).                                 |
+| UNDO_END_BATCH      | (none)                                               | End the current undo batch.                                                                  | Line 120–121 — calls ctx.undoHandle.endBatch().                                        |
 
 **Handler location**: `apps/km-tui/src/board/board-effect-runner.ts:50–129`. The `runEffect()` function is the dispatch center; `runBoardEffects()` handles normalization (auto-derive title/name) before execution.
 

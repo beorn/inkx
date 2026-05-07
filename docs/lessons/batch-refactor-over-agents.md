@@ -9,6 +9,7 @@
 The test-system migration needed to convert 53 test files from `testEnv()` to `createTestApp()`. The approach: spawn background agents, one batch of files each, each agent reads the file, decides which tests to migrate, and edits.
 
 Results:
+
 - 15+ agents spawned across the session
 - 6 died on API overload (529 errors) with zero work done
 - Each surviving agent took 5-15 minutes per file
@@ -40,12 +41,12 @@ For surgical decisions (some tests migrate, some don't): the editset includes al
 
 ## The Rule
 
-| Task | Tool | Why |
-|------|------|-----|
-| Mechanical find-replace across files | `pattern.replace` + editset | Deterministic, instant, reviewable |
-| Surgical migration (some yes, some no) | `pattern.migrate` + editset review | All decisions in one pass |
-| Complex rewrite (store→screen assertions) | Agent (single focused) | Needs judgment per test |
-| Research / architecture decision | Agent (Explore) | Needs breadth |
+| Task                                      | Tool                             | Why                                |
+| ----------------------------------------- | -------------------------------- | ---------------------------------- |
+| Mechanical find-replace across files      | pattern.replace + editset        | Deterministic, instant, reviewable |
+| Surgical migration (some yes, some no)    | pattern.migrate + editset review | All decisions in one pass          |
+| Complex rewrite (store→screen assertions) | Agent (single focused)           | Needs judgment per test            |
+| Research / architecture decision          | Agent (Explore)                  | Needs breadth                      |
 
 **Use agents when the VALUE is judgment.** Use batch refactor when the VALUE is throughput. The test migration had ~80% throughput work and ~20% judgment — should have been batch refactor for the 80%, agent for the 20%.
 
@@ -53,3 +54,4 @@ For surgical decisions (some tests migrate, some don't): the editset includes al
 
 - [Sync Test API](sync-test-api.md) — related lesson from the same session
 - `vendor/bearly/skills/batch-refactor/SKILL.md` — full batch refactor docs
+

@@ -69,11 +69,11 @@ Each iteration of the loop runs the full 5-phase pipeline:
 
 | Phase | Name          | What Happens                                                        |
 | ----- | ------------- | ------------------------------------------------------------------- |
-| 1     | Measure       | Measure intrinsic content sizes for `fit-content` nodes             |
+| 1     | Measure       | Measure intrinsic content sizes for fit-content nodes               |
 | 2     | Layout        | Run flexbox layout engine, propagate dimensions to all nodes        |
-| 2.5   | Scroll        | Calculate scroll state for `overflow="scroll"` containers           |
+| 2.5   | Scroll        | Calculate scroll state for overflow="scroll" containers             |
 | 2.6   | Screen Rect   | Calculate screen-relative positions (accounting for scroll offsets) |
-| 2.7   | Notify        | Fire layout subscriber callbacks (`useBoxRect`, `onLayout`, etc.)   |
+| 2.7   | Notify        | Fire layout subscriber callbacks (useBoxRect, onLayout, etc.)       |
 | 3     | Content       | Render each node to the terminal buffer                             |
 | 4     | Diff & Output | Compare with previous buffer, emit minimal ANSI                     |
 
@@ -272,25 +272,22 @@ The production `RenderScheduler` calls `executeRender()` once per scheduled rend
 To keep your components safe from layout feedback loops:
 
 1. **Never change your own layout props based on your measured size.** Reading `useBoxRect()` to adapt content (text, color, visibility of child elements) is fine. Using it to set `width`, `height`, `flexGrow`, or `flexBasis` on your own container creates a cycle risk.
-
 2. **Treat useBoxRect values as read-only inputs.** Think of the dimensions like props: you can use them to decide what to render, but changing them triggers the same kind of update cascade as setting props in a `useEffect`.
-
 3. **Use the callback variants for large lists.** `useBoxRect` and `useScreenRect` don't trigger re-renders, eliminating the feedback loop entirely. Use them when you need position data but don't need to re-render.
-
 4. **Fixed containers are safe.** If a component's size is determined by its parent (via `flexGrow`, fixed `width`/`height`, or percentage), then adding or removing children inside it won't change its dimensions, making layout feedback safe.
-
 5. **Two iterations is normal.** The first render produces `0x0` dimensions. After layout, `useBoxRect` fires, causing a second render with real dimensions. If your component needs more than 2 iterations, it's likely oscillating.
 
 ---
 
 ## Comparison with CSS Containment
 
-| Aspect               | CSS Container Queries                      | Silvery                            |
-| -------------------- | ------------------------------------------ | ---------------------------------- |
-| Prevention mechanism | Static containment rules (`contain: size`) | Bounded iteration loop (max 5)     |
-| Cycle detection      | Compile-time (containment is declarative)  | Runtime (hadReactCommit flag)      |
-| When cycles occur    | Browser ignores the query (spec-defined)   | Last iteration wins (silent cap)   |
-| Developer feedback   | DevTools warnings                          | None (silent convergence)          |
-| Typical iterations   | 1 (containment prevents re-layout)         | 2 (first render + layout feedback) |
+| Aspect               | CSS Container Queries                     | Silvery                            |
+| -------------------- | ----------------------------------------- | ---------------------------------- |
+| Prevention mechanism | Static containment rules (contain: size)  | Bounded iteration loop (max 5)     |
+| Cycle detection      | Compile-time (containment is declarative) | Runtime (hadReactCommit flag)      |
+| When cycles occur    | Browser ignores the query (spec-defined)  | Last iteration wins (silent cap)   |
+| Developer feedback   | DevTools warnings                         | None (silent convergence)          |
+| Typical iterations   | 1 (containment prevents re-layout)        | 2 (first render + layout feedback) |
 
 The key difference: CSS containment prevents cycles statically by ensuring a container's size can't depend on its children's queries. Silvery allows the dependency but bounds the iteration count. This is more flexible (any pattern that converges is allowed) but less predictable (oscillating patterns silently produce arbitrary results).
+

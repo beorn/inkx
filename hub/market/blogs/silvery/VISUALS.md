@@ -398,13 +398,13 @@ graph TB
 
 All generated via Gemini 2.5 Flash Image (`gemini-2.5-flash-image` model). Prompts focused on dark, minimal, developer-aesthetic with neon accent colors and no readable text.
 
-| Article            | File                          | Size   |
-| ------------------ | ----------------------------- | ------ |
-| Terminal Emulators | `hero-terminal-emulators.png` | 1.4 MB |
-| AI Agent TUI       | `hero-ai-agent-tui.png`       | 1.5 MB |
-| Dynamic Scrollback | `hero-dynamic-scrollback.png` | 1.2 MB |
-| Terminal Protocols | `hero-terminal-protocols.png` | 1.6 MB |
-| Layout-First       | `hero-layout-first.png`       | 932 KB |
+| Article            | File                        | Size   |
+| ------------------ | --------------------------- | ------ |
+| Terminal Emulators | hero-terminal-emulators.png | 1.4 MB |
+| AI Agent TUI       | hero-ai-agent-tui.png       | 1.5 MB |
+| Dynamic Scrollback | hero-dynamic-scrollback.png | 1.2 MB |
+| Terminal Protocols | hero-terminal-protocols.png | 1.6 MB |
+| Layout-First       | hero-layout-first.png       | 932 KB |
 
 To use as OG images, resize to exactly 1200x630 and compress:
 
@@ -413,3 +413,4 @@ for f in hero-*.png; do
   convert "$f" -resize 1200x630^ -gravity center -extent 1200x630 -quality 85 "og-${f%.png}.jpg"
 done
 ```
+

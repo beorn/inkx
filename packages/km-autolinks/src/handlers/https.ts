@@ -121,21 +121,20 @@ export type GithubInfo =
 export function parseGithubUrl(uri: URL): GithubInfo | null {
   const segments = splitPath(uri.pathname)
   if (segments.length < 2) return null
-  const owner = segments[0]!
-  const repo = segments[1]!
+  const [owner, repo, verb, fourth] = segments
+  if (owner === undefined || repo === undefined) return null
   if (segments.length === 2) {
     return { kind: "repo", owner, repo }
   }
 
-  const verb = segments[2]
-  if (verb === "pull" && segments.length >= 4 && /^\d+$/.test(segments[3]!)) {
-    return { kind: "pull", owner, repo, number: segments[3]! }
+  if (verb === "pull" && fourth !== undefined && /^\d+$/.test(fourth)) {
+    return { kind: "pull", owner, repo, number: fourth }
   }
-  if (verb === "issues" && segments.length >= 4 && /^\d+$/.test(segments[3]!)) {
-    return { kind: "issue", owner, repo, number: segments[3]! }
+  if (verb === "issues" && fourth !== undefined && /^\d+$/.test(fourth)) {
+    return { kind: "issue", owner, repo, number: fourth }
   }
-  if (verb === "blob" && segments.length >= 5) {
-    const branch = segments[3]!
+  if (verb === "blob" && fourth !== undefined && segments.length >= 5) {
+    const branch = fourth
     const path = segments.slice(4).join("/")
     return { kind: "file", owner, repo, branch, path }
   }
@@ -164,7 +163,9 @@ export type GistInfo = { readonly kind: "gist"; readonly user: string; readonly 
 export function parseGistUrl(uri: URL): GistInfo | null {
   const segments = splitPath(uri.pathname)
   if (segments.length !== 2) return null
-  return { kind: "gist", user: segments[0]!, id: segments[1]! }
+  const [user, id] = segments
+  if (user === undefined || id === undefined) return null
+  return { kind: "gist", user, id }
 }
 
 export function formatGistInfo(info: GistInfo): string {
@@ -191,9 +192,13 @@ export function parseJiraUrl(uri: URL): JiraInfo | null {
   const segments = splitPath(uri.pathname)
   if (segments.length !== 2) return null
   if (segments[0] !== "browse") return null
-  const m = segments[1]!.match(/^([A-Z][A-Z0-9_]*)-(\d+)$/)
+  const second = segments[1]
+  if (second === undefined) return null
+  const m = second.match(/^([A-Z][A-Z0-9_]*)-(\d+)$/)
   if (m === null) return null
-  return { kind: "jira", host: uri.hostname, key: m[1]!, number: m[2]! }
+  const [, key, number] = m
+  if (key === undefined || number === undefined) return null
+  return { kind: "jira", host: uri.hostname, key, number }
 }
 
 export function formatJiraInfo(info: JiraInfo): string {
@@ -222,10 +227,10 @@ export function parseLinearUrl(uri: URL): LinearInfo | null {
   const segments = splitPath(uri.pathname)
   if (segments.length < 3) return null
   if (segments[1] !== "issue") return null
-  if (!/^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(segments[2]!)) return null
-  const workspace = segments[0]!
-  const id = segments[2]!
-  const slug = segments.length >= 4 ? segments[3]! : null
+  const [workspace, , id, fourth] = segments
+  if (workspace === undefined || id === undefined) return null
+  if (!/^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(id)) return null
+  const slug = segments.length >= 4 && fourth !== undefined ? fourth : null
   return { kind: "linear", workspace, id, slug }
 }
 

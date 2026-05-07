@@ -3,11 +3,11 @@ layout: page
 title: Theme Explorer
 ---
 
+# Theme Explorer
+
 <script setup>
 import ThemeExplorer from './.vitepress/components/ThemeExplorer.vue'
 </script>
-
-# Theme Explorer
 
 Browse 84 bundled color schemes, preview how they look under Sterling, or generate a custom Theme from any color.
 
@@ -21,3 +21,4 @@ Every scheme on this page feeds **Sterling**, silvery's default design system. S
 - **Learn the tokens** → [Token Taxonomy](/guide/token-taxonomy)
 - **Learn derivation** → [Color Schemes](/guide/color-schemes)
 - **Theme API** → [`@silvery/design` reference](/reference/theme)
+

@@ -127,7 +127,7 @@ export function addLink(repo: Repo, edge: GraphEdge): void {
   // dep command writes.
   const blockerKey = blockerStorageKey(repo, edge.from)
   const blockers = readBlockedBy(toNode)
-  if (blockers.includes(blockerKey)) return // idempotent
+  if (blockers.some((b) => b === blockerKey || resolveBlocker(repo, b) === edge.from)) return // idempotent
 
   writeBlockedBy(repo, edge.to, [...blockers, blockerKey])
 }
@@ -150,13 +150,10 @@ export function removeLink(repo: Repo, edge: GraphEdge): void {
 
   const blockerKey = blockerStorageKey(repo, edge.from)
   const blockers = readBlockedBy(toNode)
-  if (!blockers.includes(blockerKey)) return // idempotent
+  const nextBlockers = blockers.filter((b) => b !== blockerKey && resolveBlocker(repo, b) !== edge.from)
+  if (nextBlockers.length === blockers.length) return // idempotent
 
-  writeBlockedBy(
-    repo,
-    edge.to,
-    blockers.filter((b) => b !== blockerKey),
-  )
+  writeBlockedBy(repo, edge.to, nextBlockers)
 }
 
 /**

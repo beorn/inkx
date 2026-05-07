@@ -22,20 +22,20 @@ robots.txt reference: confirmed
 
 ## Validation Checks
 
-| Check | Result | Notes |
-|-------|--------|-------|
-| XML declaration present | PASS | `<?xml version="1.0" encoding="UTF-8"?>` |
-| Standard sitemap namespace | PASS | `xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"` |
-| Unused extra namespaces | INFO | 4 extra: news, xhtml, image, video — none used |
-| URL count under 50k limit | PASS | 145 URLs |
-| All URLs return HTTP 200 | PASS | All 145 checked, no 4xx/5xx/301 |
-| All URLs use HTTPS | PASS | No http:// found |
-| All URLs use non-www | PASS | No www. found |
-| changefreq tags present | PASS | None — correct, Google ignores these |
-| priority tags present | PASS | None — correct, Google ignores these |
-| lastmod present on all URLs | PASS | 145/145 have lastmod |
-| lastmod dates look real | PASS | 11 distinct dates, range Mar 10 – Apr 1 |
-| Sitemap split/index needed | PASS | 145 URLs, single file is appropriate |
+| Check                       | Result | Notes                                               |
+| --------------------------- | ------ | --------------------------------------------------- |
+| XML declaration present     | PASS   | <?xml version="1.0" encoding="UTF-8"?>              |
+| Standard sitemap namespace  | PASS   | xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" |
+| Unused extra namespaces     | INFO   | 4 extra: news, xhtml, image, video — none used      |
+| URL count under 50k limit   | PASS   | 145 URLs                                            |
+| All URLs return HTTP 200    | PASS   | All 145 checked, no 4xx/5xx/301                     |
+| All URLs use HTTPS          | PASS   | No http:// found                                    |
+| All URLs use non-www        | PASS   | No www. found                                       |
+| changefreq tags present     | PASS   | None — correct, Google ignores these                |
+| priority tags present       | PASS   | None — correct, Google ignores these                |
+| lastmod present on all URLs | PASS   | 145/145 have lastmod                                |
+| lastmod dates look real     | PASS   | 11 distinct dates, range Mar 10 – Apr 1             |
+| Sitemap split/index needed  | PASS   | 145 URLs, single file is appropriate                |
 
 ---
 
@@ -120,6 +120,7 @@ The sitemap contains two parallel namespaces for guides:
 - `/guides/*` — 4 pages
 
 The 4 `/guides/*` pages:
+
 ```
 https://silvery.dev/guides/components.html
 https://silvery.dev/guides/state-management.html
@@ -134,6 +135,7 @@ Recommendation: consolidate to `/guide/*`. Redirect the 4 `/guides/*` URLs to th
 ### reference/theme.html vs reference/theming.html
 
 Both pages return HTTP 200:
+
 ```
 https://silvery.dev/reference/theme.html
 https://silvery.dev/reference/theming.html
@@ -144,6 +146,7 @@ Without inspecting content, these may cover different scopes (one may be the the
 ### Missing section index pages
 
 These section directories return 404, meaning there is no browsable entry point for these sections:
+
 ```
 404 https://silvery.dev/getting-started/
 404 https://silvery.dev/guide/
@@ -203,3 +206,4 @@ Low priority:
 7. Remove unused namespace declarations from sitemap XML.
 8. Add section index pages for `/guide/`, `/reference/`, and `/getting-started/` to improve internal link structure.
 9. Investigate `/reference/robust-ops.html` — confirm it is intentional user-facing content.
+

@@ -1,8 +1,8 @@
-> **Deprecated (2026-03-25).** Superseded by [00-overview.md](../00-overview.md). Kept for historical reference.
-
 # Rendering & Input
 
-> **Deep-dive** for [00-architecture.md](./00-architecture.md) SS Part 0-1 and Input. Ag rendering, input pipeline, concrete examples. Last synced: 2026-03-19.
+> Deprecated (2026-03-25). Superseded by 00-overview.md. Kept for historical reference.
+
+> Deep-dive for 00-architecture.md SS Part 0-1 and Input. Ag rendering, input pipeline, concrete examples. Last synced: 2026-03-19.
 
 _Status: draft (2026-03-19). From zero to a full interactive app — rendering and input in progressive steps._
 
@@ -183,11 +183,11 @@ When a keypress matches both a single-key binding AND a chord prefix (e.g., `d` 
 1. **Enter pending state**: Store the current trie position in the keymap-local `chord` variable.
 2. **Start timeout** (~300ms configurable): If no follow-up key arrives before timeout, resolve the single-key binding.
 3. **Follow-up key arrives**:
-   - Matches a child node --> continue down the trie (extend chord).
-   - Reaches a leaf --> resolve the command, clear chord state.
-   - No match --> resolve the pending single-key binding for the prefix, then reprocess the follow-up key.
+- Matches a child node --> continue down the trie (extend chord).
+- Reaches a leaf --> resolve the command, clear chord state.
+- No match --> resolve the pending single-key binding for the prefix, then reprocess the follow-up key.
 
-> The keymap engine uses plain closure state internally -- signals are a user-space choice, not a framework requirement. `@silvery/commands` depends only on `@silvery/create` (Decision 30).
+> The keymap engine uses plain closure state internally -- signals are a user-space choice, not a framework requirement. @silvery/commands depends only on @silvery/create (Decision 30).
 
 ```typescript
 // Inside compileKeymap() -- plain closure state, not signals:
@@ -275,14 +275,14 @@ Key strings in `input:key` ops carry the raw terminal event. The keymap's `match
 
 | Raw event     | Binding pattern | Notes                               |
 | ------------- | --------------- | ----------------------------------- |
-| `"a"`         | `a`             | Lowercase letter                    |
-| `"A"`         | `A`             | Uppercase (Shift implied)           |
-| `"Enter"`     | `Enter`         | Special keys capitalized            |
-| `"Escape"`    | `Escape`        | Special keys capitalized            |
-| `"ArrowDown"` | `ArrowDown`     | Arrow keys                          |
-| ctrl+c        | `ctrl+c`        | Modifier prefix, `+` separator      |
-| ctrl+shift+k  | `ctrl+shift+k`  | Multiple modifiers, canonical order |
-| ctrl+w then v | `ctrl+w v`      | Chord: space-separated key sequence |
+| "a"           | a               | Lowercase letter                    |
+| "A"           | A               | Uppercase (Shift implied)           |
+| "Enter"       | Enter           | Special keys capitalized            |
+| "Escape"      | Escape          | Special keys capitalized            |
+| "ArrowDown"   | ArrowDown       | Arrow keys                          |
+| ctrl+c        | ctrl+c          | Modifier prefix, + separator        |
+| ctrl+shift+k  | ctrl+shift+k    | Multiple modifiers, canonical order |
+| ctrl+w then v | ctrl+w v        | Chord: space-separated key sequence |
 
 Modifier flags (`shift`, `ctrl`, `meta`, `alt`) are booleans on the op. The binding pattern encodes them as prefixes. The keymap normalizes both sides for comparison.
 
@@ -292,11 +292,11 @@ Modifier flags (`shift`, `ctrl`, `meta`, `alt`) are booleans on the op. The bind
 
 State is scoped by visibility -- signals for reactive model state, plain variables for keymap internals:
 
-| Scope            | Example                   | Mechanism               | Lifetime                |
-| ---------------- | ------------------------- | ----------------------- | ----------------------- |
-| **Universal**    | `items`, `cursor`, `mode` | `signal()`              | App lifetime            |
-| **Keymap-local** | `chord`, `count`          | Plain closure variables | Keymap instance         |
-| **Derived**      | `isNormal`, `isInsert`    | `computed()`            | Computed from universal |
+| Scope        | Example             | Mechanism               | Lifetime                |
+| ------------ | ------------------- | ----------------------- | ----------------------- |
+| Universal    | items, cursor, mode | signal()                | App lifetime            |
+| Keymap-local | chord, count        | Plain closure variables | Keymap instance         |
+| Derived      | isNormal, isInsert  | computed()              | Computed from universal |
 
 Keymap internals (`chord`, `count`) use plain `let` variables inside the `compileKeymap()` closure -- they don't need reactivity (no subscribers observe them). Model state uses signals for reactive updates. Both are just closures at different lexical scopes.
 
@@ -490,16 +490,17 @@ All steps happen through the dispatch/apply pipeline -- no event bus, no middlew
 
 ## Layered Architecture
 
-| Layer  | What             | Examples                                                     | Package                                                                  |
-| ------ | ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| **L0** | Primitives       | `signal()`, `computed()`, functions                          | `@silvery/signals`                                                       |
-| **L1** | Foundation       | `create()`, `dispatch()`, `apply()`, `OpTypes`               | `@silvery/create`                                                        |
-| **L2** | App architecture | `withApp()`, `app.keymap()`, `when()`, `resolveInvocation()` | `@silvery/commands` + `@silvery/scope` (withApp is a composition preset) |
-| **L2** | Rendering        | `withAg()`, `withReact()`, `withTerm()`                      | `@silvery/ag-*`                                                          |
-| **L3** | Domain plugins   | `withTodo()`, `withEditor()`, `withDocument()`               | App-specific                                                             |
+| Layer | What             | Examples                                             | Package                                                              |
+| ----- | ---------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| L0    | Primitives       | signal(), computed(), functions                      | @silvery/signals                                                     |
+| L1    | Foundation       | create(), dispatch(), apply(), OpTypes               | @silvery/create                                                      |
+| L2    | App architecture | withApp(), app.keymap(), when(), resolveInvocation() | @silvery/commands + @silvery/scope (withApp is a composition preset) |
+| L2    | Rendering        | withAg(), withReact(), withTerm()                    | @silvery/ag-*                                                        |
+| L3    | Domain plugins   | withTodo(), withEditor(), withDocument()             | App-specific                                                         |
 
 Keymaps are not a separate library -- they are part of `withApp()`. Domain plugins register bindings via `app.keymap()`. The dispatch/apply pipeline is the architecture.
 
 ---
 
 _See also: [00-architecture.md](./00-architecture.md) (dispatch/apply pipeline, full pipe example), [commands.md](../era2b/commands.md) (command tree, auto-derived surfaces), [app.md](../era2b/app.md) (plugin composition, scopes, concurrency)._
+

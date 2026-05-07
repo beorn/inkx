@@ -1,6 +1,6 @@
-> **SUPERSEDED (2026-04-20)**: This design was retired when tribe was simplified to reuse km primitives. See [`hub/km/design/tribe-matrix.md`](../../km/design/tribe-matrix.md) for the current design. Kept here as historical context.
-
 # Tribe Daemon
+
+> SUPERSEDED (2026-04-20): This design was retired when tribe was simplified to reuse km primitives. See hub/km/design/tribe-matrix.md for the current design. Kept here as historical context.
 
 Single daemon process per project. Claude Code sessions and CLI tools connect via Unix socket.
 
@@ -167,13 +167,14 @@ bun tribe retro           # Retrospective report
 
 CLI connects to daemon via same socket protocol. Additional JSON-RPC methods:
 
-| Method       | Purpose                                                |
-| ------------ | ------------------------------------------------------ |
-| `cli_status` | Sessions + daemon info (uptime, client count, DB path) |
-| `cli_log`    | Message history with limit/filter                      |
-| `cli_health` | Full diagnostics                                       |
-| `cli_daemon` | Daemon process info                                    |
+| Method     | Purpose                                                |
+| ---------- | ------------------------------------------------------ |
+| cli_status | Sessions + daemon info (uptime, client count, DB path) |
+| cli_log    | Message history with limit/filter                      |
+| cli_health | Full diagnostics                                       |
+| cli_daemon | Daemon process info                                    |
 
 Fallback: `--offline` flag → direct DB read when daemon is not running.
 
 Future: `bun tribe watch` — live TUI dashboard via persistent socket connection.
+

@@ -119,7 +119,9 @@ to non-empty hex on every detection path because `deriveTheme` (the final
 step in every path — override, probe, fingerprint, fallback) now emits them.
 
 Contract test extensions:
+
 - `@silvery/ansi.detectTheme()` (no-TTY fallback) → all flat tokens populated.
 - `@silvery/ansi.detectScheme()` (fallback branch) → all flat tokens populated.
 - `deriveTheme(defaultDarkScheme)` → all flat tokens populated.
 - `loadTheme(anyScheme)` → all flat tokens populated.
+

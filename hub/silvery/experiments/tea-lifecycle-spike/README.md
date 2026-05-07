@@ -156,3 +156,4 @@ cat hub/silvery/experiments/tea-lifecycle-spike/sample-trace-a4-remount.log   # 
 This directory is intentionally preserved alongside `tea-nav-spike/` as reference evidence for Phase 1. The `prototype` vitest project includes both; they run together in ~1.2 s.
 
 Removing this spike is a clean `rm -rf hub/silvery/experiments/tea-lifecycle-spike/` — no other files reference it.
+

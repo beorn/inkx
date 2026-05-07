@@ -325,28 +325,28 @@ NO BACKWARDS COMPAT RE-EXPORTS. Per refactoring lessons, no @deprecated shims, n
 ### Phase 6: Fix — wire demo + km + docs + README
 
 1. Rewrite vendor/silvery/examples/apps/text-selection-demo.tsx:
-  - Remove the fake useInput-based state
-  - Wrap in a run() call with plugins: [withSelection(), withFind()]
-  - Use useSelection() for the copy indicator
-  - Verify manually by running the demo and mouse-dragging
-2. Update apps/@km/tui/src/tui.tsx:
-  - Add plugins: [withSelection()] to the boardApp.run() call
-  - No other km changes needed — the existing userSelect=contain props will start working
-3. Update silvery.dev guide pages:
-  - vendor/silvery/docs/guide/text-selection.md — replace useTerminalSelection examples with withSelection plugin examples
-  - vendor/silvery/docs/guide/clipboard.md — simplified (OSC 52 only, onCopy prop instead of SemanticCopyProvider)
-  - vendor/silvery/docs/guide/find.md — withFind plugin usage
-4. Update vendor/silvery/CHANGELOG.md:
-  - New entry: "Interaction plugins (withSelection, withFind, withCopyMode, withDragDrop) — text selection, find, copy-mode, drag-and-drop as opt-in plugins attached via pipe()"
-  - Breaking: "Removed useTerminalSelection, useCopyProvider, PasteProvider, and other hook/provider APIs. Use plugins and observer hooks instead."
-5. Update vendor/silvery/README.md:
-  - Mention text selection and find as features
-  - Add a plugin example to the getting started section
-6. Update vendor/silvery/docs/index.md (homepage):
-  - Add interaction plugins to the feature list
-7. Manual verification:
-  - Run the demo: bun vendor/silvery/examples/apps/text-selection-demo.tsx → mouse drag selects text → mouse up copies to clipboard → pasting into an external editor yields the selected text
-  - Run km: bun km view /some/vault → open help dialog (?) → mouse drag on help text → selection highlights → mouse up copies → pasting yields the text
+- Remove the fake useInput-based state
+- Wrap in a run() call with plugins: [withSelection(), withFind()]
+- Use useSelection() for the copy indicator
+- Verify manually by running the demo and mouse-dragging
+7. Update apps/@km/tui/src/tui.tsx:
+- Add plugins: [withSelection()] to the boardApp.run() call
+- No other km changes needed — the existing userSelect=contain props will start working
+11. Update silvery.dev guide pages:
+- vendor/silvery/docs/guide/text-selection.md — replace useTerminalSelection examples with withSelection plugin examples
+- vendor/silvery/docs/guide/clipboard.md — simplified (OSC 52 only, onCopy prop instead of SemanticCopyProvider)
+- vendor/silvery/docs/guide/find.md — withFind plugin usage
+16. Update vendor/silvery/CHANGELOG.md:
+- New entry: "Interaction plugins (withSelection, withFind, withCopyMode, withDragDrop) — text selection, find, copy-mode, drag-and-drop as opt-in plugins attached via pipe()"
+- Breaking: "Removed useTerminalSelection, useCopyProvider, PasteProvider, and other hook/provider APIs. Use plugins and observer hooks instead."
+20. Update vendor/silvery/README.md:
+- Mention text selection and find as features
+- Add a plugin example to the getting started section
+24. Update vendor/silvery/docs/index.md (homepage):
+- Add interaction plugins to the feature list
+27. Manual verification:
+- Run the demo: bun vendor/silvery/examples/apps/text-selection-demo.tsx → mouse drag selects text → mouse up copies to clipboard → pasting into an external editor yields the selected text
+- Run km: bun km view /some/vault → open help dialog (?) → mouse drag on help text → selection highlights → mouse up copies → pasting yields the text
 
 /complete criteria:
 

@@ -14,18 +14,18 @@ Last verified: 2026-04-02
 
 **Flowchart (rendering pipeline):**
 
-````md
+~~~~md
 ```mermaid
 graph LR
   A[Measure] --> B[Layout] --> C[Render] --> D[Diff] --> E[Output]
   style A fill:#4a9,color:#fff
   style E fill:#49a,color:#fff
 ```
-````
+~~~~
 
 **Sequence diagram (terminal protocol negotiation):**
 
-````md
+~~~~md
 ```mermaid
 sequenceDiagram
   participant App
@@ -36,11 +36,11 @@ sequenceDiagram
   App->>Terminal: Enable mouse SGR (CSI ? 1006 h)
   App->>Terminal: Enable synchronized output (CSI ? 2026 h)
 ```
-````
+~~~~
 
 **State diagram (component lifecycle):**
 
-````md
+~~~~md
 ```mermaid
 stateDiagram-v2
   [*] --> Idle
@@ -50,11 +50,11 @@ stateDiagram-v2
   Complete --> Scrollback: graduated
   Scrollback --> [*]
 ```
-````
+~~~~
 
 **Comparison (Silvery vs Ink pipeline):**
 
-````md
+~~~~md
 ```mermaid
 graph TB
   subgraph Ink Pipeline
@@ -64,11 +64,11 @@ graph TB
     S1[Measure] --> S2[Flexily Layout] --> S3[React Render] --> S4[Cell Diff] --> S5[ANSI Output]
   end
 ```
-````
+~~~~
 
 **C4 architecture:**
 
-````md
+~~~~md
 ```mermaid
 C4Context
   title Silvery Ecosystem
@@ -82,7 +82,7 @@ C4Context
   Rel(dev, termless, "tests with")
   Rel(termless, terminfo, "validates against")
 ```
-````
+~~~~
 
 ---
 
@@ -429,3 +429,4 @@ Re-verify tools quarterly. Check:
 - [ ] Install commands still work
 
 Next verification due: 2026-07-02
+

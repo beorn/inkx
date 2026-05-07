@@ -5,7 +5,6 @@ aliases:
   - km-59vb
 ---
 
-
 ## Update 2026-05-06 — recommendation: deferred-only, deprecate the synchronous form
 
 User pushback: "why not ONLY have deferred useBoxRect?" — and on reflection that's the right call.
@@ -28,3 +27,4 @@ Web's native model is post-commit (ResizeObserver). silvery's multi-target ambit
 **Breaking change scope**: silvery internal — Image, Divider, ProgressBar, MeasuredBox each need a pass to confirm the one-frame-late paint is acceptable. silvercode: Content.tsx benefits directly. Test/prod parity: `createFixedSize` and `createSize` behave identically because observers fire post-commit either way.
 
 **Why this beats "add a separate useDeferredBoxRect"**: two hooks with subtle different semantics is the worst of both worlds — call sites pick the wrong one and we get the same class of bug. One hook with the right semantics + a callback escape hatch is the canonical answer.
+

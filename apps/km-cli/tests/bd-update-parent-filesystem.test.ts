@@ -93,4 +93,54 @@ describe("bd update --parent", () => {
     expect(children.exitCode, children.stderr || children.stdout).toBe(0)
     expect(children.stdout).toContain("@km/silvery/scroll-interaction-l4-l5/scrollbar-controlled-view")
   })
+
+  test("priority/type update hydrates a file-backed bead and preserves its canonical filename and body", () => {
+    const repo = freshRepo()
+    expect(runKm(repo, ["bd", "create", "Silvercode", "--path", "@km/silvercode", "--type", "epic"]).exitCode).toBe(0)
+    expect(
+      runKm(repo, [
+        "bd",
+        "create",
+        "Silvercode transcript/tool output parity with Claude Code",
+        "--path",
+        "@km/silvercode/claude-code-transcript-parity",
+        "--type",
+        "epic",
+        "--priority",
+        "P2",
+        "--description",
+        "baseline desc",
+      ]).exitCode,
+    ).toBe(0)
+
+    const childPath = join(repo, "@km", "silvercode", "claude-code-transcript-parity.md")
+    writeFileSync(childPath, `${readFileSync(childPath, "utf-8")}\n## Details\n\nKeep this body.\n`, "utf-8")
+
+    const result = runKm(repo, [
+      "bd",
+      "update",
+      "@km/silvercode/claude-code-transcript-parity",
+      "--priority",
+      "P1",
+      "--type",
+      "epic",
+      "--parent",
+      "@km/silvercode",
+    ])
+
+    expect(result.exitCode, result.stderr || result.stdout).toBe(0)
+    expect(existsSync(join(repo, "@km", "silvercode", "#P1.md"))).toBe(false)
+    expect(existsSync(childPath)).toBe(true)
+
+    const child = readFileSync(childPath, "utf-8")
+    expect(child).toContain("# Silvercode transcript/tool output parity with Claude Code #epic #P1")
+    expect(child).toContain("## Details")
+    expect(child).toContain("Keep this body.")
+    expect(child).not.toContain("_stub: true")
+
+    const show = runKm(repo, ["bd", "show", "@km/silvercode/claude-code-transcript-parity"])
+    expect(show.exitCode, show.stderr || show.stdout).toBe(0)
+    expect(show.stdout).toContain("Priority: P1")
+    expect(show.stdout).toContain("Type: epic")
+  })
 })

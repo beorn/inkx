@@ -10,10 +10,10 @@ A well-designed system has **few concepts that compose richly**, not many concep
 
 In km, the domain objects are:
 
-| Layer | Node | Tree | Traversal |
-|-------|------|------|-----------|
-| Data | `KNode` | `KTree` | `KTree.nodes(root, { match, into })` |
-| View | `ViewNode` | `ViewTree` | `ViewTree.nodes(root, { match, into })` |
+| Layer | Node     | Tree     | Traversal                             |
+| ----- | -------- | -------- | ------------------------------------- |
+| Data  | KNode    | KTree    | KTree.nodes(root, { match, into })    |
+| View  | ViewNode | ViewTree | ViewTree.nodes(root, { match, into }) |
 
 These aren't just data structures — they're the **vocabulary of the system**. Every operation on a tree (traverse, find siblings, get descendants, find deepest node) belongs on these namespaces. Every type check on a node (`isOutline`, `isTask`, `isBody`) belongs on the node namespace.
 
@@ -79,12 +79,12 @@ Ask: "If I needed this operation, where would I look first?"
 
 This applies at every level:
 
-| Data | Vocabulary |
-|------|-----------|
-| `KNode` | `KNode.isOutline()`, `KNode.isTask()`, `KNode.matches()` |
-| `KTree` | `KTree.nodes(tree, root, { match, into })` |
-| `ViewTree` | `ViewTree.nodes()`, `ViewTree.next()`, `ViewTree.prev()`, `ViewTree.ancestors()` |
-| `Repo` | `repo.getNode()`, `repo.getChildren()` |
+| Data     | Vocabulary                                                               |
+| -------- | ------------------------------------------------------------------------ |
+| KNode    | KNode.isOutline(), KNode.isTask(), KNode.matches()                       |
+| KTree    | KTree.nodes(tree, root, { match, into })                                 |
+| ViewTree | ViewTree.nodes(), ViewTree.next(), ViewTree.prev(), ViewTree.ancestors() |
+| Repo     | repo.getNode(), repo.getChildren()                                       |
 
 `KNode`, `KTree`, and `ViewTree` all follow this pattern now — the nav-clarity refactor established it.
 
@@ -104,10 +104,10 @@ Same concept. Same predicate model (`match` = what to yield, `into` = what to de
 
 **Name alignment matters.** If one layer calls its namespace `KTree` (verb — "I walk") and the other calls it `ViewTree` (noun — "I am a tree"), the parallel is invisible. Both are namespaces for tree operations. Both should be nouns: `KTree` and `ViewTree`. The `.nodes()` method is the verb.
 
-| Layer | Node type | Namespace | Traversal |
-|-------|-----------|-----------|-----------|
-| Data | `KNode` | `KTree` | `KTree.nodes(tree, root, { match, into })` |
-| View | `ViewNode` | `ViewTree` | `ViewTree.nodes(root, { match, into })` |
+| Layer | Node type | Namespace | Traversal                                |
+| ----- | --------- | --------- | ---------------------------------------- |
+| Data  | KNode     | KTree     | KTree.nodes(tree, root, { match, into }) |
+| View  | ViewNode  | ViewTree  | ViewTree.nodes(root, { match, into })    |
 
 Two layers, two node types, two namespaces, same `.nodes()` API. That's the full vocabulary.
 
@@ -145,13 +145,9 @@ When this works, the flow is expressed in **one place** using **composable domai
 ## Rules
 
 1. **If a function operates on a core data structure, it belongs on that structure's namespace.** Not in a consumer file.
-
 2. **If two sessions independently write the same operation, the interface is missing a method.** Add it to the source, not as another bare function.
-
 3. **Namespaces over instance methods.** Keep data structures plain (no methods on `ViewNode`). Put operations on a companion namespace (`ViewTree.*`). This is the SlateJS/KNode pattern — proven and consistent.
-
 4. **Export the namespace from the barrel.** If `ViewTree.nodes` exists but isn't in `@km/board`'s index.ts, it's still invisible.
-
 5. **Unify API shapes across layers.** When Repo and View both have "traverse children with predicates," use the same parameter names (`match`, `into`, `reverse`). Knowledge of one layer should transfer to the other.
 
 ## Related
@@ -162,3 +158,4 @@ When this works, the flow is expressed in **one place** using **composable domai
 - [docs/principles.md — The Discoverability Test](../principles.md#principle-discoverability-test): Two testable heuristics — autocomplete test and duplication signal.
 - [docs/principles.md — Composable Domain Objects](../principles.md#principle-plain-objects): The vocabulary principle extends objects to operations — the API surface IS the domain language.
 - [docs/lessons/refactoring.md — Case Study 3](refactoring.md): Documentation drift — same root cause (the canonical way exists but isn't discoverable).
+

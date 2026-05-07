@@ -131,6 +131,7 @@ interface AppPlugin {
 Pipe order enforced by type-level constraint (later in role hierarchy = later in pipe). Observers MUST NOT consume ops (lint enforceable). Middleware SEEN FIRST (outer), observers run as a lane before the handlers.
 
 **Effective precedence** (stated as policy):
+
 1. Middleware wrappers (observe ops + effects, transform/record) — outermost
 2. Observers (terminal, modifiers, tracing) — always pass through
 3. Targeted handlers (dom event routing, focus, paste)
@@ -190,6 +191,7 @@ export const sel = {
 ```
 
 Phase 4 becomes:
+
 - Ship withSelection plugin (new)
 - Wire `sel` shim to delegate
 - Migrate call sites incrementally across multiple sessions
@@ -206,6 +208,7 @@ Phase 4 becomes:
 **Response**: **The board-nav spike IS this validation.** Running now in a worktree (agent aff2ed2d). If the spike wraps km's existing pure nav reducer and runs on the real runtime in < 2 days, we have flight evidence. If it fights the framework, we abort before committing to Phase 1.
 
 Answer to "how do we know when it's flight-proven": the spike's acceptance criteria. Specifically:
+
 - `cursor_down` dispatch → rendered output updates
 - Dialog-precedence (Phase 2) → Enter routes to command not focus nav
 - Trace log readable by a human post-run
@@ -219,6 +222,7 @@ No further validation needed before Phase 1 commits.
 **Concern**: docs imply both "PlainText only" and "eventual Slate rich editing".
 
 **Response**: Explicit scope declaration. Phase 3 `withEditor`:
+
 - IS: PlainText for inline/title/body-as-text editing
 - IS NOT: rich/Slate editing, embedded lists, inline mark-up
 
@@ -248,9 +252,11 @@ Items 2 + 3 + 6 are blockers for Phase 6 (undo) per K2.6's critique. File them f
 The dual-pro critique is sharp but each concern has a concrete resolution that fits within the existing architecture. No architectural pivot required. What's required is **discipline** (conventions + contract tests) to cover the gaps where the type system can't help.
 
 Shape confidence trajectory:
+
 - Before review: uncertain (docs contradict, multi-domain flows unclear)
 - After doc-hygiene + responses (this doc): clarified
 - After board-nav spike: empirical
 - After Phase 1 (withDialogs): proven
 
 Spike result is the next confidence data point. Report landing in `hub/silvery/` when the spike finishes.
+

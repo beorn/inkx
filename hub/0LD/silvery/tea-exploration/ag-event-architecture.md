@@ -1,8 +1,8 @@
-> **Superseded (2026-04-11).** Canonical design: [app-composition.md](../../design/v10-terminal/app-composition.md). Public docs: `docs/guide/input-architecture.md`. Kept for reference.
-
 # ag\* Event Architecture — Design Document
 
-> Internal design doc. Public version: `docs/guide/input-architecture.md`
+> Superseded (2026-04-11). Canonical design: app-composition.md. Public docs: docs/guide/input-architecture.md. Kept for reference.
+
+> Internal design doc. Public version: docs/guide/input-architecture.md
 
 ## The Pipeline
 
@@ -101,13 +101,13 @@ Terminal stdin → processEventBatch → PLUGIN CHAIN → Stores → React reads
 
 Each plugin is a self-contained concern with its own **store** and **update functions**:
 
-| Plugin               | Store                     | Update functions              | React hook (thin reader) |
-| -------------------- | ------------------------- | ----------------------------- | ------------------------ |
-| `withTerminal()`     | modifier state (internal) | `modifierUpdate(key) → state` | `useModifierKeys()`      |
-| `withFocus()`        | focus tree + manager      | `focusUpdate(key) → handled?` | `useFocus()`             |
-| `withInput()`        | handler registry          | dispatch to registered fns    | `useInput()`             |
-| `withCommands(cmds)` | command registry          | `resolve(key, ctx) → cmd`     | —                        |
-| `withDomEvents()`    | mouse processor           | hit test + dispatch           | —                        |
+| Plugin             | Store                     | Update functions            | React hook (thin reader) |
+| ------------------ | ------------------------- | --------------------------- | ------------------------ |
+| withTerminal()     | modifier state (internal) | modifierUpdate(key) → state | useModifierKeys()        |
+| withFocus()        | focus tree + manager      | focusUpdate(key) → handled? | useFocus()               |
+| withInput()        | handler registry          | dispatch to registered fns  | useInput()               |
+| withCommands(cmds) | command registry          | resolve(key, ctx) → cmd     | —                        |
+| withDomEvents()    | mouse processor           | hit test + dispatch         | —                        |
 
 Note: Modifier tracking is a terminal concern (Kitty protocol), so it lives inside
 `withTerminal()` rather than as a separate plugin. It updates a store that
@@ -159,11 +159,11 @@ The event loop is a thin dispatcher; plugins own the routing logic.
 React hooks subscribe to plugin stores via `useSyncExternalStore`. They never control
 event flow or routing.
 
-| Pattern                    | What it does                                  | Examples                                    |
-| -------------------------- | --------------------------------------------- | ------------------------------------------- |
-| **Plugin store → hook**    | Hook reads state from plugin's store          | `useModifierKeys()`, `useFocus()`           |
-| **Plugin registry → hook** | Hook registers handler in plugin's registry   | `useInput()` registers in withInput's store |
-| **Prop** (focus-routed)    | Plugin dispatches to component via focus tree | `onKeyDown`, `onPaste`                      |
+| Pattern                | What it does                                  | Examples                                  |
+| ---------------------- | --------------------------------------------- | ----------------------------------------- |
+| Plugin store → hook    | Hook reads state from plugin's store          | useModifierKeys(), useFocus()             |
+| Plugin registry → hook | Hook registers handler in plugin's registry   | useInput() registers in withInput's store |
+| Prop (focus-routed)    | Plugin dispatches to component via focus tree | onKeyDown, onPaste                        |
 
 Hooks that need to register handlers (useInput) do so by writing to a store that the plugin reads.
 The plugin decides when and whether to dispatch to those handlers — the hook doesn't control timing.
@@ -182,10 +182,10 @@ Every hook, type, and utility has ONE canonical definition. Re-export, never rei
 
 ### 5. Filtering happens at known stages, using shared functions
 
-| Filter         | Where                       | Shared function                      |
-| -------------- | --------------------------- | ------------------------------------ |
-| Release events | useInput, processEventBatch | `key.eventType === "release"`        |
-| Modifier-only  | useInput, processEventBatch | `isModifierOnlyEvent()` from ag/keys |
+| Filter         | Where                       | Shared function                    |
+| -------------- | --------------------------- | ---------------------------------- |
+| Release events | useInput, processEventBatch | key.eventType === "release"        |
+| Modifier-only  | useInput, processEventBatch | isModifierOnlyEvent() from ag/keys |
 
 ### 6. Event precedence: focused → fallback → app handler
 
@@ -390,3 +390,4 @@ is wrong (useInput fires before focus tree) and paste still has 5 abstractions.
 **Discoverability**: 95%. CLAUDE.md callout, code annotations, cross-references.
 
 **Overall: ~65% to plateau. Plugin-centric event flow + paste unification + tests → 95%.**
+

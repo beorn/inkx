@@ -75,7 +75,8 @@ export function seedFileNode(repo: Repo, path: string, options: SeedFileNodeOpti
   let parentId: string | null = null
   let parentFsPath = ""
   for (let i = 0; i < segments.length - 1; i++) {
-    const segment = segments[i]!
+    const segment = segments[i]
+    if (segment === undefined) continue
     const fsPathSoFar = parentFsPath ? `${parentFsPath}/${segment}` : segment
     const existing = repo.resolveNode(fsPathSoFar)
     if (existing?.fstype === "folder") {
@@ -95,6 +96,7 @@ export function seedFileNode(repo: Repo, path: string, options: SeedFileNodeOpti
   }
 
   // The leaf node — the actual file/folder being seeded.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- segments.length > 0 enforced at line 70
   const leafName = segments[segments.length - 1]!
   const fsPath = computeFsPath(parentFsPath, leafName, fstype)
   const data: Record<string, unknown> = {}

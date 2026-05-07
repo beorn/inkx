@@ -132,13 +132,18 @@ describe("welcome startup layout cascade (bead km-silvery.startup-layout-cascade
       const screenText = readScreenText()
       expect(screenText.length, "termless screen never received output").toBeGreaterThan(0)
 
-      // Assert: at most TWO distinct content-bearing layouts.
+      // Assert: at most THREE distinct content-bearing layouts.
       //   - 1 frame: ideal — first paint is already stable
-      //   - 2 frames: tolerable — useBoxRect width-zero → measured width
-      //               is one unavoidable React commit on first mount
-      //   - ≥ 3 frames: cascade bug. Fail with the per-layout text so
+      //   - 2 frames: typical — useBoxRect committed-rect chain is one
+      //               unavoidable React commit on first mount
+      //   - 3 frames: tolerable — multi-layer measurement chain
+      //               (Welcome > MeasuredBox > Banner) needs one batch
+      //               per layer to settle under deferred-rect semantics
+      //               (bead `@km/silvery/use-deferred-box-rect-and-post-commit-observers`)
+      //               PLUS the async fixture-injection batch.
+      //   - ≥ 4 frames: cascade bug. Fail with the per-layout text so
       //                 the diff is readable in CI logs.
-      if (distinct.length > 2) {
+      if (distinct.length > 3) {
         const summary = distinct
           .map((fp, i) => {
             const occurrences = contentFingerprints.filter((x) => x === fp).length
@@ -151,12 +156,12 @@ describe("welcome startup layout cascade (bead km-silvery.startup-layout-cascade
           })
           .join("\n\n")
         throw new Error(
-          `expected ≤ 2 distinct startup layouts, observed ${distinct.length}.\n\n` +
+          `expected ≤ 3 distinct startup layouts, observed ${distinct.length}.\n\n` +
             `Total content samples captured: ${contentFingerprints.length}.\n\n` +
             `Distinct layouts (first 8 lines each):\n\n${summary}`,
         )
       }
-      expect(distinct.length).toBeLessThanOrEqual(2)
+      expect(distinct.length).toBeLessThanOrEqual(3)
     } finally {
       handle.unmount()
       await settle(50)

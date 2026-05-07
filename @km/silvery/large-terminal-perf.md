@@ -26,13 +26,13 @@ At 400x200 (80K cells), 1000-item cursor move is 14.8ms (borderline 60fps).
 ## Proposed optimizations
 
 1. No-clone double buffer: swap instead of clone. Save 200-500µs/frame.
-  - Two TerminalBuffers, swap refs after each frame
-  - Dirty nodes write to "next" buffer at their positions
-  - Clean regions: copy only the dirty spans, not the entire buffer
-2. Viewport culling: skip renderNodeToBuffer for off-screen nodes
-  - Check node.boxRect against viewport bounds before entering
-  - For scroll containers, already handled. For non-scroll, new check needed.
-3. Dirty-span output: output phase already has dirty-row tracking, extend to dirty-column spans
+- Two TerminalBuffers, swap refs after each frame
+- Dirty nodes write to "next" buffer at their positions
+- Clean regions: copy only the dirty spans, not the entire buffer
+6. Viewport culling: skip renderNodeToBuffer for off-screen nodes
+- Check node.boxRect against viewport bounds before entering
+- For scroll containers, already handled. For non-scroll, new check needed.
+10. Dirty-span output: output phase already has dirty-row tracking, extend to dirty-column spans
 
 ## Benchmark baseline (400x200)
 

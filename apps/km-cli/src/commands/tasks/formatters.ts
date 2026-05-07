@@ -112,7 +112,11 @@ export function formatTaskLine(task: KNodeType, options: { detail?: boolean; sho
           ? term.red(checkboxStr)
           : term.dim(checkboxStr)
 
-  const content = task.content ?? "(no content)"
+  // List view is one-task-per-line — collapse embedded newlines + their
+  // surrounding whitespace into a single space so list-item continuation
+  // lines (CommonMark soft-wraps from the source markdown) don't reset
+  // to column 0 and break the renderer's indentation.
+  const content = (task.content ?? "(no content)").replace(/\s*\n\s*/g, " ")
 
   // Build line: checkbox, optional id, content
   let line = `${checkbox} `

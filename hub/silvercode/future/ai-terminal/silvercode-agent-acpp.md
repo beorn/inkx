@@ -21,17 +21,17 @@ When that ships, silvercode is no longer "a workspace on top of agents" — it's
 
 The host-side scaffolding for silvercode-agent is mostly in place. We didn't plan it that way; the discipline of "host-side everything" produced the components we'd need anyway.
 
-| Component                       | What it does                                              | Reusable for silvercode-agent? |
-| ------------------------------- | --------------------------------------------------------- | ------------------------------ |
-| `controller.ts`                 | Session lifecycle, SID prefix, dispatch                  | Yes — manages silvercode-agent sessions like any other |
-| `prompt-assembly.ts`            | `assembleAcpPrompt()` boundary                            | Yes — silvercode-agent reads ContentBlock[] like any agent |
-| `channel-queue.ts`              | Typed ambient pipeline                                    | Yes — silvercode-agent honors ambient framing natively |
-| `coordinator-mcp.ts`            | In-process MCP for cross-agent state                      | Yes — silvercode-agent participates as another peer |
-| `tribe-mcp` (UDS bus)            | Cross-host swarm                                          | Yes — silvercode-agent broadcasts like any silvercode session |
-| `agent-capabilities.ts`         | Declarative knob descriptors                              | Yes — silvercode-agent declares its own descriptors |
-| `@km/agent-harness`             | ACP boundary, per-agent spawners                          | Partially — we'd add an in-process backend |
-| `claude-acp/`                   | Wire-format adapter pattern                               | Yes — same pattern, but client-side instead of server-side |
-| `km-mcp-server`                 | Vault, beads, LSP-future tools                             | Yes — silvercode-agent uses these tools too |
+| Component             | What it does                            | Reusable for silvercode-agent?                                |
+| --------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| controller.ts         | Session lifecycle, SID prefix, dispatch | Yes — manages silvercode-agent sessions like any other        |
+| prompt-assembly.ts    | assembleAcpPrompt() boundary            | Yes — silvercode-agent reads ContentBlock[] like any agent    |
+| channel-queue.ts      | Typed ambient pipeline                  | Yes — silvercode-agent honors ambient framing natively        |
+| coordinator-mcp.ts    | In-process MCP for cross-agent state    | Yes — silvercode-agent participates as another peer           |
+| tribe-mcp (UDS bus)   | Cross-host swarm                        | Yes — silvercode-agent broadcasts like any silvercode session |
+| agent-capabilities.ts | Declarative knob descriptors            | Yes — silvercode-agent declares its own descriptors           |
+| @km/agent-harness     | ACP boundary, per-agent spawners        | Partially — we'd add an in-process backend                    |
+| claude-acp/           | Wire-format adapter pattern             | Yes — same pattern, but client-side instead of server-side    |
+| km-mcp-server         | Vault, beads, LSP-future tools          | Yes — silvercode-agent uses these tools too                   |
 
 ## What's missing (the agent loop itself)
 
@@ -149,3 +149,4 @@ Beads track work-to-do. This is vision, with explicit conditions for when it bec
 - HN: [Anthropic says OpenClaw-style Claude CLI usage is allowed again](https://news.ycombinator.com/item?id=47844269).
 - The New Stack: [Anthropic: You can still use your Claude accounts to run OpenClaw, NanoClaw and Co.](https://thenewstack.io/anthropic-agent-sdk-confusion/)
 - Companion: silvery's plugin-vs-ACP comparison and the trade-off geometry that made delegate-to-vendor the right starting point.
+

@@ -26,13 +26,13 @@ TUI2 (OpenTUI) needs complete visual parity with TUI1 (Ink). Current issues iden
 
 1. Capture screenshots of TUI1 and TUI2 side-by-side
 2. Compare each component:
-  - Header/top bar
-  - Column headers
-  - Card rendering (borders, padding, colors)
-  - Status bar/bottom bar
-  - Selection highlighting
-  - Status icons
-3. Update TUI2 components to match TUI1 exactly
+- Header/top bar
+- Column headers
+- Card rendering (borders, padding, colors)
+- Status bar/bottom bar
+- Selection highlighting
+- Status icons
+11. Update TUI2 components to match TUI1 exactly
 
 ## Components to Compare
 

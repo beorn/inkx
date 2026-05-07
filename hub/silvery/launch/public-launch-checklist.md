@@ -15,7 +15,7 @@ Operational checklist for taking silvery from "technically ready" to "publicly l
 | Silvery core        | Ag renderer, long-lived reconciler, dirty-node tracking, inline incremental | ✓ 2026-04-09       |
 | Ink 7.0 compat      | ~918/931 tests (~98.6%) after parallel agent sweep                          | Needs re-run       |
 | Benchmarks          | 2.5-5.2x faster than Ink 7.0 on mounted scenarios (post STRICT bug fix)     | ✓ 2026-04-09       |
-| Bundle size         | silvery/runtime 114.9 KB gzipped vs Ink+yoga 116.6 KB = **0.99x parity**    | ✓ 2026-04-09       |
+| Bundle size         | silvery/runtime 114.9 KB gzipped vs Ink+yoga 116.6 KB = 0.99x parity        | ✓ 2026-04-09       |
 | Bundle build step   | tsup pre-built dist/ for npm consumers, raw TS for Bun                      | ✓ landed           |
 | Atomicity narrative | Time / space / content framing captured in blog post                        | ✓ 2026-04-09       |
 | Positioning doc     | positioning-2026.md updated with atomicity + Claude Code proof-point        | ✓ 2026-04-09       |
@@ -25,12 +25,12 @@ Operational checklist for taking silvery from "technically ready" to "publicly l
 
 The bundle parity result is significant — Silvery has structural advantages (cell-level buffer, layout-first pipeline, pure-TS flexbox) without any size penalty vs Ink+yoga. Numbers:
 
-| Package                                                            | Minified + Gzipped | vs Ink+Yoga baseline |
-| ------------------------------------------------------------------ | ------------------ | -------------------- |
-| Ink 7.0 + Yoga WASM (baseline)                                     | 116.6 KB           | 1.00x                |
-| `silvery/runtime` (ag + ag-react + ag-term + flexily + essentials) | 114.9 KB           | **0.99x (tied)**     |
-| `silvery/ink` (Ink compat layer)                                   | 119.2 KB           | 1.02x (+2.2 KB)      |
-| `silvery` (full barrel — theme, commands, tea, signals, headless)  | 277.0 KB           | 2.38x (kitchen sink) |
+| Package                                                          | Minified + Gzipped | vs Ink+Yoga baseline |
+| ---------------------------------------------------------------- | ------------------ | -------------------- |
+| Ink 7.0 + Yoga WASM (baseline)                                   | 116.6 KB           | 1.00x                |
+| silvery/runtime (ag + ag-react + ag-term + flexily + essentials) | 114.9 KB           | 0.99x (tied)         |
+| silvery/ink (Ink compat layer)                                   | 119.2 KB           | 1.02x (+2.2 KB)      |
+| silvery (full barrel — theme, commands, tea, signals, headless)  | 277.0 KB           | 2.38x (kitchen sink) |
 
 **Take:** Runtime parity is the number we publish. The full barrel is for people importing the kitchen sink (understandable overhead for the extra feature surface). Ink compat is +2.2 KB over baseline Ink — a rounding error.
 
@@ -184,3 +184,4 @@ The bundle parity result is significant — Silvery has structural advantages (c
 ## Update log
 
 - **2026-04-09** — Created. Phase 0 (Ink-compat gap closure + bundle parity + atomicity narrative) complete. Silvery main clean (1 small uncommitted fix). Blog post + positioning doc updated. Pro review launched in background.
+

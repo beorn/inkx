@@ -34,17 +34,17 @@ The link's **host node is implicit** — it's whichever KNode owns the AST the l
 
 `href` is the **parsed target reference** — the target extracted and normalized from notation:
 
-| Notation               | href                       |
-|------------------------|----------------------------|
-| `[[Note]]`             | `km:Note`                  |
-| `[[Project/Alpha]]`    | `km:Project/Alpha`         |
-| `@Alice` (inline)      | `km:@Alice`                |
-| `[[@Alice]]`           | `km:@Alice` (equivalent)   |
-| `#urgent` (inline)     | `km:%23urgent`             |
-| `+cleanup` (inline)    | `km:+cleanup`              |
-| `[[#Section]]`         | `#Section` (self-ref)      |
-| `[text](#Section)`     | `#Section` (self-ref)      |
-| `[text](https://x.com)`| `https://x.com`            |
+| Notation          | href                   |
+| ----------------- | ---------------------- |
+| [[Note]]          | km:Note                |
+| [[Project/Alpha]] | km:Project/Alpha       |
+| @Alice (inline)   | km:@Alice              |
+| [[@Alice]]        | km:@Alice (equivalent) |
+| #urgent (inline)  | km:%23urgent           |
+| +cleanup (inline) | km:+cleanup            |
+| [[#Section]]      | #Section (self-ref)    |
+| text              | #Section (self-ref)    |
+| text              | https://x.com          |
 
 The notation is captured by `md.form` for roundtrip reconstruction. The resolver takes `href` and returns either a target node ID, a self-ref, an external URL, an ambiguity, or broken — regardless of which notation produced it.
 
@@ -69,14 +69,14 @@ https://…  mailto:…       external references flow through unchanged
 
 `km:` is a standard URI scheme. `normalizeLinkHref` percent-encodes **reserved** characters (RFC 3986) when they appear inside a name:
 
-| char | encoding | why                                                              |
-|------|----------|------------------------------------------------------------------|
-| `#`  | `%23`    | fragment delimiter — must be encoded when part of a name          |
-| `?`  | `%3F`    | query delimiter                                                  |
-| `%`  | `%25`    | escape for the above                                             |
-| `/`  | *unchanged* | path separator — hierarchical name segment                     |
-| `@`  | *unchanged* | allowed in path (sub-delim)                                   |
-| `+`  | *unchanged* | allowed in path (sub-delim)                                   |
+| char | encoding  | why                                                      |
+| ---- | --------- | -------------------------------------------------------- |
+| #    | %23       | fragment delimiter — must be encoded when part of a name |
+| ?    | %3F       | query delimiter                                          |
+| %    | %25       | escape for the above                                     |
+| /    | unchanged | path separator — hierarchical name segment               |
+| @    | unchanged | allowed in path (sub-delim)                              |
+| +    | unchanged | allowed in path (sub-delim)                              |
 
 Spaces, colons, apostrophes, and UTF-8 pass through raw. Names like `Project: Phase 1`, `Alice's notes`, or `研究` serialize as `km:Project: Phase 1`, `km:Alice's notes`, `km:研究`.
 
@@ -140,33 +140,33 @@ Exception: `#` in wiki form means self-ref (next section) — you can't use `[[#
 
 ## `rel` taxonomy
 
-| `rel`    | Meaning                                                         |
-|----------|-----------------------------------------------------------------|
-| `link`   | Reference — plain links, sigils, external URLs                  |
-| `embed`  | Inline content rendering (`![[Note]]`, `![](image.png)`)        |
+| rel   | Meaning                                        |
+| ----- | ---------------------------------------------- |
+| link  | Reference — plain links, sigils, external URLs |
+| embed | Inline content rendering (![[Note]], )         |
 
 ## Markdown → KLink
 
 Complete notation → `(href, rel, md.form)` table:
 
-| Notation             | `href`                 | `rel`    | `md.form`  |
-|----------------------|------------------------|----------|------------|
-| `[[Note]]`           | `km:Note`              | `link`   | `wiki`     |
-| `[[Note\|alias]]`    | `km:Note` + `alias`    | `link`   | `wiki`     |
-| `[[Note#Section]]`   | `km:Note#Section`      | `link`   | `wiki`     |
-| `[[Note^abc]]`       | `km:Note#^abc`         | `link`   | `wiki`     |
-| `[[#Section]]`       | `#Section`             | `link`   | `wiki`     |
-| `![[Note]]`          | `km:Note`              | `embed`  | `wiki`     |
-| `![[image.png]]`     | `km:image.png`         | `embed`  | `wiki`     |
-| `[t](https://x.com)` | `https://x.com` + `t`  | `link`   | `mdlink`   |
-| `[t](#Section)`      | `#Section` + `t`       | `link`   | `mdlink`   |
-| `<https://x.com>`    | `https://x.com`        | `link`   | `autolink` |
-| `https://x.com`      | `https://x.com`        | `link`   | `bare`     |
-| `@Alice`             | `km:@Alice`            | `link`   | `bare`     |
-| `#urgent`            | `km:%23urgent`         | `link`   | `bare`     |
-| `+cleanup`           | `km:+cleanup`          | `link`   | `bare`     |
-| `[[@Alice]]`         | `km:@Alice`            | `link`   | `wiki`     |
-| `[[+cleanup]]`       | `km:+cleanup`          | `link`   | `wiki`     |
+| Notation         | href              | rel   | md.form  |
+| ---------------- | ----------------- | ----- | -------- |
+| [[Note]]         | km:Note           | link  | wiki     |
+| [[Note\\|alias]] | km:Note + alias   | link  | wiki     |
+| [[Note#Section]] | km:Note#Section   | link  | wiki     |
+| [[Note#^abc]]    | km:Note#^abc      | link  | wiki     |
+| [[#Section]]     | #Section          | link  | wiki     |
+| ![[Note]]        | km:Note           | embed | wiki     |
+| ![[image.png]]   | km:image.png      | embed | wiki     |
+| t                | https://x.com + t | link  | mdlink   |
+| t                | #Section + t      | link  | mdlink   |
+| https://x.com    | https://x.com     | link  | autolink |
+| https://x.com    | https://x.com     | link  | bare     |
+| @Alice           | km:@Alice         | link  | bare     |
+| #urgent          | km:%23urgent      | link  | bare     |
+| +cleanup         | km:+cleanup       | link  | bare     |
+| [[@Alice]]       | km:@Alice         | link  | wiki     |
+| [[+cleanup]]     | km:+cleanup       | link  | wiki     |
 
 ## Cache: `links` table
 
@@ -265,6 +265,7 @@ type NameIndex = Map<string, NodeId[]>
 **Case-insensitive.** Keys are lowercased on insert and lookup; display uses the author's original casing from the node. `[[Alice]]` and `[[alice]]` resolve to the same target. Matches Obsidian, Dendron, and filesystem norms on macOS/Windows.
 
 **Maintenance**:
+
 - Startup: full scan.
 - Node rename: O(1) — remove old entry, add new.
 - Node create/delete: O(1) — single insert/remove.
@@ -276,13 +277,13 @@ type NameIndex = Map<string, NodeId[]>
 
 Callers never touch the name index or query `links`; they call `resolver.resolve(ref)` and switch on `kind`:
 
-| `kind`     | rendering                                      | click                             |
-|------------|------------------------------------------------|-----------------------------------|
-| `external` | external link visual, external icon            | open in browser                   |
-| `self`     | resolved visual (link color + dotted underline) | scroll to anchor in host          |
-| `resolved` | resolved visual                                 | navigate to `target`              |
-| `ambiguous`| ambiguous visual (`$warning` + superscript N)   | PickerDialog over `targets`       |
-| `broken`   | broken visual (`$error` dashed underline)       | command offers "create note"      |
+| kind      | rendering                                       | click                        |
+| --------- | ----------------------------------------------- | ---------------------------- |
+| external  | external link visual, external icon             | open in browser              |
+| self      | resolved visual (link color + dotted underline) | scroll to anchor in host     |
+| resolved  | resolved visual                                 | navigate to target           |
+| ambiguous | ambiguous visual ($warning + superscript N)     | PickerDialog over targets    |
+| broken    | broken visual ($error dashed underline)         | command offers "create note" |
 
 The render path **never calls `resolveByName` or the name index directly**. It consumes `KResolution`.
 
@@ -293,6 +294,7 @@ function normalizeLinkHref(form: MdForm, label: string): string
 ```
 
 **Invariants**:
+
 - Every KLink writer routes through this function.
 - Deterministic: same `(form, label)` → same `href`. No timestamps, no UUIDs, no Map-iteration-order dependence.
 - Percent-encodes reserved characters per the Encoding section.
@@ -309,6 +311,7 @@ An **embed node** is a KNode whose sole purpose is transclusion — no content o
 **Embed invariant**: a node with `embed_of` set must have empty content and exactly one `links` row with `rel='embed'`. The invariant is enforced at write time by `buildEmbedChild` and the create/update handlers — the DB-level index can't be UNIQUE because the markdown parser legitimately coalesces consecutive `![[A]]\n![[B]]` into one paragraph host with multiple embed rows (those aren't dedicated embed nodes; `embed_of` is null for such hosts). STRICT mode enforces empty content and matching shape for dedicated embed nodes.
 
 **Enforcement sites**:
+
 - Parse time: `getEmbeddingText()` only recognizes sole-content `![[...]]`.
 - Write time: `buildEmbedChild()` creates empty-content nodes with `embed_of`.
 
@@ -327,17 +330,17 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 
 ## Migration
 
-| Old                          | New                                      |
-|------------------------------|------------------------------------------|
-| `nodes.embed_of` (column)    | Runtime-materialized from `links` table  |
-| `links.source_id`            | `links.host_id`                          |
-| `links.target_name`          | `links.href`                             |
-| `links.target_id`            | Dropped — resolved at runtime            |
-| `links.embedded` (bool)      | `links.rel = 'embed'`                    |
-| `links.relationship`         | `links.rel`                              |
-| `links.section`, `.block_id` | Fragment inside `links.href` (anchor-as-`.name` since schema v6) |
-| `Link`, `normalizeRefHref`   | `KLink`, `normalizeLinkHref`             |
-| `MdForm = 'mention'\|'tag'\|'project'` | `MdForm = 'bare'` (sigil inline is bare form) |
+| Old                                  | New                                                          |
+| ------------------------------------ | ------------------------------------------------------------ |
+| nodes.embed_of (column)              | Runtime-materialized from links table                        |
+| links.source_id                      | links.host_id                                                |
+| links.target_name                    | links.href                                                   |
+| links.target_id                      | Dropped — resolved at runtime                                |
+| links.embedded (bool)                | links.rel = 'embed'                                          |
+| links.relationship                   | links.rel                                                    |
+| links.section, .block_id             | Fragment inside links.href (anchor-as-.name since schema v6) |
+| Link, normalizeRefHref               | KLink, normalizeLinkHref                                     |
+| MdForm = 'mention'\|'tag'\|'project' | MdForm = 'bare' (sigil inline is bare form)                  |
 
 **Strategy**: bump data version → auto-rebuild from content re-parse on first open. No manual `.km/state.db` deletion required — the migration is transparent.
 
@@ -373,3 +376,4 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 See also: [data-model.md](data-model.md), [glossary.md](../glossary.md).
 
 Review history: GPT-5.4 Pro 2026-04-07 (original), conversational 2026-04-15 (ambiguity, normalization, render invariant), GPT-5.4 Pro review 2026-04-16 (schema options evaluation), simplification 2026-04-16 (3-column schema, runtime resolution, KLink naming), terminology + scope 2026-04-16 (host_id, symlink→embed unification, rel closed to `link|embed`, `/` as path separator, case-insensitive lookup, self-reference, determinism invariant), sigil-as-name 2026-04-16 (sigil is part of node name, canonical bare serialization, `#` special-cased to preserve Obsidian self-ref, letter-after-sigil parsing rule, RFC 3986 percent-encoding for reserved chars).
+

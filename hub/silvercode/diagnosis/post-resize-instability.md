@@ -169,14 +169,14 @@ live-session symptom locally.
 
 ### Empirical iteration log
 
-| Stage | STRICT overflows |
-|---|---|
-| Pre-fix (no changes) | 702 |
-| AsideLayout always-mount only | 698 (no improvement, reverted) |
-| `Content.Row` structural fix + context `useMemo` | 208 (-71%) |
-| `+` AsideLayout always-mount on top | 834 (worse, reverted) |
-| `+` `useResponsiveDisclosure` 250ms zone hysteresis | ~200 (no further reduction) |
-| `+` 500ms hysteresis | 243 (worse, reverted to 250) |
+| Stage                                           | STRICT overflows               |
+| ----------------------------------------------- | ------------------------------ |
+| Pre-fix (no changes)                            | 702                            |
+| AsideLayout always-mount only                   | 698 (no improvement, reverted) |
+| Content.Row structural fix + context useMemo    | 208 (-71%)                     |
+| + AsideLayout always-mount on top               | 834 (worse, reverted)          |
+| + useResponsiveDisclosure 250ms zone hysteresis | ~200 (no further reduction)    |
+| + 500ms hysteresis                              | 243 (worse, reverted to 250)   |
 
 Net: only `Content.Row` + `useMemo` produced meaningful improvement.
 Other attempted fixes were either no-ops or counterproductive.

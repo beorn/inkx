@@ -231,9 +231,9 @@ logger is the lower-level lib, loggily the higher-level interface — keep the f
 4. **Migrate `@km/all` → 6 target scopes.** ~30 renames. The big lift.
 5. **Update skill doc** `pm/SKILL.md` "Scope Epics" table to match the 15-scope set.
 6. **Verify acceptance**:
-  - `find @km -maxdepth 1 -name "*.md" | xargs grep -l "^# \[ \]" | wc -l` ≤ 15 (open scope-epic files at top level)
-  - `awk -F\\t '$1=="all"' /tmp/km-flat.tsv | wc -l` ≤ 15 (open beads in all)
-  - `km bd show @km/bear @km/agent-view @km/logview` → all status=closed
+- `find @km -maxdepth 1 -name "*.md" | xargs grep -l "^# \[ \]" | wc -l` ≤ 15 (open scope-epic files at top level)
+- `awk -F\\t '$1=="all"' /tmp/km-flat.tsv | wc -l` ≤ 15 (open beads in all)
+- `km bd show @km/bear @km/agent-view @km/logview` → all status=closed
 
 ## Known blockers
 

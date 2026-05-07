@@ -10,10 +10,10 @@ This document catalogs all behavioral fakes (test doubles) available in the km t
 
 **Fakes** and **TEST_MODE** serve different purposes:
 
-| Concept       | Purpose                                        | How It Works                                              |
-| ------------- | ---------------------------------------------- | --------------------------------------------------------- |
-| **Fakes**     | Fast unit tests with controlled behavior       | In-memory implementations that mimic real interfaces      |
-| **TEST_MODE** | Infrastructure selection for integration tests | Environment variable controlling DB type (memory vs disk) |
+| Concept   | Purpose                                        | How It Works                                              |
+| --------- | ---------------------------------------------- | --------------------------------------------------------- |
+| Fakes     | Fast unit tests with controlled behavior       | In-memory implementations that mimic real interfaces      |
+| TEST_MODE | Infrastructure selection for integration tests | Environment variable controlling DB type (memory vs disk) |
 
 **Fakes are independent of TEST_MODE** - they work regardless of mode. Use fakes when you need:
 
@@ -23,14 +23,14 @@ This document catalogs all behavioral fakes (test doubles) available in the km t
 
 ### When to Use What
 
-| Scenario                  | Use This                         | Not This           |
-| ------------------------- | -------------------------------- | ------------------ |
-| TUI rendering tests       | `createFakeRepo()` + `testEnv()` | `withTestEnv()`    |
-| Board state machine tests | `createFakeRepo()`               | `withTestEnv()`    |
-| Storage layer tests       | `withTestEnv()`                  | `createFakeRepo()` |
-| Sync/reconciliation tests | `withTestEnv()` with real fs     | Fakes              |
-| Chaos/failure injection   | `createChaosFakeRepo()`          | Regular fakes      |
-| Benchmarks                | `withTestEnv()` with real infra  | Fakes              |
+| Scenario                  | Use This                      | Not This         |
+| ------------------------- | ----------------------------- | ---------------- |
+| TUI rendering tests       | createFakeRepo() + testEnv()  | withTestEnv()    |
+| Board state machine tests | createFakeRepo()              | withTestEnv()    |
+| Storage layer tests       | withTestEnv()                 | createFakeRepo() |
+| Sync/reconciliation tests | withTestEnv() with real fs    | Fakes            |
+| Chaos/failure injection   | createChaosFakeRepo()         | Regular fakes    |
+| Benchmarks                | withTestEnv() with real infra | Fakes            |
 
 ### Drift Detection
 
@@ -51,13 +51,15 @@ Run `TEST_MODE=real bun run test:all` periodically to detect drift.
 
 ## Silvercode Backend Fakes
 
-Silvercode agent backend fakes are a Layer 2 fake family: a fake backend process/server that speaks ACP or the legacy stream protocol while the real Silvercode adapter code runs above it. This follows the same principle as `FakeFileSystem` and Cloudi's Gmail API mock: fake the external boundary, not the application state.
+Silvercode agent backend fakes are a Layer 2 fake family: provider-injected fake backends that speak ACP or the legacy stream protocol while the real Silvercode adapter code runs above them. This follows the same principle as `FakeFileSystem` and Cloudi's Gmail API mock: fake the external boundary, not the application state.
 
-The first ACP fake lives at `@km/agent-harness/testing/fake-acp-server`. It exposes `createFakeAcpSpawn()` for profile-driven fakes, `createFakeAcpRegistrySpawn()` for every registered ACP backend id, and `createFakeCodexAcpSpawn()` for the Codex config-options profile. Use it when a test needs to prove `connectAcp` or `connectAcpRegistry` handles real ACP wire behavior such as `session/set_config_option`.
+The first ACP fake lives at `@km/agent-harness/testing/fake-acp-server`, with provider helpers in `@km/agent-harness/agent-backends`. Use `createFakeAcpAgentBackend()` or `createFakeAcpAgentBackends()` when a test needs a complete fake provider in an `AgentBackends` map. Use the lower-level `createFakeAcpSpawn()` only when testing the ACP client spawn seam directly.
 
 Use `FakeAcpBackendProfile.onPrompt` when the test must script protocol callbacks from the agent to the client, such as `requestPermission`, `readTextFile`, or `writeTextFile`. That keeps the real Silvercode adapter and callback handlers in the loop instead of mocking `SessionState`.
 
-Backend contracts use `@km/agent-harness/testing/backend-contract-runner`. Fake targets run by default; setting `SILVERCODE_BACKEND_CONTRACT=live` appends live targets so the same assertion catches fake-vs-real drift.
+Backend specs use `@km/agent-harness/testing/backend-spec-runner`. Fake targets run by default; setting `SILVERCODE_BACKEND_CONTRACT=live` appends live targets so the same assertion catches fake-vs-real drift.
+
+The default fake ACP prompt is comprehensive, based on structural surveys of local Claude Code, Codex, and opencode transcripts. It emits synthetic text, reasoning, all ACP tool kinds, tool progress/results, plans, slash commands, config/status updates, images, audio, resource links, embedded resources, diffs, terminal references, and structured raw output. This keeps spec-level tests broad without storing private transcript content.
 
 See [silvercode-backend-fakes.md](silvercode-backend-fakes.md) for the full plan, backend profile split, and fake/live drift contract strategy.
 
@@ -392,3 +394,4 @@ No database, no filesystem - pure in-memory Map storage.
 - [testing.md](testing.md) - Main testing guide
 - [test-system.md](test-system.md) - Test system architecture
 - [chaos-testing.md](chaos-testing.md) - Chaos testing scenarios
+

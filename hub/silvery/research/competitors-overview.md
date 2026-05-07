@@ -183,3 +183,4 @@ If you only take three things away:
 3. **Silvery's biggest opportunity is the Ink migration.** Claude Code (~114k stars) and Gemini CLI (~101k stars) both ship on Ink + React + Yoga — the exact stack silvery is designed to replace, with a 99% Ink-compat layer already in place. A principled "Ink → Silvery migration for coding agents" story is the most valuable public positioning we could build. See [`coding-agent-landscape.md`](./coding-agent-landscape.md).
 
 Keep the comparisons honest — OpenTUI has real strengths we don't have, and Ink has a community we can't match overnight. But on the axes that matter for the apps we're building (km, knowledge workers, complex interactive TUIs where correctness > FPS), silvery is the best tool in the ecosystem. The work is to make that visible.
+

@@ -227,4 +227,3 @@ bun vitest run apps/silvercode/packages/agent-harness/tests/acp-boundary  # boun
 ```
 
 The boundary test suite is the canonical example of "round-trip every variant" — copy its structure when adding new ACP-shaped types.
-

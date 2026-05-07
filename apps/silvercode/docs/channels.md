@@ -123,15 +123,15 @@ amendment) lands in `acp-adapter-claude`.
 
 ## Source map
 
-| File                          | Role                                                                                |
-| ----------------------------- | ----------------------------------------------------------------------------------- |
-| src/channel-queue.ts          | The queue itself — createChannelQueue(scope) → ChannelQueue.                        |
-| src/channel-sources.ts        | Source subscribers — subscribeTribe, stubs for telegram / CI / lore / subagent.     |
+| File                          | Role                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| src/channel-queue.ts          | The queue itself — createChannelQueue(scope) → ChannelQueue.                                  |
+| src/channel-sources.ts        | Source subscribers — subscribeTribe, stubs for telegram / CI / lore / subagent.               |
 | src/prompt-assembly.ts        | assembleAcpPrompt, eventToContentBlock, NOTIFICATION_FRAMING_PREFIX, NOTIFICATION_URI_SCHEME. |
-| src/slash-commands.ts         | /inject-* and /clear-channels registry + classifyChannelCommand dispatcher.         |
-| src/controller.ts             | Controller wiring — owns scope, wires sources, exposes channelQueue.                |
-| tests/channel-queue.test.ts   | Queue contract — enqueue/drain/peek/pendingCount/dispose.                           |
-| tests/prompt-assembly.test.ts | Prompt-assembly contract — autoInject true/false, framing, URI, _meta.              |
+| src/slash-commands.ts         | /inject-\* and /clear-channels registry + classifyChannelCommand dispatcher.                  |
+| src/controller.ts             | Controller wiring — owns scope, wires sources, exposes channelQueue.                          |
+| tests/channel-queue.test.ts   | Queue contract — enqueue/drain/peek/pendingCount/dispose.                                     |
+| tests/prompt-assembly.test.ts | Prompt-assembly contract — autoInject true/false, framing, URI, \_meta.                       |
 
 ## Out of scope for this bead
 
@@ -142,4 +142,3 @@ amendment) lands in `acp-adapter-claude`.
   here; per-source wiring happens in their own beads.
 - Suppressing Claude Code `<channel>` at the spawn level — TODO in
   `controller.ts`; wiring lands in `acp-adapter-claude`.
-

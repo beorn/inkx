@@ -1,6 +1,6 @@
 # Example Quality Checklist
 
-> Canonical era2 examples must pass every applicable item. A simple `render()` example skips Composition & Commands — use **Levels** to scope.
+> Canonical era2 examples must pass every applicable item. A simple render() example skips Composition & Commands — use Levels to scope.
 
 ## The example IS the product
 
@@ -10,12 +10,12 @@ Concision applies to the _teaching_ parts (model, commands, composition). But th
 
 ## Levels
 
-| Level          | When                     | Sections                         |
-| -------------- | ------------------------ | -------------------------------- |
-| **Foundation** | Counter, hello world     | Structure, View, Style           |
-| **+ Signals**  | Shared state             | + State                          |
-| **+ App**      | Commands, modes, plugins | + Composition, Commands, Testing |
-| **Full**       | Production app           | All                              |
+| Level      | When                     | Sections                         |
+| ---------- | ------------------------ | -------------------------------- |
+| Foundation | Counter, hello world     | Structure, View, Style           |
+| + Signals  | Shared state             | + State                          |
+| + App      | Commands, modes, plugins | + Composition, Commands, Testing |
+| Full       | Production app           | All                              |
 
 Don't force a higher level than needed.
 
@@ -201,19 +201,19 @@ See [principles.md](../../../docs/principles.md) for the full rationale. Key rul
 
 ## Stale API — never use
 
-| Stale                        | Replacement                            | Decision |
-| ---------------------------- | -------------------------------------- | -------- |
-| `.value`                     | `sig()` / `sig(v)`                     | 29       |
-| `derived()`                  | `computed()`                           | —        |
-| `@silvery/signal` (singular) | `@silvery/signals`                     | 35       |
-| `@silvery/tea`               | `@silvery/create`                      | 31       |
-| `registerCommand()`          | `app.commands.x = { ... }`             | —        |
-| `useChat.get()`              | `useModel(model, selector)`            | —        |
-| `Readable<T>`                | `Signal<T>` — `{ (): T, subscribe() }` | —        |
-| `app.rt`                     | `app.providers`                        | —        |
-| `app.model` (singular)       | `app.models`                           | —        |
-| `useInput()` for app keys    | `keymap()` + `when()`                  | —        |
-| `ctx: ModelContext`          | Scope from plugin closure              | —        |
+| Stale                      | Replacement                        | Decision |
+| -------------------------- | ---------------------------------- | -------- |
+| .value                     | sig() / sig(v)                     | 29       |
+| derived()                  | computed()                         | —        |
+| @silvery/signal (singular) | @silvery/signals                   | 35       |
+| @silvery/tea               | @silvery/create                    | 31       |
+| registerCommand()          | app.commands.x = { ... }           | —        |
+| useChat.get()              | useModel(model, selector)          | —        |
+| Readable<T>                | Signal<T> — { (): T, subscribe() } | —        |
+| app.rt                     | app.providers                      | —        |
+| app.model (singular)       | app.models                         | —        |
+| useInput() for app keys    | keymap() + when()                  | —        |
+| ctx: ModelContext          | Scope from plugin closure          | —        |
 
 ---
 
@@ -226,3 +226,4 @@ When showing the progression, each step adds one concept — nothing rewrites:
 3. **Add app**: `pipe(create(), withApp(), ...)` with commands, keymaps, `when()` modes
 
 `useInput` and keymaps coexist. Migration is gradual. Don't present era2 as all-or-nothing.
+

@@ -36,6 +36,7 @@ export function resolveBeadsRoots(config: BeadsConfig, cliOverride?: string): st
  * inside that root as before.
  */
 export function resolveMemDir(repoRoot: string, config: BeadsConfig, cliOverride?: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- resolveBeadsRoots always returns ≥1 element (CLI override or config.roots ?? ["@km"])
   const primary = resolveBeadsRoots(config, cliOverride)[0]!
   if (primary.startsWith("@")) return join(repoRoot, "@memory")
   return join(repoRoot, primary, "@memory")
@@ -59,6 +60,7 @@ export function resolveSourceBoardDir(
   config: BeadsConfig,
   cliOverride?: string,
 ): string {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- resolveBeadsRoots always returns ≥1 element (CLI override or config.roots ?? ["@km"])
   const primary = resolveBeadsRoots(config, cliOverride)[0]!
   if (primary === `@${sourcePrefix}`) return join(repoRoot, primary)
   return join(repoRoot, primary, `@${sourcePrefix}`)

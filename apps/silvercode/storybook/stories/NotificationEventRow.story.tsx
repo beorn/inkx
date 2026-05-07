@@ -17,11 +17,8 @@
 
 import React from "react"
 import { Box, Screen } from "silvery"
-import {
-  NotificationEventRow,
-  NotificationStack,
-  type NotificationStreamEntry,
-} from "../../src/components/NotificationEventRow.tsx"
+import { NotificationEventRow, NotificationStack } from "../../src/components/NotificationEventRow.tsx"
+import type { NotificationStreamEntry } from "../../src/notification-stream.ts"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import { MULTI_TURN } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"

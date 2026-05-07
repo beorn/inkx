@@ -1,6 +1,6 @@
 # The Plain Brain: An Exploration
 
-> **Graduated**: This exploration led to the [brain architecture doc](../future/brain.md), which captures the committed design: chats as event source, memory graph (SPO triples), knowledge tree, solidification, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
+> Graduated: This exploration led to the brain architecture doc, which captures the committed design: chats as event source, memory graph (SPO triples), knowledge tree, solidification, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
 
 *Feb 10, 2026 — triggered by Obsidian 1.12 CLI release*
 
@@ -14,6 +14,7 @@ into a structured, queryable, history-aware knowledge tree. The intelligence lay
 beneath human interfaces and above the filesystem. Multiple interfaces — human and AI — connect to the same brain simultaneously.
 
 "Plain" does triple duty:
+
 - **Plain text** — markdown, no proprietary formats
 - **Plain files** — one folder, git-pushable, editor-agnostic
 - **Plain to see** — transparent, inspectable, no hidden state
@@ -60,12 +61,14 @@ Multiple repos simultaneously. Testable with `createBoardDriver()`.
 ```
 
 **Brain (km)**: Portable knowledge engine. One folder = one brain. Git-pushable.
+
 - Structured tree (typed nodes with parent/child, metadata, ordering)
 - Full event history (every mutation recorded, auditable, replayable)
 - Queryable indexes (SQLite, FTS5 search)
 - Self-describing (contains agent configs: CLAUDE.md, skills, agent definitions)
 
 **Interfaces** connect to the brain. Multiple simultaneous:
+
 - **Obsidian** — human GUI editor (reads/writes same markdown, never knows km exists)
 - **Boardliner TUI** — km's native terminal interface
 - **Boardliner Web** — future browser interface (same board model)
@@ -74,14 +77,14 @@ Multiple repos simultaneously. Testable with `createBoardDriver()`.
 
 ### Already happening today
 
-| Interface | Connection |
-|---|---|
-| TUI (km-tui) | `import { openRepo }` — direct library |
-| CLI (km-cli) | Wraps library in shell commands |
-| Claude Code | `.claude/CLAUDE.md` + skills + `km` CLI |
-| pam | Separate storage (potential km consumer) |
-| Future: web boardliner | HTTP API to same brain |
-| Future: MCP server | Tools for any AI agent |
+| Interface              | Connection                               |
+| ---------------------- | ---------------------------------------- |
+| TUI (km-tui)           | import { openRepo } — direct library     |
+| CLI (km-cli)           | Wraps library in shell commands          |
+| Claude Code            | .claude/CLAUDE.md + skills + km CLI      |
+| pam                    | Separate storage (potential km consumer) |
+| Future: web boardliner | HTTP API to same brain                   |
+| Future: MCP server     | Tools for any AI agent                   |
 
 ### The self-describing brain
 
@@ -108,20 +111,21 @@ A new interface connects, reads the brain's config, and immediately knows how to
 
 The interface between the brain and any client:
 
-| Category | Operations | Metaphor |
-|---|---|---|
-| **Perceive** | get, search, query, children, backlinks | What does the brain know? |
-| **Remember** | history, diff, snapshot | What happened before? |
-| **Think** | link, setProperty, tag, move, classify | Organizing knowledge |
-| **Act** | create, update, delete | Changing the world |
-| **Reflect** | orphans, deadends, unresolvedLinks, stats | Self-assessment |
-| **Subscribe** | watch for changes in real-time | Stay current |
+| Category  | Operations                                | Metaphor                  |
+| --------- | ----------------------------------------- | ------------------------- |
+| Perceive  | get, search, query, children, backlinks   | What does the brain know? |
+| Remember  | history, diff, snapshot                   | What happened before?     |
+| Think     | link, setProperty, tag, move, classify    | Organizing knowledge      |
+| Act       | create, update, delete                    | Changing the world        |
+| Reflect   | orphans, deadends, unresolvedLinks, stats | Self-assessment           |
+| Subscribe | watch for changes in real-time            | Stay current              |
 
 Exposed via: TypeScript API (embedded), CLI (scripts), MCP tools (AI agents), HTTP (web).
 
 ## Plain Knowledge
 
 Two views of the same knowledge:
+
 - **Filesystem** (human-materialized) — natural markdown, edited in any editor
 - **Database** (machine-friendly) — SQLite, indexed, queryable by agents
 
@@ -149,20 +153,21 @@ hierarchy. Humans write naturally; the brain indexes structurally.
 ### vs Obsidian
 
 km doesn't compete with Obsidian. It's complementary:
+
 - Obsidian is a beautiful editor for humans
 - km is the intelligence layer underneath
 - `km init` in an Obsidian vault activates the brain
 - Changes in Obsidian → km's watcher → brain updated
 - Agent mutations → markdown updated → Obsidian sees changes
 
-| | Obsidian | km |
-|---|---|---|
-| Primary interface | GUI (Electron) | Headless engine |
-| CLI depends on | Running GUI app | Nothing (standalone) |
+|                   | Obsidian               | km                              |
+| ----------------- | ---------------------- | ------------------------------- |
+| Primary interface | GUI (Electron)         | Headless engine                 |
+| CLI depends on    | Running GUI app        | Nothing (standalone)            |
 | Agent integration | Via CLI to running app | Native — IS the agent interface |
-| Startup time | 3-5s | 200ms |
-| Data model | Files + plugins | Event-sourced tree + files |
-| History | Snapshots | Full event log |
+| Startup time      | 3-5s                   | 200ms                           |
+| Data model        | Files + plugins        | Event-sourced tree + files      |
+| History           | Snapshots              | Full event log                  |
 
 ### vs Khoj
 
@@ -176,6 +181,7 @@ assistant that connects to Obsidian vaults — semantic search, custom agents, m
 
 Letta (https://github.com/letta-ai/letta) is the closest architectural precedent for the
 brain/interface split. Their tiered memory model:
+
 - Core memory (in-context) ≈ km's active board state
 - Archival memory (vector DB) ≈ km's SQLite
 - Recall memory (conversation history) ≈ km's event log
@@ -196,6 +202,7 @@ filesystem-based memory vs specialized memory tools:
 **Filesystem won**: 74.0% accuracy on LoCoMo vs Mem0's graph variant at 68.5%.
 
 Key insights:
+
 - "Memory is more about how agents manage context than the exact retrieval mechanism"
 - "Simpler tools are more likely to be in the training data of an agent"
 - "Knowledge graphs may help in specific domains but may also be more difficult for the
@@ -231,16 +238,12 @@ protocol once it stabilizes.
 
 1. **Link analysis** (`backlinks`, `orphans`, `deadends`) — brains need to know their own
    structure. km parses links already, just needs to expose the analysis.
-
 2. **History/diff browsing** — km's event sourcing is more powerful than Obsidian's
    snapshots, but hidden. `km history`, `km diff` would be unique differentiators.
-
 3. **Structured queries** — km has SQLite underneath. Expose it: `km query "type:task
    status:open priority:<3"` with JSON/TSV/MD output. This is Obsidian's Bases/Dataview
    but backed by real SQL.
-
 4. **Property CRUD** — expose frontmatter as first-class CLI: `km prop:set`, `km prop:read`.
-
 5. **MCP brain server** — expose brain protocol as MCP tools. Differentiates from every
    existing Obsidian MCP server (which are thin file wrappers).
 
@@ -271,3 +274,4 @@ Publishing (use git + SSG), plugins (use vendor packages), themes (TUI is simple
 - Khoj: https://github.com/khoj-ai/khoj
 - Obsidian MCP servers: https://github.com/cyanheads/obsidian-mcp-server
 - MCP protocol: https://modelcontextprotocol.io
+

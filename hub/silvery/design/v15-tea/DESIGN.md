@@ -1,6 +1,6 @@
 # Silvery App Architecture — Design
 
-> **Canonical.** Iterate here. Other docs in this folder are historical reference; updated at rollout.
+> Canonical. Iterate here. Other docs in this folder are historical reference; updated at rollout.
 
 **Prototype**: `prototypes/minimal.ts` (~90 LOC) — bare pattern (scope + pipe + one seam). Canonical full example deferred until more Q's resolve; no value accumulating dead spikes.
 
@@ -105,3 +105,4 @@ Cross-cutting concerns.
 - **2026-04-22** — Restructured by architectural dependency. Merged open questions into topic sections.
 - **2026-04-22** — Resolved D10-D16 in sequence (dispatch, commands, effects, cross-plugin, serialization, schema, keymap, test harness).
 - **2026-04-22** — Draft 0: consolidated from scattered designs.
+

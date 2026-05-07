@@ -1,8 +1,8 @@
 # Render-Neutral TUI — ARCHIVED 2026-04-17
 
-> **Silvery already owns multi-target rendering** (terminal, canvas, DOM — see silvery.dev). This km-side speculative design doc is redundant. Pull back into `docs/future/` only if a km-specific renderer-selection policy needs its own design.
+> Silvery already owns multi-target rendering (terminal, canvas, DOM — see silvery.dev). This km-side speculative design doc is redundant. Pull back into docs/future/ only if a km-specific renderer-selection policy needs its own design.
 
-# Render-Neutral TUI: Terminal + Canvas from Shared Components
+## Render-Neutral TUI: Terminal + Canvas from Shared Components
 
 ## Problem
 
@@ -12,49 +12,52 @@ km-canvas.tsx reimplements ~250 LOC of simplified versions of things the TUI alr
 
 ## Current State
 
-| Layer | Terminal | Canvas | Shared? |
-|-------|----------|--------|---------|
-| Data (core, storage, tree) | via Repo | via RemoteRepo (WebSocket) | ✅ same interfaces |
-| Column derivation (useColumns) | ✅ | ✅ | ✅ shared hook |
-| Card rendering | CardColumn+TreeNode (1,943 LOC) | CardRow (60 LOC simplified) | ❌ reimplemented |
-| Navigation | board-actions (2,672 LOC) | inline if/else (60 LOC) | ❌ reimplemented |
-| Editing | board-actions-edit (1,061 LOC) | inline (40 LOC) | ❌ reimplemented |
-| Dialogs (search, help) | SearchDialog+HelpOverlay (660 LOC) | not implemented | ❌ missing |
-| Commands (@km/commands) | full command system | not used | ❌ unused |
+| Layer                          | Terminal                           | Canvas                      | Shared?           |
+| ------------------------------ | ---------------------------------- | --------------------------- | ----------------- |
+| Data (core, storage, tree)     | via Repo                           | via RemoteRepo (WebSocket)  | ✅ same interfaces |
+| Column derivation (useColumns) | ✅                                  | ✅                           | ✅ shared hook     |
+| Card rendering                 | CardColumn+TreeNode (1,943 LOC)    | CardRow (60 LOC simplified) | ❌ reimplemented   |
+| Navigation                     | board-actions (2,672 LOC)          | inline if/else (60 LOC)     | ❌ reimplemented   |
+| Editing                        | board-actions-edit (1,061 LOC)     | inline (40 LOC)             | ❌ reimplemented   |
+| Dialogs (search, help)         | SearchDialog+HelpOverlay (660 LOC) | not implemented             | ❌ missing         |
+| Commands (@km/commands)        | full command system                | not used                    | ❌ unused          |
 
 ## silvery Capability Matrix
 
 38 of 40 silvery UI components are canvas-safe (only ScrollbackList and ScrollbackView require terminal).
 
-| Category | Terminal | Canvas | Completeness | km Needs It? |
-|----------|----------|--------|--------------|--------------|
-| Core rendering (Box, Text) | 100% | 100% | ✅ Identical | Yes |
-| Layout & rects | 100% | 100% | ✅ Identical | Yes |
-| Focus management | 100% | 100% | ✅ Identical | Yes |
-| Theme | 100% | 100% | ✅ Identical | Yes |
-| Virtualization | 100% | 100% | ✅ Identical | Yes |
-| Keyboard input (useInput) | 100% | 85% | ⚠️ No Kitty protocol, key release | Yes (85% enough) |
-| Mouse input | 100% | 100% | ✅ Via CanvasMouseEvent | Yes |
-| useApp (store) | 100% | Partial | ⚠️ No pause/resume | Yes |
-| RuntimeContext events | 100% | 60% | ⚠️ No emit, no custom events | Yes |
-| InputLayerProvider (modal input) | 100% | ❌ | ❌ Not available | Yes (for dialogs) |
-| useWindowSize (reactive) | 100% | Static | ⚠️ No resize events | Nice-to-have |
-| useTerm() | 100% | ❌ | ❌ Not available | Partial (dims only) |
-| useStdout/useStderr | 100% | ❌ | ❌ Not available | No |
-| useScrollback | 100% | ❌ | ❌ Not available | No |
-| Terminal caps detection | 100% | ❌ | ❌ Not available | No |
-| pause/resume (screen switch) | 100% | ❌ | ❌ Not available | No |
-| Component re-exports | 40 via silvery/ui | 38 via canvas | ✅ Done (Phase 1) | Yes |
+| Category                         | Terminal          | Canvas        | Completeness                      | km Needs It?        |
+| -------------------------------- | ----------------- | ------------- | --------------------------------- | ------------------- |
+| Core rendering (Box, Text)       | 100%              | 100%          | ✅ Identical                       | Yes                 |
+| Layout & rects                   | 100%              | 100%          | ✅ Identical                       | Yes                 |
+| Focus management                 | 100%              | 100%          | ✅ Identical                       | Yes                 |
+| Theme                            | 100%              | 100%          | ✅ Identical                       | Yes                 |
+| Virtualization                   | 100%              | 100%          | ✅ Identical                       | Yes                 |
+| Keyboard input (useInput)        | 100%              | 85%           | ⚠️ No Kitty protocol, key release | Yes (85% enough)    |
+| Mouse input                      | 100%              | 100%          | ✅ Via CanvasMouseEvent            | Yes                 |
+| useApp (store)                   | 100%              | Partial       | ⚠️ No pause/resume                | Yes                 |
+| RuntimeContext events            | 100%              | 60%           | ⚠️ No emit, no custom events      | Yes                 |
+| InputLayerProvider (modal input) | 100%              | ❌             | ❌ Not available                   | Yes (for dialogs)   |
+| useWindowSize (reactive)         | 100%              | Static        | ⚠️ No resize events               | Nice-to-have        |
+| useTerm()                        | 100%              | ❌             | ❌ Not available                   | Partial (dims only) |
+| useStdout/useStderr              | 100%              | ❌             | ❌ Not available                   | No                  |
+| useScrollback                    | 100%              | ❌             | ❌ Not available                   | No                  |
+| Terminal caps detection          | 100%              | ❌             | ❌ Not available                   | No                  |
+| pause/resume (screen switch)     | 100%              | ❌             | ❌ Not available                   | No                  |
+| Component re-exports             | 40 via silvery/ui | 38 via canvas | ✅ Done (Phase 1)                  | Yes                 |
 
 ## km-tui Component Audit
 
 ### Canvas-Ready (17 files) — no changes needed
+
 Pure render components (EmptyPaneWelcome, NodeView, OverflowIndicator, PaneBar, SyncPane, ToastStack, TopBar, VerticalScrollIndicator, WorkspaceView, tree-node-helpers) + pure action handlers (board-actions-edit, nav, find, search-replace, zoom) + utility modules (position-resolver, ui-reducer).
 
 ### Needs Adapter (28 files) — runtime/service injection
+
 Container components (Board, CardColumn, ColumnsView, DetailView, ListView, TabsView, etc.) use `useApp`/`useAppShallow` for Zustand store integration. Dialog components (CommandBox, SearchDialog, HelpOverlay, etc.) use `useEditContext`, `useFocusManager`, `ModalDialog`. These need the same store + focus system provided on canvas.
 
 ### Blocked (4 files) — filesystem/spawn
+
 - `board-actions.ts` — `spawn()`, `node:fs` for date-template auto-creation
 - `config-persist.ts` — read/write config.json
 - `workspace-persist.ts` — load/save workspace layout
@@ -109,6 +112,7 @@ interface RectRegistry {
 ```
 
 **Same registry powers both behaviors:**
+
 - Keyboard spatial nav: `visibleRegions("card")` for j/k/h/l
 - Click-to-select: `hitTest(x, y)` for mouse
 - Hover: `hitTest(x, y)` on mousemove
@@ -119,6 +123,7 @@ interface RectRegistry {
 **Recommended: DOM overlay for browser editing** (not pure canvas text editing).
 
 For browser text input, position a hidden/visible HTML `<input>` or `<textarea>` over the card being edited, using rect registry coordinates. This gives:
+
 - IME/composition handling (free from browser)
 - Clipboard integration (Ctrl+C/V work natively)
 - Selection semantics
@@ -129,19 +134,21 @@ Terminal keeps its existing readline-based editing. The edit *actions* (save, ca
 
 ## Persistence Strategy
 
-| Scope | MVP | Later |
-|-------|-----|-------|
-| UX preferences (theme, zoom, collapsed panels) | `localStorage` | `localStorage` |
-| Workspace state (panel layout, last board) | Skip | `IndexedDB` |
-| Config (keybindings, settings) | Skip | `IndexedDB` |
-| Vault data | Remote Repo (always) | Remote Repo |
+| Scope                                          | MVP                  | Later        |
+| ---------------------------------------------- | -------------------- | ------------ |
+| UX preferences (theme, zoom, collapsed panels) | localStorage         | localStorage |
+| Workspace state (panel layout, last board)     | Skip                 | IndexedDB    |
+| Config (keybindings, settings)                 | Skip                 | IndexedDB    |
+| Vault data                                     | Remote Repo (always) | Remote Repo  |
 
 All persistence behind the `Persistence` interface from PlatformServices. Namespace by vault/workspace. Include schema version for migration.
 
 ## Phased Plan
 
 ### Phase 0: Vertical Slice (prove the architecture)
+
 Pick one end-to-end flow and prove it works on both targets with shared code:
+
 - Board render with real CardColumn/TreeNode
 - Card selection (keyboard + click)
 - One shared store, one command path, one rect model
@@ -150,7 +157,9 @@ Pick one end-to-end flow and prove it works on both targets with shared code:
 This prevents "parity" from becoming an endless framework project.
 
 ### Phase 1: Required silvery Parity Only
+
 Only what the vertical slice needs:
+
 - ✅ Component re-exports (done — 38/40)
 - useApp parity (store access without terminal deps)
 - Input layer/modal input parity (for dialogs)
@@ -160,6 +169,7 @@ Only what the vertical slice needs:
 **Not** full terminal API parity — skip useTerm(), useStdout(), useScrollback().
 
 ### Phase 2: App/Runtime Seam
+
 - Extract PlatformServices from `createApp()`
 - Commands become the official mutation path
 - Shared selectors/hooks remain shared
@@ -167,7 +177,9 @@ Only what the vertical slice needs:
 - Ban new direct target checks in shared components
 
 ### Phase 3: Port Components Incrementally
+
 Start with highest value:
+
 1. Board + CardColumn + TreeNode (card rendering)
 2. Selection + focus (keyboard + pointer)
 3. SearchDialog + HelpOverlay (dialogs)
@@ -175,6 +187,7 @@ Start with highest value:
 5. km-canvas.tsx shrinks to ~200 LOC (mount + remote-repo wiring)
 
 ### Phase 4: Browser-Specific
+
 - localStorage for UX prefs
 - IndexedDB for workspace state (if needed)
 - Feature-gate spawn/filesystem ops
@@ -186,6 +199,7 @@ Start with highest value:
 **Biggest risk: interactive divergence** — looks similar but behaves differently under real interaction. Focus ownership, modal input, text editing, cursor placement, scroll/reveal behavior, hit testing under resize/virtualization.
 
 **Mitigations:**
+
 - Cross-target conformance test harness: replay same event script on both targets, assert same final state
 - Define shared/public app API before building adapters
 - Use commands for writes from day 1
@@ -194,15 +208,15 @@ Start with highest value:
 
 ## What Stays Different
 
-| Concern | Terminal | Canvas |
-|---------|----------|--------|
-| Entry point | tui.tsx | km-canvas.tsx (~200 LOC) |
-| Repo | createRepo (local SQLite) | createRemoteRepo (WebSocket) |
-| Persistence | filesystem | localStorage / IndexedDB |
-| External actions | Bun.spawn / open | window.open / no-op |
-| Text editing input | Terminal readline | DOM overlay |
-| Scrollback | Terminal scrollback buffer | CSS overflow |
-| Capabilities | Full Kitty protocol | Standard browser events |
+| Concern            | Terminal                   | Canvas                       |
+| ------------------ | -------------------------- | ---------------------------- |
+| Entry point        | tui.tsx                    | km-canvas.tsx (~200 LOC)     |
+| Repo               | createRepo (local SQLite)  | createRemoteRepo (WebSocket) |
+| Persistence        | filesystem                 | localStorage / IndexedDB     |
+| External actions   | Bun.spawn / open           | window.open / no-op          |
+| Text editing input | Terminal readline          | DOM overlay                  |
+| Scrollback         | Terminal scrollback buffer | CSS overflow                 |
+| Capabilities       | Full Kitty protocol        | Standard browser events      |
 
 Everything else — components, commands, store, hooks, layout, theme, focus, virtualization — is shared.
 
@@ -223,3 +237,4 @@ Canvas should be a **first-class silvery target** with capability parity for por
 - Bead: `@km/silvery/ag-canvas/shared-components` (this work)
 - TEA state machines vision: `docs/design/tea-state-machines.md`
 - Era2b commands: `@km/silvery/tea` epic
+

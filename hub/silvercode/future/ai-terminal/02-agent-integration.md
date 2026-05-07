@@ -27,22 +27,22 @@ By running in structured mode, we give up Claude Code's native TUI chrome. **Eve
 
 ### Feature-parity matrix
 
-| CC TUI feature | Type | How we get it in Mode A |
-|---|---|---|
-| Messages (user / assistant turns) | Stream event | Already in stream |
-| Tool calls + results (Bash, Read, Write, Edit, etc.) | Stream event | Already in stream |
-| **TodoWrite / todos** | Tool call | `tool_use` with `name:"TodoWrite"` carries the full updated list; we render `<TodoPanel>` |
-| **Active sub-agents** | Tool call | `tool_use` with `name:"Task"` = spawned; matching `tool_result` = completed; we track in-flight with `<ActiveAgents>` |
-| **Activity indicators** ("thinking…", "running X") | Derived | Computed from stream state — between user turn and assistant delta = thinking; during long tool_use = running |
-| **Model used** | Session metadata | In init event; render in `<StatusLine>` |
-| **Context % used** | Derived | Accumulate `usage.input_tokens` / `output_tokens` per turn; show in `<StatusLine>` |
-| **Session name** | Client-side label | Ours to pick; rename is trivial |
-| **Permission prompts (plan mode)** | Stream event | When `--permission-mode plan` or `ask` is set, tool calls surface as pending; we render `<PermissionDialog>` — richer than CC's modal (diff previews, per-file approve/deny, mouse) |
-| **Mode switcher (plan / accept-edits / auto)** | Spawn config + client UI | Set at spawn; we build `<ModeSwitcher>` — toggle respawns or uses SDK's permission mode API |
-| **`/compact` (trigger compaction)** | We own the conversation state | Strictly more control than CC's `/compact`. In Mode A we hold the history between `-p` calls (or in the SDK), so compaction is a function we call whenever we want — on-demand, auto-triggered, per-topic, per-persona, budget-driven. `/compact` being client-side means compaction is ours, not that we lose access to it. |
-| **`/rename`, `/clear`, `/help`, `/doctor`, `/agents`** | Pure CLI chrome | Reimplement as our slash commands — often simpler (our `/agents` = the `<ActiveAgents>` view we already have) |
-| **Status line chrome** | Pure UI | Render our own `<StatusLine>` from stream data |
-| **Alt-screen chat-bubble UI** | Pure UI | We render in silvery — arguably better (scrollback-first, mouse hover, inline blocks, block-level actions) |
+| CC TUI feature                                       | Type                          | How we get it in Mode A                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Messages (user / assistant turns)                    | Stream event                  | Already in stream                                                                                                                                                                                                                                                                                                      |
+| Tool calls + results (Bash, Read, Write, Edit, etc.) | Stream event                  | Already in stream                                                                                                                                                                                                                                                                                                      |
+| TodoWrite / todos                                    | Tool call                     | tool_use with name:"TodoWrite" carries the full updated list; we render <TodoPanel>                                                                                                                                                                                                                                    |
+| Active sub-agents                                    | Tool call                     | tool_use with name:"Task" = spawned; matching tool_result = completed; we track in-flight with <ActiveAgents>                                                                                                                                                                                                          |
+| Activity indicators ("thinking…", "running X")       | Derived                       | Computed from stream state — between user turn and assistant delta = thinking; during long tool_use = running                                                                                                                                                                                                          |
+| Model used                                           | Session metadata              | In init event; render in <StatusLine>                                                                                                                                                                                                                                                                                  |
+| Context % used                                       | Derived                       | Accumulate usage.input_tokens / output_tokens per turn; show in <StatusLine>                                                                                                                                                                                                                                           |
+| Session name                                         | Client-side label             | Ours to pick; rename is trivial                                                                                                                                                                                                                                                                                        |
+| Permission prompts (plan mode)                       | Stream event                  | When --permission-mode plan or ask is set, tool calls surface as pending; we render <PermissionDialog> — richer than CC's modal (diff previews, per-file approve/deny, mouse)                                                                                                                                          |
+| Mode switcher (plan / accept-edits / auto)           | Spawn config + client UI      | Set at spawn; we build <ModeSwitcher> — toggle respawns or uses SDK's permission mode API                                                                                                                                                                                                                              |
+| /compact (trigger compaction)                        | We own the conversation state | Strictly more control than CC's /compact. In Mode A we hold the history between -p calls (or in the SDK), so compaction is a function we call whenever we want — on-demand, auto-triggered, per-topic, per-persona, budget-driven. /compact being client-side means compaction is ours, not that we lose access to it. |
+| /rename, /clear, /help, /doctor, /agents             | Pure CLI chrome               | Reimplement as our slash commands — often simpler (our /agents = the <ActiveAgents> view we already have)                                                                                                                                                                                                              |
+| Status line chrome                                   | Pure UI                       | Render our own <StatusLine> from stream data                                                                                                                                                                                                                                                                           |
+| Alt-screen chat-bubble UI                            | Pure UI                       | We render in silvery — arguably better (scrollback-first, mouse hover, inline blocks, block-level actions)                                                                                                                                                                                                             |
 
 ### What this means concretely
 
@@ -69,14 +69,14 @@ Rough estimate: a few weeks of silvery work on top of a clean stream consumer. E
 
 ## Agent SDK vs CLI — when to prefer which
 
-| Consideration | CLI (`claude -p`) | SDK (`@anthropic-ai/claude-agent-sdk`) |
-|---|---|---|
-| Setup | Spawn a process | Import a library |
-| Hook into lifecycle events | Hooks config file | Typed callbacks directly |
-| Intercept permission prompts | Via stream `wants-permission` events | Via typed `canUseTool` callback |
-| Define custom tools | Limited | First-class |
-| Multi-agent in one process | N processes | N in-process instances (fibers) |
-| Vendor independence | Different CLIs have different flags | Different SDKs have different APIs |
+| Consideration                | CLI (claude -p)                     | SDK (@anthropic-ai/claude-agent-sdk) |
+| ---------------------------- | ----------------------------------- | ------------------------------------ |
+| Setup                        | Spawn a process                     | Import a library                     |
+| Hook into lifecycle events   | Hooks config file                   | Typed callbacks directly             |
+| Intercept permission prompts | Via stream wants-permission events  | Via typed canUseTool callback        |
+| Define custom tools          | Limited                             | First-class                          |
+| Multi-agent in one process   | N processes                         | N in-process instances (fibers)      |
+| Vendor independence          | Different CLIs have different flags | Different SDKs have different APIs   |
 
 **For Claude specifically**: SDK is cleaner, especially given the supervision/fibers direction (see 08-supervision.md) where we want many agents in one worker process.
 
@@ -229,17 +229,18 @@ Because we own the launcher, every agent session is a supervised actor under our
 
 ## Phases
 
-| Phase | What | Effort |
-|---|---|---|
-| 1 | SDK integration for Claude; `<MessageList>` + tool-call rendering in silvery | ~1 week |
-| 2 | `<TodoPanel>` + `<ActiveAgents>` + `<ActivityIndicator>` + `<StatusLine>` | ~1 week |
-| 3 | `<PermissionDialog>` + `<ModeSwitcher>` + `<SlashPalette>` | ~1 week |
-| 4 | Multi-agent harness — N fibers under one legate; tribe coordination; meta-agent skeleton | ~2 weeks |
-| 5 | Vendor adapters for Codex / opencode / aider via CLI streaming when SDKs unavailable | ~1 week per vendor |
-| 6 | .tape recording of live sessions → replay into tests, demos | Ongoing |
-| Optional | Mode B JSONL tail for ambient memory / historical sessions | ~1 week when needed |
-| Optional | Mode C PTY wrap for vendors without structured output | ~2 weeks when needed |
+| Phase    | What                                                                                     | Effort               |
+| -------- | ---------------------------------------------------------------------------------------- | -------------------- |
+| 1        | SDK integration for Claude; <MessageList> + tool-call rendering in silvery               | ~1 week              |
+| 2        | <TodoPanel> + <ActiveAgents> + <ActivityIndicator> + <StatusLine>                        | ~1 week              |
+| 3        | <PermissionDialog> + <ModeSwitcher> + <SlashPalette>                                     | ~1 week              |
+| 4        | Multi-agent harness — N fibers under one legate; tribe coordination; meta-agent skeleton | ~2 weeks             |
+| 5        | Vendor adapters for Codex / opencode / aider via CLI streaming when SDKs unavailable     | ~1 week per vendor   |
+| 6        | .tape recording of live sessions → replay into tests, demos                              | Ongoing              |
+| Optional | Mode B JSONL tail for ambient memory / historical sessions                               | ~1 week when needed  |
+| Optional | Mode C PTY wrap for vendors without structured output                                    | ~2 weeks when needed |
 
 ## Origin
 
 2026-04-23 discussion starting from "how does Cline do it?" — the answer turned out to be: Cline doesn't wrap a terminal agent; it uses the Anthropic SDK directly. Same pattern we're committing to here, at silvery-harness scope.
+

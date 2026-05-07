@@ -107,7 +107,7 @@ Why it spreads: rankings + badges + public score improvement loops.
 
 ---
 
-## 2) Partnerships and integrations
+### 2) Partnerships and integrations
 
 ### 6) GitHub Action: terminal matrix testing
 
@@ -195,7 +195,7 @@ You don’t need to “own” those ecosystems; you just need them to reference 
 
 ---
 
-## 3) Community building
+### 3) Community building
 
 ### 11) “TUI teardown” campaign
 
@@ -293,7 +293,7 @@ Feature all projects in a gallery with screenshots and source.
 
 ---
 
-## 4) Content that goes viral in developer circles
+### 4) Content that goes viral in developer circles
 
 ### 16) “State of Terminal Compatibility 2026”
 
@@ -374,7 +374,7 @@ This is highly linkable and becomes a go-to resource in issue threads.
 
 ---
 
-## 5) AI-native distribution
+### 5) AI-native distribution
 
 ### 21) Official MCP server for terminfo.dev + termless
 
@@ -474,7 +474,7 @@ Template distribution is underrated: developers fork starters more than they ado
 
 ---
 
-## 6) Developer experience that creates word-of-mouth
+### 6) Developer experience that creates word-of-mouth
 
 ### 26) PR screenshot / replay bot for terminal apps
 
@@ -566,7 +566,7 @@ If this feels magical, people will recommend your stack just for debugging.
 
 ---
 
-# If I were prioritizing for the next 6 months
+### If I were prioritizing for the next 6 months
 
 These are the **8 I’d do first**:
 
@@ -587,7 +587,7 @@ Why these first:
 
 ---
 
-# What the compounding loop looks like
+### What the compounding loop looks like
 
 A strong loop would be:
 
@@ -608,3 +608,4 @@ If you want, I can turn this into a **concrete 6-month growth roadmap** with:
 - success metrics
 - launch sequencing
 - which ideas are best for each of your products specifically.
+

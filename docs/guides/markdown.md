@@ -21,7 +21,7 @@ Based on [mdast](https://github.com/syntax-tree/mdast) with extensions.
 
 ### Block Nodes
 
-````typescript
+~~~~typescript
 type BlockNode =
   | Heading // # ## ### etc
   | Paragraph // Plain text block
@@ -53,7 +53,7 @@ interface ListItem {
   spread: boolean
   children: BlockContent[]
 }
-````
+~~~~
 
 ### Phrasing (Inline) Nodes
 
@@ -150,7 +150,7 @@ Content B. → paragraph (child of Section B)
 
 ### Serialization Rules
 
-````typescript
+~~~~typescript
 function serializeNode(node: Node): string {
   switch (node.type) {
     case "section":
@@ -179,7 +179,7 @@ function serializeNode(node: Node): string {
       return node.content + "\n"
   }
 }
-````
+~~~~
 
 ---
 
@@ -251,6 +251,7 @@ Paragraph content ^x9p3
 ```
 
 Three reference scopes:
+
 - **`[[file.md#^id]]`** — block in a specific file
 - **`[[#^id]]`** — block in the current file (file-local)
 - **`[[^id]]`** — globally unique block (resolved across all files)
@@ -314,13 +315,13 @@ Logseq, Obsidian Dataview, Tana, and Roam. Multiple properties per line supporte
 
 ### Property Types
 
-| Type   | Example                      | Parsed Value                            |
-| ------ | ---------------------------- | --------------------------------------- |
-| Link   | `blocks:: [[km-a1b2]]`       | `{ type: "link", target: "km-a1b2" }`   |
-| Number | `rating:: 5`                 | `{ type: "number", value: 5 }`          |
-| Date   | `due:: 2024-01-15`           | `{ type: "date", value: "2024-01-15" }` |
-| Text   | `reason:: Fixed in PR #123`  | `{ type: "text", value: "..." }`        |
-| List   | `tags:: [[a]], [[b]], [[c]]` | `{ type: "list", values: [...] }`       |
+| Type   | Example                    | Parsed Value                          |
+| ------ | -------------------------- | ------------------------------------- |
+| Link   | blocks:: [[km-a1b2]]       | { type: "link", target: "km-a1b2" }   |
+| Number | rating:: 5                 | { type: "number", value: 5 }          |
+| Date   | due:: 2024-01-15           | { type: "date", value: "2024-01-15" } |
+| Text   | reason:: Fixed in PR #123  | { type: "text", value: "..." }        |
+| List   | tags:: [[a]], [[b]], [[c]] | { type: "list", values: [...] }       |
 
 ### Storage
 
@@ -437,33 +438,33 @@ function parseMarkdown(content: string): Root {
 
 ### Block References
 
-| System | Syntax | Scope |
-|--------|--------|-------|
-| **km** | `[[^id]]` | Global (any file) |
-| **km** | `[[#^id]]` | File-local |
-| **km** | `[[file#^id]]` | Cross-file |
-| Obsidian | `[[file#^id]]`, `[[#^id]]` | File-scoped only (no global) |
-| Logseq | `((block-uuid))` | Global (opaque UUIDs) |
-| Pandoc | `{#id}` after heading | HTML anchor, same file |
-| kramdown | `{: #id}` after block | HTML anchor, same file |
-| PHP MD Extra | `{#id}` | HTML anchor |
-| GitHub | Auto-slug from heading text | Same file, `#heading-text` |
-| Org-mode | `#+NAME:`, `<<target>>`, `CUSTOM_ID` | Global via ID registry |
+| System       | Syntax                         | Scope                        |
+| ------------ | ------------------------------ | ---------------------------- |
+| km           | [[#^id]]                       | Global (any file)            |
+| km           | [[#^id]]                       | File-local                   |
+| km           | [[file#^id]]                   | Cross-file                   |
+| Obsidian     | [[file#^id]], [[#^id]]         | File-scoped only (no global) |
+| Logseq       | ((block-uuid))                 | Global (opaque UUIDs)        |
+| Pandoc       | {#id} after heading            | HTML anchor, same file       |
+| kramdown     | {: #id} after block            | HTML anchor, same file       |
+| PHP MD Extra | {#id}                          | HTML anchor                  |
+| GitHub       | Auto-slug from heading text    | Same file, #heading-text     |
+| Org-mode     | #+NAME:, <<target>>, CUSTOM_ID | Global via ID registry       |
 
 km's `[[^id]]` is unique: a globally-scoped block ref without specifying the file.
 
 ### Inline Metadata
 
-| System | Syntax | Notes |
-|--------|--------|-------|
-| **km** | `key:: value` | Multiple per line, compatible with all below |
-| Logseq | `key:: value` | Origin of double-colon syntax |
-| Dataview | `key:: value`, `[key:: val]`, `(key:: val)` | Obsidian plugin; brackets for inline, parens hide key |
-| Tana | `key:: value` | Backed by typed fields/supertags |
-| Roam | `attribute:: value` | Same family |
-| Obsidian native | YAML frontmatter only | No inline properties without Dataview |
-| Pandoc/kramdown | `{#id .class key=val}` | HTML rendering attrs, not semantic data |
-| Org-mode | `:PROPERTIES:` drawer | `:KEY: value` in block, not inline |
+| System          | Syntax                                | Notes                                                 |
+| --------------- | ------------------------------------- | ----------------------------------------------------- |
+| km              | key:: value                           | Multiple per line, compatible with all below          |
+| Logseq          | key:: value                           | Origin of double-colon syntax                         |
+| Dataview        | key:: value, [key:: val], (key:: val) | Obsidian plugin; brackets for inline, parens hide key |
+| Tana            | key:: value                           | Backed by typed fields/supertags                      |
+| Roam            | attribute:: value                     | Same family                                           |
+| Obsidian native | YAML frontmatter only                 | No inline properties without Dataview                 |
+| Pandoc/kramdown | {#id .class key=val}                  | HTML rendering attrs, not semantic data               |
+| Org-mode        | :PROPERTIES: drawer                   | :KEY: value in block, not inline                      |
 
 The `key:: value` double-colon family is the de facto standard for inline semantic
 metadata across knowledge tools. km uses this syntax for cross-tool compatibility.
@@ -525,3 +526,4 @@ See [design/model/kast.md](../design/model/kast.md) for the full specification.
 
 - [storage.md](../design/model/storage.md) — Node storage, sync
 - [query.md](query.md) — Query language
+

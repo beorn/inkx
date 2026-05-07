@@ -31,9 +31,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.publishconfig-exports-fix
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [/] Kill @silvery/theme-detect; move OSC probe to @silvery/ansi, scheme fingerprint to @silvery/theme @km/silvery #task #P2 @claude:a1a0e667
@@ -81,14 +83,14 @@ ORDER
 
 1. Land 0.19.1 republish first (@km/silvery/publishconfig-exports-fix). DO NOT publish theme-detect 0.19.1.
 2. In a follow-up release (0.20.0 or 0.19.2):
-  - Add probeColors to @silvery/ansi
-  - Add detectScheme + detectTheme to @silvery/theme
-  - Update silvery barrel + @km/tui to import from new locations
-  - Delete vendor/silvery/packages/theme-detect/ workspace package
-  - Remove from .github/workflows/release.yml publish list
-  - Run 'npm deprecate @silvery/theme-detect@0.19.0 "Moved..."'
-  - Update npm-packages.md (move to Deprecated)
-3. CHANGELOG entry for the consolidation
+- Add probeColors to @silvery/ansi
+- Add detectScheme + detectTheme to @silvery/theme
+- Update silvery barrel + @km/tui to import from new locations
+- Delete vendor/silvery/packages/theme-detect/ workspace package
+- Remove from .github/workflows/release.yml publish list
+- Run 'npm deprecate @silvery/theme-detect@0.19.0 "Moved..."'
+- Update npm-packages.md (move to Deprecated)
+12. CHANGELOG entry for the consolidation
 
 ACCEPTANCE
 

@@ -39,7 +39,7 @@ const DEFAULT_FIXTURE_PATHS = [
 function matchesAny(path: string, patterns: readonly string[]): boolean {
   for (const pattern of patterns) {
     const m = pattern.match(/^\*\*\/(.+)\/\*\*$/)
-    if (m && m[1] !== undefined) {
+    if (m?.[1] !== undefined) {
       const segment = m[1]
       if (path.includes(`/${segment}/`) || path.startsWith(`${segment}/`)) return true
     } else if (path.includes(pattern)) {

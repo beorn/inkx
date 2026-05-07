@@ -33,9 +33,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.sterling-2e-interior-migration
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling: cursor derivation needs repairCursorBg pass @km/silvery #bug #P2 @claude:22c2717d

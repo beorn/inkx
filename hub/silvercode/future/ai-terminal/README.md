@@ -21,12 +21,12 @@
 
 Four terms get used throughout these docs. They stack:
 
-| Term | Scope | Answers |
-|---|---|---|
-| **agent** | LLM + tool loop + behavior | "what is the model doing?" |
-| **agent harness** | integration scaffold for one agent | "how does this agent plug into our app?" |
-| **orchestrator** | coordinator for N agents | "how do multiple agents work together?" |
-| **agent host** | user-facing product | "what does the user open?" |
+| Term          | Scope                              | Answers                                  |
+| ------------- | ---------------------------------- | ---------------------------------------- |
+| agent         | LLM + tool loop + behavior         | "what is the model doing?"               |
+| agent harness | integration scaffold for one agent | "how does this agent plug into our app?" |
+| orchestrator  | coordinator for N agents           | "how do multiple agents work together?"  |
+| agent host    | user-facing product                | "what does the user open?"               |
 
 The user opens an **agent host**; inside it, an **orchestrator** manages multiple agents; each agent runs in an **agent harness** (SDK bridge + policy gate + UI bindings); the harness invokes the **agent** (Claude/GPT/etc. via its SDK).
 
@@ -45,20 +45,20 @@ Industry usage is inconsistent — "coding agent" gets used colloquially for all
 
 Silvery has quietly accumulated almost every piece needed to do AI-era terminal tooling. Individually the pieces have narrow purposes. Composed, they form a substrate no one else has:
 
-| Piece | What it does | Relevance |
-|---|---|---|
-| `@vterm/modern` | ANSI emulator grid (99% conformance) | Host nested TUIs without escape-sequence leakage |
-| `@vterm/vt100` | VT220 baseline (57% conformance) | Low-end conformance oracle |
-| `termless` | Headless terminal driver | Automation, introspection, tests |
-| `terminfo.dev` | Terminal capability database | Capability-negotiation ground truth |
-| `bearly/tribe` | Cross-session JSON-RPC bus over UDS | Coordination for agents + humans |
-| `bearly/recall` | Session history / FTS index | Cross-agent memory |
-| `mdtest` tape plugin | VHS .tape record/replay | Deterministic replay of agent sessions |
-| `silvery` core | Components, state, ag-term reconciler | Rendering across terminal / canvas / DOM |
-| `silvery-selection` | Pointer / input abstraction | Mouse, hover, focus — rare in TUIs |
-| `flexily` | Layout engine | Splits/tabs/tiles |
-| `alien-*` | Reactive primitives (signals, trees, projections, resources) | Efficient block/state handling |
-| **Missing: `@silvery/pty`** | PTY wrapper | The one atom we need to build |
+| Piece                 | What it does                                                 | Relevance                                        |
+| --------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| @vterm/modern         | ANSI emulator grid (99% conformance)                         | Host nested TUIs without escape-sequence leakage |
+| @vterm/vt100          | VT220 baseline (57% conformance)                             | Low-end conformance oracle                       |
+| termless              | Headless terminal driver                                     | Automation, introspection, tests                 |
+| terminfo.dev          | Terminal capability database                                 | Capability-negotiation ground truth              |
+| bearly/tribe          | Cross-session JSON-RPC bus over UDS                          | Coordination for agents + humans                 |
+| bearly/recall         | Session history / FTS index                                  | Cross-agent memory                               |
+| mdtest tape plugin    | VHS .tape record/replay                                      | Deterministic replay of agent sessions           |
+| silvery core          | Components, state, ag-term reconciler                        | Rendering across terminal / canvas / DOM         |
+| silvery-selection     | Pointer / input abstraction                                  | Mouse, hover, focus — rare in TUIs               |
+| flexily               | Layout engine                                                | Splits/tabs/tiles                                |
+| alien-*               | Reactive primitives (signals, trees, projections, resources) | Efficient block/state handling                   |
+| Missing: @silvery/pty | PTY wrapper                                                  | The one atom we need to build                    |
 
 **Conclusion**: we are one primitive (`@silvery/pty`, maybe 200–500 LOC) away from being able to build almost anything in the terminal + AI space. That includes the five ideas filed in beads — but also includes things we hadn't yet named.
 
@@ -178,7 +178,6 @@ Stepping back, these dimensions belong in the frame but weren't explicit in the 
 Two bets ride on top:
 
 1. **Integration bet**: wrap existing TUI agents (Claude Code, Codex, opencode) with silvery-native UX. Daily-driver for power users, possibly products. Near-term.
-
 2. **Authoring bet**: silvery-native TUI coding agents that are structurally better than alt-screen byte-stream peers. Longer-term, higher ceiling.
 
 Everything else in the catalogue — multiplex, CAP, commander, sessions — is either enabling substrate for these two bets, or side benefits that fall out of the substrate for free.
@@ -197,3 +196,4 @@ Everything else in the catalogue — multiplex, CAP, commander, sessions — is 
 2. **Separate workstream before scheduling**: user-value validation — who needs this, what's the smallest wedge that proves utility, would people actually switch / pay
 3. Decide `@silvery/pty` implementation strategy *if* we pursue any of this — the single critical-path atom
 4. Revisit once km and silvery 1.0 ship and we have capacity to explore non-core work
+

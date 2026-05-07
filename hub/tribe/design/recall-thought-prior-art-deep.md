@@ -1,9 +1,11 @@
 <!-- llm-meta: {"model":"GPT-5.4","session":"4de4a3ab","timestamp":"2026-04-28T00:04:56.412Z","query":"deep Comprehensive prior-art search for the following AI-agent architectural pattern, with citations:\n\nTHE COMPOSITION (look for any system, paper, or product that has ALL of these together):\n\n1. SEPARATE sub-agent (not the foreground agent self-managing memory) — a long-running LLM process distinct from the user-facing agent\n2. WATCHES SESSION EVENTS in real time — user prompts, assistant completions, peer broadcasts (multi-agent), file changes, CI events. Reactive, not on-demand.\n3. MAINTAINS COMPILED-KNOWLEDGE STATE in its own LLM context (using prompt caching) — running structured digest of accumulated relevant context, identifiers, hypotheses\n4. EMITS INCREMENTAL DELTAS to the foreground agent — not full snapshots, but small 'oh wait, this might be relevant' updates as new findings emerge. Foreground sees deltas only.\n5. HAS RICH TOOLS — recall over session history (FTS), LSP-derived repo symbols, file/git/issues context, hybrid markdown vector search\n6. RUNS LOCALLY OR PROXIES (cloud agent-in-the-middle that intercepts protocol traffic between IDE and foreground agent — analogous to CDN edge-compute or LSP proxy)\n\nINDIVIDUAL PIECES EXIST in: Letta/MemGPT (tool-call memory, self-managed), ChatGPT memory (running summary, inject-once), Mem0 (atomic-fact extraction, on-demand retrieval), Anthropic memory tool (file-based notes, agent-managed), Cursor (implicit RAG per prompt), Aider (static repo map), CrewAI/AutoGen (separate roles).\n\nQUESTIONS:\n\n1. Has anyone published a paper or shipped a product that combines all 6 traits? Specifically the 'separate sub-agent + reactive event-watcher + compiled-knowledge-with-prompt-caching + delta-emit + rich-tools' composition?\n\n2. Any 2024–2026 academic work on 'background memory consolidation' or 'multi-agent memory systems' or 'persistent in-session context maintainers' that lands close to this composition?\n\n3. Any cloud-hosted 'AI agent gateway' or 'agent-in-the-middle proxy' products (analogous to OpenRouter/LiteLLM but for agent protocols like ACP/MCP) that include persistent stateful memory sub-agents (not just routing/caching/observability)?\n\n4. Specifically: does Anthropic's recent agent memory work (memory tool in claude-agent-sdk, oct-2026 release), Letta's recent updates, mem0's roadmap, Sourcegraph Cody's context engine, GitHub Copilot Workspace, or Cursor 2.x include anything close to this 'persistent sub-agent watching session events' shape?\n\n5. Is the ACP (Agent Client Protocol) ecosystem seeing any proxy/gateway products that host persistent LLM sub-agents (not just transforms)?\n\nBe sharp. I want to know: is this novel composition, or has someone already shipped/published it?\n\nBias toward citing specific systems/papers/products with names, dates, and links. If the answer is 'no exact match found', that's also a valid finding — say it explicitly.\n\nContext for relevance: this is for the silvercode (km project) recall-thought design — see attached design doc with full context. Result will be used in positioning + moat analysis. /tmp/recall-thought-deep","cost":"$0.151","tokens":{"prompt":22285,"completion":6342,"total":28627},"durationMs":66224} -->
 
 Short answer
+
 - No exact match found. Up to my knowledge cutoff (Oct 2024), I don’t see any paper, product, or framework that combines all six traits you listed into one “separate, long‑running sub‑agent that watches session events, maintains compiled knowledge in its own prompt‑cached context, and emits deltas back to a foreground agent while sitting as a proxy/gateway with rich IDE/LSP tools.” Each piece exists somewhere, but not the composition.
 
 What is closest (and why it’s still not it)
+
 - Letta / MemGPT (tool-call memory, self-managed by the foreground agent)
   - Pros: explicit memory tiers (core/recall/archival); agent tool-calls to recall/store; persistent long-term memory
   - Gaps: not a separate background sub-agent; no event-bus integration (files/CI/peer); no prompt-cached compiled-knowledge maintained by a distinct process; no delta emits
@@ -45,7 +47,7 @@ What is closest (and why it’s still not it)
 
 Answers to your questions (with citations)
 
-1) Has anyone shipped/published the full 6-trait composition?
+1. Has anyone shipped/published the full 6-trait composition?
 - Finding: No exact match up to Oct 2024.
 - Nearest clusters:
   - Multi-agent orchestrators (AutoGen, CrewAI) give you separate roles that can interject, but not an IDE/MCP/ACP proxy that watches repo/CI/peer events and maintains its own prompt‑cached compiled knowledge with delta emits.
@@ -59,8 +61,7 @@ Answers to your questions (with citations)
     - Letta: https://github.com/LettaPlatform/Letta
     - MemGPT: https://arxiv.org/abs/2310.08590
     - Mem0: https://github.com/mem0ai/mem0
-
-2) 2024–2026 academic work near “background memory consolidation”/“persistent in-session context maintainer”?
+8. 2024–2026 academic work near “background memory consolidation”/“persistent in-session context maintainer”?
 - Closest themes (none combine all your traits):
   - Generative Agents (Stanford, 2023): agents with episodic memory, reflection, importance tagging, and background consolidation between actions. Conceptually close to “mind-wandering,” but not integrated with IDE/tools/proxying.
     - https://arxiv.org/abs/2304.03442
@@ -72,8 +73,7 @@ Answers to your questions (with citations)
   - Long-term memory surveys (2024): many taxonomies of episodic/semantic/procedural memory for agents; no concrete design matching your proxy + delta-emitter composition.
     - Example survey: https://arxiv.org/abs/2401.16480
 - Bottom line: academic work supports parts (reflection, outcome-gating, memory stores), but not your IDE/event‑watching, prompt‑cached, delta‑emit proxy composition.
-
-3) Cloud “agent gateway”/“agent-in-the-middle proxy” products with persistent stateful memory sub‑agents?
+15. Cloud “agent gateway”/“agent-in-the-middle proxy” products with persistent stateful memory sub‑agents?
 - As of 2024-10, no. Gateways exist for routing/observability/cost control/caching (OpenRouter, LiteLLM Proxy, Portkey, Helicone), but they don’t host a persistent LLM sub‑agent that consumes IDE/ACP/MCP event streams and emits deltas.
   - OpenRouter: https://openrouter.ai
   - LiteLLM Proxy: https://docs.litellm.ai/docs/proxy/overview
@@ -82,8 +82,7 @@ Answers to your questions (with citations)
 - LangGraph Cloud (2024) and LangServe/LangSmith host stateful agent graphs with persistence/checkpoints, but they are frameworks/services, not IDE protocol proxies; you could build your composition on them, but it’s not out‑of‑the‑box.
   - LangGraph: https://langchain-ai.github.io/langgraph/
   - LangGraph Cloud: https://blog.langchain.dev/langgraph-cloud/
-
-4) Do Anthropic memory (Agents SDK), Letta, mem0, Sourcegraph Cody, GitHub Copilot Workspace, or Cursor 2.x approach this “persistent sub-agent watching session events”?
+22. Do Anthropic memory (Agents SDK), Letta, mem0, Sourcegraph Cody, GitHub Copilot Workspace, or Cursor 2.x approach this “persistent sub-agent watching session events”?
 - Anthropic Agents SDK + Memory tool (2024): agent-managed memory notes; no separate background sub‑agent watching all IDE/session events and emitting deltas.
   - https://docs.anthropic.com/claude/docs/agents-overview
 - Letta / MemGPT: explicit memory tiers, tool-call retrieval; not event-driven background deltas.
@@ -96,14 +95,14 @@ Answers to your questions (with citations)
   - https://github.blog/2024-04-29-github-copilot-workspace/
 - Cursor 2.x: hybrid implicit+explicit retrieval; removed some @-providers in favor of agent-driven tools; still per‑prompt. No long‑running delta-emitting memory agent.
   - https://cursor.sh (blog/product updates)
-
-5) ACP/MCP ecosystem: any proxy/gateway hosting persistent LLM sub‑agents (not just transforms)?
+37. ACP/MCP ecosystem: any proxy/gateway hosting persistent LLM sub‑agents (not just transforms)?
 - MCP standardized tool/context servers (2023–2024) and many servers exist, but I’ve seen no general “MCP/ACP gateway” product that runs a standing background LLM to watch events and emit deltas into a separate foreground chat.
   - MCP: https://www.anthropic.com/news/model-context-protocol
 - Related: “Continue” (open-source IDE assistant) and other MCP clients wire multiple MCP servers into the IDE. Still client‑side orchestration; not a separate cloud/local proxy that hosts a memory sub‑agent with its own prompt‑cached context.
   - Continue: https://github.com/continuedev/continue
 
 What this means for positioning
+
 - The composition appears novel as of late 2024: separate, long‑running sub‑agent; reactive to multi‑source session events; maintains prompt‑cached compiled knowledge; emits deltas; wired into IDE/LSP/CI; optionally deployed as an agent proxy. Each ingredient is known; the recipe isn’t.
 - Your moat likely rests on:
   - Composition/IP: the exact split of responsibilities and pacing (delta emits vs. full snapshots; event filters; dedupe; outcome-aware ranking)
@@ -112,6 +111,7 @@ What this means for positioning
   - Visibility and operator UX (side‑panel, inspector, journal) — many systems are opaque here
 
 How to falsify novelty quickly (recommended follow‑up sweep)
+
 - Search strings:
   - “background memory agent IDE delta emit”
   - “agent proxy persistent memory MCP ACP”
@@ -128,6 +128,7 @@ How to falsify novelty quickly (recommended follow‑up sweep)
 - Evidence bar to claim “duplicate”: demo/docs stating a separate background process watches IDE/chat/CI/file events, maintains its own prompt‑cached state, and emits incremental deltas back to a foreground agent.
 
 Citations (representative, 2023–2024)
+
 - Model Context Protocol (Anthropic, 2023/2024): https://www.anthropic.com/news/model-context-protocol
 - Prompt Caching (Anthropic, 2024): https://docs.anthropic.com/claude/docs/prompt-caching
 - Anthropic Agents SDK (memory tool): https://docs.anthropic.com/claude/docs/agents-overview
@@ -151,7 +152,10 @@ Citations (representative, 2023–2024)
 - Helicone (observability): https://www.helicone.ai
 
 Limitations
+
 - My knowledge is current to Oct 2024. The space is moving fast; 2025–2026 products/papers could exist that close part or all of this gap. If you want, I can draft a 2‑hour web‑sweep plan and run it if browsing is enabled, or provide a checklist for your team to execute.
 
 Bottom line
+
 - As of late 2024, your Tier‑3 “mem‑thought” composition — a separate, long‑running sub‑agent that watches all session events, maintains a prompt‑cached compiled‑knowledge state, and emits incremental deltas to a focused foreground agent — is genuinely novel in composition. Closest neighbors provide individual ingredients but not the assembled system.
+

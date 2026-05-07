@@ -21,10 +21,10 @@ The playground includes seven preset examples accessible via buttons or number k
 
 | #   | Preset     | Demonstrates                                              |
 | --- | ---------- | --------------------------------------------------------- |
-| 1   | Hello      | Basic Box + Text, `useBoxRect()` size display             |
+| 1   | Hello      | Basic Box + Text, useBoxRect() size display               |
 | 2   | Text       | Bold, italic, underline styles (single/double/curly/etc.) |
 | 3   | Colors     | Named ANSI colors, hex, RGB, background fills             |
-| 4   | Flexbox    | Row/column layouts, `flexGrow`, `gap`, nested panels      |
+| 4   | Flexbox    | Row/column layouts, flexGrow, gap, nested panels          |
 | 5   | Borders    | single, double, round, bold border styles                 |
 | 6   | Dashboard  | Multi-panel system monitor layout                         |
 | 7   | Responsive | Layout adapts between horizontal/vertical based on width  |
@@ -67,3 +67,4 @@ A static HTML page cannot bundle a JSX transpiler. For a full live-editing exper
 - **silvery/canvas** for rendering the user's components
 
 Deployment targets: GitHub Pages (static export), StackBlitz (zero-install), or self-hosted.
+

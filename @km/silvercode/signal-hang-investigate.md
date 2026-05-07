@@ -34,20 +34,20 @@ without `kill -9`.
    hints), but JS-level signal handlers can't dispatch while the JS
    thread is in a wedged tight loop. SIGTERM is queued forever.
 3. **Why is the loop wedged?** Unknown. Likely candidates:
-  - An unhandled promise rejection retry loop in the controller's
+- An unhandled promise rejection retry loop in the controller's
      eager `spawnSession()` chain
-  - A native-binding spin (accountly probe? alien-signals
+- A native-binding spin (accountly probe? alien-signals
      subscriber?)
-  - A `setInterval` with sync work that re-fires before the previous
+- A `setInterval` with sync work that re-fires before the previous
      run finishes
    The 100% CPU + JIT'd-loop signature points away from a simple
    I/O wait.
-4. **Why does the bootstrap allow this?** bootstrap.ts only handled
+10. **Why does the bootstrap allow this?** bootstrap.ts only handled
    SIGINT (`process.on('SIGINT')`) prior to this bead's first patch.
    SIGTERM had no fast-exit fallback. Even with the patch, a `while(true)`
    loop blocks setTimeout callbacks too — the only true escape is
    external SIGKILL.
-5. **Why never caught?** No probe / smoke test runs silvercode under
+11. **Why never caught?** No probe / smoke test runs silvercode under
    conditions that trigger the wedge AND verifies the process exits
    cleanly within a budget. The cli-smoke test exits at the pre-flight
    gate before the wedge path can fire.

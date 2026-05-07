@@ -19,6 +19,7 @@ Each alone would be a product. Together they're a category.
 Terminals and child processes both lie about what they support, and the failure mode is silent: wrong glyphs, eaten input, mystery corruption.
 
 Mitigation exists:
+
 - Smallest-persona policy (claim `xterm-256color`, not Kitty)
 - Fuzz against real emulators (terminfo.dev as source)
 - Conformance matrix (`@vterm/modern` vs `@vterm/vt100` as oracles)
@@ -34,6 +35,7 @@ Not a blocker; a permanent tax.
 The dependency graph is fine on paper, but commander needs CAP, CAP needs at least one commander consumer, multiplex needs PTY, sessions need multiplex + CAP. If you try to ship all five to parity, you stall all five.
 
 **Path forward**: sequence it, don't fan out. Minimum viable core:
+
 - `@silvery/pty`
 - Trivial multiplex (one pane, spawn/attach)
 - CAP v0 manifest format
@@ -131,3 +133,4 @@ Recommendation (repeat): ship node-pty wrap as stable interface, plan Bun FFI re
 - When showcase demo needs embedded panes (pulls substrate forward)
 - When a CAP-adjacent opportunity emerges (e.g., Anthropic ships MCP for CLIs, making our CAP position either obsolete or validated)
 - After /pro review returns blockers we missed
+

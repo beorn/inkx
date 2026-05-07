@@ -2,10 +2,10 @@
 
 **Autolinks** is the umbrella term for systems in the km ecosystem that automatically turn matched text into navigable links. The pattern is widespread but the km ecosystem has two distinct kinds:
 
-| Kind | What it matches | When | Where it lives | Output |
-|---|---|---|---|---|
-| **Syntax linker** | Patterns (regex / literal) in *displayed text* — chat history, knode bodies, prose in any view | Run-time, on render + hover | `packages/km-autolinks/src/` (the shared substrate; consumed by silvercode and km-tui) | Hover popover + click action |
-| **Term linker** | Glossary-defined terms in static published content | Build-time, during HTML generation | website build pipeline (km.dev / silvery.dev) | Anchor tag with tooltip |
+| Kind          | What it matches                                                                              | When                               | Where it lives                                                                       | Output                       |
+| ------------- | -------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------- |
+| Syntax linker | Patterns (regex / literal) in displayed text — chat history, knode bodies, prose in any view | Run-time, on render + hover        | packages/km-autolinks/src/ (the shared substrate; consumed by silvercode and km-tui) | Hover popover + click action |
+| Term linker   | Glossary-defined terms in static published content                                           | Build-time, during HTML generation | website build pipeline (km.dev / silvery.dev)                                        | Anchor tag with tooltip      |
 
 Both are autolinks; they differ in *what* they match (text patterns vs glossary terms), *when* they run (run-time vs build-time), and *what they produce* (interactive popover vs anchor element).
 
@@ -13,25 +13,25 @@ Both are autolinks; they differ in *what* they match (text patterns vs glossary 
 
 A third concept — **links** (canonical) — is unrelated despite the name:
 
-| Concept | Layer | Persistent? |
-|---|---|---|
-| Autolinks (syntax / term linker) | Display / build-time | No — derived from text or glossary |
-| Links (canonical `Link` type) | Storage | Yes — persistent edges between knodes |
+| Concept                          | Layer                | Persistent?                           |
+| -------------------------------- | -------------------- | ------------------------------------- |
+| Autolinks (syntax / term linker) | Display / build-time | No — derived from text or glossary    |
+| Links (canonical Link type)      | Storage              | Yes — persistent edges between knodes |
 
 If a feature manipulates a regex matched against user-displayed text and renders a popover → it's the **syntax linker**. If a feature builds a static glossary of terms and substitutes anchor tags into pages at build time → it's the **term linker**. If a feature creates a row in a links table or follows a `target_id` from one knode to another → it's a **link**. See [docs/design/model/klink.md](model/klink.md) for canonical links.
 
 ## Industry analogues
 
-| System | Closest km kind |
-|---|---|
-| GitHub repo autolinks (admin → autolink references) | syntax linker (one-stage, simpler) |
-| JetBrains Issue Navigation | syntax linker (regex → URL) |
-| VS Code DocumentLinkProvider + UriHandler | syntax linker (two-stage, plugin API) |
-| Apple NSDataDetector / Smart Links | syntax linker (system-level pattern detection) |
-| Obsidian wiki-links (`[[note]]`) | syntax linker (semantic shorthand) |
-| Sphinx `:ref:`, MkDocs glossary plugin | term linker |
-| Hugo / Jekyll term-cross-reference plugins | term linker |
-| Wikipedia inter-article auto-linking | term linker |
+| System                                              | Closest km kind                                |
+| --------------------------------------------------- | ---------------------------------------------- |
+| GitHub repo autolinks (admin → autolink references) | syntax linker (one-stage, simpler)             |
+| JetBrains Issue Navigation                          | syntax linker (regex → URL)                    |
+| VS Code DocumentLinkProvider + UriHandler           | syntax linker (two-stage, plugin API)          |
+| Apple NSDataDetector / Smart Links                  | syntax linker (system-level pattern detection) |
+| Obsidian wiki-links ([[note]])                      | syntax linker (semantic shorthand)             |
+| Sphinx :ref:, MkDocs glossary plugin                | term linker                                    |
+| Hugo / Jekyll term-cross-reference plugins          | term linker                                    |
+| Wikipedia inter-article auto-linking                | term linker                                    |
 
 ## Syntax linker (silvercode)
 
@@ -89,13 +89,13 @@ Two forms:
 
 ### Preview kinds
 
-| Kind | Source | Cache |
-|---|---|---|
-| `readme` | reads `resolves_to` (or its `README.md` if a directory); rendered via MarkdownView (rich) | `fs.watch` |
-| `first-paragraph` | reads `resolves_to`, shows the first non-blank paragraph; rendered via MarkdownView | `fs.watch` |
-| `bd-active` | runs `km bd list --parent <resolves_to> --status open --limit 5` | 30s TTL |
-| `shell` | spawns `command.exec` with `command.args` (per-arg `${resolves_to}` substitution); 5s timeout, 4KB cap; output sanitized of ANSI/control sequences before render | 30s TTL |
-| `mcp` | calls an MCP tool with `args`; **stub** — rules dropped at config load until `@km/silvercode/autolinks-mcp-resolver` lands (will be superseded by URI pivot) | n/a |
+| Kind            | Source                                                                                                                                                     | Cache    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| readme          | reads resolves_to (or its README.md if a directory); rendered via MarkdownView (rich)                                                                      | fs.watch |
+| first-paragraph | reads resolves_to, shows the first non-blank paragraph; rendered via MarkdownView                                                                          | fs.watch |
+| bd-active       | runs km bd list --parent <resolves_to> --status open --limit 5                                                                                             | 30s TTL  |
+| shell           | spawns command.exec with command.args (per-arg ${resolves_to} substitution); 5s timeout, 4KB cap; output sanitized of ANSI/control sequences before render | 30s TTL  |
+| mcp             | calls an MCP tool with args; stub — rules dropped at config load until @km/silvercode/autolinks-mcp-resolver lands (will be superseded by URI pivot)       | n/a      |
 
 ### Validation
 
@@ -149,14 +149,14 @@ The implementation factors preview resolution into URI-scheme dispatch — the s
 
 The user-facing schema in `.km/config.yaml` is unchanged — rules still carry `pattern` / `resolves_to` / `preview`. The `resolves_to` value is parsed by `parseResolvesTo` into a URI on the way to dispatch:
 
-| `resolves_to` value          | Inferred scheme | Notes |
-|------------------------------|-----------------|-------|
-| `/Users/beorn/Code`          | `file:`         | Absolute path |
-| `~/Documents`                | `file:`         | `~` expanded to `$HOME` |
-| `km-foo.bar` / `foo.bar`     | `bd:`           | Looks like a bd parent id |
-| `https://github.com/...`     | `https:`        | Explicit scheme passes through |
-| `bd://km-foo`                | `bd:`           | Explicit scheme passes through |
-| `mcp:rfc.lookup`             | `mcp:`          | Explicit scheme passes through |
+| resolves_to value      | Inferred scheme | Notes                          |
+| ---------------------- | --------------- | ------------------------------ |
+| /Users/beorn/Code      | file:           | Absolute path                  |
+| ~/Documents            | file:           | ~ expanded to $HOME            |
+| km-foo.bar / foo.bar   | bd:             | Looks like a bd parent id      |
+| https://github.com/... | https:          | Explicit scheme passes through |
+| bd://km-foo            | bd:             | Explicit scheme passes through |
+| mcp:rfc.lookup         | mcp:            | Explicit scheme passes through |
 
 The handler registry (`packages/km-autolinks/src/handlers/index.ts`) is hardcoded in v1 with five schemes: `file`, `bd`, `shell`, `https`, `mcp`. Each handler exports a `Handler { scheme, resolve(uri, ctx) }` and is responsible for its own resolve logic; cache + watcher lifecycle stays in `previews.ts`.
 
@@ -165,6 +165,7 @@ Plain URLs in displayed text flow through the same pipeline. `detectAutolinks` e
 Doctor introspection (`silvercode doctor autolinks`) lists registered schemes and shows the per-rule handler binding so users can see which scheme each rule's `resolves_to` resolves to and flag rules whose scheme has no handler.
 
 Future direction:
+
 - v2 will expose `[[handlers]]` in `.km/config.yaml` for user-defined handlers (additive — v1 user-facing schema unchanged).
 - `mcp` will become a fully implemented handler scheme (currently a stub at `packages/km-autolinks/src/handlers/mcp.ts`); see `@km/silvercode/autolinks-mcp-resolver`.
 - The `https:` handler will gain a real webcard fetcher (OG metadata + sandboxed fetch).
@@ -182,11 +183,13 @@ Status: planning. Lives in the website build pipeline (km.dev / silvery.dev), no
 A common confusion: "should I add a row to the links table or define a syntax-linker rule?"
 
 **Use canonical links** ([docs/design/model/klink.md](model/klink.md)) when:
+
 - The connection is **persistent** — survives across sessions.
 - It connects two km objects (knode → knode, knode → external resource) with a typed `rel`.
 - The data is structural — followable by graph queries, indexed.
 
 **Use the syntax linker** when:
+
 - The connection is **inferred from text** — you read text, found a pattern, want to render a popover.
 - The "target" is shorthand the user types in chat or notes.
 - The interaction is ephemeral (session-scoped); preview is rendered, not stored.
@@ -208,3 +211,4 @@ The term linker is owned by the website build pipeline.
   - `@km/silvercode/autolinks-uri-pivot` (URI dispatch refactor)
   - `@km/silvercode/autolinks-mcp-resolver` (mcp scheme — superseded by URI pivot)
   - `@km/all/autolinks-extraction` (cross-app sharing — landed)
+

@@ -8,11 +8,11 @@ The structural layer (the universal tree) is where we do as much work as possibl
 
 Bugs happen when code in one layer branches on properties from another.
 
-| Concern | Question | Properties | Lives in |
-|---------|----------|------------|----------|
-| **Structural** | What IS this node? | `type` (oi/li/p/h/hr/...), `content`, `parent_id`, `children`, `task_marker`, `rules` | @km/core, @km/tree |
-| **Visual** | How does it LOOK? | depth, isSelected, isFolded, column width, cursor position | apps/km-tui views |
-| **Physical** | Where did it come FROM? | `fstype` (folder/file/mdfile/mdsection), `fs_path`, `fs_ino` | @km/storage, @km/markdown |
+| Concern    | Question                | Properties                                                                | Lives in                  |
+| ---------- | ----------------------- | ------------------------------------------------------------------------- | ------------------------- |
+| Structural | What IS this node?      | type (oi/li/p/h/hr/...), content, parent_id, children, task_marker, rules | @km/core, @km/tree        |
+| Visual     | How does it LOOK?       | depth, isSelected, isFolded, column width, cursor position                | apps/km-tui views         |
+| Physical   | Where did it come FROM? | fstype (folder/file/mdfile/mdsection), fs_path, fs_ino                    | @km/storage, @km/markdown |
 
 ## What Went Wrong
 
@@ -56,6 +56,7 @@ RIGHT:  if (hasSubitems(node)) renderWithSubitems()
 ```
 
 The structural API provides the right predicates (via `KNode` namespace from `@km/core`):
+
 - `KNode.isOutline(node)` — is it an outline item (`oi`)?
 - `KNode.isItem(node)` — can it have children (`oi` or `li`)?
 - `KNode.isBlock(node)` — is it a content leaf?
@@ -93,3 +94,4 @@ if (node.task_marker) ...
 if (node.rules) ...
 if (depth === 0) ...
 ```
+

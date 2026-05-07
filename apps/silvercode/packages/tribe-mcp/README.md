@@ -107,4 +107,3 @@ bun vitest run apps/silvercode/packages/tribe-mcp/tests/
 `tools.test.ts` covers the JSON-RPC surface, dangerous-flag invariants,
 scope filtering, history filter + pagination, chief leadership, and
 JSONL backend persistence across restarts.
-

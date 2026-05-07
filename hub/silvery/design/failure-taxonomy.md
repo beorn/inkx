@@ -10,15 +10,15 @@ For reference, the 14 beads collectively cover the original 54 tests (vendor fai
 
 ## Counts
 
-| Category | Beads | Share |
-|---|---:|---:|
-| test infrastructure | 7 | 50% |
-| render-phase ordering | 3 | 21% |
-| upstream-bug | 1 | 7% |
-| layout convergence | 1 | 7% |
-| other (packaging / feature wiring) | 2 | 14% |
-| lifecycle/ownership | 0 | 0% |
-| **Total** | **14** | **100%** |
+| Category                           | Beads | Share |
+| ---------------------------------- | ----: | ----: |
+| test infrastructure                | 7     | 50%   |
+| render-phase ordering              | 3     | 21%   |
+| upstream-bug                       | 1     | 7%    |
+| layout convergence                 | 1     | 7%    |
+| other (packaging / feature wiring) | 2     | 14%   |
+| lifecycle/ownership                | 0     | 0%    |
+| Total                              | 14    | 100%  |
 
 ## Dominant category
 
@@ -62,11 +62,8 @@ For reference, the 14 beads collectively cover the original 54 tests (vendor fai
 ## Implications for plateau-90
 
 1. **Ownership-as-seam (Kimi C1 hypothesis): not supported.** Zero ownership-rooted beads in this sweep. The strongest production-code seam is render-phase ordering (3/14), not lifecycle. Recommendation: treat C1 (scope-resource-ownership) as **prophylactic hardening**, not as remediation of observed failures — the case for it must come from the slow memory canary work, not from the fix-sweep history.
-
 2. **Render-plan-commit (C2) priority should rise.** All three render-phase beads have the same shape: an incremental-render step running with stale assumptions about what the cascade has already done. C2's render-plan-commit / double-buffer-swap / damage-list-composition options each make the wrong-order call site impossible. This validates the C2 promotion to P1 in plateau-90.
-
 3. **Test-infrastructure dominance is real, but not a plateau-90 target.** Half the sweep was test-code work. That's a healthy signal (production code was less broken than the failure count suggested) but it means plateau-90's structural-hardening framing applies to ~6 of 14 beads, not all 14. The G2 rubric should explicitly mark test-infrastructure beads as L0 (workaround/threshold/env tweak) — they are by definition not architectural hardening, and the program shouldn't pretend they are.
-
 4. **Layout convergence (C3a/C3b) has only 1 datapoint here.** Don't over-fit. The C3a renderer-feedback-trace instrumentation is exactly the right next step — it produces the data needed to decide whether C3b's bounded-convergence work targets a real recurring class or this single resize-edge case.
-
 5. **Upstream-waiting registry (R2) needs a Bun-keepalive entry.** The `km-bearly` MCP fix is currently coded as a permanent local refactor, but the lease-tracking-on-responses change was driven by an open Bun bug. R3 already calls this out (split into bun-keepalive-url-shim + mcp-lease-tracking). Confirmed by taxonomy.
+

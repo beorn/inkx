@@ -218,11 +218,11 @@ km show $(km ls --ids | fzf)
 
 ## Environment Variables
 
-| Variable  | Description                 |
-| --------- | --------------------------- |
-| `KM_DIR`  | Override .km directory      |
-| `KM_USER` | Default user for assignment |
-| `KM_ROOT` | Default root directory      |
+| Variable | Description                 |
+| -------- | --------------------------- |
+| KM_DIR   | Override .km directory      |
+| KM_USER  | Default user for assignment |
+| KM_ROOT  | Default root directory      |
 
 ---
 
@@ -252,3 +252,4 @@ beads:
 - [guides/query.md](../guides/query.md) — Query language
 - [ref/ui.md](../ref/visual-spec.md) — Views, navigation, design system
 - [tasks.md](tasks.md) — Task management
+

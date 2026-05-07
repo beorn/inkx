@@ -6,30 +6,30 @@ Research on metadata syntax, recurrence models, and design patterns from other s
 
 ## Metadata Syntax Comparison
 
-| System        | Assignee            | Due Date                          | Priority                    | Tags        |
-| ------------- | ------------------- | --------------------------------- | --------------------------- | ----------- |
-| **todo.txt**  | —                   | `due:YYYY-MM-DD`                  | `(A)`-`(Z)`                 | `@context`  |
-| **TaskPaper** | —                   | `@due(YYYY-MM-DD)`                | `@priority(N)`              | `@tag`      |
-| **Todoist**   | —                   | natural language                  | `!p1`-`!p4`                 | `@label`    |
-| **Org-mode**  | —                   | `DEADLINE:`                       | `[#A]`                      | `:tag:`     |
-| **Logseq**    | —                   | `deadline:: DATE`                 | —                           | `#tag`      |
-| **Obsidian**  | —                   | `📅 YYYY-MM-DD` or `[due:: DATE]` | `⏫` or `[priority:: high]` | `#tag`      |
-| **Dataview**  | `[assigned:: name]` | `[due:: DATE]`                    | `[priority:: N]`            | `#tag`      |
-| **Tana**      | field               | field                             | field                       | `#supertag` |
-| **Linear**    | UI/API              | UI/API                            | UI/API                      | labels      |
+| System    | Assignee          | Due Date                      | Priority               | Tags      |
+| --------- | ----------------- | ----------------------------- | ---------------------- | --------- |
+| todo.txt  | —                 | due:YYYY-MM-DD                | (A)-(Z)                | @context  |
+| TaskPaper | —                 | @due(YYYY-MM-DD)              | @priority(N)           | @tag      |
+| Todoist   | —                 | natural language              | !p1-!p4                | @label    |
+| Org-mode  | —                 | DEADLINE:                     | [#A]                   | :tag:     |
+| Logseq    | —                 | deadline:: DATE               | —                      | #tag      |
+| Obsidian  | —                 | 📅 YYYY-MM-DD or [due:: DATE] | ⏫ or [priority:: high] | #tag      |
+| Dataview  | [assigned:: name] | [due:: DATE]                  | [priority:: N]         | #tag      |
+| Tana      | field             | field                         | field                  | #supertag |
+| Linear    | UI/API            | UI/API                        | UI/API                 | labels    |
 
 ---
 
 ## Metadata Syntax Families
 
-| Family              | Syntax                 | Examples                  |
-| ------------------- | ---------------------- | ------------------------- |
-| **Key-colon-value** | `key:value`            | todo.txt                  |
-| **Property syntax** | `key:: value`          | Logseq, Dataview, km      |
-| **Function style**  | `@key(value)`          | TaskPaper                 |
-| **Emoji prefix**    | `📅 value`             | Obsidian Tasks            |
-| **Brackets**        | `[key:: value]`        | Dataview                  |
-| **Curly brace**     | `{#id .class key=val}` | Pandoc, kramdown          |
+| Family          | Syntax               | Examples             |
+| --------------- | -------------------- | -------------------- |
+| Key-colon-value | key:value            | todo.txt             |
+| Property syntax | key:: value          | Logseq, Dataview, km |
+| Function style  | @key(value)          | TaskPaper            |
+| Emoji prefix    | 📅 value             | Obsidian Tasks       |
+| Brackets        | [key:: value]        | Dataview             |
+| Curly brace     | {#id .class key=val} | Pandoc, kramdown     |
 
 km uses **property syntax** (`key:: value`) for all metadata. Task fields use
 shorthand keys: `due:: 2026-01-15`, `start:: 2026-01-20`, `priority:: P1`,
@@ -83,15 +83,15 @@ Not a model per se, but an orthogonal feature: "repeat N days after completion"
 rather than "repeat every Tuesday." No iCal RRULE standard exists for this —
 every system invents its own encoding:
 
-| System          | Encoding                               | Example                         |
-| --------------- | -------------------------------------- | ------------------------------- |
-| **Todoist**     | `every!` prefix (bang = after done)    | `every! 2 weeks`                |
-| **Obsidian**    | `when done` suffix                     | `every week when done`          |
-| **Asana**       | `periodically` type (max 30 days)      | `{"type":"periodically",...}`   |
-| **Things**      | "After Completion" toggle in UI        | —                               |
-| **OmniFocus**   | "Defer Another" / "Due Again" toggles  | —                               |
-| **TickTick**    | "By Completion Date" dropdown          | —                               |
-| **km**          | `FROM=COMPLETED` default on RRULE      | `FREQ=DAILY;INTERVAL=14` (default from completion) |
+| System    | Encoding                              | Example                                          |
+| --------- | ------------------------------------- | ------------------------------------------------ |
+| Todoist   | every! prefix (bang = after done)     | every! 2 weeks                                   |
+| Obsidian  | when done suffix                      | every week when done                             |
+| Asana     | periodically type (max 30 days)       | {"type":"periodically",...}                      |
+| Things    | "After Completion" toggle in UI       | —                                                |
+| OmniFocus | "Defer Another" / "Due Again" toggles | —                                                |
+| TickTick  | "By Completion Date" dropdown         | —                                                |
+| km        | FROM=COMPLETED default on RRULE       | FREQ=DAILY;INTERVAL=14 (default from completion) |
 
 See [docs/design/recurrence.md](../design/recurrence.md) for the full design.
 
@@ -99,14 +99,14 @@ See [docs/design/recurrence.md](../design/recurrence.md) for the full design.
 
 ## km Design Choices
 
-| Aspect     | Choice                      | Rationale                             |
-| ---------- | --------------------------- | ------------------------------------- |
-| Recurrence | Clone-on-complete           | Each instance is real, full history   |
-| Metadata   | `key:: value` property syntax | Dataview/Logseq-compatible, grep-friendly |
-| References | `@person` `#tag` `+project` | Sigils = node links                   |
-| Boards     | H2 columns + wikilinks      | Pure markdown, no special format      |
-| Status     | 5 states                    | Minimal — covers all work states      |
-| Queries    | Contains by default         | `@bjorn` matches @bjornson            |
+| Aspect     | Choice                      | Rationale                                 |
+| ---------- | --------------------------- | ----------------------------------------- |
+| Recurrence | Clone-on-complete           | Each instance is real, full history       |
+| Metadata   | key:: value property syntax | Dataview/Logseq-compatible, grep-friendly |
+| References | @person #tag +project       | Sigils = node links                       |
+| Boards     | H2 columns + wikilinks      | Pure markdown, no special format          |
+| Status     | 5 states                    | Minimal — covers all work states          |
+| Queries    | Contains by default         | @bjorn matches @bjornson                  |
 
 ---
 
@@ -140,12 +140,13 @@ Kimmi is a local-first personal information manager that unifies contacts, calen
 **Tech stack**: Automerge 3.x, automerge-repo, Bun, TypeScript, vCard4
 
 **Key differences from km**:
-| Aspect | kimmi | km |
-|--------|-------|-----|
-| Storage | Automerge CRDTs | SQLite + markdown files |
-| Scope | Full PIM (contacts, calendar, notes, tasks, files) | Task-focused markdown |
-| Sync | Bidirectional with CardDAV/CalDAV | File system as source of truth |
-| Conflict resolution | Automatic (CRDT) | Manual (file-based) |
+
+| Aspect              | kimmi                                              | km                             |
+| ------------------- | -------------------------------------------------- | ------------------------------ |
+| Storage             | Automerge CRDTs                                    | SQLite + markdown files        |
+| Scope               | Full PIM (contacts, calendar, notes, tasks, files) | Task-focused markdown          |
+| Sync                | Bidirectional with CardDAV/CalDAV                  | File system as source of truth |
+| Conflict resolution | Automatic (CRDT)                                   | Manual (file-based)            |
 
 **Patterns worth borrowing**:
 
@@ -162,12 +163,13 @@ Decker (also called Boardliner) is a web-based document and project management a
 **Tech stack**: Next.js, React, Slate, Yjs, Radix UI, Tailwind, PostgreSQL, Redis
 
 **Relationship to km's board view**:
-| Concept | decker | km |
-|---------|--------|-----|
-| Platform | Web (React) | TUI (Ink) |
-| Interaction | Drag-and-drop, mouse | Keyboard-first |
+
+| Concept       | decker                     | km                     |
+| ------------- | -------------------------- | ---------------------- |
+| Platform      | Web (React)                | TUI (Ink)              |
+| Interaction   | Drag-and-drop, mouse       | Keyboard-first         |
 | Collaboration | Real-time multi-user (Yjs) | Single-user file-based |
-| Data model | Hierarchical nodes | Hierarchical nodes |
+| Data model    | Hierarchical nodes         | Hierarchical nodes     |
 
 **Shared concepts**: zoom, navigation history, move mode, selection states, columns/cards, cursor navigation, fold states
 
@@ -176,3 +178,4 @@ Decker (also called Boardliner) is a web-based document and project management a
 ## See Also
 
 - [../guides/tasks.md](../guides/tasks.md) — Task data model, GTD workflow
+

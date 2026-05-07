@@ -71,7 +71,11 @@ export const STATIC_COMMANDS: SlashCommand[] = [
   { name: "/inject-lore", description: "Inject queued lore deltas on next prompt", local: true },
   { name: "/inject-telegram", description: "Inject queued telegram messages on next prompt", local: true },
   { name: "/inject-subagent", description: "Inject queued sub-agent updates on next prompt", local: true },
-  { name: "/clear-channels", description: "Drop all queued notification channel events without injecting", local: true },
+  {
+    name: "/clear-channels",
+    description: "Drop all queued notification channel events without injecting",
+    local: true,
+  },
   // Well-known Claude-native — passed through.
   { name: "/compact", description: "Compact the conversation (Claude)", local: false },
   { name: "/clear", description: "Clear session state (Claude)", local: false },

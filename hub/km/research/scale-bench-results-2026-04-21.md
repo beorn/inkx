@@ -7,6 +7,7 @@
 ## Verdict
 
 **Bottleneck detected** — kill-switch criteria triggered at 2x:
+
 - 2x cold load 102.05s >> 1s threshold (102x over budget)
 - 10x cold load 516.16s (8.6 minutes) is operationally unusable
 - 10x RSS steady 27.1GB — scales linearly, no cache discipline
@@ -19,6 +20,7 @@
 **Family A verdict: fails at 2x under full-load semantics.** If lazy-hydration becomes truly viewport-scoped (only ~50 cards + ancestors materialized, rest deferred), Family A can still hold — the per-query numbers support that. But full-load Family A is dead.
 
 **Recommendation for scale-architecture epic:**
+
 - Do NOT auto-WONTFIX on 2026-06-01 — the 2x kill-switch threshold has been breached.
 - Scope the decision narrowly: is viewport-scoped hydration (extension of the current P0) sufficient, or do we need Family B's append-only op log to avoid full file-tree rescan on every startup?
 - The dimension that forces B vs A-extended is **external edit reconciliation** — can we detect 10 external edits in <100ms at 10x without a full rescan? Current reconcile measurement (≈170µs for touched files) is post-hydration — the pre-hydration rescan is the cost driver not measured here.
@@ -28,12 +30,12 @@ Caveat: this harness measures the storage-layer cold path in memory mode (no `.k
 
 ## Results table
 
-| tier | files | nodes | gen | cold load | RSS steady | nav p50/p95 | backlinks p50/p95 | FTS5 p50 | reconcile(10) |
-|------|------:|------:|----:|----------:|-----------:|------------:|------------------:|---------:|--------------:|
-| 1x | 10024 | 753098 | 1.64s | 47.65s | 2.9GB | 13µs/39µs | 400µs/494µs | 180.0ms | 166µs |
-| 2x | 20024 | 1550782 | 3.98s | 102.05s | 5.8GB | 13µs/37µs | 900µs/1.0ms | 380.0ms | 171µs |
-| 5x | 50024 | 3797404 | 10.06s | 282.88s | 13.2GB | 13µs/38µs | 1.9ms/2.1ms | 900.0ms | 143µs |
-| 10x | 100024 | 7629217 | 22.22s | 516.16s | 27.1GB | 12µs/45µs | 3.7ms/4.1ms | 1.80s | 182µs |
+| tier | files  | nodes   | gen    | cold load | RSS steady | nav p50/p95 | backlinks p50/p95 | FTS5 p50 | reconcile(10) |
+| ---- | -----: | ------: | -----: | --------: | ---------: | ----------: | ----------------: | -------: | ------------: |
+| 1x   | 10024  | 753098  | 1.64s  | 47.65s    | 2.9GB      | 13µs/39µs   | 400µs/494µs       | 180.0ms  | 166µs         |
+| 2x   | 20024  | 1550782 | 3.98s  | 102.05s   | 5.8GB      | 13µs/37µs   | 900µs/1.0ms       | 380.0ms  | 171µs         |
+| 5x   | 50024  | 3797404 | 10.06s | 282.88s   | 13.2GB     | 13µs/38µs   | 1.9ms/2.1ms       | 900.0ms  | 143µs         |
+| 10x  | 100024 | 7629217 | 22.22s | 516.16s   | 27.1GB     | 12µs/45µs   | 3.7ms/4.1ms       | 1.80s    | 182µs         |
 
 ## Per-tier detail
 
@@ -119,3 +121,4 @@ bun tools/scale-bench/orchestrate.ts --tiers=2x
 # Skip generation (reuse existing /tmp/km-bench-vault-*):
 bun tools/scale-bench/orchestrate.ts --skip-gen
 ```
+

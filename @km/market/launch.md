@@ -100,12 +100,12 @@ For each team, the outreach should be:
 1. **Where**: GitHub Discussion in their repo (preferred), or a comment on a relevant open issue
 2. **Subject**: "Alternative approach for [specific issue]"
 3. **Body**:
-  - Acknowledge their work and the specific issue
-  - Brief explanation of how silvery solves it architecturally (not just "use our thing")
-  - Link to working example or test case
-  - Offer to pair on a proof-of-concept migration
-  - Honest about silvery maturity/tradeoffs
-4. **Follow-up**: If they respond positively, offer a dedicated migration guide for their codebase
+- Acknowledge their work and the specific issue
+- Brief explanation of how silvery solves it architecturally (not just "use our thing")
+- Link to working example or test case
+- Offer to pair on a proof-of-concept migration
+- Honest about silvery maturity/tradeoffs
+12. **Follow-up**: If they respond positively, offer a dedicated migration guide for their codebase
 
 ### Vadim (Ink maintainer) Outreach
 

@@ -33,3 +33,4 @@ km is silvery's **lead showcase app** (terminal-first, knowledge-worker tool). k
 - In `/pro`, `/deep`, `/llm`, `/ask` tool calls: include this file via `--context-file`, OR paste this paragraph directly into the prompt preamble.
 - When the LLM would otherwise default to "advise them as a TUI library author" — the brief redirects to "advise them as a cross-platform design-system author."
 - When onboarding a new agent / session — reference this in the root CLAUDE.md.
+

@@ -14,25 +14,25 @@ scripts/bench-compare.sh HEAD~5
 
 ## What's in here
 
-| Path                                | Purpose                                                            |
-| ----------------------------------- | ------------------------------------------------------------------ |
-| `history.jsonl`                     | One JSON line per `bench-now.sh` invocation. Append-only.           |
-| `results/<sha>-<ts>.txt`            | Raw vitest output + per-phase breakdown for one run.                |
-| `results/.last-phases.json`         | Latest per-phase data, written by `withBenchPhases()`. Overwritten. |
-| `baseline.json`                     | Baseline for `bun bench:compare` (existing infrastructure).         |
+| Path                      | Purpose                                                           |
+| ------------------------- | ----------------------------------------------------------------- |
+| history.jsonl             | One JSON line per bench-now.sh invocation. Append-only.           |
+| results/<sha>-<ts>.txt    | Raw vitest output + per-phase breakdown for one run.              |
+| results/.last-phases.json | Latest per-phase data, written by withBenchPhases(). Overwritten. |
+| baseline.json             | Baseline for bun bench:compare (existing infrastructure).         |
 
 ## Bench files
 
 Located in `apps/km-tui/tests/`:
 
-| File                          | What it measures                                                              |
-| ----------------------------- | ----------------------------------------------------------------------------- |
-| `cursor-perf.bench.ts`        | Cursor j/k navigation latency at 100/500/1000/2000/3700 cards, 200x60 + 400x200 |
-| `cursor-real-vault.bench.ts`  | Same as above but on a realistic 750-node board (portable fixture by default) |
-| `breadcrumb-stale-on-hl.bench.ts` | Breadcrumb update cost on h/l navigation                                  |
-| `level-nav-invariants.bench.ts`   | Tree-level navigation cost                                                |
-| `architecture.bench.ts` / `architecture-bench.bench.ts` | Architecture-level micro-benchmarks               |
-| `board.bench.ts`              | Board layer micro-benchmarks                                                  |
+| File                                                | What it measures                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| cursor-perf.bench.ts                                | Cursor j/k navigation latency at 100/500/1000/2000/3700 cards, 200x60 + 400x200 |
+| cursor-real-vault.bench.ts                          | Same as above but on a realistic 750-node board (portable fixture by default)   |
+| breadcrumb-stale-on-hl.bench.ts                     | Breadcrumb update cost on h/l navigation                                        |
+| level-nav-invariants.bench.ts                       | Tree-level navigation cost                                                      |
+| architecture.bench.ts / architecture-bench.bench.ts | Architecture-level micro-benchmarks                                             |
+| board.bench.ts                                      | Board layer micro-benchmarks                                                    |
 
 The cursor-perf and cursor-real-vault benches use `withBenchPhases()` to attach per-phase timing data to each iteration. Other benches still produce wall-clock numbers but no phase breakdown.
 
@@ -100,18 +100,18 @@ Append-only newline-delimited JSON, one record per `bench-now.sh` run:
 
 Source: `vendor/silvery/packages/ag-term/src/pipeline/index.ts` and `pipeline/CLAUDE.md`. The pipeline runs every frame in this strict order:
 
-| Phase             | What runs                                                                      | Regression causes                                            |
-| ----------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `react reconcile` | React reconciliation against the SilveryNode tree (only tracked in `createApp` paths, not in test renderers — shows as 0 there) | New component allocations, broken `React.memo`, expensive context, large fan-out subtrees |
-| `measure`         | `measurePhase()` — intrinsic-size measurement for `width/height="fit-content"` | New fit-content nodes, expensive text measurement            |
-| `flexbox layout`  | `layoutPhase()` — Yoga's `calculateLayout()`                                    | Larger trees, broken layout caching, dimension thrashing     |
-| `scroll`          | `scrollPhase()` — visible-children calculation for overflow=scroll containers   | More scroll containers, expensive sticky positioning         |
-| `scrollRect`      | `scrollrectPhase()` — screen-relative rect propagation                          | Deeper trees                                                 |
-| `notify`          | `notifyLayoutSubscribers()` — fires `useBoxRect`/`useScrollRect` callbacks  | More layout subscribers, expensive callbacks                 |
-| `layout side total` | Sum of measure + layout + scroll + scrollRect + notify                        | —                                                            |
-| `content (render)` | `renderPhase()` — walks the tree, writes cells to the TerminalBuffer            | New nodes, broken incremental skip path, sticky pass forced refresh |
-| `output (diff/ANSI)` | `outputPhase()` — diffs prev vs current buffer, emits ANSI escape sequences   | More cells changed, expensive ANSI generation, incremental disabled |
-| `other`            | Wall - (reconcile + layout + content + output). Includes setup, store updates, key handling, the React act() wrapper, garbage collection. | Test harness overhead, GC pressure, store update churn       |
+| Phase              | What runs                                                                                                                                 | Regression causes                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| react reconcile    | React reconciliation against the SilveryNode tree (only tracked in createApp paths, not in test renderers — shows as 0 there)             | New component allocations, broken React.memo, expensive context, large fan-out subtrees |
+| measure            | measurePhase() — intrinsic-size measurement for width/height="fit-content"                                                                | New fit-content nodes, expensive text measurement                                       |
+| flexbox layout     | layoutPhase() — Yoga's calculateLayout()                                                                                                  | Larger trees, broken layout caching, dimension thrashing                                |
+| scroll             | scrollPhase() — visible-children calculation for overflow=scroll containers                                                               | More scroll containers, expensive sticky positioning                                    |
+| scrollRect         | scrollrectPhase() — screen-relative rect propagation                                                                                      | Deeper trees                                                                            |
+| notify             | notifyLayoutSubscribers() — fires useBoxRect/useScrollRect callbacks                                                                      | More layout subscribers, expensive callbacks                                            |
+| layout side total  | Sum of measure + layout + scroll + scrollRect + notify                                                                                    | —                                                                                       |
+| content (render)   | renderPhase() — walks the tree, writes cells to the TerminalBuffer                                                                        | New nodes, broken incremental skip path, sticky pass forced refresh                     |
+| output (diff/ANSI) | outputPhase() — diffs prev vs current buffer, emits ANSI escape sequences                                                                 | More cells changed, expensive ANSI generation, incremental disabled                     |
+| other              | Wall - (reconcile + layout + content + output). Includes setup, store updates, key handling, the React act() wrapper, garbage collection. | Test harness overhead, GC pressure, store update churn                                  |
 
 ## Realistic-board fixture
 
@@ -152,3 +152,4 @@ The user explicitly rejected CI integration: vitest bench numbers fluctuate by 2
 - **`exclude: alwaysExclude` in `vitest.config.ts` benchmark section** is required so vitest bench doesn't walk into `.claude/worktrees/` subtrees and `.direnv/` flake mirrors. Removing it brings back `bun:sqlite import error` cascades.
 - **`bunx --bun vitest bench`** is required: without `--bun`, vitest runs under node and `bun:sqlite` imports fail.
 - **Cursor latency is fixed-cost, not per-node** at the time of writing. 100 cards and 3700 cards both clock ~2050ms per 20-press iteration at 200x60. The bottleneck is `output` phase (~77% of wall) — each frame regenerates a lot of ANSI even though only the cursor styling changed. See bead `@km/tui/cursor-output-cost` if it gets created from this finding.
+

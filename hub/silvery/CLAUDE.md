@@ -39,14 +39,14 @@ archive/              All deprecated docs (pre-era2, era2 drafts)
 
 All design docs are organized by horizon (version). See [../roadmap.md § Track 2](../roadmap.md#track-2--silvery) for definitions.
 
-| Horizon | Directory              | What                                                    |
-| ------- | ---------------------- | ------------------------------------------------------- |
-| v0.5    | `design/v05-layout/`   | Composable layout engine                                |
-| v1.0    | `design/v10-terminal/` | Terminal UI framework (shipping)                        |
-| v1.5    | `design/v15-tea/`      | App architecture — portable (signals, commands, scopes) |
-| v2.0    | `design/v20-canvas/`   | Embeddable canvas engine                                |
-| v3.0    | `design/v30-graphics/` | Full graphics UI engine                                 |
-| TBD     | `design/v-undecided/`  | Designs awaiting horizon assignment                     |
+| Horizon | Directory            | What                                                    |
+| ------- | -------------------- | ------------------------------------------------------- |
+| v0.5    | design/v05-layout/   | Composable layout engine                                |
+| v1.0    | design/v10-terminal/ | Terminal UI framework (shipping)                        |
+| v1.5    | design/v15-tea/      | App architecture — portable (signals, commands, scopes) |
+| v2.0    | design/v20-canvas/   | Embeddable canvas engine                                |
+| v3.0    | design/v30-graphics/ | Full graphics UI engine                                 |
+| TBD     | design/v-undecided/  | Designs awaiting horizon assignment                     |
 
 ## Maintenance Rules
 
@@ -57,3 +57,4 @@ All design docs are organized by horizon (version). See [../roadmap.md § Track 
 5. **Cross-references use relative paths.** Never absolute paths.
 6. **README.md is the index.** Every doc must appear in the README table. Update it when adding or moving files.
 7. **Prototypes are disposable.** They validate ideas. Once production code exists, the prototype stays as historical reference.
+

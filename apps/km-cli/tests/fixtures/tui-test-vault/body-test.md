@@ -29,7 +29,7 @@ A second paragraph of intro.
 - [ ] Task with nested content
   - [ ] Sub-task 1 (should be body if followed by subsection)
   - [ ] Sub-task 2
-  #### Nested Section
+  - Nested Section
   - [ ] Task in nested section
 
 ### Card B2

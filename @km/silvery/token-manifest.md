@@ -22,8 +22,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling tokenManifest.ts — single source of truth + doc generation @km/silvery #task #P2 @claude:22c2717d

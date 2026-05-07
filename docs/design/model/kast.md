@@ -77,16 +77,16 @@ interface KNode {
 
 The old categorical types (oi, li, link) are derived from block type + traits:
 
-| Combination | Derived Category | Markdown Serialization |
-|---|---|---|
-| `type:"h", item:{}` | Outline item (was `oi`) | `## Title` |
-| `type:"p", item:{list:"-"}` | List item (was `li`) | `- content` |
-| `type:"quote", item:{list:"-"}` | Quote list item | `- > content` |
-| `type:"code", item:{list:"-"}` | Code list item | `- \`\`\`code\`\`\`` |
-| any type + `embed_of` | Embed (was `link`) | `![[target]]` |
-| `type:"p"` (no item) | Paragraph block | `content` |
-| `type:"code"` (no item) | Code block | ` ```code``` ` |
-| etc. | Leaf block | Various |
+| Combination                   | Derived Category      | Markdown Serialization |
+| ----------------------------- | --------------------- | ---------------------- |
+| type:"h", item:{}             | Outline item (was oi) | ## Title               |
+| type:"p", item:{list:"-"}     | List item (was li)    | - content              |
+| type:"quote", item:{list:"-"} | Quote list item       | - > content            |
+| type:"code", item:{list:"-"}  | Code list item        | - ``code````           |
+| any type + embed_of           | Embed (was link)      | ![[target]]            |
+| type:"p" (no item)            | Paragraph block       | content                |
+| type:"code" (no item)         | Code block            | code                   |
+| etc.                          | Leaf block            | Various                |
 
 ### Type predicates
 
@@ -104,15 +104,15 @@ KNode.isBlock(node)    // node.item == null (leaf node)
 
 ### Constraints
 
-| Constraint | Rule |
-|---|---|
-| h requires item | `type === "h"` implies `item != null` |
-| task requires item | `item.task` can only exist when `item` is present (always true by structure) |
-| embed is orthogonal | `embed_of != null` marks a node as an embed — any type can be an embed |
-| embed children from source | Embed nodes' children come from the target node (resolved at render time) |
-| item-allowed types | h, p, quote, code can be items; table, hr, html, math cannot |
-| h-children ordering | `body*, h*` — body content first, sub-sections last, no interleaving |
-| li-children ordering | `(body|li)*` — free interleaving |
+| Constraint                 | Rule                                                                      |                           |
+| -------------------------- | ------------------------------------------------------------------------- | ------------------------- |
+| h requires item            | type === "h" implies item != null                                         |                           |
+| task requires item         | item.task can only exist when item is present (always true by structure)  |                           |
+| embed is orthogonal        | embed_of != null marks a node as an embed — any type can be an embed      |                           |
+| embed children from source | Embed nodes' children come from the target node (resolved at render time) |                           |
+| item-allowed types         | h, p, quote, code can be items; table, hr, html, math cannot              |                           |
+| h-children ordering        | body*, h* — body content first, sub-sections last, no interleaving        |                           |
+| li-children ordering       | `(body                                                                    | li)*` — free interleaving |
 
 Validated by `validateNode()` in `@km/core`.
 
@@ -120,53 +120,53 @@ Validated by `validateNode()` in `@km/core`.
 
 Content leaf. Has a `content` string. No children (except `quote`).
 
-| Type | Content |
-|---|---|
-| `p` | Paragraph text (inline markdown) |
-| `h` | Heading (always has item — bare h is invalid) |
-| `code` | Code block (lang in data) |
-| `quote` | Blockquote text (can contain child blocks) |
-| `table` | Raw markdown table |
-| `hr` | Empty (horizontal rule) |
-| `html` | Raw HTML |
-| `math` | Block math (LaTeX) |
+| Type  | Content                                       |
+| ----- | --------------------------------------------- |
+| p     | Paragraph text (inline markdown)              |
+| h     | Heading (always has item — bare h is invalid) |
+| code  | Code block (lang in data)                     |
+| quote | Blockquote text (can contain child blocks)    |
+| table | Raw markdown table                            |
+| hr    | Empty (horizontal rule)                       |
+| html  | Raw HTML                                      |
+| math  | Block math (LaTeX)                            |
 
 ## Item trait (outline and list)
 
 Structurally almost identical. Both recursive, navigable, use `.content` as title. Differences are serialization and default rendering:
 
-| | **Outline** (`type:"h", item:{}`) | **List** (`type:"p", item:{list?, task?}`) |
-|---|---|---|
-| Markdown | Headings (`# Title`, `## Sub`) | List items (`- text`, `- [ ] task`) |
-| Default rendering | Card / column | Checklist row |
-| Interleaving | Blocks before subitems only (heading parsing limitation) | Blocks and sub-items can interleave freely |
-| Heading level | Derived from tree depth (never stored) | N/A |
-| fstype | repo, folder, mdfile, mdsection | N/A |
+|                   | Outline (type:"h", item:{})                              | List (type:"p", item:{list?, task?})       |
+| ----------------- | -------------------------------------------------------- | ------------------------------------------ |
+| Markdown          | Headings (# Title, ## Sub)                               | List items (- text, - [ ] task)            |
+| Default rendering | Card / column                                            | Checklist row                              |
+| Interleaving      | Blocks before subitems only (heading parsing limitation) | Blocks and sub-items can interleave freely |
+| Heading level     | Derived from tree depth (never stored)                   | N/A                                        |
+| fstype            | repo, folder, mdfile, mdsection                          | N/A                                        |
 
 ### Outline item (type:"h", item:{})
 
 Creates the document hierarchy: repo → folders → files → sections.
 
-| Field | Type | Notes |
-|---|---|---|
-| `type` | `"h"` | Heading block type |
-| `item` | `ItemData` | Always present for outline items (at minimum `{}`) |
-| `content` | `string?` | Title text. Empty is valid (item has body but no title) |
-| `fstype` | `FsType` | repo, folder, file, mdfile, txtfile, mdsection |
-| `name` | `string?` | Filesystem identity / heading slug |
-| `item.task` | `{marker, status}?` | Task: `{ marker: "[x]", status: "done" }` |
+| Field     | Type              | Notes                                                   |
+| --------- | ----------------- | ------------------------------------------------------- |
+| type      | "h"               | Heading block type                                      |
+| item      | ItemData          | Always present for outline items (at minimum {})        |
+| content   | string?           | Title text. Empty is valid (item has body but no title) |
+| fstype    | FsType            | repo, folder, file, mdfile, txtfile, mdsection          |
+| name      | string?           | Filesystem identity / heading slug                      |
+| item.task | {marker, status}? | Task: { marker: "[x]", status: "done" }                 |
 
 Title is `.content`. Heading level is derived from tree depth.
 
 ### List item (type:"p", item:{list?, task?})
 
-| Field | Type | Notes |
-|---|---|---|
-| `type` | `"p"` | Paragraph block type (or `"quote"`, `"code"` for first-block items) |
-| `item` | `ItemData` | Always present; holds list marker and optional task |
-| `content` | `string?` | Title text (rendered as checkbox text) |
-| `item.list` | `string` | `"-"`, `"*"`, `"+"`, `"1."`, `"1)"`, `"[^1]"` |
-| `item.task` | `{marker, status}?` | Task: `{ marker: "[ ]", status: "todo" }` (optional) |
+| Field     | Type              | Notes                                                           |
+| --------- | ----------------- | --------------------------------------------------------------- |
+| type      | "p"               | Paragraph block type (or "quote", "code" for first-block items) |
+| item      | ItemData          | Always present; holds list marker and optional task             |
+| content   | string?           | Title text (rendered as checkbox text)                          |
+| item.list | string            | "-", "*", "+", "1.", "1)", "[^1]"                               |
+| item.task | {marker, status}? | Task: { marker: "[ ]", status: "todo" } (optional)              |
 
 Same structure as outline items. One structural difference: list item children can interleave blocks and sub-items in any order (markdown indentation disambiguates). For outline items, blocks must come before sub-items (markdown heading parsing cannot disambiguate trailing blocks).
 
@@ -182,12 +182,13 @@ Embeds created by different paths:
 - **Board rules** (`km.add::`): creates `type:"h", item:{}` with content set to a single embed KLink
 - **CLI add**: creates `type:"p", item:{list:"-"}` with content set to a single embed KLink
 
-| Field | Type | Notes |
-|---|---|---|
-| `embed_of` | `string?` | Target node ID, runtime-materialized from the `links` cache (`rel='embed'`) and resolved via the name index |
-| `content` | `string?` | Source markdown — parses to AST containing the KLink |
+| Field    | Type    | Notes                                                                                                   |
+| -------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| embed_of | string? | Target node ID, runtime-materialized from the links cache (rel='embed') and resolved via the name index |
+| content  | string? | Source markdown — parses to AST containing the KLink                                                    |
 
 **Links vs embeds (in the canonical model)**:
+
 - Both are `KLink` nodes inside `KNode.content` AST: `{ href, rel, alias?, md? }`
 - `[[wikilink]]` → `KLink { href: 'km:wikilink', rel: 'link', md: { form: 'wiki' } }`
 - `![[embed]]` → `KLink { href: 'km:embed', rel: 'embed', md: { form: 'wiki' } }`
@@ -201,14 +202,14 @@ See [klink.md](klink.md) for the full link model, URI scheme, `rel` taxonomy, an
 
 Any item can be a task via `item.task`. Both marker and status are stored together:
 
-| item.task.marker | item.task.status |
-|---|---|
-| `"[ ]"` | `"todo"` |
-| `"[x]"` `"[X]"` | `"done"` |
-| `"[/]"` | `"wip"` |
-| `"[!]"` | `"blocked"` |
-| `"[-]"` | `"dropped"` |
-| absent (no `item.task`) | not a task |
+| item.task.marker      | item.task.status |
+| --------------------- | ---------------- |
+| "[ ]"                 | "todo"           |
+| "[x]" "[X]"           | "done"           |
+| "[/]"                 | "wip"            |
+| "[!]"                 | "blocked"        |
+| "[-]"                 | "dropped"        |
+| absent (no item.task) | not a task       |
 
 Both `marker` and `status` live inside `item.task`. A node is a task when `item?.task != null`.
 
@@ -261,6 +262,7 @@ p, code, math, table, hr, html → no children (leaf nodes)
 ```
 
 Key constraints:
+
 - **h items only under h items**: A heading inside a list item becomes a child list item, not an h item
 - **list items anywhere a block can**: Lists can appear inside h item children, list item children, or blockquotes
 - **embeds transclude from source**: Embed nodes' displayed children come from the target node (resolved at render time)
@@ -290,49 +292,49 @@ On parse: `H1 → H3` (skipping H2) inserts a synthetic h item at the missing le
 
 How every CommonMark + GFM + Obsidian construct maps to kast:
 
-| Markdown Construct | kast Representation |
-|---|---|
-| **Block-level** | |
-| Paragraph | `p` |
-| ATX heading (`# text`) | `h item (content:"text")` — title in `.content` |
-| Setext heading (`text\n===`) | `h item` (normalized to ATX on round-trip) |
-| Fenced code block (` ``` `) | `code` (lang in `data.lang`) |
-| Indented code block | `code` |
-| Blockquote (`> text`) | `quote` (children are blocks) |
-| Nested blockquote (`>> text`) | `quote` containing `quote` |
-| Thematic break (`---` / `***`) | `hr` |
-| GFM table | `table` (raw markdown in content) |
-| HTML block | `html` |
-| Block math (`$$...$$`) | `math` (LaTeX in content) |
-| **Lists** | |
-| Unordered list item (`- text`) | `p item (list:"-")` |
-| Ordered list item (`1. text`) | `p item (list:"1.")` |
-| Task list item (`- [ ] text`) | `p item (list:"-", task:{marker:"[ ]", status:"todo"})` |
-| Nested list | `p item` containing child `p item` |
-| Multi-paragraph list item | `p item` containing multiple `p` children |
-| Footnote def (`[^1]: text`) | `p item (list:"[^1]")` |
-| **Outline structure** | |
-| Directory | `h item (fstype:"folder")` |
-| Markdown file | `h item (fstype:"mdfile")` |
-| Non-markdown file | `h item (fstype:"file")` |
-| Section (H2+ heading) | `h item (fstype:"mdsection")` — title in `.content` |
-| Repository root | `h item (fstype:"repo")` |
-| **Links & embeds** (see [klink.md](klink.md)) | |
-| `![[target]]` (embed) | node whose content is a single `KLink { href:"km:target", rel:"embed", md:{form:"wiki"} }`; `embed_of` resolved at load |
-| `![[target\|alias]]` | same as above with `alias:"alias"` on the KLink |
-| `[[target]]` inline | KLink `{ href:"km:target", rel:"link", md:{form:"wiki"} }` in `p.content`; cached in `links` table |
-| `[text](url)` | KLink `{ href:"url", rel:"link", alias:"text", md:{form:"mdlink"} }` in content |
-| `![alt](url)` | KLink `{ href:"url", rel:"embed", alias:"alt", md:{form:"mdlink"} }` in content |
-| `![[image.png]]` (vault image) | embed node with KLink `{ href:"km:image.png", rel:"embed", md:{form:"wiki"} }` |
-| `[^1]` reference | Stays in `p.content` (inline) |
-| **Metadata** | |
-| YAML frontmatter (`---`) | `data` JSON field on file's h item node |
-| **Extensions** | |
-| Callout (`> [!NOTE]`) | `quote` with `data.callout_type` |
-| Inline math (`$...$`) | Stays in `p.content` |
-| Strikethrough (`~~text~~`) | Stays in `p.content` (inline) |
-| Autolinks | Stays in `p.content` (inline) |
-| Definition lists | Not supported (not CommonMark) |
+| Markdown Construct            | kast Representation                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Block-level                   |                                                                                                                     |
+| Paragraph                     | p                                                                                                                   |
+| ATX heading (# text)          | h item (content:"text") — title in .content                                                                         |
+| Setext heading (text\n===)    | h item (normalized to ATX on round-trip)                                                                            |
+| Fenced code block (```)       | code (lang in data.lang)                                                                                            |
+| Indented code block           | code                                                                                                                |
+| Blockquote (> text)           | quote (children are blocks)                                                                                         |
+| Nested blockquote (>> text)   | quote containing quote                                                                                              |
+| Thematic break (--- / ***)    | hr                                                                                                                  |
+| GFM table                     | table (raw markdown in content)                                                                                     |
+| HTML block                    | html                                                                                                                |
+| Block math ($$...$$)          | math (LaTeX in content)                                                                                             |
+| Lists                         |                                                                                                                     |
+| Unordered list item (- text)  | p item (list:"-")                                                                                                   |
+| Ordered list item (1. text)   | p item (list:"1.")                                                                                                  |
+| Task list item (- [ ] text)   | p item (list:"-", task:{marker:"[ ]", status:"todo"})                                                               |
+| Nested list                   | p item containing child p item                                                                                      |
+| Multi-paragraph list item     | p item containing multiple p children                                                                               |
+| Footnote def ([^1]: text)     | p item (list:"[^1]")                                                                                                |
+| Outline structure             |                                                                                                                     |
+| Directory                     | h item (fstype:"folder")                                                                                            |
+| Markdown file                 | h item (fstype:"mdfile")                                                                                            |
+| Non-markdown file             | h item (fstype:"file")                                                                                              |
+| Section (H2+ heading)         | h item (fstype:"mdsection") — title in .content                                                                     |
+| Repository root               | h item (fstype:"repo")                                                                                              |
+| Links & embeds (see klink.md) |                                                                                                                     |
+| ![[target]] (embed)           | node whose content is a single KLink { href:"km:target", rel:"embed", md:{form:"wiki"} }; embed_of resolved at load |
+| ![[target\\|alias]]           | same as above with alias:"alias" on the KLink                                                                       |
+| [[target]] inline             | KLink { href:"km:target", rel:"link", md:{form:"wiki"} } in p.content; cached in links table                        |
+| text                          | KLink { href:"url", rel:"link", alias:"text", md:{form:"mdlink"} } in content                                       |
+| alt                           | KLink { href:"url", rel:"embed", alias:"alt", md:{form:"mdlink"} } in content                                       |
+| ![[image.png]] (vault image)  | embed node with KLink { href:"km:image.png", rel:"embed", md:{form:"wiki"} }                                        |
+| [^1] reference                | Stays in p.content (inline)                                                                                         |
+| Metadata                      |                                                                                                                     |
+| YAML frontmatter (---)        | data JSON field on file's h item node                                                                               |
+| Extensions                    |                                                                                                                     |
+| Callout (> [!NOTE])           | quote with data.callout_type                                                                                        |
+| Inline math ($...$)           | Stays in p.content                                                                                                  |
+| Strikethrough (text)          | Stays in p.content (inline)                                                                                         |
+| Autolinks                     | Stays in p.content (inline)                                                                                         |
+| Definition lists              | Not supported (not CommonMark)                                                                                      |
 
 ### Frontmatter
 
@@ -340,36 +342,36 @@ YAML frontmatter (`---` delimited) is not a node type. Parsed into the `data` JS
 
 ### Design decisions
 
-| Decision | Rationale | Trade-off |
-|---|---|---|
-| Block + trait (not categories) | Extensible — new traits added orthogonally. No type explosion. | Slightly more complex predicates |
-| Flat children (no .blocks/.subitems split) | Simpler model, matches Notion/Roam/Logseq. View decides columns vs body. | View must split children by type for board rendering |
-| li ≈ oi (structurally identical) | One navigation model, one tree. Differ only in serialization and default rendering. | Code must handle interleaving (li) vs ordered (oi) |
-| Title in `.content` (no separate h child) | Eliminates redundancy. Heading level from tree depth. | Parser must store title on item node, not as child |
-| Rendering is context-dependent | Embedded nodes take host's style. Decouples model from view. | View layer more complex |
-| Navigation is spatial (hjkl) | Decoupled from content type. Works in any layout. | Rendering must produce navigable spatial layout |
-| Lazy loading via SQL type filter | No body container node needed. `WHERE type = 'h' AND item IS NOT NULL` for items. | Slightly more complex queries than skipping a body subtree |
-| Heading level from tree depth | Enforces well-formed outline hierarchy | Normalizes skipped levels on round-trip |
-| `item.task.marker` as full bracket string | Round-trip fidelity for bidirectional MD sync | Slightly more parsing than a boolean `checked` |
-| `item.list` as literal string | Preserves user's bullet style | Requires parsing for ordered list logic |
-| Footnotes as list items with `[^id]` marker | Reuses list structure for multi-paragraph footnotes | Unconventional |
-| No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive item siblings |
-| Embeds as orthogonal trait (not a type) | Any node type can be an embed via `embed_of`. Consistent with block+trait model. | Must check `embed_of != null` instead of type |
-| Block-level AST only | Sufficient for TUI outline/kanban views | No inline node manipulation |
-| Callouts as `quote` + data | Syntactically they ARE blockquotes | Requires `data.callout_type` check |
-| Frontmatter as `data` field | Metadata, not content | Must serialize back from JSON |
+| Decision                                   | Rationale                                                                           | Trade-off                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Block + trait (not categories)             | Extensible — new traits added orthogonally. No type explosion.                      | Slightly more complex predicates                           |
+| Flat children (no .blocks/.subitems split) | Simpler model, matches Notion/Roam/Logseq. View decides columns vs body.            | View must split children by type for board rendering       |
+| li ≈ oi (structurally identical)           | One navigation model, one tree. Differ only in serialization and default rendering. | Code must handle interleaving (li) vs ordered (oi)         |
+| Title in .content (no separate h child)    | Eliminates redundancy. Heading level from tree depth.                               | Parser must store title on item node, not as child         |
+| Rendering is context-dependent             | Embedded nodes take host's style. Decouples model from view.                        | View layer more complex                                    |
+| Navigation is spatial (hjkl)               | Decoupled from content type. Works in any layout.                                   | Rendering must produce navigable spatial layout            |
+| Lazy loading via SQL type filter           | No body container node needed. WHERE type = 'h' AND item IS NOT NULL for items.     | Slightly more complex queries than skipping a body subtree |
+| Heading level from tree depth              | Enforces well-formed outline hierarchy                                              | Normalizes skipped levels on round-trip                    |
+| item.task.marker as full bracket string    | Round-trip fidelity for bidirectional MD sync                                       | Slightly more parsing than a boolean checked               |
+| item.list as literal string                | Preserves user's bullet style                                                       | Requires parsing for ordered list logic                    |
+| Footnotes as list items with [^id] marker  | Reuses list structure for multi-paragraph footnotes                                 | Unconventional                                             |
+| No list container nodes                    | Simpler tree, matches Notion's flat approach                                        | Serializer must detect consecutive item siblings           |
+| Embeds as orthogonal trait (not a type)    | Any node type can be an embed via embed_of. Consistent with block+trait model.      | Must check embed_of != null instead of type                |
+| Block-level AST only                       | Sufficient for TUI outline/kanban views                                             | No inline node manipulation                                |
+| Callouts as quote + data                   | Syntactically they ARE blockquotes                                                  | Requires data.callout_type check                           |
+| Frontmatter as data field                  | Metadata, not content                                                               | Must serialize back from JSON                              |
 
 ### Migration notes (v1 → v2)
 
-| v1 | v2 |
-|---|---|
-| `type: "oi"` | `type: "h", item: {}` |
-| `type: "li"` | `type: "p", item: { list?, task? }` (or actual block type) |
-| `type: "link"` | any type + `embed_of` |
-| `link_to` field | `embed_of` field |
-| `link_alias` field | `name` field |
-| `embed` boolean | Derived from `embed_of != null` |
-| `data.depth` | Derived from tree nesting |
+| v1               | v2                                                       |
+| ---------------- | -------------------------------------------------------- |
+| type: "oi"       | type: "h", item: {}                                      |
+| type: "li"       | type: "p", item: { list?, task? } (or actual block type) |
+| type: "link"     | any type + embed_of                                      |
+| link_to field    | embed_of field                                           |
+| link_alias field | name field                                               |
+| embed boolean    | Derived from embed_of != null                            |
+| data.depth       | Derived from tree nesting                                |
 
 Existing databases are auto-migrated by `migrateSchema()` in `schema.ts` — it converts `oi`→`h`+item, `li`→`p`+item, `link`→`p`+embed_of.
 
@@ -391,12 +393,12 @@ Heading level is implicit from tree depth (never stored).
 
 ### Name ↔ title by fstype
 
-| fstype | name source | content | Sync |
-|---|---|---|---|
-| repo | repo name | from index .md if any | name → display |
-| folder | dirname | from index .md if any | name → display |
-| file/mdfile | filename sans .md | H1 text | name ↔ title |
-| mdsection | slugified heading | heading text | title → name |
+| fstype      | name source       | content               | Sync           |
+| ----------- | ----------------- | --------------------- | -------------- |
+| repo        | repo name         | from index .md if any | name → display |
+| folder      | dirname           | from index .md if any | name → display |
+| file/mdfile | filename sans .md | H1 text               | name ↔ title   |
+| mdsection   | slugified heading | heading text          | title → name   |
 
 Folders can have an associated index file (`folder/folder.md`, `README.md`, or `.md`) that provides body content and metadata (frontmatter).
 
@@ -604,18 +606,18 @@ The parser processes inline content in precedence order to avoid ambiguity:
 
 The AST rendering phase accepts the same options as `TextPipelineOptions`:
 
-| Option | Effect |
-|---|---|
-| `mode` | `"rich"` (JSX with styling), `"plain"` (text only), `"stripped"` (text, no metadata) |
-| `excludeSigils` | Remove specific sigils from output (e.g., `["@issue"]`) |
-| `sigilColors` | Map of sigil string to color name |
-| `resolveSigilColor` | Dynamic color resolver for sigils |
-| `shortenMentions` | Replace @mentions with short names |
-| `personShortNames` | Map of person name to abbreviation |
-| `stripRefs` | Remove all @mentions, #tags, +projects |
-| `stripTagsAndProjects` | Remove #tags and +projects, keep @mentions |
-| `stripKnownMentions` | Remove known person @mentions |
-| `resolveWikiLink` | Resolve wiki link targets to display titles |
+| Option               | Effect                                                                         |
+| -------------------- | ------------------------------------------------------------------------------ |
+| mode                 | "rich" (JSX with styling), "plain" (text only), "stripped" (text, no metadata) |
+| excludeSigils        | Remove specific sigils from output (e.g., ["@issue"])                          |
+| sigilColors          | Map of sigil string to color name                                              |
+| resolveSigilColor    | Dynamic color resolver for sigils                                              |
+| shortenMentions      | Replace @mentions with short names                                             |
+| personShortNames     | Map of person name to abbreviation                                             |
+| stripRefs            | Remove all @mentions, #tags, +projects                                         |
+| stripTagsAndProjects | Remove #tags and +projects, keep @mentions                                     |
+| stripKnownMentions   | Remove known person @mentions                                                  |
+| resolveWikiLink      | Resolve wiki link targets to display titles                                    |
 
 ### Inline constructs in block content
 
@@ -631,19 +633,19 @@ At the block level, inline formatting is stored as raw markdown in content strin
 
 ### Micromark tokenizers (new syntax → new AST structure)
 
-| Extension | Trigger | What it does |
-|-----------|---------|--------------|
-| `kmTaskMark()` | `[` at list item start | Tokenizes `[/]`, `[-]`, `[!]` in addition to GFM `[ ]`, `[x]`, `[X]` |
-| `kmWikilink()` | `[` for `[[`, `!` for `![[` | Tokenizes Obsidian wikilinks into `KmWikilink` AST nodes |
+| Extension    | Trigger              | What it does                                             |
+| ------------ | -------------------- | -------------------------------------------------------- |
+| kmTaskMark() | [ at list item start | Tokenizes [/], [-], [!] in addition to GFM [ ], [x], [X] |
+| kmWikilink() | [ for [[, ! for ![[  | Tokenizes Obsidian wikilinks into KmWikilink AST nodes   |
 
 ### mdast transforms (enrich existing text nodes with metadata)
 
-| Transform | Applies to | What it does | Data fields set |
-|-----------|------------|--------------|-----------------|
-| `kmBlockIdTransform` | paragraphs, headings, listItems | Strips ` ^blockId` suffix from text | `node.data.blockId` |
-| `kmHeadingTaskMarkTransform` | headings | Strips `[x] ` prefix from heading text | `heading.data.taskMark` |
-| `kmInlinePropTransform` | paragraphs, headings | Extracts `key:: value` pairs; duplicate keys comma-concatenated | `node.data.props`, `.propsRaw`, `.cleanText` |
-| `kmRefsTransform` | paragraphs, headings, listItems | Extracts `#tag`, `@mention`, `+project` | `node.data.tags`, `.mentions`, `.projects` |
+| Transform                  | Applies to                      | What it does                                                  | Data fields set                        |
+| -------------------------- | ------------------------------- | ------------------------------------------------------------- | -------------------------------------- |
+| kmBlockIdTransform         | paragraphs, headings, listItems | Strips  ^blockId suffix from text                             | node.data.blockId                      |
+| kmHeadingTaskMarkTransform | headings                        | Strips [x]  prefix from heading text                          | heading.data.taskMark                  |
+| kmInlinePropTransform      | paragraphs, headings            | Extracts key:: value pairs; duplicate keys comma-concatenated | node.data.props, .propsRaw, .cleanText |
+| kmRefsTransform            | paragraphs, headings, listItems | Extracts #tag, @mention, +project                             | node.data.tags, .mentions, .projects   |
 
 Transform order matters: block-id strips suffix first, heading-task-mark strips prefix, inline-prop extracts and strips properties, refs reads remaining text.
 
@@ -731,13 +733,14 @@ kast is the parser tree (rich, parse-time, lowering-source). KNode is the storag
 
 Two representations of the same thing:
 
-| kast (parser) | KNode (storage) | What it is |
-|---|---|---|
-| `oi` (outline item) | `type: "h", item: {}` | Section heading — creates hierarchy |
-| `li` (list item) | `type: "p", item: { list?, task? }` | Bullet/task — content with children |
-| `p` (paragraph) | `type: "p"` (no item) | Body text — leaf content |
-| `h` (heading) | `type: "h"` (no item) | Heading block — leaf (rare, usually item) |
-| `code` | `type: "code"` (no item) | Code block |
-| `quote` | `type: "quote"` (no item) | Blockquote |
+| kast (parser)     | KNode (storage)                   | What it is                                |
+| ----------------- | --------------------------------- | ----------------------------------------- |
+| oi (outline item) | type: "h", item: {}               | Section heading — creates hierarchy       |
+| li (list item)    | type: "p", item: { list?, task? } | Bullet/task — content with children       |
+| p (paragraph)     | type: "p" (no item)               | Body text — leaf content                  |
+| h (heading)       | type: "h" (no item)               | Heading block — leaf (rare, usually item) |
+| code              | type: "code" (no item)            | Code block                                |
+| quote             | type: "quote" (no item)           | Blockquote                                |
 
 **`oi` and `li` don't exist in KNode** — they're kast parse types. Storage uses `type` + `item` object (`ItemData`).
+

@@ -20,17 +20,17 @@ Cline is one installer of it, but `kanban` is clearly positioned as shared infra
 
 ## Shape overlap
 
-| Feature | Cline Kanban | km |
-|---|---|---|
-| Kanban board as primary UI | ✅ | ✅ |
-| Parallel agents via git worktrees | ✅ | ✅ (`bun worktree`) |
-| Task tracking / dependencies | ✅ (⌘+click linking) | ✅ (beads with deps) |
-| Diff viewer | ✅ (checkpoint-scoped + inline comments) | ❌ (not yet) |
-| Auto-commit + Auto-PR | ✅ | ❌ |
-| Multi-agent runtime (Cline/Claude Code/Codex/OpenCode) | ✅ | ❌ (km is its own app) |
-| Surface | Browser | TUI |
-| Task formulation | Board cards + sidebar chat | Markdown files + beads |
-| License / model | Closed-ish (research preview) | km is personal tooling |
+| Feature                                                | Cline Kanban                            | km                     |
+| ------------------------------------------------------ | --------------------------------------- | ---------------------- |
+| Kanban board as primary UI                             | ✅                                       | ✅                      |
+| Parallel agents via git worktrees                      | ✅                                       | ✅ (bun worktree)       |
+| Task tracking / dependencies                           | ✅ (⌘+click linking)                     | ✅ (beads with deps)    |
+| Diff viewer                                            | ✅ (checkpoint-scoped + inline comments) | ❌ (not yet)            |
+| Auto-commit + Auto-PR                                  | ✅                                       | ❌                      |
+| Multi-agent runtime (Cline/Claude Code/Codex/OpenCode) | ✅                                       | ❌ (km is its own app)  |
+| Surface                                                | Browser                                 | TUI                    |
+| Task formulation                                       | Board cards + sidebar chat              | Markdown files + beads |
+| License / model                                        | Closed-ish (research preview)           | km is personal tooling |
 
 ## Where Cline Kanban wins
 
@@ -53,21 +53,25 @@ Cline is one installer of it, but `kanban` is clearly positioned as shared infra
 ## Product positioning options
 
 ### Option A: "km is the PKM Cline Kanban users graduate to"
+
 - Cline Kanban gets them addicted to board-driven parallel agents.
 - km offers: markdown-native, offline, CRDT, notes+calendar too, TUI + eventual web.
 - Positioning: "Cline Kanban, but for everything, forever — not just this project."
 
 ### Option B: "km hosts Cline Kanban as a runtime"
+
 - Implement Cline's kanban protocol / ACP in km.
 - km becomes a board-visualizer for Cline/Claude Code/Codex agents.
 - Smaller surface, depends on others' ecosystem.
 
 ### Option C: "km differentiates by being local-first + pure markdown"
+
 - Don't compete on kanban features; compete on data sovereignty.
 - Cline Kanban is a web app with backend features; km is files on disk.
 - This is km's existing positioning — just sharpen the distinction.
 
 ### Option D: km ships its own "km --kanban" (browser view)
+
 - Silvery's multi-target story says this should be possible.
 - Browser view of km's board, same data, same agents.
 - Catch up on discoverability while keeping TUI strength.
@@ -99,6 +103,7 @@ Cline is one installer of it, but `kanban` is clearly positioned as shared infra
 ## Architecture (from source inspection)
 
 ### Runtime stack
+
 - **CLI**: `commander` (arg parsing)
 - **Server**: Node with `ws` (websockets), **tRPC** for typed client/server RPC
 - **Terminal multiplexing**: `node-pty` + `@xterm/headless` + `@xterm/addon-serialize` — real PTY per agent, serialized to web UI over WS
@@ -127,20 +132,23 @@ Terminal session starts
 **Two transition intents**: `to_in_progress`, `to_review`. Two session states: `running`, `awaiting_review`. Four board columns: `backlog`, `in_progress`, `review`, `trash`.
 
 ### Per-agent wiring
-| Agent | Hook artifact |
-|---|---|
-| Claude Code | `~/.kanban/hooks/claude/settings.json` (rewrites Claude settings) |
-| Gemini CLI | `~/.kanban/hooks/gemini/settings.json` |
-| OpenCode | `~/.kanban/hooks/opencode/kanban.js` + `opencode.json` |
-| Codex | `kanban hooks codex-wrapper` (runtime wrapper command) |
+
+| Agent       | Hook artifact                                                   |
+| ----------- | --------------------------------------------------------------- |
+| Claude Code | ~/.kanban/hooks/claude/settings.json (rewrites Claude settings) |
+| Gemini CLI  | ~/.kanban/hooks/gemini/settings.json                            |
+| OpenCode    | ~/.kanban/hooks/opencode/kanban.js + opencode.json              |
+| Codex       | kanban hooks codex-wrapper (runtime wrapper command)            |
 
 ### Directory layout
+
 - `~/.kanban/` — global config
 - `~/.cline/kanban/config.json` — installed agent selection, workspaces
 - `~/.cline/kanban/workspaces/<project>/` — per-workspace state
 - `<repo>/.cline/worktrees/<task-id>/` — ephemeral worktrees per task
 
 ### Source organization
+
 - `src/cli.ts` (1603 lines, actively being refactored)
 - `src/cline-sdk/` — Cline-specific runtime setup
 - `src/core/runtime-endpoint.ts` + `src/server/runtime-server.ts` + `src/server/runtime-state-hub.ts` — runtime subsystem
@@ -184,7 +192,7 @@ The separation is important: kanban-the-library lives on with or without cline.
 
 Original competitive framing was "Cline Kanban is a product that competes with km." Revised framing is stronger:
 
-> **Cline is trying to establish `kanban` as the standard orchestration layer for all coding agents. If it succeeds, km either adopts it, competes with it, or becomes "another runtime" inside it.**
+> Cline is trying to establish kanban as the standard orchestration layer for all coding agents. If it succeeds, km either adopts it, competes with it, or becomes "another runtime" inside it.
 
 The runtime-hooks protocol is narrow and well-documented (`to_review` / `to_in_progress` + JSON CLI). km could:
 
@@ -202,3 +210,4 @@ The diff viewer + inline-comments-as-feedback + auto-review-mode=commit/pr are t
 - `.plan/cli-runtime-refactor-plan.md` — refactoring plan showing internal structure
 - `src/trpc/runtime-api.ts`, `src/server/runtime-server.ts`, `src/cline-sdk/` — runtime integration code
 - Live inspection: `kanban --help`, `kanban --version` (0.1.63), `~/.cline/kanban/` filesystem, running Kanban Sidebar Agent's Claude process args (revealed full task-CLI surface + system prompt)
+

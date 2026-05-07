@@ -79,11 +79,11 @@ See full analysis in session notes. 20 hypotheses generated across missing-abstr
 2. **Measure phase** — for a `<Text>` with inner `<Text>` children, measure the unified run (not per-child). Inner Texts don't get their own layout node.
 3. **Wrap algorithm** — wrap across segment boundaries (already works for plain text, needs validation for styled text)
 4. **Hit test** — for a cell inside a `<Text>` rect:
-  - Find which character position the cell corresponds to (accounting for wide chars, style transitions)
-  - Find which segment owns that character position
-  - If the character is interior whitespace not owned by any inner segment, it belongs to the outer Text
-  - Walk up from the segment's owning node checking for handlers (segment handler first, then outer Text's handlers)
-5. **Render phase** — apply segment styles per character (already close — just needs segments to include non-bg styles like fg, bold, handlers)
+- Find which character position the cell corresponds to (accounting for wide chars, style transitions)
+- Find which segment owns that character position
+- If the character is interior whitespace not owned by any inner segment, it belongs to the outer Text
+- Walk up from the segment's owning node checking for handlers (segment handler first, then outer Text's handlers)
+13. **Render phase** — apply segment styles per character (already close — just needs segments to include non-bg styles like fg, bold, handlers)
 
 ### Migration risk
 

@@ -72,7 +72,7 @@ After deep analysis, I recommend a **single Node type** with:
 
 | Field        | Computation                 | Notes               |
 | ------------ | --------------------------- | ------------------- |
-| isTask       | taskStatus \!== undefined   | 1 line              |
+| isTask       | taskStatus !== undefined    | 1 line              |
 | childCount   | getChildren(id).length      | Or track in storage |
 | color        | rules?.color                | Derived from rules  |
 | icon         | Currently always undefined! | Remove              |

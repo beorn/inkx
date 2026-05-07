@@ -63,11 +63,10 @@ See: [docs/future/beads.md](docs/future/beads.md)
     \`mergeDepProps\` (deps.ts)
   - structural: \`isBead\`, \`resolveBeadsRoots\` (queries.ts/paths.ts)
   - Target surface
-
   ```ts
   // type
   export type Bead = { id, title, status, priority, type?, ... }
-
+  
   // interface (declaration-merged on the type name)
   export const Bead = {
   isBead: (node, roots, repo) => boolean,
@@ -85,14 +84,14 @@ See: [docs/future/beads.md](docs/future/beads.md)
   }
   ```
 
-  `Issue` is the legacy alias for the type (one-line re-export) for the
-  duration of consumer migration; `displayId` likewise. Both removed once
-  all callers move to `Bead.*`.
+  Issue is the legacy alias for the type (one-line re-export) for the
+  duration of consumer migration; displayId likewise. Both removed once
+  all callers move to Bead.*.
   - Approach
 
-  Run as `/refactor migrate` in its own session — touches ~40-50 files
+  Run as /refactor migrate in its own session — touches ~40-50 files
   across packages/km-beads, apps/km-cli, apps/km-tui, hub/, tests. Use
-  `bun vendor/bearly/tools/refactor.ts` for mechanical renames; reserve
+  bun vendor/bearly/tools/refactor.ts for mechanical renames; reserve
   agent judgment for the namespace authoring + edge cases.
   - Acceptance
   - packages/km-beads exports \`Bead\` (type + namespace) as canonical surface.
@@ -399,8 +398,8 @@ describe('km bd migrate', () => {
 - Set assignee, due_date
 - Convert dependencies to blocks:: / blocked-by:: properties
 - Store original beads ID in `data.beads_id`
-11. Create @issues.md board if not exists
-12. Move .beads/ to .beads.bak/
+19. Create @issues.md board if not exists
+20. Move .beads/ to .beads.bak/
 
 ## Dependencies
 
@@ -768,11 +767,11 @@ Found 2026-04-29 by user.
 wt8 agent committed worktree-tool enhancement to bearly's feat/worktree-tool-claimer-status branch (SHA 3d498f8044) but never merged to bearly main or pushed to origin. The km-side commit (5da164d24) bumped vendor/bearly pointer to 3d498f8044 — dangling reference on origin/bearly.
 
 - To finish
-3. cd vendor/bearly, switch to feat/worktree-tool-claimer-status, push to origin
-4. Merge feat/worktree-tool-claimer-status to bearly main (PR or direct)
-5. Push bearly main to origin
-6. cd back to km, bump vendor/bearly pointer to bearly main tip
-7. Commit km-side bump
+4. cd vendor/bearly, switch to feat/worktree-tool-claimer-status, push to origin
+5. Merge feat/worktree-tool-claimer-status to bearly main (PR or direct)
+6. Push bearly main to origin
+7. cd back to km, bump vendor/bearly pointer to bearly main tip
+8. Commit km-side bump
 
 The actual work — vendor/bearly/tools/worktree.ts showing pool-slot claimer + agent status from km bd + tribe — is preserved on the bearly feature branch and exists in the wt8 worktree clone.
 
@@ -783,9 +782,9 @@ wt4 agent's commits 5e4509ccf (refactor: wire BeadData schema into read + write 
 The wt4 refactor used `parseBeadData(row.data) → extractBlockedByTargets(data.props)` which assumes the OLD JSON-scan path. After deps-schema landed, blocked-by edges are queryable directly from the `deps` table — no JSON parse needed.
 
 - To finish
-3. Re-implement the data-schema wiring in mutations.ts + deps.ts (take wt4's Zod parse-on-write approach for data integrity)
-4. KEEP the deps-table reads in queries.ts (don't revert to JSON scan)
-5. Update the integration test (data-schema-integration.test.ts content from b982f72ce) to assert against the deps-table-shaped read path
+4. Re-implement the data-schema wiring in mutations.ts + deps.ts (take wt4's Zod parse-on-write approach for data integrity)
+5. KEEP the deps-table reads in queries.ts (don't revert to JSON scan)
+6. Update the integration test (data-schema-integration.test.ts content from b982f72ce) to assert against the deps-table-shaped read path
 
 The wt4 commits live on the wt4 slot branch in case parts are useful as reference.
 
@@ -821,139 +820,6 @@ Both reframed as parts of a single change: bead identity = sigil-rooted path.
 - `bd create "title"` (no `--id`) writes a markdown file at `@km/inbox/<auto-slug>.md`.
 - `queryReady` / `bd list` walks only configured `beads:[]` roots.
 - 2582 ULID-only rows from test fixtures gone.
-
-Adopt the @<prefix>/<scope>/<slug> form everywhere — prose, chat, commit messages, bead notes, wikilinks, frontmatter id (with bd-form aliases for legacy). Companion bug: packages/km-beads/src/short-ids.ts:4 hardcodes const PREFIX = 'km' instead of reading from .km/config.yaml — blocks @<other-prefix>/... working in non-km repos.
-
-- Conventions (verified with user 2026-04-29)
-- Conversation/prose/commits/notes: @km/beads/foo
-- Wikilinks: [[@km/beads/foo]] — the @ is part of the name, NOT a render-mode hint. Strip it and you point at a different node.
-- CLI: km bd show @km/beads/foo (or legacy km-beads.foo via aliases)
-- Memories: @mem/<key>
-- Scope
-- Skill files: .claude/skills/**/*.md (50+ files)
-- Project docs: docs/**/*.md, CLAUDE.md, AGENTS.md, README.md
-- Per-package READMEs
-- Out of scope
-- Existing bead frontmatter ids (left as bd-form, aliases handle resolution)
-- Old commit messages and PR descriptions (don't rewrite history)
-- Acceptance
-- short-ids.ts reads prefix from .km/config.yaml (test: pim-prefixed vault produces pim-q5hji not km-q5hji), consumed by km bd's short-id resolver in resolveBead
-- All in-tree skill/doc references to bd-form bead ids rewritten to @-path-form (verify: grep -rn 'km-[a-z][a-z0-9-]*\.[a-z]' .claude/skills/ docs/ CLAUDE.md AGENTS.md should return only legitimate package-name false-positives)
-- Wikilinks updated: [[@km/scope/slug]] (with @)
-
-In flight on slot wt6 in agent canonical-ids@km-beads-cli-fixes. Track here for closure.
-
-Repro:
-
-```
-km bd create 'example title, delete'
-# Created issue: km-xvzm — succeeds (good, bd-compat)
-```
-
-Then check: file does NOT exist on disk.
-
-```
-find @km/ -name '*xvzm*'   # 0 results
-git status                 # clean — bead won't ride git transport
-```
-
-The event-log entry has `fs_path: null`, `fstype: null`, `parent_id: '.'` (root).
-
-- Why this is a P0 integrity bug
-- The bead is **index-only**: lives in .km/state.db and .km/changes.jsonl, but has no markdown file.
-- It WON'T survive an index rebuild from disk (`km doctor rebuild` would lose it).
-- It WON'T ride normal git transport — peers / clones won't see it.
-- It violates the storage-model promise (CLAUDE.md vault structure: "every bead lives at @km/<scope>/<slug>.md").
-- Acceptance — keep bd-compat AND fix integrity
-- [ ] `km bd create 'title'` (no --id, no --parent) succeeds (bd-compat preserved)
-- [ ] The created bead has a real file at `@km/inbox/<short-id>.md` — "inbox" is the default scope for quick-capture/triage flow. NOT `@km/_orphan/` (which is reserved for migration provenance — Asana dumps, legacy bd imports).
-- [ ] Default scope is configurable: `beads.default_scope` in `.km/config.yaml` (default value: 'inbox'). Falls back to 'inbox' if config missing.
-- [ ] File frontmatter has `aliases: [<short-id>, km-<short-id>]` per the canonical-ids pattern. The path `@km/inbox/<short-id>` IS the canonical id; no separate `id:` line needed in frontmatter.
-- [ ] `git status` after a fresh create shows the new file as untracked
-- [ ] `@km/inbox/` is created if it doesn't exist (lazy init)
-- [ ] Optional UX hint to stderr: 'Note: no scope — landed at @km/inbox. Use --parent @km/<scope> to file directly under a scope.' (non-fatal, additive)
-- Related — pairs with these threads
-- `beads.roots` config should include `@km/inbox` by default so `km bd ready` (bare) surfaces inbox-pending work — see @km/beads/ready-helpful-empty-message
-- @km/beads/list-json-malformed — another integrity bug
-- @km/beads/canonical-ids-switchover — frontmatter `id:` is redundant when path matches; only `aliases:` need to be explicit
-
-Do NOT add a hard error / require --orphan flag — that diverges from bd compatibility (bd's design intent is quick-capture).
-
-Found 2026-04-29 by user testing in main session.
-
-2026-04-29 update: `@km/_orphan/` is being collapsed into `@km/inbox/` (see @km/beads/rename-orphan-to-inbox). This bead's acceptance now references `@km/inbox/` only. There is no separate _orphan path.
-
-Today's km bd commands silently no-op or produce ghosts when `.km/config.yaml` lacks `beads.default_scope` and `beads.roots` — see thread of bugs found 2026-04-29.
-
-- Required defaults (hard-coded in CLI)
-
-| Config key          | Default                            | Used by                                                                                           |
-| ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
-| beads.default_scope | inbox                              | km bd create when no --parent → file lands at @km/inbox/<short-id>.md                             |
-| beads.roots         | ['@km']                            | km bd ready (bare), km bd list (default scope filter), other board-aware commands                 |
-| beads.prefix        | (already from .km/config.yaml: km) | short-id generation; see project-km-bd-canonical-ids.md and km-beads.short-ids-prefix-from-config |
-
-- Why this is P0
-- Bare `km bd create 'title'` produces an index-only ghost (see @km/beads/create-orphan-must-materialize)
-- Bare `km bd ready` silently returns 0 results (see @km/beads/ready-helpful-empty-message)
-- New users / new repos / fresh clones hit broken behavior before they know to configure
-- Acceptance
-- [ ] CLI has hard-coded defaults for `beads.default_scope` ('inbox') and `beads.roots` (['@km']), used by km bd commands when config is silent on these keys
-- [ ] `.km/config.yaml` can override the defaults; fields are optional, not required
-- [ ] `km bd config get beads.default_scope` returns 'inbox' on a fresh repo with no config
-- [ ] `km bd config get beads.roots` returns ['@km'] on a fresh repo with no config
-- [ ] Test: fresh init repo (`mkdir x && cd x && git init && km bd init`) → `km bd create 'foo'` lands at @km/inbox/<short-id>.md AND `km bd ready` lists it
-- [ ] Test: same scenario with explicit override config → respects the override
-- Related
-- @km/beads/create-orphan-must-materialize (P0) — depends on default_scope being defined
-- @km/beads/ready-helpful-empty-message (P1) — depends on beads.roots being defined OR helpful error if not
-- @km/beads/canonical-ids-switchover — fixes the prefix hardcoding (related to the third config key)
-
-Found 2026-04-29 by user.
-
-2026-04-29 update: per user, `@km/_orphan/` is being renamed to `@km/inbox/` (see @km/beads/rename-orphan-to-inbox). After rename, `@km/inbox/` is the SINGLE landing zone for scope-less beads — both fresh creates AND migration imports go there. No separate _orphan path.
-
-Currently `@km/_orphan/` (1059 files, from migration imports) is conceptually separate from a hypothetical `@km/inbox/` (where bare `km bd create` would land per @km/beads/create-orphan-must-materialize). Per user 2026-04-29: collapse into one landing zone. Pick 'inbox' (more meaningful name; conveys triage intent).
-
-- Acceptance
-- [ ] Rename `@km/_orphan/` → `@km/inbox/` (~1059 files; use git mv to preserve history)
-- [ ] Update migration code (packages/km-beads/src/migrate.ts) to land scope-less imports at `@km/inbox/<short-id>.md` instead of `@km/_orphan/<short-id>.md`
-- [ ] Update CLAUDE.md vault structure docs — currently say '`@km/_orphan/` for bd auto-ids without scope'; replace with '`@km/inbox/` for new quick-captures + scope-less migration imports'
-- [ ] Update memory file project-km-bd-canonical-ids.md if it references _orphan
-- [ ] Update bead frontmatter `id:` and `aliases:` for the 1059 renamed beads — `@km/_orphan/foo` becomes the alias, `@km/inbox/foo` becomes canonical
-- [ ] Wikilinks / cross-references throughout the vault updated: `[[@km/_orphan/foo]]` → `[[@km/inbox/foo]]` (batch refactor, manual review)
-- [ ] Acceptance grep: `grep -r '_orphan' @km/ docs/ CLAUDE.md packages/km-beads/` should return only the migration code's backwards-compat alias path
-- Pairs with
-- @km/beads/create-orphan-must-materialize — when this bead lands, materialize there
-- @km/beads/zero-config-defaults — `beads.default_scope='inbox'` becomes the only landing zone, no need for separate _orphan handling
-
-Order: file this rename FIRST (before zero-config-defaults / create-orphan land), so the new code only writes to one location.
-
-Found 2026-04-29 by user.
-
-wt8 agent committed worktree-tool enhancement to bearly's feat/worktree-tool-claimer-status branch (SHA 3d498f8044) but never merged to bearly main or pushed to origin. The km-side commit (5da164d24) bumped vendor/bearly pointer to 3d498f8044 — dangling reference on origin/bearly.
-
-- To finish
-4. cd vendor/bearly, switch to feat/worktree-tool-claimer-status, push to origin
-5. Merge feat/worktree-tool-claimer-status to bearly main (PR or direct)
-6. Push bearly main to origin
-7. cd back to km, bump vendor/bearly pointer to bearly main tip
-8. Commit km-side bump
-
-The actual work — vendor/bearly/tools/worktree.ts showing pool-slot claimer + agent status from km bd + tribe — is preserved on the bearly feature branch and exists in the wt8 worktree clone.
-
-wt4 agent's commits 5e4509ccf (refactor: wire BeadData schema into read + write paths) and b982f72ce (integration test) reverted packages/km-beads/src/queries.ts to JSON-scan blocked-by edges, conflicting with the deps-table approach landed by deps-schema-plateau. Cherry-picks aborted on conflict; the Zod schema (commit 1, 12fcab99c) was kept since it's purely additive.
-
-- What needs reconciliation
-
-The wt4 refactor used `parseBeadData(row.data) → extractBlockedByTargets(data.props)` which assumes the OLD JSON-scan path. After deps-schema landed, blocked-by edges are queryable directly from the `deps` table — no JSON parse needed.
-
-- To finish
-4. Re-implement the data-schema wiring in mutations.ts + deps.ts (take wt4's Zod parse-on-write approach for data integrity)
-5. KEEP the deps-table reads in queries.ts (don't revert to JSON scan)
-6. Update the integration test (data-schema-integration.test.ts content from b982f72ce) to assert against the deps-table-shaped read path
-
-The wt4 commits live on the wt4 slot branch in case parts are useful as reference.
 
 Adopt the @<prefix>/<scope>/<slug> form everywhere — prose, chat, commit messages, bead notes, wikilinks, frontmatter id (with bd-form aliases for legacy). Companion bug: packages/km-beads/src/short-ids.ts:4 hardcodes const PREFIX = 'km' instead of reading from .km/config.yaml — blocks @<other-prefix>/... working in non-km repos.
 
@@ -1341,6 +1207,19 @@ wt8 agent committed worktree-tool enhancement to bearly's feat/worktree-tool-cla
 
 The actual work — vendor/bearly/tools/worktree.ts showing pool-slot claimer + agent status from km bd + tribe — is preserved on the bearly feature branch and exists in the wt8 worktree clone.
 
+wt4 agent's commits 5e4509ccf (refactor: wire BeadData schema into read + write paths) and b982f72ce (integration test) reverted packages/km-beads/src/queries.ts to JSON-scan blocked-by edges, conflicting with the deps-table approach landed by deps-schema-plateau. Cherry-picks aborted on conflict; the Zod schema (commit 1, 12fcab99c) was kept since it's purely additive.
+
+- What needs reconciliation
+
+The wt4 refactor used `parseBeadData(row.data) → extractBlockedByTargets(data.props)` which assumes the OLD JSON-scan path. After deps-schema landed, blocked-by edges are queryable directly from the `deps` table — no JSON parse needed.
+
+- To finish
+7. Re-implement the data-schema wiring in mutations.ts + deps.ts (take wt4's Zod parse-on-write approach for data integrity)
+8. KEEP the deps-table reads in queries.ts (don't revert to JSON scan)
+9. Update the integration test (data-schema-integration.test.ts content from b982f72ce) to assert against the deps-table-shaped read path
+
+The wt4 commits live on the wt4 slot branch in case parts are useful as reference.
+
 Adopt the @<prefix>/<scope>/<slug> form everywhere — prose, chat, commit messages, bead notes, wikilinks, frontmatter id (with bd-form aliases for legacy). Companion bug: packages/km-beads/src/short-ids.ts:4 hardcodes const PREFIX = 'km' instead of reading from .km/config.yaml — blocks @<other-prefix>/... working in non-km repos.
 
 - Conventions (verified with user 2026-04-29)
@@ -1458,6 +1337,126 @@ wt8 agent committed worktree-tool enhancement to bearly's feat/worktree-tool-cla
 10. Push bearly main to origin
 11. cd back to km, bump vendor/bearly pointer to bearly main tip
 12. Commit km-side bump
+
+The actual work — vendor/bearly/tools/worktree.ts showing pool-slot claimer + agent status from km bd + tribe — is preserved on the bearly feature branch and exists in the wt8 worktree clone.
+
+Adopt the @<prefix>/<scope>/<slug> form everywhere — prose, chat, commit messages, bead notes, wikilinks, frontmatter id (with bd-form aliases for legacy). Companion bug: packages/km-beads/src/short-ids.ts:4 hardcodes const PREFIX = 'km' instead of reading from .km/config.yaml — blocks @<other-prefix>/... working in non-km repos.
+
+- Conventions (verified with user 2026-04-29)
+- Conversation/prose/commits/notes: @km/beads/foo
+- Wikilinks: [[@km/beads/foo]] — the @ is part of the name, NOT a render-mode hint. Strip it and you point at a different node.
+- CLI: km bd show @km/beads/foo (or legacy km-beads.foo via aliases)
+- Memories: @mem/<key>
+- Scope
+- Skill files: .claude/skills/**/*.md (50+ files)
+- Project docs: docs/**/*.md, CLAUDE.md, AGENTS.md, README.md
+- Per-package READMEs
+- Out of scope
+- Existing bead frontmatter ids (left as bd-form, aliases handle resolution)
+- Old commit messages and PR descriptions (don't rewrite history)
+- Acceptance
+- short-ids.ts reads prefix from .km/config.yaml (test: pim-prefixed vault produces pim-q5hji not km-q5hji), consumed by km bd's short-id resolver in resolveBead
+- All in-tree skill/doc references to bd-form bead ids rewritten to @-path-form (verify: grep -rn 'km-[a-z][a-z0-9-]*\.[a-z]' .claude/skills/ docs/ CLAUDE.md AGENTS.md should return only legitimate package-name false-positives)
+- Wikilinks updated: [[@km/scope/slug]] (with @)
+
+In flight on slot wt6 in agent canonical-ids@km-beads-cli-fixes. Track here for closure.
+
+Repro:
+
+```
+km bd create 'example title, delete'
+# Created issue: km-xvzm — succeeds (good, bd-compat)
+```
+
+Then check: file does NOT exist on disk.
+
+```
+find @km/ -name '*xvzm*'   # 0 results
+git status                 # clean — bead won't ride git transport
+```
+
+The event-log entry has `fs_path: null`, `fstype: null`, `parent_id: '.'` (root).
+
+- Why this is a P0 integrity bug
+- The bead is **index-only**: lives in .km/state.db and .km/changes.jsonl, but has no markdown file.
+- It WON'T survive an index rebuild from disk (`km doctor rebuild` would lose it).
+- It WON'T ride normal git transport — peers / clones won't see it.
+- It violates the storage-model promise (CLAUDE.md vault structure: "every bead lives at @km/<scope>/<slug>.md").
+- Acceptance — keep bd-compat AND fix integrity
+- [ ] `km bd create 'title'` (no --id, no --parent) succeeds (bd-compat preserved)
+- [ ] The created bead has a real file at `@km/inbox/<short-id>.md` — "inbox" is the default scope for quick-capture/triage flow. NOT `@km/_orphan/` (which is reserved for migration provenance — Asana dumps, legacy bd imports).
+- [ ] Default scope is configurable: `beads.default_scope` in `.km/config.yaml` (default value: 'inbox'). Falls back to 'inbox' if config missing.
+- [ ] File frontmatter has `aliases: [<short-id>, km-<short-id>]` per the canonical-ids pattern. The path `@km/inbox/<short-id>` IS the canonical id; no separate `id:` line needed in frontmatter.
+- [ ] `git status` after a fresh create shows the new file as untracked
+- [ ] `@km/inbox/` is created if it doesn't exist (lazy init)
+- [ ] Optional UX hint to stderr: 'Note: no scope — landed at @km/inbox. Use --parent @km/<scope> to file directly under a scope.' (non-fatal, additive)
+- Related — pairs with these threads
+- `beads.roots` config should include `@km/inbox` by default so `km bd ready` (bare) surfaces inbox-pending work — see @km/beads/ready-helpful-empty-message
+- @km/beads/list-json-malformed — another integrity bug
+- @km/beads/canonical-ids-switchover — frontmatter `id:` is redundant when path matches; only `aliases:` need to be explicit
+
+Do NOT add a hard error / require --orphan flag — that diverges from bd compatibility (bd's design intent is quick-capture).
+
+Found 2026-04-29 by user testing in main session.
+
+2026-04-29 update: `@km/_orphan/` is being collapsed into `@km/inbox/` (see @km/beads/rename-orphan-to-inbox). This bead's acceptance now references `@km/inbox/` only. There is no separate _orphan path.
+
+Today's km bd commands silently no-op or produce ghosts when `.km/config.yaml` lacks `beads.default_scope` and `beads.roots` — see thread of bugs found 2026-04-29.
+
+- Required defaults (hard-coded in CLI)
+
+| Config key          | Default                            | Used by                                                                                           |
+| ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| beads.default_scope | inbox                              | km bd create when no --parent → file lands at @km/inbox/<short-id>.md                             |
+| beads.roots         | ['@km']                            | km bd ready (bare), km bd list (default scope filter), other board-aware commands                 |
+| beads.prefix        | (already from .km/config.yaml: km) | short-id generation; see project-km-bd-canonical-ids.md and km-beads.short-ids-prefix-from-config |
+
+- Why this is P0
+- Bare `km bd create 'title'` produces an index-only ghost (see @km/beads/create-orphan-must-materialize)
+- Bare `km bd ready` silently returns 0 results (see @km/beads/ready-helpful-empty-message)
+- New users / new repos / fresh clones hit broken behavior before they know to configure
+- Acceptance
+- [ ] CLI has hard-coded defaults for `beads.default_scope` ('inbox') and `beads.roots` (['@km']), used by km bd commands when config is silent on these keys
+- [ ] `.km/config.yaml` can override the defaults; fields are optional, not required
+- [ ] `km bd config get beads.default_scope` returns 'inbox' on a fresh repo with no config
+- [ ] `km bd config get beads.roots` returns ['@km'] on a fresh repo with no config
+- [ ] Test: fresh init repo (`mkdir x && cd x && git init && km bd init`) → `km bd create 'foo'` lands at @km/inbox/<short-id>.md AND `km bd ready` lists it
+- [ ] Test: same scenario with explicit override config → respects the override
+- Related
+- @km/beads/create-orphan-must-materialize (P0) — depends on default_scope being defined
+- @km/beads/ready-helpful-empty-message (P1) — depends on beads.roots being defined OR helpful error if not
+- @km/beads/canonical-ids-switchover — fixes the prefix hardcoding (related to the third config key)
+
+Found 2026-04-29 by user.
+
+2026-04-29 update: per user, `@km/_orphan/` is being renamed to `@km/inbox/` (see @km/beads/rename-orphan-to-inbox). After rename, `@km/inbox/` is the SINGLE landing zone for scope-less beads — both fresh creates AND migration imports go there. No separate _orphan path.
+
+Currently `@km/_orphan/` (1059 files, from migration imports) is conceptually separate from a hypothetical `@km/inbox/` (where bare `km bd create` would land per @km/beads/create-orphan-must-materialize). Per user 2026-04-29: collapse into one landing zone. Pick 'inbox' (more meaningful name; conveys triage intent).
+
+- Acceptance
+- [ ] Rename `@km/_orphan/` → `@km/inbox/` (~1059 files; use git mv to preserve history)
+- [ ] Update migration code (packages/km-beads/src/migrate.ts) to land scope-less imports at `@km/inbox/<short-id>.md` instead of `@km/_orphan/<short-id>.md`
+- [ ] Update CLAUDE.md vault structure docs — currently say '`@km/_orphan/` for bd auto-ids without scope'; replace with '`@km/inbox/` for new quick-captures + scope-less migration imports'
+- [ ] Update memory file project-km-bd-canonical-ids.md if it references _orphan
+- [ ] Update bead frontmatter `id:` and `aliases:` for the 1059 renamed beads — `@km/_orphan/foo` becomes the alias, `@km/inbox/foo` becomes canonical
+- [ ] Wikilinks / cross-references throughout the vault updated: `[[@km/_orphan/foo]]` → `[[@km/inbox/foo]]` (batch refactor, manual review)
+- [ ] Acceptance grep: `grep -r '_orphan' @km/ docs/ CLAUDE.md packages/km-beads/` should return only the migration code's backwards-compat alias path
+- Pairs with
+- @km/beads/create-orphan-must-materialize — when this bead lands, materialize there
+- @km/beads/zero-config-defaults — `beads.default_scope='inbox'` becomes the only landing zone, no need for separate _orphan handling
+
+Order: file this rename FIRST (before zero-config-defaults / create-orphan land), so the new code only writes to one location.
+
+Found 2026-04-29 by user.
+
+wt8 agent committed worktree-tool enhancement to bearly's feat/worktree-tool-claimer-status branch (SHA 3d498f8044) but never merged to bearly main or pushed to origin. The km-side commit (5da164d24) bumped vendor/bearly pointer to 3d498f8044 — dangling reference on origin/bearly.
+
+- To finish
+9. cd vendor/bearly, switch to feat/worktree-tool-claimer-status, push to origin
+10. Merge feat/worktree-tool-claimer-status to bearly main (PR or direct)
+11. Push bearly main to origin
+12. cd back to km, bump vendor/bearly pointer to bearly main tip
+13. Commit km-side bump
 
 The actual work — vendor/bearly/tools/worktree.ts showing pool-slot claimer + agent status from km bd + tribe — is preserved on the bearly feature branch and exists in the wt8 worktree clone.
 

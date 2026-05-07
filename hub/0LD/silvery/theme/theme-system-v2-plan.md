@@ -216,3 +216,4 @@ Composes the standard stack: detectScheme → ThemeProvider → terminal → rea
 9. **createThemedApp** (P9) — depends on P2's API settling.
 
 Each gets its own bead under `km-silvery.theme-system-v2` epic.
+

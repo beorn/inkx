@@ -1,6 +1,6 @@
 # Signals & Models
 
-> **Deep-dive** for [era2-overview.md](../../reference/era2-overview.md) § Reactive Data Graph. Progressive signal API, createModel, createStore, createResource. Last synced: 2026-03-19.
+> Deep-dive for era2-overview.md § Reactive Data Graph. Progressive signal API, createModel, createStore, createResource. Last synced: 2026-03-19.
 
 _Status: finalized. Extracted from [state-api-redesign.md](../../archive/pre-era2/state-api-redesign.md)._
 
@@ -85,26 +85,26 @@ await run(<ChatView />)
 
 **`@silvery/signals` re-exports [alien-signals](https://github.com/stackblitz/alien-signals)** as the reactive engine — the fastest signals implementation (1.8KB gzip, push-pull, version counting, proven by Vue 3.6 adoption). Silvery adds layers on top:
 
-| Layer                          | API                                             | Purpose                                                               |
-| ------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------- |
-| **Core** (alien-signals)       | `signal()`, `computed()`, `effect()`, `batch()` | Reactive primitives — `sig()` to read, `sig(newValue)` to write       |
-| **Stores** (alien-deepsignals) | `createStore(initial)`                          | Deep proxy — nested property access returns signal accessors (~2.7KB) |
-| **Resources** (silvery)        | `createResource(fetcher)`                       | Async bridge — `res()` for data, `res.loading()`, `res.error()`       |
-| **React** (silvery)            | `useSignal(s)`, model selectors                 | `useSyncExternalStore` integration                                    |
+| Layer                      | API                                     | Purpose                                                               |
+| -------------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| Core (alien-signals)       | signal(), computed(), effect(), batch() | Reactive primitives — sig() to read, sig(newValue) to write           |
+| Stores (alien-deepsignals) | createStore(initial)                    | Deep proxy — nested property access returns signal accessors (~2.7KB) |
+| Resources (silvery)        | createResource(fetcher)                 | Async bridge — res() for data, res.loading(), res.error()             |
+| React (silvery)            | useSignal(s), model selectors           | useSyncExternalStore integration                                      |
 
 ### Why getter/setter functions, not `.value`?
 
 Era2 uses the **function-call pattern** (`count()` to read, `count(5)` to write) — same as alien-signals, Angular, and SolidJS. Not `.value` (Vue, Preact). Decision 29.
 
-|                           | `count()` getter                                                                    | `count.value` property                                                  |
-| ------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **Visual clarity**        | Obviously dynamic (it's a function call)                                            | Looks like a plain property read                                        |
-| **Capability separation** | Read-only accessor is just `() => T` — can't accidentally write                     | `.value` always exposes both get and set                                |
-| **Destructuring**         | `const { count } = model` — count is a function, stays reactive                     | `const { count } = model` — works, but `const { value } = count` breaks |
-| **TypeScript**            | `() => T` — indistinguishable from other functions (slightly worse for "find refs") | `Signal<T>` carries type (slightly better for "find refs")              |
-| **Industry momentum**     | Angular, SolidJS, alien-signals, S.js, Knockout                                     | Vue, Preact, Qwik                                                       |
-| **TC39 proposal**         | `.get()/.set()` methods — designed for frameworks to wrap either way                | —                                                                       |
-| **No magic**              | Selectors call accessors explicitly: `m.exchanges().length`                         | Requires auto-unwrapping: `m.exchanges.length` magically reads signal   |
+|                       | count() getter                                                                    | count.value property                                                |
+| --------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Visual clarity        | Obviously dynamic (it's a function call)                                          | Looks like a plain property read                                    |
+| Capability separation | Read-only accessor is just () => T — can't accidentally write                     | .value always exposes both get and set                              |
+| Destructuring         | const { count } = model — count is a function, stays reactive                     | const { count } = model — works, but const { value } = count breaks |
+| TypeScript            | () => T — indistinguishable from other functions (slightly worse for "find refs") | Signal<T> carries type (slightly better for "find refs")            |
+| Industry momentum     | Angular, SolidJS, alien-signals, S.js, Knockout                                   | Vue, Preact, Qwik                                                   |
+| TC39 proposal         | .get()/.set() methods — designed for frameworks to wrap either way                | —                                                                   |
+| No magic              | Selectors call accessors explicitly: m.exchanges().length                         | Requires auto-unwrapping: m.exchanges.length magically reads signal |
 
 The function-call pattern eliminates the auto-unwrapping complexity (old P3/P5). Selectors are just functions that call accessors — no tracking scope magic needed beyond what alien-signals provides natively. Decision 29 supersedes Decision 9 (signal auto-unwrapping at the selector boundary) — explicit accessor calls replace implicit unwrapping.
 
@@ -138,13 +138,13 @@ Layer 1 is the state primitive — fine-grained, framework-agnostic, testable. L
 
 Same API everywhere — `accessor()` to read, `accessor(newValue)` to write. No context-dependent syntax:
 
-| Context                  | Access                                           | Notes                                                   |
-| ------------------------ | ------------------------------------------------ | ------------------------------------------------------- |
-| **React components**     | `useModel(chatModel, m => m.exchanges().length)` | Selector calls accessor — tracked, O(1) subscribe       |
-| **Model code / plugins** | `app.models.chat.exchanges()`                    | Direct accessor call — typed, reactive                  |
-| **AI agents / commands** | `app.models.chat.submit({ text })`               | Direct method call — typed                              |
-| **External (CLI/MCP)**   | Serialize signal values → JSON                   | Serialized state for remote consumers                   |
-| **Tests**                | `chat.exchanges()`                               | Isolated instance via `.create()` — no framework needed |
+| Context              | Access                                         | Notes                                                 |
+| -------------------- | ---------------------------------------------- | ----------------------------------------------------- |
+| React components     | useModel(chatModel, m => m.exchanges().length) | Selector calls accessor — tracked, O(1) subscribe     |
+| Model code / plugins | app.models.chat.exchanges()                    | Direct accessor call — typed, reactive                |
+| AI agents / commands | app.models.chat.submit({ text })               | Direct method call — typed                            |
+| External (CLI/MCP)   | Serialize signal values → JSON                 | Serialized state for remote consumers                 |
+| Tests                | chat.exchanges()                               | Isolated instance via .create() — no framework needed |
 
 ## Object Shapes
 
@@ -362,3 +362,4 @@ const testChat = chatModel.create({
 ```
 
 Models are testable without a running app, without React, without providers infrastructure. The `.create(mockDeps)` pattern gives complete isolation: each test gets its own signal instances, its own state, and its own mock I/O.
+

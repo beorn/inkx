@@ -51,14 +51,15 @@ interface ItemData {
 }
 ```
 
-| | **Item** (`item: { ... }`) | **Block** (no `item`) |
-|---|---|---|
-| Children | Yes — forms tree hierarchy | No — leaf content |
-| Navigation | Cursor target | Not selectable |
-| Outliner ops | Indent, outdent, split, merge | Part of parent's body |
-| Markdown | `## Heading` or `- list item` | Paragraph, code fence, quote |
+|              | Item (item: { ... })          | Block (no item)              |
+| ------------ | ----------------------------- | ---------------------------- |
+| Children     | Yes — forms tree hierarchy    | No — leaf content            |
+| Navigation   | Cursor target                 | Not selectable               |
+| Outliner ops | Indent, outdent, split, merge | Part of parent's body        |
+| Markdown     | ## Heading or - list item     | Paragraph, code fence, quote |
 
 **Type guards** (SlateJS namespace pattern):
+
 ```typescript
 KNode.isItem(node)      // node.item != null
 KNode.isBlock(node)     // node.item == null
@@ -72,14 +73,15 @@ KNode.isEmbed(node)     // has embed_of (runtime-materialized from links.rel='em
 
 An item's **visual role** is determined by its position in the tree relative to the board root — NOT by its type. The same KNode renders differently at each depth:
 
-| Depth | Role | Selected appearance |
-|---|---|---|
-| 0 | Board root | Fullscreen — no chrome |
-| 1 | **Column** | Header bar highlight |
-| 2 | **Card** | Bordered box (title + sub-items + body) |
-| 3+ | **Sub-item** | Indented line; expands to card-like frame when selected |
+| Depth | Role       | Selected appearance                                     |
+| ----- | ---------- | ------------------------------------------------------- |
+| 0     | Board root | Fullscreen — no chrome                                  |
+| 1     | Column     | Header bar highlight                                    |
+| 2     | Card       | Bordered box (title + sub-items + body)                 |
+| 3+    | Sub-item   | Indented line; expands to card-like frame when selected |
 
 **This is a rendering rule, not data.** The "card-like container" that appears around a selected node is view-level decoration determined by:
+
 1. **View type** — cards view, columns view, list view each have different chrome
 2. **Tree depth** — depth 2 = card borders, depth 3+ = inline until selected
 3. **Selection state** — sub-items expand to show their children when the cursor is on them
@@ -90,14 +92,14 @@ A sub-item "looks like a card" when selected because the view expands it — but
 
 Two representations of the same thing:
 
-| km-ast (parser) | KNode (storage) | What it is |
-|---|---|---|
-| `oi` (outline item) | `type: "h", item: {}` | Section heading — creates hierarchy |
-| `li` (list item) | `type: "p", item: { list?, task? }` | Bullet/task — content with children |
-| `p` (paragraph) | `type: "p"` (no item) | Body text — leaf content |
-| `h` (heading) | `type: "h"` (no item) | Heading block — leaf (rare, usually item) |
-| `code` | `type: "code"` (no item) | Code block |
-| `quote` | `type: "quote"` (no item) | Blockquote |
+| km-ast (parser)   | KNode (storage)                   | What it is                                |
+| ----------------- | --------------------------------- | ----------------------------------------- |
+| oi (outline item) | type: "h", item: {}               | Section heading — creates hierarchy       |
+| li (list item)    | type: "p", item: { list?, task? } | Bullet/task — content with children       |
+| p (paragraph)     | type: "p" (no item)               | Body text — leaf content                  |
+| h (heading)       | type: "h" (no item)               | Heading block — leaf (rare, usually item) |
+| code              | type: "code" (no item)            | Code block                                |
+| quote             | type: "quote" (no item)           | Blockquote                                |
 
 **`oi` and `li` don't exist in KNode** — they're km-ast parse types. Storage uses `type` + `item` object (`ItemData`).
 
@@ -122,13 +124,13 @@ Board Root ─────────── fstype: "repo" or "folder"
 
 ### What determines each role?
 
-| Role | How determined | Not a separate type |
-|---|---|---|
-| **Column** | Direct child of board root + `item != null` | Same KNode, different position |
-| **Card** | Direct child of column + `item != null` | Same KNode, different position |
-| **Sub-item** | Child of card + `item != null` | Same KNode, different depth |
-| **Body block** | Child with no `item` | Different: no hierarchy |
-| **Body card** | Block child of column (between cards) | Rendered as dimmed card |
+| Role       | How determined                            | Not a separate type            |
+| ---------- | ----------------------------------------- | ------------------------------ |
+| Column     | Direct child of board root + item != null | Same KNode, different position |
+| Card       | Direct child of column + item != null     | Same KNode, different position |
+| Sub-item   | Child of card + item != null              | Same KNode, different depth    |
+| Body block | Child with no item                        | Different: no hierarchy        |
+| Body card  | Block child of column (between cards)     | Rendered as dimmed card        |
 
 **Role is positional, not typed.** The same KNode type can be a column, card, or sub-item depending on where it sits in the tree.
 
@@ -144,13 +146,13 @@ Every operation is invertible: `inverse(op)` produces the op that undoes it. Hig
 
 **Modules** (all in `packages/km-tree/src/`):
 
-| Module | What |
-|---|---|
-| `operations.ts` | 7 Operation types, `inverse()`, `applyOperation()` |
-| `selection.ts` | `Point` (nodeId + offset), `Range` (anchor + focus), `transformPoint`/`transformRange` for auto-adjusting selection after ops |
-| `history.ts` | `withHistory` decorator — captures ops for undo/redo, groups into batches |
-| `operation-log.ts` | `OperationLog` — append-only in-memory log with sequence-based filtering for replay/sync |
-| `normalize.ts` | `withNormalization` decorator — enforces schema constraints after every mutation |
+| Module           | What                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| operations.ts    | 7 Operation types, inverse(), applyOperation()                                                                        |
+| selection.ts     | Point (nodeId + offset), Range (anchor + focus), transformPoint/transformRange for auto-adjusting selection after ops |
+| history.ts       | withHistory decorator — captures ops for undo/redo, groups into batches                                               |
+| operation-log.ts | OperationLog — append-only in-memory log with sequence-based filtering for replay/sync                                |
+| normalize.ts     | withNormalization decorator — enforces schema constraints after every mutation                                        |
 
 **Composition**: decorators compose — `withHistory(withNormalization(tree))` gives a TreeMutator with both undo and auto-normalization.
 
@@ -158,11 +160,11 @@ Every operation is invertible: `inverse(op)` produces the op that undoes it. Hig
 
 Three levels of cursor tracking for efficient re-rendering:
 
-| Field | What | When set |
-|---|---|---|
-| `sel.node.cursor` (was `cursorNodeId`) | The actual selected node (any level) | Always — the truth |
-| `cursorCardNodeId` | The card containing the cursor | When cursor is at card or sub-item level |
-| `cursorColumnNodeId` | The column containing the cursor | When cursor is in a column |
+| Field                              | What                                 | When set                                 |
+| ---------------------------------- | ------------------------------------ | ---------------------------------------- |
+| sel.node.cursor (was cursorNodeId) | The actual selected node (any level) | Always — the truth                       |
+| cursorCardNodeId                   | The card containing the cursor       | When cursor is at card or sub-item level |
+| cursorColumnNodeId                 | The column containing the cursor     | When cursor is in a column               |
 
 `sel.node.cursor` is the source of truth. The others are derived for render optimization (only re-render affected cards/columns on cursor move). See [selection-model.md](selection-model.md) for the full selection API.
 
@@ -172,19 +174,21 @@ Three levels of cursor tracking for efficient re-rendering:
 
 The cursor is a single node. **Selection** is a set of nodes — the cursor plus any shift-selected additional nodes.
 
-| Concept | What | How stored |
-|---|---|---|
-| **Cursor** | Single node — the "active" node | `sel.node.cursor` (was `cursorNodeId`) |
-| **Selection** | Set of nodes including the cursor | `sel.node.ids` (was `selectedNodeIds`) |
-| **Anchor** | The node where shift-selection started | `sel.node.anchor` (was `selectionAnchorId`) |
+| Concept   | What                                   | How stored                              |
+| --------- | -------------------------------------- | --------------------------------------- |
+| Cursor    | Single node — the "active" node        | sel.node.cursor (was cursorNodeId)      |
+| Selection | Set of nodes including the cursor      | sel.node.ids (was selectedNodeIds)      |
+| Anchor    | The node where shift-selection started | sel.node.anchor (was selectionAnchorId) |
 
 **Editing operations work with selection, not just cursor.** When multiple nodes are selected:
+
 - **Indent/outdent**: All-or-nothing — if any node fails the guard, none move
 - **Delete**: Batch delete all selected nodes (single undo entry)
 - **Move**: All selected nodes move together
 - **Split/merge**: Only operates on cursor node (selection is cleared)
 
 **Selection constraints**:
+
 - All selected nodes must be siblings (same parent) — no cross-branch selection
 - Selection is always contiguous (shift+J/K extends range)
 - Selection lives within one column — no cross-column selection
@@ -218,21 +222,21 @@ Body is extracted by `extractBody(children)` — splits children into `{ body, i
 
 The TUI wraps KNode in view models for rendering:
 
-| View model | Wraps | Adds |
-|---|---|---|
-| `CardView` | KNode | `isBody`, `resolvedNode` (embed), `isBrokenEmbed`, `hasBodyChildren` |
-| `ColumnSnapshot` | KNode + KNode[] | `wipLimit`, `isVirtual`, `totalCardCount`, `hiddenDescendantCount` |
+| View model     | Wraps           | Adds                                                         |
+| -------------- | --------------- | ------------------------------------------------------------ |
+| CardView       | KNode           | isBody, resolvedNode (embed), isBrokenEmbed, hasBodyChildren |
+| ColumnSnapshot | KNode + KNode[] | wipLimit, isVirtual, totalCardCount, hiddenDescendantCount   |
 
 ## Comparison with Decker
 
-| Aspect | km | Decker |
-|---|---|---|
-| Storage | Flat KNode + parent_id (SQLite) | Nested Slate tree (Yjs CRDT) |
-| Type system | `type` + `item` boolean + traits | Unified `ItemElement` |
-| Content | `content` string field | First child `ItemContentElement` |
-| Body | Blocks before first item child | Content element (always first) |
-| Rich text | Markdown in content string | Slate inline nodes |
-| Collaboration | File sync (bidirectional) | Yjs real-time CRDT |
+| Aspect        | km                              | Decker                         |
+| ------------- | ------------------------------- | ------------------------------ |
+| Storage       | Flat KNode + parent_id (SQLite) | Nested Slate tree (Yjs CRDT)   |
+| Type system   | type + item boolean + traits    | Unified ItemElement            |
+| Content       | content string field            | First child ItemContentElement |
+| Body          | Blocks before first item child  | Content element (always first) |
+| Rich text     | Markdown in content string      | Slate inline nodes             |
+| Collaboration | File sync (bidirectional)       | Yjs real-time CRDT             |
 
 **Shared structure**: Both use Board → Column → Card → Sub-item hierarchy. Both have body content and transclusion. The outliner spec (`docs/design/ui/layout.md`) defines shared editing behavior.
 
@@ -242,13 +246,13 @@ The TUI wraps KNode in view models for rendering:
 
 ### Options
 
-| Option | Type | Default | What it controls |
-|---|---|---|---|
-| `match` | `(node) => boolean` | all | Which nodes are **yielded** — never affects descent |
-| `into` | `(node) => boolean` | always true | Whether to **descend** into children — never affects yielding |
-| `reverse` | `boolean` | false | DFS in reverse order (last child first) |
-| `at` | `string` | — | Skip all nodes before this ID in DFS order |
-| `mode` | `"all" \| "highest" \| "lowest"` | `"all"` | Match mode: every match, shallowest per branch, or deepest per branch |
+| Option  | Type                           | Default     | What it controls                                                      |
+| ------- | ------------------------------ | ----------- | --------------------------------------------------------------------- |
+| match   | (node) => boolean              | all         | Which nodes are yielded — never affects descent                       |
+| into    | (node) => boolean              | always true | Whether to descend into children — never affects yielding             |
+| reverse | boolean                        | false       | DFS in reverse order (last child first)                               |
+| at      | string                         | —           | Skip all nodes before this ID in DFS order                            |
+| mode    | "all" \| "highest" \| "lowest" | "all"       | Match mode: every match, shallowest per branch, or deepest per branch |
 
 `match` and `into` are **orthogonal** — match never affects descent, into never affects yielding. This replaces the old `walkTree` which conflated filtering (what to yield) with pruning (what subtrees to skip).
 
@@ -257,15 +261,18 @@ The TUI wraps KNode in view models for rendering:
 Predicates used with `KTree.nodes` fall into three layers:
 
 **Tree layer (match predicates)** — data model type, independent of view state:
+
 - `KNode.isOutline`, `KNode.isItem`, `KNode.isBlock`, `KNode.isListItem`
 - `KNode.isTask`, `KNode.isEmbed`
 
 **View layer (into predicates)** — whether to descend into subtrees, depends on UI state:
+
 - `isCollapsedChild` — node is hidden by parent's collapsed state
 - `isHidden` — node is filtered out (e.g., done tasks hidden)
 - `foldDepths` — fold level controlling which depths are expanded
 
 **Render layer (neither)** — display-only concerns, not part of tree walking:
+
 - `maxContentLines` — truncation for long content
 - Task status filter — which statuses to show (done/todo/all)
 
@@ -344,3 +351,4 @@ function withTree(tree) {
 - **Lazy diagnostics** — build expensive error context only when a validator throws
 
 Start simple. Add complexity when profiling or debugging demands it.
+

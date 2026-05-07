@@ -28,10 +28,10 @@ When running parallel TUI mode, mdtest streams properly but bun:fast and bun:slo
 **Possible solutions**:
 
 1. Parse bun's dots reporter (--reporter=dots) line-by-line
-  - Pro: Streams as tests complete
-  - Con: No test names, just dots
-2. Request streaming TAP reporter from Bun team (upstream)
-3. Document as known limitation
+- Pro: Streams as tests complete
+- Con: No test names, just dots
+5. Request streaming TAP reporter from Bun team (upstream)
+6. Document as known limitation
 
 **Status**: Blocked by Bun not having streaming reporter with test names.
 

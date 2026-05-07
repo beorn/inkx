@@ -1,6 +1,6 @@
 # Migration: render() → createApp()
 
-> **Era2 design doc.** When era2 ships, integrate into `vendor/silvery/docs/getting-started/migrate-from-ink.md` after the existing compat layer content.
+> Era2 design doc. When era2 ships, integrate into vendor/silvery/docs/getting-started/migrate-from-ink.md after the existing compat layer content.
 
 ## When render() is enough
 
@@ -135,3 +135,4 @@ await app.run(<App />)
 **Do I need createApp()?** No. `render()` is fine until scattered handlers and untestable actions become painful.
 
 **Can I use both useInput and keymap?** Yes. Unmatched keys fall through. Migrate gradually.
+

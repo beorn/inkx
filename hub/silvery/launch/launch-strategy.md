@@ -75,3 +75,4 @@ Then        → Launch 2: Silvery + Pretext on HN (multi-surface React story)
 | ------------------ | -------------------------------------- | ------------------------------------------------------------ |
 | Flexily standalone | External adoption of the layout engine | Confidence that the API is right before silvery builds on it |
 | Silvery + Pretext  | Multi-surface rendering works          | Canvas developers adopt silvery, Pretext gets validation     |
+

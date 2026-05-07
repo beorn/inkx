@@ -9,12 +9,13 @@
 - **Loop ownership**: own (L1) vs delegated (L2)
 - **Model reach**: HTTP/SDK direct (B1) vs subprocess agent CLI (B2) vs inverted MCP (B3)
 
-|  | B1 HTTP/SDK | B2 Subprocess CLI | B3 Inverted MCP |
-|---|---|---|---|
-| **L1 own** | **Type M — this doc** | impossible by definition | impossible by definition |
-| **L2 delegated** | rare proxy oddity | **Type A — see doc 10** | **Type R — see doc 10** (container-use) |
+|              | B1 HTTP/SDK       | B2 Subprocess CLI        | B3 Inverted MCP                     |
+| ------------ | ----------------- | ------------------------ | ----------------------------------- |
+| L1 own       | Type M — this doc | impossible by definition | impossible by definition            |
+| L2 delegated | rare proxy oddity | Type A — see doc 10      | Type R — see doc 10 (container-use) |
 
 **Terminology**:
+
 - **Agent** — LLM + tool loop + behavior (Claude Sonnet doing work).
 - **Agent host** — own-loop product packaging it (Cline, Claude Code, opencode, etc.).
 - **Agent router** — delegated-loop meta-orchestrator that wraps multiple agent hosts as subprocess backends.
@@ -22,21 +23,21 @@
 
 ## At-a-glance matrix
 
-| Host | License | Surfaces | Models | Tool model | Extensibility | Agent loop | Memory/context |
-|---|---|---|---|---|---|---|---|
-| **Claude Code** | Proprietary (Anthropic) | CLI TUI + VSCode ext | Claude | Built-in + MCP | Hooks, Skills, settings | Single-agent + Task sub-agents | In-session + JSONL; `/compact` |
-| **Cline** | Apache 2.0 | VSCode ext + **TUI** | Multi-vendor (Claude/GPT/Gemini/Ollama/local) | Built-in + MCP | MCP servers | Single-agent; Plan/Act modes | In-session; task history |
-| **Continue** | Apache 2.0 | VSCode + JetBrains | Multi-vendor (everything) | Built-in + MCP | Config-driven + plugins | Single-agent; Chat/Edit/Agent/Autocomplete | In-session; indexed codebase |
-| **opencode** | MIT (sst org) | TUI | Multi-vendor | Built-in + MCP | MCP + `opencode.json` config | Single + multi-session | In-session |
-| **aider** | Apache 2.0 | TUI (Python) | Multi-vendor via LiteLLM | Built-in (edit/commit) | Commands, `/` prefix | Single-agent | **Repo map** (tree-sitter) + git history |
-| **Codex CLI** | MIT / Apache (OpenAI) | CLI | GPT family | Built-in | JSON output mode | Single-agent | In-session |
-| **Cursor** | Proprietary | Forked VSCode IDE | Multi-vendor | Built-in | Limited | Composer (multi-file) + Agent | Indexed codebase + "@" refs |
-| **GitHub Copilot** | Proprietary | Multi-IDE + CLI + Web | GPT / proprietary | Built-in | Copilot Extensions | Chat + Edits + Workspace | Indexed codebase |
-| **pi-mono** | MIT (badlogic) | TUI (`pi-coding-agent`) + Slack (`pi-mom`) | Multi-vendor via `pi-ai` (Anthropic, OpenAI, Google, Bedrock, Vertex, Azure) | Built-in (`pi-agent-core`) | Workspace packages | Single-agent | In-session; own message log |
-| **sketch** | (Bold Software) | Web IDE in container | Anthropic only | Built-in (mostly shell) | n/a | Single-agent per sketch | Container-isolated; multiple parallel sketches |
-| **maige** | OSS (RubricLab) | GitHub bot (Next.js webhook) | OpenAI via LangChain | LangChain tools + SerpAPI | Rules-based routing | Single-agent per webhook | None first-class |
-| **hermes-agent** (today) | OSS (NousResearch) | Ink TUI | Multi-vendor (Nous Portal, OpenRouter, Anthropic, OpenAI-compat, Bedrock, vLLM) | Built-in | 6 exec backends (local/Docker/SSH/Daytona/Singularity/Modal) | Single-agent | In-session |
-| **(silvery-native, speculative)** | TBD | Terminal + canvas + DOM | Claude (v1); multi-vendor (later) | Built-in + MCP + CAP | silvery components | Multi-agent peers via tribe/sessions | km graph + tape replay |
+| Host                          | License                 | Surfaces                               | Models                                                                          | Tool model                | Extensibility                                                | Agent loop                                 | Memory/context                                 |
+| ----------------------------- | ----------------------- | -------------------------------------- | ------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------ | ------------------------------------------ | ---------------------------------------------- |
+| Claude Code                   | Proprietary (Anthropic) | CLI TUI + VSCode ext                   | Claude                                                                          | Built-in + MCP            | Hooks, Skills, settings                                      | Single-agent + Task sub-agents             | In-session + JSONL; /compact                   |
+| Cline                         | Apache 2.0              | VSCode ext + TUI                       | Multi-vendor (Claude/GPT/Gemini/Ollama/local)                                   | Built-in + MCP            | MCP servers                                                  | Single-agent; Plan/Act modes               | In-session; task history                       |
+| Continue                      | Apache 2.0              | VSCode + JetBrains                     | Multi-vendor (everything)                                                       | Built-in + MCP            | Config-driven + plugins                                      | Single-agent; Chat/Edit/Agent/Autocomplete | In-session; indexed codebase                   |
+| opencode                      | MIT (sst org)           | TUI                                    | Multi-vendor                                                                    | Built-in + MCP            | MCP + opencode.json config                                   | Single + multi-session                     | In-session                                     |
+| aider                         | Apache 2.0              | TUI (Python)                           | Multi-vendor via LiteLLM                                                        | Built-in (edit/commit)    | Commands, / prefix                                           | Single-agent                               | Repo map (tree-sitter) + git history           |
+| Codex CLI                     | MIT / Apache (OpenAI)   | CLI                                    | GPT family                                                                      | Built-in                  | JSON output mode                                             | Single-agent                               | In-session                                     |
+| Cursor                        | Proprietary             | Forked VSCode IDE                      | Multi-vendor                                                                    | Built-in                  | Limited                                                      | Composer (multi-file) + Agent              | Indexed codebase + "@" refs                    |
+| GitHub Copilot                | Proprietary             | Multi-IDE + CLI + Web                  | GPT / proprietary                                                               | Built-in                  | Copilot Extensions                                           | Chat + Edits + Workspace                   | Indexed codebase                               |
+| pi-mono                       | MIT (badlogic)          | TUI (pi-coding-agent) + Slack (pi-mom) | Multi-vendor via pi-ai (Anthropic, OpenAI, Google, Bedrock, Vertex, Azure)      | Built-in (pi-agent-core)  | Workspace packages                                           | Single-agent                               | In-session; own message log                    |
+| sketch                        | (Bold Software)         | Web IDE in container                   | Anthropic only                                                                  | Built-in (mostly shell)   | n/a                                                          | Single-agent per sketch                    | Container-isolated; multiple parallel sketches |
+| maige                         | OSS (RubricLab)         | GitHub bot (Next.js webhook)           | OpenAI via LangChain                                                            | LangChain tools + SerpAPI | Rules-based routing                                          | Single-agent per webhook                   | None first-class                               |
+| hermes-agent (today)          | OSS (NousResearch)      | Ink TUI                                | Multi-vendor (Nous Portal, OpenRouter, Anthropic, OpenAI-compat, Bedrock, vLLM) | Built-in                  | 6 exec backends (local/Docker/SSH/Daytona/Singularity/Modal) | Single-agent                               | In-session                                     |
+| (silvery-native, speculative) | TBD                     | Terminal + canvas + DOM                | Claude (v1); multi-vendor (later)                                               | Built-in + MCP + CAP      | silvery components                                           | Multi-agent peers via tribe/sessions       | km graph + tape replay                         |
 
 ### What the columns mean
 
@@ -54,6 +55,7 @@
 **What it is**: Anthropic's official agent CLI; rich TUI; VSCode extension companion.
 
 **Architecture** (inferred — not fully confirmed from source):
+
 - Alt-screen TUI in Node/Ink; chat bubbles + tool-call boxes + permission UI
 - Uses Anthropic API directly (not the SDK — CC is the reference implementation that the SDK abstracts)
 - Built-in tools: Read, Write, Edit, Bash, Grep, Glob, Task (sub-agent), WebFetch, etc.
@@ -63,6 +65,7 @@
 - Multi-agent via Task tool (opaque sub-agents, not peer)
 
 **Notable features**:
+
 - Permission modes (plan / accept-edits / auto)
 - Slash commands (`/compact`, `/rename`, `/clear`, `/help`, `/doctor`, `/agents`)
 - Todos via TodoWrite tool
@@ -79,6 +82,7 @@
 **What it is**: OSS agent host; started VSCode-only, now ships a TUI alongside. Strong Plan/Act workflow.
 
 **Architecture**:
+
 - VSCode extension written in TypeScript; agent loop lives in the extension process
 - **Dual-surface** since [recent]: shared agent core, VSCode webview UI + TUI UI
 - Agent loop: vendor-SDK-direct via a provider abstraction (Claude / GPT / Gemini / Ollama / local)
@@ -86,6 +90,7 @@
 - Plan/Act distinction: "Plan" mode reasons without editing; "Act" mode proposes edits with diff-preview approvals
 
 **Notable features**:
+
 - Approval flow per tool with diff preview
 - Multi-vendor from day one via provider abstraction
 - MCP support
@@ -101,6 +106,7 @@
 **What it is**: OSS multi-IDE extension with pluggable everything. VSCode + JetBrains.
 
 **Architecture**:
+
 - **Core engine** is a standalone TypeScript package (`core/`) — platform-independent agent loop, model abstraction, tool registry, prompt compilation
 - **GUI** layer talks to core via IPC; separate packages for VSCode and JetBrains
 - Config-file-driven (`.continuerc.json` / `config.yaml`); define providers, models, prompts, context providers
@@ -109,6 +115,7 @@
 - Model backends: Anthropic, OpenAI, Gemini, Bedrock, Azure, Ollama, HuggingFace, LMStudio, llama.cpp — basically everything
 
 **Notable features**:
+
 - Configurable slash commands
 - Docs context provider (fetch + embed docs for reference)
 - Rich @-context system for targeted retrieval
@@ -122,6 +129,7 @@
 **What it is**: TUI coding agent from the Anomaly team (ex-SST: Jay V, Dax Raad, Adam Elmore, Frank Wang). Strong polish in the terminal — and, as of 2026, **the de facto open agent platform** (see Kilo Code below).
 
 **Architecture**:
+
 - TypeScript implementation; TUI rendering
 - Multi-vendor via `@ai-sdk/*` (20+ providers — Anthropic, OpenAI, Google, AWS Bedrock, Azure, Vertex, Groq, Mistral, xAI, Perplexity, Cerebras, Cohere, DeepInfra, Alibaba, TogetherAI, Vercel Gateway, OpenAI-compatible)
 - Protocols: **MCP, ACP (Agent Client Protocol), LSP**
@@ -130,6 +138,7 @@
 - Server core decoupled from surface — same engine powers TUI, desktop (Tauri), web (`opencode web`), and external consumers
 
 **Notable features**:
+
 - TUI polish: well-designed for terminal use
 - ACP server — opencode can be consumed *as a backend* by other agent hosts
 - Session management
@@ -145,6 +154,7 @@
 **What it is**: A productized soft fork of opencode shipped as a multi-surface coding-agent product (VS Code + JetBrains + standalone CLI + Cloud Agents). The TUI/extension UX is essentially identical to opencode's; Kilo's value-add is auth + Orchestrator mode + Memory Bank + Agent Manager (multi-session diff reviewer with git-worktree isolation) layered on top via `kilocode_change` markers.
 
 **Architecture**:
+
 - Core engine package literally lives at `packages/opencode/` in the Kilo repo, published as `@kilocode/cli`
 - Soft fork with CI-enforced annotation discipline: every Kilo-specific change in shared opencode files must be tagged `<!-- kilocode_change start --> ... <!-- kilocode_change end -->` (`check-opencode-annotations.ts` blocks merges otherwise)
 - `@opencode-ai/app`, `@opencode-ai/desktop`, `@opencode-ai/util` package names preserved verbatim from upstream — they sync packages directly
@@ -163,6 +173,7 @@
 **What it is**: Python TUI agent; pioneered "git-first + repo-map" approach.
 
 **Architecture**:
+
 - Python CLI; uses prompt_toolkit for TUI
 - Multi-vendor via **LiteLLM** (the go-to Python LLM abstraction)
 - **Repo map**: uses tree-sitter to build a symbol graph of the whole repository; includes relevant chunks in context automatically
@@ -170,6 +181,7 @@
 - Command system: `/add`, `/drop`, `/commit`, `/undo`, `/diff`, `/run`, `/web`, etc.
 
 **Notable features**:
+
 - Repo map is genuinely novel — context-efficient way to give the LLM a whole-repo view
 - Git workflow is airtight
 - Benchmarks: aider publishes SWE-bench / editing benchmarks; often leads on real-world edit quality
@@ -182,12 +194,14 @@
 **What it is**: OpenAI's official agent CLI. Released more recently than Claude Code; less mature in features.
 
 **Architecture**:
+
 - Rust-based CLI (I believe)
 - GPT-family models only
 - Built-in tool set (fs, shell)
 - JSON output mode for non-interactive use
 
 **Notable features**:
+
 - OpenAI-blessed; follows OpenAI's evolving model capabilities
 - Smaller surface area than Claude Code
 
@@ -199,6 +213,7 @@
 **What it is**: VSCode fork with its own agent backend. Commercial product ($20/mo).
 
 **Architecture**:
+
 - Fork of VSCode (regularly rebased)
 - Proprietary backend with model routing / caching / optimization
 - Multi-vendor under the hood (users don't pick models for most flows; Cursor picks)
@@ -207,6 +222,7 @@
 - Indexed codebase with RAG
 
 **Notable features**:
+
 - Composer (multi-file edit preview + apply)
 - Tab autocomplete is uniquely good (proprietary infra)
 - @-references for targeted context
@@ -220,6 +236,7 @@
 **What it is**: GitHub/MS's agent family. Multi-IDE + CLI + Web.
 
 **Architecture**:
+
 - Multiple products under one brand: Copilot (autocomplete), Copilot Chat, Copilot Edits, Copilot Workspace
 - Backend: mix of OpenAI models + GitHub's own routing
 - IDE surfaces: VSCode, JetBrains, Neovim, Visual Studio, Xcode, etc.
@@ -228,6 +245,7 @@
 - Copilot Extensions: plugins that add skills to Copilot Chat
 
 **Notable features**:
+
 - Broadest IDE coverage
 - Copilot Workspace for autonomous task mode
 - Tight GitHub integration (PR-aware)
@@ -239,17 +257,17 @@
 
 These are the axes where hosts differ materially. For an authoring track, we pick a position on each.
 
-| Dimension | Options | Our likely position |
-|---|---|---|
-| **Surfaces** | CLI / TUI / IDE / Web / multi-surface | Multi-surface (silvery's thesis) |
-| **Models** | Single vendor / multi / BYOK | Claude v1; multi later |
-| **Tool source** | Built-in / MCP / pluggable / CAP | Built-in + MCP + CAP |
-| **Permission model** | Auto / ask / plan+act / policy-gated | CAP permissions + commander gates |
-| **Agent loop** | Single / single+sub / peer | Peer (sessions model, fibers) |
-| **Memory** | In-session / repo-map / indexed / persistent graph | km graph (persistent) + tape (replayable) |
-| **Extensibility** | Closed / config / plugins / protocol | Silvery components + MCP + CAP |
-| **Git integration** | None / manual / auto-commit / diff-preview | Diff-preview via CAP blocks |
-| **License** | Proprietary / OSS / source-available | TBD (see `what's not scoped` in README) |
+| Dimension        | Options                                            | Our likely position                       |
+| ---------------- | -------------------------------------------------- | ----------------------------------------- |
+| Surfaces         | CLI / TUI / IDE / Web / multi-surface              | Multi-surface (silvery's thesis)          |
+| Models           | Single vendor / multi / BYOK                       | Claude v1; multi later                    |
+| Tool source      | Built-in / MCP / pluggable / CAP                   | Built-in + MCP + CAP                      |
+| Permission model | Auto / ask / plan+act / policy-gated               | CAP permissions + commander gates         |
+| Agent loop       | Single / single+sub / peer                         | Peer (sessions model, fibers)             |
+| Memory           | In-session / repo-map / indexed / persistent graph | km graph (persistent) + tape (replayable) |
+| Extensibility    | Closed / config / plugins / protocol               | Silvery components + MCP + CAP            |
+| Git integration  | None / manual / auto-commit / diff-preview         | Diff-preview via CAP blocks               |
+| License          | Proprietary / OSS / source-available               | TBD (see what's not scoped in README)     |
 
 ## What we can learn (or steal) from each
 
@@ -293,3 +311,4 @@ Claims here are a mix of confirmed-from-public-info and inferred. Confidence lev
 - **Low confidence / inferred**: specific implementation details of any host's internal agent loop (most are OSS so could be verified by reading source; out of scope for this doc).
 
 Before using this as a basis for a real strategy, verify the medium/low-confidence items by reading source / public docs.
+

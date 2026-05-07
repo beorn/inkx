@@ -23,11 +23,11 @@ Production code uses the command system exclusively (processKeyWithContext → h
 Two approaches for test migration:
 
 1. **Integration style**: Use stdin.write (goes through full command system)
-  - Pro: Tests real flow, closer to production
-  - Con: Slower, requires full TUI setup
-2. **Unit style**: Call processKeyWithContext + handleCommandAction directly
-  - Pro: Faster, more focused tests
-  - Con: Need to mock InkKeyEvent, build test context
+- Pro: Tests real flow, closer to production
+- Con: Slower, requires full TUI setup
+5. **Unit style**: Call processKeyWithContext + handleCommandAction directly
+- Pro: Faster, more focused tests
+- Con: Need to mock InkKeyEvent, build test context
 
 ## Steps
 

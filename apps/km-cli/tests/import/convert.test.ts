@@ -1266,9 +1266,7 @@ describe("Multi-project task dedup", () => {
 
 describe("Sigil-board project files (rules.add)", () => {
   test("project file H1 carries km.add:: +<slug>", () => {
-    const md = convertToMd(
-      makeData([{ sourceId: "t1", title: "A task" }], "API Refactor"),
-    )
+    const md = convertToMd(makeData([{ sourceId: "t1", title: "A task" }], "API Refactor"))
     // The H1 line should contain the rules.add directive that bd query / sync materialization read.
     expect(md).toMatch(/^# API Refactor km\.add:: \+api-refactor/m)
   })

@@ -91,7 +91,7 @@ named one:
 - "Is this bead tagged P1?" → `SELECT 1 FROM links WHERE host_id = ?
      AND href = '#P1'`
 - "List all P1 beads" → `SELECT host_id FROM links WHERE href = '#P1'`
-10. Verify `bd list --priority P1` returns the same set as before.
+14. Verify `bd list --priority P1` returns the same set as before.
 
 **Phase C — stop writing `data.tags` (beads-side only):**
 

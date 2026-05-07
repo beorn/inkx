@@ -1,6 +1,6 @@
 # Headless State Machines
 
-> **Deep-dive** for [era2-overview.md](../../reference/era2-overview.md) § Era 2b Phase 1. Package: `@silvery/headless`. Pure `(state, action) → state` machines for interactive components.
+> Deep-dive for era2-overview.md § Era 2b Phase 1. Package: @silvery/headless. Pure (state, action) → state machines for interactive components.
 
 _Status: draft (2026-03-24). See also: [signals.md](./signals.md) (signals integration), [commands.md](./commands.md) (command tree), [app-composition.md](../v10-terminal/app-composition.md) (app composition)._
 
@@ -536,13 +536,11 @@ Migration happens in era2b Phase 1 (bead `km-silvery.era2b-1-headless`) and Phas
 ## Open Questions
 
 - **TextAreaState**: Multi-line editing adds visual-line-aware cursor movement (up/down across wrapped lines, Ctrl+A/E to visual line start/end). Should this be a separate machine that composes with ReadlineState, or an extension of it? The current code handles this in TextArea's `useInput` with calls to `cursorToRowCol`/`rowColToCursor` from text-cursor.ts.
-
 - **ScrollState**: Should virtual scroll offset tracking (for ListView's non-navigable mode) be a headless machine? Currently it's just `scrollTo` prop + internal offset. Might be too simple to warrant a machine.
-
 - **Identity vs equality**: Should update functions guarantee identity return (`===`) for no-op actions? This is valuable for React (skip re-render) and signals (skip notification). The design says yes — but it requires careful implementation (can't spread and return a new object on no-ops).
-
 - **Action metadata**: Should actions carry metadata for debugging/logging? E.g., `{ type: "move_down", _source: "keyboard" }`. Or is this the caller's concern?
 
 ---
 
 _See also: [era2-overview.md](../../reference/era2-overview.md) (era2 architecture), [signals.md](./signals.md) (signals integration), [commands.md](./commands.md) (commands), [app-composition.md](../v10-terminal/app-composition.md) (app composition, domain plugins)._
+

@@ -378,14 +378,14 @@ The `tree.descendants().some()` / `tree.ancestors().reduce()` pattern handles th
 
 **Key aggregates for the engine**:
 
-| Aggregate                                         | Direction       | Use                                                  |
-| ------------------------------------------------- | --------------- | ---------------------------------------------------- |
-| `tree.children(s => s.baseSize).reduce(collect)`  | down (children) | Flex distribution input                              |
-| `tree.descendants(s => s.dirty).some()`           | down            | Subtree-has-dirty (replaces subtreeDirty flag)       |
-| `tree.ancestors(s => s.backgroundColor).first()`  | up (ancestors)  | Inherited background (replaces findInheritedBg walk) |
-| `tree.ancestors(s => s.scrollOffset).reduce(sum)` | up              | Screen position (replaces screenRectPhase)           |
-| `tree.children(s => s.height).reduce(max)`        | down            | Cross-axis size (replaces Phase 7a estimate)         |
-| `tree.descendants(s => s.height).reduce(sum)`     | down            | Scroll content height                                |
+| Aggregate                                       | Direction       | Use                                                  |
+| ----------------------------------------------- | --------------- | ---------------------------------------------------- |
+| tree.children(s => s.baseSize).reduce(collect)  | down (children) | Flex distribution input                              |
+| tree.descendants(s => s.dirty).some()           | down            | Subtree-has-dirty (replaces subtreeDirty flag)       |
+| tree.ancestors(s => s.backgroundColor).first()  | up (ancestors)  | Inherited background (replaces findInheritedBg walk) |
+| tree.ancestors(s => s.scrollOffset).reduce(sum) | up              | Screen position (replaces screenRectPhase)           |
+| tree.children(s => s.height).reduce(max)        | down            | Cross-axis size (replaces Phase 7a estimate)         |
+| tree.descendants(s => s.height).reduce(sum)     | down            | Scroll content height                                |
 
 Each of these replaces a hand-coded tree walk in the current pipeline with a declarative aggregate that auto-invalidates when dependencies change.
 
@@ -420,11 +420,8 @@ Each would be its own design doc once the core architecture (Phases 2-5) is prov
 ## Open questions
 
 1. **Per-cell vs per-tile vs per-node**: At what granularity should content signals operate? Per-cell is most precise but 12K signals for terminal. Per-tile (16x16) is better for canvas. Per-node might be the right default (each node has a "my rendered cells" computed).
-
 2. **Signal equality for layout**: alien-signals uses `Object.is` for equality. Layout results are objects (`{ width: 80, height: 1 }`). Need structural equality or signal-per-dimension? Probably signal-per-dimension (width, height, x, y as separate signals) for finest granularity.
-
 3. **Batch size**: How many signal updates per frame? If user types fast (10 keystrokes buffered), each keystroke is a signal write. alien-signals' batch() coalesces — but does the frame budget accommodate 10 cascading updates? Probably yes (10 × 50μs = 500μs), but needs measurement.
-
 4. **Memory on large trees**: 500 nodes × ~20 signals per node × ~40 bytes per signal = 400KB for the signal graph. Plus cell signals. Acceptable for terminal, needs measurement for 50K-element canvas.
-
 5. **Compatibility period**: During migration (Phases 2-5), can the old pipeline and new signal pipeline coexist? Probably yes — STRICT mode can compare old pipeline output with new signal output cell-by-cell, exactly as it compares incremental vs fresh today.
+

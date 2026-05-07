@@ -18,14 +18,14 @@ Before implementing flexx from scratch, research and directly port from an exist
 ## Candidates
 
 1. **Planning-nl/flexbox.js** - Pure JS implementation
-  - GitHub: https://github.com/Planning-nl/flexbox.js/
-  - ~1500 LOC, Apache 2.0 license
-2. **dead/typeflex** - TypeScript port of Yoga
-  - GitHub: https://github.com/dead/typeflex
-  - Complete Yoga port, but larger (~8000 LOC)
-3. **kmagiera/css-layout** - Facebook's original pre-Yoga implementation
-  - GitHub: https://github.com/kmagiera/css-layout
-  - Pure JS, but deprecated
+- GitHub: https://github.com/Planning-nl/flexbox.js/
+- ~1500 LOC, Apache 2.0 license
+5. **dead/typeflex** - TypeScript port of Yoga
+- GitHub: https://github.com/dead/typeflex
+- Complete Yoga port, but larger (~8000 LOC)
+9. **kmagiera/css-layout** - Facebook's original pre-Yoga implementation
+- GitHub: https://github.com/kmagiera/css-layout
+- Pure JS, but deprecated
 
 ## Approach
 

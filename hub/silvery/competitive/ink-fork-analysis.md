@@ -6,19 +6,19 @@ See also: [general reference page on the fork](../../../../../Bear/Journal/ref/t
 
 ## Gap-by-gap: silvery status vs jrichman's patches
 
-| Gap Google patched | Silvery status | Notes |
-|---|---|---|
-| Scrollback (stableScrollback, scroll animation backbuffer) | ✅ Shipped | Silvery has scrollback tiers and incremental pipeline |
-| Sticky headers | ✅ Shipped | Silvery has sticky-children as a first-class concept |
-| Dirty regions / nested static render | ✅ Shipped | Dirty-flag pipeline + incremental rendering is silvery core |
-| Alternate buffer / alt-screen | ✅ Shipped | Silvery supports inline vs fullscreen modes |
-| StyledLine perf | ✅ Equivalent | Silvery has its own text pipeline |
-| measure-text perf | ✅ Equivalent | Flexily caches measure results via fingerprinting |
-| Yoga flex-shrink workaround | ✅ Obsolete | Silvery uses Flexily, not Yoga — no workaround needed |
-| Border on 0-width content | ⚠️ Verify | Check silvery handles this |
-| Integer rounding for layout values | ⚠️ Verify | Check Flexily behavior |
-| npx deploy render-process | N/A | Bundling concern, not framework |
-| iTerm-specific fix | ⚠️ Verify | Check silvery's iTerm testing |
+| Gap Google patched                                         | Silvery status | Notes                                                       |
+| ---------------------------------------------------------- | -------------- | ----------------------------------------------------------- |
+| Scrollback (stableScrollback, scroll animation backbuffer) | ✅ Shipped      | Silvery has scrollback tiers and incremental pipeline       |
+| Sticky headers                                             | ✅ Shipped      | Silvery has sticky-children as a first-class concept        |
+| Dirty regions / nested static render                       | ✅ Shipped      | Dirty-flag pipeline + incremental rendering is silvery core |
+| Alternate buffer / alt-screen                              | ✅ Shipped      | Silvery supports inline vs fullscreen modes                 |
+| StyledLine perf                                            | ✅ Equivalent   | Silvery has its own text pipeline                           |
+| measure-text perf                                          | ✅ Equivalent   | Flexily caches measure results via fingerprinting           |
+| Yoga flex-shrink workaround                                | ✅ Obsolete     | Silvery uses Flexily, not Yoga — no workaround needed       |
+| Border on 0-width content                                  | ⚠️ Verify      | Check silvery handles this                                  |
+| Integer rounding for layout values                         | ⚠️ Verify      | Check Flexily behavior                                      |
+| npx deploy render-process                                  | N/A            | Bundling concern, not framework                             |
+| iTerm-specific fix                                         | ⚠️ Verify      | Check silvery's iTerm testing                               |
 
 ## What the fork tells us about the market
 
@@ -54,3 +54,4 @@ See also: [general reference page on the fork](../../../../../Bear/Journal/ref/t
 - Maintainer: Jacob Richman, Google (Flutter DevTools background)
 - Shipped in: `google-gemini/gemini-cli` (102.1k ⭐)
 - Fork activity: 27 ⭐, daily commits, 20+ branches
+

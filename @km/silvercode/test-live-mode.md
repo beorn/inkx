@@ -77,3 +77,4 @@ This is the standard 'contract tests' pattern — same scenarios, two boundary i
 ## Dependency
 
 Requires `km-silvercode.test-api-fakes` to land first — without the fakes being complete, 'fake vs real' is just 'partial-fake vs real' which isn't a meaningful contract.
+

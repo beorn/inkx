@@ -1,8 +1,8 @@
 # InkX Command API Research — ARCHIVED 2026-04-17
 
-> **Ink is retired**; km uses [silvery](../../vendor/silvery/). This speculative design for an InkX command API will never ship. Kept for historical interest only.
+> Ink is retired; km uses silvery. This speculative design for an InkX command API will never ship. Kept for historical interest only.
 
-# Command API Design Research
+## Command API Design Research
 
 Deep research on ergonomic API design patterns for TUI automation.
 
@@ -17,27 +17,31 @@ The research validated our SlateJS-style plugin architecture (`withCommands`, `w
 ### 1. Proxy vs Explicit Methods
 
 **Recommendation**: Proxy is appropriate when you need both patterns:
+
 - `app.cmd.down()` (method-style)
 - `app.cmd['cursor_down']()` (index-style)
 
 However, since commands are known at compile-time, explicit registration may be simpler. The trade-off:
+
 - **Proxy**: Flexible, dynamic, but adds indirection and complicates TypeScript types
 - **Explicit**: More boilerplate, but full autocomplete and static analysis
 
-> "Use Proxy only if you need its dynamism; if not, a well-structured static API is simpler." ([Medium](https://medium.com/differential-blog/using-proxy-objects-and-typescript-to-create-dynamic-type-safe-clients-a5db3c840098))
+> "Use Proxy only if you need its dynamism; if not, a well-structured static API is simpler." (Medium)
 
 ### 2. Separation of Concerns (Validated)
 
 Industry standard: separate command definitions from invocation methods.
 
-> "Commands separate the semantics of an action from its logic, allowing multiple disparate sources to invoke the same command." ([WPF Commands Guide](https://www.codeproject.com/Articles/23301/WPF-A-Beginner-s-guide-Part-3-of-n))
+> "Commands separate the semantics of an action from its logic, allowing multiple disparate sources to invoke the same command." (WPF Commands Guide)
 
 Examples:
+
 - **VS Code**: Commands declared separately from keybindings
 - **Emacs**: Global command list + keymaps that bind to commands
 - **SlateJS**: Commands as high-level user-intent actions
 
 Benefits:
+
 1. Avoids duplication (same command from keyboard, menu, AI)
 2. Improves testability (call command directly, bypass keystrokes)
 3. Aligns with hexagonal architecture (commands = use cases, UI = adapter)
@@ -46,9 +50,9 @@ Benefits:
 
 Self-documenting commands with `id`, `help`, `keys` metadata matches how AI tool interfaces are designed:
 
-> "LangChain defines tools with a name and a description so that the AI knows when to use them." ([LangChain Docs](https://docs.langchain.com/oss/python/langchain-tools))
+> "LangChain defines tools with a name and a description so that the AI knows when to use them." (LangChain Docs)
 
-> "OpenAI's function-calling API expects a schema with function name and description, which informs the model what it does." ([OpenAI Platform](https://platform.openai.com/docs/guides/function-calling))
+> "OpenAI's function-calling API expects a schema with function name and description, which informs the model what it does." (OpenAI Platform)
 
 The `app.getState()` pattern returning `{ screen, commands, focus }` is sufficient for AI introspection without bloating the API.
 
@@ -57,6 +61,7 @@ The `app.getState()` pattern returning `{ screen, commands, focus }` is sufficie
 > "To support AI introspection without bloating the API, stick to a small number of entry points that reveal everything needed."
 
 The research recommends:
+
 - One method (`getState()`) that returns structured data
 - Self-descriptive command metadata
 - No special "AI-only" APIs needed
@@ -64,11 +69,13 @@ The research recommends:
 ### 5. Layer Architecture
 
 The `with*` plugin pattern is well-suited for building layers:
+
 1. Base app (press, type, text)
 2. `withCommands` (adds cmd object)
 3. `withKeybindings` (wires input → commands)
 
 Each layer:
+
 - Wraps the previous
 - Adds new methods/handlers
 - Can intercept behavior of layers below
@@ -102,6 +109,7 @@ interface Command {
 ### Short Name Resolution
 
 Allow both `cmd.down` and `cmd['cursor_down']`:
+
 1. Try exact id match first
 2. Fall back to short name (last segment after underscore/dot)
 
@@ -166,16 +174,19 @@ function useInputLayer(id: string, handler: InputHandler) {
 **Completed in @km/silvery/driver/1**
 
 Files created:
+
 - `vendor/silvery/src/contexts/InputLayerContext.tsx` - Context and provider
 - `vendor/silvery/src/hooks/useInputLayer.ts` - Hook re-exports
 - `vendor/silvery/tests/input-layer.test.tsx` - Tests (14 passing)
 
 Exports added to `vendor/silvery/src/index.ts`:
+
 - `InputLayerProvider` - Wrap your app to enable the layer stack
 - `useInputLayer` - Register a layer with a handler
 - `useInputLayerContext` - Access dispatch and layer management
 
 Key design decisions:
+
 - **Child-first ordering**: Children handle input before parents (like DOM bubbling)
 - **Sibling ordering**: First rendered sibling handles first
 - **Sync registration**: useLayoutEffect ensures handlers are ready before first paint
@@ -218,6 +229,7 @@ The driver (`apps/km-tui/src/driver.ts`) uses `onStateCaptureREPLACE_WITH_CREATE
 ### Target State
 
 Migrate driver to use `createApp()` from Silvery/runtime:
+
 1. Define board state + key handlers via `createApp()`
 2. Board component uses `useApp(selector)` for state
 3. Driver accesses state via `app.store.getState()` directly
@@ -233,3 +245,4 @@ See bead: `@km/tui/4` (refactor: Migrate Board to createApp() store pattern)
 - [X-CMD Project Docs](https://www.x-cmd.com/start/cli-tui-llm/) - Structured help for LLM agents
 - [LangChain Documentation](https://docs.langchain.com/oss/python/langchain-tools) - Defining tools with descriptions for AI
 - [OpenAI API Guide](https://platform.openai.com/docs/guides/function-calling) - Function schemas for model integration
+

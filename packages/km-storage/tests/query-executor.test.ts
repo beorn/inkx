@@ -100,7 +100,9 @@ describe("Path Pattern Query Execution", () => {
         id: "inbox-task1",
         type: "p",
         item: { task: { marker: "[ ]", status: "todo" } },
+        priority: "P1",
         content: "Task in inbox",
+        data: '{"mentions":["alice"]}',
         fs_path: "/repo/inbox/tasks.md",
       },
       {
@@ -114,7 +116,9 @@ describe("Path Pattern Query Execution", () => {
         id: "project-task1",
         type: "p",
         item: { task: { marker: "[ ]", status: "todo" } },
+        priority: "P1",
         content: "Task in project",
+        data: '{"mentions":["alice"]}',
         fs_path: "/repo/projects/alpha/tasks.md",
       },
       {
@@ -156,6 +160,14 @@ describe("Path Pattern Query Execution", () => {
     expect(results.length).toBe(2)
     expect(results.every((r) => r.item?.task?.status === "todo")).toBe(true)
     expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true)
+  })
+
+  test("combines path CTE with links-backed ref and priority filters", () => {
+    const byRef = executeQuery(db, parseQuery("./inbox/** @alice"), "task")
+    expect(byRef.map((r) => r.id)).toEqual(["inbox-task1"])
+
+    const byPriority = executeQuery(db, parseQuery("./inbox/** priority:P1"), "task")
+    expect(byPriority.map((r) => r.id)).toEqual(["inbox-task1"])
   })
 })
 

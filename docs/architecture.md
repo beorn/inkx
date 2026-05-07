@@ -181,26 +181,6 @@ Dependencies flow downward. Each package imports only from packages on its row o
 5. `@km/board`'s dependency on `@silvery/ag-react` (for `PositionRegistry`/`ScrollRect` in grid navigation) is the only direct silvery dependency in the domain packages.
 6. `NodeRules` type and `parseHeadingRules()` live in `@km/core`, consumed by both `@km/board` and `@km/markdown`.
 
-### Mutation pipeline — one path; sync handles FS both ways
-
-Every code path that changes node state — `km bd close`, `km task new`, `km set`, `km view` keypress (`set_status_done`, etc.), MCP tools, watcher reconciliation — converges on `repo.updateNode` (and its lifecycle wrappers in `apps/km-cli/src/commands/tasks/lifecycle.ts`). **No code path writes `.md` files directly.**
-
-```
-   km view ──┐
-   km bd  ───┤                                              user editor
-   km task ──┼──► repo.updateNode ──► .km/state.db          (the other writer)
-   km <verb>─┤        ▲    │                                     │
-   MCP ──────┘        │    │                                     ▼
-                      │    └─── sync --to-fs ──► .md files ◄─────┘
-                      │                              │
-                      └────── sync --from-fs ────────┘
-                            (fs-watcher continuous)
-```
-
-Two writers (anything calling `repo.updateNode`, vs. the user's editor on `.md`); two indexers (sync DB→FS, sync FS→DB). No code path is both writer-and-FS-writer.
-
-This is what makes `km view`'s set-status-done and `km bd close` produce byte-identical state on disk (property-test pinnable). New surfaces — MCP, agent tools, future CLIs — get FS materialization for free by calling `repo.updateNode`. Tracked under [`@km/storage/sync-roundtrip-completeness`](../@km/storage/sync-roundtrip-completeness.md).
-
 ### Actual `@km/*` Dependencies (from package.json)
 
 ```

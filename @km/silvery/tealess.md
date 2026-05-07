@@ -87,37 +87,37 @@ npm install silvery gives just the renderer. TEA is optional.
 ### Critical path (blocks release)
 
 1. **@km/_orphan/kk0x1 (P0)** — Move core types/keys/focus/streams from tea to term
-  - THE blocker. 50+ imports in @silvery/term from @silvery/tea
-  - Move: types (TeaNode->AgNode, BoxProps, TextProps, Rect), keys (parseKey, keyToAnsi, splitRawInput), focus system (FocusManager, focus-events, focus-queries), streams (merge, filter, takeUntil), tree-utils (getAncestorPath, pointInRect)
-  - Keep in tea: store (createStore, silveryUpdate, dispatch), core (batch, none, effects), plugins, tea(), collect()
-  - Migration: copy files, update imports, re-export from tea for backwards compat
-  - Blocks: @km/_orphan/m8v1r, @km/_orphan/4ag6l, @km/_orphan/cy82q
-2. **@km/_orphan/m8v1r (P1)** — Rename TeaNode to AgNode
-  - Ag = silver, consistent with @silvery/ag-* naming from era2
-  - Do AFTER @km/_orphan/kk0x1 (types already moving)
-3. **@km/_orphan/4ag6l (P1)** — Move createApp from term to tea
-  - createApp creates stores and embodies TEA conventions
-  - term should only expose run() and render()
-  - Do AFTER @km/_orphan/kk0x1
-4. **@km/_orphan/cy82q (P1)** — Collapse public packages
-  - Public: silvery, @silvery/test, @silvery/ink, @silvery/tea
-  - Internal: @silvery/core, @silvery/term, @silvery/react, @silvery/ui, @silvery/theme
-  - Do AFTER @km/_orphan/kk0x1
-5. **@km/_orphan/wze2d (P1)** — Bundle into pre-built JS (like Ink 5)
-  - Ink bundles 24 deps into build/ (696KB tarball, but 16MB in node_modules)
-  - silvery currently ships TypeScript source (~2.1MB)
-  - esbuild + tree-shaking + minify would give ~177KB gzipped
-  - Do AFTER @km/_orphan/cy82q
+- THE blocker. 50+ imports in @silvery/term from @silvery/tea
+- Move: types (TeaNode->AgNode, BoxProps, TextProps, Rect), keys (parseKey, keyToAnsi, splitRawInput), focus system (FocusManager, focus-events, focus-queries), streams (merge, filter, takeUntil), tree-utils (getAncestorPath, pointInRect)
+- Keep in tea: store (createStore, silveryUpdate, dispatch), core (batch, none, effects), plugins, tea(), collect()
+- Migration: copy files, update imports, re-export from tea for backwards compat
+- Blocks: @km/_orphan/m8v1r, @km/_orphan/4ag6l, @km/_orphan/cy82q
+8. **@km/_orphan/m8v1r (P1)** — Rename TeaNode to AgNode
+- Ag = silver, consistent with @silvery/ag-* naming from era2
+- Do AFTER @km/_orphan/kk0x1 (types already moving)
+12. **@km/_orphan/4ag6l (P1)** — Move createApp from term to tea
+- createApp creates stores and embodies TEA conventions
+- term should only expose run() and render()
+- Do AFTER @km/_orphan/kk0x1
+17. **@km/_orphan/cy82q (P1)** — Collapse public packages
+- Public: silvery, @silvery/test, @silvery/ink, @silvery/tea
+- Internal: @silvery/core, @silvery/term, @silvery/react, @silvery/ui, @silvery/theme
+- Do AFTER @km/_orphan/kk0x1
+22. **@km/_orphan/wze2d (P1)** — Bundle into pre-built JS (like Ink 5)
+- Ink bundles 24 deps into build/ (696KB tarball, but 16MB in node_modules)
+- silvery currently ships TypeScript source (~2.1MB)
+- esbuild + tree-shaking + minify would give ~177KB gzipped
+- Do AFTER @km/_orphan/cy82q
 
 ### Parallel work (no code blockers)
 
 6. **@km/_orphan/2g3tx (P1)** — Add render() beginner API
-  - render() already accepts optional term! Just needs export cleanup and docs
-  - The README example already uses render(<Counter />).run()
-7. **@km/_orphan/79ubt (P1)** — Split examples into component-tier vs app-tier
-  - 22/24 examples use createApp+store
-  - Create component-tier: run()+useState for each @silvery/ui component
-  - Move current to app-tier section
+- render() already accepts optional term! Just needs export cleanup and docs
+- The README example already uses render(<Counter />).run()
+10. **@km/_orphan/79ubt (P1)** — Split examples into component-tier vs app-tier
+- 22/24 examples use createApp+store
+- Create component-tier: run()+useState for each @silvery/ui component
+- Move current to app-tier section
 
 ### Post-release (P2-P3)
 

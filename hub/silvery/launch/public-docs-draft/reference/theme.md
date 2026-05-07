@@ -1,3 +1,8 @@
+---
+mentions:
+  - silvery
+---
+
 # `@silvery/design` — Theme type & DesignSystem contract
 
 Sterling is silvery's default design system. It lives in `@silvery/design` and ships with `silvery` (re-exported as `design`). This page is the type + API reference; for how to use it, see [Sterling](/guide/sterling) and [Theming](/guide/theming).
@@ -257,38 +262,38 @@ const light = design.defaults("light")   // derived from silvery-light scheme
 
 Every Theme produced by `design.deriveFromScheme()` follows these rules. Full rationale in [Color Schemes](/guide/color-schemes#derivation-rules-default-preservative).
 
-| Token                    | Derivation                                       |
-|--------------------------|--------------------------------------------------|
-| `fg-error`               | `scheme.red`                                     |
-| `fg-warning`             | `scheme.yellow`                                  |
-| `fg-success`             | `scheme.green`                                   |
-| `fg-info`                | `scheme.primary`                                 |
-| `fg-accent`              | `scheme.primary`                                 |
-| `bg-accent`              | `scheme.primary`                                 |
-| `bg-accent-hover`        | OKLCH +0.04L on `bg-accent` (adaptive direction) |
-| `bg-accent-active`       | OKLCH +0.08L on `bg-accent`                      |
-| `fg-on-accent`           | contrast-pick(fg, bg) against `bg-accent` at 4.5:1 |
-| `fg-muted`               | blend(fg, bg, 0.5)                               |
-| `bg-surface-subtle`      | blend(bg, fg, 0.05)                              |
-| `bg-surface-raised`      | blend(bg, fg, 0.08)                              |
-| `bg-surface-overlay`     | blend(bg, fg, 0.12)                              |
-| `border-focus`           | `scheme.primary`                                 |
-| `cursor-bg`              | `scheme.cursorColor`                             |
-| `cursor-fg`              | `scheme.cursorText`                              |
+| Token              | Derivation                                       |
+| ------------------ | ------------------------------------------------ |
+| fg-error           | scheme.red                                       |
+| fg-warning         | scheme.yellow                                    |
+| fg-success         | scheme.green                                     |
+| fg-info            | scheme.primary                                   |
+| fg-accent          | scheme.primary                                   |
+| bg-accent          | scheme.primary                                   |
+| bg-accent-hover    | OKLCH +0.04L on bg-accent (adaptive direction)   |
+| bg-accent-active   | OKLCH +0.08L on bg-accent                        |
+| fg-on-accent       | contrast-pick(fg, bg) against bg-accent at 4.5:1 |
+| fg-muted           | blend(fg, bg, 0.5)                               |
+| bg-surface-subtle  | blend(bg, fg, 0.05)                              |
+| bg-surface-raised  | blend(bg, fg, 0.08)                              |
+| bg-surface-overlay | blend(bg, fg, 0.12)                              |
+| border-focus       | scheme.primary                                   |
+| cursor-bg          | scheme.cursorColor                               |
+| cursor-fg          | scheme.cursorText                                |
 
 ### Contrast targets
 
 `deriveFromScheme()` enforces minimum WCAG ratios via OKLCH lightness lift (preserving hue + chroma):
 
-| Pair                                                    | Target    |
-|---------------------------------------------------------|-----------|
-| `fg` on `bg` / `bg-surface-*`                          | 4.5:1 (AA)|
-| `fg-muted` on `bg` / `bg-surface-subtle`               | 4.5:1     |
-| `fg-disabled` on `bg`                                   | 3.0:1     |
-| `fg-<role>` on `bg`                                     | 4.5:1     |
-| `fg-on-<role>` on `bg-<role>`                           | 4.5:1     |
-| `border-default` on `bg`                                | 1.5:1     |
-| `border-input` on `bg`                                  | 3.0:1     |
+| Pair                               | Target     |
+| ---------------------------------- | ---------- |
+| fg on bg / bg-surface-*            | 4.5:1 (AA) |
+| fg-muted on bg / bg-surface-subtle | 4.5:1      |
+| fg-disabled on bg                  | 3.0:1      |
+| fg-<role> on bg                    | 4.5:1      |
+| fg-on-<role> on bg-<role>          | 4.5:1      |
+| border-default on bg               | 1.5:1      |
+| border-input on bg                 | 3.0:1      |
 
 ## `resolveThemeColor()`
 
@@ -300,15 +305,15 @@ import { resolveThemeColor } from "@silvery/design"
 function resolveThemeColor(color: string | undefined, theme: Theme): string | undefined
 ```
 
-| Input                      | Behavior                                      | Example            |
-|----------------------------|-----------------------------------------------|--------------------|
-| `undefined`                | Returns `undefined`                           | —                  |
-| `"$fg-accent"`             | Theme lookup                                  | `"#EBCB8B"`        |
-| `"$bg-surface-subtle"`     | Theme lookup (flat form)                      | `"#3B4252"`        |
-| `"$color0"`–`"$color15"`   | Index into `theme.palette`                    | `"#2E3440"`        |
-| `"#ff0000"`                | Pass through                                  | `"#ff0000"`        |
-| `"red"`                    | Pass through                                  | `"red"`            |
-| Unknown `$`-token          | Pass through as-is                            | `"$unknown"`       |
+| Input                | Behavior                 | Example    |
+| -------------------- | ------------------------ | ---------- |
+| undefined            | Returns undefined        | —          |
+| "$fg-accent"         | Theme lookup             | "#EBCB8B"  |
+| "$bg-surface-subtle" | Theme lookup (flat form) | "#3B4252"  |
+| "$color0"–"$color15" | Index into theme.palette | "#2E3440"  |
+| "#ff0000"            | Pass through             | "#ff0000"  |
+| "red"                | Pass through             | "red"      |
+| Unknown $-token      | Pass through as-is       | "$unknown" |
 
 ## `ThemeProvider`
 
@@ -370,12 +375,12 @@ Returns a structurally-identical Theme with hex leaves quantized for the tier.
 
 Each is a separate package with the same contract:
 
-| Package                    | What                                                 |
-|----------------------------|------------------------------------------------------|
-| `@silvery/design`          | Sterling (default)                                   |
-| `@silvery/design-material` | Material 3 tokens + generative HCT derivation         |
-| `@silvery/design-primer`   | Primer verbatim (`danger` / `attention` / `severe`)   |
-| `@silvery/design-polaris`  | Polaris (`critical` / `caution` / `subdued`)          |
+| Package                  | What                                          |
+| ------------------------ | --------------------------------------------- |
+| @silvery/design          | Sterling (default)                            |
+| @silvery/design-material | Material 3 tokens + generative HCT derivation |
+| @silvery/design-primer   | Primer verbatim (danger / attention / severe) |
+| @silvery/design-polaris  | Polaris (critical / caution / subdued)        |
 
 Writing your own: see [Custom Tokens](/guide/custom-tokens).
 
@@ -389,3 +394,4 @@ Writing your own: see [Custom Tokens](/guide/custom-tokens).
 - [`@silvery/ansi` reference](/reference/style) — CLI styling + `bakeFlat` + `pickColorLevel`.
 
 <!-- TODO: verify after 0.19.0 ships — confirm exact DeriveOptions shape, whether ThemeShape is exported, `extend:` token-pack vs separate `defineTokens` API, whether `name` / `palette` are on the Theme root. -->
+

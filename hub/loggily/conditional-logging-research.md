@@ -157,3 +157,4 @@ log.debug?.(() => {
 ```
 
 The logger calls the function only if debug is enabled. This pattern is useful when you need to prepare multiple pieces of data that depend on each other.
+

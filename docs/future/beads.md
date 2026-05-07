@@ -364,11 +364,11 @@ Flags:
 1. Create task: `- [ ] title @issue #type #P2 @assignee`
 2. Add priority tag based on `-p` flag
 3. Set `data.short_id`:
-  - If `--id`, use that value
-  - If `--parent`, generate next sub-ID (e.g., `parent.3`)
-  - Otherwise, derive from ULID
-4. If `--parent`, add `[[parent-id|parent]]` link
-5. Return display ID (e.g., `km-auth-epic` or `@km/auth-epic/1`)
+- If `--id`, use that value
+- If `--parent`, generate next sub-ID (e.g., `parent.3`)
+- Otherwise, derive from ULID
+16. If `--parent`, add `[[parent-id|parent]]` link
+17. Return display ID (e.g., `km-auth-epic` or `@km/auth-epic/1`)
 
 ### `km bd update <id>`
 
@@ -504,13 +504,13 @@ km bd migrate [--dry-run]
 
 1. Read `.beads/issues.jsonl`
 2. For each issue:
-  - Find or create task with matching content
-  - Add `@issue` link + type tags
-  - Set `priority`, `assigned_to`, `task_status`
-  - Store beads ID in `data.beads_id` for reference
-3. Convert dependencies to link syntax
-4. Create `@issues.md` board if not exists
-5. Archive `.beads/` to `.beads.bak/`
+- Find or create task with matching content
+- Add `@issue` link + type tags
+- Set `priority`, `assigned_to`, `task_status`
+- Store beads ID in `data.beads_id` for reference
+15. Convert dependencies to link syntax
+16. Create `@issues.md` board if not exists
+17. Archive `.beads/` to `.beads.bak/`
 
 ---
 

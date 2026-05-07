@@ -33,14 +33,14 @@ assignee: claude:5f8fa618
 ### Merges Needed
 
 1. **visual-navigation.test.ts (745 lines) + layout-registry.test.ts (492 lines)**
-  - Significant conceptual overlap testing same registry
-  - Could reduce to ~600-700 lines combined
-2. **roundtrip.test.ts wiki-link tests (lines 839-944)**
-  - 9 nearly identical tests for wiki-link variations
-  - Convert to parameterized test.each
-3. **normalizeMarkdown() helper**
-  - Duplicated in roundtrip.test.ts and properties-roundtrip.test.ts
-  - Extract to shared test-utils
+- Significant conceptual overlap testing same registry
+- Could reduce to ~600-700 lines combined
+5. **roundtrip.test.ts wiki-link tests (lines 839-944)**
+- 9 nearly identical tests for wiki-link variations
+- Convert to parameterized test.each
+9. **normalizeMarkdown() helper**
+- Duplicated in roundtrip.test.ts and properties-roundtrip.test.ts
+- Extract to shared test-utils
 
 ### Minor Fixes
 

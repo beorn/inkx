@@ -78,6 +78,37 @@ function toolInputObject(op: MessageOp): Record<string, unknown> | null {
   return op.toolCall.input as Record<string, unknown>
 }
 
+function normalizedVisibleText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
+function agentPromptForOp(op: MessageOp): string | null {
+  if (op.kind !== "tool") return null
+  if (op.toolCall.name !== "Agent" && op.toolCall.name !== "Task") return null
+  const prompt = toolInputObject(op)?.prompt
+  return typeof prompt === "string" && prompt.trim().length > 0 ? normalizedVisibleText(prompt) : null
+}
+
+function removeAgentPromptEchoes(ops: readonly MessageOp[]): MessageOp[] {
+  const prompts = new Set<string>()
+  for (const op of ops) {
+    const prompt = agentPromptForOp(op)
+    if (prompt) prompts.add(prompt)
+  }
+  if (prompts.size === 0) return ops as MessageOp[]
+
+  let changed = false
+  const out: MessageOp[] = []
+  for (const op of ops) {
+    if (op.kind === "text" && prompts.has(normalizedVisibleText(op.text))) {
+      changed = true
+      continue
+    }
+    out.push(op)
+  }
+  return changed ? out : (ops as MessageOp[])
+}
+
 function writeStdinSessionId(op: MessageOp): string | null {
   const input = toolInputObject(op)
   const value = input?.session_id
@@ -169,7 +200,7 @@ export function normalizeCommandSessionOps(ops: readonly MessageOp[]): MessageOp
       if (sessionId) execBySession.set(sessionId, out.length - 1)
     }
   }
-  return changed ? out : (ops as MessageOp[])
+  return removeAgentPromptEchoes(changed ? out : ops)
 }
 
 export function splitAssistantOpsIntoDisplaySlices(ops: readonly MessageOp[]): AssistantDisplaySlice[] {

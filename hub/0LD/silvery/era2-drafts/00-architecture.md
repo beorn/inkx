@@ -1,6 +1,6 @@
-> **Deprecated (2026-03-25).** Superseded by [00-overview.md](../00-overview.md). Kept for historical reference.
-
 # Era 2 Architecture
+
+> Deprecated (2026-03-25). Superseded by 00-overview.md. Kept for historical reference.
 
 _Status: draft (2026-03-19). The central reference for Silvery Era 2. Deep-dives in sibling docs._
 
@@ -8,12 +8,12 @@ Everything is a plugin — capabilities are opt-in.
 
 ## Three Levels
 
-| Level             | What you add                            | State                     | Input handling             |
-| ----------------- | --------------------------------------- | ------------------------- | -------------------------- |
-| **Foundation**    | `create()`                              | none                      | ops pass through           |
-| **+ Ag**          | `withAg()`, `withTerm()`, `withReact()` | React useState            | `useInput()` in components |
-| **+ App**         | `withApp()`, domain plugins             | Any (signals recommended) | Keymap → commands → state  |
-| **+ Ops as data** | `commandProxy()`, `withLogging()`       | Same, observable          | All mutations serializable |
+| Level         | What you add                      | State                     | Input handling             |
+| ------------- | --------------------------------- | ------------------------- | -------------------------- |
+| Foundation    | create()                          | none                      | ops pass through           |
+| + Ag          | withAg(), withTerm(), withReact() | React useState            | useInput() in components   |
+| + App         | withApp(), domain plugins         | Any (signals recommended) | Keymap → commands → state  |
+| + Ops as data | commandProxy(), withLogging()     | Same, observable          | All mutations serializable |
 
 ---
 
@@ -196,7 +196,7 @@ function withTerm(options?: TermOptions) {
 
 `withApp()` creates the registries (models, commands, keymap) and accepts providers (typed I/O capabilities). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
 
-> **`withApp()` is a composition preset**, not a standalone package export. It combines `withCommands()`, model registry setup, and optionally provider wiring into a single convenience plugin. `withScope()` is a separate plugin in the pipe — `withApp()` does not include it. The `silvery` bundle provides both, or users write their own. Individual capabilities (`@silvery/commands`, `@silvery/scope`, `@silvery/model`) are the real packages.
+> withApp() is a composition preset, not a standalone package export. It combines withCommands(), model registry setup, and optionally provider wiring into a single convenience plugin. withScope() is a separate plugin in the pipe — withApp() does not include it. The silvery bundle provides both, or users write their own. Individual capabilities (@silvery/commands, @silvery/scope, @silvery/model) are the real packages.
 
 ### withApp — app infrastructure (single plugin)
 
@@ -375,12 +375,12 @@ function when<B extends Record<string, Binding>>(
 
 ### resolveInvocation — surface behavior
 
-| Surface           | ready            | prompt                  | unavailable               | invalid                  | unknown                 |
-| ----------------- | ---------------- | ----------------------- | ------------------------- | ------------------------ | ----------------------- |
-| **keymap**        | dispatch command | dispatch prompt op      | swallow                   | swallow                  | swallow                 |
-| **app.command()** | resolve result   | reject `PromptRequired` | reject `Unavailable`      | reject `ValidationError` | reject `UnknownCommand` |
-| **raw dispatch**  | execute          | `op.status="prompt"`    | `op.status="unavailable"` | `op.status="invalid"`    | `op.status="unknown"`   |
-| **CLI/MCP**       | execute          | report missing args     | report unavailable        | report error             | report not found        |
+| Surface       | ready            | prompt                | unavailable             | invalid                | unknown               |
+| ------------- | ---------------- | --------------------- | ----------------------- | ---------------------- | --------------------- |
+| keymap        | dispatch command | dispatch prompt op    | swallow                 | swallow                | swallow               |
+| app.command() | resolve result   | reject PromptRequired | reject Unavailable      | reject ValidationError | reject UnknownCommand |
+| raw dispatch  | execute          | op.status="prompt"    | op.status="unavailable" | op.status="invalid"    | op.status="unknown"   |
+| CLI/MCP       | execute          | report missing args   | report unavailable      | report error           | report not found      |
 
 ### Models
 
@@ -763,13 +763,13 @@ function withLogging() {
 
 A silvery app is composed of five interconnected structures:
 
-| Graph                                         | What it is                                                          | Shape | API                                          |
-| --------------------------------------------- | ------------------------------------------------------------------- | ----- | -------------------------------------------- |
-| **Reactive data graph**                       | Signals connected by computeds. How data flows.                     | DAG   | `signal()`, `computed()`, `createModel()`    |
-| **Async scope tree** (structured concurrency) | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | `createScope()`, `scope.child()`, `op.scope` |
-| **Ag node tree**                              | Abstract UI structure. Adapter writes, renderer reads.              | Tree  | `createRootNode()`, `withAg()`               |
-| **Command tree**                              | Action namespace. Discoverable, projectable to CLI/MCP/palette.     | Tree  | `app.commands.todo.add`                      |
-| **Plugin chain**                              | dispatch/apply/run wrapping layers.                                 | Stack | `create()`, `pipe()`, `with*()`              |
+| Graph                                     | What it is                                                          | Shape | API                                    |
+| ----------------------------------------- | ------------------------------------------------------------------- | ----- | -------------------------------------- |
+| Reactive data graph                       | Signals connected by computeds. How data flows.                     | DAG   | signal(), computed(), createModel()    |
+| Async scope tree (structured concurrency) | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | createScope(), scope.child(), op.scope |
+| Ag node tree                              | Abstract UI structure. Adapter writes, renderer reads.              | Tree  | createRootNode(), withAg()             |
+| Command tree                              | Action namespace. Discoverable, projectable to CLI/MCP/palette.     | Tree  | app.commands.todo.add                  |
+| Plugin chain                              | dispatch/apply/run wrapping layers.                                 | Stack | create(), pipe(), with*()              |
 
 These are views of one runtime. A keypress traverses the plugin chain, resolves a command (command tree), executes it in a scope (async scope tree), mutates signals (reactive data graph), which triggers a re-render of the UI (ag node tree).
 
@@ -885,13 +885,14 @@ Bundles:
 
 ## Cross-Reference to Era 2 Docs
 
-| Doc                | Covered here                                         | Full details in original                                       |
-| ------------------ | ---------------------------------------------------- | -------------------------------------------------------------- |
-| 02-signals         | `signal()`, `createModel()` (optional)               | Progressive API (three steps), framework bindings, provider DI |
-| 03-commands        | Command tree, args, availability, surfaces           | Surface projection, domain objects, CLI rules                  |
-| 01-rendering-input | `keymap()`, `when()`, precedence                     | Mapping type, invoke(), chord/count state                      |
-| 04-app             | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture                   |
-| 04-app             | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects                 |
-| composability      | Adapter/renderer roles                               | Framework×platform matrix, gap analysis                        |
-| packaging          | `create` + `ag-*` + app split + `impure`             | Migration paths, bundle strategies                             |
-| decisions          | Referenced where relevant                            | Full decision log (35 decisions)                               |
+| Doc                | Covered here                                     | Full details in original                                       |
+| ------------------ | ------------------------------------------------ | -------------------------------------------------------------- |
+| 02-signals         | signal(), createModel() (optional)               | Progressive API (three steps), framework bindings, provider DI |
+| 03-commands        | Command tree, args, availability, surfaces       | Surface projection, domain objects, CLI rules                  |
+| 01-rendering-input | keymap(), when(), precedence                     | Mapping type, invoke(), chord/count state                      |
+| 04-app             | dispatch()/apply(), domain plugins, commandProxy | Two-box model/runtime, provider architecture                   |
+| 04-app             | op.scope, ALS, AbortSignal, lifetime             | Scope API (sleep, timeout, onDispose), effects                 |
+| composability      | Adapter/renderer roles                           | Framework×platform matrix, gap analysis                        |
+| packaging          | create + ag-* + app split + impure               | Migration paths, bundle strategies                             |
+| decisions          | Referenced where relevant                        | Full decision log (35 decisions)                               |
+

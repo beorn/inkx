@@ -28,8 +28,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Add Sterling tokens for selection / inverse / link (`bg-selected`, `fg-on-selected`, `bg-inverse`, `bg-link`, `fg-on-link`) @km/silvery #task #P2 @claude:22c2717d

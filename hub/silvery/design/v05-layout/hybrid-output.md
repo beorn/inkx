@@ -2,9 +2,9 @@
 
 Per-row density-based mode selection for the terminal output phase: whole-row, run-length, or per-cell scatter. Preserves silvery's 3.73x kanban advantage while closing cold-render gaps.
 
-> **Status:** design + scaffold landed. Integration TBD. Parent analysis: [../../internals/perf-analysis-2026-04.md](../../internals/perf-analysis-2026-04.md) (Tier 2 recommendation E). Tracking bead: `km-silvery.hybrid-output`.
+> Status: design + scaffold landed. Integration TBD. Parent analysis: ../../internals/perf-analysis-2026-04.md (Tier 2 recommendation E). Tracking bead: km-silvery.hybrid-output.
 
-> **Horizon note:** This is a v1.0 terminal-runtime optimization. It lives under `v05-layout/` because the output phase is the last layer of the layout→paint pipeline and the parent bead file was placed here. If the directory taxonomy is revisited it may move to `v10-terminal/`.
+> Horizon note: This is a v1.0 terminal-runtime optimization. It lives under v05-layout/ because the output phase is the last layer of the layout→paint pipeline and the parent bead file was placed here. If the directory taxonomy is revisited it may move to v10-terminal/.
 
 ## 1. Problem statement
 
@@ -25,10 +25,10 @@ Per-row density-based mode selection for the terminal output phase: whole-row, r
 
 Data from `vendor/internal/silvery/internals/perf-analysis-2026-04.md` (2026-04-09):
 
-| Scenario                       | Silvery  | Ink      | Winner     | Gap     |
-| ------------------------------ | -------- | -------- | ---------- | ------- |
-| Flat list 10 items cold        | 0.336 ms | 0.294 ms | Ink 1.20x  | 0.042ms |
-| Kanban 5×20 mounted (1 edit)   | 1.04 ms  | 3.89 ms  | **Silvery 3.73x** | 2.85ms  |
+| Scenario                     | Silvery  | Ink      | Winner        | Gap     |
+| ---------------------------- | -------- | -------- | ------------- | ------- |
+| Flat list 10 items cold      | 0.336 ms | 0.294 ms | Ink 1.20x     | 0.042ms |
+| Kanban 5×20 mounted (1 edit) | 1.04 ms  | 3.89 ms  | Silvery 3.73x | 2.85ms  |
 
 The cold-render losses are fixed cost, but Pro's review called out that `changesToAnsi` degrades as dirty density grows: the cell-level emitter is strictly better than line-level emitters on sparse updates and strictly worse on dense ones, without any in-between.
 
@@ -329,15 +329,15 @@ Rollback plan at each step: `git revert` the previous commit. Because each commi
 
 Baselines are captured from the current `silvery-vs-ink.bench.ts` run on 2026-04-09. Deltas are predictions based on the estimator model in §4. These become the acceptance gates for commit 2.
 
-| Scenario                           | Baseline (silvery) | Prediction   | Rationale                                               |
-| ---------------------------------- | ------------------ | ------------ | ------------------------------------------------------- |
-| Kanban 5×20 single edit (mounted)  | 1.04 ms            | 1.00 – 1.05 ms | Scatter path unchanged; ≤5% overhead from mode picker   |
-| Cursor move 100-item list          | 2.27 ms            | 2.15 – 2.30 ms | Run-length wins on the toggled item; rest is scatter    |
-| Flat list 10 cold (80x24)          | 0.336 ms           | 0.29 – 0.31 ms | Whole-row reused path shortens cold by ~5-10%           |
-| Flat list 100 (200x60) cold        | 3.18 ms            | 2.90 – 3.10 ms | Whole-row dominates; savings are proportional to width  |
-| Dense row update (new)             | TBD                | 0.5–0.7x ink | First scenario where silvery should beat ink decisively  |
-| Contiguous run update (new)        | TBD                | ≥1.5x ink    | Run-length encoding matches ink's strengths             |
-| Scatter update (new)               | TBD                | ≥3x ink      | Same shape as kanban; scatter path must not regress     |
+| Scenario                          | Baseline (silvery) | Prediction     | Rationale                                               |
+| --------------------------------- | ------------------ | -------------- | ------------------------------------------------------- |
+| Kanban 5×20 single edit (mounted) | 1.04 ms            | 1.00 – 1.05 ms | Scatter path unchanged; ≤5% overhead from mode picker   |
+| Cursor move 100-item list         | 2.27 ms            | 2.15 – 2.30 ms | Run-length wins on the toggled item; rest is scatter    |
+| Flat list 10 cold (80x24)         | 0.336 ms           | 0.29 – 0.31 ms | Whole-row reused path shortens cold by ~5-10%           |
+| Flat list 100 (200x60) cold       | 3.18 ms            | 2.90 – 3.10 ms | Whole-row dominates; savings are proportional to width  |
+| Dense row update (new)            | TBD                | 0.5–0.7x ink   | First scenario where silvery should beat ink decisively |
+| Contiguous run update (new)       | TBD                | ≥1.5x ink      | Run-length encoding matches ink's strengths             |
+| Scatter update (new)              | TBD                | ≥3x ink        | Same shape as kanban; scatter path must not regress     |
 
 Acceptance gate for commit 2: **no scenario regresses by more than 3% from baseline, and the three new scenarios hit their predictions within 20%.**
 
@@ -393,3 +393,4 @@ These do not block the design but should be resolved before implementation:
 3. **Does the wide-char resync in whole-row mode need its own emitter, or can it share the `bufferToAnsi` code path verbatim?** Probably share; verify during implementation.
 4. **Should we keep the `SILVERY_FULL_RENDER` bypass?** It's a debug aid that bypasses incremental entirely. Hybrid doesn't interact with it. Leave as-is.
 5. **How do we expose mode telemetry in `SILVERY_INSTRUMENT=1` mode?** Add `__silvery_bench_output_detail.modeCounts: { wholeRow, runLength, scatter }`. This is the signal for tuning the estimator constants.
+

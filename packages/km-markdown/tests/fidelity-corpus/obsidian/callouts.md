@@ -18,28 +18,29 @@ should preserve the callout type and title.
 > Small tip in a callout.
 
 > [!info]- Collapsed by default
-> The `-` after the type makes the callout start collapsed.
+> The - after the type makes the callout start collapsed.
 > Pressing the arrow expands it.
 
 > [!abstract]+ Expanded by default
-> The `+` after the type makes the callout start expanded.
+> The + after the type makes the callout start expanded.
 
 > [!example]
 > Nested list inside a callout:
->
-> - First
-> - Second
-> - Third
+> 
+> * First
+> * Second
+> * Third
 
 > [!quote] Someone famous
->
-> > A nested quote inside a callout.
-> > Further nesting.
+> 
+> A nested quote inside a callout.
+> Further nesting.
 
 > [!bug] Bug callout
 > Known issues go in here.
 
 > [!todo] To do
->
-> - [ ] Task one
-> - [ ] Task two
+> 
+> * Task one
+> * Task two
+

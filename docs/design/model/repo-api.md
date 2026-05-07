@@ -29,6 +29,7 @@ export interface Repo extends Disposable {
 **Reference:** `packages/km-storage/src/repo/repo.ts:763–1010`
 
 Repo is:
+
 - **Composed whole:** combines DataStore (indexed tree), FileTree (human-editable files), and Config
 - **Mutation facade:** hides SQLite, event emitter, file watcher, link cache
 - **Event source:** subscribers notified after each mutation via version counter
@@ -182,6 +183,7 @@ Each mutation emits a Change event and returns once durable (or caller calls `su
 Add a new node.
 
 **Args:**
+
 - `parentId: string | null` — parent ID (null for root)
 - `node: Partial<KNode>` — node properties
 
@@ -190,6 +192,7 @@ Add a new node.
 **Event:** `node_created` Change with full node data.
 
 **Side effects:**
+
 - Increments version, notifies subscribers
 - Busts children cache for parent
 - Triggers normalization (if configured)
@@ -201,6 +204,7 @@ Update a node's properties.
 **Event:** `node_updated` Change with changed properties.
 
 **Side effects:**
+
 - Increments version, notifies subscribers
 - Busts children cache if parent changed
 - Triggers normalization
@@ -210,6 +214,7 @@ Update a node's properties.
 Move a node to a new parent with new sort order.
 
 **Args:**
+
 - `id: string` — node to move
 - `newParentId: string` — target parent ID
 - `position: number` — sort order (index)
@@ -217,6 +222,7 @@ Move a node to a new parent with new sort order.
 **Event:** `node_moved` Change with old/new parent and position.
 
 **Side effects:**
+
 - Increments version, notifies subscribers
 - Busts children cache for both old and new parents
 - Triggers normalization
@@ -228,6 +234,7 @@ Delete a node.
 **Event:** `node_deleted` Change with node snapshot.
 
 **Side effects:**
+
 - Increments version, notifies subscribers
 - Busts children cache for parent
 - Triggers normalization
@@ -249,6 +256,7 @@ Optional progress callback: `(info: { updated: number; total: number }) => void`
 Append a task line to a markdown file.
 
 **Args:**
+
 - `filePath: string` — relative or absolute path
 - `content: string` — content to append
 - `options.ensure?: boolean` — create file/directory if not exists
@@ -277,13 +285,13 @@ Changes flow through three stages:
 
 **Change type signatures:**
 
-| Change Type | Target | Data | Origin |
-|-------------|--------|------|--------|
-| `node_created` | node ID | full node | "tui", "fs", "replay", "system" |
-| `node_updated` | node ID | changed properties | "tui", "fs", "system" |
-| `node_moved` | node ID | {oldParent, oldPos, newParent, newPos} | "tui", "fs" |
-| `node_deleted` | node ID | node snapshot | "tui", "fs" |
-| (others) | — | — | — |
+| Change Type  | Target  | Data                                   | Origin                          |
+| ------------ | ------- | -------------------------------------- | ------------------------------- |
+| node_created | node ID | full node                              | "tui", "fs", "replay", "system" |
+| node_updated | node ID | changed properties                     | "tui", "fs", "system"           |
+| node_moved   | node ID | {oldParent, oldPos, newParent, newPos} | "tui", "fs"                     |
+| node_deleted | node ID | node snapshot                          | "tui", "fs"                     |
+| (others)     | —       | —                                      | —                               |
 
 **Reference:** `packages/km-core/src/types.ts` (Change interface)
 
@@ -333,3 +341,4 @@ Only available when `files` is present.
 - `packages/km-storage/src/data-store.ts` — DataStore interface (peer to Repo)
 - `packages/km-storage/src/emitter.ts` — Change emission and event sourcing
 - `packages/km-core/src/types.ts` — Change type definitions
+

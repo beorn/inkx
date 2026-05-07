@@ -176,10 +176,11 @@ After all 3 phases close:
 
 ## Risk register
 
-| Risk | Mitigation |
-|---|---|
-| Bead 2 draft "aspirational done" — agent's report claimed `LEGACY:` markers that don't exist | Verify on return; trust nothing without grep |
-| Agent A and Agent C both editing `index.tsx` — race | Sequential check after each return; reconcile before Phase 1 |
-| App.tsx props need updating but those are still required | Keep App contract; index.tsx resolves CLI → props internally |
-| Tests reference `--bare` / `--layout` semantics | Agent B's report says minimal change needed; verify post-Phase-1 |
-| Controller refactor scope creep | Explicitly punted to separate bead `km-silvercode.controller-resolved-connection` |
+| Risk                                                                                       | Mitigation                                                                      |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Bead 2 draft "aspirational done" — agent's report claimed LEGACY: markers that don't exist | Verify on return; trust nothing without grep                                    |
+| Agent A and Agent C both editing index.tsx — race                                          | Sequential check after each return; reconcile before Phase 1                    |
+| App.tsx props need updating but those are still required                                   | Keep App contract; index.tsx resolves CLI → props internally                    |
+| Tests reference --bare / --layout semantics                                                | Agent B's report says minimal change needed; verify post-Phase-1                |
+| Controller refactor scope creep                                                            | Explicitly punted to separate bead km-silvercode.controller-resolved-connection |
+

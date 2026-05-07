@@ -109,3 +109,4 @@ The two tracks share substrate. A silvery-native agent (authoring) IS also a CAP
 - **Fit with km**: does km eventually become the "agent desktop" (kanban of agent sessions + knowledge layer + authoring IDE)?
 
 No answers yet. Revisit after substrate lands.
+

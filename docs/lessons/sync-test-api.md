@@ -46,3 +46,4 @@ The production API being async doesn't mean the test API must be. `act()` is the
 - [Batch Refactor Over Agents](batch-refactor-over-agents.md) — related lesson: use editsets for migrations, not per-file agents
 - [Testing Escape Hatches](testing-escape-hatches.md)
 - [Read the Factory](read-the-factory.md)
+

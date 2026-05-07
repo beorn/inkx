@@ -60,4 +60,3 @@ If results are noisy: re-run with `NOTIFICATION_SPLIT_TRIALS=100` and re-check. 
 - [ ] Move the dated results file into place (the harness writes it automatically).
 - [ ] Update the bead with the verdict and close.
 - [ ] If verdict is INVESTIGATE: open `km-silvercode.notification-variant-c` for the text-with-typed-frame follow-up.
-

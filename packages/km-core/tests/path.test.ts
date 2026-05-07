@@ -52,4 +52,3 @@ describe("fsPathOf", () => {
     expect(fsPathOf({ fs_path: "foo.md/bar.md" })).toBe("foo.md/bar")
   })
 })
-

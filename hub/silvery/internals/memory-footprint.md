@@ -24,12 +24,12 @@ Silvery trades higher resident memory for lower per-frame GC pressure. This is t
 
 For a 500-item board at 120×40 terminal:
 
-| Metric                    | Silvery (with PreparedText)          | Ink                            |
-| ------------------------- | ------------------------------------ | ------------------------------ |
-| **Resident (persistent)** | ~5-6MB                               | ~1.5-2MB                       |
-| **Per-frame GC pressure** | ~0.5MB (only dirty nodes allocate)   | ~5-10MB (full string rebuild)  |
-| **Peak during render**    | ~6-7MB                               | ~12-15MB                       |
-| **GC pause frequency**    | Low (incremental, small allocations) | High (large temporary strings) |
+| Metric                | Silvery (with PreparedText)          | Ink                            |
+| --------------------- | ------------------------------------ | ------------------------------ |
+| Resident (persistent) | ~5-6MB                               | ~1.5-2MB                       |
+| Per-frame GC pressure | ~0.5MB (only dirty nodes allocate)   | ~5-10MB (full string rebuild)  |
+| Peak during render    | ~6-7MB                               | ~12-15MB                       |
+| GC pause frequency    | Low (incremental, small allocations) | High (large temporary strings) |
 
 ## Tradeoff Analysis
 
@@ -40,7 +40,6 @@ Silvery uses **3-4x more resident memory** but **10-20x less GC pressure per fra
 Interactive TUIs render at 30-60fps during keyboard/mouse interaction. Under sustained input:
 
 - **Ink**: Every frame allocates 5-10MB of temporary strings (React render → Yoga layout → string output). V8's generational GC handles this well in isolation, but under sustained 60fps input, young-gen collections pile up and cause frame drops.
-
 - **Silvery**: Dirty-node rendering means only 2 nodes allocate during cursor move (~10KB). The persistent caches (buffers, PreparedText, displayWidth LRU) are long-lived and don't trigger GC. Frame timing is stable.
 
 ### PreparedText cache memory impact
@@ -68,3 +67,4 @@ No runtime measurement infrastructure yet. To add:
 - `SILVERY_MEM_STATS=1` — log per-phase memory delta via `process.memoryUsage()`
 - Per-node cache size tracking in PreparedText (optional instrumentation)
 - Buffer memory: `buffer.width * buffer.height * CELL_SIZE * 2`
+

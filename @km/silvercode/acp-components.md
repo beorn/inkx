@@ -51,9 +51,12 @@ Reconciled component inventory based on 2026-04-26 research. opencode is silverc
 
 - <Diff> unified-diff renderable
 - <Code> tree-sitter syntax-highlighted code block (TS/JS/MD/Zig WASM grammars bundled)
-- <Textarea> production multi-line editor (selection, undo-redo, paste, wrap, highlights)
+- 
+  <Textarea> production multi-line editor (selection, undo-redo, paste, wrap, highlights)
+  
 - <LineNumber> gutter
-- <Link> first-class hyperlink with OSC-8
+- 
+  <Link> first-class hyperlink with OSC-8
 - <ASCIIFont> figlet/banner with bundled fonts
 - <Slider> numeric slider
 - <TabSelect> tab row
@@ -99,3 +102,4 @@ opencode ships ~95 components. ACP-derived inventory is ~25-30. Parity needs ~30
 - hub/silvery/future/ai-terminal/10-agent-router-landscape.md § Component reconciliation — opencode and OpenTUI
 - opencode source: github.com/sst/opencode (dev branch, SolidJS pivot)
 - OpenTUI source: github.com/anomalyco/opentui
+

@@ -16,7 +16,10 @@
 import { describe, expect, test } from "vitest"
 import { createScope } from "@silvery/scope"
 import { createChannelQueue } from "../../src/channel-queue.ts"
-import { emitSubagentEventForTest, registerSubagentNotificationAdapterHandle } from "../../src/notification-adapters/subagent.ts"
+import {
+  emitSubagentEventForTest,
+  registerSubagentNotificationAdapterHandle,
+} from "../../src/notification-adapters/subagent.ts"
 
 // Build trigger-token strings from char codes so the literal words
 // don't appear as searchable trigger text in this file. ASSISTANT_PFX
@@ -53,9 +56,6 @@ describe("notification-adapter/subagent", () => {
     const scope = createScope("test")
     const queue = createChannelQueue(scope)
     for (const kind of ["progress", "completed", "stopped", "failed"] as const) {
-      // Each call uses a fresh handle so the per-handle debounce doesn't
-      // drop the second/third events. Production wiring uses ONE handle
-      // with the per-source breaker — that's tested in types.test.ts.
       const ok = emitSubagentEventForTest({ scope, queue }, { kind, agent: "x", summary: kind })
       expect(ok).toBe(true)
     }
@@ -126,6 +126,63 @@ describe("notification-adapter/subagent", () => {
     expect(handle.inflightCount()).toBe(1)
   })
 
+  test("notifyTaskToolUse records parallel Agent starts without dropping siblings", () => {
+    const scope = createScope("test")
+    const queue = createChannelQueue(scope)
+    const handle = registerSubagentNotificationAdapterHandle({ scope, queue, now: () => 1_000 })
+
+    for (let i = 1; i <= 4; i++) {
+      const ok = handle.notifyTaskToolUse({
+        toolUseId: `toolu_${i}`,
+        toolName: "Agent",
+        input: { description: `Sleep 20s #${i}`, subagent_type: "general-purpose" },
+        sessionId: "sess-A",
+      })
+      expect(ok).toBe(true)
+    }
+
+    expect(handle.inflightCount()).toBe(4)
+    expect(queue.peek().map((event) => event.content)).toEqual([
+      "[subagent general-purpose] started: Sleep 20s #1",
+      "[subagent general-purpose] started: Sleep 20s #2",
+      "[subagent general-purpose] started: Sleep 20s #3",
+      "[subagent general-purpose] started: Sleep 20s #4",
+    ])
+  })
+
+  test("notifyTaskToolResult records parallel Agent completions without leaving stale active siblings", () => {
+    const scope = createScope("test")
+    const queue = createChannelQueue(scope)
+    const handle = registerSubagentNotificationAdapterHandle({ scope, queue, now: () => 1_000 })
+
+    for (let i = 1; i <= 4; i++) {
+      handle.notifyTaskToolUse({
+        toolUseId: `toolu_${i}`,
+        toolName: "Agent",
+        input: { description: `Sleep 20s #${i}`, subagent_type: "general-purpose" },
+        sessionId: "sess-A",
+      })
+    }
+    for (let i = 1; i <= 4; i++) {
+      const ok = handle.notifyTaskToolResult({
+        toolUseId: `toolu_${i}`,
+        output: `agent ${i}: done sleeping 20s`,
+        sessionId: "sess-A",
+      })
+      expect(ok).toBe(true)
+    }
+
+    expect(handle.inflightCount()).toBe(0)
+    const events = queue.peek()
+    expect(events).toHaveLength(8)
+    expect(events.slice(4).map((event) => event.content)).toEqual([
+      "[subagent general-purpose] completed: Sleep 20s #1 — agent 1: done sleeping 20s",
+      "[subagent general-purpose] completed: Sleep 20s #2 — agent 2: done sleeping 20s",
+      "[subagent general-purpose] completed: Sleep 20s #3 — agent 3: done sleeping 20s",
+      "[subagent general-purpose] completed: Sleep 20s #4 — agent 4: done sleeping 20s",
+    ])
+  })
+
   test("notifyTaskToolUse — falls back to prompt when description missing", () => {
     const scope = createScope("test")
     const queue = createChannelQueue(scope)
@@ -142,9 +199,8 @@ describe("notification-adapter/subagent", () => {
 
   test("notifyTaskToolResult — completed (non-error) emits completed event with truncated digest", () => {
     const scope = createScope("test")
-    // Force `now()` to advance so the per-handle debounce doesn't drop
-    // the result event: started → completed within the same handle would
-    // otherwise be eaten by `MIN_INTER_EVENT_MS`.
+    // Keep an injected clock so this test proves Task lifecycle events are
+    // state transitions, not debounced ambient noise.
     let t = 1_000
     const queue = createChannelQueue(scope)
     const handle = registerSubagentNotificationAdapterHandle({ scope, queue, now: () => t })

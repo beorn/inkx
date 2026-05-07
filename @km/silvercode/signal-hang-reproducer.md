@@ -76,15 +76,16 @@ To root-cause the wedge, we need EITHER:
 
 1. **A live wedge in-the-act.** When the next 100% CPU silvercode appears,
    BEFORE killing it run:
-  ```
-  PID=<pid>
-  sample $PID 10 -file /tmp/silv-wedge.txt
-  sudo dtrace -n 'profile-997 /pid == '$PID'/ { @[ustack(20)] = count(); } tick-10s { exit(0); }' \
-    > /tmp/silv-wedge.dtrace.txt
-  lldb -p $PID -b -o "thread list" -o "thread backtrace all" > /tmp/silv-wedge.lldb.txt
-  ```
 
-  The dtrace + lldb data give us symbolic frames the bare sample lacks.
+```
+PID=<pid>
+sample $PID 10 -file /tmp/silv-wedge.txt
+sudo dtrace -n 'profile-997 /pid == '$PID'/ { @[ustack(20)] = count(); } tick-10s { exit(0); }' \
+  > /tmp/silv-wedge.dtrace.txt
+lldb -p $PID -b -o "thread list" -o "thread backtrace all" > /tmp/silv-wedge.lldb.txt
+```
+
+The dtrace + lldb data give us symbolic frames the bare sample lacks.
 2. **A deterministic reproducer.** Whatever the user did the day of the
    incident — agent change, network blip, MCP startup ordering, focus-loss
    during alt-screen entry — needs to be replayed in a script. The original

@@ -1,8 +1,8 @@
 # VirtualColumns Design
 
-> **Internal** — 2D virtualization primitives for kanban/spreadsheet layouts. Drives km's board view.
->
-> **Status: RFC** — This is a design proposal, not yet implemented. Feedback welcome.
+> Internal — 2D virtualization primitives for kanban/spreadsheet layouts. Drives km's board view.
+> 
+> Status: RFC — This is a design proposal, not yet implemented. Feedback welcome.
 
 Composable virtualization primitives for 2D grid layouts (kanban boards, spreadsheets) with position tracking and cross-axis navigation.
 
@@ -17,12 +17,12 @@ Apps rendering 2D grids (e.g. km-tui's kanban Board) need:
 
 Silvery already provides `VirtualList` (vertical) and `HorizontalVirtualList` (horizontal), but these are independent components with no shared position awareness. Currently km-tui bridges them with app-level code spread across four files:
 
-| File                | Responsibility                                                                   | Lines |
-| ------------------- | -------------------------------------------------------------------------------- | ----- |
-| `Board.tsx`         | Horizontal column slicing (`columns.slice(offset, offset + maxCols)`)            | ~40   |
-| `board-layout.ts`   | Column scroll formula (`calcEdgeBasedColumnScrollOffset`)                        | ~50   |
-| `card-positions.ts` | `LayoutRegistry` — position tracking, stickyY/X, `findCardAtYVisual`             | ~460  |
-| `CardColumn.tsx`    | `CardLayoutRegistrar` — register/unregister on mount/unmount via `useScreenRect` | ~50   |
+| File              | Responsibility                                                               | Lines |
+| ----------------- | ---------------------------------------------------------------------------- | ----- |
+| Board.tsx         | Horizontal column slicing (columns.slice(offset, offset + maxCols))          | ~40   |
+| board-layout.ts   | Column scroll formula (calcEdgeBasedColumnScrollOffset)                      | ~50   |
+| card-positions.ts | LayoutRegistry — position tracking, stickyY/X, findCardAtYVisual             | ~460  |
+| CardColumn.tsx    | CardLayoutRegistrar — register/unregister on mount/unmount via useScreenRect | ~50   |
 
 ### Current bugs and fragility
 
@@ -181,17 +181,17 @@ These replace `findCardAtYVisual` and `getCardMidY` from `card-positions.ts`.
 
 ### What stays in Silvery vs what stays in km-tui
 
-| Concern                                            | Location                                              | Rationale                                         |
-| -------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
-| `PositionRegistry` (context + hook)                | Silvery                                               | Generic — any 2D grid app needs position tracking |
-| `GridCell` (auto-registering wrapper)              | Silvery                                               | Generic convenience component                     |
-| `useGridPosition` (hook)                           | Silvery                                               | For apps that don't want the wrapper              |
-| `findCrossAxisTarget` / `getItemMidY`              | Silvery                                               | Pure functions, reusable navigation logic         |
-| `stickyY` / `stickyX` state                        | Silvery (inside PositionRegistry)                     | Core to cross-axis navigation UX                  |
-| Column scroll offset calculation                   | Silvery (already exists: `calcEdgeBasedScrollOffset`) | Already in Silvery                                |
-| Column width calculation                           | km-tui (`board-layout.ts`)                            | App-specific (indicator widths, separator counts) |
-| `ScrollTrackingVirtualList`                        | km-tui                                                | App-specific (CursorStore integration)            |
-| View-specific rendering (Board, ColumnsView, etc.) | km-tui                                                | App-level layout decisions                        |
+| Concern                                            | Location                                            | Rationale                                         |
+| -------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------- |
+| PositionRegistry (context + hook)                  | Silvery                                             | Generic — any 2D grid app needs position tracking |
+| GridCell (auto-registering wrapper)                | Silvery                                             | Generic convenience component                     |
+| useGridPosition (hook)                             | Silvery                                             | For apps that don't want the wrapper              |
+| findCrossAxisTarget / getItemMidY                  | Silvery                                             | Pure functions, reusable navigation logic         |
+| stickyY / stickyX state                            | Silvery (inside PositionRegistry)                   | Core to cross-axis navigation UX                  |
+| Column scroll offset calculation                   | Silvery (already exists: calcEdgeBasedScrollOffset) | Already in Silvery                                |
+| Column width calculation                           | km-tui (board-layout.ts)                            | App-specific (indicator widths, separator counts) |
+| ScrollTrackingVirtualList                          | km-tui                                              | App-specific (CursorStore integration)            |
+| View-specific rendering (Board, ColumnsView, etc.) | km-tui                                              | App-level layout decisions                        |
 
 ### How HorizontalVirtualList + VirtualList compose
 
@@ -346,3 +346,4 @@ export { calcEdgeBasedScrollOffset } from "./scroll-utils"
 ### Head measurement (for stickyY)
 
 **Chosen: Optional explicit API.** Most grid apps don't need sub-item position tracking. km-tui does (stickyY uses the card title midpoint, not the card midpoint). Rather than building head-tracking into `GridCell`, the app calls `registry.updateHead()` from a `useScreenRect` on the head element. This keeps `GridCell` simple and the head-tracking opt-in.
+

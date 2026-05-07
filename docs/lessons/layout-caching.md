@@ -13,9 +13,7 @@ The key insight: zero tests exercised `calculateLayout()` twice on the same tree
 ## The Three Bugs
 
 1. **measureNode corruption**: `measureNode()` overwrote `layout.width/height` on clean nodes as a side effect. Fingerprint check then skipped the clean node, preserving corrupted values.
-
 2. **NaN cache sentinel**: `resetLayoutCache()` used `NaN` to invalidate entries, but `NaN` is a legitimate "unconstrained" query. `Object.is(NaN, NaN) === true` → false cache hits.
-
 3. **Fingerprint mismatch**: Auto-sized children receive `NaN` as availableWidth. When parent's flex distribution changed between passes (shrinkage at 60px vs no shrinkage at 80px), `NaN===NaN` fingerprint matched, preserving stale overridden dimensions.
 
 ## How They Were Found
@@ -59,3 +57,4 @@ Bug 1 was found by a targeted test. Bugs 2 and 3 were found by fuzz testing — 
 - `vendor/flexily/docs/testing.md` — test infrastructure reference
 - `docs/lessons/debugging-rendering.md` — complementary lesson on silvery rendering bugs
 - `docs/lessons/incremental-rendering.md` — silvery incremental rendering (distinct from layout caching)
+

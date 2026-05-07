@@ -31,11 +31,11 @@ Undo stays as-is (undoable-repo) — undo redesign is a SEPARATE concern (withHi
 
 1. **@km/_orphan/board/src/board.ts** — Board.apply(state, op) → [BoardState, BoardEffect[]]
 2. **@km/tui/src/board/board-runtime.ts** — executes BoardEffects:
-  - { type: 'repo_move', nodeId, parentId, sortOrder } → repo.moveNode
-  - { type: 'select', nodeId } → dispatch SELECT
-  - { type: 'toast', level, message } → toast queue
-  - { type: 'dialog', picker } → setUI
-3. handleCommandAction dispatches to Board.apply, runtime executes effects
+- { type: 'repo_move', nodeId, parentId, sortOrder } → repo.moveNode
+- { type: 'select', nodeId } → dispatch SELECT
+- { type: 'toast', level, message } → toast queue
+- { type: 'dialog', picker } → setUI
+9. handleCommandAction dispatches to Board.apply, runtime executes effects
 
 ## NOT in scope
 

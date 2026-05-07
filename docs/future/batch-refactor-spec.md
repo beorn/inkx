@@ -28,21 +28,21 @@ A smart batch refactoring tool that:
 
 ### Text-Based (works on any file)
 
-| Tool               | Status      | Strength                               |
-| ------------------ | ----------- | -------------------------------------- |
-| **ripgrep/Grep**   | ✅ Built-in | Fast text search with context          |
-| **Fastmod** (Rust) | Consider    | Interactive regex replace, `e` to edit |
-| **Repgrep (rgr)**  | Consider    | TUI for batch selection                |
-| **rep**            | Consider    | Diff-first review pattern              |
+| Tool           | Status     | Strength                             |
+| -------------- | ---------- | ------------------------------------ |
+| ripgrep/Grep   | ✅ Built-in | Fast text search with context        |
+| Fastmod (Rust) | Consider   | Interactive regex replace, e to edit |
+| Repgrep (rgr)  | Consider   | TUI for batch selection              |
+| rep            | Consider   | Diff-first review pattern            |
 
 ### AST-Aware (code-specific bonus)
 
-| Tool                        | Status        | Strength                               |
-| --------------------------- | ------------- | -------------------------------------- |
-| **ast-grep**                | ✅ Installed  | Structural patterns, tree-sitter based |
-| **Comby**                   | Consider      | Language-agnostic structural matching  |
-| **cclsp**                   | ✅ Installed  | LSP wrapper for type-safe operations   |
-| **mcp-refactor-typescript** | ✅ Configured | Rename, move, organize imports         |
+| Tool                    | Status       | Strength                               |
+| ----------------------- | ------------ | -------------------------------------- |
+| ast-grep                | ✅ Installed  | Structural patterns, tree-sitter based |
+| Comby                   | Consider     | Language-agnostic structural matching  |
+| cclsp                   | ✅ Installed  | LSP wrapper for type-safe operations   |
+| mcp-refactor-typescript | ✅ Configured | Rename, move, organize imports         |
 
 ### Key Insight from Research
 
@@ -50,16 +50,16 @@ A smart batch refactoring tool that:
 
 ## Current Implementation
 
-| Component               | Status        | Location                                  |
-| ----------------------- | ------------- | ----------------------------------------- |
-| ast-grep                | ✅ Installed  | `nix profile`                             |
-| cclsp                   | ✅ Installed  | `bun global`                              |
-| mcp-refactor-typescript | ✅ Configured | `.mcp.json`                               |
-| /batch command          | ✅ Plugin     | `batch@tools`                |
-| pattern.migrate         | ✅ Complete   | LLM-powered API migration                 |
-| Confidence scoring      | 📝 Documented | In command instructions                   |
-| Plugin packaging        | ✅ Complete   | `vendor/bearly/plugins/batch` |
-| Marketplace             | ✅ Configured | `tools`                      |
+| Component               | Status        | Location                    |
+| ----------------------- | ------------- | --------------------------- |
+| ast-grep                | ✅ Installed   | nix profile                 |
+| cclsp                   | ✅ Installed   | bun global                  |
+| mcp-refactor-typescript | ✅ Configured  | .mcp.json                   |
+| /batch command          | ✅ Plugin      | batch@tools                 |
+| pattern.migrate         | ✅ Complete    | LLM-powered API migration   |
+| Confidence scoring      | 📝 Documented | In command instructions     |
+| Plugin packaging        | ✅ Complete    | vendor/bearly/plugins/batch |
+| Marketplace             | ✅ Configured  | tools                       |
 
 ### Installation
 
@@ -286,34 +286,27 @@ interface RefactorPlan {
 ## Open Questions
 
 1. **State persistence:** Should matches persist between `/batch search` and `/batch apply`?
-   - Option: Store in temp file, reference by session ID
-   - Option: Single-command workflow only
-
-2. **Dry run mode:** Show diffs without applying?
-   - Could use ast-grep's output formatting
-   - Or generate unified diff (like `rep` tool)
-
-3. **Git integration:** Auto-stage changed files? Create atomic commits?
-   - Could leverage `git add -p` mechanics for hunk selection
-
-4. **Undo support:** Track changes for rollback?
-   - Could generate reverse diff automatically
-
-5. **Large result sets:** What if 500+ matches? Pagination? Sampling?
-   - Group by file for better overview
-   - Show summary first, drill down on request
-
-6. **Editor escape hatch:** Should we support `$EDITOR` for manual tweaks?
-   - Fastmod has `e` key to open occurrence in editor
-   - Useful when automated replacement isn't quite right
-
-7. **Incremental verification:** Apply + test in chunks?
-   - Safer but slower
-   - Could be optional `--incremental` flag
-
-8. **Export workflow:** Should we support exporting to PR/branch?
-   - Generate changes on a branch
-   - Let team review via normal code review
+- Option: Store in temp file, reference by session ID
+- Option: Single-command workflow only
+5. **Dry run mode:** Show diffs without applying?
+- Could use ast-grep's output formatting
+- Or generate unified diff (like `rep` tool)
+9. **Git integration:** Auto-stage changed files? Create atomic commits?
+- Could leverage `git add -p` mechanics for hunk selection
+12. **Undo support:** Track changes for rollback?
+- Could generate reverse diff automatically
+15. **Large result sets:** What if 500+ matches? Pagination? Sampling?
+- Group by file for better overview
+- Show summary first, drill down on request
+19. **Editor escape hatch:** Should we support `$EDITOR` for manual tweaks?
+- Fastmod has `e` key to open occurrence in editor
+- Useful when automated replacement isn't quite right
+23. **Incremental verification:** Apply + test in chunks?
+- Safer but slower
+- Could be optional `--incremental` flag
+27. **Export workflow:** Should we support exporting to PR/branch?
+- Generate changes on a branch
+- Let team review via normal code review
 
 ## Feedback & Ideas
 
@@ -354,3 +347,4 @@ interface RefactorPlan {
 - [mcp-refactor-typescript](https://github.com/stefan-nitu/mcp-refactor-typescript)
 - Plugin repo: [beorn/bearly](https://github.com/beorn/bearly)
 - Plugin command: `vendor/bearly/plugins/batch/commands/batch.md`
+

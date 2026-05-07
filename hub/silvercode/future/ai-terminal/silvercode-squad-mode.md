@@ -42,16 +42,16 @@ Visually: silvery renders this as a 2×2 grid of panes with a kanban-style file-
 
 ## Why this beats Kilo / Cursor / Claude Code on the dimensions that matter
 
-| Dimension | Kilo | Cursor | Claude Code | silvercode squad |
-|---|---|---|---|---|
-| Multi-backend | ✅ | partial | single | ✅ |
-| **Multiple agents in parallel on same repo** | worktree-isolated, no file-claims | ❌ | ❌ | ✅ |
-| **Shared project index (no per-agent re-read)** | ❌ | ❌ | ❌ | ✅ |
-| **Ambient handoff between agents** | ❌ | ❌ | ❌ | ✅ |
-| **Human-readable conflict resolution** | diff review | ❌ | ❌ | ✅ |
-| Subscription auth | ✅ | ✅ (own) | native | ✅ |
-| Polished IDE UX | ✅ | ✅ | partial | ⚠ different surface |
-| Enterprise features (SSO/SCIM/audit) | ✅ | ✅ | enterprise plan | future |
+| Dimension                                   | Kilo                              | Cursor  | Claude Code     | silvercode squad    |
+| ------------------------------------------- | --------------------------------- | ------- | --------------- | ------------------- |
+| Multi-backend                               | ✅                                 | partial | single          | ✅                   |
+| Multiple agents in parallel on same repo    | worktree-isolated, no file-claims | ❌       | ❌               | ✅                   |
+| Shared project index (no per-agent re-read) | ❌                                 | ❌       | ❌               | ✅                   |
+| Ambient handoff between agents              | ❌                                 | ❌       | ❌               | ✅                   |
+| Human-readable conflict resolution          | diff review                       | ❌       | ❌               | ✅                   |
+| Subscription auth                           | ✅                                 | ✅ (own) | native          | ✅                   |
+| Polished IDE UX                             | ✅                                 | ✅       | partial         | ⚠ different surface |
+| Enterprise features (SSO/SCIM/audit)        | ✅                                 | ✅       | enterprise plan | future              |
 
 The squad-mode columns are where silvercode wins; the rest are commodity.
 
@@ -128,3 +128,4 @@ The minority /pro view (Grok 4) argues fork over ACP for runtime control and tha
 ## Bead
 
 `km-all.coding-agent-landscape-2026-04-27` (parent: `km-all`) tracks this strategic synthesis. When squad mode is committed to as a product line, file `km-silvercode.squad-mode-mvp` as an implementation epic with acceptance criteria pulled from the "What success looks like in 90 days" section above.
+

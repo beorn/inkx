@@ -91,12 +91,12 @@ handlers:
 ## Plan (incremental, no breaking change)
 
 1. **Internal factor (no schema change):**
-  - Each rule's `resolves_to` parsed as URI. Infer scheme from value shape (path → `file:`, bead-id → `bd:`, URL → as-is) when not explicit.
-  - Handler registry keyed by scheme. `resolvePreview(rule, match)` becomes `resolveURI(rule.toURI(match))`. Dispatch by scheme.
-  - Hardcode v2 handlers: file, bd, https, shell, mcp. No `[[handlers]]` config block yet.
-2. **Win immediately:** plain URLs in messages get linkified through the same pipeline (`https://github.com/foo/bar/pull/123` → webcard preview without any rule).
-3. **Defer schema change:** `[[handlers]]` block stays unimplemented until first user wants to override defaults. Additive on top of the registry when added.
-4. **doctor checker:** list registered handlers, scheme coverage of all rules, fallback-to-text URIs, dead handlers (registered but no rules use them).
+- Each rule's `resolves_to` parsed as URI. Infer scheme from value shape (path → `file:`, bead-id → `bd:`, URL → as-is) when not explicit.
+- Handler registry keyed by scheme. `resolvePreview(rule, match)` becomes `resolveURI(rule.toURI(match))`. Dispatch by scheme.
+- Hardcode v2 handlers: file, bd, https, shell, mcp. No `[[handlers]]` config block yet.
+6. **Win immediately:** plain URLs in messages get linkified through the same pipeline (`https://github.com/foo/bar/pull/123` → webcard preview without any rule).
+7. **Defer schema change:** `[[handlers]]` block stays unimplemented until first user wants to override defaults. Additive on top of the registry when added.
+8. **doctor checker:** list registered handlers, scheme coverage of all rules, fallback-to-text URIs, dead handlers (registered but no rules use them).
 
 ## Supersession
 

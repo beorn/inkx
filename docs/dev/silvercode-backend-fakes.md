@@ -6,13 +6,13 @@ This plan covers backend fakes for Silvercode agent backends, with config option
 
 ## Core Decision
 
-Use one shared fake protocol engine where the protocol is common, plus backend profiles where behavior differs.
+Use one shared fake protocol engine where the protocol is common, plus backend profiles where behavior differs. Fakes are injected as `AgentBackend` providers in the same `AgentBackends` map that production code uses; the fake provider supplies an in-process ACP spawn implementation through the backend's `connect()` method.
 
 ```
 Silvercode App
 └── Controller / SessionStore / UI
     └── real agent-harness adapter code
-        ├── fake mode: fake backend process/server
+        ├── fake mode: provider-injected fake backend
         └── live mode: real Codex/Gemini/Copilot/Claude backend
 ```
 
@@ -70,18 +70,18 @@ Silvercode already has useful fakes, but they are not complete backend fakes:
   - Live backend smoke for connect/close only.
   - Good teardown coverage, but not a behavioral contract suite.
 
-The missing layer is a fake backend process/server that speaks the same ACP or stream protocol as the real agent backend.
+The missing layer is a fake backend provider that speaks the same ACP or stream protocol as the real agent backend. It can run in-process for ordinary tests and still exercise the real adapter code above the protocol boundary.
 
 ## Fake Layers
 
 Use explicit layers so tests choose the smallest fake that still covers the behavior.
 
-| Layer | Fake                        | Boundary                     | Use When                                                           |
-| ----- | --------------------------- | ---------------------------- | ------------------------------------------------------------------ |
-| 0     | Pure function fixtures      | Function input/output        | Parser, reducer, formatting                                        |
-| 1     | `AgentSession` fake         | Harness session interface    | SessionStore/UI behavior only                                      |
-| 2     | Fake backend process/server | ACP or stream-json protocol  | Adapter integration, config options, permissions, prompt lifecycle |
-| 3     | Live backend                | Real external binary/service | Drift checks, auth, release smoke                                  |
+| Layer | Fake                   | Boundary                     | Use When                                                           |
+| ----- | ---------------------- | ---------------------------- | ------------------------------------------------------------------ |
+| 0     | Pure function fixtures | Function input/output        | Parser, reducer, formatting                                        |
+| 1     | AgentSession fake      | Harness session interface    | SessionStore/UI behavior only                                      |
+| 2     | Fake backend provider  | ACP or stream-json protocol  | Adapter integration, config options, permissions, prompt lifecycle |
+| 3     | Live backend           | Real external binary/service | Drift checks, auth, release smoke                                  |
 
 Layer 2 is the new work. Config options must use Layer 2 because `session/set_config_option` is a protocol feature.
 
@@ -95,8 +95,7 @@ Proposed package layout:
 apps/silvercode/
 ├── packages/agent-harness/src/testing/
 │   ├── fake-acp-server.ts          # shared ACP fake engine
-│   ├── fake-acp-stdio-bin.ts       # stdio entry point for process-boundary tests
-│   ├── backend-contract-runner.ts  # fake/live contract harness
+│   ├── backend-spec-runner.ts      # fake/live spec harness
 │   ├── backend-profiles/
 │   │   ├── codex.ts
 │   │   ├── claude.ts
@@ -123,8 +122,64 @@ Implemented first slice:
 - `createFakeCodexAcpSpawn()` provides the first profile, including stateful `session/set_config_option` handling.
 - `FakeAcpBackendProfile.onPrompt` lets scenarios drive real server-to-client ACP callbacks during a prompt turn, including permissions and filesystem requests.
 - `AcpAgentSession.configOptions` and `AcpAgentSession.setSessionConfigOption()` expose the latest ACP config surface to tests and UI callers.
-- `@km/agent-harness/testing/backend-contract-runner` runs the same assertion function against fake targets by default and live targets when `SILVERCODE_BACKEND_CONTRACT=live`.
+- `@km/agent-harness/agent-backends` defines `AgentBackend`, `AgentBackends`, `createAcpAgentBackend()`, and provider-injected fake ACP backends.
+- `@km/agent-harness/testing/backend-spec-runner` runs the same assertion function against fake targets by default and live targets when `SILVERCODE_BACKEND_CONTRACT=live`.
 - `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts` is the first fake/live contract, covering Codex `reasoning_effort`.
+- `apps/silvercode/tests/backend-contracts/prompt.contract.test.ts` runs the prompt lifecycle spec against every registered fake ACP backend, and appends selected live backends in live mode.
+- `apps/silvercode/tests/backend-contracts/comprehensive-session-updates.contract.test.ts` runs against every fake ACP provider and verifies representative text, reasoning, tool, result, plan, slash-command, status, binary, and resource update families.
+
+## Local Transcript Survey
+
+The comprehensive fake scenario is based on a structural survey of local agent transcripts under `~/.claude`, `~/.codex`, and opencode's local SQLite store. The survey used event/type/tool counts only; no raw private transcript text was copied into the fake or this document.
+
+### Claude Code JSONL
+
+Top-level event families found in `~/.claude/projects` and `~/.claude/sessions`:
+
+- Assistant/user/system message records.
+- Progress records, queue operations, permission mode changes, prompt snapshots, file-history snapshots, titles, agent names, worktree state, PR links, and attachments.
+- Message content blocks: `tool_use`, `tool_result`, `text`, `thinking`, `image`, `document`, and `redacted_thinking`.
+- Tool results with text, create/update/file-unchanged payloads, image payloads, PDFs, and multi-part results.
+
+Most frequent tool-use names in the surveyed data:
+
+- Shell and filesystem: `Bash`, `Read`, `Edit`, `Grep`, `Glob`, `Write`.
+- Planning/tasking: `TodoWrite`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`, `TaskOutput`, `Agent`, `SendMessage`.
+- Web and MCP: `WebSearch`, `WebFetch`, `mcp__...` tools, browser/TTY tools, Gmail API tools from Cloudi-style integrations.
+- Operational tools: worktree entry, scheduling, monitoring, skill invocation, plan-mode exit.
+
+### Codex JSONL
+
+Codex sessions under `~/.codex/sessions` are dominated by:
+
+- Top-level `response_item`, `event_msg`, `turn_context`, `session_meta`, and compaction records.
+- Response payloads: `message`, `reasoning`, `function_call`, `function_call_output`, `custom_tool_call`, `custom_tool_call_output`, and `web_search_call`.
+- Event payloads: token counts, command completion, patch apply completion, agent/user messages, task start/complete, reasoning summaries, view-image calls, web-search completion, aborts, agent spawn/wait completions, errors, and thread-name updates.
+- Function calls in this workspace were mostly `exec_command`, `write_stdin`, `view_image`, `shell`, `update_plan`, `spawn_agent`, and `wait_agent`; custom tool calls were mostly `apply_patch`.
+- Message content blocks were `output_text`, `input_text`, and occasional `input_image`.
+
+### Opencode SQLite
+
+The opencode store at `~/.local/share/opencode/opencode.db` contains `session`, `message`, `part`, `permission`, `todo`, and event-sequence tables. Surveyed part/message/event families include:
+
+- Message roles: assistant and user.
+- Part types: `tool`, `step-start`, `step-finish`, `text`, `reasoning`, `patch`, and `compaction`.
+- Tool parts: mostly `bash`, `read`, `grep`, `glob`, `webfetch`, `skill`, `write`, `task`, and `edit`, plus invalid-tool cases.
+
+### Fake Coverage Derived From The Survey
+
+The Layer 2 ACP fake now emits one synthetic comprehensive prompt stream that covers the event families Silvercode UI and stores must understand:
+
+- Assistant text chunks and reasoning/thinking chunks.
+- Non-text content chunks: image, audio, resource link, and embedded resource.
+- All ACP tool kinds: `read`, `edit`, `delete`, `move`, `search`, `execute`, `think`, `fetch`, `switch_mode`, and `other`.
+- Tool lifecycle states: pending, in progress, completed, and failed.
+- Tool outputs: text content, structured diff, terminal reference, and raw structured output.
+- Plan updates with completed/in-progress/pending entries.
+- Slash-command updates.
+- Current-mode, config-option, session-info, and usage updates.
+
+The fake intentionally uses synthetic payloads. Its job is to cover protocol shape and projection behavior, not to replay private transcript content.
 
 Proposed TypeScript surface:
 
@@ -187,11 +242,11 @@ It should also support fault injection:
 The fake should be usable in two forms:
 
 - Library mode for unit tests.
-- Stdio process mode so `connectAcpRegistry` and process lifecycle code run unchanged.
+- Provider-injected mode so `connectAcpRegistry` and `connectAcp` run unchanged above the spawn seam. Separate fake server processes are not required for ordinary specs.
 
 ## Contract Matrix
 
-The shared contract runner should keep a visible matrix of which backends support which scenarios. Unsupported features are explicit expectations, not silent skips.
+The shared spec runner should keep a visible matrix of which backends support which scenarios. Unsupported features are explicit expectations, not silent skips.
 
 | Scenario         | Codex        | Claude ACP      | Gemini              | Copilot         | pi-acp          | Legacy Claude   | Legacy Codex       | SDK                             |
 | ---------------- | ------------ | --------------- | ------------------- | --------------- | --------------- | --------------- | ------------------ | ------------------------------- |
@@ -306,16 +361,16 @@ These should fake the raw stream or SDK boundary while still running real parser
 
 ## Contract Runner
 
-Create a backend contract runner with fake and live implementations.
+Create a backend spec runner with fake and live implementations.
 
 Proposed shape:
 
 ```typescript
-type BackendContractTarget =
-  | { mode: "fake"; backend: BackendId; profile: FakeAcpProfile }
-  | { mode: "live"; backend: BackendId }
+type AgentBackendSpecTarget =
+  | { mode: "fake"; backend: AgentBackend; controller: FakeAcpBackendController }
+  | { mode: "live"; backend: AgentBackend }
 
-runBackendContract(target, scenario)
+runAgentBackendSpec(target, scenario)
 ```
 
 Scenarios should be data-driven:
@@ -418,10 +473,12 @@ bun vitest run apps/silvercode/tests/backend-contracts
 
 Missing binaries or credentials should skip with a clear reason. Available-but-wrong behavior should fail.
 
-Implemented command today:
+Implemented commands today:
 
 ```bash
 bun vitest run apps/silvercode/tests/backend-contracts/config-options.contract.test.ts
+bun vitest run apps/silvercode/tests/backend-contracts/prompt.contract.test.ts
+bun vitest run apps/silvercode/tests/backend-contracts/comprehensive-session-updates.contract.test.ts
 ```
 
 Append the live Codex target explicitly:
@@ -435,26 +492,26 @@ bun vitest run apps/silvercode/tests/backend-contracts/config-options.contract.t
 
 Use the smallest fake that crosses the behavior under test:
 
-| Test Goal                                  | Use                                  | Avoid                       |
-| ------------------------------------------ | ------------------------------------ | --------------------------- |
-| Reducer response to one event              | Layer 0/1 event fixture              | Backend process fake        |
-| App rendering of existing state            | `AgentSession` fake or story fixture | Live backend                |
-| ACP adapter maps protocol update correctly | Layer 2 fake ACP backend             | Mocked `SessionState`       |
-| Keybinding mutates backend config          | Layer 2 fake Codex profile           | Local capability state fake |
-| Backend process closes cleanly             | Layer 2 fake process or live smoke   | Pure session fake           |
-| Backend compatibility before release       | Live contract mode                   | Fake-only tests             |
+| Test Goal                                  | Use                                 | Avoid                       |
+| ------------------------------------------ | ----------------------------------- | --------------------------- |
+| Reducer response to one event              | Layer 0/1 event fixture             | Backend provider fake       |
+| App rendering of existing state            | AgentSession fake or story fixture  | Live backend                |
+| ACP adapter maps protocol update correctly | Layer 2 fake ACP backend            | Mocked SessionState         |
+| Keybinding mutates backend config          | Layer 2 fake Codex profile          | Local capability state fake |
+| Backend connection closes cleanly          | Layer 2 fake provider or live smoke | Pure session fake           |
+| Backend compatibility before release       | Live contract mode                  | Fake-only tests             |
 
 ## Phased Work
 
 ### Phase 1: Shared Fake ACP Core
 
-- Add fake ACP server library and stdio binary.
+- Add fake ACP server library and provider-injected fake backends.
 - Add deterministic scenario format.
-- Add contract runner fake mode.
+- Add spec runner fake mode.
 - Port one existing `AgentSession` fake scenario to Layer 2.
 - Document Layer 1 vs Layer 2 usage in `packages/agent-harness/CLAUDE.md`.
 
-Exit criteria: `connectAcpRegistry` can connect to fake ACP backend through stdio.
+Exit criteria: `connectAcpRegistry` can connect to fake ACP backend through provider injection.
 
 ### Phase 2: Codex Config Profile
 
@@ -528,3 +585,4 @@ Config options consumer:
 ## Rule of Thumb
 
 When a fake and a real backend disagree, neither automatically wins. First determine whether Silvercode relies on the behavior. If it does, update the fake to match real behavior and add a regression. If real behavior is a backend bug, keep the fake strict and document the live exception.
+

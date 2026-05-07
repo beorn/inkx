@@ -8,24 +8,24 @@ Geoffrey Moore's _Crossing the Chasm_ framework applied to the beorn ecosystem. 
 
 ## The ecosystem
 
-| Product                          | Stage                | Primary target (pragmatist)                              | Chasm status     |
-| -------------------------------- | -------------------- | -------------------------------------------------------- | ---------------- |
-| **[Silvery](#silvery)**          | Early market → Chasm | Developers building interactive terminal apps with React | Pre-chasm        |
-| **[Termless](#termless)**        | Early market         | CI/CD engineers testing terminal apps                    | Pre-chasm        |
-| **[terminfo.dev](#terminfodev)** | Early market         | Terminal framework authors + CLI tool builders           | Pre-chasm        |
-| **[Loggily](#loggily)**          | Early market         | Node.js/Bun service developers                           | Pre-chasm        |
-| **KM**                           | Not yet released     | Agentic knowledge workers                                | Pre-early-market |
+| Product      | Stage                | Primary target (pragmatist)                              | Chasm status     |
+| ------------ | -------------------- | -------------------------------------------------------- | ---------------- |
+| Silvery      | Early market → Chasm | Developers building interactive terminal apps with React | Pre-chasm        |
+| Termless     | Early market         | CI/CD engineers testing terminal apps                    | Pre-chasm        |
+| terminfo.dev | Early market         | Terminal framework authors + CLI tool builders           | Pre-chasm        |
+| Loggily      | Early market         | Node.js/Bun service developers                           | Pre-chasm        |
+| KM           | Not yet released     | Agentic knowledge workers                                | Pre-early-market |
 
 ## The positioning template
 
 For each product, fill in the Moore positioning statement:
 
-> **For** (target customer)
-> **who** (statement of need or opportunity)
-> **the** (product name) **is a** (product category)
-> **that** (key benefit, compelling reason to buy).
-> **Unlike** (primary competitive alternative)
-> **our product** (primary differentiation).
+> For (target customer)
+> who (statement of need or opportunity)
+> the (product name) is a (product category)
+> that (key benefit, compelling reason to buy).
+> Unlike (primary competitive alternative)
+> our product (primary differentiation).
 
 Then define the **whole product** — everything the pragmatist needs to say yes: the core product, plus docs, examples, integrations, support, community, tooling, proof points.
 
@@ -35,7 +35,7 @@ Then define the **whole product** — everything the pragmatist needs to say yes
 
 ### Tagline
 
-> **Powerful apps with beautiful UIs, whilst unapologetically terminal.**
+> Powerful apps with beautiful UIs, whilst unapologetically terminal.
 
 ### Guiding principles
 
@@ -62,64 +62,64 @@ This is what separates Silvery from a Minimum Viable Terminal Framework. We'd ra
 This is the narrative version — good for blog posts, launch copy, and HN discussions. It anchors the whole ecosystem story.
 
 > Ink proved React belongs in the terminal. But terminal apps have grown up — AI agents, code review tools, dashboards, editors, TUI IDEs — and their builders are web developers first. They want responsive layout, scroll containers, mouse events, focus scopes, a component library, and Playwright-style tests. Not because terminals are secretly browsers, but because these ideas have been tested across thirty years of web UI development and are what people reach for without thinking.
->
-> **Silvery is what Ink would be** if it had been architected around those affordances from day one. React the same way. Cells, screens, ANSI, scrollback — unapologetically terminal. But layout-first pipeline, W3C flexbox, DOM-style events, focus scopes, 45+ built-in components, and multi-backend testing, built in.
->
+> 
+> Silvery is what Ink would be if it had been architected around those affordances from day one. React the same way. Cells, screens, ANSI, scrollback — unapologetically terminal. But layout-first pipeline, W3C flexbox, DOM-style events, focus scopes, 45+ built-in components, and multi-backend testing, built in.
+> 
 > And the principle extends across the whole ecosystem:
->
-> - **silvery** — the core framework. Layout-first, cell-level, React.
-> - **@silvery/ink** / **@silvery/chalk** — drop-in compat layers for migration. 99% of Ink tests, 100% of Chalk tests.
-> - **@silvery/test** — Playwright-style locators, `press()`, bounding-box assertions. Test terminal UIs like you test web apps.
-> - **@silvery/create** — composable app builder (`pipe()` providers). React + state + focus + mouse + find + copy-mode, assembled from small pieces.
-> - **@silvery/theme** — 84 color schemes, semantic tokens (`$primary`, `$success`, `$muted`). Auto-detects terminal background, WCAG-compliant contrast.
-> - **@silvery/commander** — type-safe Commander.js with Standard Schema validation. Styles its help output **through Silvery itself**. Your CLI looks like your app because it IS your app. _Beautiful CLIs for free._
-> - **@silvery/headless** — pure state machines (SelectList, Readline). No React. Portable, testable, embeddable.
-> - **@silvery/ansi** — everything terminal: styling primitives, truecolor, SGR, detection, theme derivation.
->
-> Surrounding that core, the larger **beorn terminal ecosystem** fills in the gaps web developers take for granted:
->
-> - **Flexily** — pure-TS flexbox layout engine (Yoga-compatible, W3C spec, 2.5× faster than Yoga WASM). Powers Silvery's layout.
-> - **Termless** — headless terminal testing against 10+ real parser backends (xterm.js, vt100, Ghostty, Kitty, Alacritty, WezTerm, libvterm). The "Playwright for terminal apps."
-> - **terminfo.dev** — the caniuse.com for modern terminal emulators. 161 features × 19 terminals, empirically probed. When you're about to reach for Sixel, OSC 52, or text sizing, terminfo.dev tells you what's safe.
-> - **Loggily** — structured logging + span tracing + metrics in one library. Zero dependencies. For when your terminal app goes to production.
->
-> Each package follows the same principle: don't surprise experienced web devs, stay unapologetically terminal-based, strive for the quality plateau. They compose into one coherent story — **powerful apps with beautiful UIs, whilst unapologetically terminal.**
+> 
+> * silvery — the core framework. Layout-first, cell-level, React.
+> * @silvery/ink / @silvery/chalk — drop-in compat layers for migration. 99% of Ink tests, 100% of Chalk tests.
+> * @silvery/test — Playwright-style locators, press(), bounding-box assertions. Test terminal UIs like you test web apps.
+> * @silvery/create — composable app builder (pipe() providers). React + state + focus + mouse + find + copy-mode, assembled from small pieces.
+> * @silvery/theme — 84 color schemes, semantic tokens ($primary, $success, $muted). Auto-detects terminal background, WCAG-compliant contrast.
+> * @silvery/commander — type-safe Commander.js with Standard Schema validation. Styles its help output through Silvery itself. Your CLI looks like your app because it IS your app. Beautiful CLIs for free.
+> * @silvery/headless — pure state machines (SelectList, Readline). No React. Portable, testable, embeddable.
+> * @silvery/ansi — everything terminal: styling primitives, truecolor, SGR, detection, theme derivation.
+> 
+> Surrounding that core, the larger beorn terminal ecosystem fills in the gaps web developers take for granted:
+> 
+> * Flexily — pure-TS flexbox layout engine (Yoga-compatible, W3C spec, 2.5× faster than Yoga WASM). Powers Silvery's layout.
+> * Termless — headless terminal testing against 10+ real parser backends (xterm.js, vt100, Ghostty, Kitty, Alacritty, WezTerm, libvterm). The "Playwright for terminal apps."
+> * terminfo.dev — the caniuse.com for modern terminal emulators. 161 features × 19 terminals, empirically probed. When you're about to reach for Sixel, OSC 52, or text sizing, terminfo.dev tells you what's safe.
+> * Loggily — structured logging + span tracing + metrics in one library. Zero dependencies. For when your terminal app goes to production.
+> 
+> Each package follows the same principle: don't surprise experienced web devs, stay unapologetically terminal-based, strive for the quality plateau. They compose into one coherent story — powerful apps with beautiful UIs, whilst unapologetically terminal.
 
 ### Positioning statements (multiple — one is ⭐ golden)
 
 **⭐ Golden (current leading candidate):**
 
-> **For** React developers whose terminal app has outgrown Ink
-> **who** keep reaching for web-platform affordances — responsive layout, scroll containers, mouse events, focus scopes, composable components — and finding gaps,
-> **Silvery is a** React framework for modern terminal apps
-> **that** brings the proven ideas from web UI — layout-first rendering, flexbox, scroll containers, DOM-style events, focus scopes, a component library, Playwright-style testing — into an architecture designed for them from day one, without pretending terminals are browsers.
-> **Unlike** Ink, a minimal renderer that accumulates features ad-hoc,
-> **Silvery** made the architectural commitment up front: cell-level buffer, layout-first pipeline, W3C flexbox, composable providers, 45+ built-in components, multi-backend testing. Unapologetically terminal-based — cells, screens, ANSI — but every familiar web pattern works where you'd expect it.
+> For React developers whose terminal app has outgrown Ink
+> who keep reaching for web-platform affordances — responsive layout, scroll containers, mouse events, focus scopes, composable components — and finding gaps,
+> Silvery is a React framework for modern terminal apps
+> that brings the proven ideas from web UI — layout-first rendering, flexbox, scroll containers, DOM-style events, focus scopes, a component library, Playwright-style testing — into an architecture designed for them from day one, without pretending terminals are browsers.
+> Unlike Ink, a minimal renderer that accumulates features ad-hoc,
+> Silvery made the architectural commitment up front: cell-level buffer, layout-first pipeline, W3C flexbox, composable providers, 45+ built-in components, multi-backend testing. Unapologetically terminal-based — cells, screens, ANSI — but every familiar web pattern works where you'd expect it.
 
 **Alternative 1 — "Don't surprise web devs" as principle:**
 
-> **For** React developers building interactive terminal apps
-> **Silvery is a** React framework
-> **that** follows one guiding principle: don't surprise experienced web devs. If you'd reach for it on the web — `overflow="scroll"`, `position="sticky"`, `onClick`, flexbox, focus scopes, container queries — it works the same way in Silvery. Same names, same semantics, same instincts. Plus everything the terminal does best: cell-level rendering, ANSI compositing, synchronized output, Kitty keyboard, multi-backend testing.
-> **Unlike** Ink, which is minimalist by design and leaves most of these affordances to you or the ecosystem,
-> **Silvery** ships them as core, architected for from the start — because web developers are the ones building sophisticated terminal apps today, and they shouldn't have to learn a new mental model.
+> For React developers building interactive terminal apps
+> Silvery is a React framework
+> that follows one guiding principle: don't surprise experienced web devs. If you'd reach for it on the web — overflow="scroll", position="sticky", onClick, flexbox, focus scopes, container queries — it works the same way in Silvery. Same names, same semantics, same instincts. Plus everything the terminal does best: cell-level rendering, ANSI compositing, synchronized output, Kitty keyboard, multi-backend testing.
+> Unlike Ink, which is minimalist by design and leaves most of these affordances to you or the ecosystem,
+> Silvery ships them as core, architected for from the start — because web developers are the ones building sophisticated terminal apps today, and they shouldn't have to learn a new mental model.
 
 **Alternative 2 — The "grew up" origin story:**
 
 > Ink proved React belongs in the terminal. But terminal apps have grown up — AI agents, code review tools, dashboards, editors — and their builders are web developers first. They want responsive layout, scroll containers, mouse events, focus scopes, and a component library, not because terminals are secretly browsers, but because these ideas have been tested across thirty years of web UI development and are what people reach for without thinking.
->
-> **Silvery is what Ink would be** if it had been architected around those affordances from day one. React the same way. Cells, screens, ANSI, scrollback — unapologetically terminal. But layout-first pipeline, W3C flexbox, DOM-style events, focus scopes, 45+ built-in components, multi-backend testing built in.
->
+> 
+> Silvery is what Ink would be if it had been architected around those affordances from day one. React the same way. Cells, screens, ANSI, scrollback — unapologetically terminal. But layout-first pipeline, W3C flexbox, DOM-style events, focus scopes, 45+ built-in components, multi-backend testing built in.
+> 
 > When your CLI grows into an app, your framework should grow with it.
 
 **Alternative 3 — The terse version:**
 
-> **Silvery**: React for modern terminal apps. Web-dev ergonomics, terminal-native architecture. If you'd reach for it on the web, reach for it in Silvery — but you're writing a terminal app, and we don't hide that.
+> Silvery: React for modern terminal apps. Web-dev ergonomics, terminal-native architecture. If you'd reach for it on the web, reach for it in Silvery — but you're writing a terminal app, and we don't hide that.
 
 **Alternative 4 — The tagline version (homepage hero / npm):**
 
-> **Silvery** — powerful apps with beautiful UIs, whilst unapologetically terminal.
->
+> Silvery — powerful apps with beautiful UIs, whilst unapologetically terminal.
+> 
 > React framework for modern terminal apps. Layout-first rendering, 45+ components, Playwright-style testing. Ink-compatible. Pure TypeScript, no WASM.
 
 ### Rotation notes
@@ -153,20 +153,20 @@ Silvery gives you the next rung of the terminal UI ladder without leaving React.
 
 ### Whole product
 
-| Layer                        | Status                                                                                                                          |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Layer                        | Status                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Core framework               | ✅ silvery@0.11.0 on npm                                                                                                        |
 | Ink compat layer             | ✅ @silvery/ink passes 918/931 Ink 7.0 tests                                                                                    |
 | Chalk compat layer           | ✅ @silvery/chalk passes 32/32 Chalk tests                                                                                      |
 | Component library            | ✅ 45+ components (VirtualList, Table, CommandPalette, TreeView, Toast, Tabs, SplitView, ModalDialog, TextInput, TextArea, ...) |
-| Theming                      | ✅ @silvery/theme — 84 color schemes, semantic tokens                                                                                |
+| Theming                      | ✅ @silvery/theme — 84 color schemes, semantic tokens                                                                           |
 | Testing                      | ✅ @silvery/test — Playwright-style locators, press(), buffer assertions                                                        |
 | Multi-backend verification   | ✅ Termless integration (10+ parsers)                                                                                           |
 | Layout engine                | ✅ Flexily — pure TS, W3C spec, Yoga-compatible                                                                                 |
 | Documentation site           | ✅ silvery.dev                                                                                                                  |
 | Migration guide              | ✅ docs/getting-started/migrate-from-ink                                                                                        |
 | Reproducible benchmarks      | ✅ beorn/silvery/benchmarks                                                                                                     |
-| Example apps                 | 🟡 Examples exist but need polish (Phase 4)                                                                                     |
+| Example apps                 | 🟡 Examples exist but need polish (Phase 4)                                                                                    |
 | AI chat demo                 | ❌ Not built (Phase 4 gating)                                                                                                   |
 | Tape recordings of key flows | ❌ Not recorded (Phase 4 gating)                                                                                                |
 | Public blog post             | ❌ Not published (draft exists, pending fact-check)                                                                             |
@@ -181,7 +181,7 @@ Silvery gives you the next rung of the terminal UI ladder without leaving React.
 
 ### Value claim (one sentence)
 
-> **React for modern terminal apps — when your CLI grows into an app, your framework should grow with it.**
+> React for modern terminal apps — when your CLI grows into an app, your framework should grow with it.
 
 ---
 
@@ -189,12 +189,12 @@ Silvery gives you the next rung of the terminal UI ladder without leaving React.
 
 ### Positioning statement (draft)
 
-> **For** CI/CD engineers and terminal app developers
-> **who** need to test TUI apps without a real terminal,
-> **Termless is a** headless terminal testing library
-> **that** runs your terminal app through 10+ real emulator backends (xterm.js, vt100, Ghostty, Kitty, Alacritty, WezTerm, ...) in-process, so you can matrix-test ANSI output, record tape files, and verify rendering across parsers.
-> **Unlike** node-pty or manual ANSI parsing,
-> **Termless** gives you a Playwright-like API for terminals with deterministic output and cross-backend verification.
+> For CI/CD engineers and terminal app developers
+> who need to test TUI apps without a real terminal,
+> Termless is a headless terminal testing library
+> that runs your terminal app through 10+ real emulator backends (xterm.js, vt100, Ghostty, Kitty, Alacritty, WezTerm, ...) in-process, so you can matrix-test ANSI output, record tape files, and verify rendering across parsers.
+> Unlike node-pty or manual ANSI parsing,
+> Termless gives you a Playwright-like API for terminals with deterministic output and cross-backend verification.
 
 ### Target segment
 
@@ -210,24 +210,24 @@ Most terminal test tools either mock the terminal (too lenient) or require a rea
 
 ### Whole product
 
-| Layer                              | Status                                 |
-| ---------------------------------- | -------------------------------------- |
-| Core library                       | ✅ @termless/core@0.6.0                |
-| xterm.js backend                   | ✅ @termless/xtermjs                   |
-| vt100/vt220 backends               | ✅                                     |
-| libvterm backend                   | ✅                                     |
-| Ghostty/Kitty/Alacritty/WezTerm    | ✅                                     |
-| Recording + playback (tape format) | ✅                                     |
-| GIF/PNG/SVG output                 | ✅                                     |
-| CLI tool                           | ✅ `termless play foo.tape -o out.gif` |
-| Documentation                      | ✅ termless.dev                        |
-| Integration with @silvery/test     | ✅ createTermless()                    |
-| Integration with jest/vitest       | ✅ custom matchers                     |
-| Example test suites                | 🟡                                     |
+| Layer                              | Status                              |
+| ---------------------------------- | ----------------------------------- |
+| Core library                       | ✅ @termless/core@0.6.0              |
+| xterm.js backend                   | ✅ @termless/xtermjs                 |
+| vt100/vt220 backends               | ✅                                   |
+| libvterm backend                   | ✅                                   |
+| Ghostty/Kitty/Alacritty/WezTerm    | ✅                                   |
+| Recording + playback (tape format) | ✅                                   |
+| GIF/PNG/SVG output                 | ✅                                   |
+| CLI tool                           | ✅ termless play foo.tape -o out.gif |
+| Documentation                      | ✅ termless.dev                      |
+| Integration with @silvery/test     | ✅ createTermless()                  |
+| Integration with jest/vitest       | ✅ custom matchers                   |
+| Example test suites                | 🟡                                  |
 
 ### Value claim
 
-> **Headless terminal testing — like Playwright for terminal apps.**
+> Headless terminal testing — like Playwright for terminal apps.
 
 ---
 
@@ -235,12 +235,12 @@ Most terminal test tools either mock the terminal (too lenient) or require a rea
 
 ### Positioning statement (draft)
 
-> **For** terminal framework authors, CLI tool builders, and people who need to know "does this terminal support X?"
-> **who** currently hunt through scattered docs, source code, and trial-and-error,
-> **terminfo.dev is a** terminal feature compatibility database
-> **that** documents 161+ features across 19+ terminals with empirical test results, version history, and cross-references — like caniuse.com for terminal emulators.
-> **Unlike** the traditional `terminfo` database (which documents capabilities but not modern features like Kitty graphics, synchronized output, OSC 52 clipboard, Sixel, hyperlinks, text sizing),
-> **terminfo.dev** uses Termless-driven empirical probes against real emulators to produce an authoritative, continuously-updated compatibility matrix.
+> For terminal framework authors, CLI tool builders, and people who need to know "does this terminal support X?"
+> who currently hunt through scattered docs, source code, and trial-and-error,
+> terminfo.dev is a terminal feature compatibility database
+> that documents 161+ features across 19+ terminals with empirical test results, version history, and cross-references — like caniuse.com for terminal emulators.
+> Unlike the traditional terminfo database (which documents capabilities but not modern features like Kitty graphics, synchronized output, OSC 52 clipboard, Sixel, hyperlinks, text sizing),
+> terminfo.dev uses Termless-driven empirical probes against real emulators to produce an authoritative, continuously-updated compatibility matrix.
 
 ### Target segment
 
@@ -256,20 +256,20 @@ Every modern terminal has different levels of support for Kitty graphics, Sixel,
 
 ### Whole product
 
-| Layer                                  | Status                |
-| -------------------------------------- | --------------------- |
+| Layer                                  | Status               |
+| -------------------------------------- | -------------------- |
 | Database (161 features × 19 terminals) | ✅                    |
 | Docs site                              | ✅ terminfo.dev       |
-| JSON API                               | 🟡                    |
+| JSON API                               | 🟡                   |
 | Feature-specific deep dives            | ✅ (partial coverage) |
 | Termless-driven probes (CI)            | ✅                    |
-| Detection code snippets                | 🟡                    |
-| Historical version tracking            | 🟡                    |
+| Detection code snippets                | 🟡                   |
+| Historical version tracking            | 🟡                   |
 | Community submissions                  | ❌                    |
 
 ### Value claim
 
-> **The caniuse.com for terminal emulators — empirical, continuously verified, queryable.**
+> The caniuse.com for terminal emulators — empirical, continuously verified, queryable.
 
 ---
 
@@ -277,12 +277,12 @@ Every modern terminal has different levels of support for Kitty graphics, Sixel,
 
 ### Positioning statement (draft)
 
-> **For** Node.js and Bun service developers
-> **who** want structured logging with distributed tracing without pulling in OpenTelemetry's complexity or Winston/Pino's feature sprawl,
-> **Loggily is a** structured logger with spans and metrics
-> **that** gives you log levels, namespace filtering, span tracing (W3C traceparent compatible), head-based sampling, and a metrics API in a single focused library with zero dependencies.
-> **Unlike** Winston/Pino (feature-rich but no tracing) or OpenTelemetry (full-featured but heavyweight),
-> **Loggily** is the middle ground — structured + traced + metered, simple enough to adopt in an afternoon.
+> For Node.js and Bun service developers
+> who want structured logging with distributed tracing without pulling in OpenTelemetry's complexity or Winston/Pino's feature sprawl,
+> Loggily is a structured logger with spans and metrics
+> that gives you log levels, namespace filtering, span tracing (W3C traceparent compatible), head-based sampling, and a metrics API in a single focused library with zero dependencies.
+> Unlike Winston/Pino (feature-rich but no tracing) or OpenTelemetry (full-featured but heavyweight),
+> Loggily is the middle ground — structured + traced + metered, simple enough to adopt in an afternoon.
 
 ### Target segment
 
@@ -296,8 +296,8 @@ Every modern terminal has different levels of support for Kitty graphics, Sixel,
 
 ### Whole product
 
-| Layer                                   | Status                    |
-| --------------------------------------- | ------------------------- |
+| Layer                                   | Status                   |
+| --------------------------------------- | ------------------------ |
 | Core logger                             | ✅ loggily@0.5.0          |
 | Span tracing (W3C)                      | ✅                        |
 | Head-based sampling                     | ✅                        |
@@ -307,12 +307,12 @@ Every modern terminal has different levels of support for Kitty graphics, Sixel,
 | Console output format                   | ✅                        |
 | Documentation site                      | ✅ loggily.dev            |
 | Framework integrations                  | ❌ (Express/Fastify/Hono) |
-| Example apps                            | 🟡                        |
+| Example apps                            | 🟡                       |
 | Monitoring dashboards                   | ❌                        |
 
 ### Value claim
 
-> **Structured logs + tracing + metrics in one library. Zero dependencies. Bun-first.**
+> Structured logs + tracing + metrics in one library. Zero dependencies. Bun-first.
 
 ---
 
@@ -320,12 +320,12 @@ Every modern terminal has different levels of support for Kitty graphics, Sixel,
 
 ### Positioning statement (very draft — to refine as product matures)
 
-> **For** knowledge workers who use AI assistants daily
-> **who** want their notes, tasks, and calendar in one place — queryable by AI, editable by humans, synced via markdown files — instead of scattered across Notion, Linear, Google Calendar, and chat threads,
-> **KM is a** terminal-first workspace for agentic knowledge workers
-> **that** unifies notes, tasks, and calendar with full history, bidirectional markdown sync, and AI agent drivability.
-> **Unlike** Obsidian (notes only), Linear (tasks only), or Roam (notes + links but no tasks/calendar),
-> **KM** treats the workspace itself as an AI-drivable surface — state machines for every view, serializable actions, replay, and a CLI that an agent can operate directly.
+> For knowledge workers who use AI assistants daily
+> who want their notes, tasks, and calendar in one place — queryable by AI, editable by humans, synced via markdown files — instead of scattered across Notion, Linear, Google Calendar, and chat threads,
+> KM is a terminal-first workspace for agentic knowledge workers
+> that unifies notes, tasks, and calendar with full history, bidirectional markdown sync, and AI agent drivability.
+> Unlike Obsidian (notes only), Linear (tasks only), or Roam (notes + links but no tasks/calendar),
+> KM treats the workspace itself as an AI-drivable surface — state machines for every view, serializable actions, replay, and a CLI that an agent can operate directly.
 
 ### Target segment
 
@@ -406,3 +406,4 @@ Each product has a temptation to broaden:
 
 - **2026-04-10** — Created. Silvery, Termless, terminfo.dev, Loggily sections populated. KM section is speculative — refine as the product matures.
 - **2026-04-10** — Added three guiding principles (don't surprise web devs / stay unapologetically terminal / strive for quality plateau). Added tagline: "Powerful apps with beautiful UIs, whilst unapologetically terminal." Added F++ origin-story framing showing how the principles extend across the silvery family (@silvery/test, @silvery/commander, @silvery/theme, @silvery/headless, ...) and the larger beorn terminal ecosystem (Flexily, Termless, terminfo.dev, Loggily). Added Alternative 4 (tagline version) to the rotation. @silvery/commander called out as the dog-food proof point — beautiful CLIs for free because help text renders through Silvery itself.
+

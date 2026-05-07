@@ -28,11 +28,13 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 **Purpose:** Split a node's content at cursor position into two siblings.
 
 **Args:**
+
 - `tree: TreeMutator` — mutation interface
 - `nodeId: string` — ID of the node to split
 - `offset: number` — character offset in display text (name or content)
 
 **Effect on tree:**
+
 1. Original node keeps text before the cursor
 2. New sibling created with text after the cursor
 3. Children of original node move to the new sibling
@@ -41,6 +43,7 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 **Inverse:** `merge(tree, newId, survivorId)` — conceptually; the inverse operation is computed from the `split_node` TreeOp.
 
 **Split rules** (from Enter keyboard table):
+
 - Content at start: insert empty sibling before
 - Content in middle: split into two; children move to new node
 - Content at end: new empty sibling after
@@ -52,6 +55,7 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 **Purpose:** Merge a node with its previous sibling (Backspace at start of title).
 
 **Args:**
+
 - `tree: TreeMutator`
 - `nodeId: string` — ID of the node to merge backward
 
@@ -59,14 +63,15 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 
 **Effect on tree:** Depends on node state:
 
-| Condition | Action | Survivor |
-|-----------|--------|----------|
-| Empty + no children | Delete this, cursor to prev | prev |
-| Content + prev is childless | Prepend prev content, delete prev | this |
-| Content + prev has children | Move this as last child of prev | this (now child) |
-| No prev sibling (outdent case) | Move to sibling of parent | this (parent's sibling) |
+| Condition                      | Action                            | Survivor                |
+| ------------------------------ | --------------------------------- | ----------------------- |
+| Empty + no children            | Delete this, cursor to prev       | prev                    |
+| Content + prev is childless    | Prepend prev content, delete prev | this                    |
+| Content + prev has children    | Move this as last child of prev   | this (now child)        |
+| No prev sibling (outdent case) | Move to sibling of parent         | this (parent's sibling) |
 
 **Merge rules** (from Backspace keyboard table):
+
 - Empty node with no children: just delete, cursor at end of prev
 - Node with content, prev is childless: merge prev into this, delete prev
 - Node with content, prev has children: outdent this as last child of prev
@@ -79,6 +84,7 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 **Purpose:** Merge a node with its next sibling (Delete at end of title).
 
 **Args:**
+
 - `tree: TreeMutator`
 - `nodeId: string` — ID of the node to merge forward from
 
@@ -86,12 +92,12 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 
 **Effect on tree:** Current node survives (keeps its type/traits).
 
-| Condition | Action |
-|-----------|--------|
-| Next is empty + no children | Delete next |
-| Next has content + no children | Append next's text, delete next |
-| Next has content + children | Append next's text, reparent next's children |
-| No next sibling | Return null (boundary) |
+| Condition                      | Action                                       |
+| ------------------------------ | -------------------------------------------- |
+| Next is empty + no children    | Delete next                                  |
+| Next has content + no children | Append next's text, delete next              |
+| Next has content + children    | Append next's text, reparent next's children |
+| No next sibling                | Return null (boundary)                       |
 
 **Reference:** `packages/km-tree/src/ops/block-ops.ts:215–265`
 
@@ -99,15 +105,15 @@ Minimal read/write contract. All high-level operations (split, merge, indent, ou
 
 The `operations.ts` module defines 7 serializable operation types, each with an inverse:
 
-| Op | Type | Inverse | Purpose |
-|-------|------|---------|---------|
-| `insert_node` | Add node at index | `remove_node` | Create node |
-| `remove_node` | Delete node (snapshot stored) | `insert_node` | Delete node |
-| `set_node` | Update node properties | `set_node` (swapped) | Modify traits/metadata |
-| `move_node` | Reparent + reorder | `move_node` (swapped) | Tree structure changes |
-| `split_node` | Split at offset (compound) | `merge_node` | Split for Enter |
-| `merge_node` | Merge two nodes (compound) | `split_node` | Merge for Backspace/Delete |
-| `set_selection` | Cursor position (effect only) | `set_selection` (swapped) | Selection restore on undo |
+| Op            | Type                          | Inverse                 | Purpose                    |
+| ------------- | ----------------------------- | ----------------------- | -------------------------- |
+| insert_node   | Add node at index             | remove_node             | Create node                |
+| remove_node   | Delete node (snapshot stored) | insert_node             | Delete node                |
+| set_node      | Update node properties        | set_node (swapped)      | Modify traits/metadata     |
+| move_node     | Reparent + reorder            | move_node (swapped)     | Tree structure changes     |
+| split_node    | Split at offset (compound)    | merge_node              | Split for Enter            |
+| merge_node    | Merge two nodes (compound)    | split_node              | Merge for Backspace/Delete |
+| set_selection | Cursor position (effect only) | set_selection (swapped) | Selection restore on undo  |
 
 **Reference:** `packages/km-tree/src/ops/operations.ts:25–93`
 
@@ -116,6 +122,7 @@ The `operations.ts` module defines 7 serializable operation types, each with an 
 Compute the inverse of an operation. `apply(inverse(op))` undoes the effect of `apply(op)`.
 
 Contract:
+
 - Every operation type has a corresponding inverse
 - Insert ↔ Remove (with full snapshot)
 - Set ↔ Set (properties swapped)
@@ -130,6 +137,7 @@ Contract:
 Apply a single operation to the tree. Handles compound operations (split_node, merge_node) as atomic units.
 
 Compound operations:
+
 - `split_node`: truncate original, insert new sibling with remainder
 - `merge_node`: append source text to target, delete source
 
@@ -142,12 +150,14 @@ Compound operations:
 Wraps a TreeMutator to auto-normalize after every mutation. Prevents forgetting normalization (SlateJS-inspired).
 
 Default normalizers enforce schema rules:
+
 1. **Blocks cannot have children** — move children to parent
 2. **Items must be type "h"** — correct type if needed
 
 Custom normalizers can be added via the `customNormalizers` parameter.
 
 **Deferred normalization:**
+
 - `withoutNormalizing(fn)` — batch operations, defer normalization until outermost batch completes
 - All dirty nodes collected and flushed in a stable iteration (up to 10 passes)
 - Prevents infinite loops by tracking normalization state
@@ -182,6 +192,7 @@ export function canBecomeBlock(tree, nodeId): boolean
 ```
 
 **Violations corrected by normalization:**
+
 - Block with children → children moved to block's parent
 - Item with non-"h" type → type corrected to "h"
 - Parent that cannot have children → children reparented
@@ -195,6 +206,7 @@ export function canBecomeBlock(tree, nodeId): boolean
 Detect markdown prefix at start of content. Returns `{ prefixLength, nodeChanges }` or null.
 
 **Supported prefixes:**
+
 - `- `, `* `, `+ ` → list item
 - `1. `, `2. ` etc. → numbered list
 - `# `, `## ` ... `###### ` → outline item (heading)
@@ -224,3 +236,4 @@ Triggered after user types space following prefix (e.g., "- " or "# ").
 - `docs/design/model/repo-api.md` — Repo mutation API (addNode/updateNode/moveNode/deleteNode)
 - `packages/km-tree/src/outliner.ts` — outliner reducer using TreeMutator
 - `packages/km-tree/tests/block-ops.test.ts` — split/merge test fixtures
+

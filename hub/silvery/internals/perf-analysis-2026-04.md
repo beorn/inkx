@@ -2,7 +2,7 @@
 
 Deep-dive analysis of silvery vs ink performance, conducted via parallel sub-agents and GPT 5.4 Pro architectural review. All bench data from `hub/silvery/benchmarks/silvery-vs-ink.bench.ts`.
 
-> **UPDATE 2026-04-09 evening**: All numbers in the original analysis below were measured with a STRICT env bug (`isStrictOutput()` treated `"0"` as truthy). Silvery was paying full O(cells) STRICT verification overhead on every bench iteration. Post-fix, silvery wins ALL 16 scenarios (2.5-5.2x). The original analysis and optimization plan below is preserved for context but the "silvery loses" sections are now moot. See `hub/silvery/launch/positioning-2026.md` for current canonical numbers.
+> UPDATE 2026-04-09 evening: All numbers in the original analysis below were measured with a STRICT env bug (isStrictOutput() treated "0" as truthy). Silvery was paying full O(cells) STRICT verification overhead on every bench iteration. Post-fix, silvery wins ALL 16 scenarios (2.5-5.2x). The original analysis and optimization plan below is preserved for context but the "silvery loses" sections are now moot. See hub/silvery/launch/positioning-2026.md for current canonical numbers.
 
 ## Executive Summary
 
@@ -10,10 +10,10 @@ Deep-dive analysis of silvery vs ink performance, conducted via parallel sub-age
 
 ## Bench results (mounted, both with incremental ON)
 
-| Scenario                           | Silvery                | Ink (incrementalRendering) | Winner            | Gap (absolute) |
-| ---------------------------------- | ---------------------- | -------------------------- | ----------------- | -------------- |
-| Cursor move 100-item list          | 441 ops/s (2.27ms)     | 463 ops/s (2.16ms)         | Ink 1.05x         | 0.11ms         |
-| **Kanban 5×20 single text change** | **960 ops/s (1.04ms)** | 257 ops/s (3.89ms)         | **Silvery 3.73x** | **2.85ms**     |
+| Scenario                       | Silvery            | Ink (incrementalRendering) | Winner        | Gap (absolute) |
+| ------------------------------ | ------------------ | -------------------------- | ------------- | -------------- |
+| Cursor move 100-item list      | 441 ops/s (2.27ms) | 463 ops/s (2.16ms)         | Ink 1.05x     | 0.11ms         |
+| Kanban 5×20 single text change | 960 ops/s (1.04ms) | 257 ops/s (3.89ms)         | Silvery 3.73x | 2.85ms         |
 
 ## Cold render results (renderToString)
 
@@ -242,3 +242,4 @@ Tier 1 in priority order:
 Then consider **E** (hybrid emitter) as the most strategically important Tier 2 win.
 
 Total estimated effort for Tier 1: ~2-3 days. Expected outcome: silvery either wins or ties on every bench scenario (modulo the synthetic deep tree case if A's narrower fix doesn't fully address it).
+

@@ -3,10 +3,6 @@ title: 2025 Annual Journal
 id: 01HVQZ3MZYX0RNK8QKM7B1F4J5
 type: journal
 year: 2025
-tags:
-  - journal
-  - annual
-  - fixture
 created: 2025-01-01T08:00:00+00:00
 updated: 2025-12-31T22:00:00+00:00
 ---
@@ -634,3 +630,4 @@ Themes that didn't:
 On to 2026. See [[Planning/2026]].
 
 <!-- This file is ~50KB and exercises most markdown features we care about. -->
+

@@ -139,14 +139,14 @@ outputFile: {
 
 ### Quick Reference
 
-| Command                    | What it runs                             | Duration | Use case             |
-| -------------------------- | ---------------------------------------- | -------- | -------------------- |
-| `bun run test:fast`        | `.test.ts` + `.spec.ts` (excludes slow)  | ~13s     | Default iteration    |
-| `bun run test:slow`        | `.slow.test.ts` only                     | ~30s     | Sync/chaos iteration |
-| `bun run test:all`         | All tests                                | ~45s     | Before commit        |
-| `bun run test:fast:html`   | Fast tests + HTML report + perf tracking | ~13s     | Performance analysis |
-| `bun run test:all:html`    | All tests + HTML report + perf tracking  | ~45s     | Full perf analysis   |
-| `bun run test:fast:serial` | Fast tests without parallelization       | ~20s     | Accurate timing      |
+| Command                  | What it runs                             | Duration | Use case             |
+| ------------------------ | ---------------------------------------- | -------- | -------------------- |
+| bun run test:fast        | .test.ts + .spec.ts (excludes slow)      | ~13s     | Default iteration    |
+| bun run test:slow        | .slow.test.ts only                       | ~30s     | Sync/chaos iteration |
+| bun run test:all         | All tests                                | ~45s     | Before commit        |
+| bun run test:fast:html   | Fast tests + HTML report + perf tracking | ~13s     | Performance analysis |
+| bun run test:all:html    | All tests + HTML report + perf tracking  | ~45s     | Full perf analysis   |
+| bun run test:fast:serial | Fast tests without parallelization       | ~20s     | Accurate timing      |
 
 ### Detailed Commands
 
@@ -526,7 +526,7 @@ TEST_MODE=standard bun run test:fast
 - **Use case**: Reserved for future optimization
 - **Speed**: ⚡⚡⚡
 
-> **Note**: Currently identical to `standard` mode. The `isMockMode()` function exists but no tests currently use it to skip. This mode is reserved for future optimization where slow tests could skip via `test.skipIf(isMockMode())`.
+> Note: Currently identical to standard mode. The isMockMode() function exists but no tests currently use it to skip. This mode is reserved for future optimization where slow tests could skip via test.skipIf(isMockMode()).
 
 ```bash
 TEST_MODE=mock bun run test:fast
@@ -653,3 +653,4 @@ This ensures tests are:
 ## Further Reading
 
 - [Vitest Configuration](../dev/vitest-ci.md) - CI integration details
+

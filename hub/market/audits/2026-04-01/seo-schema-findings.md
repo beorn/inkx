@@ -30,12 +30,12 @@ JSON-LD is the correct format. No migration needed.
 
 ### Full inventory of block types
 
-| @type | Pages | Notes |
-|---|---|---|
-| `WebSite` | All pages (10/10) | Repeated on every page — intentional site-wide block |
-| `BreadcrumbList` | All inner pages (9/9) | Correctly scoped, not on homepage |
-| `TechArticle` | All inner pages (9/9) | Used for all content pages: guides, API, components, examples |
-| `SoftwareSourceCode` | `/api/box.html` only | Present on one API page, not on others |
+| @type              | Pages                 | Notes                                                         |
+| ------------------ | --------------------- | ------------------------------------------------------------- |
+| WebSite            | All pages (10/10)     | Repeated on every page — intentional site-wide block          |
+| BreadcrumbList     | All inner pages (9/9) | Correctly scoped, not on homepage                             |
+| TechArticle        | All inner pages (9/9) | Used for all content pages: guides, API, components, examples |
+| SoftwareSourceCode | /api/box.html only    | Present on one API page, not on others                        |
 
 ---
 
@@ -350,15 +350,15 @@ For pages like `/api/box.html`, `/components/SelectList.html`, etc.:
 
 ## 6. Rich Result Eligibility Summary
 
-| Schema Type | Currently Present | Eligible for Rich Result | Status |
-|---|---|---|---|
-| WebSite | Yes | Sitelinks search — no, needs SearchAction | Missing SearchAction |
-| BreadcrumbList | Yes (inner pages) | Yes — breadcrumbs in SERPs | PASS |
-| TechArticle / Article | Yes (inner pages) | Yes — Article rich result (needs image) | Missing image |
-| SoftwareApplication | No | Yes — App listing rich result | Not implemented |
-| SoftwareSourceCode | Partial (1 page) | No dedicated rich result; aids LLM/entity | Inconsistent |
-| Organization | No | No rich result; entity disambiguation | Not implemented |
-| FAQPage | No | Restricted to gov/health sites | Not recommended |
+| Schema Type           | Currently Present | Eligible for Rich Result                  | Status               |
+| --------------------- | ----------------- | ----------------------------------------- | -------------------- |
+| WebSite               | Yes               | Sitelinks search — no, needs SearchAction | Missing SearchAction |
+| BreadcrumbList        | Yes (inner pages) | Yes — breadcrumbs in SERPs                | PASS                 |
+| TechArticle / Article | Yes (inner pages) | Yes — Article rich result (needs image)   | Missing image        |
+| SoftwareApplication   | No                | Yes — App listing rich result             | Not implemented      |
+| SoftwareSourceCode    | Partial (1 page)  | No dedicated rich result; aids LLM/entity | Inconsistent         |
+| Organization          | No                | No rich result; entity disambiguation     | Not implemented      |
+| FAQPage               | No                | Restricted to gov/health sites            | Not recommended      |
 
 ### HowTo
 
@@ -374,3 +374,4 @@ The existing schema is generated via a VitePress theme customization (likely in 
 - **Snippets A, B, C** (homepage additions): Add conditionally in `transformHead` when `pageData.relativePath === 'index.md'`.
 - **Snippet D** (TechArticle publisher + image + datePublished): Extend the existing TechArticle generation in the theme's head transform.
 - **Snippet E** (SoftwareSourceCode consistency): Apply to all pages under `/api/` and `/components/` using path prefix checks, or remove from Box to eliminate inconsistency.
+

@@ -4,17 +4,17 @@ Research date: 2026-03-10. Sources: GitHub Issues API for `vadimdemedes/ink`, `v
 
 ## Summary
 
-| Metric                                          | Count |
-| ----------------------------------------------- | ----- |
-| Ink open issues analyzed                        | 13    |
-| Ink popular closed issues analyzed              | 30    |
-| Ink-UI open issues analyzed                     | 13    |
-| Chalk open issues analyzed                      | 4     |
-| Ink open PRs analyzed                           | 8     |
-| **Silvery already solves (documented)**         | 9     |
-| **Silvery already solves (NOT yet documented)** | 6     |
-| **Silvery doesn't solve yet**                   | 3     |
-| **Not applicable to Silvery**                   | 8     |
+| Metric                                      | Count |
+| ------------------------------------------- | ----- |
+| Ink open issues analyzed                    | 13    |
+| Ink popular closed issues analyzed          | 30    |
+| Ink-UI open issues analyzed                 | 13    |
+| Chalk open issues analyzed                  | 4     |
+| Ink open PRs analyzed                       | 8     |
+| Silvery already solves (documented)         | 9     |
+| Silvery already solves (NOT yet documented) | 6     |
+| Silvery doesn't solve yet                   | 3     |
+| Not applicable to Silvery                   | 8     |
 
 The biggest takeaway: **Ink's top open issues are almost entirely solved by Silvery**, and most are already documented in `silvery-vs-ink.md`. The few undocumented wins represent good opportunities to strengthen the comparison narrative — particularly around IME/cursor positioning, useLayoutEffect timing, animation support, and i18n.
 
@@ -172,19 +172,19 @@ Ink chose not to implement dirty subtree rendering. Silvery has per-node dirty t
 
 `ink-ui` is Vadim's official component library for Ink. Its issues reveal pain points that Silvery's built-in `@silvery/ag-react/ui` already addresses.
 
-| #   | Title                                     | Reactions | Silvery Status                                                                          |
-| --- | ----------------------------------------- | --------- | --------------------------------------------------------------------------------------- |
-| #10 | `onNavigate` prop for Select keyboard nav | 2         | **Solved**: `SelectList` has `onChange` + full keyboard nav (j/k/arrows)                |
-| #9  | Multiline TextInput support               | 2         | **Solved**: `TextArea` component                                                        |
-| #18 | Japanese IME cursor position in TextInput | 1         | **Partially solved**: Better IME handling, but needs verification for all IME scenarios |
-| #14 | Support for Ink v6 / React v19            | 1         | **N/A**: Silvery built on React 19                                                      |
-| #21 | Visual regression testing                 | 0         | **Solved**: `@silvery/test` with `bufferToHTML()` + Playwright screenshots              |
-| #20 | TextInput missing `value` prop            | 0         | **Solved**: Silvery TextInput has controlled mode with `value` prop                     |
-| #19 | Box doesn't support backgroundColor       | 0         | **Solved**: Silvery Box supports `backgroundColor`                                      |
-| #17 | Select/MultiSelect options not reactive   | 0         | **Solved**: SelectList is fully reactive                                                |
-| #13 | Vim keybindings (hjkl) for navigation     | 0         | **Solved**: `SelectList` supports j/k by default                                        |
-| #8  | Select search/filter                      | 0         | **Solved**: `SelectList` supports filtering                                             |
-| #7  | Blinking cursor for TextInput             | 0         | **Partially solved**: Real terminal cursor when focused                                 |
+| #   | Title                                     | Reactions | Silvery Status                                                                      |
+| --- | ----------------------------------------- | --------- | ----------------------------------------------------------------------------------- |
+| #10 | onNavigate prop for Select keyboard nav   | 2         | Solved: SelectList has onChange + full keyboard nav (j/k/arrows)                    |
+| #9  | Multiline TextInput support               | 2         | Solved: TextArea component                                                          |
+| #18 | Japanese IME cursor position in TextInput | 1         | Partially solved: Better IME handling, but needs verification for all IME scenarios |
+| #14 | Support for Ink v6 / React v19            | 1         | N/A: Silvery built on React 19                                                      |
+| #21 | Visual regression testing                 | 0         | Solved: @silvery/test with bufferToHTML() + Playwright screenshots                  |
+| #20 | TextInput missing value prop              | 0         | Solved: Silvery TextInput has controlled mode with value prop                       |
+| #19 | Box doesn't support backgroundColor       | 0         | Solved: Silvery Box supports backgroundColor                                        |
+| #17 | Select/MultiSelect options not reactive   | 0         | Solved: SelectList is fully reactive                                                |
+| #13 | Vim keybindings (hjkl) for navigation     | 0         | Solved: SelectList supports j/k by default                                          |
+| #8  | Select search/filter                      | 0         | Solved: SelectList supports filtering                                               |
+| #7  | Blinking cursor for TextInput             | 0         | Partially solved: Real terminal cursor when focused                                 |
 
 ---
 
@@ -194,18 +194,18 @@ Chalk has very few open issues (4 total) and they are mostly minor. The biggest 
 
 ### Open Issues
 
-| #    | Title                                            | Reactions | Silvery Status                                                                                                                                                                                |
-| ---- | ------------------------------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| #604 | Squiggly/curly underline support                 | 1         | **Solved**: Silvery's `@silvery/ag-term` supports extended underlines (curly, dotted, dashed) via ISO 8613-6 SGR 58/59. Already documented in terminal protocol table in `silvery-vs-ink.md`. |
-| #619 | v4 property override error (prototype pollution) | 0         | **N/A**: Silvery uses its own styling system, not chalk internally                                                                                                                            |
-| #669 | 2.7x perf speedup for 2-arg calls                | 0         | **N/A**: Silvery uses interned styles + cached SGR transitions, different perf characteristics                                                                                                |
-| #624 | FORCE_COLOR works only as 0 or 3                 | 0         | **Partially solved**: Silvery has its own color level detection. Supports `FORCE_COLOR` but behavior should be verified for levels 1/2                                                        |
+| #    | Title                                            | Reactions | Silvery Status                                                                                                                                                                        |
+| ---- | ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #604 | Squiggly/curly underline support                 | 1         | Solved: Silvery's @silvery/ag-term supports extended underlines (curly, dotted, dashed) via ISO 8613-6 SGR 58/59. Already documented in terminal protocol table in silvery-vs-ink.md. |
+| #619 | v4 property override error (prototype pollution) | 0         | N/A: Silvery uses its own styling system, not chalk internally                                                                                                                        |
+| #669 | 2.7x perf speedup for 2-arg calls                | 0         | N/A: Silvery uses interned styles + cached SGR transitions, different perf characteristics                                                                                            |
+| #624 | FORCE_COLOR works only as 0 or 3                 | 0         | Partially solved: Silvery has its own color level detection. Supports FORCE_COLOR but behavior should be verified for levels 1/2                                                      |
 
 ### Chalk Ecosystem Open Issues
 
-| Repo            | #   | Title                                                   | Silvery Status                                                                       |
-| --------------- | --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| chalk/wrap-ansi | #55 | Replace strip-ansi with `util.stripVTControlCharacters` | **N/A**: Silvery has built-in ANSI-aware text utilities, doesn't depend on wrap-ansi |
+| Repo            | #   | Title                                                 | Silvery Status                                                                   |
+| --------------- | --- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| chalk/wrap-ansi | #55 | Replace strip-ansi with util.stripVTControlCharacters | N/A: Silvery has built-in ANSI-aware text utilities, doesn't depend on wrap-ansi |
 
 ### Notable Closed Chalk Issues
 
@@ -213,7 +213,7 @@ Chalk has very few open issues (4 total) and they are mostly minor. The biggest 
 | ---- | -------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------- |
 | #656 | npm compromise (v5.6.1 malware)  | 80        | Silvery has no dependency on chalk packages — pure TypeScript styling eliminates supply chain risk from chalk ecosystem |
 | #300 | Roadmap ideas                    | 33        | Historical — chalk's roadmap included many features Silvery built natively (extended underlines, hyperlinks)            |
-| #497 | Detect terminal light/dark theme | 2         | **Solved**: Silvery detects terminal background via OSC 4 palette query and adapts theme automatically                  |
+| #497 | Detect terminal light/dark theme | 2         | Solved: Silvery detects terminal background via OSC 4 palette query and adapts theme automatically                      |
 
 ---
 
@@ -221,14 +221,14 @@ Chalk has very few open issues (4 total) and they are mostly minor. The biggest 
 
 These PRs show what Ink is actively trying to add — features Silvery already has.
 
-| PR # | Title                                             | Reactions | Silvery Status                                                               |
-| ---- | ------------------------------------------------- | --------- | ---------------------------------------------------------------------------- |
-| #889 | Fix useLayoutEffect frame flicker                 | 2         | **Solved by architecture**: Two-phase render eliminates the problem entirely |
-| #778 | Border background colors for Box                  | 1         | **Solved**: Silvery Box supports `borderBg` / border styling                 |
-| #894 | Fix fullscreen flicker with incremental rendering | 0         | **Solved**: Cell-level dirty tracking + synchronized output                  |
-| #872 | Declarative Cursor component                      | 0         | **Solved**: TextInput/TextArea have built-in cursor management               |
-| #876 | Enhance cursor-IME example                        | 0         | **Solved**: Built-in IME support in TextInput                                |
-| #825 | Reuse lastOutput to reduce memory pressure        | 0         | **Solved**: Packed Uint32Array double buffering with constant memory         |
+| PR # | Title                                             | Reactions | Silvery Status                                                           |
+| ---- | ------------------------------------------------- | --------- | ------------------------------------------------------------------------ |
+| #889 | Fix useLayoutEffect frame flicker                 | 2         | Solved by architecture: Two-phase render eliminates the problem entirely |
+| #778 | Border background colors for Box                  | 1         | Solved: Silvery Box supports borderBg / border styling                   |
+| #894 | Fix fullscreen flicker with incremental rendering | 0         | Solved: Cell-level dirty tracking + synchronized output                  |
+| #872 | Declarative Cursor component                      | 0         | Solved: TextInput/TextArea have built-in cursor management               |
+| #876 | Enhance cursor-IME example                        | 0         | Solved: Built-in IME support in TextInput                                |
+| #825 | Reuse lastOutput to reduce memory pressure        | 0         | Solved: Packed Uint32Array double buffering with constant memory         |
 
 ---
 
@@ -274,11 +274,8 @@ Claude Code is one of the most demanding Ink applications in production — a fu
 **What Silvery fixes:**
 
 1. **Memory growth from Yoga WASM** ([claude-code#4953](https://github.com/anthropics/claude-code/issues/4953)). Yoga's linear memory heap grows but never shrinks. In long sessions, the process balloons. Silvery's default layout engine (Flexily) is pure JavaScript with normal garbage collection — memory stays constant. No WASM heap, no linear memory growth, no mysterious OOM in hour-long sessions.
-
 2. **Scrollback without keeping everything in the React tree.** Claude Code needs completed items (tool results, assistant messages) to scroll into terminal history while the interactive area stays small. Ink requires keeping all items in the render tree. Silvery's `useScrollback` lets items graduate from the interactive area into native terminal scrollback — the render tree stays lean regardless of conversation length.
-
 3. **Flicker-free rendering in tmux/Zellij.** DEC synchronized output (mode 2026) ensures atomic frame updates. No torn frames when the terminal multiplexer is slow to composite.
-
 4. **Per-node dirty tracking for interactive updates.** When the user types a character or moves a cursor, only the changed node re-renders — 169µs vs Ink's 20.7ms full-tree reconciliation. For a tool that's being typed into constantly, that's 100x less work per keystroke.
 
 **Migration effort:** Replace `import { ... } from 'ink'` with `import { ... } from 'silvery'`. Add `await` before `render()`. Add `flexDirection="column"` to any Box that relies on Ink's vertical-stacking default. Most of the app works unchanged.
@@ -292,13 +289,9 @@ Gemini CLI is actively hitting multiple Ink limitations that are open issues —
 **What Silvery fixes:**
 
 1. **Scrolling** ([ink#765](https://github.com/vadimdemedes/ink/issues/765), [ink#222](https://github.com/vadimdemedes/ink/issues/222)). Ink's most-requested feature, open since 2019. Silvery: `overflow="scroll"` with `scrollTo`. No manual virtualization, no height estimation, no custom scroll logic. The framework handles measurement and clipping.
-
 2. **useLayoutEffect flicker** ([ink#773](https://github.com/vadimdemedes/ink/issues/773), [ink#889](https://github.com/vadimdemedes/ink/pull/889)). Ink renders a frame before `useLayoutEffect` completes, causing a flash of incorrect content. This is architectural — Ink renders first, then measures. Silvery measures first, then renders. Components know their size via `useBoxRect()` during the render pass. No flicker frame, no hasMeasured guard, no two-pass workaround.
-
 3. **CJK/IME input** ([ink#759](https://github.com/vadimdemedes/ink/issues/759), 11 reactions — the highest-reaction open Ink issue). Characters drop, cursor position drifts for CJK input. Silvery has built-in grapheme-aware width calculation, proper IME cursor tracking, and tested CJK rendering paths.
-
 4. **Cursor positioning in nested components** ([ink#870](https://github.com/vadimdemedes/ink/issues/870)). Ink's `useCursor` requires components to know their absolute position — painful for a TextInput inside a bordered Box inside a scroll container. Silvery's cursor is node-relative. Set cursor position within your component's content area; the pipeline translates to screen coordinates automatically.
-
 5. **Memory pressure from output buffering** ([ink#825](https://github.com/vadimdemedes/ink/pull/825)). Silvery uses packed Uint32Array double buffering with constant memory. Cell-level diff means only changed cells generate output bytes.
 
 **Migration effort:** Same as Claude Code — import swap plus `flexDirection` audit. The Gemini CLI team has already been exploring Ink's internals (jacob314's ResizeObserver proposal in #765), so the codebase is well-understood for migration.
@@ -312,11 +305,8 @@ Shopify CLI uses Ink for interactive prompts, project scaffolding, and dev serve
 **What Silvery fixes:**
 
 1. **Built-in component library.** Shopify currently assembles UI from `ink-select-input`, `ink-text-input`, `ink-spinner`, `ink-table`, and other third-party packages — each with its own maintainer, release cycle, and React version compatibility. Silvery ships 30+ components (`SelectList`, `TextInput`, `TextArea`, `Spinner`, `Table`, `ProgressBar`, `Tabs`, `ModalDialog`, etc.) in a single coherent package with consistent theming.
-
 2. **Input isolation for complex flows.** Multi-step wizards where a confirmation dialog shouldn't leak keystrokes to the form behind it. Ink's `useInput` is flat — every handler sees every key. Silvery's `InputLayerProvider` isolates input automatically. Open a dialog, and the parent form stops receiving keys. No manual `if (dialogOpen) return` guards.
-
 3. **Theme support.** Shopify has a strong design system. Silvery's `@silvery/theme` provides semantic color tokens (`$primary`, `$success`, `$danger`) with 84 color schemes and auto-detection of terminal light/dark mode. Consistent branding across terminal environments without manual chalk color management.
-
 4. **No WASM dependency.** Simpler CI, faster cold starts, no platform-specific binary issues. Pure TypeScript all the way down.
 
 **Migration effort:** Low. Shopify CLI's Ink usage is mostly prompts and simple layouts. The main work is replacing third-party Ink component imports with Silvery equivalents — which are API-similar by design.
@@ -330,9 +320,7 @@ Prisma uses Ink for `prisma studio`, migration status, and interactive database 
 **What Silvery fixes:**
 
 1. **Components that know their size.** Prisma Studio displays database tables that need to adapt column widths to terminal size. In Ink, this requires measuring after render and re-rendering — a two-pass dance. In Silvery, `useBoxRect()` provides dimensions during render. The table knows its available width immediately and can calculate column proportions in one pass.
-
 2. **Scrollable data views.** Database query results can be hundreds of rows. Ink requires manual virtualization with height estimation. Silvery: `<Box overflow="scroll">` and render everything. Or use `VirtualList` for thousands of rows with zero-cost windowing.
-
 3. **Automatic text truncation.** Long values in database columns need to truncate cleanly at cell boundaries without breaking ANSI styling. Silvery handles this automatically — text clips at Box boundaries with ANSI-aware truncation. No `cli-truncate` dependency, no manual width calculation.
 
 **Migration effort:** Moderate. Prisma's table rendering logic is the main area that benefits, and it can be migrated incrementally — the compat layer lets both frameworks coexist during transition.
@@ -346,9 +334,7 @@ Terraform CDK uses Ink for deployment progress, diff views, and resource status 
 **What Silvery fixes:**
 
 1. **Scrollback for streaming output.** Terraform deployments produce long streams of resource status updates. Keeping all items in the React tree grows memory and slows rendering. Silvery's `useScrollback` lets completed items graduate to native terminal scrollback while the interactive area shows only active resources.
-
 2. **Synchronized output for multiplexer users.** Infrastructure engineers often run Terraform in tmux sessions. Silvery's DEC synchronized output prevents torn frames during rapid status updates.
-
 3. **Per-node dirty tracking.** When one resource's status changes in a list of 200, only that node re-renders. Ink reconciles the entire tree. At 169µs vs 20.7ms, the difference is noticeable during rapid deploy sequences.
 
 **Migration effort:** Low. Terraform CDK's Ink usage is mostly status displays and progress indicators — straightforward layouts that migrate cleanly.
@@ -383,3 +369,4 @@ bun test
 Most apps work after steps 1-3. Step 4 is the only semantic change. Everything else — `Box`, `Text`, `useInput`, `useApp`, hooks, borders, flexbox — works the same.
 
 After migration, you can incrementally adopt Silvery-only features: `useBoxRect()` to remove width prop drilling, `overflow="scroll"` to remove virtualization code, `InputLayerProvider` to remove manual input guards, `@silvery/theme` for consistent styling. Each improvement is independent — adopt them at your own pace.
+

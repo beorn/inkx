@@ -115,3 +115,4 @@ Doing nothing is a legitimate position — but adopting A+B costs almost nothing
 - Protocol reference: [`~/Bear/Journal/ref/coding-agents/kanban-hook-protocol.md`](../../../../../Bear/Journal/ref/coding-agents/kanban-hook-protocol.md)
 - Silvery competitive: [`hub/silvery/competitive/cline-kanban.md`](../../silvery/competitive/cline-kanban.md)
 - km design doc: [`docs/design/hook-router.md`](../../../docs/design/hook-router.md)
+

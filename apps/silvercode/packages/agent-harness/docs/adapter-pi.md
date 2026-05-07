@@ -106,4 +106,3 @@ stream-json adapter is deferred indefinitely.
 
 The Registry entry is asserted in
 `tests/registry-adapters.test.ts` (test id `pi-acp`).
-

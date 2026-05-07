@@ -155,70 +155,76 @@ export function createDepCommand(): Command {
     .description("List incoming and outgoing dependency edges for a task")
     .option("--json", "Output as JSON")
     .option("--jq <expr>", "Filter JSON output through jq (implies --json; requires `jq` in PATH)")
-    .action(async (id: string, _localOptions: { json?: boolean; jq?: string }, cmd: { optsWithGlobals?: () => Record<string, unknown> }) => {
-      // Walk parent options too — the grandparent `task` command also
-      // defines `--json` / `--jq`, which masks this subcommand's flag
-      // values when the user types `km task dep ls <id> --json`. Same
-      // pattern as `task ready` / `task stale` / `task orphans`.
-      const merged = (cmd.optsWithGlobals?.() ?? {}) as Record<string, unknown>
-      const options = {
-        json: _localOptions.json === true || merged.json === true,
-        jq: _localOptions.jq ?? (merged.jq as string | undefined),
-      }
-      const resolved = resolvePathArg(process.cwd(), getRootPath())
-      using repo = await loadRepo(resolved.repoRoot)
-
-      const plan = planListDeps(repo, id)
-
-      if (plan.errors.length > 0) {
-        for (const err of plan.errors) console.error(term.red(err))
-        process.exitCode = 1
-        return
-      }
-
-      const targetLabel = plan.targetShortId ?? plan.targetNodeId ?? id
-
-      const inbound = plan.entries.filter((e) => e.direction === "in")
-      const outbound = plan.entries.filter((e) => e.direction === "out")
-
-      // JSON mode emits the full planner shape so consumers can `--jq '.entries[]'`
-      // or filter by direction/rel without re-parsing the human output.
-      const { json, jq } = normalizeJsonJq(options)
-      if (json) {
-        await emitJson(
-          {
-            target: { nodeId: plan.targetNodeId, shortId: plan.targetShortId, label: targetLabel },
-            inbound,
-            outbound,
-            entries: plan.entries,
-          },
-          jq,
-        )
-        return
-      }
-
-      if (inbound.length === 0 && outbound.length === 0) {
-        console.log(term.dim(`${targetLabel} has no dependencies`))
-        return
-      }
-
-      if (inbound.length > 0) {
-        console.log(term.bold(`${targetLabel} is blocked by:`))
-        for (const e of inbound) {
-          const label = e.otherShortId ?? e.otherNodeId
-          console.log(`  - ${label}${e.otherTitle ? term.dim(` — ${e.otherTitle}`) : ""}`)
+    .action(
+      async (
+        id: string,
+        _localOptions: { json?: boolean; jq?: string },
+        cmd: { optsWithGlobals?: () => Record<string, unknown> },
+      ) => {
+        // Walk parent options too — the grandparent `task` command also
+        // defines `--json` / `--jq`, which masks this subcommand's flag
+        // values when the user types `km task dep ls <id> --json`. Same
+        // pattern as `task ready` / `task stale` / `task orphans`.
+        const merged = (cmd.optsWithGlobals?.() ?? {}) as Record<string, unknown>
+        const options = {
+          json: _localOptions.json === true || merged.json === true,
+          jq: _localOptions.jq ?? (merged.jq as string | undefined),
         }
-      }
+        const resolved = resolvePathArg(process.cwd(), getRootPath())
+        using repo = await loadRepo(resolved.repoRoot)
 
-      if (outbound.length > 0) {
-        if (inbound.length > 0) console.log("")
-        console.log(term.bold(`${targetLabel} blocks:`))
-        for (const e of outbound) {
-          const label = e.otherShortId ?? e.otherNodeId
-          console.log(`  - ${label}${e.otherTitle ? term.dim(` — ${e.otherTitle}`) : ""}`)
+        const plan = planListDeps(repo, id)
+
+        if (plan.errors.length > 0) {
+          for (const err of plan.errors) console.error(term.red(err))
+          process.exitCode = 1
+          return
         }
-      }
-    })
+
+        const targetLabel = plan.targetShortId ?? plan.targetNodeId ?? id
+
+        const inbound = plan.entries.filter((e) => e.direction === "in")
+        const outbound = plan.entries.filter((e) => e.direction === "out")
+
+        // JSON mode emits the full planner shape so consumers can `--jq '.entries[]'`
+        // or filter by direction/rel without re-parsing the human output.
+        const { json, jq } = normalizeJsonJq(options)
+        if (json) {
+          await emitJson(
+            {
+              target: { nodeId: plan.targetNodeId, shortId: plan.targetShortId, label: targetLabel },
+              inbound,
+              outbound,
+              entries: plan.entries,
+            },
+            jq,
+          )
+          return
+        }
+
+        if (inbound.length === 0 && outbound.length === 0) {
+          console.log(term.dim(`${targetLabel} has no dependencies`))
+          return
+        }
+
+        if (inbound.length > 0) {
+          console.log(term.bold(`${targetLabel} is blocked by:`))
+          for (const e of inbound) {
+            const label = e.otherShortId ?? e.otherNodeId
+            console.log(`  - ${label}${e.otherTitle ? term.dim(` — ${e.otherTitle}`) : ""}`)
+          }
+        }
+
+        if (outbound.length > 0) {
+          if (inbound.length > 0) console.log("")
+          console.log(term.bold(`${targetLabel} blocks:`))
+          for (const e of outbound) {
+            const label = e.otherShortId ?? e.otherNodeId
+            console.log(`  - ${label}${e.otherTitle ? term.dim(` — ${e.otherTitle}`) : ""}`)
+          }
+        }
+      },
+    )
 
   return dep
 }

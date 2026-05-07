@@ -10,7 +10,10 @@
 import { useEffect, useState } from "react"
 import type { BackgroundTask, Controller } from "../controller.ts"
 
-export function useBackgroundTasks(controller: Controller | null | undefined, sessionId: string): ReadonlyArray<BackgroundTask> {
+export function useBackgroundTasks(
+  controller: Controller | null | undefined,
+  sessionId: string,
+): ReadonlyArray<BackgroundTask> {
   const [tasks, setTasks] = useState<ReadonlyArray<BackgroundTask>>(() =>
     controller && sessionId ? controller.backgroundTasks(sessionId) : [],
   )

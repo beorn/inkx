@@ -36,7 +36,7 @@ export function createOrphansCommand(): Command {
       // `task ready` and `task stale`.
       const merged = (cmd.optsWithGlobals?.() ?? {}) as Record<string, unknown>
       const { json, jq } = normalizeJsonJq({
-        json: (opts.json === true) || merged.json === true,
+        json: opts.json === true || merged.json === true,
         jq: (opts.jq as string | undefined) ?? (merged.jq as string | undefined),
       })
       const details = opts.details === true || merged.details === true

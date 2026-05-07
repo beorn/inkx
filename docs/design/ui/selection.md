@@ -4,7 +4,7 @@ Selection type, 9 selecting kinds (gestures), cursor/anchor mechanics, and the s
 
 ---
 
-# Selection Model
+## Selection Model
 
 `@silvery/selection` — a reactive selection store for silvery apps. Reads the ag node tree for structure. Built on alien-signals.
 
@@ -54,17 +54,11 @@ Selection rolls this out first: `sel.node.select([id])` diffs old vs new, writes
 ### Learnings from tldraw
 
 1. **Enumerate all pointing states explicitly.** tldraw has 7 distinct pointing states (`pointing_canvas`, `pointing_shape`, `pointing_selection`, `pointing_resize_handle`, `pointing_rotate_handle`, `pointing_handle`, `pointing_arrow_label`). Our pointer state machine should list each as a named state in the pure transition function, not just a table.
-
 2. **`getOutermostSelectableShape(hit, root)`** — when clicking a node inside a group/card, walk up to find the outermost container to select (respecting `sel.root`). km already does this for cards: clicking a sub-item selects the card. Silvery should provide this as a core function: `getSelectableAncestor(nodeId, root)` — returns the outermost selectable node within the current root scope.
-
 3. **Batch pointer-move events + skip no-ops.** tldraw batches move events to next tick, flushes everything else immediately. Adopt for performance. Additionally: every apply function must check if the result actually changed before writing. `applySelect` with the same IDs → no write, no signal notification. `applyPointerEvent` during area-drag → compare hit set before/after, skip if identical. Text drag → skip if offset unchanged. This prevents re-renders on every pointer-move when the selection hasn't actually changed.
-
 4. **Per-node signals is our TUI divergence.** tldraw renders selection as a global overlay (blue bounds drawn on top). Works for canvas where indicators are uniform. For TUI, components render their own selected state (border color, background). Per-node signals fit TUI; overlay fits canvas.
-
 5. **Complex sub-selections need sub-state machines.** tldraw's crop has 5 nested states. Our `sel.crop.select(rect)` stub is too simple for real crop interaction. When building crop, it'll need its own pointer states within the main state machine.
-
 6. **Tool-specific transient highlights.** tldraw has `hintingShapeIds` and `erasingShapeIds` — separate from selection. If we add eraser or tool-hint features, add per-node signals: `node.hinting`, `node.erasing`.
-
 7. **Pure state machine is our main improvement over tldraw.** Their `StateNode` classes call `editor.setSelectedShapes()` directly — not testable without a full Editor. Our `(state, event) → [state, effects]` enables replay, logging, and unit testing. This is the key architectural win.
 
 ### Could this work in React DOM?
@@ -152,7 +146,7 @@ sel.crop.deselect()                     // = sel.sub = null
 
 Each follows the same shape: `edit` to enter, `select` to modify, `deselect` to exit. All sugar over `sel.sub` assignment. Factories are pure data constructors.
 
-> **Simplification note (Pro review 2026-04):** path/crop stubs are premature — only text has a real consumer. Consider replacing `sel.sub` with direct `sel.text` field when a second sub-kind isn't imminent. Keeping stubs for now as design-time proof of extensibility. If/when a second sub-kind arrives, normalize with shared `targetId` field across all sub-selection types.
+> Simplification note (Pro review 2026-04): path/crop stubs are premature — only text has a real consumer. Consider replacing sel.sub with direct sel.text field when a second sub-kind isn't imminent. Keeping stubs for now as design-time proof of extensibility. If/when a second sub-kind arrives, normalize with shared targetId field across all sub-selection types.
 
 ```ts
 createTextSelection(nodeId, offset)     // → { kind: "text", nodeId, cursor: offset }
@@ -210,18 +204,18 @@ sel.selectAll(layer?)                   // progressive expand, or constrained ("
 
 All in one place:
 
-| State change | Side effects |
-|---|---|
-| Node op (`sel.node.*`) | Clears `sel.sub` |
-| Root change (`sel.root.*`) | Cancel drag first, then reconcile |
-| Tree change (ag tree mutated) | Cancel drag first, then reconcile |
-| `sel.sub = ...` (low-level) | Node state unchanged |
-| `sel.text.edit()` (typed helper) | Ensures cursor node matches — may update nodes |
-| `sel.drag` active | Operations write to preview |
-| `sel.drag` cancelled (cleared without `end()`) | Reverts to startState |
-| `sel.drag` + `sel.sub` both active | Allowed (text-drag) |
-| `sel.text.select()` when not in text mode | No-op |
-| `sel.path.select()` when not in path mode | No-op |
+| State change                               | Side effects                                    |
+| ------------------------------------------ | ----------------------------------------------- |
+| Node op (sel.node.*)                       | Clears sel.sub                                  |
+| Root change (sel.root.*)                   | Cancel drag first, then reconcile               |
+| Tree change (ag tree mutated)              | Cancel drag first, then reconcile               |
+| sel.sub = ... (low-level)                  | Node state unchanged                            |
+| sel.text.edit() (typed helper)             | Ensures cursor node matches — may update nodes  |
+| sel.drag active                            | Operations write to preview                     |
+| sel.drag cancelled (cleared without end()) | Reverts to startState                           |
+| sel.drag + sel.sub both active             | Allowed (text-drag)                             |
+| sel.text.select() when not in text mode    | No-op                                           |
+| sel.path.select() when not in path mode    | No-op                                           |
 | Any operation where result = current state | No write, no signal notifications (skip no-ops) |
 
 ## Selection follows tree ops (SlateJS pattern)
@@ -275,17 +269,17 @@ No external state. Derives next expansion from current selection + tree.
 
 ## Cursor/anchor rules
 
-| Operation | Cursor | Anchor |
-|---|---|---|
-| `node.select(ids)` replace | `ids[0]` | `ids.at(-1)` |
-| `node.select(ids, true)` toggle add | `ids[0]` | preserved |
-| `node.select(ids, true)` toggle remove non-cursor | preserved | preserved (or cursor if anchor gone) |
-| `node.select(ids, true)` toggle remove cursor | first remaining | reset to new cursor |
-| `node.extend(cursor)` | `cursor` | preserved (range fills anchor↔cursor) |
-| `selectAll()` | preserved | cursor |
-| `node.collapse()` | preserved | cursor |
-| `node.remove(id)` non-cursor | preserved | preserved (or cursor if anchor gone) |
-| `node.remove(id)` cursor | first remaining | reset to new cursor |
+| Operation                                       | Cursor          | Anchor                                |
+| ----------------------------------------------- | --------------- | ------------------------------------- |
+| node.select(ids) replace                        | ids[0]          | ids.at(-1)                            |
+| node.select(ids, true) toggle add               | ids[0]          | preserved                             |
+| node.select(ids, true) toggle remove non-cursor | preserved       | preserved (or cursor if anchor gone)  |
+| node.select(ids, true) toggle remove cursor     | first remaining | reset to new cursor                   |
+| node.extend(cursor)                             | cursor          | preserved (range fills anchor↔cursor) |
+| selectAll()                                     | preserved       | cursor                                |
+| node.collapse()                                 | preserved       | cursor                                |
+| node.remove(id) non-cursor                      | preserved       | preserved (or cursor if anchor gone)  |
+| node.remove(id) cursor                          | first remaining | reset to new cursor                   |
 
 ## Pointer state machine
 
@@ -368,25 +362,25 @@ onDoubleClick(hit):
 
 ### Modifier effects during gestures
 
-| Modifier | During click | During drag |
-|---|---|---|
-| (none) | select / edit | area-select / drag |
-| Cmd | toggle | area-toggle (XOR) |
-| Shift | extend | extend preview |
-| Opt | — | drag-drop (copy — manipulation, not selection) |
+| Modifier | During click  | During drag                                    |
+| -------- | ------------- | ---------------------------------------------- |
+| (none)   | select / edit | area-select / drag                             |
+| Cmd      | toggle        | area-toggle (XOR)                              |
+| Shift    | extend        | extend preview                                 |
+| Opt      | —             | drag-drop (copy — manipulation, not selection) |
 
 ## Keyboard
 
-| Mode | Key | Effect |
-|---|---|---|
-| node | j / k | `sel.node.select` |
-| node | Shift+j/k | `sel.node.extend` |
-| node | Enter | `sel.text.edit(nodeId, offset)` |
-| node | A | `sel.selectAll()` |
-| node | Escape | collapse → deselect |
-| text | Arrow | `sel.text.select(newOffset)` |
-| text | Shift+Arrow | `sel.text.select(newOffset, sel.text()?.anchor)` |
-| text | Escape | `sel.text.deselect()` |
+| Mode | Key         | Effect                                         |
+| ---- | ----------- | ---------------------------------------------- |
+| node | j / k       | sel.node.select                                |
+| node | Shift+j/k   | sel.node.extend                                |
+| node | Enter       | sel.text.edit(nodeId, offset)                  |
+| node | A           | sel.selectAll()                                |
+| node | Escape      | collapse → deselect                            |
+| text | Arrow       | sel.text.select(newOffset)                     |
+| text | Shift+Arrow | sel.text.select(newOffset, sel.text()?.anchor) |
+| text | Escape      | sel.text.deselect()                            |
 
 Mode ladder: `text ──Esc──► node ──Esc──► board ──click/j──► node ──Enter──► text`
 
@@ -475,15 +469,15 @@ Escape pressed
 
 ### What goes where
 
-| Concern | Layer | Why |
-|---|---|---|
-| "On click, what selection changes?" | State machine | Decision logic — testable |
-| "Is this node selected?" | Signal (`sel.node.ids.has(id)`) | Reactive projection — granular subscription |
-| "Click vs drag threshold" | State machine (pointer) | Discrete transition |
-| "What's under the pointer?" | Signal (`hoverHit`) | Continuous derivation |
-| "Morphing text↔area during drag" | State machine (pointer) | Explicit transition, debuggable |
-| "Which component re-renders?" | Signals | Dependency tracking |
-| "Undo snapshot" | State machine output | Plain data from pure function |
+| Concern                             | Layer                         | Why                                         |
+| ----------------------------------- | ----------------------------- | ------------------------------------------- |
+| "On click, what selection changes?" | State machine                 | Decision logic — testable                   |
+| "Is this node selected?"            | Signal (sel.node.ids.has(id)) | Reactive projection — granular subscription |
+| "Click vs drag threshold"           | State machine (pointer)       | Discrete transition                         |
+| "What's under the pointer?"         | Signal (hoverHit)             | Continuous derivation                       |
+| "Morphing text↔area during drag"    | State machine (pointer)       | Explicit transition, debuggable             |
+| "Which component re-renders?"       | Signals                       | Dependency tracking                         |
+| "Undo snapshot"                     | State machine output          | Plain data from pure function               |
 
 ### Rule of thumb
 
@@ -494,16 +488,16 @@ If it's projecting/transforming existing state for a consumer → signal.
 
 km's tree layer descends from SlateJS. The selection system aligns with the same architecture:
 
-| SlateJS | km / silvery |
-|---|---|
-| `Editor.apply(op)` | unified `apply()` for tree + selection |
-| `Selection.transform(sel, op)` | `transformSelection(sel, treeOp, tree)` |
-| `Operation` with `inverse()` | `TreeOp` + `SelectionOp` with inverse |
-| Selection = `{ anchor, focus }` | `SelectionSnapshot = { cursor, anchor, ids, sub, root }` |
-| `NodeSelection` (whole node) | `sel.node.*` |
-| `TextSelection` (range) | `sel.text.*` (sub-selection) |
-| Transactions | TEA `apply()` pipeline with `op()` proxy |
-| Normalize after mutation | Selection transform in same apply (not a separate pass) |
+| SlateJS                       | km / silvery                                            |
+| ----------------------------- | ------------------------------------------------------- |
+| Editor.apply(op)              | unified apply() for tree + selection                    |
+| Selection.transform(sel, op)  | transformSelection(sel, treeOp, tree)                   |
+| Operation with inverse()      | TreeOp + SelectionOp with inverse                       |
+| Selection = { anchor, focus } | SelectionSnapshot = { cursor, anchor, ids, sub, root }  |
+| NodeSelection (whole node)    | sel.node.*                                              |
+| TextSelection (range)         | sel.text.* (sub-selection)                              |
+| Transactions                  | TEA apply() pipeline with op() proxy                    |
+| Normalize after mutation      | Selection transform in same apply (not a separate pass) |
 
 One apply, one transaction. Tree ops transform selection inline. Undo reverses both. No separate reconciliation system.
 
@@ -581,6 +575,7 @@ Undo captures `SelectionState` snapshots. `op()` records the path + args for rep
 The ag tree provides everything: IDs, ordering (tree walk), hierarchy (parent/children), visibility (rendered = selectable), hit testing (scrollRect).
 
 Assumptions:
+
 - Tree hierarchy — nodes have parent/children
 - Character-addressed text — integer offsets (unit app-defined)
 - Block containment — text blocks are descendants of selectable nodes
@@ -603,24 +598,23 @@ const cursorColumnId = computed(() => deriveColumnAncestor(sel.node.cursor, view
 
 ## Migration (km-tui)
 
-| Current | New | Notes |
-|---|---|---|
-| `cursorNodeId` | `sel.node.cursor` | Computed |
-| `multiSelected` | `sel.node.ids` | OrderedSet |
-| `selectionAnchor` | `sel.node.anchor` | Computed |
-| `inlineEditBlock` | `sel.text()` | TextEdit or null |
-| `selectionLevel` | `sel.kind` | Computed |
-| `visualMode` / `visualAnchor` | km gesture handler | App code |
-| `selectAllLevel` | not needed | Derived |
-| `curswantX` / `curswantY` | km sticky cursor helper | App code |
-| `CursorStore` | deleted | Subsumed |
-| `cursorCardNodeId` | `cursorCardId` computed | km app code |
-| Zustand | alien-signals (Phase 9) | One reactive system |
-
+| Current                   | New                     | Notes               |
+| ------------------------- | ----------------------- | ------------------- |
+| cursorNodeId              | sel.node.cursor         | Computed            |
+| multiSelected             | sel.node.ids            | OrderedSet          |
+| selectionAnchor           | sel.node.anchor         | Computed            |
+| inlineEditBlock           | sel.text()              | TextEdit or null    |
+| selectionLevel            | sel.kind                | Computed            |
+| visualMode / visualAnchor | km gesture handler      | App code            |
+| selectAllLevel            | not needed              | Derived             |
+| curswantX / curswantY     | km sticky cursor helper | App code            |
+| CursorStore               | deleted                 | Subsumed            |
+| cursorCardNodeId          | cursorCardId computed   | km app code         |
+| Zustand                   | alien-signals (Phase 9) | One reactive system |
 
 ---
 
-# Selection State Spec
+## Selection State Spec
 
 Defines the 5 state concepts that govern cursor, selection, editing, focus scoping, and visual treatment in km-tui. Implementation reference for `@km/tui/focus` epic and `@km/tui/hierarchical-node-state`.
 
@@ -646,13 +640,13 @@ This matches VS Code: commands are centralized, `when` clauses determine availab
 
 These are SEPARATE even when the UX feels unified.
 
-| # | Concept | Source of truth | Nullable? | What it answers |
-|---|---------|----------------|-----------|-----------------|
-| 1 | **Logical focus (cursor)** | `sel.node.cursor()` | Yes (deselected) | "Which node do commands target?" |
-| 2 | **Selection set** | `sel.node.ids()` | Empty set | "Which nodes are batch-operated on?" |
-| 3 | **Editing owner** | `sel.text()?.nodeId` | Yes (not editing) | "Which node owns the text cursor?" |
-| 4 | **Active scope** | `focusManager.activeScopeId` | Yes (root scope) | "Which pane/container captures keyboard?" |
-| 5 | **Muted scope** | Derived (ancestor of cursor/selection) | N/A | "Which subtrees are visually de-emphasized?" |
+| #   | Concept                | Source of truth                        | Nullable?         | What it answers                              |
+| --- | ---------------------- | -------------------------------------- | ----------------- | -------------------------------------------- |
+| 1   | Logical focus (cursor) | sel.node.cursor()                      | Yes (deselected)  | "Which node do commands target?"             |
+| 2   | Selection set          | sel.node.ids()                         | Empty set         | "Which nodes are batch-operated on?"         |
+| 3   | Editing owner          | sel.text()?.nodeId                     | Yes (not editing) | "Which node owns the text cursor?"           |
+| 4   | Active scope           | focusManager.activeScopeId             | Yes (root scope)  | "Which pane/container captures keyboard?"    |
+| 5   | Muted scope            | Derived (ancestor of cursor/selection) | N/A               | "Which subtrees are visually de-emphasized?" |
 
 ### Relationships
 
@@ -665,14 +659,14 @@ These are SEPARATE even when the UX feels unified.
 
 A card is a container node at column depth. It bridges node selection and text selection:
 
-| User action | Node selection | Text selection | Card's role |
-|---|---|---|---|
-| Click card | cursor = cardId | — | Selected container |
-| j/k into card's child | cursor = subItemId | — | Breadcrumb parent (yellow border) |
-| Enter on card title | cursor = cardId | {nodeId: cardId, offset} | Editing scope (bold focusborder) |
-| Enter on sub-item | cursor = subItemId | {nodeId: subItemId, offset} | Editing scope (bold focusborder) |
-| Arrow up/down in edit | cursor = adjacentId | {nodeId: adjacentId, offset: 0} | Editing scope unchanged |
-| Escape from edit | cursor = nodeId | — (cleared) | Returns to node selection |
+| User action           | Node selection      | Text selection                  | Card's role                       |
+| --------------------- | ------------------- | ------------------------------- | --------------------------------- |
+| Click card            | cursor = cardId     | —                               | Selected container                |
+| j/k into card's child | cursor = subItemId  | —                               | Breadcrumb parent (yellow border) |
+| Enter on card title   | cursor = cardId     | {nodeId: cardId, offset}        | Editing scope (bold focusborder)  |
+| Enter on sub-item     | cursor = subItemId  | {nodeId: subItemId, offset}     | Editing scope (bold focusborder)  |
+| Arrow up/down in edit | cursor = adjacentId | {nodeId: adjacentId, offset: 0} | Editing scope unchanged           |
+| Escape from edit      | cursor = nodeId     | — (cleared)                     | Returns to node selection         |
 
 The card is the **editing scope**: the `editingDescendant` reduced signal on each node tracks whether any descendant is being edited. The bold focusborder wraps the scope (the card), not the individual node being edited. Analogous to VS Code's editor pane having focus border, not the individual line.
 
@@ -693,49 +687,49 @@ deselected ←Esc── board ←Esc── column ←Esc── card ←Esc──
 
 ### Transitions
 
-| From | Trigger | To | State change |
-|---|---|---|---|
-| Deselected | j/k/h/l | Card focused | cursor = first card in first column |
-| Deselected | Click card | Card focused | cursor = clicked card |
-| Deselected | Click top-bar | Board level | cursor = rootId |
-| Board level | j/k | Card focused | cursor = first card |
-| Board level | Escape | Deselected | cursor = null |
-| Column focused | j/k | Card focused | cursor = first/last card in column |
-| Column focused | Escape | Deselected | cursor = null |
-| Card focused | Enter/i | Text editing | sel.text.edit(cardId, 0) |
-| Card focused | j (outline) | Sub-item focused | cursor = first child |
-| Card focused | Escape | Deselected | cursor = null |
-| Sub-item focused | Enter/i | Text editing | sel.text.edit(subItemId, 0) |
-| Sub-item focused | Escape | Card focused | cursor = parent card |
-| Text editing | Escape | Node focused (same node) | sel.text cleared |
-| Text editing | ArrowUp/Down | Text editing (adjacent) | cursor + sel.text move together |
-| Text editing | Click outside card | Card focused (clicked) | sel.text cleared, cursor = clicked |
+| From             | Trigger            | To                       | State change                        |
+| ---------------- | ------------------ | ------------------------ | ----------------------------------- |
+| Deselected       | j/k/h/l            | Card focused             | cursor = first card in first column |
+| Deselected       | Click card         | Card focused             | cursor = clicked card               |
+| Deselected       | Click top-bar      | Board level              | cursor = rootId                     |
+| Board level      | j/k                | Card focused             | cursor = first card                 |
+| Board level      | Escape             | Deselected               | cursor = null                       |
+| Column focused   | j/k                | Card focused             | cursor = first/last card in column  |
+| Column focused   | Escape             | Deselected               | cursor = null                       |
+| Card focused     | Enter/i            | Text editing             | sel.text.edit(cardId, 0)            |
+| Card focused     | j (outline)        | Sub-item focused         | cursor = first child                |
+| Card focused     | Escape             | Deselected               | cursor = null                       |
+| Sub-item focused | Enter/i            | Text editing             | sel.text.edit(subItemId, 0)         |
+| Sub-item focused | Escape             | Card focused             | cursor = parent card                |
+| Text editing     | Escape             | Node focused (same node) | sel.text cleared                    |
+| Text editing     | ArrowUp/Down       | Text editing (adjacent)  | cursor + sel.text move together     |
+| Text editing     | Click outside card | Card focused (clicked)   | sel.text cleared, cursor = clicked  |
 
 ## Interaction Matrix
 
 What each element looks like in each state:
 
-| Element | Deselected | Board level | Column focused | Card focused | Sub-item focused | Text editing |
-|---|---|---|---|---|---|---|
-| **Board bg** | none | $selection-bg tint | none | none | none | none |
-| **Column title** | normal | tinted | inverse | normal (or breadcrumb if cursor in col) | breadcrumb yellow | breadcrumb yellow |
-| **Card border** | invisible ($surface-bg) | invisible | invisible | $selection-bg yellow | $selection-bg yellow (breadcrumb) | bold $focusborder |
-| **Card bg** | none | none | none | selectedBg tint | none | none |
-| **Card title** | normal fg | normal fg | normal fg | inverse ($selection-bg/$selection) | normal fg + yellow border | normal fg (no inverse) |
-| **Sub-item title** | normal | normal | normal | normal | inverse ($selection-bg/$selection) | normal (no highlights) |
-| **Body text** | muted, not bold | muted, not bold | muted, not bold | muted, not bold | muted, not bold | muted, not bold |
-| **+N more** | matches border | matches border | matches border | matches border | matches border | matches border |
-| **Hover any card** | border → $muted | — | — | — | — | — |
+| Element        | Deselected              | Board level        | Column focused  | Card focused                            | Sub-item focused                   | Text editing           |
+| -------------- | ----------------------- | ------------------ | --------------- | --------------------------------------- | ---------------------------------- | ---------------------- |
+| Board bg       | none                    | $selection-bg tint | none            | none                                    | none                               | none                   |
+| Column title   | normal                  | tinted             | inverse         | normal (or breadcrumb if cursor in col) | breadcrumb yellow                  | breadcrumb yellow      |
+| Card border    | invisible ($surface-bg) | invisible          | invisible       | $selection-bg yellow                    | $selection-bg yellow (breadcrumb)  | bold $focusborder      |
+| Card bg        | none                    | none               | none            | selectedBg tint                         | none                               | none                   |
+| Card title     | normal fg               | normal fg          | normal fg       | inverse ($selection-bg/$selection)      | normal fg + yellow border          | normal fg (no inverse) |
+| Sub-item title | normal                  | normal             | normal          | normal                                  | inverse ($selection-bg/$selection) | normal (no highlights) |
+| Body text      | muted, not bold         | muted, not bold    | muted, not bold | muted, not bold                         | muted, not bold                    | muted, not bold        |
+| +N more        | matches border          | matches border     | matches border  | matches border                          | matches border                     | matches border         |
+| Hover any card | border → $muted         | —                  | —               | —                                       | —                                  | —                      |
 
 ## Node Capabilities
 
 Not every node participates in every state concept. Three capabilities:
 
-| Capability | Meaning | Examples | Determines |
-|---|---|---|---|
-| **Selectable** | Can receive cursor; can be in selection set | Cards, sub-items, column headers, body blocks | What j/k/click/shift-select can land on |
-| **Editable** | Can enter text mode (has content to edit) | Cards with title, sub-items with content, body paragraphs | What Enter/i activates |
-| **Scoped** | Creates a keyboard capture boundary when active | Cards in edit mode, detail pane, dialogs | What traps keys and shows focusborder |
+| Capability | Meaning                                         | Examples                                                  | Determines                              |
+| ---------- | ----------------------------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| Selectable | Can receive cursor; can be in selection set     | Cards, sub-items, column headers, body blocks             | What j/k/click/shift-select can land on |
+| Editable   | Can enter text mode (has content to edit)       | Cards with title, sub-items with content, body paragraphs | What Enter/i activates                  |
+| Scoped     | Creates a keyboard capture boundary when active | Cards in edit mode, detail pane, dialogs                  | What traps keys and shows focusborder   |
 
 ### Spatial selection
 
@@ -745,65 +739,69 @@ Silvery's `focusDirection("up"/"down"/"left"/"right")` provides the spatial look
 
 ### Capability matrix
 
-| Node type | Selectable | Editable | Scoped (when editing) |
-|---|---|---|---|
-| Board root | Yes (cursor=rootId) | No | No |
-| Column header | Yes | Yes | No |
-| Card (structural item) | Yes | Yes | Yes (bold focusborder) |
-| Sub-item inside card | Yes | Yes | No (card is the scope) |
-| Body block (paragraph/li) | Yes | Yes | Yes (same as card) |
-| Body card at column top | Yes | Yes | Yes |
-| Code block | Yes | Yes (code editing) | No (card is the scope) |
-| Table block | Yes | No (read-only) | No |
-| HR separator | Yes (navigable) | No | No |
-| +N more overflow | No | No | No |
-| Virtual __body__ column | Yes (cursor can land) | No | No |
-| Virtual __meta__ field | Yes (detail pane) | Yes (some) | No |
-| Dialog content | No (own focus system) | — | Yes (modal scope) |
+| Node type                 | Selectable            | Editable           | Scoped (when editing)  |
+| ------------------------- | --------------------- | ------------------ | ---------------------- |
+| Board root                | Yes (cursor=rootId)   | No                 | No                     |
+| Column header             | Yes                   | Yes                | No                     |
+| Card (structural item)    | Yes                   | Yes                | Yes (bold focusborder) |
+| Sub-item inside card      | Yes                   | Yes                | No (card is the scope) |
+| Body block (paragraph/li) | Yes                   | Yes                | Yes (same as card)     |
+| Body card at column top   | Yes                   | Yes                | Yes                    |
+| Code block                | Yes                   | Yes (code editing) | No (card is the scope) |
+| Table block               | Yes                   | No (read-only)     | No                     |
+| HR separator              | Yes (navigable)       | No                 | No                     |
+| +N more overflow          | No                    | No                 | No                     |
+| Virtual body column       | Yes (cursor can land) | No                 | No                     |
+| Virtual meta field        | Yes (detail pane)     | Yes (some)         | No                     |
+| Dialog content            | No (own focus system) | —                  | Yes (modal scope)      |
 
 ## Command Target Precedence
 
 When a command fires, which node(s) does it act on?
 
-| Command type | Target | Example |
-|---|---|---|
-| **Cursor movement** (j/k/h/l) | Cursor node → move | cursor_down |
-| **Edit entry** (Enter/i) | Cursor node → enter text mode | enter_inline_edit |
-| **Batch mutation** (delete, move, cut) | Selection set if >1, else cursor | delete_node |
-| **Single mutation** (fold, zoom) | Cursor node only | fold_node, zoom_in |
-| **Board-level** (fold all, filter, view mode) | Board root (no cursor needed) | fold_all_more, filter |
-| **Text ops** (type, delete char) | Editing owner (sel.text target) | TEXT_INSERT |
+| Command type                              | Target                           | Example               |
+| ----------------------------------------- | -------------------------------- | --------------------- |
+| Cursor movement (j/k/h/l)                 | Cursor node → move               | cursor_down           |
+| Edit entry (Enter/i)                      | Cursor node → enter text mode    | enter_inline_edit     |
+| Batch mutation (delete, move, cut)        | Selection set if >1, else cursor | delete_node           |
+| Single mutation (fold, zoom)              | Cursor node only                 | fold_node, zoom_in    |
+| Board-level (fold all, filter, view mode) | Board root (no cursor needed)    | fold_all_more, filter |
+| Text ops (type, delete char)              | Editing owner (sel.text target)  | TEXT_INSERT           |
 
 ## Visible Order vs Structural Order
 
 Two different orderings exist:
 
-| | Structural order | Visible order |
-|---|---|---|
-| **Source** | Tree DFS (parent → children) | Tree DFS minus collapsed/filtered/hidden nodes |
-| **Used by** | Path.compare, ancestor/descendant tests | Range selection, j/k navigation, shift-select |
-| **Includes collapsed** | Yes | No |
-| **Includes filtered** | Yes | No |
-| **Includes virtual (__body__, __meta__)** | No (not in tree) | Yes (in view lens) |
+|                               | Structural order                        | Visible order                                  |
+| ----------------------------- | --------------------------------------- | ---------------------------------------------- |
+| Source                        | Tree DFS (parent → children)            | Tree DFS minus collapsed/filtered/hidden nodes |
+| Used by                       | Path.compare, ancestor/descendant tests | Range selection, j/k navigation, shift-select  |
+| Includes collapsed            | Yes                                     | No                                             |
+| Includes filtered             | Yes                                     | No                                             |
+| Includes virtual (body, meta) | No (not in tree)                        | Yes (in view lens)                             |
 
 Range selection (shift+j/k) uses visible order. Path.compare uses structural order. These diverge when nodes are collapsed or filtered.
 
 ## Selection Representation (current → target)
 
 ### Current
+
 ```ts
 cursor: string | null           // sel.node.cursor()
 selectedIds: Set<string>        // sel.node.ids() — includes cursor
 editTarget: { nodeId, offset }  // sel.text()
 ```
+
 Plus derived: cursorCardNodeId, cursorColumnNodeId, cursorDepth — computed in Board.tsx and written directly to NodeStore signals. Editing scope detected via `editingDescendant` reduced signal (per-node, not store-level).
 
 ### Target (Phase F of @km/tui/focus)
+
 ```ts
 cursor: { nodeId: string, path: Path } | null
 selection: { anchor: { nodeId, path }, focus: { nodeId, path } }
 editTarget: { nodeId: string, offset: number } | null
 ```
+
 Hybrid identity: nodeId for stability across mutations, path for ordering/range math. Remap strategy: after tree mutations, re-derive path from nodeId; if nodeId deleted, clear selection.
 
 ## Invariants (impossible combinations)
@@ -822,14 +820,14 @@ These should be dev-mode assertions:
 
 Any selectable node can be multi-selected — cards, sub-items, body blocks, column headers. The selection set is a flat set of node IDs (not limited to one tree level). Text editing and multi-select are mutually exclusive (entering edit clears multi-select).
 
-| Action | Effect on selection set |
-|---|---|
-| Click node | Set = {clicked node} |
-| Ctrl-click node | Toggle node in set |
-| Shift+j/k | Extend set in direction (visible order) |
-| j/k (no shift) | Collapse set to cursor |
-| Enter (edit) | Clear multi-select, enter edit on cursor |
-| Escape | If multi-selected: collapse to cursor. If single: deselect. |
+| Action          | Effect on selection set                                     |
+| --------------- | ----------------------------------------------------------- |
+| Click node      | Set = {clicked node}                                        |
+| Ctrl-click node | Toggle node in set                                          |
+| Shift+j/k       | Extend set in direction (visible order)                     |
+| j/k (no shift)  | Collapse set to cursor                                      |
+| Enter (edit)    | Clear multi-select, enter edit on cursor                    |
+| Escape          | If multi-selected: collapse to cursor. If single: deselect. |
 
 Batch commands (delete, move, cut, task status) operate on the full selection set. Single commands (fold, zoom, edit) operate on cursor only.
 
@@ -839,3 +837,4 @@ Batch commands (delete, move, cut, task status) operate on the full selection se
 - `@km/tui/focus` — epic tracking the unification
 - `@km/tui/hierarchical-node-state` — signals implementation
 - `docs/design/ui/selection.md` — @silvery/selection API design
+

@@ -7,12 +7,12 @@ The slow-thinking pattern-matcher. Background process scans the running conversa
 
 ## Where it fits
 
-| Tier | Cognitive mode | Trigger | Latency | State |
-|------|---------------|---------|---------|-------|
-| 1 lookup  | active recall | Agent calls tool | ~500 ms | ✅ ships as `tribe.ask` |
-| 2 inject  | priming | System on every prompt | ~400 ms sync | ⚠️ ships as UserPromptSubmit hook |
-| **3 thought** | **reflection / mind-wandering** | **System paced (turns + time)** | **minutes async** | **❌ this design** |
-| 4 dream   | offline consolidation | Nightly batch | hours | ❌ separate bead |
+| Tier      | Cognitive mode              | Trigger                     | Latency       | State                             |
+| --------- | --------------------------- | --------------------------- | ------------- | --------------------------------- |
+| 1 lookup  | active recall               | Agent calls tool            | ~500 ms       | ✅ ships as tribe.ask              |
+| 2 inject  | priming                     | System on every prompt      | ~400 ms sync  | ⚠️ ships as UserPromptSubmit hook |
+| 3 thought | reflection / mind-wandering | System paced (turns + time) | minutes async | ❌ this design                     |
+| 4 dream   | offline consolidation       | Nightly batch               | hours         | ❌ separate bead                   |
 
 ## Prior art (what other systems do)
 
@@ -78,6 +78,7 @@ Label success/failure of past trajectories; prefer successful ones in future rec
 ### Why mem-thought is novel
 
 Every prior-art system either:
+
 - Asks the agent to drive (Tier 1) — you only get what the agent thinks to ask for
 - Injects on every prompt (Tier 2 implicit) — high-frequency, low-precision
 - Pre-injects at session start (ChatGPT) — stale across long sessions
@@ -204,6 +205,7 @@ registerPercolateAdapter({
 ### Prompts (sketches)
 
 **Summarizer**:
+
 ```
 Compress this conversation excerpt to 3-5 bullet points.
 Each bullet must mention concrete identifiers (file paths, function names,
@@ -212,6 +214,7 @@ Do NOT introduce concepts not present in the text.
 ```
 
 **Hypothesis planner**:
+
 ```
 Given this summary of an ongoing coding conversation, generate 3-5 search
 queries that might find RELEVANT prior context from past sessions.
@@ -225,6 +228,7 @@ Return as JSON array of strings.
 ```
 
 **Synth**:
+
 ```
 Compose ONE paragraph (2-4 sentences) noting what came up in past sessions
 that might be relevant to the current conversation. Format:
@@ -273,22 +277,22 @@ Fired GPT-5.4 prior-art search (knowledge cutoff Oct 2024 — caveat noted; 2025
 
 ### Cross-system gap analysis (Oct-2024 knowledge)
 
-| System | Has separate sub-agent? | Reactive to multi-source events? | Prompt-cached compiled knowledge? | Delta emit to foreground? | Rich tools (recall+LSP+git+vault)? | Proxy/gateway shape? |
-|---|---|---|---|---|---|---|
-| **Letta / MemGPT** | ❌ self-managed | ❌ tool-call only | ❌ tier files in DB | ❌ full retrieval | partial (recall + archival) | ❌ |
-| **ChatGPT memory** | ❌ self-managed | ❌ capture-trigger only | ❌ summary in system prompt | ❌ inject-once at start | ❌ | ❌ |
-| **Mem0** | ❌ orchestration layer | ❌ on-demand only | ❌ atomic facts in vector + graph DB | ❌ on-demand | partial (vector + graph) | ❌ |
-| **Anthropic memory tool** (claude-agent-sdk) | ❌ self-managed | ❌ tool-driven | ❌ file-based notes | ❌ full inject | ❌ | ❌ |
-| **Cursor 2.x** | ❌ inline RAG | ❌ per-prompt only | partial (embedding index) | ❌ inject-per-prompt | partial (codebase + files) | ❌ |
-| **Sourcegraph Cody** | ❌ inline | ❌ per-prompt or user-action | partial (embeddings + symbols) | ❌ per-prompt | partial (symbols + repo) | ❌ |
-| **Aider repo map** | ❌ static | ❌ static | ❌ static | ❌ always-on inject | partial (symbols only) | ❌ |
-| **GitHub Copilot Workspace** | ❌ planner agent | ❌ session-bound | ❌ | ❌ foreground produces all | partial (repos + issues + PRs) | ❌ |
-| **AutoGen / CrewAI** | ✅ separate roles | partial (within run) | ❌ per-role context | partial (interject) | depends | ❌ not IDE proxy |
-| **Generative Agents** (Stanford 2023) | partial (multi-agent) | ✅ env events | partial (episodic memory + reflection) | ✅ pushes observations | ❌ | ❌ |
-| **LangGraph Cloud** | ✅ stateful graphs | depends | ✅ checkpoints | depends | depends | ❌ not IDE proxy |
-| **OpenRouter / LiteLLM / Portkey / Helicone** | ❌ stateless | ❌ | ❌ | ❌ | ❌ | ✅ but transform-only |
-| **MCP servers / Continue** | ❌ client-side orchestration | depends | ❌ | ❌ | ✅ tools | ❌ |
-| **mem-thought (this design)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (cloud option) |
+| System                                    | Has separate sub-agent?     | Reactive to multi-source events? | Prompt-cached compiled knowledge?      | Delta emit to foreground? | Rich tools (recall+LSP+git+vault)? | Proxy/gateway shape? |
+| ----------------------------------------- | --------------------------- | -------------------------------- | -------------------------------------- | ------------------------- | ---------------------------------- | -------------------- |
+| Letta / MemGPT                            | ❌ self-managed              | ❌ tool-call only                 | ❌ tier files in DB                     | ❌ full retrieval          | partial (recall + archival)        | ❌                    |
+| ChatGPT memory                            | ❌ self-managed              | ❌ capture-trigger only           | ❌ summary in system prompt             | ❌ inject-once at start    | ❌                                  | ❌                    |
+| Mem0                                      | ❌ orchestration layer       | ❌ on-demand only                 | ❌ atomic facts in vector + graph DB    | ❌ on-demand               | partial (vector + graph)           | ❌                    |
+| Anthropic memory tool (claude-agent-sdk)  | ❌ self-managed              | ❌ tool-driven                    | ❌ file-based notes                     | ❌ full inject             | ❌                                  | ❌                    |
+| Cursor 2.x                                | ❌ inline RAG                | ❌ per-prompt only                | partial (embedding index)              | ❌ inject-per-prompt       | partial (codebase + files)         | ❌                    |
+| Sourcegraph Cody                          | ❌ inline                    | ❌ per-prompt or user-action      | partial (embeddings + symbols)         | ❌ per-prompt              | partial (symbols + repo)           | ❌                    |
+| Aider repo map                            | ❌ static                    | ❌ static                         | ❌ static                               | ❌ always-on inject        | partial (symbols only)             | ❌                    |
+| GitHub Copilot Workspace                  | ❌ planner agent             | ❌ session-bound                  | ❌                                      | ❌ foreground produces all | partial (repos + issues + PRs)     | ❌                    |
+| AutoGen / CrewAI                          | ✅ separate roles            | partial (within run)             | ❌ per-role context                     | partial (interject)       | depends                            | ❌ not IDE proxy      |
+| Generative Agents (Stanford 2023)         | partial (multi-agent)       | ✅ env events                     | partial (episodic memory + reflection) | ✅ pushes observations     | ❌                                  | ❌                    |
+| LangGraph Cloud                           | ✅ stateful graphs           | depends                          | ✅ checkpoints                          | depends                   | depends                            | ❌ not IDE proxy      |
+| OpenRouter / LiteLLM / Portkey / Helicone | ❌ stateless                 | ❌                                | ❌                                      | ❌                         | ❌                                  | ✅ but transform-only |
+| MCP servers / Continue                    | ❌ client-side orchestration | depends                          | ❌                                      | ❌                         | ✅ tools                            | ❌                    |
+| mem-thought (this design)                 | ✅                           | ✅                                | ✅                                      | ✅                         | ✅                                  | ✅ (cloud option)     |
 
 The closest cluster is **Generative Agents (Stanford 2023)** — has reflection + memory consolidation + agents push observations. But not IDE-integrated, no rich tools, no proxy architecture. Conceptually validates the "mind-wandering" idea, doesn't preempt the composition.
 
@@ -312,12 +316,12 @@ gbrain (https://github.com/garrytan/gbrain) is a production "personal knowledge 
 
 **gbrain mapped to the four tiers**:
 
-| Tier | gbrain implementation | Status |
-|---|---|---|
-| **Tier 1 — mem lookup** | `gbrain search` (tsvector keyword) + `gbrain query` (hybrid: tsvector + RRF + pgvector + query expansion) | ✅ ships, hybrid not FTS-only |
-| **Tier 2 — mem inject** | "Brain-first lookup on every message" — permanent agent discipline; reads brain before responding to anything | ✅ ships, more aggressive than UserPromptSubmit hook (it's a behavioral rule, not a system injection) |
-| **Tier 3 — mem thought** | NOT PRESENT — no separate continuous sub-agent watching events. Entity detection runs in the foreground agent on each message, not a separate process. | ❌ the gap |
-| **Tier 4 — mem dream** | Explicit "dream cycle" in `docs/guides/cron-schedule.md`: nightly cron with entity sweep + citation fixes + memory consolidation | ✅ ships, exactly the pattern |
+| Tier                 | gbrain implementation                                                                                                                                  | Status                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Tier 1 — mem lookup  | gbrain search (tsvector keyword) + gbrain query (hybrid: tsvector + RRF + pgvector + query expansion)                                                  | ✅ ships, hybrid not FTS-only                                                                         |
+| Tier 2 — mem inject  | "Brain-first lookup on every message" — permanent agent discipline; reads brain before responding to anything                                          | ✅ ships, more aggressive than UserPromptSubmit hook (it's a behavioral rule, not a system injection) |
+| Tier 3 — mem thought | NOT PRESENT — no separate continuous sub-agent watching events. Entity detection runs in the foreground agent on each message, not a separate process. | ❌ the gap                                                                                            |
+| Tier 4 — mem dream   | Explicit "dream cycle" in docs/guides/cron-schedule.md: nightly cron with entity sweep + citation fixes + memory consolidation                         | ✅ ships, exactly the pattern                                                                         |
 
 **Striking overlaps with our design**:
 
@@ -329,11 +333,11 @@ gbrain (https://github.com/garrytan/gbrain) is a production "personal knowledge 
 
 **Different corpora, same architecture**:
 
-| Corpus | Substrate | Best fit |
-|---|---|---|
-| Personal life (people, meetings, decisions, ideas, calendar, email) | gbrain (PGLite + pgvector) | gbrain |
-| Claude Code session history | bearly recall (SQLite + FTS5) | tribe.ask, mem-thought |
-| Markdown vault knowledge | qmd (BM25 + vector + HyDE) | qmd, mem-thought v2 |
+| Corpus                                                              | Substrate                     | Best fit               |
+| ------------------------------------------------------------------- | ----------------------------- | ---------------------- |
+| Personal life (people, meetings, decisions, ideas, calendar, email) | gbrain (PGLite + pgvector)    | gbrain                 |
+| Claude Code session history                                         | bearly recall (SQLite + FTS5) | tribe.ask, mem-thought |
+| Markdown vault knowledge                                            | qmd (BM25 + vector + HyDE)    | qmd, mem-thought v2    |
 
 **The four-tier framework is corpus-agnostic.** gbrain proves it works for personal life. Our work demonstrates it for coding sessions + vault. A complete agent system runs the framework on every relevant corpus.
 
@@ -351,6 +355,7 @@ gbrain (https://github.com/garrytan/gbrain) is a production "personal knowledge 
 - **The four-position thesis becomes**: silvercode is the multi-corpus, multi-sub-agent host; gbrain is one of the corpora; mem-thought is the reactive cross-corpus search agent.
 
 **References**:
+
 - https://github.com/garrytan/gbrain
 - https://github.com/garrytan/gbrain/blob/master/docs/GBRAIN_SKILLPACK.md — full agent playbook (compounding thesis, brain-agent loop)
 - https://github.com/garrytan/gbrain/blob/master/docs/guides/cron-schedule.md — dream cycle protocol
@@ -370,14 +375,14 @@ Discovered via OpenRouter's coding-CLI leaderboard. Hermes Agent is the closest 
 
 **Critical architectural difference**:
 
-| Dimension                  | Hermes Agent                         | mem-thought                                    |
-|----------------------------|--------------------------------------|-------------------------------------------------|
-| Memory locus               | Self-managed (foreground reviews itself) | Separate sub-agent watches events             |
-| Trigger                    | Internal review every 10 turns       | Reactive to multi-source events                 |
-| Event sources              | Conversation only                    | Prompts + completions + tribe + files + CI      |
-| Output                     | Updates own memory.md / creates skills | Delta emits to foreground via ambient channel  |
-| Topology                   | Local CLI (foreground = memory holder) | Topology-portable (10 deployment shapes per acp-proxy.md §4.6) |
-| Cognitive tier             | Tier 4 mem-dream (periodic consolidation) | Tier 3 mem-thought (reactive surfacing)      |
+| Dimension      | Hermes Agent                              | mem-thought                                                    |
+| -------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| Memory locus   | Self-managed (foreground reviews itself)  | Separate sub-agent watches events                              |
+| Trigger        | Internal review every 10 turns            | Reactive to multi-source events                                |
+| Event sources  | Conversation only                         | Prompts + completions + tribe + files + CI                     |
+| Output         | Updates own memory.md / creates skills    | Delta emits to foreground via ambient channel                  |
+| Topology       | Local CLI (foreground = memory holder)    | Topology-portable (10 deployment shapes per acp-proxy.md §4.6) |
+| Cognitive tier | Tier 4 mem-dream (periodic consolidation) | Tier 3 mem-thought (reactive surfacing)                        |
 
 **They're complementary, not competing.** Hermes is Tier 4 flavored (periodic consolidation, skill extraction, self-improvement). mem-thought is Tier 3 (reactive surfacing of relevant prior context). A complete agent could run both — Hermes-style self-managed Tier 1 + Tier 4, plus mem-thought-style separate-sub-agent Tier 3.
 
@@ -390,6 +395,7 @@ Discovered via OpenRouter's coding-CLI leaderboard. Hermes Agent is the closest 
 - The remaining /deep follow-up sweep with actual Deep Research API on 2025–2026 data is even more important now — if Hermes shipped in Feb 2026 and we missed it, other things may have too.
 
 **References**:
+
 - https://github.com/nousresearch/hermes-agent
 - https://hermes-agent.nousresearch.com/docs/
 - https://hermesatlas.com/guide/ — Apr 2026 v0.10.0 guide
@@ -443,6 +449,7 @@ Two user additions reframe the sub-agent from "memory of past sessions" to **"pr
 2. **Big context budget** — prompt caching makes ~50K-token cached context affordable (~$0.001/event). The sub-agent can carry comprehensive state, not just a brief digest.
 
 This changes what the sub-agent IS. It's no longer just "the memory layer." It's the **always-on private research assistant** that knows:
+
 - What past sessions did (recall FTS index)
 - What the repo looks like (LSP symbol map)
 - What's in the vault (qmd hybrid index)
@@ -508,6 +515,7 @@ For claude-haiku-4-5 (input ~$1/MTok, output ~$5/MTok) with 50K of cached contex
 That's tractable but adding up — 100 events/session × $0.009 = ~$0.90/session. Heavy use ~$50/dev/month. Higher than my earlier estimate.
 
 **Cost optimizations**:
+
 - Cache the LSP symbol map separately (only changes on workspace edits — 90% of events hit the cache cleanly)
 - Don't include full LSP map in EVERY step — sub-agent fetches symbols on-demand via tools
 - Event coalescing: batch rapid-fire events (e.g., file changes within 500ms) into one step
@@ -544,6 +552,7 @@ For a typical session (maybe 30 active + 70 passive events): ~$0.85/session wors
 ### Why bigger context wins here
 
 The sub-agent has stuff the foreground agent doesn't:
+
 - It can hold the FULL repo symbol map without burning the foreground's prompt budget
 - It can hold every prior session's recall hits considered, not just the chosen ones (so it can change its mind later)
 - It can keep accumulating compiled-knowledge across the whole session without forgetting
@@ -580,20 +589,21 @@ When repo changes (file edits, new commits), invalidate the REPO_CONTEXT cache. 
 
 Surveying production memory systems for the specific composition we're describing — **a separate long-running sub-agent watching session events, maintaining compiled-knowledge in its own prompt-cached context, emitting incremental deltas to the foreground**:
 
-| System                    | Sub-agent (vs self-managed) | Reactive to all events | Compiled-knowledge state | Delta emit | Closest match |
-|---------------------------|---------------|------------------------|-----------|-----|--------------|
-| **Letta / MemGPT**        | self-managed                | only tool-driven       | tiers (core/recall/archival) in DB | no — full retrieval | tool-call pattern |
-| **ChatGPT memory**        | self-managed                | only on capture trigger | running summary + facts | inject-at-start only | running summary idea |
-| **Mem0**                  | orchestration layer         | on-demand only         | atomic facts in vector + graph DB | no — on-demand | atomic-fact extraction |
-| **Anthropic memory tool** (claude-agent-sdk) | self-managed | only when tool-called | file-based notes | full inject | file-based notes |
-| **Cursor codebase RAG**   | none (inline RAG)           | per prompt only        | embedding index | inject per prompt | implicit retrieval |
-| **Aider repo map**        | none (static)               | static, rebuilt        | symbol map | full inject | static index |
-| **CrewAI/AutoGen roles**  | yes (separate role)         | depends on orchestration | ad-hoc | depends | separate-role pattern |
-| **MemoryGPT papers (2024–25)** | yes (in some)            | mostly offline batch   | knowledge graph | mostly batch consolidate | offline consolidation |
+| System                                   | Sub-agent (vs self-managed) | Reactive to all events   | Compiled-knowledge state           | Delta emit               | Closest match          |
+| ---------------------------------------- | --------------------------- | ------------------------ | ---------------------------------- | ------------------------ | ---------------------- |
+| Letta / MemGPT                           | self-managed                | only tool-driven         | tiers (core/recall/archival) in DB | no — full retrieval      | tool-call pattern      |
+| ChatGPT memory                           | self-managed                | only on capture trigger  | running summary + facts            | inject-at-start only     | running summary idea   |
+| Mem0                                     | orchestration layer         | on-demand only           | atomic facts in vector + graph DB  | no — on-demand           | atomic-fact extraction |
+| Anthropic memory tool (claude-agent-sdk) | self-managed                | only when tool-called    | file-based notes                   | full inject              | file-based notes       |
+| Cursor codebase RAG                      | none (inline RAG)           | per prompt only          | embedding index                    | inject per prompt        | implicit retrieval     |
+| Aider repo map                           | none (static)               | static, rebuilt          | symbol map                         | full inject              | static index           |
+| CrewAI/AutoGen roles                     | yes (separate role)         | depends on orchestration | ad-hoc                             | depends                  | separate-role pattern  |
+| MemoryGPT papers (2024–25)               | yes (in some)               | mostly offline batch     | knowledge graph                    | mostly batch consolidate | offline consolidation  |
 
 **No system combines all four traits the way this design does**: separate sub-agent + reactive to all session events + prompt-cached compiled-knowledge in its own context + incremental delta emit.
 
 The novelty is the **composition**, not any individual piece:
+
 - Separate sub-agent → CrewAI/AutoGen roles
 - Tool-call memory → Letta/MemGPT
 - Running structured digest → ChatGPT chat-history-summary
@@ -621,6 +631,7 @@ Memory · idle  · 14ids · 3hyps · 7emit · $0.04
 ```
 
 Status flags:
+
 - `idle` — between events
 - `searching` — FTS call in flight
 - `reasoning` — LLM step in flight
@@ -836,6 +847,7 @@ onEvent(event):
 ```
 
 The sub-agent **decides**:
+
 - Whether to search at all on this event ("user just said 'ok' — nothing to do")
 - What to search for ("they mentioned 'compiled context' — let me search prior /pro reviews")
 - Whether to emit ("found something relevant + non-stale + not surfaced — emit delta")
@@ -994,6 +1006,7 @@ distraction_signal = manual user thumbs-down per session
 ```
 
 Thresholds:
+
 - `useful_emit_rate < 20% sustained over 1 week` → kill or pivot
 - `daily_cost_usd > $5/dev` → tighten gates
 - `distraction_signal > 1/day` → reduce cadence
@@ -1151,6 +1164,7 @@ onEvent(event):
 ### Example surfacing scenarios
 
 **Scenario A — user mentions a known bug**
+
 ```
 event:    user-prompt "remember the wrap regression bug?"
 extract:  identifiers ["wrap regression"] (kebab-phrase, weight 2.5)
@@ -1167,6 +1181,7 @@ mark surfaced: {km-tui.wrap-regression, session-0420, km-flexx.wrap-height}
 ```
 
 **Scenario B — user says "we should ship this"**
+
 ```
 event:    user-prompt "we should ship this"
 extract:  identifiers ["ship"] (generic, weight 0.5)
@@ -1176,6 +1191,7 @@ emit:     nothing — silent
 ```
 
 **Scenario C — peer commit lands during your work on related file**
+
 ```
 event:    tribe-broadcast {kind: github-push, preview:
             "feat(layout): wrap-policy improvements in @silvery/flexily"}
@@ -1194,6 +1210,7 @@ emit:     [mem-thought, cycle 2 — peer activity in @silvery/flexily]
 ```
 
 **Scenario D — file change introduces new context**
+
 ```
 event:    file-change "apps/silvercode/src/components/SidePanel.tsx"
 extract:  identifier "apps/silvercode/src/components/SidePanel.tsx" (path, weight 2.0)
@@ -1210,6 +1227,7 @@ emit:     [mem-thought, cycle 3 — SidePanel.tsx context]
 ```
 
 **Scenario E — re-firing on the same hypothesis after new event reinforces it**
+
 ```
 event 1:  user-prompt "the wrap thing was broken on mobile"
 extract:  identifier "wrap thing" (weight 1.0), "mobile" (weight 1.0)
@@ -1232,25 +1250,23 @@ emit:     [mem-thought, cycle 1 — pattern recognized across turns]
 Three layers:
 
 1. **Identifier deduplication** — same identifier extracted multiple times just bumps `lastSeen` and `count`; no re-search until `status` resets to "new" via TTL or new context.
-
 2. **Hypothesis surfacing** — once a hypothesis has been emitted, `surfaced: true`. Its hits are added to the global `surfaced` set. Hypotheses are re-ranked on every event but won't re-emit. Stale hypotheses (most hits surfaced) get evicted.
-
 3. **Cross-hypothesis dedup** — when ranking, hits already in the global `surfaced` set get coverage-zeroed. So even if a NEW hypothesis would surface bead-X, if bead-X was already shown, the hypothesis won't include it; if bead-X was the hypothesis's only good hit, the hypothesis falls below threshold and stays silent.
 
 The `surfaced` set is per-session (cleared on new session). Cross-session persistence is opt-in v3.
 
 ### Why this beats the paced wrapper
 
-| Property | v1 paced wrapper | v2 reactive agent |
-|----------|------------------|-------------------|
-| Trigger | Every 12 turns / 15 min | Any event with new signal |
-| Most events do | Nothing (waiting for cadence) | O(1) state update only |
-| Re-search cost | Full FTS expansion every cycle | Incremental — search only new IDs |
-| Cross-event signal | Lost between cycles | Accumulates in state.identifiers |
-| Peer-driven recall | Misses unless cycle aligns | Tribe broadcast IS an event — fires immediately |
-| Dedup | Set + recallAgent's internal tracking | Per-session surfaced set + hypothesis lifecycle |
-| Cost ceiling | $0.011/cycle × N cycles | $0.001/event in steady state, $0.01 only on FTS-needed events |
-| Code surface | ~50 LOC | ~200–250 LOC (state machine + handlers) |
+| Property           | v1 paced wrapper                      | v2 reactive agent                                             |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------- |
+| Trigger            | Every 12 turns / 15 min               | Any event with new signal                                     |
+| Most events do     | Nothing (waiting for cadence)         | O(1) state update only                                        |
+| Re-search cost     | Full FTS expansion every cycle        | Incremental — search only new IDs                             |
+| Cross-event signal | Lost between cycles                   | Accumulates in state.identifiers                              |
+| Peer-driven recall | Misses unless cycle aligns            | Tribe broadcast IS an event — fires immediately               |
+| Dedup              | Set + recallAgent's internal tracking | Per-session surfaced set + hypothesis lifecycle               |
+| Cost ceiling       | $0.011/cycle × N cycles               | $0.001/event in steady state, $0.01 only on FTS-needed events |
+| Code surface       | ~50 LOC                               | ~200–250 LOC (state machine + handlers)                       |
 
 ### Implementation sketch (~200 LOC)
 
@@ -1342,13 +1358,13 @@ Roughly the same cost as the paced wrapper but with: (a) better timing (fires wh
 
 ### Implementation roadmap (revised)
 
-| Phase | Scope | LOC | Dogfood signal |
-|-------|-------|-----|----------------|
-| v1 | Reactive agent skeleton: state + event handlers + identifier extraction + FTS + outcome ranking + emit | ~200 | First emissions on user prompts containing high-weight IDs |
-| v1.5 | Cross-pollination LLM call (every K events) + digest composition LLM call | +50 | Better hypothesis quality, terser emissions |
-| v2 | Persistent dedup across sessions per project | +30 | Don't re-surface same bead in new session within 24h |
-| v3 | qmd as second substrate (besides recall FTS) | +50 | Vault content surfaces alongside session history |
-| v4 | True tool-call agent loop for complex hypotheses (escalation only) | +100 | Catches things v1's structural extraction misses |
+| Phase | Scope                                                                                                  | LOC  | Dogfood signal                                             |
+| ----- | ------------------------------------------------------------------------------------------------------ | ---- | ---------------------------------------------------------- |
+| v1    | Reactive agent skeleton: state + event handlers + identifier extraction + FTS + outcome ranking + emit | ~200 | First emissions on user prompts containing high-weight IDs |
+| v1.5  | Cross-pollination LLM call (every K events) + digest composition LLM call                              | +50  | Better hypothesis quality, terser emissions                |
+| v2    | Persistent dedup across sessions per project                                                           | +30  | Don't re-surface same bead in new session within 24h       |
+| v3    | qmd as second substrate (besides recall FTS)                                                           | +50  | Vault content surfaces alongside session history           |
+| v4    | True tool-call agent loop for complex hypotheses (escalation only)                                     | +100 | Catches things v1's structural extraction misses           |
 
 ---
 
@@ -1359,6 +1375,7 @@ Two course corrections from the user:
 **1. We already designed this.** `recallAgent` (in `vendor/bearly/plugins/recall/src/lib/agent.ts`) does 2 rounds of LLM-refined FTS searches. I incorrectly called it "one-shot" — actually round 2's `planQuery` receives `priorPlan`, `priorResults`, `priorVariants` as input and generates new variants based on what round 1 found. That's iterative LLM refinement. Already shipped. Already battle-tested via `bun recall --agent`.
 
 **2. Tier 2 is deferred → mem-thought has the whole budget.** My earlier cost-discipline math (~$2–5/mo, 3 cycles/session cap) was constrained by "Tier 2 also runs every prompt." With Tier 2 deferred, mem-thought can be:
+
 - More cycles per session (e.g., 5–10 instead of 3)
 - More cadence-frequent (every 10–15 turns instead of 25)
 - Full 2-round mode (not capped at maxRounds: 1)
@@ -1467,10 +1484,10 @@ This is the `/big` / `/complete` pattern: LLM has tools, examines results, decid
 
 ### Two search substrates available
 
-| Substrate | What it indexes | Retrieval | Already exposed as tool? |
-|-----------|----------------|-----------|--------------------------|
-| **recall** (bearly tribe) | Claude Code session history | FTS5 lexical only; planner does query expansion | ✅ `tribe.ask` MCP tool, `tribe.brief`, `tribe.plan` |
-| **qmd** | Markdown knowledge bases (vault, design docs) | Hybrid: BM25 + vector + HyDE + cross-encoder rerank | ✅ `qmd mcp` server |
+| Substrate             | What it indexes                               | Retrieval                                           | Already exposed as tool?                      |
+| --------------------- | --------------------------------------------- | --------------------------------------------------- | --------------------------------------------- |
+| recall (bearly tribe) | Claude Code session history                   | FTS5 lexical only; planner does query expansion     | ✅ tribe.ask MCP tool, tribe.brief, tribe.plan |
+| qmd                   | Markdown knowledge bases (vault, design docs) | Hybrid: BM25 + vector + HyDE + cross-encoder rerank | ✅ qmd mcp server                              |
 
 For coding-agent thematic relevance, **recall (sessions) is the primary substrate**. qmd is secondary — useful for surfacing related vault content, but session history is where most "we tried this before" signal lives. v1 uses recall; qmd extends in v2 if telemetry shows pull-through value.
 
@@ -1550,15 +1567,15 @@ Implementation: thin wrapper around `recall()` from `@bearly/recall` library (NO
 
 ### What this preserves vs prior iterations
 
-| Concern | Preserved how |
-|---------|--------------|
-| Causality (Kimi) | Topic-drift gate at emit; cycle is async-labeled in header |
-| Outcome-aware ranking (all /pro) | Filter applied after LLM's pick, before emit |
-| Cross-session lane (Kimi) | recall_search filters out current session by default |
-| Hard cycle cap (Kimi) | 3/session enforced before agent loop fires |
-| LLM intelligence (user) | The whole loop is intelligence; ground truth is raw turns + raw FTS hits |
+| Concern                                 | Preserved how                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------- |
+| Causality (Kimi)                        | Topic-drift gate at emit; cycle is async-labeled in header                      |
+| Outcome-aware ranking (all /pro)        | Filter applied after LLM's pick, before emit                                    |
+| Cross-session lane (Kimi)               | recall_search filters out current session by default                            |
+| Hard cycle cap (Kimi)                   | 3/session enforced before agent loop fires                                      |
+| LLM intelligence (user)                 | The whole loop is intelligence; ground truth is raw turns + raw FTS hits        |
 | Stable ground truth (vs telephone game) | Each LLM turn sees raw turns + raw search results — no compounding distillation |
-| Cost discipline | Per-cycle budget cap on total LLM tokens (~5 tool-call rounds max) |
+| Cost discipline                         | Per-cycle budget cap on total LLM tokens (~5 tool-call rounds max)              |
 
 ### Implementation sketch
 
@@ -1660,11 +1677,11 @@ The existing `recallAgent` is **already** the smart-query-expansion + parallel-s
 What mem-thought needs is **just three things on top**:
 
 1. **A synthetic query built from the conversation context** — `recallAgent(query)` takes a string. We need to construct a useful query from the running conversation. Options:
-   - LLM call: "Given these last 4–6 turns, what query would surface relevant prior context?" — this is the user's "let the LLM hypothesize" insight
-   - Deterministic anchor extraction (per /pro): top-N anchors joined into a phrase
-   - Hybrid: deterministic anchors as base + 1 LLM call refines if anchors are too generic
-2. **Outcome-aware re-ranking** of `recallAgent`'s returned results before emit (apply bead status weights — RESOLVED/SUPERSEDED/REJECTED/EXPLORATORY)
-3. **Cadence + topic-drift discipline** — the wrapper concerns: 25 turns OR 15 min, idle ≥10 s, hard 3-cycles cap, drop emit if user sent ≥2 new prompts since cycle start
+- LLM call: "Given these last 4–6 turns, what query would surface relevant prior context?" — this is the user's "let the LLM hypothesize" insight
+- Deterministic anchor extraction (per /pro): top-N anchors joined into a phrase
+- Hybrid: deterministic anchors as base + 1 LLM call refines if anchors are too generic
+6. **Outcome-aware re-ranking** of `recallAgent`'s returned results before emit (apply bead status weights — RESOLVED/SUPERSEDED/REJECTED/EXPLORATORY)
+7. **Cadence + topic-drift discipline** — the wrapper concerns: 25 turns OR 15 min, idle ≥10 s, hard 3-cycles cap, drop emit if user sent ≥2 new prompts since cycle start
 
 ### Refactored mem-thought (with reality check)
 
@@ -1772,6 +1789,7 @@ The pattern: **LLM as search agent**, with tools (FTS, read), iterating until co
 ### Reconciling with /pro
 
 What /pro got right (keep):
+
 - Don't summarize-then-plan-then-synth serially — that IS telephone-game compounding error
 - Cadence tightening (rare, idle-gated, hard cap)
 - Strict cross-session scope (Tier 2/3 lane separation)
@@ -1780,6 +1798,7 @@ What /pro got right (keep):
 - Don't synth as a tease that triggers Tier 1 follow-up
 
 What /pro got wrong (reinstate):
+
 - Killing the planner LLM loses the whole point — generating hypothesis queries from raw conversation IS the intelligence
 - Killing iteration loses the ability to refine based on what's actually found
 - "Replace with anchor regex" reduces mem-thought to keyword echo, which Kimi & Gemini themselves flagged as the wrong primitive for thematic matching
@@ -1848,17 +1867,17 @@ Captured at [`recall-pro-review-thought.md`](recall-pro-review-thought.md). All 
 1. **Kill the summarizer LLM** — feed last 4–6 turns raw to extraction. Summarization strips concrete identifiers (file paths, error strings, bead IDs) — exactly what we need most.
 2. **Kill or collapse the planner LLM** — Gemini: collapse summarizer+planner into one structured extractor call returning JSON-validated queries with `source_term_from_conversation` field. Kimi/GPT: deterministic anchor extraction (regex for paths, errors, backticks, IDs, quoted phrases) — no LLM at all for query generation.
 3. **Kill the synthesizer LLM** — biggest design flaw. All three:
-   - Kimi: "synth + async = false memory with no provenance — disinformation vector"
-   - Gemini: "synth = tease that triggers Tier 1 follow-up calls — turns async into sync"
-   - GPT-5.4: "raw excerpts + structured sidecar JSON; never inject raw chunks AS instructions, but DO show them"
+- Kimi: "synth + async = false memory with no provenance — disinformation vector"
+- Gemini: "synth = tease that triggers Tier 1 follow-up calls — turns async into sync"
+- GPT-5.4: "raw excerpts + structured sidecar JSON; never inject raw chunks AS instructions, but DO show them"
    Replace with templated raw-chunk emit.
-4. **Cadence wrong** — tighten to **every 20–30 turns OR 15 min, AND user-idle ≥10 s**. Memory surfaces during human cognitive lulls, not mid-keystroke. 5min/10-turn creates "alert fatigue" — agent learns to ignore the channel.
-5. **FTS5 alone is wrong for "thematic"** — it's keyword echo, will miss "auth middleware" ↔ "login guard" / "deadlock" ↔ "race condition". Either add vector embeddings OR honest framing change ("background grep, not mind wanderer").
-6. **Strict scope partitioning** between Tier 2 and Tier 3 — Kimi: Tier 3 should ONLY query other sessions, preferably >24h old. Clean cognitive lanes; dedupe becomes safety net not primary defense.
-7. **Hard per-session cap (3 cycles)** instead of complex cost-cap math — if it's not valuable in 3 shots, the trigger is broken.
-8. **Framing alone is insufficient against attentional capture** — even labeled `[mem-thought]`, the LLM has no "ignore" executive function. Mitigation: rarity (low cadence) + context-position discipline (wrap in `<system_background_observation>` tags above user prompt, or sort to a non-answer-block channel).
-9. **Outcome status needs a verifiable source** — `RESOLVED/REJECTED/SUPERSEDED` is fine for beads (real metadata) but hand-wavy for raw session content. Stick to bead-derived status; don't fabricate session-level taxonomy.
-10. **No feedback loop** — system emits forever without learning. Add a "follow-up pull" heuristic: if agent calls `tribe.ask` on a referenced bead within N turns of the emit, count it as a win for telemetry tuning. If never referenced, down-rank.
+10. **Cadence wrong** — tighten to **every 20–30 turns OR 15 min, AND user-idle ≥10 s**. Memory surfaces during human cognitive lulls, not mid-keystroke. 5min/10-turn creates "alert fatigue" — agent learns to ignore the channel.
+11. **FTS5 alone is wrong for "thematic"** — it's keyword echo, will miss "auth middleware" ↔ "login guard" / "deadlock" ↔ "race condition". Either add vector embeddings OR honest framing change ("background grep, not mind wanderer").
+12. **Strict scope partitioning** between Tier 2 and Tier 3 — Kimi: Tier 3 should ONLY query other sessions, preferably >24h old. Clean cognitive lanes; dedupe becomes safety net not primary defense.
+13. **Hard per-session cap (3 cycles)** instead of complex cost-cap math — if it's not valuable in 3 shots, the trigger is broken.
+14. **Framing alone is insufficient against attentional capture** — even labeled `[mem-thought]`, the LLM has no "ignore" executive function. Mitigation: rarity (low cadence) + context-position discipline (wrap in `<system_background_observation>` tags above user prompt, or sort to a non-answer-block channel).
+15. **Outcome status needs a verifiable source** — `RESOLVED/REJECTED/SUPERSEDED` is fine for beads (real metadata) but hand-wavy for raw session content. Stick to bead-derived status; don't fabricate session-level taxonomy.
+16. **No feedback loop** — system emits forever without learning. Add a "follow-up pull" heuristic: if agent calls `tribe.ask` on a referenced bead within N turns of the emit, count it as a win for telemetry tuning. If never referenced, down-rank.
 
 ### Refactored v1 (per /pro consensus)
 
@@ -1947,16 +1966,16 @@ Captured at [`recall-pro-review-thought.md`](recall-pro-review-thought.md). All 
 
 ### Open questions resolved
 
-| Q | Original answer | /pro verdict | Final |
-|---|----------------|--------------|-------|
-| 1. Cadence | 10 turns OR 5 min | Tighter, idle-gated | 25 turns OR 15 min, idle ≥10 s |
-| 2. Summarizer scope | last 12 turns LLM | Kill summarizer | Last 4–6 raw turns to anchor extractor |
-| 3. Planner grounding | ≥1 lexical token | Under-constrained — kill or collapse | Deterministic anchor extraction; high-weight requirement |
-| 4. Synth vs raw | Kept synth | Kill synth | Templated raw-chunk emit + sidecar JSON |
-| 5. Dedupe scope | Per-session | Per-session + 24h cool-down per project (opt-in) | Per-session for v1; cool-down deferred |
-| 6. Cancellation | Session end + /clear | Add topic-drift gate AT EMIT TIME | Session end + /clear + ≥2-new-prompts-since-start gate |
-| 7. Tier 2+3 interaction | Shared dedupe | Strict scope partitioning > dedupe | Tier 3 cross-session-only; shared dedupe as safety net |
-| 8. Framing solves causality | "Yes, framing carries the load" | Over-confident — rarity is the real fix | Low cadence + framing TOGETHER; tag wrapping; out-of-answer-block channel |
+| Q                           | Original answer                 | /pro verdict                                     | Final                                                                     |
+| --------------------------- | ------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
+| 1. Cadence                  | 10 turns OR 5 min               | Tighter, idle-gated                              | 25 turns OR 15 min, idle ≥10 s                                            |
+| 2. Summarizer scope         | last 12 turns LLM               | Kill summarizer                                  | Last 4–6 raw turns to anchor extractor                                    |
+| 3. Planner grounding        | ≥1 lexical token                | Under-constrained — kill or collapse             | Deterministic anchor extraction; high-weight requirement                  |
+| 4. Synth vs raw             | Kept synth                      | Kill synth                                       | Templated raw-chunk emit + sidecar JSON                                   |
+| 5. Dedupe scope             | Per-session                     | Per-session + 24h cool-down per project (opt-in) | Per-session for v1; cool-down deferred                                    |
+| 6. Cancellation             | Session end + /clear            | Add topic-drift gate AT EMIT TIME                | Session end + /clear + ≥2-new-prompts-since-start gate                    |
+| 7. Tier 2+3 interaction     | Shared dedupe                   | Strict scope partitioning > dedupe               | Tier 3 cross-session-only; shared dedupe as safety net                    |
+| 8. Framing solves causality | "Yes, framing carries the load" | Over-confident — rarity is the real fix          | Low cadence + framing TOGETHER; tag wrapping; out-of-answer-block channel |
 
 ### One open issue not in original questions
 
@@ -1983,3 +2002,4 @@ Captured at [`recall-pro-review-thought.md`](recall-pro-review-thought.md). All 
 Tier 3 (mem-thought) is the unique slice — every prior-art system has Tier 1 or Tier 2 or Tier 4 but skips this. Implementation is one new module (`percolate.ts`) + cadence loop in the controller, ~$10–15/dev/month at heavy use, zero user-facing latency. The biological framing ("oh wait, that reminds me of...") is the right mental model; the technical realization is paced background pattern-matching with grounded planner queries and outcome-aware ranking.
 
 Ready for /pro review against the open questions before implementation.
+

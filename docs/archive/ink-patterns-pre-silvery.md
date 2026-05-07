@@ -1,6 +1,6 @@
 # Ink Development Patterns (ARCHIVED 2026-04-16)
 
-> **Archived** because km migrated off Ink to [silvery](../../vendor/silvery/). See [`docs/dev/term-tui-migration.md`](../dev/term-tui-migration.md) for the migration writeup and [The Silvery Way](../../vendor/silvery/docs/guide/the-silvery-way.md) for current patterns.
+> Archived because km migrated off Ink to silvery. See docs/dev/term-tui-migration.md for the migration writeup and The Silvery Way for current patterns.
 
 _Patterns documented for Ink v4.x (pre-Silvery migration). Last verified: 2026-01._
 
@@ -91,27 +91,26 @@ When the bordered box has 5 lines (top border + 3 content + bottom border) plus 
 
 1. **Remove height constraint** - Let the container grow naturally:
 
-   ```tsx
-   // GOOD: No height constraint, content flows naturally
-   <Box flexDirection="row">
-     <Box flexDirection="column" width={20}>
-       {/* Content will not be clipped from top */}
-     </Box>
-   </Box>
-   ```
+```tsx
+// GOOD: No height constraint, content flows naturally
+<Box flexDirection="row">
+  <Box flexDirection="column" width={20}>
+    {/* Content will not be clipped from top */}
+  </Box>
+</Box>
+```
 
 2. **Use `overflowY="hidden"`** on inner containers to explicitly control clipping:
 
-   ```tsx
-   <Box flexDirection="row" height={10}>
-     <Box flexDirection="column" overflowY="hidden">
-       {/* Clips from BOTTOM as expected */}
-     </Box>
-   </Box>
-   ```
+```tsx
+<Box flexDirection="row" height={10}>
+  <Box flexDirection="column" overflowY="hidden">
+    {/* Clips from BOTTOM as expected */}
+  </Box>
+</Box>
+```
 
 3. **Calculate exact heights** to avoid overflow entirely.
-
 4. **Use virtualization** (ScrollableList) to only render items that fit.
 
 **Rule:** Never assume Ink will clip from the bottom. Always test height-constrained layouts with content that exceeds the available space.
@@ -421,3 +420,4 @@ const getItemHeight = useCallback(
 3. **Missing content:** Verify `isReady` state for fullscreen-ink race condition
 4. **Style bleeding:** Ensure ANSI reset codes are preserved after truncation
 5. **Overflow past boundaries:** Check if you're using fixed-height assumption for variable-height content - use `getItemHeight` callback with `ScrollableList`
+

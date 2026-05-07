@@ -1,6 +1,6 @@
 # Silvery Architecture Overview
 
-> **Deprecated (2026-03-16).** Original hub document connecting all Era 2 design docs. Superseded by the progressive-disclosure sequence: [era2/01-quick-start.md](../era2/01-quick-start.md) through [era2/06-scopes.md](../era2/06-scopes.md). Cross-references have been updated to point to era2/ docs directly.
+> Deprecated (2026-03-16). Original hub document connecting all Era 2 design docs. Superseded by the progressive-disclosure sequence: era2/01-quick-start.md through era2/06-scopes.md. Cross-references have been updated to point to era2/ docs directly.
 
 _Entry point for the Silvery design docs. Read this first, then dive into the linked docs._
 
@@ -140,12 +140,12 @@ This is **generic accumulation via intersection types**, not a builder pattern. 
 
 Every piece of app behavior exists on a spectrum from imperative to fully serializable. Each point unlocks different capabilities:
 
-|                          | **op-call**         | **op-as-object**         | **op-as-data**                           |
-| ------------------------ | ------------------- | ------------------------ | ---------------------------------------- |
-| **Shape**                | `setState(n+1)`     | `{ fn() { n.value++ } }` | `{ op: "increment", args: { by: 1 } }`   |
-| **Contains functions?**  | Is a function call  | Yes — `fn` is a closure  | No — pure JSON                           |
-| **Serializable?**        | No                  | No                       | Yes                                      |
-| **Where behavior lives** | Inline at call site | In the object's `fn`     | In the interpreter (reducer/handler map) |
+|                      | op-call             | op-as-object           | op-as-data                               |
+| -------------------- | ------------------- | ---------------------- | ---------------------------------------- |
+| Shape                | setState(n+1)       | { fn() { n.value++ } } | { op: "increment", args: { by: 1 } }     |
+| Contains functions?  | Is a function call  | Yes — fn is a closure  | No — pure JSON                           |
+| Serializable?        | No                  | No                     | Yes                                      |
+| Where behavior lives | Inline at call site | In the object's fn     | In the interpreter (reducer/handler map) |
 
 **op-call**: Imperative. Behavior happens inline. Locked to one framework, one runtime, one session.
 
@@ -159,12 +159,12 @@ The key difference between op-as-object and op-as-data: **who knows what "increm
 
 Each concern can be at a different point on the spectrum independently:
 
-| Concern      | op-call              | op-as-object        | op-as-data                      |
-| ------------ | -------------------- | ------------------- | ------------------------------- |
-| **State**    | `useState(n+1)`      | `count.value++`     | `op(model).increment()`         |
-| **Input**    | `onKeyDown` callback | `Command { fn }`    | `{ command: "down", args: {} }` |
-| **Effects**  | `fetch()` inline     | —                   | `[{ type: "http", url, body }]` |
-| **Bindings** | `if (key === "j")`   | `keymap()` function | `{ "j": "down" }` JSON config   |
+| Concern  | op-call            | op-as-object      | op-as-data                    |
+| -------- | ------------------ | ----------------- | ----------------------------- |
+| State    | useState(n+1)      | count.value++     | op(model).increment()         |
+| Input    | onKeyDown callback | Command { fn }    | { command: "down", args: {} } |
+| Effects  | fetch() inline     | —                 | [{ type: "http", url, body }] |
+| Bindings | if (key === "j")   | keymap() function | { "j": "down" } JSON config   |
 
 You don't have to go all-in. Move each concern along the spectrum when its specific pain point hits you.
 
@@ -235,3 +235,4 @@ See [text-selection.md](../era3/text-selection.md) for the full design.
 ---
 
 _See also: [packaging.md](../era2/packaging.md) (package decomposition, framework × platform matrix), [composability.md](../era2/composability.md) (universal rendering tradeoffs, gap analysis), [windowing.md](../era3/windowing.md) (windowing), [text-selection.md](../era3/text-selection.md) (text selection), [04-input.md](../era2/04-input.md) (keymaps, sources, dispatch), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._
+

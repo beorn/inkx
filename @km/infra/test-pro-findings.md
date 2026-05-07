@@ -18,8 +18,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/infra/test-system"
+    type: list
+    values:
+      - type: link
+        target: km-all.test-system
+      - type: link
+        target: "@km/infra/test-system"
 ---
 
 # [ ] Pro review findings — semantic model, differential tests, generated sequences, matchers @km/all #task #P1
@@ -46,12 +50,14 @@ Pro confirmed the invariants > typed assertions > snapshots hierarchy. These are
 5. **Semantic screen model** — a versioned tree (board > column > card [cursor]) that invariants, semantic snapshots, and differential tests all operate on. Stronger than ad-hoc getters. The TUI equivalent of an accessibility tree.
 6. **Semantic snapshots** — snapshot the semantic tree, not raw terminal cells. Ages better, less churn. Raw snapshots only for renderer-specific tests.
    Example output:
-  ```
-  view=cards focus=board overlay=null
-  > column: col1
-      task: task1 [cursor]
-      task: task2
-  ```
+
+```
+view=cards focus=board overlay=null
+> column: col1
+    task: task1 [cursor]
+    task: task2
+```
+
 7. **Builder fixture DSL** — stable IDs, exact setup, no parser side effects. item() already fills this but Pro suggests a typed builder: board(column({id:"c1"}, task({id:"t1"}))).
 8. **Headless vs termless differential tests** — run same action sequence on both backends, compare semantic state. Catches backend drift.
 

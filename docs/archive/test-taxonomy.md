@@ -10,27 +10,27 @@ Generated: 2026-01-23
 | Sync (slow)         | 13    | ~140   | ~3k   | keep                   |
 | Chaos/fuzzer        | 10    | ~160   | ~3k   | keep                   |
 | Acceptance (mdspec) | 13    | ~200   | ~2k   | keep                   |
-| Playwright          | 2     | 14     | 400   | **migrate to silvery**    |
+| Playwright          | 2     | 14     | 400   | migrate to silvery     |
 | Vendor              | 37    | ~500   | ~10k  | keep (owned by vendor) |
 
 ## Action Items
 
 ### Migrate (2 files)
 
-| File                                                                       | Tests | Reason                                             |
-| -------------------------------------------------------------------------- | ----- | -------------------------------------------------- |
-| tui.playwright.ts                   | 8     | Use silvery `createRenderer()` instead of browser |
-| body-content.playwright.ts | 6     | Use silvery `createRenderer()` instead of browser |
+| File                       | Tests | Reason                                          |
+| -------------------------- | ----- | ----------------------------------------------- |
+| tui.playwright.ts          | 8     | Use silvery createRenderer() instead of browser |
+| body-content.playwright.ts | 6     | Use silvery createRenderer() instead of browser |
 
 ### Navigation Tests - No Overlap (Verified)
 
 The plan identified potential overlap between 3 navigation test files. Analysis shows they test **different concerns**:
 
-| File                                                                           | Tests | What It Tests                                                           |
-| ------------------------------------------------------------------------------ | ----- | ----------------------------------------------------------------------- |
-| navigation.test.ts               | 16    | Pure `visualToStructural()` function - maps (depth, direction) → action |
-| cursor-navigation.test.ts | 44    | Board reducer - state transitions via `NAV_TO_PATH`, `CURSOR_MOVE`      |
-| visual-navigation.test.ts       | 30    | LayoutRegistry - finds cards by screen Y coordinate (curswantY)         |
+| File                      | Tests | What It Tests                                                         |
+| ------------------------- | ----- | --------------------------------------------------------------------- |
+| navigation.test.ts        | 16    | Pure visualToStructural() function - maps (depth, direction) → action |
+| cursor-navigation.test.ts | 44    | Board reducer - state transitions via NAV_TO_PATH, CURSOR_MOVE        |
+| visual-navigation.test.ts | 30    | LayoutRegistry - finds cards by screen Y coordinate (curswantY)       |
 
 **Verdict**: Keep all three. They are complementary, not duplicative.
 
@@ -149,10 +149,10 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 ### Playwright (Migrate)
 
-| File                       | Tests | Lines | Type       | Speed | Disposition         |
-| -------------------------- | ----- | ----- | ---------- | ----- | ------------------- |
-| tui.playwright.ts          | 8     | 230   | acceptance | slow  | **migrate to silvery** |
-| body-content.playwright.ts | 6     | 169   | acceptance | slow  | **migrate to silvery** |
+| File                       | Tests | Lines | Type       | Speed | Disposition        |
+| -------------------------- | ----- | ----- | ---------- | ----- | ------------------ |
+| tui.playwright.ts          | 8     | 230   | acceptance | slow  | migrate to silvery |
+| body-content.playwright.ts | 6     | 169   | acceptance | slow  | migrate to silvery |
 
 ## CLI Layer (apps/km-cli)
 
@@ -246,3 +246,4 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 - Others (6 files)
 
 Disposition: **keep** (owned by vendor, not part of km test review)
+

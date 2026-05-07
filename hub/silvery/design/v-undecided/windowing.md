@@ -275,11 +275,11 @@ How each piece maps to terminal, web, and native. These are **behavioral analogu
 | Concept   | Terminal                        | Web                          | macOS (analogue)             | iOS (analogue)                |
 | --------- | ------------------------------- | ---------------------------- | ---------------------------- | ----------------------------- |
 | Window    | Terminal session                | Browser window               | NSWindow                     | UIWindow                      |
-| Workspace | Flexbox splits with `│`         | CSS flexbox + resize handles | NSSplitViewController        | Single column                 |
+| Workspace | Flexbox splits with │           | CSS flexbox + resize handles | NSSplitViewController        | Single column                 |
 | Pane      | Flex child                      | CSS flex child               | Split view item              | —                             |
-| Sidebar   | Left pane, collapsible          | `<nav>`                      | NavigationSplitView .sidebar | Tab bar / hamburger           |
-| Tab Group | `[tab1] [tab2]` bar             | `<div role="tablist">`       | NSTabViewController          | Segmented control             |
-| Dialog    | Centered overlay, double border | `<dialog>.showModal()`       | Sheet / Alert                | Sheet / Alert                 |
+| Sidebar   | Left pane, collapsible          | <nav>                        | NavigationSplitView .sidebar | Tab bar / hamburger           |
+| Tab Group | [tab1] [tab2] bar               | <div role="tablist">         | NSTabViewController          | Segmented control             |
+| Dialog    | Centered overlay, double border | <dialog>.showModal()         | Sheet / Alert                | Sheet / Alert                 |
 | Popover   | Floating box near anchor        | Popover API                  | NSPopover                    | Falls back to sheet on iPhone |
 | Toast     | Bottom-right stack              | Fixed-position portal        | Notification banner          | Banner                        |
 
@@ -460,38 +460,38 @@ popover.close            → Escape
 
 All components are **store-backed projections** — they read ViewStore state and render from it. Structural mutations go through commands.
 
-| Component                                  | Sip | What It Does                                                                    |
-| ------------------------------------------ | --- | ------------------------------------------------------------------------------- |
-| `<SplitWorkspace>`                         | 2   | Generic recursive split manager. Reads `useLayout()`.                           |
-| `<Dialog.Root>` / `.Content` / `.Title`    | 3   | Modal overlay. Reads overlay state from ViewStore. Radix-style compound API.    |
-| `<Popover.Root>` / `.Trigger` / `.Content` | 3   | Light-dismiss overlay. Trigger registers anchor ID.                             |
-| `<TabGroup>` / `<Tab>`                     | 4   | Tabs within a pane. Reads `useTabGroup()`. ARIA tab/tabpanel internally.        |
-| `<NavigationWorkspace>`                    | 5   | Adaptive multi-column. Sidebar/Content/Detail slots. Built on SplitWorkspace.   |
-| `<Inspector>`                              | 5   | Toggleable right panel. Falls back to Dialog on narrow.                         |
-| `<View>`                                   | 1   | Low-level primitive. Focus scope + layer + role. Everything else built on this. |
+| Component                            | Sip | What It Does                                                                    |
+| ------------------------------------ | --- | ------------------------------------------------------------------------------- |
+| <SplitWorkspace>                     | 2   | Generic recursive split manager. Reads useLayout().                             |
+| <Dialog.Root> / .Content / .Title    | 3   | Modal overlay. Reads overlay state from ViewStore. Radix-style compound API.    |
+| <Popover.Root> / .Trigger / .Content | 3   | Light-dismiss overlay. Trigger registers anchor ID.                             |
+| <TabGroup> / <Tab>                   | 4   | Tabs within a pane. Reads useTabGroup(). ARIA tab/tabpanel internally.          |
+| <NavigationWorkspace>                | 5   | Adaptive multi-column. Sidebar/Content/Detail slots. Built on SplitWorkspace.   |
+| <Inspector>                          | 5   | Toggleable right panel. Falls back to Dialog on narrow.                         |
+| <View>                               | 1   | Low-level primitive. Focus scope + layer + role. Everything else built on this. |
 
 ## What Already Exists
 
-| Existing                                      | Becomes                | Changes                                                         |
-| --------------------------------------------- | ---------------------- | --------------------------------------------------------------- |
-| `SplitView` (@silvery/platter-react)          | `<SplitWorkspace>`     | Gains focus scoping, separator customization, unfocused dimming |
-| `pane-manager` (@silvery/platter-term)        | ViewStore internals    | Core layout ops stay; ViewStore calls into them                 |
-| `Tabs` (@silvery/platter-react)               | `<TabGroup>` / `<Tab>` | Gains view lifecycle, focus integration, closable tabs          |
-| `ModalDialog` (@silvery/platter-react)        | `<Dialog>`             | Gains focus trap, inert background, focus restoration           |
-| `Toast` + `useToast` (@silvery/platter-react) | Toast commands         | Gains view registration, queue, expiry effects                  |
-| `FocusManager` (@silvery/tea)                 | Unchanged API          | ViewStore subscribes to it for `focus.changed`                  |
+| Existing                                  | Becomes             | Changes                                                         |
+| ----------------------------------------- | ------------------- | --------------------------------------------------------------- |
+| SplitView (@silvery/platter-react)        | <SplitWorkspace>    | Gains focus scoping, separator customization, unfocused dimming |
+| pane-manager (@silvery/platter-term)      | ViewStore internals | Core layout ops stay; ViewStore calls into them                 |
+| Tabs (@silvery/platter-react)             | <TabGroup> / <Tab>  | Gains view lifecycle, focus integration, closable tabs          |
+| ModalDialog (@silvery/platter-react)      | <Dialog>            | Gains focus trap, inert background, focus restoration           |
+| Toast + useToast (@silvery/platter-react) | Toast commands      | Gains view registration, queue, expiry effects                  |
+| FocusManager (@silvery/tea)               | Unchanged API       | ViewStore subscribes to it for focus.changed                    |
 
 ### km Migration
 
-| km Code                     | Lines | After                                 |
-| --------------------------- | ----- | ------------------------------------- |
-| `WorkspaceView.tsx`         | 234   | ~0 (replaced by `<SplitWorkspace>`)   |
-| `layout-helpers.ts`         | 343   | ~50 (km-specific adapters)            |
-| `workspace-persist.ts`      | 311   | ~100 (domain-specific path mapping)   |
-| `dialog-guard.ts`           | 59    | 0 (replaced by `<Dialog>` focus trap) |
-| `PaneBar.tsx`               | 47    | 0                                     |
-| `pane-context.tsx`          | 41    | 0                                     |
-| Pane ops in board-app-store | ~300  | ~50 (command invocations)             |
+| km Code                     | Lines | After                               |
+| --------------------------- | ----- | ----------------------------------- |
+| WorkspaceView.tsx           | 234   | ~0 (replaced by <SplitWorkspace>)   |
+| layout-helpers.ts           | 343   | ~50 (km-specific adapters)          |
+| workspace-persist.ts        | 311   | ~100 (domain-specific path mapping) |
+| dialog-guard.ts             | 59    | 0 (replaced by <Dialog> focus trap) |
+| PaneBar.tsx                 | 47    | 0                                   |
+| pane-context.tsx            | 41    | 0                                   |
+| Pane ops in board-app-store | ~300  | ~50 (command invocations)           |
 
 **~1,000 lines → ~200 lines.**
 
@@ -532,27 +532,27 @@ What can we learn from how others solved this?
 
 ### Terminology
 
-| Silvery   | macOS / SwiftUI       | Web                    | VS Code      | ARIA             | tmux    |
-| --------- | --------------------- | ---------------------- | ------------ | ---------------- | ------- |
-| Window    | Window / Scene        | Window                 | Window       | —                | Session |
-| Workspace | NSSplitViewController | —                      | Workbench    | —                | Window  |
-| Pane      | Split view item       | —                      | Editor group | region           | Pane    |
-| Tab Group | NSTabViewController   | `<div role="tablist">` | Editor group | tablist          | —       |
-| Dialog    | Sheet / Alert         | `<dialog>`             | —            | dialog           | —       |
-| Popover   | NSPopover             | `<div popover>`        | Quick Pick   | _(from content)_ | —       |
-| Toast     | Notification          | `<div role="status">`  | Notification | status           | —       |
+| Silvery   | macOS / SwiftUI       | Web                  | VS Code      | ARIA           | tmux    |
+| --------- | --------------------- | -------------------- | ------------ | -------------- | ------- |
+| Window    | Window / Scene        | Window               | Window       | —              | Session |
+| Workspace | NSSplitViewController | —                    | Workbench    | —              | Window  |
+| Pane      | Split view item       | —                    | Editor group | region         | Pane    |
+| Tab Group | NSTabViewController   | <div role="tablist"> | Editor group | tablist        | —       |
+| Dialog    | Sheet / Alert         | <dialog>             | —            | dialog         | —       |
+| Popover   | NSPopover             | <div popover>        | Quick Pick   | (from content) | —       |
+| Toast     | Notification          | <div role="status">  | Notification | status         | —       |
 
 ### Apple's Actual Platform Model
 
 Apple does NOT have a unified presentation model. Each platform renders differently:
 
-| SwiftUI API             | iPhone                  | iPad             | macOS                  | visionOS      |
-| ----------------------- | ----------------------- | ---------------- | ---------------------- | ------------- |
-| `.sheet()`              | Slides up, detents      | Same             | Slides from title bar  | Modal overlay |
-| `.alert()`              | Centered overlay        | Centered         | NSPanel, **app-modal** | Centered      |
-| `.confirmationDialog()` | Bottom action sheet     | **Popover**      | **Modal alert**        | —             |
-| `.popover()`            | **Falls back to sheet** | Floating balloon | Floating balloon       | Floating      |
-| `.inspector()`          | **Falls back to sheet** | Trailing sidebar | Trailing sidebar       | —             |
+| SwiftUI API           | iPhone              | iPad             | macOS                 | visionOS      |
+| --------------------- | ------------------- | ---------------- | --------------------- | ------------- |
+| .sheet()              | Slides up, detents  | Same             | Slides from title bar | Modal overlay |
+| .alert()              | Centered overlay    | Centered         | NSPanel, app-modal    | Centered      |
+| .confirmationDialog() | Bottom action sheet | Popover          | Modal alert           | —             |
+| .popover()            | Falls back to sheet | Floating balloon | Floating balloon      | Floating      |
+| .inspector()          | Falls back to sheet | Trailing sidebar | Trailing sidebar      | —             |
 
 **What silvery takes:** The semantic approach is right. But use universal terminology (Dialog, not Sheet) and make adaptation overridable.
 
@@ -633,3 +633,4 @@ Apple does NOT have a unified presentation model. Each platform renders differen
 ---
 
 _See also: [architecture-overview.md](../../archive/pre-era2/architecture-overview.md), [composability.md](../v10-terminal/composability.md), [packaging.md](../../archive/era2-drafts/packaging.md), [commands.md](../v15-tea/commands.md), [app.md](../v15-tea/app.md)._
+

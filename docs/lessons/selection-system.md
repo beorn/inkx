@@ -135,7 +135,6 @@ The user correctly identified: two undo systems is two too many. Every undo-awar
 **What happened**: The km migration touched 51 files with ~500 references. Two distinct categories of work:
 
 1. **Mechanical** (80%): Rename `boardState.selectedNodeId` to `sel.node.cursor`, replace `setSelectedNodeId(id)` with `sel.node.setCursor(id)`, update imports. The batch-refactor tool (`bun tools/refactor.ts`) handles this — pattern match, transform, apply.
-
 2. **Judgment** (20%): Wiring the selection store into the app lifecycle, choosing how to bridge alien-signals -> Zustand reactivity, deciding which text edit state hints to preserve vs discard, resolving the 30 remaining test failures that came from the bridge gap.
 
 **Rule**: Identify the mechanical vs judgment split before starting a migration. Use automated tooling for the mechanical part (it's faster and less error-prone). Reserve agent/human time for the judgment calls. Don't have an agent manually rename 500 references — that's what sed and refactor scripts are for.
@@ -157,13 +156,9 @@ The user correctly identified: two undo systems is two too many. Every undo-awar
 ## 5 Whys: Why Did the Design Take 8+ Rounds?
 
 1. **Why did it take 8+ rounds?** Because each round added concepts instead of removing them.
-
 2. **Why did each round add concepts?** Because we were designing for hypothetical consumers — canvas selection, diagramming tools, rich text editors that don't exist yet.
-
 3. **Why were we designing for hypothetical consumers?** Because we wanted the selection system to be "general" — a library that any silvery app could use.
-
 4. **Why did we want it to be general?** Because silvery is a framework, and frameworks should provide general-purpose building blocks.
-
 5. **Why is that a problem?** Because you can't design a good library without at least two consumers. With only km, the "general" design was speculative — we were guessing what canvas apps and diagram tools would need, and every guess added complexity.
 
 **Root cause**: Premature generalization. Designing a library for consumers that don't exist yet produces a design that serves none of them well.
@@ -181,3 +176,4 @@ The user correctly identified: two undo systems is two too many. Every undo-awar
 - [Reproduce First](reproduce-first.md) — verify with real data before theorizing
 - [docs/design/tea.md](../design/tea.md) — the pure state machine architecture
 - [docs/design/ui/selection.md](../design/ui/selection.md) — the selection model specification
+

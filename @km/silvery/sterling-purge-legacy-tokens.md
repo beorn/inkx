@@ -55,7 +55,7 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.selection-theme-tokens
       - type: link
@@ -64,6 +64,8 @@ props:
         target: km-silvery.sterling-km-tui-selection-migration
       - type: link
         target: km-silvery.sterling-selection-tokens
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Phase D: Purge legacy selection/inverse/link tokens from Sterling theme schema (0.20.0 breaking) @km/silvery #task #P1 @claude:22c2717d

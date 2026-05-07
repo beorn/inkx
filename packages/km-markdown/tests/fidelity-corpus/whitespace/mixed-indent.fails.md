@@ -7,12 +7,11 @@ both because different editors disagree. The parser must handle them equally.
   - Two-space child
     - Two-space grandchild
 - Another two-space root
-
-1. Ordered list
-   - Four-space nested bullet
-   - Another four-space nested bullet
-2. Second ordered item
-
+5. Ordered list
+- Four-space nested bullet
+- Another four-space nested bullet
+9. Second ordered item
 - Top
   - Child with trailing spaces after it
   - Another child
+

@@ -45,7 +45,8 @@ export function isAgentAssignee(assignee: string): boolean {
   const match = /^([a-z][a-z0-9_-]*):([^/].*)$/.exec(assignee)
   if (!match) return false
   // Reject obvious URI schemes that aren't agent sessions.
-  const scheme = match[1]!
+  const scheme = match[1]
+  if (scheme === undefined) return false
   if (scheme === "mailto" || scheme === "http" || scheme === "https") return false
   return true
 }

@@ -16,6 +16,7 @@ Phase 1 extracts km-tui's dialog subsystem into a standalone TEA plugin (`withDi
 **Deletion**: `dialog-guard.ts`, `dialog-target.ts`, `useBoardDialogs.ts` (480 LOC).
 
 **Gateway blockers** (Phase 1 cannot start until these ship):
+
 1. **G1**: silvery TEA framework — `pipe()`, `apply()` chain, `app.commands` tree, `app.models`, `withX()` plugin protocol at runtime (in-progress: `km-silvery.tea-useinput`)
 2. **G2**: `km-silvery.focus-ink-parity` Phase 1 — silvery FocusManager wired into ink-render.ts (unblocks focus scope inside plugins)
 
@@ -25,20 +26,20 @@ Phase 1 extracts km-tui's dialog subsystem into a standalone TEA plugin (`withDi
 
 ### 2.1 Files That Define Dialog Logic
 
-| File | LOC | Role | Fate |
-|------|-----|------|------|
-| `dialog-guard.ts` | 116 | Dialog mode stack + grace period | DELETE |
-| `dialog-target.ts` | 24 | Ref interface for dialog commands | DELETE |
-| `views/use-board-dialogs.ts` | 233 | Dialog handlers hook | DELETE |
-| `views/Board.tsx` | 283 | Board component, installs guard | EDIT: remove installDialogGuard/resetDialogGuard calls |
-| `views/WorkspaceChrome.tsx` | 734 | Dialog UI + command dispatch | EDIT: migrate handlers to withDialogs plugin |
-| `views/DatePromptDialog.tsx` | ~80 | Date prompt modal | EDIT: wire to plugin commands |
-| `hooks/use-dialog-input.ts` | ~85 | Dialog input + navUp/navDown routing | EDIT: delegate to plugin |
-| `UnifiedOmnibox.tsx` | ~200 | Omnibox component, uses dialogTargetRef | EDIT: receive commands from plugin |
-| `board/board-actions.ts` | 3009 | Handlers + dialog commands | EDIT: remove 11 dialog operations (see 2.3) |
-| `board/board-app.ts` | 1276 | App init, isDialogOpen checks | EDIT: migrate to plugin queries |
-| `board/board-actions-find.ts` | ~100 | Local search dialog | EDIT: dispatch to plugin |
-| `board/board-actions-search-replace.ts` | ~120 | Search/replace dialog | EDIT: dispatch to plugin |
+| File                                  | LOC  | Role                                    | Fate                                                   |
+| ------------------------------------- | ---- | --------------------------------------- | ------------------------------------------------------ |
+| dialog-guard.ts                       | 116  | Dialog mode stack + grace period        | DELETE                                                 |
+| dialog-target.ts                      | 24   | Ref interface for dialog commands       | DELETE                                                 |
+| views/use-board-dialogs.ts            | 233  | Dialog handlers hook                    | DELETE                                                 |
+| views/Board.tsx                       | 283  | Board component, installs guard         | EDIT: remove installDialogGuard/resetDialogGuard calls |
+| views/WorkspaceChrome.tsx             | 734  | Dialog UI + command dispatch            | EDIT: migrate handlers to withDialogs plugin           |
+| views/DatePromptDialog.tsx            | ~80  | Date prompt modal                       | EDIT: wire to plugin commands                          |
+| hooks/use-dialog-input.ts             | ~85  | Dialog input + navUp/navDown routing    | EDIT: delegate to plugin                               |
+| UnifiedOmnibox.tsx                    | ~200 | Omnibox component, uses dialogTargetRef | EDIT: receive commands from plugin                     |
+| board/board-actions.ts                | 3009 | Handlers + dialog commands              | EDIT: remove 11 dialog operations (see 2.3)            |
+| board/board-app.ts                    | 1276 | App init, isDialogOpen checks           | EDIT: migrate to plugin queries                        |
+| board/board-actions-find.ts           | ~100 | Local search dialog                     | EDIT: dispatch to plugin                               |
+| board/board-actions-search-replace.ts | ~120 | Search/replace dialog                   | EDIT: dispatch to plugin                               |
 
 **Total edits**: 12 files. **Total deletions**: 3 files. **Total new code**: 1 plugin file (with-dialogs.ts) + 1 test file.
 
@@ -118,6 +119,7 @@ Auxiliary:
 ### 2.4 Runtime Reference Points (Global State)
 
 **dialog-guard.ts exports**:
+
 ```ts
 export function installDialogGuard(fm: FocusManager): void
 export function currentMode(): InputMode
@@ -130,6 +132,7 @@ export function isDialogConfirmGracePeriod(): boolean
 ```
 
 **Usage sites**:
+
 - `driver.ts:179` — calls `resetDialogGuard()` on test setup
 - `Board.tsx:116` — calls `resetDialogGuard()` on cleanup; line 106 calls `installDialogGuard(focusManager)`
 - `board-app.ts:50` — calls `resetDialogGuard()` on app init
@@ -140,12 +143,14 @@ export function isDialogConfirmGracePeriod(): boolean
 - `WorkspaceChrome.tsx:359, 361, 373` — `popDialogMode()` in 3 places
 
 **dialog-target.ts exports**:
+
 ```ts
 export interface DialogTarget { navUp/Down/confirm/cancel: () => void }
 export const dialogTargetRef: { current: DialogTarget | null }
 ```
 
 **Usage sites**:
+
 - `use-dialog-input.ts:59-79` — wires dialogTargetRef on mount
 - `WorkspaceChrome.tsx:416-434` — wires dialogTargetRef for omnibox
 - `DatePromptDialog.tsx:5` — uses dialogTargetRef (comment only)
@@ -264,15 +269,17 @@ The plugin owns a **focus scope** named `"dialog:container"` that:
 2. **Auto-deactivates** when all dialogs close
 3. **Owns focus order** for dialog input fields (search input, filter input, date prompt input)
 4. **Interops with silvery FocusManager** via:
-   - `useFocusManager()` to read/control scope stack
-   - Plugin registers dialog focusables on mount (depends on G2: `km-silvery.focus-ink-parity` Phase 1)
-5. **Fallback for grace period**: dialog confirm sets timestamp; ENTER_INLINE_EDIT check reads `isDialogConfirmGracePeriod()` from plugin model
+- `useFocusManager()` to read/control scope stack
+- Plugin registers dialog focusables on mount (depends on G2: `km-silvery.focus-ink-parity` Phase 1)
+11. **Fallback for grace period**: dialog confirm sets timestamp; ENTER_INLINE_EDIT check reads `isDialogConfirmGracePeriod()` from plugin model
 
 **Scope ID pool**:
+
 - `"dialog:container"` — focus scope owned by plugin (ONE scope, auto-activate/deactivate)
 - Individual dialog modes (`"dialog:newItem"`, `"dialog:search"`, etc.) are DELETED — replaced by single scope + model visibility flags
 
 **FocusManager interaction**:
+
 ```ts
 // When first dialog opens:
 focusManager.enterScope("dialog:container")
@@ -293,23 +300,21 @@ focusManager.focusNext() / focusPrev() (automatically routed by FocusManager)
 ### 4.1 Files to Delete (3 total, 140 LOC)
 
 1. **apps/km-tui/src/dialog-guard.ts** (116 LOC)
-   - All exports moved to plugin model fields + helper functions
-   - `installDialogGuard` → plugin auto-registers on mount
-   - `currentMode`, `isDialogOpen` → derived from plugin.showXDialog flags
-   - `pushDialogMode`, `popDialogMode` → plugin commands manage visibility
-   - `resetDialogGuard` → plugin reset in cleanup
-   - `markDialogConfirmed`, `isDialogConfirmGracePeriod` → plugin model fields
-
-2. **apps/km-tui/src/dialog-target.ts** (24 LOC)
-   - `DialogTarget` interface → plugin provides methods via focus scope registration
-   - `dialogTargetRef` → plugin registers dialog components as focusables
-
-3. **apps/km-tui/src/views/use-board-dialogs.ts** (233 LOC)
-   - All handlers moved into plugin apply chain OR remain as view-layer event handlers
-   - `handleNewItemCreate`, `handleNewItemCancel` → component callbacks (not part of plugin state machine)
-   - `handleSearchSelect`, `handleSearchCancel` → component callbacks
-   - `handleFilterApply`, `handleFilterCancel` → component callbacks
-   - `handleDatePromptConfirm`, `handleDatePromptCancel` → component callbacks
+- All exports moved to plugin model fields + helper functions
+- `installDialogGuard` → plugin auto-registers on mount
+- `currentMode`, `isDialogOpen` → derived from plugin.showXDialog flags
+- `pushDialogMode`, `popDialogMode` → plugin commands manage visibility
+- `resetDialogGuard` → plugin reset in cleanup
+- `markDialogConfirmed`, `isDialogConfirmGracePeriod` → plugin model fields
+9. **apps/km-tui/src/dialog-target.ts** (24 LOC)
+- `DialogTarget` interface → plugin provides methods via focus scope registration
+- `dialogTargetRef` → plugin registers dialog components as focusables
+13. **apps/km-tui/src/views/use-board-dialogs.ts** (233 LOC)
+- All handlers moved into plugin apply chain OR remain as view-layer event handlers
+- `handleNewItemCreate`, `handleNewItemCancel` → component callbacks (not part of plugin state machine)
+- `handleSearchSelect`, `handleSearchCancel` → component callbacks
+- `handleFilterApply`, `handleFilterCancel` → component callbacks
+- `handleDatePromptConfirm`, `handleDatePromptCancel` → component callbacks
 
 ### 4.2 Fields to Delete from UIState (13 fields)
 
@@ -334,6 +339,7 @@ focusManager.focusNext() / focusPrev() (automatically routed by FocusManager)
 ```
 
 **Fields that stay on UIState**:
+
 - `datePrompt` (may migrate later, currently needed by board-app.ts)
 - `deleteConfirm` (currently orphaned, not in active path—scope this separately)
 - `omnibox`, `pendingChord`, `chordTimedOut` (command palette—separate plugin, Phase 4+)
@@ -341,6 +347,7 @@ focusManager.focusNext() / focusPrev() (automatically routed by FocusManager)
 ### 4.3 Calls to Remove from board-actions.ts (~120 lines)
 
 Remove these 11 case blocks:
+
 ```ts
 case "SHOW_NEW_ITEM_DIALOG": // lines ~1261-1264
 case "SHOW_SEARCH_DIALOG": // lines ~1295-1298
@@ -356,6 +363,7 @@ case "DIALOG_CANCEL": // lines ~1495-1510
 ```
 
 Replace all `pushDialogMode`, `popDialogMode`, `markDialogConfirmed`, `isDialogConfirmGracePeriod`, `dialogTargetRef` calls with:
+
 ```ts
 // Before phase completion:
 app.commands.dialogs.openSearch()
@@ -421,7 +429,6 @@ app.commands.dialogs.confirmDialog()
   - [ ] Update all callsites to use `app.commands.dialogs.*()` instead of `ctx.setUI()`
   - [ ] Audit for missing handlers (esp. filter TOGGLE_FILTER_PROPERTY, date prompt open/close)
   - [ ] Wire dialog-related state mutations into plugin apply chain
-
 - [ ] **Update board-app.ts**:
   - [ ] Remove `isDialogOpen()` calls → use `app.models.dialogs.show*Dialog` selectors
   - [ ] Remove `resetDialogGuard()` call
@@ -433,16 +440,13 @@ app.commands.dialogs.confirmDialog()
   - [ ] Remove `installDialogGuard(focusManager)` call
   - [ ] Remove `resetDialogGuard()` call
   - [ ] Update `useApp` selector to read from plugin model
-
 - [ ] **Update WorkspaceChrome.tsx**:
   - [ ] Remove `popDialogMode()` calls
   - [ ] Replace with `app.commands.dialogs.closeDialog()` / `app.commands.dialogs.cancelDialog()`
   - [ ] Replace `dialogTargetRef` wiring with plugin focus scope registration (if needed)
-
 - [ ] **Update dialog components** (DatePromptDialog, UnifiedOmnibox, etc.):
   - [ ] Remove `dialogTargetRef` wiring
   - [ ] Register as focusables in plugin focus scope (requires G2)
-
 - [ ] **Delete use-dialog-input.ts**:
   - [ ] Move implementation details to plugin OR keep as utility (if reusable)
 
@@ -452,7 +456,6 @@ app.commands.dialogs.confirmDialog()
   - [ ] `rm apps/km-tui/src/dialog-guard.ts`
   - [ ] `rm apps/km-tui/src/dialog-target.ts`
   - [ ] `rm apps/km-tui/src/views/use-board-dialogs.ts`
-
 - [ ] **Run completion checks**:
   ```bash
   rg 'dialog-guard|dialogTargetRef|useBoardDialogs|pushDialogMode|popDialogMode' apps/km-tui/src
@@ -532,6 +535,7 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 **Risk**: Plugin activates focus scope too early or late, causing Tab navigation to fail.
 
 **Mitigation**:
+
 - Test focus scope transitions in isolation (setup plugin, open dialog, check FocusManager.scopeStack)
 - Verify silvery FocusManager Tab dispatch in ink-render.ts is wired (depends on G2)
 - If timing is off, add explicit lifecycle hooks (onDialogOpen/onDialogClose)
@@ -541,6 +545,7 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 **Risk**: Dialog components (DatePromptDialog, UnifiedOmnibox) lose event routing (navUp/navDown/confirm/cancel).
 
 **Mitigation**:
+
 - Plugin registers dialog components as focusables in focus scope
 - Focus scope provides methods: `enter()`, `navUp()`, `navDown()`, `confirm()`, `cancel()`
 - Fallback: if G2 incomplete, keep dialogTargetRef as adapter until plugin fully wired
@@ -550,6 +555,7 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 **Risk**: isDialogConfirmGracePeriod() called from board-actions.ts but state moved to plugin.
 
 **Mitigation**:
+
 - Store `dialogConfirmedAt` timestamp in plugin model
 - Export helper: `isDialogConfirmGracePeriod(model) => (perf.now() - model.dialogConfirmedAt) < 500`
 - Update ENTER_INLINE_EDIT handler in board-actions.ts to call plugin helper
@@ -559,6 +565,7 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 **Risk**: User opens new item dialog, then opens omnibox—two dialogs visible, focus scope unclear.
 
 **Mitigation**:
+
 - Design: ONE dialog visible at a time (enforce at model level)
 - Commands: `openSearch()` auto-closes other dialogs
 - Test: verify only one `show*Dialog` flag is true at any time
@@ -568,6 +575,7 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 **Risk**: Plugin defined before other plugins it depends on (e.g., selection plugin for searchScope).
 
 **Mitigation**:
+
 - Dialogs plugin has no dependencies on other domain plugins
 - Can be inserted early in chain (after createApp, before board/editor)
 - SearchScope references node IDs—those come from selection plugin later, no circular dependency
@@ -577,6 +585,7 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 **Risk**: Tests mock `UIState` with dialog fields; those fields no longer exist after deletion.
 
 **Mitigation**:
+
 - Update test utils (createInitialPaneUI) to NOT include deleted fields
 - Update any test that asserts `ui.showSearchDialog === true` to use plugin selector instead
 - Search for all tests that import ui-reducer.ts and update them
@@ -585,11 +594,11 @@ git diff --stat apps/km-tui/src | grep -E 'with-dialogs|board-actions'
 
 ## 8. Blocking Dependencies (Gates)
 
-| Gate | Status | ETA | Impact |
-|------|--------|-----|--------|
-| **G1** | `km-silvery.tea-useinput` Phase 2/3 shipped | IN_PROGRESS (P1) | CRITICAL—plugin cannot dispatch commands without `app.commands` tree |
-| **G2** | `km-silvery.focus-ink-parity` Phase 1 done | OPEN (P0) | CRITICAL—focus scope inside plugin depends on FocusManager Tab dispatch in ink-render |
-| **G3** | `km-all.unified-selection` landed | OPEN | MEDIUM—searchScope references selection (not blocking, can defer) |
+| Gate | Status                                    | ETA              | Impact                                                                                |
+| ---- | ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------- |
+| G1   | km-silvery.tea-useinput Phase 2/3 shipped | IN_PROGRESS (P1) | CRITICAL—plugin cannot dispatch commands without app.commands tree                    |
+| G2   | km-silvery.focus-ink-parity Phase 1 done  | OPEN (P0)        | CRITICAL—focus scope inside plugin depends on FocusManager Tab dispatch in ink-render |
+| G3   | km-all.unified-selection landed           | OPEN             | MEDIUM—searchScope references selection (not blocking, can defer)                     |
 
 **Recommendation**: Block Phase 1 start until G1 and G2 both land (currently 1-2 weeks away).
 
@@ -621,3 +630,4 @@ Each phase builds on prior plugins; cannot be reordered.
 **Document generated**: 2026-04-18  
 **Prepared by**: Claude Code  
 **Ready to execute**: After G1 + G2 land
+

@@ -35,35 +35,38 @@ onLayout is a valuable feature (React DOM doesn't have it built-in - you need Re
 ### Phase 1: inkx Core Changes
 
 1. **Wrap Box/Text with forwardRef** (`vendor/beorn-inkx/src/components/`)
-  ```typescript
-  export const Box = forwardRef<InkxNode, BoxProps>((props, ref) => {
-    const { children, ...restProps } = props;
-    return <inkx-box ref={ref} {...restProps}>{children}</inkx-box>;
-  });
-  ```
+
+```typescript
+export const Box = forwardRef<InkxNode, BoxProps>((props, ref) => {
+  const { children, ...restProps } = props;
+  return <inkx-box ref={ref} {...restProps}>{children}</inkx-box>;
+});
+```
+
 2. **Update TypeScript types** - Add `ref?: React.Ref<InkxNode>` to BoxProps/TextProps
 3. **Add measureElement() helper** - Convenience function matching Ink's API
-  ```typescript
-  export function measureElement(node: InkxNode): { width: number; height: number } {
-    return {
-      width: node.computedLayout?.width ?? 0,
-      height: node.computedLayout?.height ?? 0,
-    };
-  }
-  ```
+
+```typescript
+export function measureElement(node: InkxNode): { width: number; height: number } {
+  return {
+    width: node.computedLayout?.width ?? 0,
+    height: node.computedLayout?.height ?? 0,
+  };
+}
+```
 
 ### Phase 2: @km/tui Refactoring
 
 1. **Replace CardPositionRegistry singleton** (`apps/km-tui/packages/km-ink/src/card-positions.ts`)
-  - Convert global singleton to context + ref pattern
-  - Cleaner lifecycle management
-2. **Review patterns - keep onLayout where reactive, use refs where imperative:**
-  - `CardColumn.tsx` prevY tracking - likely keep onLayout (needs reactive updates)
-  - One-time measurements - use refs + measureElement()
-  - Scroll position queries - refs may be cleaner than prop drilling
-3. **Consider focus stack** (optional, may be separate bead)
-  - Replace manual `useInput` gating in `Board.tsx`
-  - Auto-route input to topmost focused component
+- Convert global singleton to context + ref pattern
+- Cleaner lifecycle management
+5. **Review patterns - keep onLayout where reactive, use refs where imperative:**
+- `CardColumn.tsx` prevY tracking - likely keep onLayout (needs reactive updates)
+- One-time measurements - use refs + measureElement()
+- Scroll position queries - refs may be cleaner than prop drilling
+10. **Consider focus stack** (optional, may be separate bead)
+- Replace manual `useInput` gating in `Board.tsx`
+- Auto-route input to topmost focused component
 
 ### Phase 3: Documentation
 

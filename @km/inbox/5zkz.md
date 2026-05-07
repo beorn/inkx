@@ -18,14 +18,14 @@ Evaluate whether OpenTUI bugs are fixable and what the timeline might be.
 ## Known OpenTUI Issues
 
 1. **002 - Color rendering bug** (BLOCKING)
-  - Text color prop ignored when backgroundColor is set
-  - Selection text shows wrong color
-2. **003 - Bracket/space rendering** (BLOCKING)
-  - `[P1] ` renders as `[P1` - missing `]` and space
-  - JSX whitespace handling issue
-3. **001 - borderStyle segfault** (worked around)
-  - borderStyle="round" causes crash
-  - Using borderStyle="single" as workaround
+- Text color prop ignored when backgroundColor is set
+- Selection text shows wrong color
+5. **003 - Bracket/space rendering** (BLOCKING)
+- `[P1] ` renders as `[P1` - missing `]` and space
+- JSX whitespace handling issue
+9. **001 - borderStyle segfault** (worked around)
+- borderStyle="round" causes crash
+- Using borderStyle="single" as workaround
 
 ## Investigation Tasks
 

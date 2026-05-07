@@ -16,43 +16,43 @@ After the migration, **(a)** sites become props, **(b)** sites stay as-is, and *
 
 ## Reactive callers (read at render time)
 
-| File:Line | Caller | Read | Class | Migration |
-|---|---|---|---|---|
-| `apps/km-tui/src/views/InlineEditField.tsx:50` | InlineEditField | `width` | (a) | Replace with `<Text wrap="wrap">` parent flex; the text input already has CSS-equivalent control |
-| `apps/km-tui/src/views/BodyEditField.tsx:39` | BodyEditField | `width` | (a) | Same as InlineEditField |
-| `apps/km-tui/src/views/BoardView.tsx:359` | BoardView | `parentRect` (full) | (c) | BoardView's column layout depends on actual pane pixel width — keep with caveat. Could potentially move to layout-signals if the column sizing logic moves into the layout phase |
-| `apps/km-tui/src/views/useBoardController.ts:564` | useBoardController | `paneRect` | (c) | Same as BoardView — pane width drives column count |
-| `apps/silvercode/src/components/SessionUpdateList.tsx` | SessionUpdateList | (resolved) | — | MessageList → SessionUpdateList migration (bead @km/silvercode/acp-session-update-list) dropped the `useBoxRect` call. ListView now uses `follow="end"` without a height prop. |
-| `apps/silvercode/src/components/CommandBox.tsx:194` | CommandBox | `width: contentWidth` | (a) | Likely for the inline TextArea wrap. If TextArea handles its own width via flex, delete this read |
-| `apps/silvercode/src/components/PaneGrid.tsx:87` | PaneGrid | `gridRect` | (b) | Already mostly callback-shaped (used for drag-resize math); could move to ref+onLayout if the read isn't reactive-required |
-| `vendor/silvery/packages/ag-react/src/ui/components/ProgressBar.tsx:63` | ProgressBar | `layoutRect` | (a) | Progress bar width can be a `width` prop or filled via flex |
-| `vendor/silvery/packages/ag-react/src/ui/components/Divider.tsx:47` | Divider | `width: contentWidth` | (a) | Divider can flex-grow to fill instead of measuring |
-| `vendor/silvery/packages/ag-react/src/ui/components/TextArea.tsx:160` | TextArea | `width: parentWidth` | (c) | Canonical text input — needs width for word-wrap math. Document as the primary (c) caller; everyone else routes through this |
-| `vendor/silvery/packages/ag-react/src/ui/image/Image.tsx:102` | Image | `boxRect` | (c) | Image fit needs actual cell dimensions |
+| File:Line                                                             | Caller             | Read                | Class | Migration                                                                                                                                                                        |
+| --------------------------------------------------------------------- | ------------------ | ------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| apps/km-tui/src/views/InlineEditField.tsx:50                          | InlineEditField    | width               | (a)   | Replace with <Text wrap="wrap"> parent flex; the text input already has CSS-equivalent control                                                                                   |
+| apps/km-tui/src/views/BodyEditField.tsx:39                            | BodyEditField      | width               | (a)   | Same as InlineEditField                                                                                                                                                          |
+| apps/km-tui/src/views/BoardView.tsx:359                               | BoardView          | parentRect (full)   | (c)   | BoardView's column layout depends on actual pane pixel width — keep with caveat. Could potentially move to layout-signals if the column sizing logic moves into the layout phase |
+| apps/km-tui/src/views/useBoardController.ts:564                       | useBoardController | paneRect            | (c)   | Same as BoardView — pane width drives column count                                                                                                                               |
+| apps/silvercode/src/components/SessionUpdateList.tsx                  | SessionUpdateList  | (resolved)          | —     | MessageList → SessionUpdateList migration (bead @km/silvercode/acp-session-update-list) dropped the useBoxRect call. ListView now uses follow="end" without a height prop.       |
+| apps/silvercode/src/components/CommandBox.tsx:194                     | CommandBox         | width: contentWidth | (a)   | Likely for the inline TextArea wrap. If TextArea handles its own width via flex, delete this read                                                                                |
+| apps/silvercode/src/components/PaneGrid.tsx:87                        | PaneGrid           | gridRect            | (b)   | Already mostly callback-shaped (used for drag-resize math); could move to ref+onLayout if the read isn't reactive-required                                                       |
+| vendor/silvery/packages/ag-react/src/ui/components/ProgressBar.tsx:63 | ProgressBar        | layoutRect          | (a)   | Progress bar width can be a width prop or filled via flex                                                                                                                        |
+| vendor/silvery/packages/ag-react/src/ui/components/Divider.tsx:47     | Divider            | width: contentWidth | (a)   | Divider can flex-grow to fill instead of measuring                                                                                                                               |
+| vendor/silvery/packages/ag-react/src/ui/components/TextArea.tsx:160   | TextArea           | width: parentWidth  | (c)   | Canonical text input — needs width for word-wrap math. Document as the primary (c) caller; everyone else routes through this                                                     |
+| vendor/silvery/packages/ag-react/src/ui/image/Image.tsx:102           | Image              | boxRect             | (c)   | Image fit needs actual cell dimensions                                                                                                                                           |
 
 ## Callback callers (post-layout register — already correct)
 
 These fire AFTER layout completes via `useBoxRect((rect) => …)` or `useScrollRect((rect) => …)`. No stale-read class; no migration needed.
 
-| File:Line | Hook | Purpose |
-|---|---|---|
-| `apps/km-tui/src/views/shared-components.tsx:175` | `useBoxRect(handleLayout)` | Card layout registration |
-| `apps/km-tui/src/views/CardColumn.tsx:231` | `useScrollRect(handleLayout)` | Column scroll-position registration |
-| `apps/km-tui/src/views/CardColumn.tsx:256` | `useScrollRect((rect) => …)` | Column-card position registration |
-| `apps/km-tui/src/views/DetailView.tsx:81` | `useScrollRect((rect) => …)` | Detail pane scroll-anchor registration |
-| `apps/km-tui/src/views/TreeNode.tsx:1052` | `useScrollRect((rect) => callbackRef.current(rect))` | TreeNode head-row position |
-| `vendor/silvery/packages/ag-react/src/hooks/useCursor.ts:203` | `useScrollRect(useCallback((rect) => …))` | **Internal — Phase 2 deletes this entirely (cursor as layout output)** |
-| `vendor/silvery/packages/ag-react/src/hooks/useGridPosition.ts:36` | `useScrollRect((rect) => …)` | Grid-position lookup |
+| File:Line                                                        | Hook                                               | Purpose                                                            |
+| ---------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
+| apps/km-tui/src/views/shared-components.tsx:175                  | useBoxRect(handleLayout)                           | Card layout registration                                           |
+| apps/km-tui/src/views/CardColumn.tsx:231                         | useScrollRect(handleLayout)                        | Column scroll-position registration                                |
+| apps/km-tui/src/views/CardColumn.tsx:256                         | useScrollRect((rect) => …)                         | Column-card position registration                                  |
+| apps/km-tui/src/views/DetailView.tsx:81                          | useScrollRect((rect) => …)                         | Detail pane scroll-anchor registration                             |
+| apps/km-tui/src/views/TreeNode.tsx:1052                          | useScrollRect((rect) => callbackRef.current(rect)) | TreeNode head-row position                                         |
+| vendor/silvery/packages/ag-react/src/hooks/useCursor.ts:203      | useScrollRect(useCallback((rect) => …))            | Internal — Phase 2 deletes this entirely (cursor as layout output) |
+| vendor/silvery/packages/ag-react/src/hooks/useGridPosition.ts:36 | useScrollRect((rect) => …)                         | Grid-position lookup                                               |
 
 ## Migration plan summary
 
-| Class | Count | Phase |
-|---|---|---|
-| (a) flex-prop replaceable | 6 | Phase 5 (sweep) |
-| (b) callback form / ref+onLayout | 7 | No migration — already correct |
-| (c) genuinely reactive | 4 (BoardView, useBoardController, TextArea, Image) | Phase 5 — document with caveats |
-| Internal hook (`useCursor` body) | 1 | Phase 2 (cursor as layout output — deleted) |
-| ListView height-dependence | resolved (SessionUpdateList → ListView) | Phase 3 (ListView height-independence — done) |
+| Class                            | Count                                              | Phase                                         |
+| -------------------------------- | -------------------------------------------------- | --------------------------------------------- |
+| (a) flex-prop replaceable        | 6                                                  | Phase 5 (sweep)                               |
+| (b) callback form / ref+onLayout | 7                                                  | No migration — already correct                |
+| (c) genuinely reactive           | 4 (BoardView, useBoardController, TextArea, Image) | Phase 5 — document with caveats               |
+| Internal hook (useCursor body)   | 1                                                  | Phase 2 (cursor as layout output — deleted)   |
+| ListView height-dependence       | resolved (SessionUpdateList → ListView)            | Phase 3 (ListView height-independence — done) |
 
 **Net Phase 5 work**: ~6 reactive calls become props; ~4 stay as documented `(c)` cases. ~7 callback forms left untouched.
 
@@ -69,3 +69,4 @@ These fire AFTER layout completes via `useBoxRect((rect) => …)` or `useScrollR
 - Failing regression tests already pinning the bug class:
   - `vendor/silvery/tests/features/cursor-conditional-mount.test.tsx` (cursor)
   - `apps/silvercode/tests/visual/message-wrap-truncation.test.tsx` (wrap via ListView)
+

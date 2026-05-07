@@ -35,12 +35,12 @@ Why this is filed separately:
 Sequence (must be in this order):
 
 1. Eliminate read-after-write reads in render-text:
-  - getCellBg, readCellInto, getCell, getSelectableMode, outlineSnapshots reads
-  - Two paths: (a) thread inheritedBg more aggressively through render-text (cleaner), or (b) backed-PlanSink with internal TerminalBuffer (faster ship). Decision before starting.
-2. Make PlanSink authoritative — drop BufferSink primary fallback. TeeSink degenerates to PlanSink-only.
-3. Delete clearExcessArea — folds into sectioned commit's cleanupOps. The renderer becomes a sink-emit-only for shrinking-node clear ops.
-4. Delete hasPrevBuffer guard at silvery 168b4989 — load-bearing only on direct-mutation path; structurally redundant under sectioned commit.
-5. Remove SILVERY_RENDER_PLAN env var — cosmetic last step once BufferSink primary is gone.
+- getCellBg, readCellInto, getCell, getSelectableMode, outlineSnapshots reads
+- Two paths: (a) thread inheritedBg more aggressively through render-text (cleaner), or (b) backed-PlanSink with internal TerminalBuffer (faster ship). Decision before starting.
+5. Make PlanSink authoritative — drop BufferSink primary fallback. TeeSink degenerates to PlanSink-only.
+6. Delete clearExcessArea — folds into sectioned commit's cleanupOps. The renderer becomes a sink-emit-only for shrinking-node clear ops.
+7. Delete hasPrevBuffer guard at silvery 168b4989 — load-bearing only on direct-mutation path; structurally redundant under sectioned commit.
+8. Remove SILVERY_RENDER_PLAN env var — cosmetic last step once BufferSink primary is gone.
 
 Acceptance:
 

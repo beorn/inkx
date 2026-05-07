@@ -52,13 +52,13 @@ Three rules govern the shape:
 
 ## Why this beats the alternatives
 
-| Pattern | Reads as | Cleanup story | Test story |
-|---|---|---|---|
-| `pipe + with*` | A list of capabilities, top-down | Scope-cascaded, automatic | Each `with*` testable in isolation; whole pipe testable as data |
-| Constructor injection | A pile of dependencies | Manual disposers, easy to forget | Mocking dependency graphs |
-| Builder method-chain (`.withX().withY()`) | Same readable order | Same as pipe but harder to compose programmatically | Same |
-| Imperative setup script | A wall of side effects | Whatever you remembered | Hard — order is implicit |
-| Plugin registry + `start(api)` (tribe today) | A list of names, semantics buried | Manual `() => void` cleanups | Plugin-by-plugin, but lifecycle ad-hoc |
+| Pattern                                    | Reads as                          | Cleanup story                                       | Test story                                                    |
+| ------------------------------------------ | --------------------------------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| pipe + with*                               | A list of capabilities, top-down  | Scope-cascaded, automatic                           | Each with* testable in isolation; whole pipe testable as data |
+| Constructor injection                      | A pile of dependencies            | Manual disposers, easy to forget                    | Mocking dependency graphs                                     |
+| Builder method-chain (.withX().withY())    | Same readable order               | Same as pipe but harder to compose programmatically | Same                                                          |
+| Imperative setup script                    | A wall of side effects            | Whatever you remembered                             | Hard — order is implicit                                      |
+| Plugin registry + start(api) (tribe today) | A list of names, semantics buried | Manual () => void cleanups                          | Plugin-by-plugin, but lifecycle ad-hoc                        |
 
 The four key wins of `pipe + with*`:
 
@@ -71,13 +71,13 @@ The four key wins of `pipe + with*`:
 
 Composition is the *structural* layer. It interlocks with four other patterns to form the full app runtime — used uniformly across silvery, km, silvercode, and tribe:
 
-| Pattern | Role | Where the doc lives |
-|---|---|---|
-| **Composition** (this doc) | Structure: factory produces the system. `pipe + with*`. | hub/composition.md |
-| **Inner domain reducers** (`Board.apply`, `Tree.apply`, …) | Pure-state-machine layer. `(state, op) → [state, effects]`, shipped (Phase 2a navigation reducer). The outer app-level dispatch/apply plugin bus is being designed — see [hub/futures.md](./futures.md#tea-effect-emission-shape). | [docs/design/tea.md](../docs/design/tea.md) |
-| **alien-signals** (reactive view generation) | Derived state, projections, subscriptions. `alien-projections` for collections, `alien-trees` for hierarchies, `alien-resources` for async. Today plugins import `alien-signals` directly and expose signals on their slice of the daemon value. A cross-plugin signal-store API is parked in [hub/futures.md](./futures.md#signal-store-api). | `vendor/bearly/packages/alien-*/` |
-| **Scope** (lifecycle) | Structured concurrency. `AsyncDisposableStack` + `AbortSignal` + child cascade. `withScope()` at the root, `useScopeEffect` in components. | [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md) |
-| **Loggily** (observability) | Structured logs through one pipeline. `createLogger("ns:thing")` everywhere; host apps wire `addWriter(createFileWriter(path))` at startup. Namespace IS the separator — never reinvent file-JSONL writes locally. | [.claude/skills/logging/SKILL.md](../.claude/skills/logging/SKILL.md) |
+| Pattern                                            | Role                                                                                                                                                                                                                                                                                                  | Where the doc lives                   |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Composition (this doc)                             | Structure: factory produces the system. pipe + with*.                                                                                                                                                                                                                                                 | hub/composition.md                    |
+| Inner domain reducers (Board.apply, Tree.apply, …) | Pure-state-machine layer. (state, op) → [state, effects], shipped (Phase 2a navigation reducer). The outer app-level dispatch/apply plugin bus is being designed — see hub/futures.md.                                                                                                                | docs/design/tea.md                    |
+| alien-signals (reactive view generation)           | Derived state, projections, subscriptions. alien-projections for collections, alien-trees for hierarchies, alien-resources for async. Today plugins import alien-signals directly and expose signals on their slice of the daemon value. A cross-plugin signal-store API is parked in hub/futures.md. | vendor/bearly/packages/alien-*/       |
+| Scope (lifecycle)                                  | Structured concurrency. AsyncDisposableStack + AbortSignal + child cascade. withScope() at the root, useScopeEffect in components.                                                                                                                                                                    | hub/silvery/design/lifecycle-scope.md |
+| Loggily (observability)                            | Structured logs through one pipeline. createLogger("ns:thing") everywhere; host apps wire addWriter(createFileWriter(path)) at startup. Namespace IS the separator — never reinvent file-JSONL writes locally.                                                                                        | .claude/skills/logging/SKILL.md       |
 
 ### How they interlock
 
@@ -194,6 +194,7 @@ await tribe.run()
 ```
 
 Reading top-to-bottom:
+
 - Tribe needs a project root and a scope (lifetime owner)
 - Config + db + daemon ctx + lore handlers (in-process state, all cleaned up via scope)
 - Tool registry — populated by tool families before any surface
@@ -229,9 +230,7 @@ The registry is a plain data structure (a `Map<string, ToolDef>`) on the daemon 
 Three consequences:
 
 1. **Tools are protocol-agnostic.** A tool definition is `{ name, schema, handler }` — it doesn't know whether it's being called over MCP, raw JSON-RPC, or a hypothetical future agent protocol. `withMCPServer()` is one of several possible surfaces; nothing prevents `withRESTServer()` or `withAgentProtocolServer()` later.
-
 2. **Order between `withTool` and `withMCPServer` is loose.** The MCP server reads the registry at start time (or subscribes for late-additions). You can register tools before or after the server appears in the pipe. We *prefer* tools-before-server in the factory because it matches the reading order, but the architecture doesn't require it.
-
 3. **The same tool can flow over multiple surfaces simultaneously.** A direct tribe client over Unix socket calls `tribe.ask` via JSON-RPC dispatch; an agent connected via the stdio adapter calls `tribe.ask` via MCP. Both go through the same handler in the registry. No duplication, no protocol-specific re-implementation.
 
 This is the same separation that `@apollo/server` makes between schema (the registry) and `expressMiddleware` / `startStandaloneServer` (the surfaces), and that Effect's `Layer` makes between service definitions and runtime providers.
@@ -385,3 +384,4 @@ TypeScript's intersection types do this automatically. The `pipe` overloads thre
 - [hub/futures.md](./futures.md) — open design questions, considered alternatives, and explicitly rejected abstractions (`withMachines`, `withSignalStore`, `withSurfaces`)
 - [hub/silvery/design/lifecycle-scope.md](./silvery/design/lifecycle-scope.md) — the `Scope` primitive every `withX` participates in
 - Effect's `Layer` and Apollo Server's `ApolloServer.create` — same idea, different ecosystems
+

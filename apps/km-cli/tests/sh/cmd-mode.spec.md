@@ -1,8 +1,6 @@
 ---
 mdspec:
   plugin: ../mdspec-sh-plugin.ts
-  # memory: true not feasible - test creates files, runs km sync, and tests
-  # persistent REPL subprocess which all require real filesystem
 ---
 
 # mdspec cmd mode - Persistent subprocess testing

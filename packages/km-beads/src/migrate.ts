@@ -482,7 +482,10 @@ export function buildIdMap(issues: BeadsIssue[], sourcePrefix = "km"): Map<strin
     }
     const s = issue.id.startsWith(`${sourcePrefix}-`) ? issue.id.slice(sourcePrefix.length + 1) : issue.id
     stripped.set(issue.id, s)
-    if (s.includes(".")) idsWithDot.add(s.split(".")[0]!)
+    if (s.includes(".")) {
+      const head = s.split(".")[0]
+      if (head !== undefined) idsWithDot.add(head)
+    }
   }
 
   const map = new Map<string, string>()
@@ -896,7 +899,10 @@ interface FrontmatterSplit {
 export function splitFrontmatter(content: string): FrontmatterSplit | null {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
   if (!match) return null
-  return { frontmatter: match[1]!, body: match[2]! }
+  const frontmatter = match[1]
+  const body = match[2]
+  if (frontmatter === undefined || body === undefined) return null
+  return { frontmatter, body }
 }
 
 function rebuildWithFrontmatter(fm: Record<string, unknown>, body: string): string {

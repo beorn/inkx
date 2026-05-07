@@ -31,10 +31,10 @@ Add ripgrep-based backend for batch text replacement in non-code files.
 ## Implementation
 
 1. Create `lib/backends/ripgrep/` with:
-  - `search.ts` - `rg --json` for finding matches
-  - `replace.ts` - generate editset from matches
-2. Use same editset workflow as ts-morph
-3. Support glob patterns for file filtering
+- `search.ts` - `rg --json` for finding matches
+- `replace.ts` - generate editset from matches
+5. Use same editset workflow as ts-morph
+6. Support glob patterns for file filtering
 
 ## CLI commands
 

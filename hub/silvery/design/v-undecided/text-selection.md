@@ -97,11 +97,11 @@ This reuses the existing text cursor math from `text-cursor.ts`, which is alread
 
 Not all nodes under a screen position are selectable. The hit test filters:
 
-| Node type             | `isRawText` | Has `textContent` | Selectable?           |
-| --------------------- | ----------- | ----------------- | --------------------- |
-| Raw text (`"hello"`)  | `true`      | `"hello"`         | Yes                   |
-| Virtual `<Text bold>` | `false`     | `undefined`       | No — walk to children |
-| `<Box>`               | —           | —                 | No — skip             |
+| Node type           | isRawText | Has textContent | Selectable?           |
+| ------------------- | --------- | --------------- | --------------------- |
+| Raw text ("hello")  | true      | "hello"         | Yes                   |
+| Virtual <Text bold> | false     | undefined       | No — walk to children |
+| <Box>               | —         | —               | No — skip             |
 
 ## Range Resolution — Collecting Selected Text
 
@@ -183,14 +183,14 @@ Selection changes (start, extend, clear) set a lightweight `selectionDirty` flag
 
 ### Mouse
 
-| Gesture                        | Action                                                       |
-| ------------------------------ | ------------------------------------------------------------ |
-| **mousedown**                  | Start selection — set anchor at hit position, begin dragging |
-| **mousemove** (while dragging) | Extend selection — update head to current position           |
-| **mouseup**                    | End drag — finalize selection                                |
-| **double-click**               | Select word at click position                                |
-| **triple-click**               | Select line at click position                                |
-| **shift+click**                | Extend existing selection — move head to click position      |
+| Gesture                    | Action                                                       |
+| -------------------------- | ------------------------------------------------------------ |
+| mousedown                  | Start selection — set anchor at hit position, begin dragging |
+| mousemove (while dragging) | Extend selection — update head to current position           |
+| mouseup                    | End drag — finalize selection                                |
+| double-click               | Select word at click position                                |
+| triple-click               | Select line at click position                                |
+| shift+click                | Extend existing selection — move head to click position      |
 
 **State machine:**
 
@@ -206,10 +206,10 @@ idle ──mousedown──→ dragging ──mouseup──→ selected
 
 ### Keyboard (when selection exists)
 
-| Key                | Action                      |
-| ------------------ | --------------------------- |
-| **Cmd+C / Ctrl+C** | Copy selection to clipboard |
-| **Escape**         | Clear selection             |
+| Key            | Action                      |
+| -------------- | --------------------------- |
+| Cmd+C / Ctrl+C | Copy selection to clipboard |
+| Escape         | Clear selection             |
 
 Keyboard-driven selection extension (Shift+arrows) is deferred — it requires cursor-in-text concepts that overlap with the editing system. Mouse selection is the MVP.
 
@@ -323,29 +323,29 @@ interface SelectionEventProps {
 
 ## What Already Exists
 
-| Component                               | Status      | Reuse                                        |
-| --------------------------------------- | ----------- | -------------------------------------------- |
-| `hitTest(root, x, y)`                   | Implemented | Extend with character offset resolution      |
-| `mousedown/move/up` events              | Implemented | Drive selection state machine                |
-| `doubleClick` detection                 | Implemented | Extend to triple-click                       |
-| `OSC 52 clipboard`                      | Implemented | Use directly for copy                        |
-| `screenRect` on all nodes               | Implemented | Map selection to screen cells                |
-| `getWrappedLines()`                     | Implemented | Map screen position ↔ character offset       |
-| `cursorToRowCol()` / `rowColToCursor()` | Implemented | Character offset math                        |
-| `collectPlainText()`                    | Implemented | Base for range text extraction               |
-| `graphemeWidth()`                       | Implemented | Wide character handling                      |
-| `FocusManager`                          | Implemented | View scoping (selection within focused view) |
+| Component                           | Status      | Reuse                                        |
+| ----------------------------------- | ----------- | -------------------------------------------- |
+| hitTest(root, x, y)                 | Implemented | Extend with character offset resolution      |
+| mousedown/move/up events            | Implemented | Drive selection state machine                |
+| doubleClick detection               | Implemented | Extend to triple-click                       |
+| OSC 52 clipboard                    | Implemented | Use directly for copy                        |
+| screenRect on all nodes             | Implemented | Map selection to screen cells                |
+| getWrappedLines()                   | Implemented | Map screen position ↔ character offset       |
+| cursorToRowCol() / rowColToCursor() | Implemented | Character offset math                        |
+| collectPlainText()                  | Implemented | Base for range text extraction               |
+| graphemeWidth()                     | Implemented | Wide character handling                      |
+| FocusManager                        | Implemented | View scoping (selection within focused view) |
 
 ## Platform Mapping
 
-| Capability         | Terminal (silvery/term)            | Web (silvery/web)                   | Native                          |
-| ------------------ | ---------------------------------- | ----------------------------------- | ------------------------------- |
-| Selection model    | Same `SelectionRange`              | Delegate to `window.getSelection()` | Platform selection API          |
-| Visual highlight   | ANSI inverse (post-process buffer) | CSS `::selection` pseudo-element    | Platform highlight              |
-| Clipboard write    | OSC 52                             | `navigator.clipboard.writeText()`   | `NSPasteboard` / `UIPasteboard` |
-| Clipboard read     | OSC 52 response                    | `navigator.clipboard.readText()`    | Platform API                    |
-| Scroll-during-drag | Manual scroll-on-edge              | Native browser behavior             | Platform behavior               |
-| Word boundaries    | `\w` regex                         | `Intl.Segmenter` (better unicode)   | Platform word boundaries        |
+| Capability         | Terminal (silvery/term)            | Web (silvery/web)                 | Native                      |
+| ------------------ | ---------------------------------- | --------------------------------- | --------------------------- |
+| Selection model    | Same SelectionRange                | Delegate to window.getSelection() | Platform selection API      |
+| Visual highlight   | ANSI inverse (post-process buffer) | CSS ::selection pseudo-element    | Platform highlight          |
+| Clipboard write    | OSC 52                             | navigator.clipboard.writeText()   | NSPasteboard / UIPasteboard |
+| Clipboard read     | OSC 52 response                    | navigator.clipboard.readText()    | Platform API                |
+| Scroll-during-drag | Manual scroll-on-edge              | Native browser behavior           | Platform behavior           |
+| Word boundaries    | \w regex                           | Intl.Segmenter (better unicode)   | Platform word boundaries    |
 
 The terminal implementation does everything manually. Web and native get most of this for free from the platform — the selection _model_ (range, anchor/head) is the same, but the _rendering_ delegates to platform primitives.
 
@@ -398,3 +398,4 @@ Triple-click line selection. Escape to clear. Visual feedback on copy. `selectAl
 ---
 
 _See also: [mouse-events-design.md](../../archive/pre-era2/mouse-events-design.md) (foundation), [windowing.md](../v-undecided/windowing.md) (view scoping context), [commands.md](../v15-tea/commands.md) (command registration)._
+

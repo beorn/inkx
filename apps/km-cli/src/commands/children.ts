@@ -73,9 +73,7 @@ export const childrenCommand = new Command("children")
     if (bead) {
       const dependentCountMap = buildDependentCountMap(repo)
       const childBeads = Bead.children(repo, bead, { dependentCountMap })
-      children = childBeads
-        .map((c) => repo.getNode(c.id))
-        .filter((n): n is KNode => n !== null)
+      children = childBeads.map((c) => repo.getNode(c.id)).filter((n): n is KNode => n !== null)
     } else {
       children = repo.getChildren(node.id)
     }
@@ -97,7 +95,9 @@ export const childrenCommand = new Command("children")
       // output. Falls back to the brief formatter when no canonical id
       // is present (inline nodes, ULID-only nodes).
       const data = child.data as Record<string, unknown> | undefined
-      const canonicalId = (typeof data?.id === "string" && data.id) || (child.fs_path?.endsWith(".md") ? child.fs_path.slice(0, -3) : null)
+      const canonicalId =
+        (typeof data?.id === "string" && data.id) ||
+        (child.fs_path?.endsWith(".md") ? child.fs_path.slice(0, -3) : null)
       if (canonicalId) {
         console.log(`  ${canonicalId}${child.content ? term.dim(` — ${child.content.slice(0, 60)}`) : ""}`)
       } else {

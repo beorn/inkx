@@ -5,6 +5,7 @@
 ## Reframe
 
 Earlier framing separated:
+
 - "shell" (standalone zsh-replacement)
 - "commander" (UI-first command runner)
 - "multiplex" (tmux replacement)
@@ -135,6 +136,7 @@ The full-screen mode IS the multiplexer UI. No separate mux app. (See [04-multip
 ### Prefix-free disambiguation UI
 
 As you type, commander shows interpretations live:
+
 - Matches CAP command → run directly
 - Doesn't match → AI-translate; show typed CAP call preview with flag values
 - Ambiguous → disambiguation bar with [Enter run] [Tab edit-form] [! force-literal] [Esc]
@@ -160,14 +162,14 @@ AI turns = child blocks. Can branch, collapse, filter. State is structured, not 
 
 ## Phases
 
-| Phase | What | Effort |
-|---|---|---|
-| 1 | `<CommandInput>` + dax/Bun.$ exec + block emission (text REPL baseline) | 3–4 weeks |
-| 2 | `<CommandPalette>` fuzzy discovery + history + AI translation | 1–2 weeks |
-| 3 | `<FlagForm>` + per-command schema (git, npm, docker, gh) | 2–3 weeks |
-| 4 | `<BlockList>` + typed renderers (table / JSON / log / image / diff) + hover docs | 2–3 weeks |
-| 5 | DAG composition + visual parallel / sequential | 2–3 weeks |
-| 6 | Full-screen mode: splits/tabs/multiplex, live log filtering, agent-chat sidebar | 2–3 weeks |
+| Phase | What                                                                            | Effort    |
+| ----- | ------------------------------------------------------------------------------- | --------- |
+| 1     | <CommandInput> + dax/Bun.$ exec + block emission (text REPL baseline)           | 3–4 weeks |
+| 2     | <CommandPalette> fuzzy discovery + history + AI translation                     | 1–2 weeks |
+| 3     | <FlagForm> + per-command schema (git, npm, docker, gh)                          | 2–3 weeks |
+| 4     | <BlockList> + typed renderers (table / JSON / log / image / diff) + hover docs  | 2–3 weeks |
+| 5     | DAG composition + visual parallel / sequential                                  | 2–3 weeks |
+| 6     | Full-screen mode: splits/tabs/multiplex, live log filtering, agent-chat sidebar | 2–3 weeks |
 
 Each phase delivers visible value. After Phase 1: a shell. After Phase 2: a better shell. After Phase 4: genuinely novel. After Phase 6: category-defining.
 
@@ -217,11 +219,13 @@ Both. Commander works standalone in any host terminal (iTerm/Ghostty/Kitty/bash/
 **What it is:** a pipeline orchestrator that chains `claude -p` subprocesses via `--output-format stream-json` → `--input-format stream-json`. Workflows are declared via `depends` arrays; supports linear chains and parallel-merge (multiple `depends` entries feeding one synthesis stage). Conditional routing is "future work."
 
 **What it validates for commander:**
+
 - Stream-json IS viable as inter-agent IPC. Tool calls and results survive pipe boundaries.
 - Linear + parallel-merge is the minimum useful DAG vocabulary; that's the right starting API.
 - Demand for "compose multiple agent invocations" is real, not theoretical.
 
 **What it warns commander against:**
+
 - **Declarative-workflow-file scope trap.** The `depends`-array YAML model is the on-ramp to reinventing Airflow / Temporal / LangGraph for agents. Commander's visual-composition framing is the deliberate dodge; resist scope-shrinking commander down to "claude-flow with a UI."
 - **Single-vendor lock-in.** claude-flow assumes Claude is the only executor. Commander's CAP-typed-block model has to stay vendor-agnostic from day one.
 - **Stream-json as universal block format is too narrow.** Stream-json is Anthropic-shaped. Commander needs CAP-typed blocks where AI conversation is one block type alongside table / log / diff / image. Don't anchor on stream-json as the IPC.
@@ -230,15 +234,16 @@ Both. Commander works standalone in any host terminal (iTerm/Ghostty/Kitty/bash/
 
 **Surface coverage map (commander phases vs claude-flow):**
 
-| Commander phase | claude-flow coverage |
-|---|---|
-| 1 — text REPL + exec | none |
-| 2 — palette + AI translation | none |
-| 3 — typed flag forms | none |
-| 4 — typed block renderers | none (passes raw stream-json) |
-| 5 — DAG composition | partial (linear + parallel-merge for agents only, declarative) |
-| 6 — multiplex / splits / agent sidebar | none |
+| Commander phase                        | claude-flow coverage                                           |
+| -------------------------------------- | -------------------------------------------------------------- |
+| 1 — text REPL + exec                   | none                                                           |
+| 2 — palette + AI translation           | none                                                           |
+| 3 — typed flag forms                   | none                                                           |
+| 4 — typed block renderers              | none (passes raw stream-json)                                  |
+| 5 — DAG composition                    | partial (linear + parallel-merge for agents only, declarative) |
+| 6 — multiplex / splits / agent sidebar | none                                                           |
 
 claude-flow occupies ~15% of one phase. Useful as proof-of-concept; not a starting point.
 
 **The Agent Workspace MVP already absorbs the actually-portable piece** of claude-flow (bidirectional stream-json subprocess; see [00-agent-workspace.md](00-agent-workspace.md)). That ships now. The pipeline-composition layer is what commander adds *if and when* commander gets re-opened — and at that point we'd want commander's CAP-typed-block universality, not claude-flow's stream-json-only narrowness.
+

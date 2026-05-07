@@ -51,14 +51,14 @@ Phase-2 of session-load support: implement loadSession in @km/claude-acp so resu
 
 1. server.ts: change initialize response to advertise loadSession: true
 2. Implement Agent.loadSession({sessionId, cwd, mcpServers}):
-  - Resolve JSONL path: ~/.claude/projects/<encodedCwd>/<sessionId>.jsonl
-  - Read each line as a stream-json AgentEvent
-  - Translate each AgentEvent through wire.ts to ACP SessionUpdate notifications
-  - Emit notifications via connRef.sessionUpdate({sessionId, update})
-  - After replay: spawn claude with --resume <sessionId> and attach wire (mirrors newSession path)
-  - Return empty LoadSessionResponse {}
-3. Handle file-not-found: throw RequestError(-32000, 'session not found')
-4. Skip unsupported event kinds during replay (silently — they were already handled in the legacy session)
+- Resolve JSONL path: ~/.claude/projects/<encodedCwd>/<sessionId>.jsonl
+- Read each line as a stream-json AgentEvent
+- Translate each AgentEvent through wire.ts to ACP SessionUpdate notifications
+- Emit notifications via connRef.sessionUpdate({sessionId, update})
+- After replay: spawn claude with --resume <sessionId> and attach wire (mirrors newSession path)
+- Return empty LoadSessionResponse {}
+11. Handle file-not-found: throw RequestError(-32000, 'session not found')
+12. Skip unsupported event kinds during replay (silently — they were already handled in the legacy session)
 
 ## Acceptance
 

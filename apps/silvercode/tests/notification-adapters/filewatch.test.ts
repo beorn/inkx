@@ -13,7 +13,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createScope } from "@silvery/scope"
 import { createChannelQueue } from "../../src/channel-queue.ts"
-import { classifyFilewatchPath, registerFilewatchNotificationAdapter } from "../../src/notification-adapters/filewatch.ts"
+import {
+  classifyFilewatchPath,
+  registerFilewatchNotificationAdapter,
+} from "../../src/notification-adapters/filewatch.ts"
 
 describe("notification-adapter/filewatch", () => {
   describe("classifyFilewatchPath", () => {

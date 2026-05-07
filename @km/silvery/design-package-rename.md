@@ -38,11 +38,13 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.sterling-2d-release
       - type: link
         target: km-silvery.sterling-2e-interior-migration
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [ ] Phase 3b: Rename @silvery/theme → @silvery/design + @silvery/schemes @km/silvery #task #P3 @claude:22c2717d

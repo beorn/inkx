@@ -41,7 +41,6 @@ Board (scrollable container)
 Key Differences:
 
 - KM: Multiple view modes (cards/list/columns/tabs), fixed layout, terminal constraints
-
 - Decker: Single flexible board view, drag-and-drop, inline rich text editing
 
 ## 2. State Management
@@ -76,7 +75,6 @@ type BoardState = {
 Key Differences:
 
 - KM: Reducers with explicit action dispatch, state derivation pattern
-
 - Decker: Zustand with slices, direct store mutations, editor owns document structure
 
 ## 3. Data Structures
@@ -114,7 +112,6 @@ type ItemContentElement = {
 Key Differences:
 
 - KM: Tree with explicit parent refs, type-rich (task/section/etc), frontmatter metadata
-
 - Decker: Slate's normalized tree, content-first structure, rich text embedded
 
 ## 4. Command/Action System
@@ -161,7 +158,6 @@ type CmdContext = {
 Key Differences:
 
 - KM: Action objects dispatched to reducers, explicit action types, separated concerns
-
 - Decker: Commands directly mutate Slate editor, dual-mode (node/text), simpler flow
 
 ## 5. Navigation Model
@@ -195,7 +191,6 @@ function getInVisualDirection(
 Key Differences:
 
 - KM: Tree-structural navigation, path arrays, respects folding
-
 - Decker: Visual-spatial navigation using DOM rects, layout-aware
 
 ## 6. Collaboration/Sync
@@ -226,7 +221,6 @@ IndexeddbPersistence  // Local fallback
 Key Differences:
 
 - KM: Single-user, file as source of truth, bidirectional sync
-
 - Decker: Multi-user, CRDT as source of truth, real-time collaboration
 
 ## 7. Patterns Worth Adopting
@@ -277,14 +271,10 @@ ed.$maybe(id)  // Optional variant
 ## 8. KM Strengths to Preserve
 
 1. View Mode Flexibility: Cards/list/columns/tabs views vs Decker's single board view
-
-1. Task-First Model: Rich task status/metadata vs Decker's generic items
-
-1. File-Based Portability: Markdown files are human-editable; Yjs binary is not
-
-1. Action Type System: 8 focused sub-unions (VerbOp, NavOp, EditOp...) with router dispatch
-
-1. Layered Architecture: Clear storage→tree→board→UI layers vs Decker's tighter coupling
+2. Task-First Model: Rich task status/metadata vs Decker's generic items
+3. File-Based Portability: Markdown files are human-editable; Yjs binary is not
+4. Action Type System: 8 focused sub-unions (VerbOp, NavOp, EditOp...) with router dispatch
+5. Layered Architecture: Clear storage→tree→board→UI layers vs Decker's tighter coupling
 
 ## 9. Opportunities for KM
 
@@ -357,9 +347,7 @@ As a systems architect, here's my honest assessment of these opportunities:
 O1 (Context Consolidation) and O2 (ID Lookup) were good adoptions:
 
 - O1 eliminates redundant work on every keypress - measurable efficiency gain
-
 - O2 provides O(1) lookups where O(n) traversals existed - algorithmic improvement
-
 - Both are low-risk, incremental improvements that don't change external behavior
 
 ### What Should Be Deprioritized
@@ -367,27 +355,20 @@ O1 (Context Consolidation) and O2 (ID Lookup) were good adoptions:
 O3 (Visual Navigation) sounds appealing but has hidden costs:
 
 - Terminal cells aren't DOM rects - we'd need to track rendered positions manually
-
 - Multi-line items make this complex (where does an item "end"?)
-
 - Current structural navigation is predictable and learnable
-
 - Verdict: Nice-to-have, but high complexity for marginal UX gain
 
 O4 (Plugin Composition) is premature:
 
 - Current handlers are ~300 lines each, not unmanageable
-
 - Composition patterns add indirection and debugging complexity
-
 - Only valuable if we need to swap handlers (we don't)
-
 - Verdict: Refactor when pain is real, not preemptively
 
 O5 (Explicit Node/Text Mode) is now implemented:
 
 - KM TUI has inline text editing in both board view and detail pane (Enter/i to edit, Escape to exit)
-
 - Node mode vs text edit mode is the core interaction model (see docs/design/input.md)
 
 ### Patterns NOT to Adopt
@@ -395,25 +376,19 @@ O5 (Explicit Node/Text Mode) is now implemented:
 Decker's Zustand-everywhere approach - KM's dual-reducer pattern is cleaner:
 
 - Explicit action types make debugging easier
-
 - Reducer composition is well-understood in React
-
 - Zustand's direct mutation can lead to subtle bugs
 
 Decker's tightly-coupled editor - KM's layered architecture is better:
 
 - storage → tree → board → UI layers have clear contracts
-
 - Decker's Slate integration makes testing harder
-
 - KM can swap storage backends; Decker is locked to Yjs
 
 DOM-rect navigation - terminal constraints differ:
 
 - Web has precise sub-pixel positioning
-
 - Terminal has fixed character cells
-
 - Trying to emulate DOM behavior in a terminal is fighting the medium
 
 ### The Real Opportunity
@@ -421,17 +396,13 @@ DOM-rect navigation - terminal constraints differ:
 The most valuable thing from Decker isn't any specific pattern—it's the rapid iteration cycle enabled by:
 
 1. Hot module replacement in web dev
-
-1. Visual feedback loop (see changes instantly)
-
-1. Rich debugging tools (React DevTools, network tab)
+2. Visual feedback loop (see changes instantly)
+3. Rich debugging tools (React DevTools, network tab)
 
 KM TUI's biggest friction is the terminal development experience. Consider:
 
 - Better snapshot testing for TUI output
-
 - A web-based preview/debug mode
-
 - Storybook-like component isolation for silvery components
 
 These would provide more value than adopting Decker's patterns wholesale.

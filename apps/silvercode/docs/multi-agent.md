@@ -171,4 +171,3 @@ when it lands. Tests dispatch tool calls directly against the server's
 - **Handoff acceptance flow**: when a session accepts an inbound handoff,
   inject the handoff content into its next prompt automatically (today
   the agent must read it via `coordinator_status` and act on it).
-

@@ -76,3 +76,4 @@ With the constraint, you get:
 - terminal-doctor CLI for bug reports
 - GitHub Action that comments on PRs
 - Shadcn-style pattern registry
+

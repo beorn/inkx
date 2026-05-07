@@ -14,17 +14,17 @@ A test system that is:
 
 ## Test Infrastructure Rules
 
-> **MANDATORY**: All tests use in-memory infrastructure by default.
+> MANDATORY: All tests use in-memory infrastructure by default.
 > This ensures tests are fast, isolated, and can run in parallel.
 
 ### The Rule
 
-| Resource   | Default           | Exception                                   |
-| ---------- | ----------------- | ------------------------------------------- |
-| Database   | `:memory:` SQLite | Worker thread tests (need disk for sharing) |
-| Filesystem | `/tmp/kmtest-*`   | Never use real user paths                   |
-| Watchers   | Mocks             | Worker thread integration tests             |
-| State      | Injected via DI   | Never use `getDb()`, `getKmDir()`           |
+| Resource   | Default         | Exception                                   |
+| ---------- | --------------- | ------------------------------------------- |
+| Database   | :memory: SQLite | Worker thread tests (need disk for sharing) |
+| Filesystem | /tmp/kmtest-*   | Never use real user paths                   |
+| Watchers   | Mocks           | Worker thread integration tests             |
+| State      | Injected via DI | Never use getDb(), getKmDir()               |
 
 ### Why This Matters
 
@@ -80,14 +80,14 @@ const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 
 - `.fuzz.ts` - Fuzz/chaos tests (excluded from test:all, run via test:fuzz)
 - `.spec.md` - mdspec CLI tests
 
-| Suffix          | Purpose                   | Test Level | Included in         |
-| --------------- | ------------------------- | ---------- | ------------------- |
-| `.spec.ts`      | TUI acceptance (UI-level) | E2E        | test:fast, test:all |
-| `.test.ts`      | Unit/integration tests    | Unit/Int   | test:fast, test:all |
-| `.slow.test.ts` | Slow integration          | Int/E2E    | test:all only       |
-| `.fuzz.ts`      | Fuzz/chaos tests          | Fuzz       | test:fuzz only      |
-| `.spec.md`      | mdspec CLI tests          | E2E        | test:fast, test:all |
-| `.slow.spec.md` | Slow mdspec CLI tests     | E2E        | test:all only       |
+| Suffix        | Purpose                   | Test Level | Included in         |
+| ------------- | ------------------------- | ---------- | ------------------- |
+| .spec.ts      | TUI acceptance (UI-level) | E2E        | test:fast, test:all |
+| .test.ts      | Unit/integration tests    | Unit/Int   | test:fast, test:all |
+| .slow.test.ts | Slow integration          | Int/E2E    | test:all only       |
+| .fuzz.ts      | Fuzz/chaos tests          | Fuzz       | test:fuzz only      |
+| .spec.md      | mdspec CLI tests          | E2E        | test:fast, test:all |
+| .slow.spec.md | Slow mdspec CLI tests     | E2E        | test:all only       |
 
 **Rule**: Use `.spec.ts` ONLY for acceptance tests (board UI-level, CLI workflows). All other tests use `.test.ts`.
 
@@ -362,13 +362,13 @@ test("creates node", async () => {
 
 **What `withTestEnv` provides**:
 
-| Property  | Description                                   |
-| --------- | --------------------------------------------- |
-| `repo`    | Repo-like object wrapping DB-bound singletons |
-| `db`      | In-memory SQLite with schema initialized      |
-| `repoDir` | Isolated `/tmp/kmtest-{id}/repo/`             |
-| `kmDir`   | Isolated `/tmp/kmtest-{id}/repo/.km/`         |
-| `testId`  | Unique ULID for this test                     |
+| Property | Description                                   |
+| -------- | --------------------------------------------- |
+| repo     | Repo-like object wrapping DB-bound singletons |
+| db       | In-memory SQLite with schema initialized      |
+| repoDir  | Isolated /tmp/kmtest-{id}/repo/               |
+| kmDir    | Isolated /tmp/kmtest-{id}/repo/.km/           |
+| testId   | Unique ULID for this test                     |
 
 The `repo` object provides these methods (typed as `TestRepo`):
 
@@ -411,11 +411,11 @@ test("renders board component", async () => {
 
 **When to use which**:
 
-| Scenario                                           | Fixture                    |
-| -------------------------------------------------- | -------------------------- |
-| Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.repo` |
-| Ink component rendering (no DB mutations)          | `createFakeRepo()`         |
-| Pure function tests (no DB)                        | None needed                |
+| Scenario                                       | Fixture                |
+| ---------------------------------------------- | ---------------------- |
+| Tests calling buildBoardState, handleKey, etc. | withTestEnv → env.repo |
+| Ink component rendering (no DB mutations)      | createFakeRepo()       |
+| Pure function tests (no DB)                    | None needed            |
 
 **When NOT to use withTestEnv**:
 
@@ -426,11 +426,11 @@ test("renders board component", async () => {
 
 Each domain object gets its own test file testing the **public API**:
 
-| Domain Object | Test File        | What to Test                     |
-| ------------- | ---------------- | -------------------------------- |
-| `Repo`        | `repo.test.ts`   | CRUD, queries, lifecycle         |
-| `Board`       | `board.test.ts`  | State machine, reducers, actions |
-| `Config`      | `config.test.ts` | Loading, validation, defaults    |
+| Domain Object | Test File      | What to Test                     |
+| ------------- | -------------- | -------------------------------- |
+| Repo          | repo.test.ts   | CRUD, queries, lifecycle         |
+| Board         | board.test.ts  | State machine, reducers, actions |
+| Config        | config.test.ts | Loading, validation, defaults    |
 
 **Pattern**: Factory functions, `using` for cleanup, DI for mocks.
 
@@ -549,8 +549,8 @@ Controls test infrastructure via environment variable.
 | Mode      | Database | When to Use                    |
 | --------- | -------- | ------------------------------ |
 | (default) | :memory: | Normal development             |
-| `mock`    | :memory: | Reserved for future skip logic |
-| `real`    | Disk     | CI, releases, drift detection  |
+| mock      | :memory: | Reserved for future skip logic |
+| real      | Disk     | CI, releases, drift detection  |
 
 All modes use `/tmp/kmtest-*` filesystem. The difference is database type.
 
@@ -561,7 +561,7 @@ bun run test:fast                     # Default (memory DB)
 TEST_MODE=real bun run test:all       # Disk DB, full infrastructure
 ```
 
-> **Note**: `isMockMode()` and `isRealMode()` are exported but currently unused. They're reserved for future optimization where slow tests could skip via `test.skipIf(isMockMode())`. Currently, all tests run in all modes.
+> Note: isMockMode() and isRealMode() are exported but currently unused. They're reserved for future optimization where slow tests could skip via test.skipIf(isMockMode()). Currently, all tests run in all modes.
 
 **Drift detection**: Run `TEST_MODE=real bun run test:all` periodically to catch when in-memory behavior diverges from disk behavior.
 
@@ -575,24 +575,24 @@ This section maps km's testing tools to industry-standard terminology, helping d
 
 ### Industry Classification
 
-| Category             | Industry Term        | km Implementation              | Surface             |
-| -------------------- | -------------------- | ------------------------------ | ------------------- |
-| Fault Injection      | Chaos Engineering    | `/chaos`, `chaos-testing.md`   | Filesystem sync     |
-| Monkey Testing       | Exploratory Testing  | `/explore`, `explore-tui.ts`   | TUI (keyboard)      |
-| Differential Testing | Oracle-Based Testing | Flexily fuzz vs Yoga             | Layout engine       |
-| Property-Based       | Invariant Checking   | Both chaos + explore           | Invariants          |
-| Acceptance Testing   | E2E Testing          | mdspec, Silvery specs          | CLI, TUI            |
+| Category             | Industry Term        | km Implementation        | Surface         |
+| -------------------- | -------------------- | ------------------------ | --------------- |
+| Fault Injection      | Chaos Engineering    | /chaos, chaos-testing.md | Filesystem sync |
+| Monkey Testing       | Exploratory Testing  | /explore, explore-tui.ts | TUI (keyboard)  |
+| Differential Testing | Oracle-Based Testing | Flexily fuzz vs Yoga     | Layout engine   |
+| Property-Based       | Invariant Checking   | Both chaos + explore     | Invariants      |
+| Acceptance Testing   | E2E Testing          | mdspec, Silvery specs    | CLI, TUI        |
 
 ### Exploration Testing (Unified Pattern)
 
 All exploration tests follow the same pattern:
 **Generate inputs → Apply to system → Check invariants → Reproduce failures**
 
-| Test Suite  | Surface   | Input Generator      | Invariants                          | Reproduction |
-| ----------- | --------- | -------------------- | ----------------------------------- | ------------ |
-| Sync Chaos  | FS events | 11 chaos scenarios   | noDuplicates, noOrphans, syncMatch  | Seeded RNG   |
-| TUI Explore | Keyboard  | Weighted random keys | singleCursor, validView, noErrors   | Seeded RNG   |
-| Flexily Fuzz  | Layout    | Random node trees    | Yoga equivalence                    | Seeded RNG   |
+| Test Suite   | Surface   | Input Generator      | Invariants                         | Reproduction |
+| ------------ | --------- | -------------------- | ---------------------------------- | ------------ |
+| Sync Chaos   | FS events | 11 chaos scenarios   | noDuplicates, noOrphans, syncMatch | Seeded RNG   |
+| TUI Explore  | Keyboard  | Weighted random keys | singleCursor, validView, noErrors  | Seeded RNG   |
+| Flexily Fuzz | Layout    | Random node trees    | Yoga equivalence                   | Seeded RNG   |
 
 ### Full Taxonomy Tree
 
@@ -613,12 +613,12 @@ Dynamic Testing
 
 ### What We Don't Have (Yet)
 
-| Type                    | Description                     | Could Add               |
-| ----------------------- | ------------------------------- | ----------------------- |
-| Coverage-Guided Fuzzing | AFL-style mutation              | For parser layer        |
-| Load Testing            | High volume concurrent ops      | For sync layer          |
-| Soak Testing            | Long-running stability          | CI nightly job          |
-| Mutation Testing        | Stryker-style code mutation     | Test quality metric     |
+| Type                    | Description                 | Could Add           |
+| ----------------------- | --------------------------- | ------------------- |
+| Coverage-Guided Fuzzing | AFL-style mutation          | For parser layer    |
+| Load Testing            | High volume concurrent ops  | For sync layer      |
+| Soak Testing            | Long-running stability      | CI nightly job      |
+| Mutation Testing        | Stryker-style code mutation | Test quality metric |
 
 ### See Also
 
@@ -708,12 +708,12 @@ bun run test:all           # Full suite (must pass)
 
 **Working on Specific Areas**:
 
-| Working on...        | Run during iteration                    |
-| -------------------- | --------------------------------------- |
-| Specific changes     | `bun vitest run --changed`              |
-| Specific file        | `bun vitest related src/foo.ts`         |
-| Sync, watcher, chaos | `bun run test:slow`                     |
-| Broad non-vendor     | `bun run test:fast`                     |
+| Working on...        | Run during iteration          |
+| -------------------- | ----------------------------- |
+| Specific changes     | bun vitest run --changed      |
+| Specific file        | bun vitest related src/foo.ts |
+| Sync, watcher, chaos | bun run test:slow             |
+| Broad non-vendor     | bun run test:fast             |
 
 Still run `test:all` before commit.
 
@@ -725,14 +725,14 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ### File Naming
 
-| Suffix          | Purpose                         | Included in         |
-| --------------- | ------------------------------- | ------------------- |
-| `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all |
-| `.slow.test.ts` | Slow tests (integration)        | test:all only       |
-| `.fuzz.ts`      | Fuzz/chaos tests                | test:fuzz only      |
-| `.spec.ts`      | TUI acceptance tests            | test:fast, test:all |
-| `.spec.md`      | mdspec CLI tests                | test:fast, test:all |
-| `.slow.spec.md` | Slow mdspec CLI tests           | test:all only       |
+| Suffix        | Purpose                  | Included in         |
+| ------------- | ------------------------ | ------------------- |
+| .test.ts      | Fast tests (<1s each)    | test:fast, test:all |
+| .slow.test.ts | Slow tests (integration) | test:all only       |
+| .fuzz.ts      | Fuzz/chaos tests         | test:fuzz only      |
+| .spec.ts      | TUI acceptance tests     | test:fast, test:all |
+| .spec.md      | mdspec CLI tests         | test:fast, test:all |
+| .slow.spec.md | Slow mdspec CLI tests    | test:all only       |
 
 ### Test File Guidelines
 
@@ -755,26 +755,26 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ### Test Commands
 
-| Command       | What it runs                                          | Use case          |
-| ------------- | ----------------------------------------------------- | ----------------- |
-| `test:fast`   | Default project (excludes `*.slow.*` and `vendor/**`) | Default iteration |
-| `test:slow`   | `--project slow` — `*.slow.{test,spec}.*` only        | Slow tests only   |
-| `test:vendor`  | `--project vendor` — vendor tests only               | Vendor isolation  |
-| `test:all`    | All 3 projects (default + slow + vendor)              | Before commit     |
-| `test:fuzz`   | `FUZZ=1` — `*.fuzz.ts` files only                     | Exploratory testing |
+| Command     | What it runs                                    | Use case            |
+| ----------- | ----------------------------------------------- | ------------------- |
+| test:fast   | Default project (excludes .slow. and vendor/**) | Default iteration   |
+| test:slow   | --project slow — .slow.{test,spec}. only        | Slow tests only     |
+| test:vendor | --project vendor — vendor tests only            | Vendor isolation    |
+| test:all    | All 3 projects (default + slow + vendor)        | Before commit       |
+| test:fuzz   | FUZZ=1 — *.fuzz.ts files only                   | Exploratory testing |
 
 **Primary workflow**: `test:fast` (iterate) → `test:all` (commit)
 
 ### When to Use What
 
-| Testing Need             | Use This                | Not This         |
-| ------------------------ | ----------------------- | ---------------- |
+| Testing Need             | Use This               | Not This         |
+| ------------------------ | ---------------------- | ---------------- |
 | TUI rendering/navigation | Silvery createRenderer | Playwright       |
-| CLI command output       | mdspec (.spec.md)       | Unit test        |
-| Domain object behavior   | Unit test with DI       | Integration test |
-| Pure function logic      | Unit test               | mdspec           |
-| Sync edge cases          | Chaos tests             | More unit tests  |
-| Visual debugging         | `km screenshot`         | Peekaboo         |
+| CLI command output       | mdspec (.spec.md)      | Unit test        |
+| Domain object behavior   | Unit test with DI      | Integration test |
+| Pure function logic      | Unit test              | mdspec           |
+| Sync edge cases          | Chaos tests            | More unit tests  |
+| Visual debugging         | km screenshot          | Peekaboo         |
 
 ### Decision Tree
 
@@ -834,11 +834,11 @@ grep -L "memory: true" apps/km-cli/tests/sh/*.spec.md
 
 Tests taking >1s MUST be marked `.slow.test.ts`:
 
-| Time | Action                                        |
-| ---- | --------------------------------------------- |
-| <1s  | Keep as `.test.ts`                            |
-| 1-5s | Consider optimization or mark `.slow.test.ts` |
-| >5s  | MUST be `.slow.test.ts`                       |
+| Time | Action                                      |
+| ---- | ------------------------------------------- |
+| <1s  | Keep as .test.ts                            |
+| 1-5s | Consider optimization or mark .slow.test.ts |
+| >5s  | MUST be .slow.test.ts                       |
 
 ---
 
@@ -895,12 +895,12 @@ SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts
 
 ### What Gets Caught
 
-| Source                   | Example              | How to Fix         |
-| ------------------------ | -------------------- | ------------------ |
-| `console.log()`          | Debug statements     | Remove or spy      |
-| `process.stdout.write()` | Progress bars        | Capture in test    |
-| Node warnings            | MaxListenersExceeded | Fix the root cause |
-| Production logging       | `logger.info()`      | Inject mock logger |
+| Source                 | Example              | How to Fix         |
+| ---------------------- | -------------------- | ------------------ |
+| console.log()          | Debug statements     | Remove or spy      |
+| process.stdout.write() | Progress bars        | Capture in test    |
+| Node warnings          | MaxListenersExceeded | Fix the root cause |
+| Production logging     | logger.info()        | Inject mock logger |
 
 ### What Doesn't Get Caught
 
@@ -966,13 +966,13 @@ The sync system (file watching, reconciliation, write queue) is tested using con
 
 **Key scenarios:**
 
-| Scenario            | What It Simulates                       |
-| ------------------- | --------------------------------------- |
-| `SLOW_DISK`         | Events delayed 2-5 seconds              |
-| `QUEUE_OVERFLOW`    | 20% of events dropped randomly          |
-| `EDITOR_ATOMIC`     | Write becomes delete + add pair         |
-| `EVENT_STORM`       | Bursts of 100+ events                   |
-| `FSEVENTS_COALESCE` | Parent dir event instead of file events |
+| Scenario          | What It Simulates                       |
+| ----------------- | --------------------------------------- |
+| SLOW_DISK         | Events delayed 2-5 seconds              |
+| QUEUE_OVERFLOW    | 20% of events dropped randomly          |
+| EDITOR_ATOMIC     | Write becomes delete + add pair         |
+| EVENT_STORM       | Bursts of 100+ events                   |
+| FSEVENTS_COALESCE | Parent dir event instead of file events |
 
 ```typescript
 import { ChaosWatcher, queueOverflow } from "@beorn/watcher-chaos"
@@ -993,14 +993,14 @@ See [chaos-testing.md](chaos-testing.md) for full scenario reference.
 
 Guidelines for what each layer should and shouldn't test:
 
-| Layer                   | Should Test                 | Should NOT Test          |
-| ----------------------- | --------------------------- | ------------------------ |
-| Parser (`@km/markdown`) | Parse/serialize, round-trip | Storage, UI              |
-| Storage (`@km/storage`) | CRUD, queries, sync, events | UI rendering             |
-| Tree (`@km/tree`)       | Tree queries, display names | Storage mutations        |
-| Board (`@km/board`)     | Reducer state, selectors    | DB operations, rendering |
-| TUI (`apps/km-tui`)     | Component rendering, layout | Direct storage mutations |
-| CLI (`apps/km-cli`)     | Commands, workflows, errors | Internal state           |
+| Layer                 | Should Test                 | Should NOT Test          |
+| --------------------- | --------------------------- | ------------------------ |
+| Parser (@km/markdown) | Parse/serialize, round-trip | Storage, UI              |
+| Storage (@km/storage) | CRUD, queries, sync, events | UI rendering             |
+| Tree (@km/tree)       | Tree queries, display names | Storage mutations        |
+| Board (@km/board)     | Reducer state, selectors    | DB operations, rendering |
+| TUI (apps/km-tui)     | Component rendering, layout | Direct storage mutations |
+| CLI (apps/km-cli)     | Commands, workflows, errors | Internal state           |
 
 **Test distribution target**: Storage ~40%, TUI ~20%, Board ~15%, CLI ~15%, Parser ~5%, Tree ~5%
 
@@ -1012,3 +1012,4 @@ See [archive/test-review.md](../archive/test-review.md) for detailed layer rules
 
 - [debugging.md](debugging.md) - Debug logging and troubleshooting
 - [../architecture.md](../architecture.md) - System layers
+

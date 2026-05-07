@@ -34,16 +34,16 @@ blocks:: [[@km/infra/tribe-rebrand]]
 Three test gaps found during audit:
 
 1. MCP plugin handler tests missing for Phase 3-5 tools
-  - plugins/lore/tests/server.test.ts only covers ask / current_brief / plan_only
-  - Missing: handleInjectDelta, handleWorkspaceState, handleSessionState
-  - Same style as existing handleAsk tests (mock daemon via vi.mock)
-2. Daemon-down → library fallback not tested
-  - Kill daemon mid-test and verify hookRecall takes over cleanly
-  - Verify response.mode === 'library' on the way back
-3. Dedup TTL expiry not tested (Phase 5)
-  - Current test only covers per-session ISOLATION
-  - Missing: fire >ttlTurns prompts, verify an earlier seen key becomes eligible again
-  - Use small ttlTurns param to keep test fast
+- plugins/lore/tests/server.test.ts only covers ask / current_brief / plan_only
+- Missing: handleInjectDelta, handleWorkspaceState, handleSessionState
+- Same style as existing handleAsk tests (mock daemon via vi.mock)
+6. Daemon-down → library fallback not tested
+- Kill daemon mid-test and verify hookRecall takes over cleanly
+- Verify response.mode === 'library' on the way back
+10. Dedup TTL expiry not tested (Phase 5)
+- Current test only covers per-session ISOLATION
+- Missing: fire >ttlTurns prompts, verify an earlier seen key becomes eligible again
+- Use small ttlTurns param to keep test fast
 
 None are blockers. 30/30 current tests pass; these fill happy-path gaps.
 

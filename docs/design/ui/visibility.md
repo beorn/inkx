@@ -6,7 +6,7 @@ For the broader view pipeline (how nodes render once visible), see [rendering.md
 
 ---
 
-# Visibility Model
+## Visibility Model
 
 How km decides which nodes are visible, navigable, and rendered.
 
@@ -21,12 +21,12 @@ repo                                  all nodes, SQLite-backed
               └── createViewTree()    React-side projection (per-node signals via ProjectedMap)
 ```
 
-| Layer | Where | What it does | What it filters |
-|---|---|---|---|
-| **Repo** | `@km/storage` | Source of truth, SQLite-backed | Nothing — every KNode is in here |
-| **ViewLens** | `packages/km-board/src/view-lens.ts` | Walks the repo from a root, computes visual roles, resolves embeds, classifies body content | Hidden nodes (`hiddenNodeIds`), structural exclusions (`isCollapsedChild`, `isDetailOnly`, frontmatter `km.collapse:: true`), folder-index file expansion |
-| **VisibleLens** | `packages/km-board/src/visible-lens.ts` | Wraps a ViewLens; further restricts which nodes are visible | Collapsed columns (`collapsedNodes`), task-status filter (`taskStatusFilter`), card-level predicate (`cardFilter`) |
-| **ViewTree** | `packages/km-board/src/view-tree-projection.ts` | React-side projection of any TreeLens; per-node signal bags via `ProjectedMap`; iterator API (`nodes()`) | None — same visibility as the underlying lens. ViewTree's job is *reactivity*, not filtering. |
+| Layer       | Where                                         | What it does                                                                                         | What it filters                                                                                                                                   |
+| ----------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo        | @km/storage                                   | Source of truth, SQLite-backed                                                                       | Nothing — every KNode is in here                                                                                                                  |
+| ViewLens    | packages/km-board/src/view-lens.ts            | Walks the repo from a root, computes visual roles, resolves embeds, classifies body content          | Hidden nodes (hiddenNodeIds), structural exclusions (isCollapsedChild, isDetailOnly, frontmatter km.collapse:: true), folder-index file expansion |
+| VisibleLens | packages/km-board/src/visible-lens.ts         | Wraps a ViewLens; further restricts which nodes are visible                                          | Collapsed columns (collapsedNodes), task-status filter (taskStatusFilter), card-level predicate (cardFilter)                                      |
+| ViewTree    | packages/km-board/src/view-tree-projection.ts | React-side projection of any TreeLens; per-node signal bags via ProjectedMap; iterator API (nodes()) | None — same visibility as the underlying lens. ViewTree's job is reactivity, not filtering.                                                       |
 
 A node is "visible" if and only if it appears in the lens's `walkOrder`. The cursor lives in `walkOrder` — this makes "cursor on hidden node" structurally impossible by construction.
 
@@ -41,6 +41,7 @@ There are three independent ways a node can be excluded from view, each operatin
 **When**: When the ViewLens computes `children(id)` for a parent. Excluded children never appear in `walkOrder`.
 
 **What it matches**:
+
 - Nodes with `detailOnly: true` in their data
 - Well-known metadata sections: "activity", "comments", "attachments"
 - Nodes with `km.collapse:: true` in their heading rules
@@ -71,12 +72,14 @@ There are three independent ways a node can be excluded from view, each operatin
 ## Choosing the Right API
 
 **In a React component**: use `ViewTree` via `useNode(id)`.
+
 - Per-node subscriptions; component re-renders only when *that node's* state changes
 - Iterator: `viewTree.nodes({ from?, reverse? })`
 - Lookups: `viewTree.node(id)`, `viewTree.children(id)`, `viewTree.parent(id)`
 - Navigation: `viewTree.next(id)`, `viewTree.prev(id)`
 
 **In non-React code** (reducers, selectors, navigation helpers, store, pane signals): use `TreeLens` directly.
+
 - No per-node signals — bulk computation is cheaper without them
 - Use `lens.walkOrder` for the eager array; use the underlying repo for raw queries
 - Lookups: `lens.get(id)`, `lens.children(id)`, `lens.parent(id)`
@@ -92,24 +95,24 @@ The old bare functions (`walkVisibleDescendants`, `countVisibleDescendants`, `ge
 
 ## Summary
 
-| Mechanism | Layer | Mechanism | Scope |
-|---|---|---|---|
-| Structural exclusion | ViewLens construction | Predicates on KNode + `hiddenNodeIds` set | Nodes never appear in `walkOrder` at all |
-| Collapsed columns | VisibleLens construction | `collapsedNodes` set | Card children of collapsed columns excluded |
-| Per-node fold | NodeStore (React layer) | `foldDepths` map → per-node signals | Subtree rendering skipped in cards view; alternate views currently bypassed (see @km/tui/view-mode-feature-parity) |
+| Mechanism            | Layer                    | Mechanism                               | Scope                                                                                                              |
+| -------------------- | ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Structural exclusion | ViewLens construction    | Predicates on KNode + hiddenNodeIds set | Nodes never appear in walkOrder at all                                                                             |
+| Collapsed columns    | VisibleLens construction | collapsedNodes set                      | Card children of collapsed columns excluded                                                                        |
+| Per-node fold        | NodeStore (React layer)  | foldDepths map → per-node signals       | Subtree rendering skipped in cards view; alternate views currently bypassed (see @km/tui/view-mode-feature-parity) |
 
 **Open work**: pushing fold into the lens layer would simplify the architecture (alternate views would honor it for free) but conflicts with per-node-signal incremental rendering performance. Tracked in `@km/tui/view-mode-feature-parity` — the proposed approach is to keep fold at the React layer but graduate alternate views to consume `ViewTree` (and per-node signals) instead of the raw lens.
 
-
 ---
 
-# Folder-note model
+## Folder-note model
 
 **Status**: parked — design discussion, not implementing yet.
 **Tracking bead**: `@km/tui/folder-note-model` (to be created)
 **Date parked**: 2026-04-14
 
 Related fixes landed this week (which the refined model would partially revert):
+
 - `27db42fcf` — `fix(board): zoom stack overflow + folder-note column expansion`
 - `efb1db1ff` — `fix(tui): preserve inline formatting + bullets in body blocks`
 - `74b466b2` (silvery) — eventLoop error dump that caught the zoom recursion
@@ -121,11 +124,13 @@ When a folder contains a file with the same name (`tst2/tst2.md`, `_index.md`, `
 ## Current architecture — hybrid DB + view
 
 **DB layer** (`packages/km-storage/src/watch/handlers/update-handler.ts:228` `syncIndexFileToFolder`):
+
 - **Title promotion**: `folder.content = index.title` at DB level whenever the index file is parsed. The folder node carries the index file's H1 as its display title.
 - **Child ordering**: folder children are reordered based on `![[./name]]` slot references in the index file. The index file acts as a curator of sibling order.
 - **Index file remains a real child of the folder in the DB** — it's not absorbed. The DB tree is clean.
 
 **View layer** (`packages/km-board/src/view-lens.ts`):
+
 - `getRootChildIds` → `expandIndexFile` (when the folder is the board root)
 - `computeColumnChildren` (when the folder is a column — patched in `27db42fcf` to match root path)
 - Both **filter the index file out** of the folder's children and **splice in the index file's sections** as the folder's cards. Body paragraphs become a virtual `body-column` card. Other folder children (sibling files/folders) are appended.
@@ -135,6 +140,7 @@ The view layer lies about tree shape: in the DB, `tst2` has one child (`tst2.md`
 ## User's refined position (the one we're parking)
 
 **Keep the folder-file as a subitem of the folder**, but:
+
 - DO merge **title** (already at DB level — keep)
 - DO merge **body content** (file's body paragraphs render at the top of the folder column)
 - DO merge **subitem ordering via slot references** (`![[./child]]` controls folder child order)
@@ -143,17 +149,20 @@ The view layer lies about tree shape: in the DB, `tst2` has one child (`tst2.md`
 ### Concrete cases
 
 **Case A — pure dashboard folder-file** (`+taxes/+taxes.md` contains only `![[./+taxomatic]]` + `![[./drafts]]`):
+
 - Slots expand to folder children in order
 - No non-slot sections → folder-file has no own content to preserve
 - File becomes invisible (fully merged — matches current behavior)
 
 **Case B — dashboard + own content** (folder-file has `![[./child]]` slots AND `## My Section`):
+
 - Slots expand to folder children
 - Body paragraphs render as folder body
 - The `## My Section` and its subitems **stay inside the file**
 - File is visible as a subitem of the folder (position: after slot-referenced children, or as a body card — TBD)
 
 **Case C — plain content folder-file** (`tst2/tst2.md` has `# A test project` + `## Sub-section` with no slots):
+
 - Title promoted (already done at DB level)
 - Body paragraphs render as folder body
 - The `## Sub-section` stays inside the file
@@ -163,38 +172,38 @@ The view layer lies about tree shape: in the DB, `tst2` has one child (`tst2.md`
 
 ## Options considered
 
-| # | Option | Description |
-|---|---|---|
-| A | Full no-merge, title only | Cleanest code. Biggest UX regression for folders-as-dashboards. Extra zoom for `+taxes` |
-| B | No merge + detail pane shows content | Code simplicity of (A), no navigation regression — content visible via detail pane |
-| C | Auto-merge only for single-child folders | Semantic feel shifts as siblings are added/removed |
-| D | Opt-in via frontmatter/rules | Two modes = more to learn |
-| E | Merge only when slot refs present | Slot refs are the explicit curation signal; zero implicit magic |
-| **User's refined** | **Merge title+body+slot ordering, keep non-slot sections in file** | **Most surgical — preserves dashboards, avoids surprise hoisting** |
+| #              | Option                                                         | Description                                                                           |
+| -------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| A              | Full no-merge, title only                                      | Cleanest code. Biggest UX regression for folders-as-dashboards. Extra zoom for +taxes |
+| B              | No merge + detail pane shows content                           | Code simplicity of (A), no navigation regression — content visible via detail pane    |
+| C              | Auto-merge only for single-child folders                       | Semantic feel shifts as siblings are added/removed                                    |
+| D              | Opt-in via frontmatter/rules                                   | Two modes = more to learn                                                             |
+| E              | Merge only when slot refs present                              | Slot refs are the explicit curation signal; zero implicit magic                       |
+| User's refined | Merge title+body+slot ordering, keep non-slot sections in file | Most surgical — preserves dashboards, avoids surprise hoisting                        |
 
 ## Pros/cons of user's refined position vs current
 
-| Dimension | Current (full merge) | User's refined (partial merge) |
-|---|---|---|
-| Code complexity | Dual paths, virtual body-column, view lies | Simpler per-case branching, still has title/body/slot promotion |
-| Mental model | "Folder IS its index file" (magic) | "Folder has title/body from file; file keeps its own structure" |
-| Slot references | Work (control folder order) | Still work |
-| Navigation depth | Zoom once to see sections | Zoom twice to see non-slot sections in a plain-content folder-file |
-| Viewing folder-file content | Body visible at top of column | Body visible at top + file visible as child |
-| Multi-file folders | Index file invisible, ambiguous "which file does this card come from?" | Clear — file is a regular sibling |
-| Single-file folders | Feels like "folder IS the file" — zero friction | File visible as extra container level — fine for non-dashboard use |
-| Alignment with fs tools (Finder, VSCode, Obsidian) | Diverges | Matches |
-| Folder-note as project dashboard | Perfect fit (view = dashboard) | Preserved when slot refs present |
-| Bug count | High — 2 bugs fixed this session originate from the merge | Lower — tree shape matches DB more closely |
+| Dimension                                          | Current (full merge)                                                   | User's refined (partial merge)                                     |
+| -------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Code complexity                                    | Dual paths, virtual body-column, view lies                             | Simpler per-case branching, still has title/body/slot promotion    |
+| Mental model                                       | "Folder IS its index file" (magic)                                     | "Folder has title/body from file; file keeps its own structure"    |
+| Slot references                                    | Work (control folder order)                                            | Still work                                                         |
+| Navigation depth                                   | Zoom once to see sections                                              | Zoom twice to see non-slot sections in a plain-content folder-file |
+| Viewing folder-file content                        | Body visible at top of column                                          | Body visible at top + file visible as child                        |
+| Multi-file folders                                 | Index file invisible, ambiguous "which file does this card come from?" | Clear — file is a regular sibling                                  |
+| Single-file folders                                | Feels like "folder IS the file" — zero friction                        | File visible as extra container level — fine for non-dashboard use |
+| Alignment with fs tools (Finder, VSCode, Obsidian) | Diverges                                                               | Matches                                                            |
+| Folder-note as project dashboard                   | Perfect fit (view = dashboard)                                         | Preserved when slot refs present                                   |
+| Bug count                                          | High — 2 bugs fixed this session originate from the merge              | Lower — tree shape matches DB more closely                         |
 
 ## Implementation sketch (when unblocked)
 
 1. Add a helper `hasNonSlotSections(indexFile, children)` that returns true when the index file has any H2+ subitems that are NOT pure slot references. Uses existing `extractSlotTargets`.
 2. In `expandIndexFile` + `computeColumnChildren` in `view-lens.ts`:
-   - Always merge: title (DB-level, unchanged), body paragraphs, slot-referenced children.
-   - When `hasNonSlotSections(indexFile)`: keep the index file as a visible subitem of the folder. Position: probably after slot-referenced children. Open question: is it a card (with the non-slot sections as its own cards on zoom-in), or a body card at the bottom of the column?
-3. Update view-lens tests in `packages/km-board/tests/view-lens.test.ts` — add cases for (a) pure dashboard folder-file, (b) dashboard + own content, (c) plain content.
-4. Verify `@km/tui/slow-folder-discovery` symptom — may resolve if less view recomputation is needed under the refined model. Separate investigation path: look at storage parsing (~1400 files → 10s is not obviously O(n)-bad, may be fine).
+- Always merge: title (DB-level, unchanged), body paragraphs, slot-referenced children.
+- When `hasNonSlotSections(indexFile)`: keep the index file as a visible subitem of the folder. Position: probably after slot-referenced children. Open question: is it a card (with the non-slot sections as its own cards on zoom-in), or a body card at the bottom of the column?
+7. Update view-lens tests in `packages/km-board/tests/view-lens.test.ts` — add cases for (a) pure dashboard folder-file, (b) dashboard + own content, (c) plain content.
+8. Verify `@km/tui/slow-folder-discovery` symptom — may resolve if less view recomputation is needed under the refined model. Separate investigation path: look at storage parsing (~1400 files → 10s is not obviously O(n)-bad, may be fine).
 
 ## Open questions
 
@@ -207,3 +216,4 @@ The view layer lies about tree shape: in the DB, `tst2` has one child (`tst2.md`
 ## Decision
 
 Parked. Current fix (full merge in `computeColumnChildren`) stays in place until this is revisited. The zoom crash + empty-column bugs are resolved and the user's immediate workflow is unblocked.
+

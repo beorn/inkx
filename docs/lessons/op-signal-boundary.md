@@ -120,16 +120,17 @@ Researched: Solid.js, Preact Signals, MobX, Zustand, Signia (tldraw), Jotai, Vue
 
 **The universal rule:** one writer per signal, derive everything else.
 
-| System | How they enforce it |
-|---|---|
-| MobX | `enforceActions: "always"` — runtime throws on mutation outside action |
-| Elm/TEA | Language-level — `update` is the ONLY way to produce new state |
-| Signia (tldraw) | `transact(fn)` — groups writes, rollback on throw |
-| Jotai | Derived writable atoms hide the primitive, export controlled API |
-| Solid.js | `batch()` defers notifications; `createMemo` for derivations |
-| Vue | `computed` preferred over `watchEffect` for derived state |
+| System          | How they enforce it                                                  |
+| --------------- | -------------------------------------------------------------------- |
+| MobX            | enforceActions: "always" — runtime throws on mutation outside action |
+| Elm/TEA         | Language-level — update is the ONLY way to produce new state         |
+| Signia (tldraw) | transact(fn) — groups writes, rollback on throw                      |
+| Jotai           | Derived writable atoms hide the primitive, export controlled API     |
+| Solid.js        | batch() defers notifications; createMemo for derivations             |
+| Vue             | computed preferred over watchEffect for derived state                |
 
 **Three glitch prevention strategies:**
+
 1. **No graph** (Elm) — state transitions are atomic. No reactive propagation to glitch.
 2. **Topological scheduling** (MobX) — stale/ready two-phase ensures each derivation runs once per transaction.
 3. **Lazy pull with clock** (Signia, Solid, Vue) — writes mark dirty, recomputation is lazy on read. Can't observe half-updated graph.
@@ -143,3 +144,4 @@ Our TEA `apply()` boundary = strategy #1 (no graph inside the pure function). Ou
 - [Selection System Lessons](selection-system.md) — the full history of the selection design, including the bridge problem
 - [docs/principles.md](../principles.md) — "Signal ownership — one writer per signal" principle
 - [docs/architecture.md](../architecture.md) — Reactive Model section describing the three patterns
+

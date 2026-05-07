@@ -6,25 +6,25 @@
 
 ### Classic job control, generalized
 
-| Verb | Classic meaning | Generalized meaning |
-|---|---|---|
-| `&` | Spawn in background | Spawn a detached session |
-| `fg` | Foreground | Attach — focus pane, pop to front |
-| `bg` | Background | Detach — session keeps running |
-| `jobs` | List jobs | List sessions with status (running / idle / awaiting-input / done) |
-| `wait` | Wait on exit | Block until exit OR specified typed event |
-| `kill` | Send signal | Send typed control (cancel, pause, respond-to-prompt) |
+| Verb | Classic meaning     | Generalized meaning                                                |
+| ---- | ------------------- | ------------------------------------------------------------------ |
+| &    | Spawn in background | Spawn a detached session                                           |
+| fg   | Foreground          | Attach — focus pane, pop to front                                  |
+| bg   | Background          | Detach — session keeps running                                     |
+| jobs | List jobs           | List sessions with status (running / idle / awaiting-input / done) |
+| wait | Wait on exit        | Block until exit OR specified typed event                          |
+| kill | Send signal         | Send typed control (cancel, pause, respond-to-prompt)              |
 
 ### Extended for the session era
 
-| Verb | What |
-|---|---|
-| `tee A B` | Mirror A's block stream into B |
-| `link A B` | Typed pipe: A's output blocks → B's input |
-| `subscribe S event` | Register handler that fires on typed event |
-| `compose A B C` | Aggregator session: merges streams from multiple upstream |
-| `bus [name]` | Tail events on named bus |
-| `handoff S to P` | Transfer ownership of session S to user/pane P |
+| Verb              | What                                                      |
+| ----------------- | --------------------------------------------------------- |
+| tee A B           | Mirror A's block stream into B                            |
+| link A B          | Typed pipe: A's output blocks → B's input                 |
+| subscribe S event | Register handler that fires on typed event                |
+| compose A B C     | Aggregator session: merges streams from multiple upstream |
+| bus [name]        | Tail events on named bus                                  |
+| handoff S to P    | Transfer ownership of session S to user/pane P            |
 
 ## Who spawns
 
@@ -34,12 +34,12 @@
 
 ## Communication channels
 
-| Channel | Use |
-|---|---|
-| **Direct link** | Cross-session typed pipe, 1:1, ordered, backpressured |
-| **Tribe bus** | Broadcast typed events; extends bearly/tribe from session-coord to in-session |
-| **Shared state** | Typed, named value store — semaphores / flags / counters |
-| **Request / reply** | RPC over CAP-as-MCP interface |
+| Channel         | Use                                                                           |
+| --------------- | ----------------------------------------------------------------------------- |
+| Direct link     | Cross-session typed pipe, 1:1, ordered, backpressured                         |
+| Tribe bus       | Broadcast typed events; extends bearly/tribe from session-coord to in-session |
+| Shared state    | Typed, named value store — semaphores / flags / counters                      |
+| Request / reply | RPC over CAP-as-MCP interface                                                 |
 
 ## What this unlocks
 
@@ -97,13 +97,13 @@ Every session is tape-recordable. Every cross-session event is typed. The **whol
 
 The prerequisites coexist only in our stack:
 
-| Prereq | Ours |
-|---|---|
-| Typed blocks | CAP (see [05-cap-protocol.md](05-cap-protocol.md)) |
-| Structured bus | bearly/tribe (extend from session-coord inward) |
-| Replayable sessions | mdtest .tape |
-| PTY multiplex | @silvery/multiplex (see [04-multiplex.md](04-multiplex.md)) |
-| CAP-as-MCP | session.spawn is an agent-callable typed tool |
+| Prereq              | Ours                                            |
+| ------------------- | ----------------------------------------------- |
+| Typed blocks        | CAP (see 05-cap-protocol.md)                    |
+| Structured bus      | bearly/tribe (extend from session-coord inward) |
+| Replayable sessions | mdtest .tape                                    |
+| PTY multiplex       | @silvery/multiplex (see 04-multiplex.md)        |
+| CAP-as-MCP          | session.spawn is an agent-callable typed tool   |
 
 Alternatives each miss something:
 
@@ -146,6 +146,7 @@ Commander subscribes and renders; agents subscribe and react; watchers filter.
 ### Session identity
 
 Stable ULID per session. Addressable via:
+
 - Short prefix (`jobs 4a3f`)
 - Name (if given: `jobs @planner`)
 - Pane ID (`jobs pane-3`)
@@ -195,3 +196,4 @@ Every session event, every cross-session message, typed-logged. Replayable. Attr
 ## Origin
 
 2026-04-23 discussion — user's framing: "humans/agents can spin up sessions and sessions can be hooked together or communicate on a bus/tribe." Generalizes Unix job control to the agent era; bearly/tribe extended inward from session-coord.
+

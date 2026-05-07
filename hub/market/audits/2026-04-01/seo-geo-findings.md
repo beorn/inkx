@@ -9,13 +9,13 @@
 
 ## GEO Readiness Score: 61 / 100
 
-| Dimension | Weight | Raw | Weighted |
-|-----------|--------|-----|----------|
-| Citability | 25% | 60 | 15.0 |
-| Structural Readability | 20% | 72 | 14.4 |
-| Multi-Modal Content | 15% | 45 | 6.75 |
-| Authority & Brand Signals | 20% | 52 | 10.4 |
-| Technical Accessibility | 20% | 73 | 14.6 |
+| Dimension                 | Weight | Raw | Weighted |
+| ------------------------- | ------ | --- | -------- |
+| Citability                | 25%    | 60  | 15.0     |
+| Structural Readability    | 20%    | 72  | 14.4     |
+| Multi-Modal Content       | 15%    | 45  | 6.75     |
+| Authority & Brand Signals | 20%    | 52  | 10.4     |
+| Technical Accessibility   | 20%    | 73  | 14.6     |
 
 **Total: 61 / 100** — "Developing" tier. Functional but leaving significant AI citation opportunity on the table.
 
@@ -114,10 +114,8 @@ The site contains several high-quality citable passages:
 
 - Current: "When to Choose Each"
 - Better: "When should I use Silvery instead of Ink?"
-
 - Current: "Key Functional Differences"
 - Better: "What can Silvery do that Ink cannot?"
-
 - Current: "Performance Claims"
 - Better: "How much faster is Silvery than Ink?"
 
@@ -163,6 +161,7 @@ Question-based H2/H3 headings directly increase the probability of appearing in 
 VitePress generates clean server-side rendered HTML with proper semantic structure. AI crawlers receive complete content without JavaScript execution. This is a meaningful technical advantage over CSR-only sites.
 
 The site has:
+
 - Consistent heading hierarchy (H1 page title, H2 sections, H3 subsections)
 - Code blocks with language-tagged fences (TypeScript, bash)
 - Comparison tables on the vs-Ink and vs-BubbleTea pages
@@ -187,6 +186,7 @@ The site has:
 **Score: 68 / 100**
 
 The vs-Ink and vs-BubbleTea pages are the most AI-optimized content on the site because they contain:
+
 - Named alternatives (searchable entities)
 - Specific numeric claims (169us, 20.7ms, 804/813)
 - Clear selection criteria ("When to Choose Each" sections)
@@ -203,6 +203,7 @@ This 55-word opening answers the query immediately and contains citable specific
 **The vs-BubbleTea page** crosses language domains (Go vs TypeScript) which is valuable for developers asking "should I use Go or TypeScript for my TUI." This cross-language comparison is rare and should be promoted more prominently in the site structure.
 
 **Missing comparison pages:**
+
 - vs Textual (Python): mentioned in llms.txt but not fetched as a live URL
 - vs Blessed: mentioned in llms.txt but no confirmed live page
 - vs Charm/Gum: not mentioned, but Gum is widely used and frequently searched
@@ -306,28 +307,29 @@ YouTube mention correlation with AI citations is ~0.737 — the strongest single
 
 ## Summary Score Card
 
-| Check | Status |
-|-------|--------|
-| robots.txt — AI crawlers allowed | PASS |
-| llms.txt present | PASS |
-| llms-full.txt present | PASS |
-| llms.txt licensing declaration | FAIL |
-| llms.txt metadata header | FAIL |
-| SSR / static rendering | PASS |
-| Sitemap present | PASS |
-| Question-based headings | FAIL |
-| Self-contained citable passages | PARTIAL |
-| Comparison pages exist | PASS (vs Ink, vs BubbleTea) |
-| Component count consistency | FAIL (30+ vs 45+) |
-| FAQ section or page | FAIL |
-| Schema.org structured data | FAIL |
-| Author attribution | PARTIAL (name only, no external links) |
-| GitHub/npm links | PARTIAL (About page only) |
-| YouTube content | FAIL |
-| Wikipedia entity | FAIL |
-| Reddit / HackerNews presence | UNKNOWN |
-| External adopter mentions | FAIL |
-| Benchmark claims with numbers | PASS |
-| Changelog / dated content | FAIL |
+| Check                            | Status                                 |
+| -------------------------------- | -------------------------------------- |
+| robots.txt — AI crawlers allowed | PASS                                   |
+| llms.txt present                 | PASS                                   |
+| llms-full.txt present            | PASS                                   |
+| llms.txt licensing declaration   | FAIL                                   |
+| llms.txt metadata header         | FAIL                                   |
+| SSR / static rendering           | PASS                                   |
+| Sitemap present                  | PASS                                   |
+| Question-based headings          | FAIL                                   |
+| Self-contained citable passages  | PARTIAL                                |
+| Comparison pages exist           | PASS (vs Ink, vs BubbleTea)            |
+| Component count consistency      | FAIL (30+ vs 45+)                      |
+| FAQ section or page              | FAIL                                   |
+| Schema.org structured data       | FAIL                                   |
+| Author attribution               | PARTIAL (name only, no external links) |
+| GitHub/npm links                 | PARTIAL (About page only)              |
+| YouTube content                  | FAIL                                   |
+| Wikipedia entity                 | FAIL                                   |
+| Reddit / HackerNews presence     | UNKNOWN                                |
+| External adopter mentions        | FAIL                                   |
+| Benchmark claims with numbers    | PASS                                   |
+| Changelog / dated content        | FAIL                                   |
 
 **GEO Readiness: 61 / 100 — Developing**
+

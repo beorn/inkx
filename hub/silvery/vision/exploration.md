@@ -244,3 +244,4 @@ display list → Canvas2D / WebGL / Terminal / SVG / PDF   ← rendering targets
 ## Research
 
 ~$41 across 8 GPT 5.4 Pro deep research queries: platform rendering architectures, canvas+DOM mirror, iWork/Office/Google Docs, interaction architectures, drawing/scene graph options, ag deep dive, VoidZero/SSR.
+

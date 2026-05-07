@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest"
-import {
-  type AgentColorizer,
-  formatAgentBrief,
-  formatAgentStatus,
-  plainColorizer,
-} from "../src/format.ts"
+import { type AgentColorizer, formatAgentBrief, formatAgentStatus, plainColorizer } from "../src/format.ts"
 import type { Agent } from "../src/types.ts"
 
 const tagColorizer: AgentColorizer = {
@@ -70,11 +65,9 @@ describe("formatAgentBrief", () => {
   })
 
   test("colorizer wraps shortId, status glyph, task suffix, model line", () => {
-    const lines = formatAgentBrief(
-      { ...baseAgent, status: "running", currentTaskId: "km-q5h3" },
-      tagColorizer,
-      { withModelHarness: true },
-    )
+    const lines = formatAgentBrief({ ...baseAgent, status: "running", currentTaskId: "km-q5h3" }, tagColorizer, {
+      withModelHarness: true,
+    })
     expect(lines[0]).toBe("<g>●</g> <cy>agent-abcd</cy> Reviewer<d> → km-q5h3</d>")
     expect(lines[1]).toBe("<d>   claude-sonnet-4 / general</d>")
   })

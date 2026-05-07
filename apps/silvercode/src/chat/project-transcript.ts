@@ -59,13 +59,16 @@ function assertEventIdsInclude(owner: string, eventId: ChatEventId, eventIds: re
 function requireMessageState(
   messages: Map<ChatMessageId, MessageProjectionState>,
   event: ChatEvent<"message.part.added">,
-) {
+): MessageProjectionState | null {
   const state = messages.get(event.payload.messageId)
   if (!state) {
     throw new Error(`message.part.added ${event.id} references unknown message ${event.payload.messageId}`)
   }
   if (state.completed) {
-    throw new Error(`message.part.added ${event.id} references completed message ${event.payload.messageId}`)
+    // ACP servers can deliver a trailing text delta after Silvercode has
+    // force-closed a turn so the user can submit a new prompt. Treat that as
+    // stale stream data instead of crashing the projection.
+    return null
   }
   if (event.payload.part.id !== event.payload.partId) {
     throw new Error(`message.part.added ${event.id} payload part id does not match partId`)
@@ -240,6 +243,7 @@ export function projectChatTranscript({ sessionId, events }: ProjectArgs): ChatT
       }
       case "message.part.added": {
         const message = requireMessageState(messages, event)
+        if (!message) break
         const part = event.payload.part
         if (part.type === "text") {
           pushLeaf({

@@ -8,11 +8,11 @@ Views, navigation, collapsing, and the TUI design system.
 
 km uses three tree levels:
 
-| Tree        | Location    | Purpose                                            |
-| ----------- | ----------- | -------------------------------------------------- |
-| **fs-tree** | Disk        | Folders, files, markdown content. Source of truth. |
-| **km-tree** | SQLite      | Unified nodes. Queryable.                          |
-| **ui-tree** | Render-time | Collapsed, formatted for output.                   |
+| Tree    | Location    | Purpose                                            |
+| ------- | ----------- | -------------------------------------------------- |
+| fs-tree | Disk        | Folders, files, markdown content. Source of truth. |
+| km-tree | SQLite      | Unified nodes. Queryable.                          |
+| ui-tree | Render-time | Collapsed, formatted for output.                   |
 
 Collapsing happens only in ui-tree — km-tree preserves actual structure.
 
@@ -20,14 +20,14 @@ Collapsing happens only in ui-tree — km-tree preserves actual structure.
 
 ## Views
 
-| View  | Command                      | Collapsing      | Use                          |
-| ----- | ---------------------------- | --------------- | ---------------------------- |
-| List  | `km list` / `km ls`          | No              | Flat node list               |
-| List  | `km ls --context`            | Yes (ancestors) | With ancestor paths          |
-| Tasks | `km tasks`                   | Yes (ancestors) | = `ls --type task --context` |
-| Board | `km view`                    | Yes (children)  | Kanban columns               |
-| Tree  | `km show --tree`             | No              | Actual structure             |
-| Tree  | `km show --tree --collapsed` | Yes             | Compact view                 |
+| View  | Command                    | Collapsing      | Use                        |
+| ----- | -------------------------- | --------------- | -------------------------- |
+| List  | km list / km ls            | No              | Flat node list             |
+| List  | km ls --context            | Yes (ancestors) | With ancestor paths        |
+| Tasks | km tasks                   | Yes (ancestors) | = ls --type task --context |
+| Board | km view                    | Yes (children)  | Kanban columns             |
+| Tree  | km show --tree             | No              | Actual structure           |
+| Tree  | km show --tree --collapsed | Yes             | Compact view               |
 
 All views support `--id` to show node IDs (hidden by default).
 
@@ -57,40 +57,40 @@ Taxes / .md #    # shows all three types in suffix
 
 ### Name Normalization
 
-| Original             | Normalized           |
-| -------------------- | -------------------- |
-| `Taxes/`             | `taxes`              |
-| `Taxes.md`           | `taxes`              |
-| `# Taxes`            | `taxes`              |
-| `US-Financial-Setup` | `us financial setup` |
+| Original           | Normalized         |
+| ------------------ | ------------------ |
+| Taxes/             | taxes              |
+| Taxes.md           | taxes              |
+| # Taxes            | taxes              |
+| US-Financial-Setup | us financial setup |
 
 Rules: strip `#`, `.md`, replace `-_` with space, lowercase, trim.
 
 ### Collapsing Directions
 
-| Direction     | Used By       | Algorithm                                |
-| ------------- | ------------- | ---------------------------------------- |
-| **Bottom-up** | Task context  | Walk ancestors, group matching names     |
-| **Top-down**  | Board columns | Walk children, find first different name |
+| Direction | Used By       | Algorithm                                |
+| --------- | ------------- | ---------------------------------------- |
+| Bottom-up | Task context  | Walk ancestors, group matching names     |
+| Top-down  | Board columns | Walk children, find first different name |
 
 ---
 
 ## Type Indicators
 
-| Type    | Indicator         | Example        |
-| ------- | ----------------- | -------------- |
-| folder  | `/`               | `Projects/`    |
-| file    | `.md`             | `README.md`    |
-| section | `#`               | `# Overview`   |
-| task    | `[ ]` `[x]` `[/]` | `[ ] Do thing` |
+| Type    | Indicator   | Example      |
+| ------- | ----------- | ------------ |
+| folder  | /           | Projects/    |
+| file    | .md         | README.md    |
+| section | #           | # Overview   |
+| task    | [ ] [x] [/] | [ ] Do thing |
 
 ### Collapsed Suffix
 
-| Collapsed               | Suffix    |
-| ----------------------- | --------- |
-| folder + file           | `/ .md`   |
-| folder + file + section | `/ .md #` |
-| file + section          | `.md #`   |
+| Collapsed               | Suffix  |
+| ----------------------- | ------- |
+| folder + file           | / .md   |
+| folder + file + section | / .md # |
+| file + section          | .md #   |
 
 Suffix renders dim/gray.
 
@@ -98,13 +98,13 @@ Suffix renders dim/gray.
 
 Every inline link (wiki, embed, sigil, mdlink, autolink, bare URL) resolves to one of five `KResolution` kinds. Renderers switch on `kind` and apply the corresponding visual. See [docs/design/model/klink.md](../design/model/klink.md).
 
-| Kind        | Visual                                           | Click                             |
-| ----------- | ------------------------------------------------ | --------------------------------- |
-| `external`  | External-link style, external icon               | Open in browser                   |
-| `self`      | Resolved style (link color + dotted underline)   | Scroll to anchor in host          |
-| `resolved`  | Resolved style (link color + dotted underline)   | Navigate to target                |
-| `ambiguous` | Ambiguous warning (`$warning` + superscript N)   | `PickerDialog` over targets       |
-| `broken`    | Broken style (`$error` dashed underline)         | Offer "create note"               |
+| Kind      | Visual                                         | Click                     |
+| --------- | ---------------------------------------------- | ------------------------- |
+| external  | External-link style, external icon             | Open in browser           |
+| self      | Resolved style (link color + dotted underline) | Scroll to anchor in host  |
+| resolved  | Resolved style (link color + dotted underline) | Navigate to target        |
+| ambiguous | Ambiguous warning ($warning + superscript N)   | PickerDialog over targets |
+| broken    | Broken style ($error dashed underline)         | Offer "create note"       |
 
 ---
 
@@ -137,53 +137,53 @@ The TUI targets **256-color terminals** as the baseline. All core features work 
 
 ### Selection Colors
 
-| Color                  | Usage                   | Rationale                          |
-| ---------------------- | ----------------------- | ---------------------------------- |
-| `cyan` bg + `black` fg | **Selection (all)**     | Cursor, focused item, multi-select |
-| `cyanBright` border    | **Active panel/card**   | Draws eye to focused region        |
-| `blackBright` border   | **Inactive panel/card** | Present but de-emphasized          |
+| Color              | Usage               | Rationale                          |
+| ------------------ | ------------------- | ---------------------------------- |
+| cyan bg + black fg | Selection (all)     | Cursor, focused item, multi-select |
+| cyanBright border  | Active panel/card   | Draws eye to focused region        |
+| blackBright border | Inactive panel/card | Present but de-emphasized          |
 
 ### Header Colors
 
-| Color                  | Usage                        | Rationale                             |
-| ---------------------- | ---------------------------- | ------------------------------------- |
-| `yellow` + bold        | **Selected column header**   | Stands out, indicates current context |
-| `yellowBright` + dim   | **Unselected column header** | Visible but clearly secondary         |
-| `cyan` bg + `black` fg | **Header at cursor level**   | Consistent with item selection        |
+| Color              | Usage                    | Rationale                             |
+| ------------------ | ------------------------ | ------------------------------------- |
+| yellow + bold      | Selected column header   | Stands out, indicates current context |
+| yellowBright + dim | Unselected column header | Visible but clearly secondary         |
+| cyan bg + black fg | Header at cursor level   | Consistent with item selection        |
 
 ### Status Icon Colors
 
-| Color    | Status  | Icon | Meaning        |
-| -------- | ------- | ---- | -------------- |
-| `gray`   | todo    | ○    | Not started    |
-| `yellow` | wip     | ◐    | In progress    |
-| `red`    | blocked | ⊘    | Cannot proceed |
-| `green`  | done    | ✓    | Completed      |
-| `gray`   | dropped | ∅    | Abandoned      |
+| Color  | Status  | Icon | Meaning        |
+| ------ | ------- | ---- | -------------- |
+| gray   | todo    | ○    | Not started    |
+| yellow | wip     | ◐    | In progress    |
+| red    | blocked | ⊘    | Cannot proceed |
+| green  | done    | ✓    | Completed      |
+| gray   | dropped | ∅    | Abandoned      |
 
 ### Tag/Board Colors (User-Assignable)
 
 Users can assign colors to boards and tags using the `km.color::` attribute:
 
-| Color     | ANSI | Suggested Use                                  |
-| --------- | ---- | ---------------------------------------------- |
-| `white`   | 7    | Default, neutral                               |
-| `blue`    | 4    | Information, reference                         |
-| `magenta` | 5    | Special, highlight                             |
-| `yellow`  | 3    | Warning, attention (avoid - used by WIP icon)  |
-| `red`     | 1    | Urgent, blocked (avoid - used by blocked icon) |
-| `green`   | 2    | Success, done (avoid - used by done icon)      |
+| Color   | ANSI | Suggested Use                                  |
+| ------- | ---- | ---------------------------------------------- |
+| white   | 7    | Default, neutral                               |
+| blue    | 4    | Information, reference                         |
+| magenta | 5    | Special, highlight                             |
+| yellow  | 3    | Warning, attention (avoid - used by WIP icon)  |
+| red     | 1    | Urgent, blocked (avoid - used by blocked icon) |
+| green   | 2    | Success, done (avoid - used by done icon)      |
 
 **Avoid for tags**: `cyan` (reserved for selection), `gray` (used for dimming/chrome).
 
 ### UI Chrome Colors
 
-| Element           | Color                  | Usage                           |
-| ----------------- | ---------------------- | ------------------------------- |
-| Separators        | `gray`                 | Column dividers, borders        |
-| Scroll indicators | `gray` bg + `white` fg | Show more content available     |
-| Hints/metadata    | `dimColor`             | Secondary information           |
-| Embedded context  | `dimColor` + `italic`  | Parent path for embed targets   |
+| Element           | Color              | Usage                         |
+| ----------------- | ------------------ | ----------------------------- |
+| Separators        | gray               | Column dividers, borders      |
+| Scroll indicators | gray bg + white fg | Show more content available   |
+| Hints/metadata    | dimColor           | Secondary information         |
+| Embedded context  | dimColor + italic  | Parent path for embed targets |
 
 ---
 
@@ -191,11 +191,11 @@ Users can assign colors to boards and tags using the `km.color::` attribute:
 
 These colors have specific semantic meanings and **MUST NOT** be reused:
 
-| Color             | Reserved For                  | Why                                          |
-| ----------------- | ----------------------------- | -------------------------------------------- |
-| `cyan` background | **Selection only**            | Users must instantly identify where they are |
-| `inverse` video   | **Input cursor, mode badges** | Text input focus indicator                   |
-| `$selected` + `dimColor` | **Unfocused pane cursor** | Cursor visible but subdued in inactive pane |
+| Color                | Reserved For              | Why                                          |
+| -------------------- | ------------------------- | -------------------------------------------- |
+| cyan background      | Selection only            | Users must instantly identify where they are |
+| inverse video        | Input cursor, mode badges | Text input focus indicator                   |
+| $selected + dimColor | Unfocused pane cursor     | Cursor visible but subdued in inactive pane  |
 
 ### Anti-patterns
 
@@ -209,10 +209,10 @@ These colors have specific semantic meanings and **MUST NOT** be reused:
 
 The TUI uses two styling systems that can conflict:
 
-| System         | How it works                                              | Best for                                     |
-| -------------- | --------------------------------------------------------- | -------------------------------------------- |
-| **silvery props** | `<Box backgroundColor="cyan">` fills entire computed area | Backgrounds, containers, selection           |
-| **chalk/ANSI** | `chalk.bgCyan('text')` only colors text characters        | Inline text styling (bold, italic, fg color) |
+| System        | How it works                                            | Best for                                     |
+| ------------- | ------------------------------------------------------- | -------------------------------------------- |
+| silvery props | <Box backgroundColor="cyan"> fills entire computed area | Backgrounds, containers, selection           |
+| chalk/ANSI    | chalk.bgCyan('text') only colors text characters        | Inline text styling (bold, italic, fg color) |
 
 ### The Rule
 
@@ -246,11 +246,11 @@ When both are used, chalk bg only colors the text characters while silvery fills
 
 Silvery detects this conflict at runtime. Control via `SILVERY_BG_CONFLICT` env var:
 
-| Value             | Behavior                              |
-| ----------------- | ------------------------------------- |
-| `throw` (default) | Throws error immediately              |
-| `warn`            | Logs warning once per unique conflict |
-| `ignore`          | No detection (for performance)        |
+| Value           | Behavior                              |
+| --------------- | ------------------------------------- |
+| throw (default) | Throws error immediately              |
+| warn            | Logs warning once per unique conflict |
+| ignore          | No detection (for performance)        |
 
 ### Intentional Override
 
@@ -271,27 +271,27 @@ import { bgOverride } from "@silvery/ansi"
 
 ### Item-Level Selection
 
-| State    | Background | Foreground | Modifiers                   |
-| -------- | ---------- | ---------- | --------------------------- |
-| Normal   | -          | default    | -                           |
-| Selected | `cyan`     | `black`    | -                           |
-| Done     | -          | -          | `dimColor`, `strikethrough` |
-| Dropped  | -          | -          | `dimColor`, `strikethrough` |
+| State    | Background | Foreground | Modifiers               |
+| -------- | ---------- | ---------- | ----------------------- |
+| Normal   | -          | default    | -                       |
+| Selected | cyan       | black      | -                       |
+| Done     | -          | -          | dimColor, strikethrough |
+| Dropped  | -          | -          | dimColor, strikethrough |
 
 ### Panel-Level Focus
 
-| State          | Border Color  | Header Style               |
-| -------------- | ------------- | -------------------------- |
-| Active panel   | `cyanBright`  | `yellow`, `bold`           |
-| Inactive panel | `blackBright` | `yellowBright`, `dimColor` |
+| State          | Border Color | Header Style           |
+| -------------- | ------------ | ---------------------- |
+| Active panel   | cyanBright   | yellow, bold           |
+| Inactive panel | blackBright  | yellowBright, dimColor |
 
 ### Input Fields
 
-| State                   | Style                       |
-| ----------------------- | --------------------------- |
-| Text cursor position    | `inverse` (single space)    |
-| Selected item in picker | `cyan` bg, arrow prefix `▸` |
-| Unselected item         | no prefix indent            |
+| State                   | Style                   |
+| ----------------------- | ----------------------- |
+| Text cursor position    | inverse (single space)  |
+| Selected item in picker | cyan bg, arrow prefix ▸ |
+| Unselected item         | no prefix indent        |
 
 ---
 
@@ -299,12 +299,12 @@ import { bgOverride } from "@silvery/ansi"
 
 Due dates use colored underlines to indicate urgency:
 
-| Urgency        | Underline Style | Color (RGB)              |
-| -------------- | --------------- | ------------------------ |
-| Overdue        | curly           | `[255, 80, 80]` (red)    |
-| Today/Tomorrow | curly           | `[255, 165, 0]` (orange) |
-| Within 7 days  | single          | `[255, 255, 0]` (yellow) |
-| Beyond 7 days  | none            | -                        |
+| Urgency        | Underline Style | Color (RGB)            |
+| -------------- | --------------- | ---------------------- |
+| Overdue        | curly           | [255, 80, 80] (red)    |
+| Today/Tomorrow | curly           | [255, 165, 0] (orange) |
+| Within 7 days  | single          | [255, 255, 0] (yellow) |
+| Beyond 7 days  | none            | -                      |
 
 These use true color (24-bit RGB) and may not render in all terminals.
 
@@ -431,12 +431,12 @@ When adding new visual elements:
 
 ### Movement Types
 
-| Term           | Meaning                                   | Keys                      |
-| -------------- | ----------------------------------------- | ------------------------- |
-| **Cursoring**  | Move to visually adjacent block           | `h j k l` or arrows       |
-| **Navigating** | Change board root (zoom)                  | `u` / `Enter` / `[` / `]` |
-| **Shifting**   | Move selected node(s) in visual direction | `⌥+hjkl` or `⌥+arrows`    |
-| **Moving**     | Move node(s) to arbitrary destination     | `m` + cursor + `Enter`    |
+| Term       | Meaning                                   | Keys               |
+| ---------- | ----------------------------------------- | ------------------ |
+| Cursoring  | Move to visually adjacent block           | h j k l or arrows  |
+| Navigating | Change board root (zoom)                  | u / Enter / [ / ]  |
+| Shifting   | Move selected node(s) in visual direction | ⌥+hjkl or ⌥+arrows |
+| Moving     | Move node(s) to arbitrary destination     | m + cursor + Enter |
 
 ### Visual Block Model
 
@@ -457,23 +457,23 @@ Every navigable element is a full-width block. Cursor moves between blocks visua
 
 ### Keybindings
 
-| Key      | Action                             |
-| -------- | ---------------------------------- |
-| `j`/`↓`  | Move cursor down (visual)          |
-| `k`/`↑`  | Move cursor up (visual)            |
-| `h`/`←`  | Move cursor left (cross-column)    |
-| `l`/`→`  | Move cursor right (cross-column)   |
-| `u`      | Zoom out (root → parent)           |
-| `Enter`  | Zoom in (root → selected)          |
-| `[`      | History back                       |
-| `]`      | History forward                    |
-| `⇧+hjkl` | Extend selection in direction      |
-| `⌥+hjkl` | Move selected node(s) in direction |
-| `m`      | Enter move mode                    |
-| `x`      | Toggle task status                 |
-| `Space`  | Toggle fold                        |
-| `A`      | Select all siblings                |
-| `Escape` | Clear selection / cancel mode      |
+| Key    | Action                             |
+| ------ | ---------------------------------- |
+| j/↓    | Move cursor down (visual)          |
+| k/↑    | Move cursor up (visual)            |
+| h/←    | Move cursor left (cross-column)    |
+| l/→    | Move cursor right (cross-column)   |
+| u      | Zoom out (root → parent)           |
+| Enter  | Zoom in (root → selected)          |
+| [      | History back                       |
+| ]      | History forward                    |
+| ⇧+hjkl | Extend selection in direction      |
+| ⌥+hjkl | Move selected node(s) in direction |
+| m      | Enter move mode                    |
+| x      | Toggle task status                 |
+| Space  | Toggle fold                        |
+| A      | Select all siblings                |
+| Escape | Clear selection / cancel mode      |
 
 ### BoardState
 
@@ -529,12 +529,12 @@ Each pane (board, detail) is a silvery **focus scope** — a container that reme
 
 **Scope-aware commands:** Navigation commands (`cursor_down`, `cursor_up`, `enter`) check the active scope type and dispatch to the appropriate handler (board vs detail). This eliminates duplicate `detail_pane.*` commands.
 
-| Key       | Board Scope           | Detail Scope                          |
-| --------- | --------------------- | ------------------------------------- |
-| `j` / `k` | Move cursor down/up   | Move detail cursor down/up            |
-| `h`       | Move to prev column   | Return to board pane                  |
-| `Enter`   | Zoom into card        | Zoom into detail cursor node          |
-| `n`       | Toggle detail pane    | Toggle detail pane (cycles focus)     |
+| Key   | Board Scope         | Detail Scope                      |
+| ----- | ------------------- | --------------------------------- |
+| j / k | Move cursor down/up | Move detail cursor down/up        |
+| h     | Move to prev column | Return to board pane              |
+| Enter | Zoom into card      | Zoom into detail cursor node      |
+| n     | Toggle detail pane  | Toggle detail pane (cycles focus) |
 
 ### Cursor Depth and Direction Translation
 
@@ -642,6 +642,7 @@ Column A                    Column B
 ```
 
 When cursor is on Card 0 in Column A and pressing `l`:
+
 - `curswantY` = title midpoint of Card 0 (~row 4)
 - In Column B, Card 0's midpoint is closest to row 4
 - Result: cursor lands on Card 0 in Column B
@@ -656,79 +657,79 @@ Press `?` in the TUI to show the interactive help overlay.
 
 ### Navigation
 
-| Key         | Action                                |
-| ----------- | ------------------------------------- |
-| `j` / `↓`   | Move cursor down (visual)             |
-| `k` / `↑`   | Move cursor up (visual)               |
-| `h` / `←`   | Move cursor left (cross-column)       |
-| `l` / `→`   | Move cursor right (cross-column)      |
-| `g`         | Go to first card in column            |
-| `G`         | Go to last card in column             |
-| `Shift+1-9` | Jump to column 1-9                    |
-| `1-9`       | Jump to favorite board (@next, etc.)  |
-| `u`         | Zoom out (go to parent node)          |
-| `Enter`     | Zoom in / open detail pane            |
-| `o`         | Open item in context (grandparent)    |
-| `[`         | History back                          |
-| `]`         | History forward                       |
-| `Esc`       | Close pane / exit mode / quit         |
+| Key       | Action                               |
+| --------- | ------------------------------------ |
+| j / ↓     | Move cursor down (visual)            |
+| k / ↑     | Move cursor up (visual)              |
+| h / ←     | Move cursor left (cross-column)      |
+| l / →     | Move cursor right (cross-column)     |
+| g         | Go to first card in column           |
+| G         | Go to last card in column            |
+| Shift+1-9 | Jump to column 1-9                   |
+| 1-9       | Jump to favorite board (@next, etc.) |
+| u         | Zoom out (go to parent node)         |
+| Enter     | Zoom in / open detail pane           |
+| o         | Open item in context (grandparent)   |
+| [         | History back                         |
+| ]         | History forward                      |
+| Esc       | Close pane / exit mode / quit        |
 
 ### Card Operations
 
-| Key            | Action                                         |
-| -------------- | ---------------------------------------------- |
-| `Space`        | Cycle task status (todo→wip→done→dropped→todo) |
-| `D`            | Delete card (embeds: remove from board)        |
-| `n`            | Open new item dialog                           |
-| `Tab`          | Indent (make child of item above)              |
-| `Shift+Tab`    | Outdent (make sibling of parent)               |
-| `p`            | Open item picker (move to project)              |
-| `e`            | Edit item in external editor                   |
-| `1-5` (detail) | Set priority (when detail pane open)           |
+| Key          | Action                                         |
+| ------------ | ---------------------------------------------- |
+| Space        | Cycle task status (todo→wip→done→dropped→todo) |
+| D            | Delete card (embeds: remove from board)        |
+| n            | Open new item dialog                           |
+| Tab          | Indent (make child of item above)              |
+| Shift+Tab    | Outdent (make sibling of parent)               |
+| p            | Open item picker (move to project)             |
+| e            | Edit item in external editor                   |
+| 1-5 (detail) | Set priority (when detail pane open)           |
 
 ### Moving Items
 
-| Key           | Action                         |
-| ------------- | ------------------------------ |
-| `⌥+j` / `⌥+↓` | Move card down in column       |
-| `⌥+k` / `⌥+↑` | Move card up in column         |
-| `⌥+h` / `⌥+←` | Move card to column left       |
-| `⌥+l` / `⌥+→` | Move card to column right      |
-| `⌥+1-9`       | Move card to top of column 1-9 |
+| Key       | Action                         |
+| --------- | ------------------------------ |
+| ⌥+j / ⌥+↓ | Move card down in column       |
+| ⌥+k / ⌥+↑ | Move card up in column         |
+| ⌥+h / ⌥+← | Move card to column left       |
+| ⌥+l / ⌥+→ | Move card to column right      |
+| ⌥+1-9     | Move card to top of column 1-9 |
 
 ### View Controls
 
-| Key       | Action                                    |
-| --------- | ----------------------------------------- |
-| `v`       | Cycle view mode (cards→columns→list→tabs) |
-| `+` / `=` | Increase outline depth                    |
-| `-`       | Decrease outline depth                    |
-| `z`       | Fold all cards in column                  |
-| `Z`       | Unfold all cards in column                |
-| `c`       | Toggle column collapse                    |
-| `i`       | Toggle detail pane                        |
+| Key   | Action                                    |
+| ----- | ----------------------------------------- |
+| v     | Cycle view mode (cards→columns→list→tabs) |
+| + / = | Increase outline depth                    |
+| -     | Decrease outline depth                    |
+| z     | Fold all cards in column                  |
+| Z     | Unfold all cards in column                |
+| c     | Toggle column collapse                    |
+| i     | Toggle detail pane                        |
 
 ### Selection
 
-| Key                   | Action                                      |
-| --------------------- | ------------------------------------------- |
-| `Shift+A`             | Select all (progressive: card→column→board) |
-| `Shift+j` / `Shift+↓` | Extend selection down                       |
-| `Shift+k` / `Shift+↑` | Extend selection up                         |
-| `Shift+h` / `Shift+←` | Extend selection left (column)              |
-| `Shift+l` / `Shift+→` | Extend selection right (column)             |
+| Key               | Action                                      |
+| ----------------- | ------------------------------------------- |
+| Shift+A           | Select all (progressive: card→column→board) |
+| Shift+j / Shift+↓ | Extend selection down                       |
+| Shift+k / Shift+↑ | Extend selection up                         |
+| Shift+h / Shift+← | Extend selection left (column)              |
+| Shift+l / Shift+→ | Extend selection right (column)             |
 
 ### General
 
-| Key         | Action                                        |
-| ----------- | --------------------------------------------- |
-| `?`         | Toggle help overlay                           |
-| `Escape`    | Close current dialog/pane/mode                |
-| `Ctrl+K` or `Cmd+K` or `:` | Open command palette (`quit` to exit) |
-| `Ctrl+C`    | Quit immediately                              |
+| Key                  | Action                              |
+| -------------------- | ----------------------------------- |
+| ?                    | Toggle help overlay                 |
+| Escape               | Close current dialog/pane/mode      |
+| Ctrl+K or Cmd+K or : | Open command palette (quit to exit) |
+| Ctrl+C               | Quit immediately                    |
 
-> `q` alone is **not** bound to quit — a single fat-finger keystroke must
-> never destroy the session. Use the command palette or `Ctrl+C`.
+> q alone is not bound to quit — a single fat-finger keystroke must
+> never destroy the session. Use the command palette or Ctrl+C.
 
 ---
 
@@ -878,3 +879,4 @@ km automatically shows toasts for certain events:
 - [../architecture.md](../architecture.md) — Layer responsibilities
 - [../storage.md](../design/model/storage.md) — Node schema
 - [The Silvery Way](../../vendor/silvery/docs/guide/the-silvery-way.md) — Current TUI patterns (km migrated off Ink to silvery)
+

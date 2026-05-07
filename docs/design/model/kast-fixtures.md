@@ -541,7 +541,7 @@ h item(fstype:mdsection, name:"references", content:"References")
 
 ### Markdown
 
-````markdown
+~~~~markdown
 ## Architecture
 
 - Frontend
@@ -558,7 +558,7 @@ h item(fstype:mdsection, name:"references", content:"References")
     - Local state
 
 - Backend
-````
+~~~~
 
 ### AST
 
@@ -852,7 +852,7 @@ h item(fstype:mdsection, name:"requirements", content:"Requirements")
 
 ### Markdown
 
-```markdown
+~~~~markdown
 ## Notes
 
 - First point with a long explanation.
@@ -861,19 +861,22 @@ h item(fstype:mdsection, name:"requirements", content:"Requirements")
 
   ```python
   print("still part of first item")
-  ```
+~~~~
 
 - Second point.
+
 ```
 
 ### AST
 
 ```
+
 h item(fstype:mdsection, name:"notes", content:"Notes")
   p item(list:"-", content:"First point with a long explanation.")
     p(content:"This continues the first point with a second paragraph.")
     code(content:"print(\"still part of first item\")", data:{lang:"python"})
   p item(list:"-", content:"Second point.")
+
 ```
 
 **Key points:**
@@ -881,3 +884,5 @@ h item(fstype:mdsection, name:"notes", content:"Notes")
 - Multi-paragraph list items have multiple `p` children of the `p item`
 - Code blocks, quotes, etc. can also appear inside a list item
 - Indented continuation (4 spaces or 1 tab) signals same list item
+```
+

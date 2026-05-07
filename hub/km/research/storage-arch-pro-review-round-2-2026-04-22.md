@@ -1,6 +1,6 @@
-<!-- llm-meta: {"model":"dual-pro (GPT-5.4 Pro + Kimi K2.6)","session":"8b5b9e1c","timestamp":"2026-04-22T00:06:29.528Z","query":"Review round 2 of km's storage architecture. I want critique, not validation. Is it internally consistent? Is the FS-truth-now-DB-truth-later framing honest or hedging? Does the reconciliation model (§3) handle common offline-edit scenarios? Are the sync tiers (§9) well-separated? What would bite a solo dev with 3-6 months executing this?","cost":"$0.047","tokens":18297,"durationMs":335672} -->
-
 # Dual-Pro Response
+
+<!-- llm-meta: {"model":"dual-pro (GPT-5.4 Pro + Kimi K2.6)","session":"8b5b9e1c","timestamp":"2026-04-22T00:06:29.528Z","query":"Review round 2 of km's storage architecture. I want critique, not validation. Is it internally consistent? Is the FS-truth-now-DB-truth-later framing honest or hedging? Does the reconciliation model (§3) handle common offline-edit scenarios? Are the sync tiers (§9) well-separated? What would bite a solo dev with 3-6 months executing this?","cost":"$0.047","tokens":18297,"durationMs":335672} -->
 
 **Question**: Review round 2 of km's storage architecture. I want critique, not validation. Is it internally consistent? Is the FS-truth-now-DB-truth-later framing honest or hedging? Does the reconciliation model (§3) handle common offline-edit scenarios? Are the sync tiers (§9) well-separated? What would bite a solo dev with 3-6 months executing this?
 
@@ -10,11 +10,13 @@
 ---
 
 ## GPT-5.4 Pro
+
 ⚠️  Failed: Response failed
 
 ---
 
 ## Kimi K2.6
+
 _18297 tokens · 336s · $0.047_
 
 This document has improved materially since round 1, but it still carries the scars of too many rewrite passes. It is **not yet internally consistent**, the **FS/DB flip is hedging dressed up as roadmapping**, and the **cost estimates are dangerous fantasies** for a solo dev. Below is the critique you asked for.
@@ -26,12 +28,14 @@ This document has improved materially since round 1, but it still carries the sc
 **Duplicate section numbering.** You have two §1.1s and two §1.2s. The second §1.1 ("The load-bearing invariant") and §1.2 ("What 'identity' means...") appear to be orphaned headers from an earlier cut that weren't renumbered. That alone signals the document hasn't been read end-to-end in one pass.
 
 **Frontmatter key order contradicts itself.**
+
 - §1.0: "Frontmatter YAML (values preserved; **key order is normalized, not preserved**)"
 - §7.2: "Serializer preserves what it doesn't touch: [...] **Frontmatter key order**"
 
 Which is the requirement? If the AST normalizes key order, the serializer cannot preserve it. If the serializer preserves it, the AST is lossy on parse. You need to pick: either the AST stores key order (making it richer), or you drop the claim from §7.2.
 
 **File `.name` is ambiguous vs. wiki-link resolution.**
+
 - §2.2 shows a file node with `name="notes/foo"` (full repo-relative path).
 - §2.3 says File `.name` is "derived from filename (path stripped of `.md`)" — which for `repo/notes/foo.md` could be `notes/foo`.
 - But §2.2's resolution example says `[[foo]]` → `[file:"foo"]`.
@@ -42,6 +46,7 @@ If the file's canonical `.name` is `notes/foo`, then `[[foo]]` must resolve via 
 §2.5 says `[[file#rec]]` and `[[file^rec]]` hit the same resolution path. In Obsidian, `#` denotes headings and `^` denotes blocks. They are different namespaces. If km treats them as identical, you are **not** Obsidian-compatible — you are km-compatible. If this is intentional, flag it as a deliberate divergence. If it's accidental, fix it.
 
 **Diff-chunk similarity is both "future upgrade" and "rejected."**
+
 - §3.5: "Future upgrade if real-world pressure demands: diff-chunk similarity"
 - §9 Rejected list: "**Diff-chunk similarity for rename+edit** — rejected"
 
@@ -54,6 +59,7 @@ Pick one.
 The framing is **dishonest in its confidence**. You write, "The question is WHEN, not IF" and list triggers that make the flip sound inevitable. But then you claim the flip is cheap (~300–400 LOC refactor). Those two beliefs are incompatible. If it's truly inevitable and cheap, you should either do it now or admit you don't know if you'll ever do it.
 
 **The triggers are weak:**
+
 - "A feature ships that can't be represented in AST → markdown" — but §1.0 **already** gives you an escape hatch for this: "store it as DB-only state (never serialized to `.md`)." That is a fully valid FS-truth design. It does not force a flip.
 - "Multi-file atomicity under FS-truth becomes a maintenance burden" — you are already signing up for that burden with §7.3's journal. If the journal is good enough to ship, it's good enough to keep. If it's not good enough, you shouldn't be building it.
 
@@ -61,6 +67,7 @@ The framing is **dishonest in its confidence**. You write, "The question is WHEN
 You say: "the ingest pipeline under FS-truth IS the ingest pipeline under DB-truth — identical shape." This is wrong. Under FS-truth, the watcher drives the system: FS event → parse → DB update. Under DB-truth, the user/command drives the system: DB transaction → project → FS write. The watcher becomes a backup/sync mechanism, not the primary ingress. The shape inverts.
 
 **The policy contradiction is unresolved.**
+
 - §1.2 (Policy statement): "**On conflict, FS wins.** External edits are trusted; km's in-flight DB state is disposable."
 - §1.1 (prerequisites for flip): DB-truth requires "versioning + backup + rollback" to match FS-truth's trust properties.
 
@@ -82,6 +89,7 @@ Your estimate of **300–400 LOC refactor + 500–800 LOC versioning** is off by
 - **Mental model migration**: "Your markdown is now a projection" is a product earthquake. It needs documentation, UI affordances, and likely a format/version flag in `.km/config.toml`.
 
 **Missing prerequisites:**
+
 - **Conflict resolution UX spec**: What does the user see when Obsidian edits a file while km has unsaved DB state? Under FS-truth, you discard DB. Under DB-truth, you must surface a merge. You have no spec for this.
 - **FS projection strategy**: Will you project the entire DB to `.md` on every commit? Only dirty files? How do you handle deletions? This is a sync protocol you haven't designed.
 - **DB query-to-FS-patch mapping**: Today, SQLite is a cache. Under DB-truth, queries drive the file tree. The mapping from relational/graph data back to hierarchical markdown files is non-trivial (e.g., a block referenced in two places — which file owns it?).
@@ -102,6 +110,7 @@ You list it as a heuristic with "Weak; may misattribute" signal strength, but yo
 
 **Offline scenario: block move across files.**
 A user cuts a paragraph with `^abc` from `foo.md` and pastes it into `bar.md` in Obsidian, then git-pulls on another machine.
+
 - Primary match in `foo.md` fails: `^abc` is gone.
 - Primary match in `bar.md` fails: parent_file_id changed.
 - Content-hash (if node-level) might match.
@@ -111,6 +120,7 @@ This is only true **within a file**. Across files, your heuristics *can* misattr
 
 **Offline scenario: heading reorg without anchor.**
 User moves `## My Heading` from `foo.md` to `bar.md` via cut/paste. It has no `^anchor`, so `.name` is slug `my-heading`.
+
 - In `bar.md`, primary match fails (wrong parent_file_id).
 - Falls through to structural similarity? Content hash? Position?
 - Most likely: new ULID in `bar.md`, dead link in `foo.md` (if any). This is the same as Obsidian, so it's honest, but you should state explicitly that **cross-file heading moves without anchors are unrecoverable**.
@@ -163,6 +173,7 @@ Under FS-truth, a half-applied journal is user-visible data loss (e.g., file A r
 
 **F. The document is too long.**
 At ~3,500 words, this architecture doc is a maintenance burden. For a solo dev, the architecture should fit in a single screen. Every paragraph is a promise you must keep. I would cut:
+
 - The entire DB-truth flip speculation (§1.1, §9 "Probable future direction"). Move to a separate `km-futures.md` doc.
 - The "taglines" (cute but not load-bearing).
 - The detailed tier descriptions beyond Tier 0 and Tier 2.
@@ -171,13 +182,14 @@ At ~3,500 words, this architecture doc is a maintenance burden. For a solo dev, 
 
 ## Summary verdict
 
-| Area | Verdict |
-|------|---------|
-| Internal consistency | **No.** Fix duplicate sections, frontmatter contradiction, file `.name` ambiguity. |
-| FS/DB framing | **Hedging.** Strip the "inevitable" language and cost estimates. FS-truth is the architecture until a feature forces the issue. |
-| DB-truth prerequisites | **Incomplete.** Missing conflict UX, projection strategy, and bootstrap migration. Cost estimate is fantasy. |
-| Reconciliation | **Adequate for common cases, under-specified for edge cases.** Define content-hash scope and structural similarity, or remove them. |
-| Sync tiers | **Tier 1 should die.** Jump from Tier 0 → Tier 2 when needed, or stay at Tier 0. |
-| Solo-dev risk | **High.** Serializer is a tar pit, schema churn is likely, and the doc promises too much. |
+| Area                   | Verdict                                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Internal consistency   | No. Fix duplicate sections, frontmatter contradiction, file .name ambiguity.                                                    |
+| FS/DB framing          | Hedging. Strip the "inevitable" language and cost estimates. FS-truth is the architecture until a feature forces the issue.     |
+| DB-truth prerequisites | Incomplete. Missing conflict UX, projection strategy, and bootstrap migration. Cost estimate is fantasy.                        |
+| Reconciliation         | Adequate for common cases, under-specified for edge cases. Define content-hash scope and structural similarity, or remove them. |
+| Sync tiers             | Tier 1 should die. Jump from Tier 0 → Tier 2 when needed, or stay at Tier 0.                                                    |
+| Solo-dev risk          | High. Serializer is a tar pit, schema churn is likely, and the doc promises too much.                                           |
 
 **One-sentence recommendation**: Throw out the DB-truth speculation, lock the identity model (§2) and reconciliation (§3) to exactly what's implementable in two weeks, and make the fidelity corpus (P5) the gate for all writeback work. Everything else is noise.
+

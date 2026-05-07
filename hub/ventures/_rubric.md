@@ -8,13 +8,13 @@ The point isn't the precision of the number; it's that scoring 10 ideas side-by-
 
 ## The five dimensions
 
-| Dim | Question | 1 (avoid) | 5 (strong) |
-|---|---|---|---|
-| **Real** | Is the demand validated? Is a workable product feasible with current tech? | No evidence anyone wants this; speculative tech | Multiple users asking; tech proven; reference deployments exist |
-| **Win** | Can WE specifically win this? What's our unfair advantage? | Big incumbents own the space; we have no edge | We have a unique vantage (proxy position, dataset, distribution, brand) |
-| **Worth** | TAM × margin × strategic value. Is the prize big enough to justify focus? | Niche; low margin; or doesn't move our strategy | Large TAM; high margin; or load-bearing for our broader story |
-| **Wedge** | First-customer beachhead viability + time-to-MVP. Can we ship something in weeks, not quarters? | Months/quarters of foundational work before any user sees value | Shippable in days; existing infra covers most of it |
-| **Moat** | Defensibility once shipped: network effects, data flywheel, switching cost, infrastructure lock-in | Anyone can build this in a weekend; commodity | Network/data/switching-cost makes the second-comer's life hard |
+| Dim   | Question                                                                                           | 1 (avoid)                                                       | 5 (strong)                                                              |
+| ----- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Real  | Is the demand validated? Is a workable product feasible with current tech?                         | No evidence anyone wants this; speculative tech                 | Multiple users asking; tech proven; reference deployments exist         |
+| Win   | Can WE specifically win this? What's our unfair advantage?                                         | Big incumbents own the space; we have no edge                   | We have a unique vantage (proxy position, dataset, distribution, brand) |
+| Worth | TAM × margin × strategic value. Is the prize big enough to justify focus?                          | Niche; low margin; or doesn't move our strategy                 | Large TAM; high margin; or load-bearing for our broader story           |
+| Wedge | First-customer beachhead viability + time-to-MVP. Can we ship something in weeks, not quarters?    | Months/quarters of foundational work before any user sees value | Shippable in days; existing infra covers most of it                     |
+| Moat  | Defensibility once shipped: network effects, data flywheel, switching cost, infrastructure lock-in | Anyone can build this in a weekend; commodity                   | Network/data/switching-cost makes the second-comer's life hard          |
 
 ## Score bands
 
@@ -83,3 +83,4 @@ Source: <link to brainstorm doc>
 
 Re-evaluate when: <market signal that would change scores>.
 ```
+

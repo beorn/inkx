@@ -81,6 +81,7 @@ Given `@silvery/pty`, the next thing we need is the **capability-translation lay
 ### Downstream (child sees us)
 
 We claim a terminal identity. Then:
+
 - Answer `CSI c` / DA with our claimed ID's response
 - Answer `CSI >c` / DA2 with secondary-DA response
 - Answer `DSR` status requests
@@ -92,6 +93,7 @@ The claim has to be deliverable. We can't claim Kitty if we're rendering on xter
 ### Upstream (we paint to host)
 
 We probe host at startup (via terminfo.dev + runtime queries). Then downsample on the way out:
+
 - Truecolor → 256 → 16 if host doesn't support
 - OSC 8 hyperlinks → plain text
 - Kitty graphics → sixel → unicode blocks
@@ -164,3 +166,4 @@ Crucially, the child's byte stream **never reaches the host directly** — it's 
 - First nested TUI working cleanly (vim inside a pane): ~3-4 weeks end-to-end
 
 This is the floor for all of A–F in the README. Every downstream track starts after this lands.
+

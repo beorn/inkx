@@ -10,20 +10,20 @@
 
 ## What exists vs what's new
 
-| Need | Reuse from km today | New |
-|---|---|---|
-| Live chat substrate | — | Matrix homeserver (Synapse or Conduit) |
-| Chat → vault sync | CalDAV-style connector pattern | `@km/connector-matrix` package |
-| Room identity | `KNode.name` (`#design`, `#silvery`) | — |
-| Message storage | Tree children | — |
-| Authoring | Markdown files | — |
-| Task assignment | `@mention` in task title | — |
-| Agent identity | `agents/<name>.md` node with `matrix_id:` frontmatter | — |
-| Role leases (chief, etc.) | `km-beads` task with `assigned_to` + `due_at` | — |
-| Message kinds | Markdown conventions (`[ ]` tasks, `@` mentions, `[[wikilinks]]`, bead IDs) | — |
-| Mobile observability | — | Element (matrix client) |
-| References | Wikilinks by `name` | — |
-| Backlog / history | Recall, tree navigation, query | — |
+| Need                      | Reuse from km today                                                   | New                                    |
+| ------------------------- | --------------------------------------------------------------------- | -------------------------------------- |
+| Live chat substrate       | —                                                                     | Matrix homeserver (Synapse or Conduit) |
+| Chat → vault sync         | CalDAV-style connector pattern                                        | @km/connector-matrix package           |
+| Room identity             | KNode.name (#design, #silvery)                                        | —                                      |
+| Message storage           | Tree children                                                         | —                                      |
+| Authoring                 | Markdown files                                                        | —                                      |
+| Task assignment           | @mention in task title                                                | —                                      |
+| Agent identity            | agents/<name>.md node with matrix_id: frontmatter                     | —                                      |
+| Role leases (chief, etc.) | km-beads task with assigned_to + due_at                               | —                                      |
+| Message kinds             | Markdown conventions ([ ] tasks, @ mentions, [[wikilinks]], bead IDs) | —                                      |
+| Mobile observability      | —                                                                     | Element (matrix client)                |
+| References                | Wikilinks by name                                                     | —                                      |
+| Backlog / history         | Recall, tree navigation, query                                        | —                                      |
 
 Three new things. Everything else uses km's existing machinery.
 
@@ -87,6 +87,7 @@ Claimed TUI-47 #design @silvery-refactor — let me know if you hit the output-p
 ```
 
 Save-time, km tooling:
+
 1. Parses content, finds `#design` and `@silvery-refactor`.
 2. Adds a transclusion under `com/rooms/#design/` pointing at this entry.
 3. Adds a transclusion under `users/@silvery-refactor/inbox/` (or similar DM convention).
@@ -121,11 +122,11 @@ One action (sigil → transclusion at target), with a single rule for meaning:
 
 **Titles classify / assign. Bodies mention / reference.**
 
-| Where the sigil appears | `@silvery-refactor` means | `#design` means |
-|---|---|---|
-| Task's own **title** (`[ ] Do X @silvery-refactor #design`) | **Assign** — sets `assigned_to` on the task (existing km-beads behavior) | **Classify** — task is in the #design area |
-| Any other entry's title or body | **Mention / notify** — transclusion into her inbox | **Post to #design** — transclusion in #design's room |
-| Reference to another node (`[[TUI-47]] @silvery-refactor`) | **Mention** — she sees it in her inbox; the referenced TUI-47 is NOT reassigned | **Post** — this entry appears in #design; TUI-47 area unchanged |
+| Where the sigil appears                                  | @silvery-refactor means                                                     | #design means                                               |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Task's own title ([ ] Do X @silvery-refactor #design)    | Assign — sets assigned_to on the task (existing km-beads behavior)          | Classify — task is in the #design area                      |
+| Any other entry's title or body                          | Mention / notify — transclusion into her inbox                              | Post to #design — transclusion in #design's room            |
+| Reference to another node ([[TUI-47]] @silvery-refactor) | Mention — she sees it in her inbox; the referenced TUI-47 is NOT reassigned | Post — this entry appears in #design; TUI-47 area unchanged |
 
 **Why references don't mutate referents:** a wikilink is read-only by design. `[[TUI-47]] @silvery-refactor can you take this` expresses a *request*, not an atomic assignment. The assignment is a separate explicit action — silvery-refactor runs `km bd claim TUI-47`, or the bead's own title is edited to include her @mention. Implicit reassignment via writing a link would be too magical.
 
@@ -134,6 +135,7 @@ This rule matches km-beads's existing parser: `@mentions` in a bead's title set 
 ### Receiver views (queries over transcluded content)
 
 On a persona/user's node:
+
 - **Inbox** — all transcluded entries, newest first (mixed tasks, mentions, refs)
 - **Assigned tasks** — `[ ] + me in mentions + status open` (existing km-beads view)
 - **Mentions (non-task)** — entries mentioning me without task markers
@@ -156,16 +158,16 @@ Shape resembles **Twitter** more than Slack: authors post to their own timeline,
 
 ### Mental model analogs
 
-| Our model | Twitter | Slack |
-|---|---|---|
-| @author timeline | profile | — |
-| Entry with `to: [#room]` | tweet with `#hashtag` | message in channel |
-| Entry with no `to:` (journal) | protected draft | — |
-| Reply (tree child) | reply chain | thread |
-| Multiple `to:` (cross-post) | tweet with several hashtags | — |
-| `to: [@alice]` | DM | DM |
-| `![[other-entry]]` (transclusion) | retweet | — |
-| Chatlog node (saved query) | hashtag search page | channel |
+| Our model                       | Twitter                     | Slack              |
+| ------------------------------- | --------------------------- | ------------------ |
+| @author timeline                | profile                     | —                  |
+| Entry with to: [#room]          | tweet with #hashtag         | message in channel |
+| Entry with no to: (journal)     | protected draft             | —                  |
+| Reply (tree child)              | reply chain                 | thread             |
+| Multiple to: (cross-post)       | tweet with several hashtags | —                  |
+| to: [@alice]                    | DM                          | DM                 |
+| ![[other-entry]] (transclusion) | retweet                     | —                  |
+| Chatlog node (saved query)      | hashtag search page         | channel            |
 
 ### Routing examples
 
@@ -206,11 +208,11 @@ Good — let me know if you hit the output-phase issue.
 
 This model prefers tree hierarchy for threads at the cost of distributing an author's replies across the vault (under parent messages they reply to).
 
-| Gain | Give up |
-|---|---|
-| Threads render as tree children; no ref-chain resolution | @alice's replies don't all live under `users/@alice/` physically |
-| Reply = create child node (simple) | Personal-archive via directory browse covers only top-level posts |
-| Obsidian-compatible mental model | Must query `author: @alice` for complete personal timeline |
+| Gain                                                     | Give up                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
+| Threads render as tree children; no ref-chain resolution | @alice's replies don't all live under users/@alice/ physically    |
+| Reply = create child node (simple)                       | Personal-archive via directory browse covers only top-level posts |
+| Obsidian-compatible mental model                         | Must query author: @alice for complete personal timeline          |
 
 An author's full timeline becomes a saved query:
 
@@ -227,6 +229,7 @@ Fast via indexed `author:` field. Renders chronologically, aggregates top-level 
 ### Ownership and authorship in cross-tree replies
 
 Alice's reply at `users/@bjorn/.../10:25-from-@alice.md`:
+
 - **Physical parent** = bjørn's message
 - **Author** = `@alice` (explicit frontmatter)
 - **Edit permission** = alice (convention; connector publishes using alice's `matrix_id`)
@@ -235,10 +238,12 @@ Alice's reply at `users/@bjorn/.../10:25-from-@alice.md`:
 ### Connector behavior
 
 **Inbound** — Matrix event arrives from `sender = @alice:server`:
+
 1. Connector writes entry to `users/@alice/<date>/<ts>-<eid>.md` (or `users/_external/@alice:remote-server/...` for federated) with `to: [<chatlog-name>]` derived from Matrix room alias.
 2. Done. Room views auto-update via rule-query.
 
 **Outbound** — local entry authored with `to: [#design]`:
+
 1. Connector watches for new entries matching its subscribed rooms' queries.
 2. Publishes corresponding Matrix event.
 
@@ -252,12 +257,12 @@ Matrix immutability maps to km-storage versioning. Source truth in one place; hi
 
 ### Different views of the same source
 
-| View | What it renders |
-|---|---|
-| `users/@bjorn/2026-04-20/` | Today's timeline (chat + journal, private + public) |
-| `users/@bjorn/` | All of bjørn's history, chronological |
-| `com/rooms/#design` | All entries with `to: #design` across all authors |
-| Retro query | Any time range, any filter; chat + journal mixed |
+| View                     | What it renders                                     |
+| ------------------------ | --------------------------------------------------- |
+| users/@bjorn/2026-04-20/ | Today's timeline (chat + journal, private + public) |
+| users/@bjorn/            | All of bjørn's history, chronological               |
+| com/rooms/#design        | All entries with to: #design across all authors     |
+| Retro query              | Any time range, any filter; chat + journal mixed    |
 
 All pulling from the same source tree. Rooms and timelines are views, not storage.
 
@@ -329,12 +334,14 @@ Scope: ~800-1200 LOC. Bulk of the work is the matrix-js-sdk integration + bidire
 ## The homeserver
 
 User choice at `km matrix init`:
+
 - **Synapse** (default, mature, Python)
 - **Conduit** (opt-in, Rust single-binary, smaller)
 
 Installed via native package manager / launchd / systemd user service. No Docker-first path.
 
 Network modes chosen at init:
+
 1. **local-only** — homeserver on `127.0.0.1`. No mobile. Simplest dev default.
 2. **tailscale / mesh-VPN** — homeserver on Tailscale interface; Element on phone via Tailscale.
 3. **public-TLS** — reverse proxy (Caddy) with automatic TLS for small-group collaboration.
@@ -375,6 +382,7 @@ No retro command, no retro table. Saved queries with human-friendly names if des
 ## Presence
 
 Not materialized into the vault (too much churn). Three options:
+
 - **Ephemeral only**: Matrix tracks presence; connector exposes it on demand
 - **Transient field on agent nodes**: connector updates `last_active:` every N minutes
 - **Ignore entirely**: v1 just uses "who has an active lease task" as the proxy for "who's live"
@@ -403,6 +411,7 @@ The bearly commits `a12dc91` + `afb35e7` from 2026-04-19 (paginated replay, no-D
 ## Acceptance criteria
 
 Phase 0 done when:
+
 - [ ] `@km/connector-matrix` skeleton connects to a Synapse (or Conduit) homeserver
 - [ ] `km matrix init` installs homeserver + writes connector config + creates the repo's base rooms
 - [ ] A chatlog node with `remote: matrix:r/design:...` syncs messages as child nodes
@@ -410,6 +419,7 @@ Phase 0 done when:
 - [ ] Posting a new child node writes a Matrix event
 
 Phase 1 done when:
+
 - [ ] Personas in `agents/` with `matrix_id:` can log into Matrix and post to rooms
 - [ ] Task assignment (`@agent-name` in title) + `km bd ready --assignee=@agent-name` works end-to-end
 - [ ] Role lease pattern (task with `assigned_to` + `due_at`) covers single-holder persona assumption
@@ -417,11 +427,13 @@ Phase 1 done when:
 - [ ] Chat view in km-tui renders a chatlog readably
 
 Phase 2 done when:
+
 - [ ] Durable vs ephemeral chatlogs via `com/rooms/` vs `com/chats/` + gitignore
 - [ ] Directs (1:1 rooms) work — create + resolve + render
 - [ ] Bead references in messages auto-link to beads; bead claim events flow through normal km-bd channels
 
 Phase 3 deferred items:
+
 - E2E encryption (when sharing with a collaborator)
 - Matrix federation (when multi-human collaboration becomes a concrete need)
 - Additional connectors (git, github, health as standalone packages)
@@ -461,3 +473,4 @@ The simplifications from the morning (connector model, persona node, lease-as-ta
 ## Next action
 
 Start Phase 0 spike once W3 omnibox finish lands (per [`hub/roadmap.md`](../../roadmap.md) sequencing). Targets: matrix homeserver install flow + connector skeleton + first chatlog node syncing. ~4-5 days.
+

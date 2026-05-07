@@ -25,16 +25,16 @@ Vitest-specific: ppid polling in packages/@km/infra/vitest/setup.ts. Fork worker
 ## Broader fix needed
 
 1. cmux should kill process trees on session end, not just the Claude Code process.
-  - Use process groups: spawn Claude Code with setsid, kill -PGID on cleanup
-  - Or: track all descendant PIDs and kill them explicitly
-2. Claude Code SessionEnd hook should kill orphaned children:
-  - In .claude/settings.json SessionEnd hook, add: pkill -P $$ || true
-  - Or: kill the process group
-3. tribe-daemon health monitor could detect and kill orphans:
-  - It already tracks km processes
-  - Add: detect bun/node with PPID=1 running >30min in km CWD → warn + offer to kill
-  - Exclude: tribe-daemon itself (intentionally long-lived)
-4. Rate limit handler: when Claude Code gets 429, it should SIGTERM all child processes before retrying or exiting, not just abandon them.
+- Use process groups: spawn Claude Code with setsid, kill -PGID on cleanup
+- Or: track all descendant PIDs and kill them explicitly
+5. Claude Code SessionEnd hook should kill orphaned children:
+- In .claude/settings.json SessionEnd hook, add: pkill -P $$ || true
+- Or: kill the process group
+9. tribe-daemon health monitor could detect and kill orphans:
+- It already tracks km processes
+- Add: detect bun/node with PPID=1 running >30min in km CWD → warn + offer to kill
+- Exclude: tribe-daemon itself (intentionally long-lived)
+14. Rate limit handler: when Claude Code gets 429, it should SIGTERM all child processes before retrying or exiting, not just abandon them.
 
 ## Root cause
 

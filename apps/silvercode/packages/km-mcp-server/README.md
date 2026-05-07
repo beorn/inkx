@@ -148,4 +148,3 @@ bun vitest run apps/silvercode/packages/km-mcp-server/tests/
 - `km-silvercode.acp-km-mcp` — this package
 - `km-silvercode.acp-tribe-mcp` — sibling MCP for tribe coordination (shares the `dangerous` convention)
 - `km-silvercode.acp` — parent ACP-adoption tracking bead
-

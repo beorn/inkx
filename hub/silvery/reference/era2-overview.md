@@ -1,6 +1,6 @@
-> **Partially stale (2026-04-11).** Composition architecture superseded by [app-composition.md](../design/v10-terminal/app-composition.md). Signals, commands, headless sections are still valid — see the individual docs in `design/v15-tea/`. Kept as historical overview.
-
 # Era 2 Overview
+
+> Partially stale (2026-04-11). Composition architecture superseded by app-composition.md. Signals, commands, headless sections are still valid — see the individual docs in design/v15-tea/. Kept as historical overview.
 
 _The map. Read this first, then the doc that owns what you're working on._
 
@@ -20,11 +20,11 @@ Everything is a plugin. `create()` is zero-dep. Scope, rendering, app infrastruc
 
 ## Three Levels
 
-| Level                   | What you add                            | State                 | Input                      |
-| ----------------------- | --------------------------------------- | --------------------- | -------------------------- |
-| **Foundation**          | `create()`                              | none                  | ops pass through           |
-| **+ Rendering** (era2a) | `withAg()`, `withTerm()`, `withReact()` | React useState        | `useInput()` in components |
-| **+ App** (era2b)       | `withApp()`, domain plugins             | signals (recommended) | keymap → commands → state  |
+| Level               | What you add                      | State                 | Input                     |
+| ------------------- | --------------------------------- | --------------------- | ------------------------- |
+| Foundation          | create()                          | none                  | ops pass through          |
+| + Rendering (era2a) | withAg(), withTerm(), withReact() | React useState        | useInput() in components  |
+| + App (era2b)       | withApp(), domain plugins         | signals (recommended) | keymap → commands → state |
 
 ```ts
 // Era2a — rendering only
@@ -50,13 +50,13 @@ await app.run()
 
 A silvery app is composed of five interconnected structures:
 
-| Graph                   | What                                                   | Shape | Era |
-| ----------------------- | ------------------------------------------------------ | ----- | --- |
-| **Plugin chain**        | dispatch/apply/run wrapping layers                     | Stack | 2a  |
-| **Ag node tree**        | Abstract UI structure. Adapter writes, renderer reads. | Tree  | 2a  |
-| **Reactive data graph** | Signals connected by computeds                         | DAG   | 2b  |
-| **Command tree**        | Action namespace. Discoverable, projectable.           | Tree  | 2b  |
-| **Async scope tree**    | Spawned async work, cancellation, errors               | Tree  | 2b  |
+| Graph               | What                                                   | Shape | Era |
+| ------------------- | ------------------------------------------------------ | ----- | --- |
+| Plugin chain        | dispatch/apply/run wrapping layers                     | Stack | 2a  |
+| Ag node tree        | Abstract UI structure. Adapter writes, renderer reads. | Tree  | 2a  |
+| Reactive data graph | Signals connected by computeds                         | DAG   | 2b  |
+| Command tree        | Action namespace. Discoverable, projectable.           | Tree  | 2b  |
+| Async scope tree    | Spawned async work, cancellation, errors               | Tree  | 2b  |
 
 A keypress traverses the plugin chain, resolves a command (command tree), executes it in a scope (scope tree), mutates signals (reactive graph), which triggers a re-render of the UI (ag node tree).
 
@@ -182,18 +182,18 @@ examples/advanced/       era2b/examples.md     Todo, Chat with signals+commands
 
 Each subsystem has one canonical doc. If two docs disagree, the owner doc wins.
 
-| Doc                                                         | Owns                                                                 |
-| ----------------------------------------------------------- | -------------------------------------------------------------------- |
-| [composability.md](../design/v10-terminal/composability.md) | Framework×platform matrix, adapters, gap analysis                    |
-| [signals.md](../design/v15-tea/signals.md)                  | signal(), computed(), createModel(), createStore(), createResource() |
-| [commands.md](../design/v15-tea/commands.md)                | Command tree, surfaces, availability, keymaps, resolution            |
-| [app.md](../design/v15-tea/app.md)                          | withApp(), scopes, domain plugins, structured concurrency            |
-| [headless.md](../design/v15-tea/headless.md)                | @silvery/headless: pure state machines for interactive components    |
-| [decisions.md](./decisions.md)                              | Append-only decision log (37 decisions)                              |
-| [example-checklist.md](./example-checklist.md)              | Example quality standards                                            |
-| [migration.md](./migration.md)                              | render() → createApp() migration                                     |
-| [playground.md](./playground.md)                            | Canvas playground design                                             |
-| [signals-landscape.md](./signals-landscape.md)              | JS signals ecosystem research                                        |
+| Doc                  | Owns                                                                 |
+| -------------------- | -------------------------------------------------------------------- |
+| composability.md     | Framework×platform matrix, adapters, gap analysis                    |
+| signals.md           | signal(), computed(), createModel(), createStore(), createResource() |
+| commands.md          | Command tree, surfaces, availability, keymaps, resolution            |
+| app.md               | withApp(), scopes, domain plugins, structured concurrency            |
+| headless.md          | @silvery/headless: pure state machines for interactive components    |
+| decisions.md         | Append-only decision log (37 decisions)                              |
+| example-checklist.md | Example quality standards                                            |
+| migration.md         | render() → createApp() migration                                     |
+| playground.md        | Canvas playground design                                             |
+| signals-landscape.md | JS signals ecosystem research                                        |
 
 Rendering evolved from [app-composition.md](../../silvery/docs/design/app-composition.md).
 
@@ -408,3 +408,4 @@ Each era2a/era2b design doc should note what public docs it maps to and what nee
 **Starting era2b work:** this overview → era2b/signals.md → era2b/commands.md → era2b/app.md → headless.md → implement.
 
 **Understanding the big picture:** this overview → era2a/composability.md.
+

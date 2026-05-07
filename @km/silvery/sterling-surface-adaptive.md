@@ -25,8 +25,12 @@ dependencies:
     metadata: "{}"
 props:
   blocked-by:
-    type: link
-    target: "@km/silvery/sterling"
+    type: list
+    values:
+      - type: link
+        target: km-all.sterling
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sterling: bg-surface-overlay near-misses AA on light schemes @km/silvery #bug #P4 @claude:22c2717d

@@ -18,17 +18,17 @@ All terms are AND-ed together (intersection).
 
 ## Term Types
 
-| Pattern     | Name      | Description                          |
-| ----------- | --------- | ------------------------------------ |
-| `@ref`      | Reference | Node has this reference (contains)   |
-| `#tag`      | Reference | Node has this tag (contains)         |
-| `+proj`     | Reference | Node has this project ref (contains) |
-| `./path`    | Path      | Node is under this relative path     |
-| `/path`     | Path      | Node is under this absolute path     |
-| `path/`     | Path      | Node path contains this string       |
-| `key:value` | Field     | Field matches value                  |
-| `-TERM`     | Negation  | Exclude nodes matching TERM          |
-| `"text"`    | Search    | Full-text search                     |
+| Pattern   | Name      | Description                          |
+| --------- | --------- | ------------------------------------ |
+| @ref      | Reference | Node has this reference (contains)   |
+| #tag      | Reference | Node has this tag (contains)         |
+| +proj     | Reference | Node has this project ref (contains) |
+| ./path    | Path      | Node is under this relative path     |
+| /path     | Path      | Node is under this absolute path     |
+| path/     | Path      | Node path contains this string       |
+| key:value | Field     | Field matches value                  |
+| -TERM     | Negation  | Exclude nodes matching TERM          |
+| "text"    | Search    | Full-text search                     |
 
 ---
 
@@ -36,9 +36,9 @@ All terms are AND-ed together (intersection).
 
 | Suffix | Effect                            |
 | ------ | --------------------------------- |
-| `$`    | Exact match (default is contains) |
-| `**`   | Recursive (for paths)             |
-| `*`    | Wildcard (for values)             |
+| $      | Exact match (default is contains) |
+| **     | Recursive (for paths)             |
+| *      | Wildcard (for values)             |
 
 ---
 
@@ -82,12 +82,12 @@ Append `(...)` to filter by node type (zsh-style). Multiple qualifiers OR togeth
 ./inbox/*(./)       # Direct children, files or folders
 ```
 
-| Qualifier | Meaning |
-|-----------|---------|
-| `.` | files (`fstype` file or mdfile) |
-| `/` | folders |
-| `#` | sections (mdsection) |
-| `^` | negate the next qualifier |
+| Qualifier | Meaning                       |
+| --------- | ----------------------------- |
+| .         | files (fstype file or mdfile) |
+| /         | folders                       |
+| #         | sections (mdsection)          |
+| ^         | negate the next qualifier     |
 
 ---
 
@@ -95,24 +95,24 @@ Append `(...)` to filter by node type (zsh-style). Multiple qualifiers OR togeth
 
 Match field values with `key:value`:
 
-| Field      | Values                              | Example           |
-| ---------- | ----------------------------------- | ----------------- |
-| `status`   | todo, wip, blocked, done, dropped   | `status:todo`     |
-| `due`      | today, past, week, none, YYYY-MM-DD | `due:past`        |
-| `start`    | past, today, YYYY-MM-DD             | `start:past`      |
-| `assigned` | name                                | `assigned:bjorn$` |
-| `priority` | P0-P4                               | `priority:P1`     |
+| Field    | Values                              | Example         |
+| -------- | ----------------------------------- | --------------- |
+| status   | todo, wip, blocked, done, dropped   | status:todo     |
+| due      | today, past, week, none, YYYY-MM-DD | due:past        |
+| start    | past, today, YYYY-MM-DD             | start:past      |
+| assigned | name                                | assigned:bjorn$ |
+| priority | P0-P4                               | priority:P1     |
 
 ### Date Values
 
-| Value           | Meaning                 |
-| --------------- | ----------------------- |
-| `today`         | Due/start date is today |
-| `past`          | Date is before today    |
-| `week`          | Within next 7 days      |
-| `none`          | Field is not set        |
-| `YYYY-MM-DD`    | Specific date           |
-| `older_than_Nd` | More than N days ago    |
+| Value         | Meaning                 |
+| ------------- | ----------------------- |
+| today         | Due/start date is today |
+| past          | Date is before today    |
+| week          | Within next 7 days      |
+| none          | Field is not set        |
+| YYYY-MM-DD    | Specific date           |
+| older_than_Nd | More than N days ago    |
 
 ---
 
@@ -120,24 +120,24 @@ Match field values with `key:value`:
 
 Match inline properties using `prop::value` syntax (double colon):
 
-| Pattern        | Description                    | Example            |
-| -------------- | ------------------------------ | ------------------ |
-| `prop::*`      | Property exists                | `rating::*`        |
-| `prop::value`  | Property equals value          | `author::alice`    |
-| `prop::N`      | Property equals number         | `rating::5`        |
-| `prop::>N`     | Property greater than          | `rating::>3`       |
-| `prop::<N`     | Property less than             | `priority::<5`     |
-| `prop::>=N`    | Property greater than or equal | `rating::>=4`      |
-| `prop::<=N`    | Property less than or equal    | `rating::<=2`      |
-| `-prop::*`     | Property does not exist        | `-blocked-by::*`   |
-| `-prop::value` | Property does not equal value  | `-status::blocked` |
+| Pattern      | Description                    | Example          |
+| ------------ | ------------------------------ | ---------------- |
+| prop::*      | Property exists                | rating::*        |
+| prop::value  | Property equals value          | author::alice    |
+| prop::N      | Property equals number         | rating::5        |
+| prop::>N     | Property greater than          | rating::>3       |
+| prop::<N     | Property less than             | priority::<5     |
+| prop::>=N    | Property greater than or equal | rating::>=4      |
+| prop::<=N    | Property less than or equal    | rating::<=2      |
+| -prop::*     | Property does not exist        | -blocked-by::*   |
+| -prop::value | Property does not equal value  | -status::blocked |
 
 ### Special: Blocked Query
 
-| Pattern         | Description                                    |
-| --------------- | ---------------------------------------------- |
-| `blocked:true`  | Has `blocked-by::` with unresolved blockers    |
-| `blocked:false` | No `blocked-by::` or all blockers done/dropped |
+| Pattern       | Description                                  |
+| ------------- | -------------------------------------------- |
+| blocked:true  | Has blocked-by:: with unresolved blockers    |
+| blocked:false | No blocked-by:: or all blockers done/dropped |
 
 ```bash
 # Find tasks ready to work on
@@ -206,16 +206,16 @@ status:blocked
 
 ## SQL Translation
 
-| Query          | SQL                                                                      |
-| -------------- | ------------------------------------------------------------------------ |
-| `status:todo`  | `WHERE status = 'todo'`                                                  |
-| `@bjorn`       | `WHERE id IN (SELECT node_id FROM refs WHERE ref LIKE '%bjorn%')`        |
-| `@bjorn$`      | `WHERE id IN (SELECT node_id FROM refs WHERE ref = '@bjorn')`            |
-| `-status:done` | `WHERE status != 'done' OR status IS NULL`                               |
-| `./inbox/**`   | `WHERE path LIKE './inbox/%'`                                            |
-| `"budget"`     | `WHERE id IN (SELECT rowid FROM nodes_fts WHERE content MATCH 'budget')` |
-| `due:past`     | `WHERE due < date('now')`                                                |
-| `due:week`     | `WHERE due BETWEEN date('now') AND date('now', '+7 days')`               |
+| Query        | SQL                                                                    |
+| ------------ | ---------------------------------------------------------------------- |
+| status:todo  | WHERE status = 'todo'                                                  |
+| @bjorn       | WHERE id IN (SELECT node_id FROM refs WHERE ref LIKE '%bjorn%')        |
+| @bjorn$      | WHERE id IN (SELECT node_id FROM refs WHERE ref = '@bjorn')            |
+| -status:done | WHERE status != 'done' OR status IS NULL                               |
+| ./inbox/**   | WHERE path LIKE './inbox/%'                                            |
+| "budget"     | WHERE id IN (SELECT rowid FROM nodes_fts WHERE content MATCH 'budget') |
+| due:past     | WHERE due < date('now')                                                |
+| due:week     | WHERE due BETWEEN date('now') AND date('now', '+7 days')               |
 
 ---
 
@@ -246,3 +246,4 @@ In automation rules, queries appear in `match:`, `was:`, and `now:` fields:
 
 - [storage.md](../design/model/storage.md) — SQLite schema
 - [guides/tasks.md](../guides/tasks.md) — Task management, GTD workflow
+

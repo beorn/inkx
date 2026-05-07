@@ -4,10 +4,10 @@ Process for maintaining silvery's public-facing examples. Every example in `vend
 
 ## Quality Tiers
 
-| Tier         | Where                                   | Criteria                                                     | Visible on silvery.dev |
-| ------------ | --------------------------------------- | ------------------------------------------------------------ | ---------------------- |
-| **Showcase** | `examples/`                             | Passes all 4 testing layers, visually impressive, clean code | Yes                    |
-| **Internal** | `hub/silvery/all-examples/` | Work in progress, utility, debug tools, broken               | No                     |
+| Tier     | Where                     | Criteria                                                     | Visible on silvery.dev |
+| -------- | ------------------------- | ------------------------------------------------------------ | ---------------------- |
+| Showcase | examples/                 | Passes all 4 testing layers, visually impressive, clean code | Yes                    |
+| Internal | hub/silvery/all-examples/ | Work in progress, utility, debug tools, broken               | No                     |
 
 There is no B-tier. An example is either showcase-quality or it's internal. The gap between "works" and "impressive" is the whole point.
 
@@ -284,3 +284,4 @@ Run the grinder to get current state. As of last audit (2026-04-03):
 - `vendor/silvery/examples/CLAUDE.md` — design principles for examples
 - `vendor/silvery/examples/screenshots/generate.tsx` — screenshot generator
 - `vendor/silvery/docs/guide/the-silvery-way.md` — quality standards
+

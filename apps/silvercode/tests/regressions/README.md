@@ -7,11 +7,14 @@ are organized by date + slug so the history is traceable.
 ## Rules
 
 1. **Before fixing a user-reported rendering bug**:
+
 - Open a bead (scope: `km-silvercode`, tag: `silvercode-visual-regression`)
 - Add a test file here: `<YYYY-MM-DD>-<slug>.test.tsx`
 - The test should FAIL in current code (reproduces the bug)
-6. **After fixing**: the test passes. Never delete it.
-7. **If the test rots** (component moved, marker changed):
+
+10. **After fixing**: the test passes. Never delete it.
+11. **If the test rots** (component moved, marker changed):
+
 - Don't delete — rework the test to re-catch the same bug class, OR
 - Replace with a more general invariant in `visual/_invariants.ts`
 - The regression test stays as historical documentation
@@ -36,4 +39,3 @@ that proves the new invariant actually catches the class.
 
 See `apps/silvercode/docs/test-system-design.md` for the full coverage
 matrix — which bug classes are v1-covered and which are v2 backlog.
-

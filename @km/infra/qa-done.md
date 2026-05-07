@@ -50,12 +50,13 @@ Over the last 72h: 57 bugs created, ~45 closed. Several were reopened after user
 1. **Mandatory visual TTY verification for ALL TUI bugs/features** — launch interactive TTY, execute repro steps, take screenshot, compare before/after. Close reason must include "Visual: ✓"
 2. **Mandatory test:all before close** — not test:fast. If test:all has pre-existing failures, document them. New failures = revert fix.
 3. **Mandatory root cause in close reason** — structured format:
-  ```
-  Fixed: [what changed]
-  Root cause: [why it happened]
-  Detection gap: [why tests missed it]
-  Prevention: [bead ID or n/a]
-  ```
+
+```
+Fixed: [what changed]
+Root cause: [why it happened]
+Detection gap: [why tests missed it]
+Prevention: [bead ID or n/a]
+```
 
 ### P1: High-value improvements
 

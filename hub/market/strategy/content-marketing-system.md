@@ -232,15 +232,15 @@ Blog article
 
 ### Channel Strategy
 
-| Channel                                           | What works                                                                                                                     | Cadence                         | Tool                      |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- | ------------------------- |
-| **Hacker News**                                   | Data-driven posts, terminal deep dives, honest comparisons. "Show HN" for product, editorial for insights. Never submit fluff. | Only when genuinely interesting | Manual                    |
-| **Reddit** (r/commandline, r/terminal, r/reactjs) | Helpful content, answer questions, share data. Be a contributor first.                                                         | 1-2/month                       | Manual                    |
-| **X/Twitter**                                     | Thread from article key points, terminal GIFs, benchmark numbers, hot takes                                                    | 2-3/week when active            | Typefully ($12/mo)        |
-| **LinkedIn**                                      | Founder perspective posts, "here's what I learned building X"                                                                  | 1/week                          | Taplio ($49/mo) or manual |
-| **Newsletter**                                    | Monthly digest of articles + ecosystem updates                                                                                 | Monthly                         | Beehiiv (free tier)       |
-| **dev.to / Hashnode**                             | Cross-post articles with canonical URL back to silvery.dev                                                                     | Same day as publish             | Manual                    |
-| **YouTube**                                       | Terminal recordings, demo walkthroughs, conference-style talks                                                                 | When ready (defer)              | —                         |
+| Channel                                       | What works                                                                                                                     | Cadence                         | Tool                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- | ------------------------- |
+| Hacker News                                   | Data-driven posts, terminal deep dives, honest comparisons. "Show HN" for product, editorial for insights. Never submit fluff. | Only when genuinely interesting | Manual                    |
+| Reddit (r/commandline, r/terminal, r/reactjs) | Helpful content, answer questions, share data. Be a contributor first.                                                         | 1-2/month                       | Manual                    |
+| X/Twitter                                     | Thread from article key points, terminal GIFs, benchmark numbers, hot takes                                                    | 2-3/week when active            | Typefully ($12/mo)        |
+| LinkedIn                                      | Founder perspective posts, "here's what I learned building X"                                                                  | 1/week                          | Taplio ($49/mo) or manual |
+| Newsletter                                    | Monthly digest of articles + ecosystem updates                                                                                 | Monthly                         | Beehiiv (free tier)       |
+| dev.to / Hashnode                             | Cross-post articles with canonical URL back to silvery.dev                                                                     | Same day as publish             | Manual                    |
+| YouTube                                       | Terminal recordings, demo walkthroughs, conference-style talks                                                                 | When ready (defer)              | —                         |
 
 ### HN/Reddit Rules
 
@@ -382,3 +382,4 @@ All free. Total cost: $0/month (optional $15/month for Ideogram text-in-image).
 | Comparison    | Auto     | Side-by-side | Table      | Skip       |
 | Data analysis | Auto     | Skip         | Chart      | Optional   |
 | Architecture  | Auto     | Skip         | D2         | Skip       |
+

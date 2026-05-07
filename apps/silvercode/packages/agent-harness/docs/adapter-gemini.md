@@ -130,4 +130,3 @@ Until such a user appears, the adapter remains deferred.
 The Registry entry is asserted in
 `tests/registry-adapters.test.ts` (test id `gemini`). Custom
 `extraArgs` (e.g. `--model`) are also covered there.
-

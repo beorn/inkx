@@ -28,10 +28,7 @@ export function registerBdQuery(parent: BdRegistrar): void {
   const queryCmd = new Command("query")
     .argument("<expression...>", "DSL query expression")
     .description("Query nodes with raw DSL (alias for `km query`; bd-style: defaults to fstype:mdfile,folder)")
-    .option(
-      "--all-tasks",
-      "Don't add the default fstype:mdfile,folder filter — include inline-checkbox sub-tasks too",
-    )
+    .option("--all-tasks", "Don't add the default fstype:mdfile,folder filter — include inline-checkbox sub-tasks too")
     .option("--json", "Output as JSON")
     .actionMerged(async (opts) => {
       let dsl = (opts.expression as string[]).join(" ")

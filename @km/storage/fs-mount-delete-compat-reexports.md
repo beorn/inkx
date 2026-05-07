@@ -52,12 +52,12 @@ Both work. Result: no pressure to migrate, @km/storage import surface stays bloa
 
 1. Identify every re-export from @km/storage/src/index.ts that forwards a symbol from @km/fs-mount. Grep: grep -n 'from "@km/fs-mount"' packages/@km/storage/src/index.ts.
 2. Migrate every consumer to import from @km/fs-mount directly:
-  - apps/@km/tui, apps/@km/_orphan/cli, apps/@km/_orphan/repl, apps/@km/_orphan/web
-  - packages/@km/_orphan/board, packages/@km/_orphan/commands, packages/@km/_orphan/agent, packages/@km/beads, packages/@km/tree
-  - Any test helpers.
-3. Delete the re-exports from @km/storage/src/index.ts.
-4. Each consumer package.json gets an explicit @km/fs-mount workspace dep if it didn't have one.
-5. (Optional, stretch goal) Add an oxlint rule or tsconfig pathBanning that @km/core + @km/storage cannot import 'fs' — per the fs-mount bead's original intent. Currently 17 @km/storage files still import 'fs' (DO-NOT-MOVE list); this would require either moving those or documenting the exception. Out of scope unless part of the deletion passes cleanly.
+- apps/@km/tui, apps/@km/_orphan/cli, apps/@km/_orphan/repl, apps/@km/_orphan/web
+- packages/@km/_orphan/board, packages/@km/_orphan/commands, packages/@km/_orphan/agent, packages/@km/beads, packages/@km/tree
+- Any test helpers.
+8. Delete the re-exports from @km/storage/src/index.ts.
+9. Each consumer package.json gets an explicit @km/fs-mount workspace dep if it didn't have one.
+10. (Optional, stretch goal) Add an oxlint rule or tsconfig pathBanning that @km/core + @km/storage cannot import 'fs' — per the fs-mount bead's original intent. Currently 17 @km/storage files still import 'fs' (DO-NOT-MOVE list); this would require either moving those or documenting the exception. Out of scope unless part of the deletion passes cleanly.
 
 ## /complete criteria
 

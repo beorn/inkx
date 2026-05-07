@@ -37,9 +37,6 @@ Obsidian and similar tools resolve internal references in multiple ways.
 
 See [the reference][ref1] and [also this][ref2].
 
-[ref1]: https://example.com/first "First reference"
-[ref2]: https://example.com/second "Second reference"
-
 ## Footnotes
 
 Here is a footnote reference[^1] and another[^named].
@@ -47,3 +44,4 @@ Here is a footnote reference[^1] and another[^named].
 [^1]: This is the first footnote.
 
 [^named]: This is a named footnote.
+

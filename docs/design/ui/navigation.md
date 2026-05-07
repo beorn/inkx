@@ -61,10 +61,10 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Source of truth**: ViewTree
 - **Data flow**:
   1. Look up current node in ViewNode index
-  2. Branch on `vn.role`: board -> first column/body card; column -> first card or board; card -> sibling card or column header; subitem -> DFS walk within card then next card
-  3. For column-to-board transitions, saves `stickyX` (structural column index)
-  4. For board-to-column transitions, restores `stickyX`
-  5. Returns target nodeId; caller dispatches `SELECT`
+  1. Branch on `vn.role`: board -> first column/body card; column -> first card or board; card -> sibling card or column header; subitem -> DFS walk within card then next card
+  1. For column-to-board transitions, saves `stickyX` (structural column index)
+  1. For board-to-column transitions, restores `stickyX`
+  1. Returns target nodeId; caller dispatches `SELECT`
 - **Output**: Clears `stickyY` after move
 
 ### Path 2: Horizontal Navigation (h/l, arrows)
@@ -74,16 +74,16 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Entry**: `handleCursorMove` -> `handleHorizontalNav`
 - **Implementation**: Multi-phase:
   1. Detail pane boundary: `h` from detail pane exits to parent board pane
-  2. Column header boundary: `h` at leftmost card selects column header
-  3. Lazy-captures `stickyY` from current card's mid-Y position
-  4. Calls `viewNavigation.navigate()` -> `vnNavigateHorizontal` for cross-column movement
-  5. Right boundary: enters detail pane if one exists
+  1. Column header boundary: `h` at leftmost card selects column header
+  1. Lazy-captures `stickyY` from current card's mid-Y position
+  1. Calls `viewNavigation.navigate()` -> `vnNavigateHorizontal` for cross-column movement
+  1. Right boundary: enters detail pane if one exists
 - **Source of truth**: ViewTree (via `vnNavigateHorizontal`)
 - **Data flow**:
   1. `vnNavigateHorizontal` resolves containing column via `vnFindColumn`
-  2. Finds target column in structural columns list (body column is special — always leftmost)
-  3. `vnNavigateToColumn` uses `stickyY` + `GridNavigator.findItemAtY` to land on the vertically-closest card in the target column
-  4. When target column is off-screen, uses deferred navigation (resolved during silvery Phase 2.7)
+  1. Finds target column in structural columns list (body column is special — always leftmost)
+  1. `vnNavigateToColumn` uses `stickyY` + `GridNavigator.findItemAtY` to land on the vertically-closest card in the target column
+  1. When target column is off-screen, uses deferred navigation (resolved during silvery Phase 2.7)
 - **Output**: Clears `stickyX`; preserves `stickyY` across columns
 
 ### Path 3: Block Navigation (J/K, Ctrl+N/P)
@@ -95,9 +95,9 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Source of truth**: ViewTree (via `getVisibleColumnBlocks`)
 - **Data flow**:
   1. `getVisibleColumnBlocks` walks the ViewNode subtree for the current column in DFS order, collecting all node IDs: column header, cards, sub-items
-  2. Extracts `BoardNavState` and calls `applyBlockNav` (pure reducer)
-  3. `applyBlockNav` delegates to `applyListNav` — simple index arithmetic on the flat ID list
-  4. `runBoardEffects` applies the resulting SELECT effect
+  1. Extracts `BoardNavState` and calls `applyBlockNav` (pure reducer)
+  1. `applyBlockNav` delegates to `applyListNav` — simple index arithmetic on the flat ID list
+  1. `runBoardEffects` applies the resulting SELECT effect
 - **Output**: Clears `stickyY`
 
 ### Path 4: Outline Navigation (prev/next inside a card)
@@ -109,9 +109,9 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Source of truth**: ViewTree (via `getVisibleCardDescendants`)
 - **Data flow**:
   1. `getVisibleCardDescendants` walks the ViewNode subtree for the containing card in DFS order
-  2. Extracts `BoardNavState` and calls `applyOutlineNav` (pure reducer)
-  3. `applyOutlineNav` delegates to `applyListNav`
-  4. `runBoardEffects` applies the resulting SELECT effect
+  1. Extracts `BoardNavState` and calls `applyOutlineNav` (pure reducer)
+  1. `applyOutlineNav` delegates to `applyListNav`
+  1. `runBoardEffects` applies the resulting SELECT effect
 - **Output**: No sticky changes
 
 ### Path 5: Tree Navigation (first/last/child/parent)
@@ -123,10 +123,10 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Source of truth**: Repo (direct `repo.getChildren` calls) -- LEGACY
 - **Data flow**:
   1. `handleTreeNavigation` switches on direction: next/prev (sibling), first/last (boundary sibling), child (first child), parent (parent node)
-  2. Uses `repo.getChildren(parentId)` for sibling lookup, `repo.getNode(id)` for parent traversal
-  3. Respects `foldDepths` for child direction (folded nodes block descent)
-  4. Respects `rootId` for parent direction (zoom root is navigation boundary)
-  5. Returns target nodeId; caller dispatches `SELECT`
+  1. Uses `repo.getChildren(parentId)` for sibling lookup, `repo.getNode(id)` for parent traversal
+  1. Respects `foldDepths` for child direction (folded nodes block descent)
+  1. Respects `rootId` for parent direction (zoom root is navigation boundary)
+  1. Returns target nodeId; caller dispatches `SELECT`
 - **Output**: Clears `stickyY`
 - **Note**: This is the only normal-mode path that walks Repo instead of ViewTree. See planned cleanup below.
 
@@ -139,12 +139,12 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Source of truth**: Repo (direct `repo.getChildren` + `extractBody` calls) -- LEGACY
 - **Data flow**:
   1. Resolves body block nodes to their parent heading (body blocks are traversed via `blockIndex` on the parent)
-  2. Computes block count: 1 (title) + body.length
-  3. If next block is within same node: saves current block, changes `blockIndex` on `sel.text()` (inline edit block)
-  4. If past node boundary going down: descends into first child's items (via `extractBody().items`)
-  5. If past node boundary going up: enters previous sibling's deepest last descendant (via `findDeepestLast`)
-  6. If no adjacent node found and `exitAtBoundary` is true (arrow key overflow): exits edit mode and falls through to `handleCursorMove`
-  7. `findAdjacentEditNode` does the cross-node walk: checks `col.cardNodes` for card-level siblings, then `extractBody().items` for structural siblings, then recurses up to parent
+  1. Computes block count: 1 (title) + body.length
+  1. If next block is within same node: saves current block, changes `blockIndex` on `sel.text()` (inline edit block)
+  1. If past node boundary going down: descends into first child's items (via `extractBody().items`)
+  1. If past node boundary going up: enters previous sibling's deepest last descendant (via `findDeepestLast`)
+  1. If no adjacent node found and `exitAtBoundary` is true (arrow key overflow): exits edit mode and falls through to `handleCursorMove`
+  1. `findAdjacentEditNode` does the cross-node walk: checks `col.cardNodes` for card-level siblings, then `extractBody().items` for structural siblings, then recurses up to parent
 - **Output**: Preserves `stickyX` (cursor column position) across block transitions
 
 ### Path 7: Page Jump (Ctrl+D/U, PageDown/Up)
@@ -156,9 +156,9 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Source of truth**: Column's `cardNodes` array (from `ColumnSnapshot`) -- MIXED
 - **Data flow**:
   1. Computes `pageSize` from terminal dimensions: `max(5, floor((rows - 4) / 2))`
-  2. Gets card IDs from `col.cardNodes` (derived from Repo but only top-level cards, not subitems)
-  3. Calls `applyPageJump` (pure reducer -> `applyListNav` with `step=pageSize`, `clearScrollAnchor=true`)
-  4. `runBoardEffects` applies SELECT + SCROLL_ANCHOR_CLEAR effects
+  1. Gets card IDs from `col.cardNodes` (derived from Repo but only top-level cards, not subitems)
+  1. Calls `applyPageJump` (pure reducer -> `applyListNav` with `step=pageSize`, `clearScrollAnchor=true`)
+  1. `runBoardEffects` applies SELECT + SCROLL_ANCHOR_CLEAR effects
 - **Output**: No sticky changes
 
 ### Path 8: History and Sibling Board Navigation
@@ -183,58 +183,60 @@ Paths that use ViewTree navigate exactly what the user sees. Repo-based paths ca
 
 ## Keypress to Cursor Update Flow
 
-    keypress (j / k / h / l / J / K / etc.)
-        |
-        v
-    keybinding resolver (km-commands/keybindings.ts)
-        |  maps key + when-guard -> commandId
-        v
-    command definition (km-commands/commands/navigation.ts)
-        |  produces BoardReducerOp: { type: "CURSOR_MOVE", dir: "..." }
-        v
-    handleNavAction (board-actions.ts)
-        |  dispatches on action.type
-        v
-    handleCursorMove (board-actions-nav.ts)
-        |  dispatches on dir string
-        |
-        +-- "up"/"down" -----------> handleVerticalNav
-        |                               |-> viewNavigation.navigate()
-        |                               |-> vnNavigateVertical (ViewTree)
-        |
-        +-- "left"/"right" --------> handleHorizontalNav
-        |                               |-> detail pane boundary checks
-        |                               |-> viewNavigation.navigate()
-        |                               |-> vnNavigateHorizontal (ViewTree)
-        |                               |-> GridNavigator stickyY targeting
-        |
-        +-- "in"/"out" ------------> handleBlockNav
-        |                               |-> getVisibleColumnBlocks (ViewTree DFS)
-        |                               |-> applyBlockNav (pure reducer)
-        |
-        +-- "prev"/"next" ---------> handleOutlineNav (if inOutlineMode)
-        |   (inside card)               |-> getVisibleCardDescendants (ViewTree DFS)
-        |                               |-> applyOutlineNav (pure reducer)
-        |
-        +-- "first"/"last"/etc. ---> handleTreeNav
-                                        |-> handleTreeNavigation (Repo walks)
+```
+keypress (j / k / h / l / J / K / etc.)
+    |
+    v
+keybinding resolver (km-commands/keybindings.ts)
+    |  maps key + when-guard -> commandId
+    v
+command definition (km-commands/commands/navigation.ts)
+    |  produces BoardReducerOp: { type: "CURSOR_MOVE", dir: "..." }
+    v
+handleNavAction (board-actions.ts)
+    |  dispatches on action.type
+    v
+handleCursorMove (board-actions-nav.ts)
+    |  dispatches on dir string
+    |
+    +-- "up"/"down" -----------> handleVerticalNav
+    |                               |-> viewNavigation.navigate()
+    |                               |-> vnNavigateVertical (ViewTree)
+    |
+    +-- "left"/"right" --------> handleHorizontalNav
+    |                               |-> detail pane boundary checks
+    |                               |-> viewNavigation.navigate()
+    |                               |-> vnNavigateHorizontal (ViewTree)
+    |                               |-> GridNavigator stickyY targeting
+    |
+    +-- "in"/"out" ------------> handleBlockNav
+    |                               |-> getVisibleColumnBlocks (ViewTree DFS)
+    |                               |-> applyBlockNav (pure reducer)
+    |
+    +-- "prev"/"next" ---------> handleOutlineNav (if inOutlineMode)
+    |   (inside card)               |-> getVisibleCardDescendants (ViewTree DFS)
+    |                               |-> applyOutlineNav (pure reducer)
+    |
+    +-- "first"/"last"/etc. ---> handleTreeNav
+                                    |-> handleTreeNavigation (Repo walks)
 
-    (separate from CURSOR_MOVE)
+(separate from CURSOR_MOVE)
 
-    EDIT_BLOCK_NAVIGATE ---------> handleEditBlockNavigate
-        |                               |-> block index within node
-        |                               |-> findAdjacentEditNode (Repo walks)
-        |                               |-> findDeepestLast (Repo DFS)
-        v
-    PAGE_JUMP -------------------> handlePageJump
-        |                               |-> col.cardNodes
-        |                               |-> applyPageJump (pure reducer)
-        v
-    NAV_BACK / NAV_FORWARD ------> navigateHistory
-        |                               |-> navHistory array + ZOOM_IN
-        v
-    NAV_SIBLING_BOARD -----------> handleNavSiblingBoard
-                                        |-> repo.getChildren(parent) + ZOOM_IN
+EDIT_BLOCK_NAVIGATE ---------> handleEditBlockNavigate
+    |                               |-> block index within node
+    |                               |-> findAdjacentEditNode (Repo walks)
+    |                               |-> findDeepestLast (Repo DFS)
+    v
+PAGE_JUMP -------------------> handlePageJump
+    |                               |-> col.cardNodes
+    |                               |-> applyPageJump (pure reducer)
+    v
+NAV_BACK / NAV_FORWARD ------> navigateHistory
+    |                               |-> navHistory array + ZOOM_IN
+    v
+NAV_SIBLING_BOARD -----------> handleNavSiblingBoard
+                                    |-> repo.getChildren(parent) + ZOOM_IN
+```
 
 ## Detail View Navigation
 
@@ -251,13 +253,9 @@ This is implemented via direct Repo walks (`repo.getChildren`, `repo.getNode`), 
 Epic: `@km/tui/nav-clarity` (P2)
 
 1. **Edit navigation uses Repo walks** (bead: `@km/tui/edit-nav-viewtree`). `findAdjacentEditNode` and `findDeepestLast` walk the Repo directly, which can diverge from what's rendered. Should migrate to ViewTree traversal like block/outline nav already do.
-
 2. **Three list-nav wrappers are near-identical** (bead: `@km/tui/unify-list-nav`). `applyBlockNav`, `applyOutlineNav`, and `applyPageJump` all delegate to `applyListNav` with slightly different parameters. The dispatch layer could call `applyListNav` directly, but the wrappers provide call-site readability and map to the `BoardNavOp` discriminated union.
-
 3. **Tree navigation ignores ViewTree**. `handleTreeNavigation` in `navigation-handlers.ts` uses `repo.getChildren` for sibling/parent/child lookups. This works correctly today because tree nav directions (first/last/child/parent) don't need visibility filtering in the same way spatial nav does, but unifying on ViewTree would reduce the number of traversal strategies.
-
 4. **Page jump uses col.cardNodes**. This is a ColumnSnapshot-derived list, not a ViewTree walk. It only includes top-level cards (not subitems), which is intentional for page-sized jumps, but the data source is inconsistent with block/outline nav.
-
 5. **Detail view navigates via Repo**. The detail pane's vertical navigation walks `repo.getChildren` directly. Since detail has virtual metadata rows with no ViewNode representation, migrating to ViewTree would require extending ViewNode to support virtual items.
 
 ---
@@ -284,6 +282,7 @@ Path is the **structural** coordinate system — it describes tree position, not
 Derived lazily from `sel.node.cursor` (was `cursorNodeId`) via cache lookups (no SQL after first access).
 
 Path helpers (pure arithmetic, no repo):
+
 - `Path.parent(path)` — `[2, 5, 0]` -> `[2, 5]`
 - `Path.next(path)` — `[2, 5]` -> `[2, 6]`
 - `Path.previous(path)` — `[2, 5]` -> `[2, 4]`
@@ -293,6 +292,7 @@ Path helpers (pure arithmetic, no repo):
 - `Path.depth(path)` — `path.length`
 
 Repo-aware resolution:
+
 - `NodePath.pathOf(repo, rootId, nodeId)` — cursor -> path
 - `NodePath.nodeAt(repo, rootId, path)` — path -> node
 - `NodePath.siblings(repo, rootId, path)` — siblings at path level
@@ -301,12 +301,12 @@ Repo-aware resolution:
 
 The repo caches `getChildren(parentId)` results per parent node. Populated lazily on first access. Surgical invalidation:
 
-| Mutation | Invalidate |
-|----------|-----------|
-| `addNode(parentId)` | parentId |
-| `deleteNode(id)` | node's parent |
-| `moveNode(id, newParent)` | old parent + new parent |
-| `updateNode(id, changes)` | nothing |
+| Mutation                | Invalidate              |
+| ----------------------- | ----------------------- |
+| addNode(parentId)       | parentId                |
+| deleteNode(id)          | node's parent           |
+| moveNode(id, newParent) | old parent + new parent |
+| updateNode(id, changes) | nothing                 |
 
 All consumers benefit: rendering, navigation, path derivation. After first render, all `getChildren` calls are cache hits. Path derivation becomes pure map lookups.
 
@@ -314,11 +314,11 @@ All consumers benefit: rendering, navigation, path derivation. After first rende
 
 hjkl always means "move to the visually adjacent node":
 
-| Key | Meaning |
-|-----|---------|
+| Key | Meaning        |
+| --- | -------------- |
 | j   | Visually below |
 | k   | Visually above |
-| h   | Visually left |
+| h   | Visually left  |
 | l   | Visually right |
 
 It happens that j/k matches structural sibling order in current views. But the model doesn't assume this — the view resolves direction to target.

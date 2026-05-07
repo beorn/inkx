@@ -24,12 +24,12 @@ The model maker ships the agent for free or near-free as a way to keep API consu
 
 ### Players and numbers
 
-| Agent | Vendor | Pricing surface | Revenue / signal |
-|---|---|---|---|
-| **Claude Code** | Anthropic | Bundled into Claude Pro $20 / Max $100–$200 / Team / Enterprise | ~$2.5B run-rate (early 2026); enterprise = >50% of CC revenue; ~$13/dev/active-day, $150–250/dev/month |
-| **Codex CLI** | OpenAI | Bundled into ChatGPT Plus / Pro / Business | Not separately disclosed; lever to defend OpenAI API share against Anthropic |
-| **Gemini CLI** | Google | Free, tied to AI Studio / Vertex consumption | Pure top-of-funnel; no agent revenue line |
-| **Kimi CLI** | Moonshot | Free CLI + platform.kimi.ai inference | Same shape, China geography |
+| Agent       | Vendor    | Pricing surface                                                 | Revenue / signal                                                                                       |
+| ----------- | --------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Claude Code | Anthropic | Bundled into Claude Pro $20 / Max $100–$200 / Team / Enterprise | ~$2.5B run-rate (early 2026); enterprise = >50% of CC revenue; ~$13/dev/active-day, $150–250/dev/month |
+| Codex CLI   | OpenAI    | Bundled into ChatGPT Plus / Pro / Business                      | Not separately disclosed; lever to defend OpenAI API share against Anthropic                           |
+| Gemini CLI  | Google    | Free, tied to AI Studio / Vertex consumption                    | Pure top-of-funnel; no agent revenue line                                                              |
+| Kimi CLI    | Moonshot  | Free CLI + platform.kimi.ai inference                           | Same shape, China geography                                                                            |
 
 Anthropic context: $30B annualized revenue (March 2026), $30B raise at $380B valuation (Feb 2026). Claude Code grew from launch to $1B annualized in six months.
 
@@ -50,12 +50,12 @@ Sell the editor; route multi-vendor inference behind a per-seat or usage margin.
 
 ### Players and numbers
 
-| Product | Company | Pricing | Revenue / valuation |
-|---|---|---|---|
-| **Cursor** | Anysphere | $20 Pro / $40 Business / custom Enterprise + usage overage | **$2B ARR by Feb 2026** (zero → $2B in ~3 years, fastest B2B SaaS ever). Forecast >$6B ARR EOY 2026. ~60% of revenue is enterprise. >half of Fortune 500 using it. |
-| (Anysphere funding) | | | $2B raise in talks at $50B pre-money (April 2026). xAI reportedly holds a $60B acquisition right. |
-| **Windsurf** | Codeium → Cognition | n/a (folded into Devin) | $82M ARR + 350 enterprise customers when acquired by Cognition for ~$250M (Dec 2025) after an OpenAI deal collapsed |
-| **Zed** | Zed Industries | OSS editor + Zed Pro hosted-model subscription | Native Rust; collaborative multiplayer; smaller scale than Cursor |
+| Product             | Company             | Pricing                                                    | Revenue / valuation                                                                                                                                            |
+| ------------------- | ------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cursor              | Anysphere           | $20 Pro / $40 Business / custom Enterprise + usage overage | $2B ARR by Feb 2026 (zero → $2B in ~3 years, fastest B2B SaaS ever). Forecast >$6B ARR EOY 2026. ~60% of revenue is enterprise. >half of Fortune 500 using it. |
+| (Anysphere funding) |                     |                                                            | $2B raise in talks at $50B pre-money (April 2026). xAI reportedly holds a $60B acquisition right.                                                              |
+| Windsurf            | Codeium → Cognition | n/a (folded into Devin)                                    | $82M ARR + 350 enterprise customers when acquired by Cognition for ~$250M (Dec 2025) after an OpenAI deal collapsed                                            |
+| Zed                 | Zed Industries      | OSS editor + Zed Pro hosted-model subscription             | Native Rust; collaborative multiplayer; smaller scale than Cursor                                                                                              |
 
 ### Economics
 
@@ -73,11 +73,11 @@ Sell agent compute, not seats. The agent runs in a sandbox/VM, opens PRs, execut
 
 ### Players and numbers
 
-| Product | Company | Pricing | Notes |
-|---|---|---|---|
-| **Devin** | Cognition | $20 Core / $500 Team / custom Enterprise. Bills "Agent Compute Units" (VM time + inference + bandwidth) | Devin 2.0 (April 2025) cut entry from $500 → $20/mo. Cognition $10.2B valuation Sept 2025 post-Windsurf. Combined enterprise ARR up >30% post-merger |
-| **OpenHands** | All Hands AI | OSS + hosted runtime | $5M seed (2024); Princeton/UIUC/CMU SWE-agent academic lineage |
-| **Jules** | Google | Free, GitHub-integrated, async | Funnel play; Google's answer to Devin |
+| Product   | Company      | Pricing                                                                                                 | Notes                                                                                                                                                |
+| --------- | ------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Devin     | Cognition    | $20 Core / $500 Team / custom Enterprise. Bills "Agent Compute Units" (VM time + inference + bandwidth) | Devin 2.0 (April 2025) cut entry from $500 → $20/mo. Cognition $10.2B valuation Sept 2025 post-Windsurf. Combined enterprise ARR up >30% post-merger |
+| OpenHands | All Hands AI | OSS + hosted runtime                                                                                    | $5M seed (2024); Princeton/UIUC/CMU SWE-agent academic lineage                                                                                       |
+| Jules     | Google       | Free, GitHub-integrated, async                                                                          | Funnel play; Google's answer to Devin                                                                                                                |
 
 ### Economics
 
@@ -95,12 +95,12 @@ Free, MIT-licensed, fully self-hostable agent. Monetize the convenience layer (m
 
 ### Players and numbers
 
-| Agent | Company | OSS license | Revenue model | Signal |
-|---|---|---|---|---|
-| **opencode** | Anomaly (ex-SST) | MIT | opencode Zen hosted inference | "Several million USD ARR" reported 2025. 650k MAU within 5 months of June 2025 launch. Profitable on $1.12M YC seed (S21). Cloudflare among customers. |
-| **aider** | Paul Gauthier (solo) | Apache 2.0 | None | Pure community + benchmarks. Release cadence slowed materially since Aug 2025 |
-| **goose** | Block (Jack Dorsey's co.) | OSS | None (internal-tool-released) | Block's bet, not a revenue line |
-| **pi-mono** | Earendil (Mario Zechner) | MIT | None | Publishes session datasets to HuggingFace as a side asset |
+| Agent    | Company                   | OSS license | Revenue model                 | Signal                                                                                                                                                 |
+| -------- | ------------------------- | ----------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| opencode | Anomaly (ex-SST)          | MIT         | opencode Zen hosted inference | "Several million USD ARR" reported 2025. 650k MAU within 5 months of June 2025 launch. Profitable on $1.12M YC seed (S21). Cloudflare among customers. |
+| aider    | Paul Gauthier (solo)      | Apache 2.0  | None                          | Pure community + benchmarks. Release cadence slowed materially since Aug 2025                                                                          |
+| goose    | Block (Jack Dorsey's co.) | OSS         | None (internal-tool-released) | Block's bet, not a revenue line                                                                                                                        |
+| pi-mono  | Earendil (Mario Zechner)  | MIT         | None                          | Publishes session datasets to HuggingFace as a side asset                                                                                              |
 
 ### Economics
 
@@ -118,12 +118,12 @@ OSS extension in the IDE, free for individuals; enterprise tier monetizes team f
 
 ### Players and numbers
 
-| Agent | Company | Free / Pro / Enterprise | Funding / revenue |
-|---|---|---|---|
-| **Cline** | Cline | Free for individuals; Teams $20/seat/mo (free through Q1 2026; first 10 seats permanently free); Enterprise custom (SSO, SCIM, VPC, audit, SLA) | $32M Series A + seed. 2.7M installs. SAP, Samsung cited. Explicit "no markup on inference" pitch |
-| **Continue** | Continue, Inc. | Solo $10/seat/mo entry; Team / Enterprise (SSO + on-prem data plane) | $5.6M total raised (YC + Heavybit). $1.4M revenue with 9 people in 2024. ~19 people now |
-| **Sourcegraph Amp** (formerly Cody) | Sourcegraph | **Free + Pro killed July 2025**; Enterprise-only at $59/user/mo (Sourcegraph), Amp-specific contact-sales | Riding existing Sourcegraph enterprise relationships; pivoted hard from self-serve to enterprise-only |
-| **GitHub Copilot** | Microsoft | Individual $10 / Business $19 / Enterprise $39 per seat | 4.7M paid subs (Jan 2026), ~75% YoY growth. ARR estimates $450M–$1B+. ~42% market share among paid AI-coding tools. ~90% of Fortune 100 |
+| Agent                           | Company        | Free / Pro / Enterprise                                                                                                                         | Funding / revenue                                                                                                                       |
+| ------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Cline                           | Cline          | Free for individuals; Teams $20/seat/mo (free through Q1 2026; first 10 seats permanently free); Enterprise custom (SSO, SCIM, VPC, audit, SLA) | $32M Series A + seed. 2.7M installs. SAP, Samsung cited. Explicit "no markup on inference" pitch                                        |
+| Continue                        | Continue, Inc. | Solo $10/seat/mo entry; Team / Enterprise (SSO + on-prem data plane)                                                                            | $5.6M total raised (YC + Heavybit). $1.4M revenue with 9 people in 2024. ~19 people now                                                 |
+| Sourcegraph Amp (formerly Cody) | Sourcegraph    | Free + Pro killed July 2025; Enterprise-only at $59/user/mo (Sourcegraph), Amp-specific contact-sales                                           | Riding existing Sourcegraph enterprise relationships; pivoted hard from self-serve to enterprise-only                                   |
+| GitHub Copilot                  | Microsoft      | Individual $10 / Business $19 / Enterprise $39 per seat                                                                                         | 4.7M paid subs (Jan 2026), ~75% YoY growth. ARR estimates $450M–$1B+. ~42% market share among paid AI-coding tools. ~90% of Fortune 100 |
 
 ### Economics
 
@@ -230,36 +230,45 @@ The "supervise multiple agent sessions" wedge — which is the Agent Workspace M
 ## Sources
 
 ### Cursor / Anysphere
+
 - [Cursor's Anysphere nabs $9.9B valuation, soars past $500M ARR (TechCrunch, June 2025)](https://techcrunch.com/2025/06/05/cursors-anysphere-nabs-9-9b-valuation-soars-past-500m-arr/)
 - [Cursor in talks to raise $2B at $50B valuation after hitting $2B ARR in three years (TheNextWeb, April 2026)](https://thenextweb.com/news/cursor-anysphere-2-billion-funding-50-billion-valuation-ai-coding)
 - [Cursor AI Valuation Hits $60B (Tech Insider, April 2026)](https://tech-insider.org/cursor-60-billion-valuation-anysphere-ai-coding-2026/)
 
 ### Anthropic / Claude Code
+
 - [Anthropic raises $30 billion at $380 billion valuation (Anthropic, Feb 2026)](https://www.anthropic.com/news/anthropic-raises-30-billion-series-g-funding-380-billion-post-money-valuation)
 - [Anthropic Claude Code Valuation 2026 (Orbilon Tech)](https://orbilontech.com/anthropic-claude-code-valuation-2026/)
 
 ### Cognition / Devin / Windsurf
+
 - [Cognition's acquisition of Windsurf (Cognition blog)](https://cognition.ai/blog/windsurf)
 - [Cognition valued at $10.2 billion two months after Windsurf purchase (CNBC, Sept 2025)](https://www.cnbc.com/2025/09/08/cognition-valued-at-10point2-billion-two-months-after-windsurf-.html)
 - [Devin Pricing](https://devin.ai/pricing/)
 - [Devin 2.0: Cognition slashes price to $20/month from $500 (VentureBeat, April 2025)](https://venturebeat.com/programming-development/devin-2-0-is-here-cognition-slashes-price-of-ai-software-engineer-to-20-per-month-from-500)
 
 ### Cline
+
 - [Cline Pricing](https://cline.bot/pricing)
 - [Cline Raises $32M Building the Open-source AI Coding Agent (Cline blog)](https://cline.bot/blog/cline-raises-32m-series-a-and-seed-funding-building-the-open-source-ai-coding-agent-that-enterprises-trust)
 
 ### Continue
+
 - [Continue Pricing](https://www.continue.dev/pricing)
 - [Continue raises $3M for open-source AI coding assistants (LinkedIn)](https://www.linkedin.com/posts/y-combinator_continue-has-raised-3m-in-new-seed-funding-activity-7302432600483147776-RmhZ)
 - [How Continue hit $1.4M revenue with a 9 person team in 2024 (Latka)](https://getlatka.com/companies/continue.dev/funding)
 
 ### Sourcegraph Amp / Cody
+
 - [Sourcegraph Pricing](https://sourcegraph.com/pricing)
 - [Changes to Cody Free, Pro, and Enterprise Starter plans (Sourcegraph blog, June 2025)](https://sourcegraph.com/blog/changes-to-cody-free-pro-and-enterprise-starter-plans)
 
 ### GitHub Copilot
+
 - [GitHub Copilot Statistics 2026 (Panto AI)](https://www.getpanto.ai/blog/github-copilot-statistics)
 - [Microsoft Copilot Revenue and Usage Statistics (Business of Apps)](https://www.businessofapps.com/data/microsoft-copilot-statistics/)
 
 ### Anomaly / opencode
+
 - See [`anomaly-company.md`](./anomaly-company.md) for the full source list (TFN, Dev Genius, Technori, Crunchbase, ICUBE UTM, etc.).
+

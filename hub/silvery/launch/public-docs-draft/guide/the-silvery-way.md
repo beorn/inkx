@@ -11,9 +11,7 @@ Each principle is something people get wrong. If you're coming from Ink, Blessed
 The ten principles below all flow from three broader convictions:
 
 1. **Take the best from the web.** Flexbox, scroll containers, DOM-style events, focus scopes, Playwright-style testing, design tokens — thirty years of web UI produced ideas worth keeping. If you'd reach for it on the web, reach for it in Silvery.
-
 2. **Stay true to the terminal.** Cells, screens, buffers, ANSI, scrollback. The terminal is the medium, and Silvery embraces it. When a feature maps onto a terminal protocol — Kitty keyboard, OSC 52 clipboard, DEC mode 2026 — we expose it honestly, not as a polyfill.
-
 3. **Raise the bar.** For developer ergonomics, architecture composability, and performance. The ten principles below are what this looks like in practice — each one exists because a shiny path is worth building and maintaining.
 
 ## 1. Use the Built-in Components
@@ -196,7 +194,7 @@ If you're writing `if (isDialogOpen) return` in your input handlers, you don't h
 
 Named, serializable, introspectable actions. Commands make your app automatable (AI agents invoke commands by name), testable (fire commands in tests), and discoverable ([`CommandPalette`](/guides/components#shadcn-style-components) lists them all).
 
-> Part of [`@silvery/create`](https://www.npmjs.com/package/@silvery/create) — the optional app architecture layer. `@silvery/create` is under active development; the command system API is evolving.
+> Part of @silvery/create — the optional app architecture layer. @silvery/create is under active development; the command system API is evolving.
 
 ::: tip ✨ Shiny
 
@@ -391,15 +389,15 @@ try {
 
 Silvery objects that support `using`:
 
-| Object                                      | What it cleans up                                |
-| ------------------------------------------- | ------------------------------------------------ |
-| `createTerm()`                              | Restores terminal mode, cursor, alternate screen |
-| `render()` / `app.run()`                    | Unmounts React tree, stops event loop            |
-| `createScope()`                             | Cancels child tasks, clears timers               |
-| `createEditContext()`                       | Releases input layer bindings                    |
-| `patchConsole()`                            | Restores original console methods                |
-| `Spinner` / `ProgressBar` / `MultiProgress` | Stops animation, clears interval                 |
-| `createScreenshot()`                        | Closes screenshot file handle                    |
+| Object                                | What it cleans up                                |
+| ------------------------------------- | ------------------------------------------------ |
+| createTerm()                          | Restores terminal mode, cursor, alternate screen |
+| render() / app.run()                  | Unmounts React tree, stops event loop            |
+| createScope()                         | Cancels child tasks, clears timers               |
+| createEditContext()                   | Releases input layer bindings                    |
+| patchConsole()                        | Restores original console methods                |
+| Spinner / ProgressBar / MultiProgress | Stops animation, clears interval                 |
+| createScreenshot()                    | Closes screenshot file handle                    |
 
 The pattern extends to your own code — any factory that returns `{ [Symbol.dispose]() { ... } }` works with `using`. Silvery's plugin composition (`pipe()`, `withScope()`) uses the same mechanism internally.
 
@@ -512,3 +510,4 @@ Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If y
 10. **Test what the user sees** — render the buffer, not just the state
 
 Keep it shiny. ✨
+

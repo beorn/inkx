@@ -83,10 +83,10 @@ This was the only ordering fix needed. No wrapper-ordering hacks; no `queueMicro
 
 ### File + LOC count
 
-| | Plugin file | Hook file | Bridge file | Total |
-|---|---|---|---|---|
-| HelpOverlay | 213 | 23 | 60 | **296** |
-| SearchDialog | 221 | 24 | 172 | **417** |
+|              | Plugin file | Hook file | Bridge file | Total |
+| ------------ | ----------- | --------- | ----------- | ----- |
+| HelpOverlay  | 213         | 23        | 60          | 296   |
+| SearchDialog | 221         | 24        | 172         | 417   |
 
 SearchDialog is 1.41× HelpOverlay. Breakdown of the 121-line increase:
 
@@ -98,16 +98,17 @@ The bridge-size delta is proportional to dialog complexity, not boilerplate infl
 
 ### Typed surface
 
-| | Op union | State fields | Effect type | Manually-named types |
-|---|---|---|---|---|
-| HelpOverlay | 4 | 2 | 1 | 2 (HelpOp, HelpState) |
-| SearchDialog | 5 | 4 | 1 | 2 (SearchOp, SearchState) |
+|              | Op union | State fields | Effect type | Manually-named types      |
+| ------------ | -------- | ------------ | ----------- | ------------------------- |
+| HelpOverlay  | 4        | 2            | 1           | 2 (HelpOp, HelpState)     |
+| SearchDialog | 5        | 4            | 1           | 2 (SearchOp, SearchState) |
 
 Same discipline. No "speculative" type tags (no `RoleLane<"view-state">`, no `consumed()`, no `passThrough`). The elegance proof holds.
 
 ### Explicit-boilerplate / domain-logic ratio
 
 In `with-search-dialog.ts` (221 LOC):
+
 - JSDoc comments: ~90 LOC
 - Actual code: ~131 LOC
   - Types: ~25 LOC
@@ -125,9 +126,7 @@ The store implementation (40 LOC) is the one chunk that IS boilerplate (we re-ty
 ### New sub-beads to file (optional; none block Phase 1)
 
 1. **Plugin singleton leak without explicit reset** — `resetSearchStore`/`resetHelpStore` must be called in every test helper that uses `isolate:false`. Today I wired them into `board-test.ts` + `test-app.ts` manually; the next plugin added will need the same wiring. A `resetAllKmPlugins()` helper (that internally iterates a plugin-registry) would be cleaner for Phase 1's `withDialogs()`. Not blocking.
-
 2. **Benign "both refs null" warn → debug downgrade** — The warn was firing in stress tests because of the ref-timing edge case. Downgrading to debug is correct for dual-write transitional code, but the *underlying* degenerate state is real. Phase 1's `withDialogs()` should either eliminate the path (plugin owns everything) or promote the warn back once state sources are unified.
-
 3. **Pre-existing flaky-by-luck test** — The test `keys-as-text.test.ts:rapid Enter after search confirm` passed on flag-off partly because ui state and React rendering were desynchronized in a way that masked the DIALOG_CONFIRM re-trigger. My changes surfaced the mismatch; the fix is correct but a grep for similar "lucky-timing" tests could find more once Phase 1 lands.
 
 ## Predicted → actual verdict alignment
@@ -174,6 +173,7 @@ KM_TEA_SEARCH=1 bun km view /path/to/vault
 
 **Phase 1 may proceed using the HelpOverlay + SearchDialog pattern.** Adopt the co-location discipline:
 
-> **Plugin-dispatch rule**: every op that mirrors a legacy setUI must be dispatched from the same function that calls setUI, not from an earlier upstream. Reducers may dispatch plugin ops for "open" (where ui and plugin state both transition from false-to-true in a single reducer call) but NOT for "close" (which has indirect dialogTargetRef callbacks that setUI from handler code).
+> Plugin-dispatch rule: every op that mirrors a legacy setUI must be dispatched from the same function that calls setUI, not from an earlier upstream. Reducers may dispatch plugin ops for "open" (where ui and plugin state both transition from false-to-true in a single reducer call) but NOT for "close" (which has indirect dialogTargetRef callbacks that setUI from handler code).
 
 No substrate redesign needed. The apply-chain pattern carries domain-state dialogs cleanly when this discipline is followed.
+

@@ -14,3 +14,5 @@ function hello() {
 
 More text that is arguably "inside" the code block from CommonMark's
 perspective, because the fence extends to EOF.
+```
+

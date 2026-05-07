@@ -37,8 +37,8 @@ close_reason: >-
 
   Tests: 2 new vendor tests (textarea-shift-enter, listview-flex-scrollbar), 232
   silvercode tests pass, regression sweep clean. Two unrelated stale tests
-  updated (mutations.test.tsx mutation regex now handles ChatPane's '▎'
-  focus marker added 14h ago; side-panel-stays-visible.test.tsx now documents
+  updated (mutations.test.tsx mutation regex now handles ChatPane's '▎' focus
+  marker added 14h ago; side-panel-stays-visible.test.tsx now documents
   post-CSS-flip silvery defaults instead of inverted historical premise).
 started_at: 2026-04-26T05:20:30Z
 owner: bjorn@stabell.org
@@ -68,3 +68,4 @@ Two related visual inconsistencies in the assistant message stream:
 Files: apps/silvercode/src/components/MessageList.tsx (MessageItem layout), apps/silvercode/src/components/ToolCallBlock.tsx (icon + name composition).
 
 Done when: every assistant→toolCall transition has a leading blank line and every tool icon has a trailing space before the name.
+

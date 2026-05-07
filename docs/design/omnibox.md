@@ -2,7 +2,7 @@
 
 Unified picker + command palette + search, one component, sigil-dispatched.
 
-> **Status (2026-04-17): v1 shipped.** The migration described by Phases 1–12 below is complete. Every legacy component named in "The problem" section (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`), every legacy state field (`activePicker`, `showFavoritesDialog`, `favoritesSelectedKey`), every legacy op (`FAVORITES_*`), and every legacy command (`favorites.select_key`, `favorites.assign`, `favorites.clear`, `favorites.back`) has been deleted. Live code: `apps/km-tui/src/state/{omnibox,omnibox-parser,omnibox-ranker,omnibox-projection,recents-store}.ts` + `apps/km-tui/src/views/UnifiedOmnibox.tsx`. Closed beads: `@km/tui/omnibox-dialog`, `@km/tui/itempicker-unify`, `@km/tui/omnibox-{row,ranker,query-syntax,recents,command-projection,when,default-command}`. Remaining beads: Phase 6–11 polish/feature work (`@km/tui/omnibox-{cursor,interactions,pre-select,local-find,migration-cleanup,pop-out}` + extras).
+> Status (2026-04-17): v1 shipped. The migration described by Phases 1–12 below is complete. Every legacy component named in "The problem" section (Omnibox.tsx, ItemPicker.tsx, FavoritesDialog.tsx), every legacy state field (activePicker, showFavoritesDialog, favoritesSelectedKey), every legacy op (FAVORITES_*), and every legacy command (favorites.select_key, favorites.assign, favorites.clear, favorites.back) has been deleted. Live code: apps/km-tui/src/state/{omnibox,omnibox-parser,omnibox-ranker,omnibox-projection,recents-store}.ts + apps/km-tui/src/views/UnifiedOmnibox.tsx. Closed beads: @km/tui/omnibox-dialog, @km/tui/itempicker-unify, @km/tui/omnibox-{row,ranker,query-syntax,recents,command-projection,when,default-command}. Remaining beads: Phase 6–11 polish/feature work (@km/tui/omnibox-{cursor,interactions,pre-select,local-find,migration-cleanup,pop-out} + extras).
 
 **Prerequisites**: [data-model.md](data-model.md) (nodes, sigils, contexts), [navigation-architecture.md](navigation-architecture.md) (goto/zoom/nav-history).
 
@@ -10,17 +10,18 @@ Unified picker + command palette + search, one component, sigil-dispatched.
 
 Today km has ~five near-duplicate modal components:
 
-| Component | File | Purpose |
-|---|---|---|
-| `Omnibox` | `apps/km-tui/src/views/Omnibox.tsx` | Command palette (`cmd-k`) |
-| `ItemPicker` | `apps/km-tui/src/views/ItemPicker.tsx` | Verb-targeted picker (project / tag / assignee / item) |
-| `FavoritesDialog` | `apps/km-tui/src/views/FavoritesDialog.tsx` | Quick-access bookmark selector |
-| `SearchDialog` | *(legacy)* | Full-text search (absorbed into find-bar) |
-| `CommandBox` | `apps/km-tui/src/views/CommandBox.tsx` | `:` shell-style commands (unused) |
+| Component       | File                                      | Purpose                                                |
+| --------------- | ----------------------------------------- | ------------------------------------------------------ |
+| Omnibox         | apps/km-tui/src/views/Omnibox.tsx         | Command palette (cmd-k)                                |
+| ItemPicker      | apps/km-tui/src/views/ItemPicker.tsx      | Verb-targeted picker (project / tag / assignee / item) |
+| FavoritesDialog | apps/km-tui/src/views/FavoritesDialog.tsx | Quick-access bookmark selector                         |
+| SearchDialog    | (legacy)                                  | Full-text search (absorbed into find-bar)              |
+| CommandBox      | apps/km-tui/src/views/CommandBox.tsx      | : shell-style commands (unused)                        |
 
 Each owns its own input buffer, result list, row renderer, hover state, popover wiring, keybinding scope, dialog mode, and confirm/cancel callbacks. They share `NodeLine` (row) and `useDialogInput` (key plumbing) but diverge in every other respect. Every new "pick a thing" feature gets a new dialog.
 
 Bugs this shape has caused, in the last month alone:
+
 - **@km/tui/palette-arrow-keys** — arrow keys fell through to `cursor_up` because dialog-guard wasn't installed in production; once one of five dialogs was visible, all should have worked but none did.
 - **@km/tui/picker-rank-subpath** — `ItemPicker`'s fuzzy scorer ranks `@office/Finance/Accounts/Delei/SPD` above `@delei` for query "Delei"; the shared `NodeLine` renders fine but the dialog-local ranking is broken.
 - **Go-to verb fragmentation** — `goto @`, `goto #`, `goto +`, `goto [` each push a different picker type even though they're the same input with a different filter.
@@ -34,7 +35,7 @@ One component: the **omnibox**. It handles every "find something, then do a thin
 
 One result list, one row renderer, one state machine, one set of keybindings.
 
-> **Naming note:** "combobox" is a specific existing UI primitive (text input + dropdown). What we're building here is *not* a combobox — it's something more custom with sigil routing, sticky memory, default-command pivoting, pane-anchored lifecycle, and shared navigation with the rest of the board/pane system. We call it the **Omnibox**. Internally it may wrap a `Combobox` primitive (Silvery or otherwise) as one of its building blocks, but the feature, the top-level component, and the state shape are all "Omnibox". Variants are `DialogOmnibox` (center overlay), `FindOmnibox` (bottom-left inline), `PaneOmnibox` (docked, post-v1).
+> Naming note: "combobox" is a specific existing UI primitive (text input + dropdown). What we're building here is not a combobox — it's something more custom with sigil routing, sticky memory, default-command pivoting, pane-anchored lifecycle, and shared navigation with the rest of the board/pane system. We call it the Omnibox. Internally it may wrap a Combobox primitive (Silvery or otherwise) as one of its building blocks, but the feature, the top-level component, and the state shape are all "Omnibox". Variants are DialogOmnibox (center overlay), FindOmnibox (bottom-left inline), PaneOmnibox (docked, post-v1).
 
 ## The core realization — bidirectional action↔object omnibox
 
@@ -48,31 +49,32 @@ The key insight: **the omnibox supports both directions — object→action AND 
 
 ### The two directions
 
-| Direction | Entry | Flow | Example |
-|---|---|---|---|
-| **Command-first** (`action → object`) | `cmd-k` (buffer = `":"`) | Browse commands filtered by `when` against the sticky cursor. Pick a command. Enter → run against sticky cursor (or find a different target first by typing a non-`:` sigil). | `cmd-k` → `:cr` → pick `create_at` → Enter → create under sticky cursor |
-| **Object-first** (`object → action`) | `cmd-f` (buffer = `""`), `g` chords, or any chord with a pre-selected sigil | Hunt the target; Enter fires the default command (or the sticky selected command) against it. | `cmd-f` → `@del` → pick `@delei` → Enter → `default` dispatches → goto @delei |
-| **Action-first with locked verb** (`action → object`) | Verb-locking chords: `m +`, `a #`, `c @`, `l g`, `/` | Verb is locked by the chord; object search is step two. | `m +` → `km` → pick `+km` → Enter → move cursor into +km |
-| **Flip direction mid-stream** | Any | Type a different sigil in the buffer — the leading sigil auto-replaces, preserving the rest. Or press `cmd-k`/`cmd-f` to toggle modes. Sticky memory means both halves stay. | `cmd-f` → `@delei` selected → `cmd-k` → buffer `:` + `@delei` sticky → pick `move` → Enter → move @delei |
+| Direction                                       | Entry                                                                 | Flow                                                                                                                                                                      | Example                                                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Command-first (action → object)                 | cmd-k (buffer = ":")                                                  | Browse commands filtered by when against the sticky cursor. Pick a command. Enter → run against sticky cursor (or find a different target first by typing a non-: sigil). | cmd-k → :cr → pick create_at → Enter → create under sticky cursor                            |
+| Object-first (object → action)                  | cmd-f (buffer = ""), g chords, or any chord with a pre-selected sigil | Hunt the target; Enter fires the default command (or the sticky selected command) against it.                                                                             | cmd-f → @del → pick @delei → Enter → default dispatches → goto @delei                        |
+| Action-first with locked verb (action → object) | Verb-locking chords: m +, a #, c @, l g, /                            | Verb is locked by the chord; object search is step two.                                                                                                                   | m + → km → pick +km → Enter → move cursor into +km                                           |
+| Flip direction mid-stream                       | Any                                                                   | Type a different sigil in the buffer — the leading sigil auto-replaces, preserving the rest. Or press cmd-k/cmd-f to toggle modes. Sticky memory means both halves stay.  | cmd-f → @delei selected → cmd-k → buffer : + @delei sticky → pick move → Enter → move @delei |
 
 **`defaultCommand` is the pivot:**
+
 - In **command-first** (`cmd-k`) and **object-first** (`cmd-f`) flows it's `"default"` — the universal type-dispatch fallback.
 - In **action-first** flows with verb-locking chords it's a specific verb (`"move"`, `"create_at"`, `"local_find"`).
 - The user can override via `defaultCommand` at any time by typing `:<verb>` or pressing `cmd-k`.
 
-| Opened via | `buffer` | `defaultCommand` | `selectedArgument` at open | Direction |
-|---|---|---|---|---|
-| `cmd-k` / `ctrl-k` | `":"` | `"default"` | prior pane's cursor | command-first |
-| `cmd-f` / `ctrl-f` | `""` | `"default"` | prior pane's cursor | object-first |
-| `g @` chord | `"@"` | `"default"` | *(empty)* | action-first |
-| `g #` / `g +` / `g [` | `<sigil>` | `"default"` | *(empty)* | action-first |
-| `g g` | `""` | `"default"` | prior pane's cursor | object-first on cursor |
-| `g :` | `":"` | `"default"` | *(empty)* | command-first (empty) |
-| `m @` / `m +` | `<sigil>` | `"move"` (locked) | *(empty)* | action-first |
-| `a @` / `a #` | `<sigil>` | `"add"` (locked) | *(empty)* | action-first |
-| `l g` | `""` | `"add_link"` (locked) | prior pane's cursor | action-first |
-| `c @` | `"@"` | `"create_at"` (locked) | *(empty)* | action-first |
-| `/` | `"/"` | `"local_find"` (locked) | *(empty)* | action-first (bottom-left) |
+| Opened via      | buffer  | defaultCommand        | selectedArgument at open | Direction                  |
+| --------------- | ------- | --------------------- | ------------------------ | -------------------------- |
+| cmd-k / ctrl-k  | ":"     | "default"             | prior pane's cursor      | command-first              |
+| cmd-f / ctrl-f  | ""      | "default"             | prior pane's cursor      | object-first               |
+| g @ chord       | "@"     | "default"             | (empty)                  | action-first               |
+| g # / g + / g [ | <sigil> | "default"             | (empty)                  | action-first               |
+| g g             | ""      | "default"             | prior pane's cursor      | object-first on cursor     |
+| g :             | ":"     | "default"             | (empty)                  | command-first (empty)      |
+| m @ / m +       | <sigil> | "move" (locked)       | (empty)                  | action-first               |
+| a @ / a #       | <sigil> | "add" (locked)        | (empty)                  | action-first               |
+| l g             | ""      | "add_link" (locked)   | prior pane's cursor      | action-first               |
+| c @             | "@"     | "create_at" (locked)  | (empty)                  | action-first               |
+| /               | "/"     | "local_find" (locked) | (empty)                  | action-first (bottom-left) |
 
 ### Vim alignment is automatic
 
@@ -103,19 +105,19 @@ The asymmetry matters: "two fields with Tab parity" undersells the intent. One b
 
 The component itself is a **omnibox**: single sigil-routed buffer + result list + state machine + sticky selections on both sides of the pivot. It has **two presentation forms**, both equally valid, that share the same state shape, reducer, row renderer, and keybindings:
 
-| Form | Ownership | Lifecycle | Example |
-|---|---|---|---|
-| **Omnibox dialog** | Global overlay slot on the app shell | Ephemeral — opens on chord, closes on confirm/escape | Today's `cmd-k`, `g @`, `/`, `m +`, etc. |
-| **omnibox pane** | Regular workspace pane, `viewMode: "omnibox"` | Persistent — lives as long as the pane exists | "Popped-out" dockable pane — a permanent triage / navigator surface |
+| Form           | Ownership                                   | Lifecycle                                            | Example                                                             |
+| -------------- | ------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
+| Omnibox dialog | Global overlay slot on the app shell        | Ephemeral — opens on chord, closes on confirm/escape | Today's cmd-k, g @, /, m +, etc.                                    |
+| omnibox pane   | Regular workspace pane, viewMode: "omnibox" | Persistent — lives as long as the pane exists        | "Popped-out" dockable pane — a permanent triage / navigator surface |
 
 **V1 ships only the dialog form.** It replaces the five existing dialog components (`Omnibox`, `ItemPicker`, `FavoritesDialog`, legacy `SearchDialog`, `CommandBox`) with one unified omnibox dialog. The pane form — "pop it out" — is a post-v1 affordance. Important but not as urgent.
 
 **Dialog placement is a function of the default command:**
 
-| defaultCommand | Dialog placement | Rationale |
-|---|---|---|
-| `local_find` | Bottom-left, inline status bar | Search-in-current-view feels like a status affordance, not a modal |
-| everything else | Center modal | Standard omnibox UX |
+| defaultCommand  | Dialog placement               | Rationale                                                          |
+| --------------- | ------------------------------ | ------------------------------------------------------------------ |
+| local_find      | Bottom-left, inline status bar | Search-in-current-view feels like a status affordance, not a modal |
+| everything else | Center modal                   | Standard omnibox UX                                                |
 
 Backspace through the `/` sigil in the buffer — which drops the default command back to the previous `goto` — also promotes the dialog from bottom-left back to center. The user never has to think about placement; it's derived.
 
@@ -266,21 +268,22 @@ The omnibox has **one working buffer** whose leading sigil determines what's bei
 
 **Sigil routing.** The first character of `buffer` selects the search scope:
 
-| Leading char | Mode | Searches |
-|---|---|---|
-| `:` | **Command** | Command tree, filtered by `when` against `selectedArgument` |
-| `@` | **Context** | Person / assignee nodes |
-| `#` | **Tag** | Tag nodes |
-| `+` | **Project** | Project nodes |
-| `~` | **Path / alias** | Reserved for path-like and alias lookups (not yet wired — `~` is in the FTS tokenchars set so it's ready to use) |
-| `/` | **Local find** | Current view's visible tree (locks layout to bottom-left, defaultCommand to `local_find`) |
-| `>` | *(reserved)* | Jump to heading in current doc |
-| `?` | *(reserved)* | Help — "what does this key do?" inline docs |
-| *(empty)* | **Universal** | Everything, ranked by type |
+| Leading char | Mode         | Searches                                                                                                       |
+| ------------ | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| :            | Command      | Command tree, filtered by when against selectedArgument                                                        |
+| @            | Context      | Person / assignee nodes                                                                                        |
+| #            | Tag          | Tag nodes                                                                                                      |
+| +            | Project      | Project nodes                                                                                                  |
+| ~            | Path / alias | Reserved for path-like and alias lookups (not yet wired — ~ is in the FTS tokenchars set so it's ready to use) |
+| /            | Local find   | Current view's visible tree (locks layout to bottom-left, defaultCommand to local_find)                        |
+| >            | (reserved)   | Jump to heading in current doc                                                                                 |
+| ?            | (reserved)   | Help — "what does this key do?" inline docs                                                                    |
+| (empty)      | Universal    | Everything, ranked by type                                                                                     |
 
 **Sigil auto-replace.** Typing a sigil character replaces the current leading sigil (if any), preserving the rest of the buffer. `@del` + `#` → `#del` (tag search for "del"). `:cr` + `@` → `@cr` (context search). Sticky memory ensures selections on both sides of the pivot persist across the switch.
 
 **Entering command-search mode.** Three equivalent ways:
+
 1. **Type `:` into the buffer** — the sigil auto-replace rule makes `:` the command-search prefix.
 2. **Press `cmd-k`** (keyboard alias) — equivalent to setting `buffer = ":"`. Works whether the omnibox is open or closed.
 3. **Open via `g :` chord** — initial buffer is `":"`.
@@ -299,14 +302,14 @@ Recents are just "nodes ordered by `lastVisitedAt` desc"; the ranker combines re
 
 **Big simplification: commands are nodes.** The command palette and the node picker don't have separate result types — they're both querying the same tree, just filtered differently. A command is a `KNode` with `type: "command"` living under a `commands/` root (an in-memory synthetic subtree, not on disk).
 
-| KNode `type` | Sigil | Primary | Secondary | Default action |
-|---|---|---|---|---|
-| `command` | `:` | Command title | Keybinding hint + when-result | Run command |
-| `person` | `@` | Name | Role / parent path | Goto / assign |
-| `tag` | `#` | Tag name | Usage count | Goto / tag selection |
-| `project` | `+` | Project name | Parent path + status | Goto / move-in |
-| `file` / `folder` | *(type icon)* | Title | Parent path + modified date | Goto / zoom-in |
-| `h` / `p` / `li` (block) | *(type icon)* | Title or content | Parent breadcrumbs + body preview | Goto / zoom-in |
+| KNode type         | Sigil       | Primary          | Secondary                         | Default action       |
+| ------------------ | ----------- | ---------------- | --------------------------------- | -------------------- |
+| command            | :           | Command title    | Keybinding hint + when-result     | Run command          |
+| person             | @           | Name             | Role / parent path                | Goto / assign        |
+| tag                | #           | Tag name         | Usage count                       | Goto / tag selection |
+| project            | +           | Project name     | Parent path + status              | Goto / move-in       |
+| file / folder      | (type icon) | Title            | Parent path + modified date       | Goto / zoom-in       |
+| h / p / li (block) | (type icon) | Title or content | Parent breadcrumbs + body preview | Goto / zoom-in       |
 
 **Why this matters:**
 
@@ -337,6 +340,7 @@ The `run` function lives on the in-memory node and is **not serialized**. Comman
 ### Availability via `when` predicate functions
 
 Every command optionally carries a `when?: (ctx: CommandContext) => boolean` predicate. If `when(ctx)` returns false, the command is:
+
 - **Hidden** in the omnibox result list (not matched by the ranker; `default` command falls through to the next valid candidate)
 - **Inactive** as a keybinding (the key falls through to the next layer)
 
@@ -358,6 +362,7 @@ interface CommandContext {
 ```
 
 Examples:
+
 - `when: (ctx) => ctx.viewMode === "detail"` — only in detail pane
 - `when: (ctx) => ctx.isEditing && ctx.cursorType === "p"` — only when editing a paragraph
 - `when: (ctx) => !!ctx.anchorPane && ctx.cursorType !== "command"` — valid target for move/add/link commands
@@ -409,14 +414,14 @@ This fixes the reported bug: search `@delei` → `@delei` gets bonuses from #1 (
 
 Every omnibox instance has a **default command** (`defaultCommand` on `OmniboxBaseState`) set at creation from the opening chord. Open chords that don't commit to a verb (`cmd-k`, `cmd-f`, generic `g` chords) use `"default"` as the initial value; verb-locking chords override:
 
-| Open via | defaultCommand |
-|---|---|
-| `cmd-k`, `cmd-f`, `g` chords | `"default"` (universal fallback — dispatches by argument type) |
-| `m` chord | `"move"` |
-| `a` chord | `"add"` |
-| `l` chord | `"add_link"` |
-| `c` chord | `"create_at"` |
-| `/` (direct) | `"local_find"` |
+| Open via               | defaultCommand                                               |
+| ---------------------- | ------------------------------------------------------------ |
+| cmd-k, cmd-f, g chords | "default" (universal fallback — dispatches by argument type) |
+| m chord                | "move"                                                       |
+| a chord                | "add"                                                        |
+| l chord                | "add_link"                                                   |
+| c chord                | "create_at"                                                  |
+| / (direct)             | "local_find"                                                 |
 
 **Override = type `:` into the buffer (or press `cmd-k` while open).** There are two equivalent ways to enter command-search mode:
 
@@ -426,6 +431,7 @@ Every omnibox instance has a **default command** (`defaultCommand` on `OmniboxBa
 User picks a command via the filtered list. `defaultCommand` is set. Switching back to argument search (via `cmd-f` or typing a non-`:` sigil or backspacing through the `:`) preserves `defaultCommand` — the pick is sticky.
 
 **Enter resolution** follows the chain `defaultCommand`, so:
+
 - If the user picked a command explicitly, it wins.
 - Else the chord's default command runs.
 - Else (`defaultCommand = "default"`) the `default` command handles type-dispatch internally (commands → run, else → goto).
@@ -442,15 +448,15 @@ This is not a new mechanism; it's the standard text-input-consumes-its-own-keys 
 
 **Confirm keys:**
 
-| Key | Action |
-|---|---|
-| `Enter` | Run `resolveEnter()` — `defaultCommand` against `selectedArgument`. |
-| `Shift+Enter` | Shortcut override — run `create_at` against `selectedArgument`. Equivalent to typing `:create_at` then Enter. |
-| `Ctrl+Enter` | Shortcut override — run `goto` against `selectedArgument`. Mirrors global `follow_link`. |
-| `Ctrl+{g,m,a,l,c}` + `Enter` | Shortcut overrides — direct verb dispatch without typing in `:`. The vim-style modifier-chord family. |
-| `cmd-k` | Switch to command-search mode (`buffer = ":"`, preserve `selectedArgument`). |
-| `cmd-f` | Switch to argument-search mode (`buffer = ""`, preserve `defaultCommand`). |
-| `Escape` | Cancel — dismiss the dialog (or clear the pane's buffers). |
+| Key                      | Action                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Enter                    | Run resolveEnter() — defaultCommand against selectedArgument.                                           |
+| Shift+Enter              | Shortcut override — run create_at against selectedArgument. Equivalent to typing :create_at then Enter. |
+| Ctrl+Enter               | Shortcut override — run goto against selectedArgument. Mirrors global follow_link.                      |
+| Ctrl+{g,m,a,l,c} + Enter | Shortcut overrides — direct verb dispatch without typing in :. The vim-style modifier-chord family.     |
+| cmd-k                    | Switch to command-search mode (buffer = ":", preserve selectedArgument).                                |
+| cmd-f                    | Switch to argument-search mode (buffer = "", preserve defaultCommand).                                  |
+| Escape                   | Cancel — dismiss the dialog (or clear the pane's buffers).                                              |
 
 The modifier-chord family (`Ctrl+{g,m,a,l,c}+Enter` + `Shift+Enter`) are direct-verb shortcuts that skip the `:search` round-trip. Each is equivalent to "type `:<verb>`, pick the top result, Enter" but in one keystroke. Power-user path for users who know the verb.
 
@@ -518,29 +524,29 @@ Every invocation resolves to a `OmniboxBaseState` with `buffer`, `defaultCommand
 
 ### While closed — opening keys
 
-| Chord | `buffer` | `defaultCommand` | `selectedArgument` at open |
-|---|---|---|---|
-| `cmd-k` / `ctrl-k` | `":"` | `"default"` | prior pane's cursor |
-| `cmd-f` / `ctrl-f` | `""` | `"default"` | prior pane's cursor |
-| `g @` | `"@"` | `"default"` | *(empty)* |
-| `g #` / `g +` / `g [` | `<sigil>` | `"default"` | *(empty)* |
-| `g :` | `":"` | `"default"` | *(empty)* |
-| `g g` | `""` | `"default"` | prior pane's cursor |
-| `m @` / `m +` | `<sigil>` | `"move"` (locked) | *(empty)* |
-| `a @` / `a #` | `<sigil>` | `"add"` (locked) | *(empty)* |
-| `l g` | `""` | `"add_link"` (locked) | prior pane's cursor |
-| `c @` | `"@"` | `"create_at"` (locked) | *(empty)* |
-| `/` | `"/"` | `"local_find"` (locked) | *(empty)* |
-| *(post-v1)* `omnibox.pop_out` | *(inherits from dialog)* | *(inherits)* | *(inherits)* |
+| Chord                     | buffer                 | defaultCommand        | selectedArgument at open |
+| ------------------------- | ---------------------- | --------------------- | ------------------------ |
+| cmd-k / ctrl-k            | ":"                    | "default"             | prior pane's cursor      |
+| cmd-f / ctrl-f            | ""                     | "default"             | prior pane's cursor      |
+| g @                       | "@"                    | "default"             | (empty)                  |
+| g # / g + / g [           | <sigil>                | "default"             | (empty)                  |
+| g :                       | ":"                    | "default"             | (empty)                  |
+| g g                       | ""                     | "default"             | prior pane's cursor      |
+| m @ / m +                 | <sigil>                | "move" (locked)       | (empty)                  |
+| a @ / a #                 | <sigil>                | "add" (locked)        | (empty)                  |
+| l g                       | ""                     | "add_link" (locked)   | prior pane's cursor      |
+| c @                       | "@"                    | "create_at" (locked)  | (empty)                  |
+| /                         | "/"                    | "local_find" (locked) | (empty)                  |
+| (post-v1) omnibox.pop_out | (inherits from dialog) | (inherits)            | (inherits)               |
 
 ### While open — mode-toggle keys (context-sensitive)
 
-| Key | Action |
-|---|---|
-| `cmd-k` / `ctrl-k` | `OMNIBOX_SWITCH_TO_COMMANDS` — set `buffer = ":"`, **preserve `selectedArgument`**. The command list is filtered by `when` against the preserved argument. This IS the Embark/Raycast "action panel on selected candidate" pattern — no new mechanism needed. |
-| `cmd-f` / `ctrl-f` | `OMNIBOX_SWITCH_TO_ARGUMENT` — set `buffer = ""`, **preserve `defaultCommand`**. Return to universal argument search, keeping any sticky command pick. |
-| Any sigil char in buffer | Auto-replaces the current leading sigil, preserving the search term. See § "Sigil auto-replace" below. |
-| `Escape` | Dismiss (dialog) or clear buffer + selections (pane). |
+| Key                      | Action                                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| cmd-k / ctrl-k           | OMNIBOX_SWITCH_TO_COMMANDS — set buffer = ":", preserve selectedArgument. The command list is filtered by when against the preserved argument. This IS the Embark/Raycast "action panel on selected candidate" pattern — no new mechanism needed. |
+| cmd-f / ctrl-f           | OMNIBOX_SWITCH_TO_ARGUMENT — set buffer = "", preserve defaultCommand. Return to universal argument search, keeping any sticky command pick.                                                                                                      |
+| Any sigil char in buffer | Auto-replaces the current leading sigil, preserving the search term. See § "Sigil auto-replace" below.                                                                                                                                            |
+| Escape                   | Dismiss (dialog) or clear buffer + selections (pane).                                                                                                                                                                                             |
 
 ### The defining invariants
 
@@ -555,16 +561,16 @@ The rule is deliberately asymmetric: **only `:` (command-search mode) gets auto-
 
 Why asymmetric? Because users searching content (in any of `@`/`#`/`+`/`[` scopes) often want to type literal sigil characters inside their query — `@mention` or `#hashtag` or content containing `:`. Sticky content sigils preserve that. The `:` → content transition is the common need ("I typed `:` by accident; now I want to find a thing"), and the rule makes it a single keystroke.
 
-| Before | Typed | After | Effect |
-|---|---|---|---|
-| `:cr` | `@` | `@cr` | `:` is slippery — non-a-z typed into `:` mode replaces → switch to context search |
-| `:cr` | `#` | `#cr` | Same — `:` replaced by new sigil |
-| `:cr` | `a` | `:cra` | Letter — normal text input, no replacement |
-| `@del` | `#` | `@del#` | `@` is sticky — `#` is typed literally into the buffer |
-| `@del` | `:` | `@del:` | `@` is sticky — `:` is typed literally |
-| `@del` | `l` | `@dell` | Letter — normal text input |
-| `` (empty) | `@` | `@` | Buffer empty — `@` becomes the leading sigil |
-| `` (empty) | `:` | `:` | Buffer empty — `:` becomes the leading sigil |
+| Before     | Typed | After | Effect                                                                        |
+| ---------- | ----- | ----- | ----------------------------------------------------------------------------- |
+| :cr        | @     | @cr   | : is slippery — non-a-z typed into : mode replaces → switch to context search |
+| :cr        | #     | #cr   | Same — : replaced by new sigil                                                |
+| :cr        | a     | :cra  | Letter — normal text input, no replacement                                    |
+| @del       | #     | @del# | @ is sticky — # is typed literally into the buffer                            |
+| @del       | :     | @del: | @ is sticky — : is typed literally                                            |
+| @del       | l     | @dell | Letter — normal text input                                                    |
+| `` (empty) | @     | @     | Buffer empty — @ becomes the leading sigil                                    |
+| `` (empty) | :     | :     | Buffer empty — : becomes the leading sigil                                    |
 
 **The content → command direction uses `cmd-k` instead.** To go from `@del` (content search) back to `:` (command search), the user presses `cmd-k`. This is the context-sensitive mode toggle — idempotent, preserves `selectedArgument`. Typing `:` alone would be literal.
 
@@ -593,12 +599,14 @@ interface OmniboxPane extends Pane {
 ```
 
 **Storage — two lifecycle slots, same pane shape:**
+
 - **Dialog form (v1):** `workspace.overlayPane: OmniboxPane | null` (singleton). Ephemeral. Rendered above the normal pane layout. Dismisses on confirm or escape, returning focus to `anchorPaneId`.
 - **Docked form (post-v1):** a regular entry in `workspace.panes`. Persistent. Participates in splits, resize, focus cycling. Cleared (buffer + sticky slots) on confirm but stays mounted.
 
 Pop-out (post-v1) is a workspace mutation: move the `OmniboxPane` out of `overlayPane` and into `panes`, keep everything else the same.
 
 Both forms share **one reducer, one component tree, one keybinding scope, one set of primitives**. The only differences are:
+
 - Where the pane is stored (overlay slot vs `panes` map)
 - Whether it dismisses on confirm or clears-and-stays
 - Which wrapper component mounted it (which decides candidates + initial state)
@@ -607,18 +615,19 @@ Both forms share **one reducer, one component tree, one keybinding scope, one se
 
 **Single buffer, sticky other-half memory.** the omnibox has ONE working `buffer` — not two — whose leading sigil determines what's being searched:
 
-| Leading char | Mode | Search scope |
-|---|---|---|
-| `:` | command | command tree, filtered by `when` against `selectedArgument` |
-| `@` | context | person/assignee nodes |
-| `#` | tag | tag nodes |
-| `+` | project | project nodes |
-| `~` | path/alias | reserved sigil — in the FTS tokenchars set, not yet wired to a mode |
-| `/` | local find | current view's visible tree (locks layout to bottom-left) |
-| *(none of the above)* | universal | everything — `[x]` / `[ ]` / `[]` anywhere in the buffer are parsed as task-status filters, not sigils |
-| *(empty)* | universal | everything, ranked by type |
+| Leading char        | Mode       | Search scope                                                                                     |
+| ------------------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| :                   | command    | command tree, filtered by when against selectedArgument                                          |
+| @                   | context    | person/assignee nodes                                                                            |
+| #                   | tag        | tag nodes                                                                                        |
+| +                   | project    | project nodes                                                                                    |
+| ~                   | path/alias | reserved sigil — in the FTS tokenchars set, not yet wired to a mode                              |
+| /                   | local find | current view's visible tree (locks layout to bottom-left)                                        |
+| (none of the above) | universal  | everything — [x] / [ ] / [] anywhere in the buffer are parsed as task-status filters, not sigils |
+| (empty)             | universal  | everything, ranked by type                                                                       |
 
 **Sigil auto-replace.** Typing a sigil character replaces the current leading sigil (if any) while keeping the search term:
+
 - `@del` + typing `#` → `#del` (switch to tag search for "del")
 - `:cr` + typing `@` → `@cr` (switch to context search)
 - `@delei` + typing `:` → `:delei` (switch to command search — unlikely query but the mechanism is clean)
@@ -686,10 +695,10 @@ interface OmniboxInvocationSpec {
 
 **Subject vs target.** This is the most important contract in the design. Binary verbs (`move`, `add`, `add_link`, some `create_at` flows) need **two** node identities:
 
-| Role | Source | `CommandContext` field |
-|---|---|---|
-| **Subject** (what is acted *on*) | Anchor pane cursor/selection, snapshotted at open time | `ctx.currentNodeId` / `ctx.selectedNodes` |
-| **Target** (what is acted *with*) | The omnibox's `selectedArgumentId` | `ctx.targetId` |
+| Role                        | Source                                                 | CommandContext field                  |
+| --------------------------- | ------------------------------------------------------ | ------------------------------------- |
+| Subject (what is acted on)  | Anchor pane cursor/selection, snapshotted at open time | ctx.currentNodeId / ctx.selectedNodes |
+| Target (what is acted with) | The omnibox's selectedArgumentId                       | ctx.targetId                          |
 
 `move` means "move the anchor-pane cursor **into** the omnibox's selection". If we conflated them, `m +` would try to move `+km` into itself. Unary verbs (`goto`, `open_in_system`, `zoom_in`, `default` on a node) read `ctx.targetId` and ignore `ctx.currentNodeId`. Commands that don't need either (`toggle_theme`) ignore both.
 
@@ -698,6 +707,7 @@ interface OmniboxInvocationSpec {
 Everything else is either **derived** (a pure function of base state) or frozen in the invocation spec above:
 
 **Derived (pure functions, recomputed on every render):**
+
 - `mode(buffer)` — which search mode the leading sigil requests (`"command" | "context" | "tag" | "project" | "local_find" | "universal"`). Note: `[` is **not** a sigil — it's the task-filter bracket (`[x]`, `[ ]`, etc.) and the wikilink delimiter (`[[...]]`), so it can't also mean "node mode". Universal fuzzy over node names covers that use case.
 - `effectiveCommand(state)` — `buffer.startsWith("/") ? "local_find" : defaultCommand`. Never stored; backspace through `/` restores the sticky command automatically.
 - `Layout(state)` — which layout component to render. Derived from `effectiveCommand`/`mode`: `local_find` → bottom-left, else center. Backspacing through `/` re-derives → re-renders as `CenterDialog`.
@@ -705,6 +715,7 @@ Everything else is either **derived** (a pure function of base state) or frozen 
 - `resolveEnter(state) → { cmd: effectiveCommand(state), argId: state.selectedArgumentId }` — always defined.
 
 **Owned by child components, not the reducer:**
+
 - Result list rendering + highlighted-row index → inner `SelectList` (Silvery, `vendor/silvery/packages/ag-react/src/ui/components/SelectList.tsx`). The reducer subscribes to `SelectList.onHighlight` to mutate its own sticky slots (`defaultCommand` in `:`-mode; `selectedArgument` in other modes).
 - Ghost-text autocomplete → inner `TextInput`. Silvery already has `autocomplete: string[]` prop support.
 
@@ -733,11 +744,11 @@ Layout components (`CenterDialog`, `BottomLeftBar`, `DockedPane`) each consume t
 
 The entire omnibox is **three top-level React components**, each a thin shell around the shared primitives:
 
-| Component | Layout | Lifecycle | Used by |
-|---|---|---|---|
-| `DialogOmnibox` | Center overlay | Ephemeral (dismisses on confirm/escape) | `cmd-k`, `cmd-f`, all `g`/`m`/`a`/`l`/`c` chords, `manage_favorites`, etc. |
-| `FindOmnibox` | Bottom-left inline bar | Ephemeral | `/` chord; also rendered as a delegate from `DialogOmnibox` when `buffer.startsWith("/")` |
-| `PaneOmnibox` | Docked pane | Persistent (clears on confirm, stays mounted) | Post-v1 pop-out |
+| Component     | Layout                 | Lifecycle                                     | Used by                                                                             |
+| ------------- | ---------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| DialogOmnibox | Center overlay         | Ephemeral (dismisses on confirm/escape)       | cmd-k, cmd-f, all g/m/a/l/c chords, manage_favorites, etc.                          |
+| FindOmnibox   | Bottom-left inline bar | Ephemeral                                     | / chord; also rendered as a delegate from DialogOmnibox when buffer.startsWith("/") |
+| PaneOmnibox   | Docked pane            | Persistent (clears on confirm, stays mounted) | Post-v1 pop-out                                                                     |
 
 `DialogOmnibox` delegates to `FindOmnibox` when the buffer's in find mode. Backspacing through `/` → buffer changes → delegation re-evaluates → automatically promotes back to the center dialog:
 
@@ -752,6 +763,7 @@ function DialogOmnibox(props: OmniboxProps) {
 ```
 
 All three components share:
+
 - `useOmniboxState(props)` — the hook + reducer + base state
 - `OmniboxRow`, `SelectList`, `BufferInput`, `Footer` — primitive sub-components
 - The ranker, the parser, the ghost-completion helper, the `highlightMatches()` helper
@@ -850,6 +862,7 @@ function resolveEnter(state: OmniboxBaseState): { cmd: string; arg: KNode | null
 The omnibox's result list uses the **same navigation primitives** as the board and detail panes. No bespoke key handler, no separate cursor model.
 
 **Highlight ownership — explicit control loop:**
+
 - The inner `SelectList` (Silvery) owns the highlighted-row index internally. This is a render-time concern that doesn't belong in `OmniboxBaseState`.
 - When the highlighted row changes (via arrow keys, click, or any other means), `SelectList` fires `onHighlight(node | null)`.
 - The omnibox reducer subscribes to that callback and mutates exactly one sticky slot based on the current buffer mode:
@@ -860,6 +873,7 @@ The omnibox's result list uses the **same navigation primitives** as the board a
 This is the entire control loop. There's no additional "selection mutation" action.
 
 **Shared pane-nav primitives (work in the omnibox identically to board/detail):**
+
 - **Arrow keys** (`↑`/`↓`) — navigate the result list. Standard for text-input-focused panes.
 - **`Ctrl+N` / `Ctrl+P`** — vim-friendly aliases for arrow nav (letters go to the buffer; `Ctrl+` combos are free).
 - **`j`/`k`** — navigate when the buffer has no focus (unlikely in practice — the buffer is always focused while the omnibox is open).
@@ -868,10 +882,12 @@ This is the entire control loop. There's no additional "selection mutation" acti
 - **Extend-select** (`Shift+↑`/`Shift+↓`, `Shift+click`) — builds a multi-selection. **V1 disables extend-select everywhere** (single-select only); post-v1 enables it for content mode (so you can "move all these tasks to +km" in one Enter).
 
 **Commands that don't make sense in the omnibox get `when`-disabled:**
+
 - Shift/reorder commands (`shift_up`, `shift_down`, `shift_left`, `shift_right`) — these mutate `parent_idx`, but the omnibox's display order is determined by the ranker, not `parent_idx`. Shift has no visible effect. `when: (ctx) => ctx.activePaneType !== "omnibox"` hides them from the result list.
 - Extend-select commands — same treatment in v1 (no multi-select).
 
 **Commands that DO work in the omnibox and are expected to:**
+
 - All navigation (goto, zoom_in, zoom_outwards, follow_link, nav_back/forward, open_in_system/terminal).
 - All mutations of the selected argument (move, reparent_picker, archive, delete_node, duplicate_node, indent_node, outdent, create_at, insert_above/below/child).
 - Task/status operations (toggle_task_done, set_priority, cycle_task_status).
@@ -954,6 +970,7 @@ Note: `OMNIBOX_INPUT` is the single-field input action. The reducer handles sigi
 The existing `commandExecutor` (from `@km/commands`) handles `OMNIBOX_CONFIRM` — it calls `resolveEnter()`, looks up the command by id, and runs `execute(ctx)` with **both** identities plumbed: `ctx.currentNodeId` / `ctx.selectedNodes` = the invocation spec's `subjectSelection` (the *subject*, frozen at open time from the anchor pane), and `ctx.targetId` = `selectedArgumentId` (the *target*, picked in the omnibox). Unary verbs (`goto`, `open_in_system`, `default` on a node) read `ctx.targetId` and ignore the subject. Binary verbs (`move`, `add`, `add_link`) read both.
 
 **Invariants:**
+
 - `highlightedRowId` is in `[0, results.length)` or `null` when `results` is empty.
 - Sigil auto-replace is asymmetric: only `:` is slippery (typing any other sigil while `buffer.startsWith(":")` replaces the leading char and preserves the rest). Content sigils (`@ # + [`) are sticky literals — typing another character after `@del` appends it; typing `:` replaces only when the current leading char is `:`. Use `cmd-k` / `cmd-f` for explicit mode changes in any direction.
 - Sticky memory: changing the buffer's sigil does NOT clear `defaultCommand` or `selectedArgumentId` — they only clear when the user explicitly picks a new value OR on `OMNIBOX_CANCEL`.
@@ -969,25 +986,33 @@ The existing `commandExecutor` (from `@km/commands`) handles `OMNIBOX_CONFIRM` �
 This is a refactor-then-feature, not a rewrite. The codebase already has most of the pieces: 172 registered commands (including `goto`, `move`, `add`, `add_link`, `local_find`, `capture_inbox`, `command_palette`, `item_picker`, `search`, `filter`, `manage_favorites`, `search_replace`), the `VerbOp` (`CURSOR_TO | REPARENT_TO | LINK_TO | CREATE_AT`) infrastructure that already dispatches to pickers, and Silvery's `TextInput` with autocomplete. The migration is mostly about collapsing 5 dialog components into one sigil-dispatched single-buffer surface.
 
 ### Phase 1 — shared row component
+
 Create `OmniboxRow` (the node-based one). Migrate the existing `Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx` to use it — adapter layer converts today's result shapes to `KNode`-compatible rows. No behavior change. Catches divergence bugs.
 
 ### Phase 2 — shared ranker
+
 Extract `rankResults(query, KNode[])` with the ranking rules above. Add `omnibox-ranking.test.ts` table. Migrate `ItemPicker.filterOptions` and `Omnibox`'s scorer to use it. Fixes **@km/tui/picker-rank-subpath**. Also extract `highlightMatches(text, query)` as a shared helper used by Phase 9's local-find view.
 
 ### Phase 3 — command-tree projection (TEA shim)
+
 Build a read-only projection function that returns the `@km/commands` registry as `KNode`-shaped rows. No schema change to `CommandDef` — the projection is pure adapter. The synthetic `commands/` view is computed on demand. When TEA lands, this projection retargets at the silvery command proxy (canonical spelling `app.cmd.<id>` — formerly referred to as `app.commands.*` in design-era docs) without touching the row renderer. Tests: every registered `CommandDef` appears as a `KNode` with `type: "command"` and round-trips through the row renderer.
 
 ### Phase 4 — predicate-function availability
+
 Add an optional `when?: (ctx: CommandContext) => boolean` field to `CommandDef`. No string DSL, no parser — just a predicate function. Maps 1:1 to TEA's signal-based `when()`. Start with **no migration of existing commands** — leave `modes?: CommandMode[]` as the current gating mechanism. Add `when` only where the existing `modes` field is insufficient (e.g., view-mode guards, cursor-type guards, cross-field predicates). Phase out `modes` gradually in a later pass. Tests: a command with `when: (ctx) => ctx.viewMode === "detail"` appears in the omnibox results only when a detail pane is active.
 
 ### Phase 5 — unified omnibox dialog (single buffer)
+
 Build the `omnibox` pane + reducer. It lives in `workspace.overlayPane: OmniboxPane | null` (singleton, dialog form) with the 3-field `OmniboxBaseState` (`buffer`, `defaultCommand`, `selectedArgument`) as the canonical state; layout is derived from the buffer, candidates come from the wrapper. Component: one Silvery `TextInput` with `autocomplete` wired to sigil-routed results, a `SelectList` below, a footer showing the resolved action + sticky selections. Opened via `cmd-k` / `cmd-f` / chord. Add the `default` command to `@km/commands`. Route `command_palette`, `item_picker`, `search`, `manage_favorites` through wrapper components (`CommandPaletteOmnibox`, `FavoritesOmnibox`, …) that pre-scope `candidates`. Legacy `search_replace` and `filter` stay on their current dialogs (deferred). Old dialog components become thin delegators that call `openOmnibox(...)`. **This is the v1 ship** — it replaces five dialogs with one.
 
 ### Phase 6 — subject/target plumbing in the command executor
+
 Teach the command executor to build `CommandContext` from the invocation spec when dispatched via the omnibox: `ctx.currentNodeId` and `ctx.selectedNodes` come from `subjectSelection` (the frozen anchor-pane snapshot), and `ctx.targetId` is resolved from `selectedArgumentId` at confirm time. **Do NOT globally redefine `currentCursor()` to return the omnibox selection** — that breaks binary verbs (`move`, `add`, `add_link`) which need both identities. Remove any `dialog:omnibox` scope guards in `when.ts`. Tests: (a) `cmd-k :move` → pick `+km` → Enter moves the anchor-pane cursor into `+km` (subject + target); (b) `cmd-f @del` → pick `@delei` → Enter runs `default` (goto) on `@delei` (target only, subject ignored); (c) unary and binary verbs coexist.
 
 ### Phase 7 — sigil auto-replace, sticky memory, ghost completion, modifier-chord shortcuts
+
 Add the full UX polish over the Phase 5 single-buffer foundation:
+
 - Sigil auto-replace: typing `@`/`#`/`+`/`[`/`/`/`:` replaces the leading sigil in the buffer, preserving the tail. No Tab, no focus-switch.
 - Sticky memory: `defaultCommand` and `selectedArgument` persist across sigil switches until explicitly replaced or cleared.
 - Ghost completion: Silvery `TextInput`'s autocomplete provides ghost text; Space/Tab/Right-Arrow accept.
@@ -996,18 +1021,23 @@ Add the full UX polish over the Phase 5 single-buffer foundation:
 - Finish wiring the `CAPTURE` op handler so `capture_inbox` does the right thing against the configured inbox, reading the buffer as the new node's title.
 
 ### Phase 8 — cursor pre-select
+
 Ensure `cmd-k` / `cmd-f` / `g g` / `l g` / generic `g` chords propagate the previously-focused pane's cursor into `selectedArgument` at open time. Feature-flag behind a config option for the first release in case it's confusing. (Phase 6 handles the read side; this handles the write side.)
 
 ### Phase 9 — `/` local find, bottom-left layout
+
 Wire `/` to open the omnibox dialog with `{ defaultCommand: "local_find" }`. Derive `layout: "bottom-left"` from that. Replace `apps/km-tui/src/views/FindBar.tsx` with the omnibox dialog in local-find mode. In-place board highlighting reads from the omnibox's argument buffer and uses `highlightMatches()`.
 
 ### Phase 10 — shelves
+
 Delete legacy code (`Omnibox.tsx`, `ItemPicker.tsx`, `FavoritesDialog.tsx`, `FindBar.tsx`, `CommandBox.tsx`, the `dialog:omnibox` scope plumbing). Update `docs/ref/commands.md` with the new routing. Add integration tests for each chord path. Close **@km/tui/palette-arrow-keys** — with the reframe, the bug class is gone because there's no dialog-scope layering for commands.
 
 ### Phase 11 (post-v1) — omnibox pane ("pop it out")
+
 Add `viewMode: "omnibox"` to the board pane view-mode enum. Add the `omnibox.pop_out` command: takes the current dialog's `OmniboxBaseState`, creates a new pane with `viewMode: "omnibox"` seeded from that state, and dismisses the dialog. The pane form is persistent — `OMNIBOX_CONFIRM` clears the buffers but keeps the pane open. Workspace pane manager treats it like any other pane (split, resize, focus cycling). Users get a permanent triage / navigator surface — e.g., a docked `goto` omnibox for keyboard-driven browsing or a docked `move` omnibox for bulk organization. Not as urgent as v1.
 
 **Ship sequencing:**
+
 - Phase 1+2 ship together (pure refactors with test support).
 - Phase 3+4 ship together (TEA shim + opt-in predicate `when`).
 - Phase 5 is the v1 ship — it introduces the omnibox dialog and collapses the 5 existing dialog components onto it.
@@ -1043,20 +1073,20 @@ Add `viewMode: "omnibox"` to the board pane view-mode enum. Add the `omnibox.pop
 
 The following commands already exist in `packages/km-commands/src/commands/` and will be rerouted to open the omnibox dialog instead of their current bespoke dialog/picker:
 
-| Existing command | Current behavior | After migration |
-|---|---|---|
-| `command_palette` (`navigation.ts:262`) | Opens `Omnibox.tsx` | `CommandPaletteOmnibox` wrapper — `{ initialBuffer: ":", candidates: allNodes }` |
-| `item_picker` (`tui.ts:55`) | Opens `ItemPicker.tsx` | `ItemPickerOmnibox` wrapper — `{ initialDefaultCommand: "goto", candidates: allNodes }` |
-| `manage_favorites` (`navigation.ts:309`) | Opens `FavoritesDialog.tsx` | `FavoritesOmnibox` wrapper — `{ initialDefaultCommand: "goto", candidates: favorites }` |
-| `local_find` (`tui.ts:203`) | Opens `FindBar.tsx` | `LocalFindOmnibox` wrapper — `{ initialBuffer: "/", candidates: currentViewNodes }` (layout derives to bottom-left from the `/` sigil) |
-| `search` (`tui.ts:66`) | Opens search dialog | `GotoOmnibox` wrapper — `{ initialDefaultCommand: "goto", candidates: allNodes }` |
-| `filter` (`navigation.ts:252`) | Opens filter dialog | **NOT routed in v1** — stays on current filter dialog; follow-up bead for filter-aware layout |
-| `search_replace` (`tui.ts:241`) | Opens search/replace dialog | **NOT routed in v1** — stays on current search/replace dialog; needs replace-aware layout (follow-up) |
-| `goto` (`navigation.ts:209`) | Takes `ctx.targetId`, emits `CURSOR_TO` | Unchanged — omnibox's cursor feeds `ctx.currentNodeId`; command still reads `targetId` when set by a chord |
-| `move` (`edit.ts:194`) | Takes `ctx.targetId`, emits `REPARENT_TO` | Same pattern |
-| `add` (`edit.ts:209`) | Takes `ctx.targetId`, emits `LINK_TO`/`SET_LABEL`/etc | Same pattern |
-| `add_link` (`edit.ts:223`) | Emits `ADD_LINK` | Same |
-| `capture_inbox` (`edit.ts:255`) | Emits `{ type: "CAPTURE", location: "inbox" }` (stub) | Finish wiring in Phase 7 |
+| Existing command                     | Current behavior                                    | After migration                                                                                                                  |
+| ------------------------------------ | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| command_palette (navigation.ts:262)  | Opens Omnibox.tsx                                   | CommandPaletteOmnibox wrapper — { initialBuffer: ":", candidates: allNodes }                                                     |
+| item_picker (tui.ts:55)              | Opens ItemPicker.tsx                                | ItemPickerOmnibox wrapper — { initialDefaultCommand: "goto", candidates: allNodes }                                              |
+| manage_favorites (navigation.ts:309) | Opens FavoritesDialog.tsx                           | FavoritesOmnibox wrapper — { initialDefaultCommand: "goto", candidates: favorites }                                              |
+| local_find (tui.ts:203)              | Opens FindBar.tsx                                   | LocalFindOmnibox wrapper — { initialBuffer: "/", candidates: currentViewNodes } (layout derives to bottom-left from the / sigil) |
+| search (tui.ts:66)                   | Opens search dialog                                 | GotoOmnibox wrapper — { initialDefaultCommand: "goto", candidates: allNodes }                                                    |
+| filter (navigation.ts:252)           | Opens filter dialog                                 | NOT routed in v1 — stays on current filter dialog; follow-up bead for filter-aware layout                                        |
+| search_replace (tui.ts:241)          | Opens search/replace dialog                         | NOT routed in v1 — stays on current search/replace dialog; needs replace-aware layout (follow-up)                                |
+| goto (navigation.ts:209)             | Takes ctx.targetId, emits CURSOR_TO                 | Unchanged — omnibox's cursor feeds ctx.currentNodeId; command still reads targetId when set by a chord                           |
+| move (edit.ts:194)                   | Takes ctx.targetId, emits REPARENT_TO               | Same pattern                                                                                                                     |
+| add (edit.ts:209)                    | Takes ctx.targetId, emits LINK_TO/SET_LABEL/etc     | Same pattern                                                                                                                     |
+| add_link (edit.ts:223)               | Emits ADD_LINK                                      | Same                                                                                                                             |
+| capture_inbox (edit.ts:255)          | Emits { type: "CAPTURE", location: "inbox" } (stub) | Finish wiring in Phase 7                                                                                                         |
 
 No new command IDs are introduced for the omnibox's verbs. The new work is: (a) the omnibox dialog component (v1), (b) the `when` predicate field on `CommandDef`, (c) the command-tree projection adapter, (d) finishing the `CAPTURE` op handler, and (e) post-v1, `omnibox.pop_out` and the `viewMode: "omnibox"` pane form.
 
@@ -1070,46 +1100,42 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 
 1. **Commands-as-nodes → projection of the TEA command tree.**
    TEA already specifies a canonical command tree where every surface projects from the silvery command proxy — canonical spelling `app.cmd.<id>` (a.k.a. `app.commands.*` in design-era docs; same concept) ([commands.md § "One Command, Every Surface"](../../hub/silvery/design/v15-tea/commands.md)). The Phase 3 "synthetic `commands/` subtree" should NOT be a parallel data structure — it should be a read-only projection:
-   - **Pre-TEA**: project the current `CommandDef` registry (`@km/commands`, 172 entries) into `KNode`-shaped rows.
-   - **Post-TEA**: retarget the projection at the silvery command proxy. Row renderer unchanged; only the source changes.
+- **Pre-TEA**: project the current `CommandDef` registry (`@km/commands`, 172 entries) into `KNode`-shaped rows.
+- **Post-TEA**: retarget the projection at the silvery command proxy. Row renderer unchanged; only the source changes.
    The omnibox row renderer doesn't see the difference.
-
-2. **`when`-clause DSL → `when()` + `resolveInvocation()` with signal predicates.**
+5. **`when`-clause DSL → `when()` + `resolveInvocation()` with signal predicates.**
    TEA already has `when(signal, bindings)` for conditional keybindings and `resolveInvocation()` that rolls availability, arg defaults, and validation into one function. Don't invent a string DSL — **use predicate functions** that take a context object and return `boolean`. These map trivially to TEA's signal accessors:
-   - **Pre-TEA**: `when: (ctx: CommandContext) => ctx.viewMode === "detail"`
-   - **Post-TEA**: `when: () => viewMode() === "detail"` where `viewMode` is a signal accessor.
+- **Pre-TEA**: `when: (ctx: CommandContext) => ctx.viewMode === "detail"`
+- **Post-TEA**: `when: () => viewMode() === "detail"` where `viewMode` is a signal accessor.
    `resolveInvocation()`'s four-state result (`ready` / `prompt` / `unavailable` / `invalid`) is exactly what the omnibox's result list needs for greyed/active/with-ghost/error rendering. Drop the string DSL from Phase 4.
-
-3. **Cursor unification → TEA signal defaults on command args.**
+9. **Cursor unification → TEA signal defaults on command args.**
    TEA's command-def pattern uses `.parse()` with signal-valued defaults: `z.string().default(() => cursor())`. the omnibox's `.cursor()` accessor returns its selected argument row. Every command that takes a `nodeId` declares it with a signal default that reads `currentCursor()` — and `currentCursor()` dispatches on focus (cards → cursored card, detail → focused block, omnibox focused → selected argument row, whether dialog or pane). This is the TEA-native phrasing of "the omnibox's selection IS the cursor while it has focus".
-   - **Pre-TEA**: the `CommandContext` builder reads `activePane.cursor` and populates `currentNodeId` imperatively (same effect, pre-reactive).
-
-4. **`withOmnibox()` domain plugin, parametrized by `defaultCommand`.**
+- **Pre-TEA**: the `CommandContext` builder reads `activePane.cursor` and populates `currentNodeId` imperatively (same effect, pre-reactive).
+12. **`withOmnibox()` domain plugin, parametrized by `defaultCommand`.**
    Every TEA domain plugin is model + commands + keybindings composed via `pipe()` ([commands.md § "Command-Centric Design"](../../hub/silvery/design/v15-tea/commands.md)). the omnibox becomes `withOmnibox()`:
-   ```ts
-   pipe(createApp(), withBoard(), withSelection(), withOmnibox(), withUndo(), ...)
-   ```
-   `withOmnibox()` contributes:
-   - The `OmniboxBaseState` model and reducer.
-   - omnibox-specific commands (`omnibox.open`, `omnibox.toggle_focus`, `omnibox.accept_ghost`, `omnibox.confirm`, `omnibox.cancel`, `omnibox.restore_default`, `omnibox.pop_out`).
-   - Keybindings scoped via `when(omniboxModel.isActive, ...)` (with text-input-conflict handling for letter keys / arrows / Enter etc).
-   - The `viewMode: "omnibox"` registration on `withBoard()` — but only for the pane form. The dialog form is hosted by whatever overlay system the app shell provides (pre-TEA: the global overlay slot; post-TEA: whatever `createApp()` and related plugins provide for dialogs).
 
-   **Instance creation takes `defaultCommand` as the primary parameter**, exactly like detail panes take `rootId`. `omnibox.open({ defaultCommand: "move", argumentPrefill: "+", form: "dialog" })` opens a dialog; `omnibox.pop_out()` creates a pane instance from the current dialog's state.
+```ts
+pipe(createApp(), withBoard(), withSelection(), withOmnibox(), withUndo(), ...)
+```
+
+withOmnibox() contributes:
+
+- The `OmniboxBaseState` model and reducer.
+- omnibox-specific commands (`omnibox.open`, `omnibox.toggle_focus`, `omnibox.accept_ghost`, `omnibox.confirm`, `omnibox.cancel`, `omnibox.restore_default`, `omnibox.pop_out`).
+- Keybindings scoped via `when(omniboxModel.isActive, ...)` (with text-input-conflict handling for letter keys / arrows / Enter etc).
+- The `viewMode: "omnibox"` registration on `withBoard()` — but only for the pane form. The dialog form is hosted by whatever overlay system the app shell provides (pre-TEA: the global overlay slot; post-TEA: whatever `createApp()` and related plugins provide for dialogs).
+
+Instance creation takes defaultCommand as the primary parameter, exactly like detail panes take rootId. omnibox.open({ defaultCommand: "move", argumentPrefill: "+", form: "dialog" }) opens a dialog; omnibox.pop_out() creates a pane instance from the current dialog's state.
 
 ### Interactions with other domain plugins
 
 - **`withSelection()`** (@km/tui/tea): the omnibox's "selected argument row" should be represented as a `NodeSelection` in the unified `Selection = TextSelection | NodeSelection | GapSelection` type — not as a separate `selectedArgument` field. Arrowing in the omnibox updates `sel` through the same dispatch path that arrowing in a cards pane uses. One selection system, one normalization pass after tree mutations, one set of commands that read it. The `selectedArgument` in `OmniboxBaseState` becomes a derived view over `sel`, not primary state.
-
 - **`withTree()`** (@km/tui/tea): structural ops from the omnibox (`move`, `create_at`, `add_link`, `reparent`) fire through the same atomic tree-op apply chain. No separate dispatch path; the omnibox is a normal command producer. Undo works through the shared middleware.
-
 - **`withDialogs()`** (@km/tui/tea): the current plan lists `open_omnibox` as a dialog command under `withDialogs()`. **Partially right.** The v1 omnibox IS a dialog, so hosting the omnibox dialog under `withDialogs()` is fine. What the @km/tui/tea plan should be updated to reflect:
   - Rename `open_omnibox` → `omnibox.open` (and the command owner moves from `withDialogs()` to `withOmnibox()`, but `withDialogs()` still provides the overlay slot it renders into).
   - Post-v1, `withOmnibox()` also contributes a `viewMode: "omnibox"` to `withBoard()` for the pop-out pane form. `withDialogs()` doesn't own the pane form at all.
   - Keep `withDialogs()` for genuinely modal affordances (toast, delete-confirm, help overlay, console palette) in addition to hosting the omnibox dialog.
-
 - **`withEditor()`** (@km/tui/tea): the buffer uses Silvery's `TextInput` (already supports ghost-text autocomplete). Once `withEditor()` exists, both fields become consumers of `PlainText.apply()` and the ghost-text logic runs inside the shared editor model. No special case.
-
 - **`withUndo()`** (@km/tui/tea): opening/closing the omnibox is not itself undoable (like opening a cards view isn't). The commands the omnibox dispatches ARE undoable, through the normal middleware. `Escape → dismiss` restores focus to the previous pane but doesn't undo any work.
 
 ### What this changes in the migration phases
@@ -1139,3 +1165,4 @@ The omnibox is effectively the first concrete consumer of the km/silvery TEA fra
 - Obsidian Quick Switcher — `file name`, `[[` for existing notes, `Ctrl+Enter` for new tab. One box, contextual sigils.
 - Raycast — universal launcher with typed results and contextual actions (`Cmd+K` for action menu on selected result). The "verb override" idea comes from here.
 - Emacs M-x + Helm/Ivy/Consult — one minibuffer, dynamic sources, action transformers per source. Closest spiritual ancestor.
+

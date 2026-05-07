@@ -1,6 +1,6 @@
 # Silvery Internals: How the Reconciler Works
 
-> **Internal** — Contributor-level walkthrough of the custom React reconciler, two-phase pipeline, and SilveryNode tree. Start here when debugging rendering issues.
+> Internal — Contributor-level walkthrough of the custom React reconciler, two-phase pipeline, and SilveryNode tree. Start here when debugging rendering issues.
 
 This document explains Silvery's architecture for contributors. Read this if you want to understand how layout feedback actually works.
 
@@ -767,3 +767,4 @@ bun run bench
 # Check for memory leaks
 bun run test:memory
 ```
+

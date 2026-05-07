@@ -4,7 +4,7 @@
 **Session**: 2026-04-27 (continuation across compaction)
 **Outcome**: Phase 1 substrate + Phase 2/3 cleanup substantially shipped over 5 integration rounds. C3b at L5; C1 at L4.5 (broader fossil sweep in flight); C2 at L4 with multi-session L5 deferred (task #14); C3a at L2 (target); N1 at L2-L3.
 
-> **2026-04-29 update**: The `/round-close` skill recommended in this retro (Why 1, Why 2, lessons section) was retired and folded into `/complete`. Its Iron Rule (verify acceptance greps at `origin/main`, not local worktrees) and per-round acceptance-grep replay now live in `/complete`'s preamble. References below are preserved for historical accuracy — invoke `/complete` instead.
+> 2026-04-29 update: The /round-close skill recommended in this retro (Why 1, Why 2, lessons section) was retired and folded into /complete. Its Iron Rule (verify acceptance greps at origin/main, not local worktrees) and per-round acceptance-grep replay now live in /complete's preamble. References below are preserved for historical accuracy — invoke /complete instead.
 
 This document captures the post-ship state, what /pro and /why analyses surfaced, and where the residue lives. Authoritative reference for "what was plateau-90 and how did it go." Pairs with `km bd show km-all.plateau-90` (the plan) and `hub/quality-rubric.md` (the L0-L5 framework).
 
@@ -12,33 +12,33 @@ This document captures the post-ship state, what /pro and /why analyses surfaced
 
 ### Net code change
 
-| Repo | Range | Commits | Files | Lines |
-|---|---|---|---|---|
-| silvery | `6eec011c → 2a6f087d` | 41 | 33+ | +5,841 / −171 |
-| km (non-vendor) | `f0a64b006 → 5f8510b62` | 9+ | 9 | +1,088 / −73 |
-| **Total** | | **50+** | **42+** | **~+6,685** |
+| Repo            | Range                 | Commits | Files | Lines         |
+| --------------- | --------------------- | ------- | ----- | ------------- |
+| silvery         | 6eec011c → 2a6f087d   | 41      | 33+   | +5,841 / −171 |
+| km (non-vendor) | f0a64b006 → 5f8510b62 | 9+      | 9     | +1,088 / −73  |
+| Total           |                       | 50+     | 42+   | ~+6,685       |
 
 Mostly additive — new infrastructure (RenderSink + sectioned plan + scope handles + pass-cause aggregator + sabotage test + fuzz test). Deletions are cleanup (magic constants, dead enum buckets, redundant plumbing).
 
 ### Per-recast L0-L5 status (post-ship)
 
-| Recast | Bead | Origin level | Target | Status |
-|---|---|---|---|---|
-| **C1 scope-resource-ownership** | km-silvery.lifecycle-leak-detection | **L4.5** | L5 | Counter shipped (`getActiveHandleCount`); fossil deleted from 1 of 3 files in `tests/memory/`. Broader sweep filed (`km-silvery.c1-fossil-sweep-broader`) and dispatched. |
-| **C2 render-plan-commit** | km-silvery.paint-clear-invariant | **L4** | L5 | Sectioned RenderPlan structurally proven via 1,400-scene fuzz (0 violations); default-ON in production. `clearExcessArea` + `hasPrevBuffer` guard + env flag remain as fossils — gated on full Step 6 read-after-write elimination, multi-session (task `km-silvery.paint-clear-l5-final` aka task #14). |
-| **C3a renderer-feedback-trace** | km-silvery.renderer-feedback-trace | **L2** | L2 (target met) | Functional target reached. v3.1 (rename + per-cause sub-namespaces) merged in Round 4. |
-| **C3b bounded-convergence** | km-silvery.renderer-convergence-by-design | **L5** | L5 | Complete. `MAX_SINGLE_PASS_ITERATIONS=15` deleted; `MAX_CONVERGENCE_PASSES=2` + `MAX_CLASSIC_LOOP_ITERATIONS=5` + per-cause `PASS_CAUSE_BOUNDS` + `assertBoundedConvergence` STRICT=2 throw / STRICT=1 warn. ForeverFeedback sabotage test proves bound is load-bearing. PassCause type audited 14→6 (deleted 8 categories with no production emit path). |
-| **N1 continuous-fuzz** | km-infra.continuous-fuzz | **L2-L3** | L2-L3 (target met) | GH Actions on schedule + persistent corpus + auto-bead creation. PR-gating would lift to L3. |
+| Recast                      | Bead                                      | Origin level | Target             | Status                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------- | ----------------------------------------- | ------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1 scope-resource-ownership | km-silvery.lifecycle-leak-detection       | L4.5         | L5                 | Counter shipped (getActiveHandleCount); fossil deleted from 1 of 3 files in tests/memory/. Broader sweep filed (km-silvery.c1-fossil-sweep-broader) and dispatched.                                                                                                                                                                             |
+| C2 render-plan-commit       | km-silvery.paint-clear-invariant          | L4           | L5                 | Sectioned RenderPlan structurally proven via 1,400-scene fuzz (0 violations); default-ON in production. clearExcessArea + hasPrevBuffer guard + env flag remain as fossils — gated on full Step 6 read-after-write elimination, multi-session (task km-silvery.paint-clear-l5-final aka task #14).                                              |
+| C3a renderer-feedback-trace | km-silvery.renderer-feedback-trace        | L2           | L2 (target met)    | Functional target reached. v3.1 (rename + per-cause sub-namespaces) merged in Round 4.                                                                                                                                                                                                                                                          |
+| C3b bounded-convergence     | km-silvery.renderer-convergence-by-design | L5           | L5                 | Complete. MAX_SINGLE_PASS_ITERATIONS=15 deleted; MAX_CONVERGENCE_PASSES=2 + MAX_CLASSIC_LOOP_ITERATIONS=5 + per-cause PASS_CAUSE_BOUNDS + assertBoundedConvergence STRICT=2 throw / STRICT=1 warn. ForeverFeedback sabotage test proves bound is load-bearing. PassCause type audited 14→6 (deleted 8 categories with no production emit path). |
+| N1 continuous-fuzz          | km-infra.continuous-fuzz                  | L2-L3        | L2-L3 (target met) | GH Actions on schedule + persistent corpus + auto-bead creation. PR-gating would lift to L3.                                                                                                                                                                                                                                                    |
 
 ### Integration rounds
 
-| Round | Date | silvery main | km main | What landed |
-|---|---|---|---|---|
-| 1 | 2026-04-27 ~07:00 | `313f569b` | `960765c1a` | C1 Phase 1 + C2 Phase 1 + C3a v1 |
-| 2 | 2026-04-27 ~08:15 | `fa705b66` | `5da096d12` | C1 SCOPE_TRACE Phase 2 + C2 sectioned-plan Step 1 + C3a unknown bucket synthesis |
-| 3 | 2026-04-27 ~09:14 | `3010d3f4` | `e36b1ce13` | C2 Phase 2/3 (Steps 4b-7 + fuzz + default ON) + C3b bounded-convergence |
-| 4 | 2026-04-27 ~15:15 | `5e0dc86c` | `8eeaf2fb9` | v3.1 (rename `recordPassCause→logPass` + per-cause sub-namespaces) |
-| 5 | 2026-04-27 ~17:17 | `2a6f087d` | (pending FF onto main) | C1 deterministic counter + 1-of-3 fossil deletion |
+| Round | Date              | silvery main | km main                | What landed                                                                      |
+| ----- | ----------------- | ------------ | ---------------------- | -------------------------------------------------------------------------------- |
+| 1     | 2026-04-27 ~07:00 | 313f569b     | 960765c1a              | C1 Phase 1 + C2 Phase 1 + C3a v1                                                 |
+| 2     | 2026-04-27 ~08:15 | fa705b66     | 5da096d12              | C1 SCOPE_TRACE Phase 2 + C2 sectioned-plan Step 1 + C3a unknown bucket synthesis |
+| 3     | 2026-04-27 ~09:14 | 3010d3f4     | e36b1ce13              | C2 Phase 2/3 (Steps 4b-7 + fuzz + default ON) + C3b bounded-convergence          |
+| 4     | 2026-04-27 ~15:15 | 5e0dc86c     | 8eeaf2fb9              | v3.1 (rename recordPassCause→logPass + per-cause sub-namespaces)                 |
+| 5     | 2026-04-27 ~17:17 | 2a6f087d     | (pending FF onto main) | C1 deterministic counter + 1-of-3 fossil deletion                                |
 
 ## Bugs caught BEFORE shipping (via dual-pro review)
 
@@ -62,6 +62,7 @@ Consensus across three models:
 > "We bought significant altitude — C3b is on the plateau, C1 and C2 are L4 with structural steel in place. But not on plateau yet. Phase 1 ended with two L4 arches and a cleaning crew still on site."
 
 Smallest move set to plateau (consensus):
+
 1. **Push v3.1 to origin** (closes inventory rot) — DONE in this session
 2. **C1 fossil deletion via deterministic handle counter** — DONE for memory.test.tsx in this session; broader sweep dispatched
 3. **C2 Phase 3 final cleanup (Task #14)** — multi-session, scheduled as next major arc
@@ -69,6 +70,7 @@ Smallest move set to plateau (consensus):
 5. **Fix typecheck baseline + pre-existing pro-fire-and-forget** — deferred separate filing
 
 Big-seam reframes flagged for future sessions (offensive moves, not in current scope):
+
 - **Shadow buffer in @silvery/render** — terminal becomes pure function of RenderPlan → bytes (eliminates `clearExcessArea` need entirely)
 - **Universal scope ownership for km** — make scope the universal lifecycle primitive (not just silvery-internal)
 - **PassCause as RenderSink mandatory token** — feedback trace becomes first-class commit invariant rather than sidecar logger
@@ -77,15 +79,16 @@ Big-seam reframes flagged for future sessions (offensive moves, not in current s
 
 `/why` analysis traced "did we have so much follow-up work?" through 5 levels of cause:
 
-| Level | Cause | Fix landed this session |
-|---|---|---|
-| Why 1 | Agent self-reports were trusted; bead acceptance not verified against origin/main | NEW `/round-close` skill — lightweight per-round bead-acceptance grep against `origin/main` |
-| Why 2 | `/complete` is session-end only, not per-round | `/round-close` skill is the lighter primitive |
-| Why 3 | Bead acceptance is prose, not executable `{cmd, expected}` pairs | Filed `km-all.bd-verify-primitive` (P3, multi-session, possibly upstream) |
-| Why 4 | Substrate-then-cleanup phasing intentionally creates L4-but-not-L5 by design | Filed `km-all.substrate-phasing-convention` (P2) — file L5 cleanup bead at same time as L4 substrate |
-| Why 5 | Worktree clones accumulate; no GC | Filed `km-bearly.worktree-gc` (P3) — sweep stale `.claude/worktrees/agent-*` |
+| Level | Cause                                                                             | Fix landed this session                                                                            |
+| ----- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Why 1 | Agent self-reports were trusted; bead acceptance not verified against origin/main | NEW /round-close skill — lightweight per-round bead-acceptance grep against origin/main            |
+| Why 2 | /complete is session-end only, not per-round                                      | /round-close skill is the lighter primitive                                                        |
+| Why 3 | Bead acceptance is prose, not executable {cmd, expected} pairs                    | Filed km-all.bd-verify-primitive (P3, multi-session, possibly upstream)                            |
+| Why 4 | Substrate-then-cleanup phasing intentionally creates L4-but-not-L5 by design      | Filed km-all.substrate-phasing-convention (P2) — file L5 cleanup bead at same time as L4 substrate |
+| Why 5 | Worktree clones accumulate; no GC                                                 | Filed km-bearly.worktree-gc (P3) — sweep stale .claude/worktrees/agent-*                           |
 
 Other process change shipped this session:
+
 - `/max` SKILL.md CRITICAL block: changed "commit before finishing" → "commit AND push, with `git ls-remote origin <branch>` proof" (rationale: 2 agents this session committed but didn't push — feedback-trace v3.1 `e0fc140c` and the C1 fossil-deletion agent `725ea161`).
 
 ## Residue map (what remains)
@@ -98,6 +101,7 @@ Other process change shipped this session:
 ### Inventory rot (unpushed local-only commits) — RESOLVED
 
 Both stranded commits from this session were pushed by lead:
+
 - silvery `e0fc140c` (v3.1) — pushed to origin/feat/feedback-trace, merged in Round 4
 - silvery `725ea161` (C1 deterministic counter) — pushed to origin/feat/c1-deterministic-handle-counter, merged in Round 5
 - km `f79842ade` (C1 km bump) — pushed in same flow
@@ -115,14 +119,14 @@ The strandings prompted the `/max` skill CRITICAL block update (commit AND push,
 
 All filed under appropriate scope epics:
 
-| Bead | Priority | Purpose |
-|---|---|---|
-| `km-silvery.paint-clear-l5-final` | P2 | C2 → L5: full Step 6 + delete clearExcessArea + hasPrevBuffer + env flag |
-| `km-silvery.c1-fossil-sweep-broader` | P2 | Extend C1 fossil deletion to heap-snapshot.slow.test.tsx + production-paths.test.tsx |
-| `km-silvery.feedback-trace-v31-integration` | P2 | (resolved by Round 4 merge — close after this lands) |
-| `km-all.substrate-phasing-convention` | P2 | File L5 cleanup bead at same time as L4 substrate |
-| `km-all.bd-verify-primitive` | P3 | bd verify subcommand — make acceptance executable |
-| `km-bearly.worktree-gc` | P3 | Sweep stale agent worktrees |
+| Bead                                      | Priority | Purpose                                                                              |
+| ----------------------------------------- | -------- | ------------------------------------------------------------------------------------ |
+| km-silvery.paint-clear-l5-final           | P2       | C2 → L5: full Step 6 + delete clearExcessArea + hasPrevBuffer + env flag             |
+| km-silvery.c1-fossil-sweep-broader        | P2       | Extend C1 fossil deletion to heap-snapshot.slow.test.tsx + production-paths.test.tsx |
+| km-silvery.feedback-trace-v31-integration | P2       | (resolved by Round 4 merge — close after this lands)                                 |
+| km-all.substrate-phasing-convention       | P2       | File L5 cleanup bead at same time as L4 substrate                                    |
+| km-all.bd-verify-primitive                | P3       | bd verify subcommand — make acceptance executable                                    |
+| km-bearly.worktree-gc                     | P3       | Sweep stale agent worktrees                                                          |
 
 ## Lessons captured (durable)
 
@@ -140,3 +144,4 @@ All filed under appropriate scope epics:
 - Pro review (raw): saved at `/tmp/llm-cc081a9a-how-far-are-we-bloh.txt` during this session; copy in this doc's "Pro plateau-distance review" section
 - Process skills: `.claude/skills/{round-close,complete,why,big,refactor}/SKILL.md`
 - Lessons: `docs/lessons/{quality-plateau-refactoring,refactoring}.md`
+

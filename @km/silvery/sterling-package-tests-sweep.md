@@ -34,9 +34,11 @@ props:
     type: list
     values:
       - type: link
-        target: "@km/silvery/sterling"
+        target: km-all.sterling
       - type: link
         target: km-silvery.sterling-2e-interior-migration
+      - type: link
+        target: "@km/silvery/sterling"
 ---
 
 # [x] Sweep legacy theme tokens in vendor/silvery/packages/*/tests/ (~137 uses) — rewrite test expectations alongside 0.20.0 inlineSterlingTokens drop @km/silvery #task #P3 @claude:22c2717d

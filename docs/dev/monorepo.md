@@ -86,8 +86,8 @@ export default defineConfig({
 | Tool        | Mechanism                          | Current Solution           | Native Alternative       |
 | ----------- | ---------------------------------- | -------------------------- | ------------------------ |
 | Bun runtime | Internal workspace resolution      | Just works                 | N/A                      |
-| TypeScript  | node_modules lookup                | tsconfig `paths`           | Symlinks in node_modules |
-| Vite/Vitest | Vite's resolver                    | `vite-tsconfig-paths`      | Symlinks in node_modules |
+| TypeScript  | node_modules lookup                | tsconfig paths             | Symlinks in node_modules |
+| Vite/Vitest | Vite's resolver                    | vite-tsconfig-paths        | Symlinks in node_modules |
 | Knip        | Reads workspaces from package.json | Explicit workspace entries | Auto-discovery           |
 
 ---
@@ -130,12 +130,12 @@ Create symlinks manually in a postinstall script. More complex, less idiomatic.
 
 ## Package Naming
 
-| Folder                 | Package Name     | Import As        |
-| ---------------------- | ---------------- | ---------------- |
-| `vendor/silvery/packages/ansi`  | `@silvery/ansi`  | `@silvery/ansi`  |
-| `vendor/silvery`    | `Silvery`  | `Silvery`  |
-| `vendor/silvery/packages/ui` | `@silvery/ag-react/ui` | `@silvery/ag-react/ui` |
-| `packages/km-core`     | `@km/core`       | `@km/core`       |
+| Folder                       | Package Name         | Import As            |
+| ---------------------------- | -------------------- | -------------------- |
+| vendor/silvery/packages/ansi | @silvery/ansi        | @silvery/ansi        |
+| vendor/silvery               | Silvery              | Silvery              |
+| vendor/silvery/packages/ui   | @silvery/ag-react/ui | @silvery/ag-react/ui |
+| packages/km-core             | @km/core             | @km/core             |
 
 Note: Folder name doesn't have to match package name. The `name` field in `package.json` is what matters.
 
@@ -187,3 +187,4 @@ Pick one approach and stick with it.
 - [monorepo-infra.md](../future/monorepo-infra.md) - Vision for centralizing tool configuration
 - [Bun Workspaces](https://bun.com/docs/pm/workspaces) - Official docs
 - [vite-tsconfig-paths](https://www.npmjs.com/package/vite-tsconfig-paths) - The plugin we currently use
+

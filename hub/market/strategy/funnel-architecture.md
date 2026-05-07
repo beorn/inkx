@@ -136,3 +136,4 @@ Track:
 - Don't make signup required to use tools (terminal-doctor works without email)
 - Don't buy lists or scrape emails
 - Don't use popups on docs sites (developers hate this)
+

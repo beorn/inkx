@@ -74,10 +74,7 @@ describe("collectSigilLinks: bare sigils land in the links table", () => {
 
 describe("extractAllRefs: path-form names", () => {
   test("captures path-form mentions as a single name including slashes", () => {
-    expect(extractAllRefs("see @km/storage and @km/tui").mentions).toEqual([
-      "km/storage",
-      "km/tui",
-    ])
+    expect(extractAllRefs("see @km/storage and @km/tui").mentions).toEqual(["km/storage", "km/tui"])
   })
 
   test("captures path-form projects", () => {

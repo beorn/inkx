@@ -156,12 +156,12 @@ await run(<App />, { theme })
 
 Officially-maintained:
 
-| Package                      | Vocabulary + derivation                                   |
-|------------------------------|-----------------------------------------------------------|
-| `@silvery/design`            | **Sterling** (default) — Primer grammar, preservative     |
-| `@silvery/design-material`   | Material 3 — generative HCT from seed color                |
-| `@silvery/design-primer`     | Primer verbatim — `danger` / `attention` / `severe` vocab  |
-| `@silvery/design-polaris`    | Polaris — `critical` / `caution` / `subdued` vocab         |
+| Package                  | Vocabulary + derivation                             |
+| ------------------------ | --------------------------------------------------- |
+| @silvery/design          | Sterling (default) — Primer grammar, preservative   |
+| @silvery/design-material | Material 3 — generative HCT from seed color         |
+| @silvery/design-primer   | Primer verbatim — danger / attention / severe vocab |
+| @silvery/design-polaris  | Polaris — critical / caution / subdued vocab        |
 
 Community packages: `@silvery-community/*`. Writing your own: publish a package that exports a `DesignSystem` object — see [Custom Tokens](./custom-tokens).
 
@@ -219,12 +219,12 @@ Full chainable API in [`@silvery/ansi` reference](/reference/style).
 
 Silvery detects the terminal's color capability and adapts automatically. Same code, different fidelity.
 
-| Level       | Colors | When                                      | Token resolution                  |
-|-------------|--------|-------------------------------------------|-----------------------------------|
-| `truecolor` | 16M    | Modern terminals (Ghostty, Kitty, iTerm2) | Hex                               |
-| `256`       | 256    | Older terminals, some SSH sessions        | Hex → nearest 256-color cube      |
-| `basic`     | 16     | Legacy terminals, CI, pipes               | Hex → nearest ANSI slot           |
-| `mono`      | 0      | Monochrome terminals, NO_COLOR            | Attribute-only (bold / underline / reverse) |
+| Level     | Colors | When                                      | Token resolution                            |
+| --------- | ------ | ----------------------------------------- | ------------------------------------------- |
+| truecolor | 16M    | Modern terminals (Ghostty, Kitty, iTerm2) | Hex                                         |
+| 256       | 256    | Older terminals, some SSH sessions        | Hex → nearest 256-color cube                |
+| basic     | 16     | Legacy terminals, CI, pipes               | Hex → nearest ANSI slot                     |
+| mono      | 0      | Monochrome terminals, NO_COLOR            | Attribute-only (bold / underline / reverse) |
 
 Detection is automatic. Override via env:
 
@@ -326,3 +326,4 @@ Useful when a token looks different from the raw palette color — Sterling adju
 - [Theme Explorer](/themes) — browse all 84 bundled schemes interactively.
 
 <!-- TODO: verify after 0.19.0 ships — confirm `detectTermScheme` export name, `schemes` barrel, `@silvery/design-polaris` package existence, `pickColorLevel` import path. -->
+

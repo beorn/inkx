@@ -18,19 +18,19 @@ Test that InkZ works as a drop-in replacement for Ink by running it against seve
 ## Approach
 
 1. **Find test subjects** - identify 3-5 popular/representative Ink projects:
-  - ink-cli examples from the Ink repo itself
-  - pastel (Ink-based CLI framework)
-  - ink-testing-library examples
-  - Real apps: gatsby-cli, npm-check, etc.
-2. **Create test harness**:
-  - Script that clones each project
-  - Replaces import ... from 'ink' with import ... from 'inkz'
-  - Runs the project's tests (if any)
-  - Compares output to original Ink version
-3. **Track compatibility**:
-  - Document which APIs work identically
-  - Document which APIs have intentional differences
-  - Document any bugs found
+- ink-cli examples from the Ink repo itself
+- pastel (Ink-based CLI framework)
+- ink-testing-library examples
+- Real apps: gatsby-cli, npm-check, etc.
+7. **Create test harness**:
+- Script that clones each project
+- Replaces import ... from 'ink' with import ... from 'inkz'
+- Runs the project's tests (if any)
+- Compares output to original Ink version
+13. **Track compatibility**:
+- Document which APIs work identically
+- Document which APIs have intentional differences
+- Document any bugs found
 
 ## Success Criteria
 

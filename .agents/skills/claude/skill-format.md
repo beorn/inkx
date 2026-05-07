@@ -8,15 +8,20 @@ description: Create and format slash commands (skills)
 
 ## File Location
 
-Skills go in `.claude/skills/`:
+Repo-local Codex skills go in `.agents/skills/`:
 
-- **Required format**: `.claude/skills/<name>/SKILL.md` with optional sub-files
-- ~~Standalone: `.claude/skills/<name>.md`~~ — **Does not work!** Claude Code only discovers `SKILL.md` files inside directories.
+- **Required format**: `.agents/skills/<name>/SKILL.md` with optional sub-files
+- ~~Standalone: `.agents/skills/<name>.md`~~ — **Does not work!** Codex discovers `SKILL.md` files inside skill directories.
+
+Global Codex skills go in `~/.codex/skills/<name>/SKILL.md`. Claude Code has a
+separate `.claude/skills/<name>/SKILL.md` surface; do not use that path for
+Codex-only setup.
 
 ## Basic Format
 
 ```markdown
 ---
+name: skill-name
 description: Brief description (required)
 argument-hint: [arg1] [arg2]           # Shows in help
 allowed-tools: Task, Read, Bash        # Restrict tools (optional)
@@ -25,7 +30,7 @@ model: claude-3-5-haiku-20241022       # Force model (optional)
 
 # Skill Title
 
-Instructions for Claude.
+Instructions for Codex.
 
 Use $ARGUMENTS for all args, or $1, $2 for positional.
 
@@ -36,6 +41,7 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 
 | Field                      | Required | Purpose                  |
 | -------------------------- | -------- | ------------------------ |
+| `name`                     | Yes      | Skill id                 |
 | `description`              | Yes      | Shows in /help menu      |
 | `argument-hint`            | No       | Usage hint in help       |
 | `allowed-tools`            | No       | Restrict available tools |
@@ -97,7 +103,7 @@ Current git status: !`git status --short`
 Provide line numbers and fixes.
 ```
 
-## CLAUDE.md Format
+## AGENTS.md Format
 
 Project instructions loaded every conversation:
 

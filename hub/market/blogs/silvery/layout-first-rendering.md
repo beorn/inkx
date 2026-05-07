@@ -1,6 +1,7 @@
 ---
 title: "Layout-First Rendering: Why Terminal Components Need Their Width"
-description: "The architectural decision behind Silvery's rendering pipeline — what problem it solves, how it actually works, and what it costs."
+description: The architectural decision behind Silvery's rendering pipeline —
+  what problem it solves, how it actually works, and what it costs.
 date: 2026-04-02
 ---
 
@@ -219,3 +220,4 @@ The win is not "one pass forever." It's that components can make width/height de
 The web went through a similar evolution. For years, components couldn't know their container's size during render. CSS container queries (`@container`) finally solved this in 2023 by making container dimensions available during style calculation. `useBoxRect()` is the terminal equivalent -- components adapt to their container, not the viewport.
 
 The underlying principle: **components need to know their constraints to make good rendering decisions.** A pipeline that provides that information during render, rather than after, eliminates an entire category of workarounds.
+

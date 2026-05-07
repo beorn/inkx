@@ -143,3 +143,4 @@ Use typed context objects: `Viewport { cols, rows }`, `TerminalCapabilities { os
 - McKeeman, "Differential Testing for Software" (1998) — using independent implementations when a perfect oracle is unavailable
 - vttest — classic terminal behavior validation suite
 - Ratatui, Bubble Tea, Blessed, Ink — framework patterns for viewport/clipping
+

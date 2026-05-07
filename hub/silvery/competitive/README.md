@@ -20,6 +20,7 @@ Silvery's real competitors, ranked by threat level:
 ## Reference wiki
 
 Cross-reference with general-purpose reference pages at `~/Bear/Journal/ref/`:
+
 - [coding-agents/](../../../../../Bear/Journal/ref/coding-agents/README.md) — all the agents
 - [tui-frameworks/](../../../../../Bear/Journal/ref/tui-frameworks/README.md) — all the frameworks
 
@@ -30,3 +31,4 @@ Cross-reference with general-purpose reference pages at `~/Bear/Journal/ref/`:
 - Should silvery ship an Ink-compat API layer to capture fork-chain users (gemini-cli, others)?
 - Does OpenTUI's Zig moat actually matter, or can pure-TS silvery match it with incremental rendering?
 - Does the "multi-target" story (TUI→canvas→DOM) resonate with coding-agent builders, or is it a distraction?
+

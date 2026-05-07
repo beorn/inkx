@@ -1,20 +1,20 @@
 # km Roadmap — holistic view
 
 > Big-picture map across all tracks, with silvery horizons folded into Track 2.
-> For the ordered near-term queue, see [`backlog.md`](backlog.md).
-> For the vision informing direction, see [`km/design/vision.md`](km/design/vision.md).
+> For the ordered near-term queue, see backlog.md.
+> For the vision informing direction, see km/design/vision.md.
 
 km is becoming the environment for knowledge work with AI agents. See the [vision doc](km/design/vision.md) for the three-axis framing (Knowledge / Communication / Agents) that informs this roadmap.
 
 ## Five tracks
 
-| Track | Scope | Horizon | Owner epic |
-|---|---|---|---|
-| **1. km TUI** | Interactive workspace, views, editing, omnibox, selection | 1-3 months | `km-tui` |
-| **2. Silvery maturation** | TUI framework: v0.5 → v1.0 → v1.5 (tea) → v2.0 (canvas) → v3.0 (graphics) | 6-12+ months | `km-silvery` |
-| **3. Knowledge layer** | km bd, recall, brain/ENGRAM, connectors, facets | ongoing | `km-infra`, `km-all` |
-| **4. Communication (tribe-matrix)** | Matrix-based live wire for agent coordination | 2-3 weeks once started | `km-all.connector-matrix` |
-| **5. Ecosystem** | Silvery marketing, terminfo.dev, bearly tools, vorg | parallel | `km-market`, `km-terminfo`, `km-bearly` |
+| Track                           | Scope                                                                     | Horizon                | Owner epic                        |
+| ------------------------------- | ------------------------------------------------------------------------- | ---------------------- | --------------------------------- |
+| 1. km TUI                       | Interactive workspace, views, editing, omnibox, selection                 | 1-3 months             | km-tui                            |
+| 2. Silvery maturation           | TUI framework: v0.5 → v1.0 → v1.5 (tea) → v2.0 (canvas) → v3.0 (graphics) | 6-12+ months           | km-silvery                        |
+| 3. Knowledge layer              | km bd, recall, brain/ENGRAM, connectors, facets                           | ongoing                | km-infra, km-all                  |
+| 4. Communication (tribe-matrix) | Matrix-based live wire for agent coordination                             | 2-3 weeks once started | km-all.connector-matrix           |
+| 5. Ecosystem                    | Silvery marketing, terminfo.dev, bearly tools, vorg                       | parallel               | km-market, km-terminfo, km-bearly |
 
 Each track has its own chain of beads; see each epic for the phased detail.
 
@@ -181,6 +181,7 @@ const app = pipe(
 **Key packages**: + @silvery/ag-draw, @silvery/ag-a11y, @silvery/ag-svg, @silvery/ag-pdf, @silvery/ag-image, @silvery/ag-remote
 
 **Strategy**: Three approaches, all compatible:
+
 - **A. Own scene graph, target drawing libs as backends.** Display list → Canvas2D / PixiJS / WebGL.
 - **B. API familiar to existing drawing libs.** Ink++ pattern — similar API to Konva/PixiJS, better engine.
 - **C. Embeddable in existing drawing libs.** Konva/Pixi apps embed silvery layout+text as a node.
@@ -192,33 +193,33 @@ const app = pipe(
 
 Features with designs but no assigned horizon yet.
 
-| Feature | Doc | Likely Horizon |
-|---|---|---|
-| Windowing (focus, tabs, panes, overlays) | [silvery/design/v-undecided/windowing.md](silvery/design/v-undecided/windowing.md) | v1.x–v2.0 |
-| Virtual columns (2D virtualization) | [silvery/design/v-undecided/virtual-columns.md](silvery/design/v-undecided/virtual-columns.md) | v1.x |
-| DOM-like render API | [silvery/design/v-undecided/dom-api.md](silvery/design/v-undecided/dom-api.md) | v2.0 |
-| AI mode (agents driving apps) | [silvery/design/v-undecided/ai-mode.md](silvery/design/v-undecided/ai-mode.md) | v3.0+ |
+| Feature                                  | Doc                                           | Likely Horizon |
+| ---------------------------------------- | --------------------------------------------- | -------------- |
+| Windowing (focus, tabs, panes, overlays) | silvery/design/v-undecided/windowing.md       | v1.x–v2.0      |
+| Virtual columns (2D virtualization)      | silvery/design/v-undecided/virtual-columns.md | v1.x           |
+| DOM-like render API                      | silvery/design/v-undecided/dom-api.md         | v2.0           |
+| AI mode (agents driving apps)            | silvery/design/v-undecided/ai-mode.md         | v3.0+          |
 
 ### Package Evolution (silvery)
 
-| Package | v0.5 | v1.0 | v1.5 (tea) | v2.0 | v3.0 |
-|---|---|---|---|---|---|
-| **flexily** | Composable plugins | Layout engine | — | Proven | Proven |
-| **pretext** | Peer dep | Text measurement | — | Proportional | Proportional |
-| **@silvery/ag** | — | Scene graph (terminal) | — | Scene graph (canvas) | Scene graph (graphics) |
-| **@silvery/ag-react** | — | React reconciler | — | React reconciler | React reconciler |
-| **@silvery/ag-term** | — | ANSI rendering | — | ANSI rendering | ANSI rendering |
-| **@silvery/ag-canvas** | — | Proportional (shipped) | — | Standalone package | Full graphics |
-| **@silvery/ag-layout** | — | — | — | Display list, measurers | Display list |
-| **@silvery/ag-draw** | — | — | — | — | Paths, gradients, compositing |
-| **@silvery/ag-a11y** | — | — | — | — | DOM accessibility mirror |
-| **@silvery/tea** | — | Internal (design settling) | Ships | Same | Same |
-| **@silvery/signals** | — | Internal | Ships | Same | Same |
-| **@silvery/commands** | — | Internal | Ships | Same | Same |
-| **@silvery/scope** | — | Internal | Ships | Same | Same |
-| **@silvery/headless** | — | Internal | Ships | Same | Same |
-| **@silvery/create** | — | Internal | Ships | Same | Same |
-| **silvery** (components) | — | 30+ components (38 canvas-safe) | — | Render-neutral | + graphics components |
+| Package              | v0.5               | v1.0                            | v1.5 (tea) | v2.0                    | v3.0                          |
+| -------------------- | ------------------ | ------------------------------- | ---------- | ----------------------- | ----------------------------- |
+| flexily              | Composable plugins | Layout engine                   | —          | Proven                  | Proven                        |
+| pretext              | Peer dep           | Text measurement                | —          | Proportional            | Proportional                  |
+| @silvery/ag          | —                  | Scene graph (terminal)          | —          | Scene graph (canvas)    | Scene graph (graphics)        |
+| @silvery/ag-react    | —                  | React reconciler                | —          | React reconciler        | React reconciler              |
+| @silvery/ag-term     | —                  | ANSI rendering                  | —          | ANSI rendering          | ANSI rendering                |
+| @silvery/ag-canvas   | —                  | Proportional (shipped)          | —          | Standalone package      | Full graphics                 |
+| @silvery/ag-layout   | —                  | —                               | —          | Display list, measurers | Display list                  |
+| @silvery/ag-draw     | —                  | —                               | —          | —                       | Paths, gradients, compositing |
+| @silvery/ag-a11y     | —                  | —                               | —          | —                       | DOM accessibility mirror      |
+| @silvery/tea         | —                  | Internal (design settling)      | Ships      | Same                    | Same                          |
+| @silvery/signals     | —                  | Internal                        | Ships      | Same                    | Same                          |
+| @silvery/commands    | —                  | Internal                        | Ships      | Same                    | Same                          |
+| @silvery/scope       | —                  | Internal                        | Ships      | Same                    | Same                          |
+| @silvery/headless    | —                  | Internal                        | Ships      | Same                    | Same                          |
+| @silvery/create      | —                  | Internal                        | Ships      | Same                    | Same                          |
+| silvery (components) | —                  | 30+ components (38 canvas-safe) | —          | Render-neutral          | + graphics components         |
 
 See [silvery/vision/packages.md](silvery/vision/packages.md) for the complete package inventory with current status.
 
@@ -265,3 +266,4 @@ Retired 2026-04-20: old `@bearly/tribe` daemon (8300 LOC custom wire) will retir
 - **Silvery horizon detail?** → sections above under Track 2.
 
 This doc is the map. Update when a track shifts materially; don't track every bead here.
+

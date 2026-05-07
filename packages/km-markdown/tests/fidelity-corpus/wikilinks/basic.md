@@ -26,3 +26,4 @@ Wikilink in a list:
 Wikilink in a blockquote:
 
 > Per [[Decisions/2026-01-policy]], we do X.
+

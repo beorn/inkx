@@ -1,6 +1,6 @@
 # Testing
 
-> **Internal** — Comprehensive testing strategy for Silvery development: golden spec from Ink/Chalk test suites, visual regression, compatibility dashboard, and contributor testing patterns. For user-facing testing guidance, see `vendor/silvery/docs/site/guide/testing.md`.
+> Internal — Comprehensive testing strategy for Silvery development: golden spec from Ink/Chalk test suites, visual regression, compatibility dashboard, and contributor testing patterns. For user-facing testing guidance, see vendor/silvery/docs/site/guide/testing.md.
 
 ## Testing Your Silvery App
 
@@ -206,60 +206,60 @@ Ink has 31 test files. We triage them into categories based on feasibility:
 
 #### Tier 1: Must Pass (MVP Blockers) - 14 files
 
-| File                            | Tests | Notes                       |
-| ------------------------------- | ----- | --------------------------- |
-| `flex.test.tsx`                 | 12    | Core flexbox                |
-| `flex-direction.test.tsx`       | 4     | Row/column                  |
-| `flex-justify-content.test.tsx` | 5     | Main axis alignment         |
-| `flex-align-items.test.tsx`     | 5     | Cross axis alignment        |
-| `flex-align-self.test.tsx`      | 4     | Override alignment          |
-| `flex-wrap.test.tsx`            | 3     | Wrapping                    |
-| `text.test.tsx`                 | 8     | Text rendering              |
-| `text-width.test.tsx`           | 4     | Text width calculation      |
-| `render.test.tsx`               | 15    | Core render API             |
-| `components.test.tsx`           | 10    | Box, Text, Newline, Spacer  |
-| `hooks.test.tsx`                | 8     | useInput, useApp, useStdout |
-| `width-height.test.tsx`         | 6     | Dimension props             |
-| `margin.test.tsx`               | 4     | Spacing                     |
-| `padding.test.tsx`              | 4     | Spacing                     |
+| File                          | Tests | Notes                       |
+| ----------------------------- | ----- | --------------------------- |
+| flex.test.tsx                 | 12    | Core flexbox                |
+| flex-direction.test.tsx       | 4     | Row/column                  |
+| flex-justify-content.test.tsx | 5     | Main axis alignment         |
+| flex-align-items.test.tsx     | 5     | Cross axis alignment        |
+| flex-align-self.test.tsx      | 4     | Override alignment          |
+| flex-wrap.test.tsx            | 3     | Wrapping                    |
+| text.test.tsx                 | 8     | Text rendering              |
+| text-width.test.tsx           | 4     | Text width calculation      |
+| render.test.tsx               | 15    | Core render API             |
+| components.test.tsx           | 10    | Box, Text, Newline, Spacer  |
+| hooks.test.tsx                | 8     | useInput, useApp, useStdout |
+| width-height.test.tsx         | 6     | Dimension props             |
+| margin.test.tsx               | 4     | Spacing                     |
+| padding.test.tsx              | 4     | Spacing                     |
 
 **Total: 92 tests must pass**
 
 #### Tier 2: Should Pass (1.0 Blockers) - 10 files
 
-| File                       | Tests | Notes                   |
-| -------------------------- | ----- | ----------------------- |
-| `borders.test.tsx`         | 8     | Border styles           |
-| `background.test.tsx`      | 3     | Background colors       |
-| `display.test.tsx`         | 4     | Display none            |
-| `overflow.test.tsx`        | 3     | Overflow handling       |
-| `gap.test.tsx`             | 3     | Flex gap                |
-| `focus.test.tsx`           | 12    | Focus management        |
-| `measure-element.test.tsx` | 5     | measureElement() compat |
-| `measure-text.test.tsx`    | 4     | Text measurement        |
-| `static.test.tsx`          | 6     | Static component        |
-| `exit.test.tsx`            | 4     | App exit                |
+| File                     | Tests | Notes                   |
+| ------------------------ | ----- | ----------------------- |
+| borders.test.tsx         | 8     | Border styles           |
+| background.test.tsx      | 3     | Background colors       |
+| display.test.tsx         | 4     | Display none            |
+| overflow.test.tsx        | 3     | Overflow handling       |
+| gap.test.tsx             | 3     | Flex gap                |
+| focus.test.tsx           | 12    | Focus management        |
+| measure-element.test.tsx | 5     | measureElement() compat |
+| measure-text.test.tsx    | 4     | Text measurement        |
+| static.test.tsx          | 6     | Static component        |
+| exit.test.tsx            | 4     | App exit                |
 
 **Total: 52 tests should pass**
 
 #### Tier 3: Nice to Have (Post 1.0) - 5 files
 
-| File                       | Tests | Notes                  |
-| -------------------------- | ----- | ---------------------- |
-| `errors.test.tsx`          | 5     | Error boundaries       |
-| `log-update.test.tsx`      | 3     | Log update integration |
-| `terminal-resize.test.tsx` | 4     | Resize handling        |
-| `screen-reader.test.tsx`   | 3     | Accessibility          |
-| `reconciler.test.tsx`      | 8     | Internal reconciler    |
+| File                     | Tests | Notes                  |
+| ------------------------ | ----- | ---------------------- |
+| errors.test.tsx          | 5     | Error boundaries       |
+| log-update.test.tsx      | 3     | Log update integration |
+| terminal-resize.test.tsx | 4     | Resize handling        |
+| screen-reader.test.tsx   | 3     | Accessibility          |
+| reconciler.test.tsx      | 8     | Internal reconciler    |
 
 **Total: 23 tests nice to have**
 
 #### Tier 4: Won't Pass (By Design) - 2 files
 
-| File                 | Tests | Reason                        |
-| -------------------- | ----- | ----------------------------- |
-| `transform.test.tsx` | 4     | Different internal model      |
-| `key.test.tsx`       | 3     | React key handling (internal) |
+| File               | Tests | Reason                        |
+| ------------------ | ----- | ----------------------------- |
+| transform.test.tsx | 4     | Different internal model      |
+| key.test.tsx       | 3     | React key handling (internal) |
 
 **Total: 7 tests won't pass**
 
@@ -1257,22 +1257,22 @@ expect(sidebar.boundingBox()?.width).toBe(20) // 20 chars wide
 
 ### 9.5 AutoLocator API
 
-| Method               | Returns               | Description                            |
-| -------------------- | --------------------- | -------------------------------------- |
-| `getByText(text)`    | `AutoLocator`         | Find by text content (string or regex) |
-| `getByTestId(id)`    | `AutoLocator`         | Find by testID prop                    |
-| `locator(selector)`  | `AutoLocator`         | CSS-like attribute selector            |
-| `first()`            | `AutoLocator`         | First matching element                 |
-| `last()`             | `AutoLocator`         | Last matching element                  |
-| `nth(index)`         | `AutoLocator`         | Element at index                       |
-| `filter(options)`    | `AutoLocator`         | Filter matches                         |
-| `resolve()`          | `SilveryNode \| null` | Get first matching node                |
-| `resolveAll()`       | `SilveryNode[]`       | Get all matching nodes                 |
-| `count()`            | `number`              | Count matches                          |
-| `textContent()`      | `string`              | Get text content                       |
-| `getAttribute(name)` | `string \| undefined` | Get attribute value                    |
-| `boundingBox()`      | `Rect \| null`        | Get {x, y, width, height}              |
-| `isVisible()`        | `boolean`             | Check if has dimensions                |
+| Method             | Returns             | Description                            |
+| ------------------ | ------------------- | -------------------------------------- |
+| getByText(text)    | AutoLocator         | Find by text content (string or regex) |
+| getByTestId(id)    | AutoLocator         | Find by testID prop                    |
+| locator(selector)  | AutoLocator         | CSS-like attribute selector            |
+| first()            | AutoLocator         | First matching element                 |
+| last()             | AutoLocator         | Last matching element                  |
+| nth(index)         | AutoLocator         | Element at index                       |
+| filter(options)    | AutoLocator         | Filter matches                         |
+| resolve()          | SilveryNode \| null | Get first matching node                |
+| resolveAll()       | SilveryNode[]       | Get all matching nodes                 |
+| count()            | number              | Count matches                          |
+| textContent()      | string              | Get text content                       |
+| getAttribute(name) | string \| undefined | Get attribute value                    |
+| boundingBox()      | Rect \| null        | Get {x, y, width, height}              |
+| isVisible()        | boolean             | Check if has dimensions                |
 
 ---
 
@@ -1286,3 +1286,4 @@ expect(sidebar.boundingBox()?.width).toBe(20) // 20 chars wide
 - [AVA](https://github.com/avajs/ava) - Test framework used by Ink/Chalk
 - [mitata](https://github.com/evanwashere/mitata) - Benchmarking library
 - [Playwright Locators](https://playwright.dev/docs/locators) - Inspiration for SilveryLocator API
+

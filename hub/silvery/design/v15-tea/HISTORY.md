@@ -12,6 +12,7 @@ Silvery started as "a better Ink" — React + useState + useInput hooks. Apps mu
 State for complex apps (like km-tui, aichat) grew messy: monolithic reducers (`createDemoUpdate` — 387 LOC in aichat), separate React hooks observing and re-dispatching (`useAutoCompact`, `useAutoExit`, `useKeyBindings`), imperative refs bridging parent and child state (`footerControlRef`). A mesh/star of ambient subscribers, not layered composition.
 
 Related docs, now archived:
+
 - `hub/0LD/silvery/pre-era2/architecture-overview.md`
 - `hub/0LD/silvery/pre-era2/state-api-redesign.md`
 - `hub/0LD/silvery/pre-era2/focus-routing.md`
@@ -26,6 +27,7 @@ Proposed breaking the monolithic runtime into composable plugins via `pipe()`. T
 First working draft: `plugin-system.ts`. Then an exploration doc introduced state slice composition, apply-chain wrapping, and a tuple-return `[state, effects]` convention for TEA purity.
 
 Related, archived:
+
 - `hub/0LD/silvery/era2-drafts/00-architecture.md` — original dispatch/apply pipeline
 - `hub/0LD/silvery/tea-exploration/plugin-system.ts` — first draft
 - `hub/0LD/silvery/tea-exploration/ag-event-architecture.md`
@@ -53,6 +55,7 @@ Era2 got reframed into two independent eras:
 - **Era2b — app architecture** (ships later as silvertea): `withApp() + signals + commands + keymaps + scopes + domain plugins`. Builds on era2a. Opt-in for complex apps.
 
 Key decisions logged in `hub/silvery/reference/decisions.md` (37 entries):
+
 - D26-28: alien-signals as reactive engine
 - D29: getter/setter function-call pattern (not `.value`)
 - D30: commands are state-agnostic
@@ -62,6 +65,7 @@ Key decisions logged in `hub/silvery/reference/decisions.md` (37 entries):
 - D37: era2a/era2b split
 
 Canonical docs born in this split:
+
 - `reference/era2-overview.md` — the map. "Partially stale" header now.
 - `design/v10-terminal/app-composition.md` — era2a architecture
 - `design/v15-tea/commands.md` — command tree, object references, Zod `.parse()`, projections
@@ -135,6 +139,7 @@ pipe(
 ```
 
 Each plugin wraps `app.apply`, emits `{type:"dispatch", op:...}` effects for cross-plugin messaging, uses `fx.delay/fx.interval/fx.cancel` timer effects. Proved:
+
 - Layered composition is clearer than a mesh
 - Ordering errors catchable at compile when plugins declare `<Req, Add>` type bounds
 - HelpOverlay lineage: v1 (296 LOC / 3 files) → v2 (33 LOC / definePlugin) → v3 (56 LOC / pipe plugin with cross-plugin dispatch)
@@ -199,6 +204,7 @@ Beads tracking the gap: `km-silvery.era2`, `km-silvery.tea-composite-ops`, `km-s
 ## Summary of what we know works, what doesn't
 
 **Works** (validated by prototypes or shipped use):
+
 - `pipe(with*())` layering with closure-wrap is clear and composable — validated by aichat-composed (10 plugins, clean)
 - Mutation-in-place plugin pattern — any spread breaks closure identity (validated negatively by `withApp()` bug)
 - Pure-reducer slices are easy to test and replay — validated by headless + tea-nav spikes
@@ -207,6 +213,7 @@ Beads tracking the gap: `km-silvery.era2`, `km-silvery.tea-composite-ops`, `km-s
 - Providers as "external data source" abstraction — in production (term-provider, storage)
 
 **Does not work** (validated negatively):
+
 - Singleton stores outside the pipe — aichat v1 proved they mesh across features
 - `return {...app, ...}` — breaks closure identity (`withApp()` spread bug)
 - Role lanes as type tag — pipe order already expresses role, tag just reifies
@@ -214,6 +221,7 @@ Beads tracking the gap: `km-silvery.era2`, `km-silvery.tea-composite-ops`, `km-s
 - `{[]}` vs `false` return without helpers — footgun, never got fixed
 
 **Open** (no clear answer yet):
+
 - Command tree vs flat map (Q1)
 - Effects: tuple return vs `effect:*` namespace (Q3)
 - Models as separate noun vs merged into commands (Q4)
@@ -221,3 +229,4 @@ Beads tracking the gap: `km-silvery.era2`, `km-silvery.tea-composite-ops`, `km-s
 - Keymap location (Q6)
 
 See `DESIGN.md` for the current iteration.
+
