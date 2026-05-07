@@ -13,23 +13,11 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { createLogger } from "loggily"
-import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigation/navigate-to-node.ts"
+import { navigateToNode } from "../navigation/navigate-to-node.ts"
 import { dispatchSelection, nodeSelect } from "../state/selection.ts"
 import { isTeaSearchEnabled, getSearchStore } from "../plugins/with-search-dialog.ts"
 
 const log = createLogger("km:tui:dialogs")
-
-/**
- * Legacy adapter: wraps resolveZoomTarget() to return KNode objects.
- * Existing tests import this — preserved for backward compatibility.
- * @deprecated Use navigateToNode() or resolveZoomTarget() directly for new code.
- */
-export function findZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarget: KNode; cursorTarget: KNode } {
-  const { zoomTarget: zoomId, cursorTarget: cursorId } = resolveZoomTarget(target, repo)
-  const zoomTarget = repo.getNode(zoomId) ?? target
-  const cursorTarget = repo.getNode(cursorId) ?? target
-  return { zoomTarget, cursorTarget }
-}
 
 // =============================================================================
 // Types

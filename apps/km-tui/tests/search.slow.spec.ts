@@ -19,8 +19,7 @@ import { item } from "./helpers/board-test.ts"
 import { dispatchSelection, nodeSelect } from "../src/state/selection.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
-import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
-import { navigateToNode } from "../src/navigation/navigate-to-node.ts"
+import { navigateToNode, resolveZoomTarget } from "../src/navigation/navigate-to-node.ts"
 import type { KNode } from "@km/core"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
@@ -518,18 +517,18 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
 // #############################################################################
 
 // =============================================================================
-// findZoomTarget
+// resolveZoomTarget
 // =============================================================================
 
-describe("findZoomTarget", () => {
+describe("resolveZoomTarget", () => {
   test("returns grandparent for depth-2 target", () => {
     const nodes = item("root", item("parent", item("child1"), item("child2")))
     const repo = createFakeRepo({ nodes })
     const child1 = repo.getNode("child1")!
 
-    const result = findZoomTarget(child1, repo)
-    expect(result.zoomTarget.id).toBe("root")
-    expect(result.cursorTarget.id).toBe("child1")
+    const result = resolveZoomTarget(child1, repo)
+    expect(result.zoomTarget).toBe("root")
+    expect(result.cursorTarget).toBe("child1")
   })
 
   test("returns parent when no grandparent", () => {
@@ -537,9 +536,9 @@ describe("findZoomTarget", () => {
     const repo = createFakeRepo({ nodes })
     const child1 = repo.getNode("child1")!
 
-    const result = findZoomTarget(child1, repo)
-    expect(result.zoomTarget.id).toBe("root")
-    expect(result.cursorTarget.id).toBe("child1")
+    const result = resolveZoomTarget(child1, repo)
+    expect(result.zoomTarget).toBe("root")
+    expect(result.cursorTarget).toBe("child1")
   })
 
   test("returns target itself when at root level", () => {
@@ -547,9 +546,9 @@ describe("findZoomTarget", () => {
     const repo = createFakeRepo({ nodes })
     const root = repo.getNode("root")!
 
-    const result = findZoomTarget(root, repo)
-    expect(result.zoomTarget.id).toBe("root")
-    expect(result.cursorTarget.id).toBe("root")
+    const result = resolveZoomTarget(root, repo)
+    expect(result.zoomTarget).toBe("root")
+    expect(result.cursorTarget).toBe("root")
   })
 
   test("body-only grandparent with great-grandparent: zooms to great-grandparent", () => {
@@ -566,10 +565,10 @@ describe("findZoomTarget", () => {
     const repo = createFakeRepo({ nodes: allNodes })
     const subtask1 = repo.getNode("subtask1")!
 
-    const result = findZoomTarget(subtask1, repo)
+    const result = resolveZoomTarget(subtask1, repo)
     // Zoom to vault (great-grandparent) so flatList is a column, task1 is a card
-    expect(result.zoomTarget.id).toBe("vault")
-    expect(result.cursorTarget.id).toBe("task1")
+    expect(result.zoomTarget).toBe("vault")
+    expect(result.cursorTarget).toBe("task1")
   })
 
   test("body-only grandparent without great-grandparent: walks cursor up to parent", () => {
@@ -585,9 +584,9 @@ describe("findZoomTarget", () => {
 
     // ancestors: [subtask1, task1, flatList] (length 3)
     // grandparent = flatList (no oi children), no great-grandparent
-    const result = findZoomTarget(subtask1, repo)
-    expect(result.zoomTarget.id).toBe("flatList")
-    expect(result.cursorTarget.id).toBe("task1")
+    const result = resolveZoomTarget(subtask1, repo)
+    expect(result.zoomTarget).toBe("flatList")
+    expect(result.cursorTarget).toBe("task1")
   })
 
   test("deep target (ancestors >= 4): zooms to grandparent with cursor on target", () => {
@@ -599,9 +598,9 @@ describe("findZoomTarget", () => {
     const repo = createFakeRepo({ nodes })
     const deepTask = repo.getNode("deep-task")!
 
-    const result = findZoomTarget(deepTask, repo)
-    expect(result.zoomTarget.id).toBe("section1")
-    expect(result.cursorTarget.id).toBe("deep-task")
+    const result = resolveZoomTarget(deepTask, repo)
+    expect(result.zoomTarget).toBe("section1")
+    expect(result.cursorTarget).toBe("deep-task")
   })
 
   test("deep target in body-only grandparent: zooms to great-grandparent", () => {
@@ -625,9 +624,9 @@ describe("findZoomTarget", () => {
     // great-grandparent = section1
     // Should zoom to section1 (great-grandparent) so flatList is a column
     // and task1 is a visible card
-    const result = findZoomTarget(subtask1, repo)
-    expect(result.zoomTarget.id).toBe("section1")
-    expect(result.cursorTarget.id).toBe("task1")
+    const result = resolveZoomTarget(subtask1, repo)
+    expect(result.zoomTarget).toBe("section1")
+    expect(result.cursorTarget).toBe("task1")
   })
 })
 
@@ -793,12 +792,12 @@ describe("full search flow integration", () => {
     )
 
     const taskA2 = app.repo.getNode("taskA2")!
-    const { zoomTarget, cursorTarget } = findZoomTarget(taskA2, app.repo)
+    const { zoomTarget, cursorTarget } = resolveZoomTarget(taskA2, app.repo)
 
-    expect(zoomTarget.id).toBe("projects")
-    expect(cursorTarget.id).toBe("taskA2")
+    expect(zoomTarget).toBe("projects")
+    expect(cursorTarget).toBe("taskA2")
 
-    zoomAndFlush(app.driver.store, zoomTarget.id, cursorTarget.id)
+    zoomAndFlush(app.driver.store, zoomTarget, cursorTarget)
 
     app.withStore((s) => expect(getActiveBoardPane(s)!.rootId).toBe("projects"))
     expect(app.state.cursor).toBe("taskA2")
@@ -864,9 +863,9 @@ describe("scroll to selection after zoom", () => {
     })
 
     const deep15 = app.repo.getNode("deep15")!
-    const { zoomTarget, cursorTarget } = findZoomTarget(deep15, app.repo)
+    const { zoomTarget, cursorTarget } = resolveZoomTarget(deep15, app.repo)
 
-    zoomAndFlush(app.driver.store, zoomTarget.id, cursorTarget.id)
+    zoomAndFlush(app.driver.store, zoomTarget, cursorTarget)
 
     // Press j to trigger render and move cursor
     app.command("cursor_down")
