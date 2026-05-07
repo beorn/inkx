@@ -264,6 +264,7 @@ export type FakeFixtureName =
   | "rejection-flow"
   | "error-flow"
   | "streaming-text"
+  | "ask-user-question"
 
 /**
  * Load a fixture script by name. Fixtures are JSON arrays of `ScriptStep`

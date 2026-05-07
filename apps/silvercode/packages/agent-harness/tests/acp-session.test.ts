@@ -693,6 +693,7 @@ describe("createAcpSession — fixture replay", () => {
     "rejection-flow",
     "error-flow",
     "streaming-text",
+    "ask-user-question",
   ]
 
   for (const name of fixtures) {

@@ -48,9 +48,10 @@ import {
   useSelection,
 } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
-import { NotificationStack, type NotificationStreamEntry } from "./NotificationEventRow.tsx"
+import { NotificationStack } from "./NotificationEventRow.tsx"
+import type { NotificationStreamEntry } from "../notification-stream.ts"
 import { BoundedScroll } from "./BoundedScroll.tsx"
-import { ChatEntryDisclosure } from "./ChatEntryDisclosure.tsx"
+import { EntryDisclosure } from "./EntryDisclosure.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import type { TurnActivitySummaryItem } from "./TurnActivitySummary.tsx"
@@ -429,6 +430,23 @@ function singleLineGenericToolContentTitle(
   return text
 }
 
+function singleLineTextToolContent(content: ToolCallContent[] | undefined): string | null {
+  if (content?.length !== 1) return null
+  const only = content[0]
+  if (only?.type !== "content" || only.content.type !== "text") return null
+  const text = only.content.text.trim()
+  if (text.length === 0 || text.includes("\n")) return null
+  return text
+}
+
+function agentLifecycleTitle(toolName: string, title: string, status: ToolCallStatus): string {
+  if (toolName !== "Agent" && toolName !== "Task") return title
+  const lifecycle =
+    status === "completed" ? "completed" : status === "failed" ? "failed" : status === "pending" ? "pending" : "running"
+  const suffix = title !== toolName && title.trim().length > 0 ? ` - ${title}` : ""
+  return `Agent ${lifecycle}${suffix}`
+}
+
 function toolErrorMessage(output: unknown, title?: string): string {
   if (output && typeof output === "object") {
     const o = output as Record<string, unknown>
@@ -482,6 +500,18 @@ function adaptToolCall(
   const kind = toolKindFromName(c.name, c.input)
   const status: ToolCallStatus = running ? "in_progress" : result?.is_error ? "failed" : "completed"
   let title = toolTitle(c.name, c.input)
+  title = agentLifecycleTitle(c.name, title, status)
+
+  // AskUserQuestion replay: surface the question + options instead of the
+  // bare `Answer questions?` cancellation sentinel. The agent never returns
+  // a structured success result for AskUserQuestion in transcript replay —
+  // it's either pending (live, handled by InlineAskUserQuestionPrompt) or
+  // cancelled (`is_error: true`, output text "Answer questions?"). This
+  // branch returns early so the generic title-from-input/result-collapse
+  // logic below doesn't overwrite the question framing.
+  if (c.name === "AskUserQuestion") {
+    return adaptAskUserQuestion(c, result, status)
+  }
 
   // Build content: for Edit tools, show the diff. For everything else, show
   // the result text (if a result has arrived) or the raw input as JSON.
@@ -507,7 +537,12 @@ function adaptToolCall(
     }
   }
   const inlineTitle = singleLineGenericToolContentTitle(c.name, title, content)
-  if (inlineTitle) {
+  const inlineAgentResult =
+    (c.name === "Agent" || c.name === "Task") && status === "completed" ? singleLineTextToolContent(content) : null
+  if (inlineAgentResult) {
+    title = `Agent completed - ${inlineAgentResult}`
+    content = undefined
+  } else if (inlineTitle) {
     title = inlineTitle
     content = undefined
   }
@@ -517,6 +552,126 @@ function adaptToolCall(
     title,
     kind,
     status,
+    content,
+    rawInput: c.input,
+    rawOutput: result?.output,
+  }
+}
+
+// =============================================================================
+// AskUserQuestion (Claude Code) — historical transcript replay
+//
+// Live-session interactive picker is owned by `<InlineAskUserQuestionPrompt>`;
+// this path renders the *replayed* transcript view: the agent asked X, the
+// user either answered or cancelled. The cancellation sentinel
+// (`output === "Answer questions?"`, `is_error: true`) is what Claude Code
+// emits when the picker is dismissed — surface it as "(cancelled)" rather
+// than letting the failed tool envelope render the bare error string.
+// =============================================================================
+
+const ASK_USER_QUESTION_CANCEL_SENTINEL = "Answer questions?"
+
+type AskUserQuestionOption = { label?: string; description?: string }
+type AskUserQuestionEntry = {
+  question?: string
+  header?: string
+  multiSelect?: boolean
+  options?: AskUserQuestionOption[]
+}
+
+function extractAskUserQuestionEntries(input: unknown): AskUserQuestionEntry[] {
+  if (!input || typeof input !== "object") return []
+  const raw = (input as Record<string, unknown>).questions
+  if (!Array.isArray(raw)) return []
+  const entries: AskUserQuestionEntry[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue
+    const o = item as Record<string, unknown>
+    const optionsRaw = Array.isArray(o.options) ? o.options : []
+    const options: AskUserQuestionOption[] = []
+    for (const opt of optionsRaw) {
+      if (!opt || typeof opt !== "object") continue
+      const oo = opt as Record<string, unknown>
+      options.push({
+        label: typeof oo.label === "string" ? oo.label : undefined,
+        description: typeof oo.description === "string" ? oo.description : undefined,
+      })
+    }
+    entries.push({
+      question: typeof o.question === "string" ? o.question : undefined,
+      header: typeof o.header === "string" ? o.header : undefined,
+      multiSelect: typeof o.multiSelect === "boolean" ? o.multiSelect : undefined,
+      options,
+    })
+  }
+  return entries
+}
+
+function isAskUserQuestionCancellation(result: { output: unknown; is_error?: boolean } | undefined): boolean {
+  if (!result?.is_error) return false
+  const out = result.output
+  if (typeof out === "string") return out.trim() === ASK_USER_QUESTION_CANCEL_SENTINEL
+  if (out && typeof out === "object") {
+    const content = (out as Record<string, unknown>).content
+    if (typeof content === "string" && content.trim() === ASK_USER_QUESTION_CANCEL_SENTINEL) return true
+  }
+  return false
+}
+
+function askUserQuestionTitle(entries: AskUserQuestionEntry[], cancelled: boolean): string {
+  const first = entries[0]
+  const headline = first?.question?.trim() ?? first?.header?.trim() ?? ""
+  const more = entries.length > 1 ? ` (+${entries.length - 1} more)` : ""
+  const verb = cancelled ? "Asked (cancelled)" : "Asked"
+  if (headline.length === 0) return cancelled ? "Asked (cancelled)" : "Asked"
+  return `${verb}: "${headline}"${more}`
+}
+
+function askUserQuestionBody(entries: AskUserQuestionEntry[]): ToolCallContent[] | undefined {
+  if (entries.length === 0) return undefined
+  const lines: string[] = []
+  entries.forEach((entry, idx) => {
+    if (idx > 0) lines.push("")
+    const q = entry.question?.trim() ?? ""
+    if (q.length > 0) lines.push(q)
+    const opts = entry.options ?? []
+    for (const opt of opts) {
+      const label = opt.label?.trim() ?? ""
+      const desc = opt.description?.trim() ?? ""
+      if (label.length === 0 && desc.length === 0) continue
+      const labelPart = label.length > 0 ? label : "(option)"
+      const descPart = desc.length > 0 ? ` — ${desc}` : ""
+      lines.push(`  • ${labelPart}${descPart}`)
+    }
+  })
+  if (lines.length === 0) return undefined
+  return [
+    {
+      type: "content",
+      content: { type: "text", text: lines.join("\n") },
+    },
+  ]
+}
+
+function adaptAskUserQuestion(
+  c: { id: string; name: string; input: unknown; mcp_server?: string },
+  result: { output: unknown; is_error?: boolean } | undefined,
+  status: ToolCallStatus,
+): ToolCallType {
+  const entries = extractAskUserQuestionEntries(c.input)
+  const cancelled = isAskUserQuestionCancellation(result)
+  const title = askUserQuestionTitle(entries, cancelled)
+  const content = askUserQuestionBody(entries)
+  // Cancellation is encoded in the title ("Asked (cancelled): ..."). Keep
+  // the lifecycle as "completed" so <ToolCall> doesn't render its red error
+  // envelope on top of the cancellation marker — that would render the bare
+  // "Answer questions?" string and undo the framing this branch installed.
+  const finalStatus: ToolCallStatus = cancelled ? "completed" : status
+  return {
+    toolCallId: c.id as ToolCallId,
+    title,
+    kind: "other",
+    status: finalStatus,
     content,
     rawInput: c.input,
     rawOutput: result?.output,
@@ -574,7 +729,7 @@ function ExpandableSystemRow({
   onDisclosureToggle?: () => void
 }): React.ReactElement {
   return (
-    <ChatEntryDisclosure popover={null} onExpandedChange={() => onDisclosureToggle?.()}>
+    <EntryDisclosure popover={null} onExpandedChange={() => onDisclosureToggle?.()}>
       {({ surfaceProps, isHovered, expanded }) => (
         <Box
           {...surfaceProps}
@@ -607,7 +762,7 @@ function ExpandableSystemRow({
           </SessionEntry>
         </Box>
       )}
-    </ChatEntryDisclosure>
+    </EntryDisclosure>
   )
 }
 
@@ -2016,29 +2171,57 @@ export const SessionUpdateList = React.forwardRef<
   const metadata = sessionMetadataItems(sessionMetadata)
   const replayMessageCount = Math.max(0, sessionMetadata?.replayMessageCount ?? 0)
   const replayBoundaryMessageId = sessionMetadata?.replayBoundaryMessageId
+  const replayCompletedAt = sessionMetadata?.replayCompletedAt
+  const replayLiveMessageThreshold = sessionMetadata?.spawnedAt
+  const replayLiveSessionInitAt = sessionMetadata?.sessionInitAt
   const visibleItems: Item[] = []
   if (metadata.start) visibleItems.push(metadata.start)
   let seenReplayMessages = 0
   const seenReplayMessageIds = new Set<string>()
   let insertedLoadedMetadata = false
+  let sawReplayItemBeforeLiveThreshold = false
   for (let index = 0; index < merged.length; index++) {
-    const item = merged[index]!
+    const item = merged[index]
+    if (item === undefined) continue
+    const timestamp = itemTimestamp(item)
+    if (metadata.loaded && !insertedLoadedMetadata && replayCompletedAt !== undefined) {
+      const crossesLiveThreshold =
+        timestamp !== null &&
+        replayLiveMessageThreshold !== undefined &&
+        timestamp >= replayLiveMessageThreshold &&
+        sawReplayItemBeforeLiveThreshold
+      const crossesSessionInit =
+        timestamp !== null && replayLiveSessionInitAt !== undefined && timestamp >= replayLiveSessionInitAt
+      const looksLive =
+        timestamp !== null &&
+        (replayBoundaryMessageId !== undefined
+          ? crossesSessionInit || crossesLiveThreshold
+          : timestamp > replayCompletedAt || crossesSessionInit || crossesLiveThreshold)
+      if (looksLive) {
+        visibleItems.push(metadata.loaded)
+        insertedLoadedMetadata = true
+      }
+    }
     visibleItems.push(item)
     const sourceId = sourceMessageId(item)
     if (sourceId && !seenReplayMessageIds.has(sourceId)) {
       seenReplayMessageIds.add(sourceId)
       seenReplayMessages++
     }
-    const nextSourceId = index + 1 < merged.length ? sourceMessageId(merged[index + 1]!) : null
+    const nextItem = merged[index + 1]
+    const nextSourceId = nextItem !== undefined ? sourceMessageId(nextItem) : null
     const isLastSliceForSource = sourceId === null || nextSourceId !== sourceId
     const isReplayBoundary =
       isLastSliceForSource &&
       (replayBoundaryMessageId !== undefined
         ? sourceId === replayBoundaryMessageId
-        : replayMessageCount > 0 && seenReplayMessages === replayMessageCount)
+        : replayCompletedAt === undefined && replayMessageCount > 0 && seenReplayMessages === replayMessageCount)
     if (metadata.loaded && !insertedLoadedMetadata && isReplayBoundary) {
       visibleItems.push(metadata.loaded)
       insertedLoadedMetadata = true
+    }
+    if (timestamp !== null && replayLiveMessageThreshold !== undefined && timestamp < replayLiveMessageThreshold) {
+      sawReplayItemBeforeLiveThreshold = true
     }
   }
   if (metadata.loaded && !insertedLoadedMetadata) {
@@ -2085,7 +2268,10 @@ export const SessionUpdateList = React.forwardRef<
       topPadding,
       bottomPadding,
       first: renderItems[0] ? kindOf(renderItems[0]) : null,
-      last: renderItems.at(-1) ? kindOf(renderItems.at(-1)!) : null,
+      last: ((): string | null => {
+        const tail = renderItems.at(-1)
+        return tail ? kindOf(tail) : null
+      })(),
     })
   }, [
     bottomPadding,

@@ -2,7 +2,7 @@
  * Local helper for nested Cmd-hover previews.
  *
  * Public app vocabulary should stay at the call sites:
- * - ChatEntryDisclosure: row/header click toggles an attached body.
+ * - EntryDisclosure: row/header click toggles an attached body.
  * - LinkedTerm: inline file/node/path term with preview/open behavior.
  *
  * This helper only prevents nested targets from fighting over hover previews:
