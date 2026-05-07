@@ -33,6 +33,23 @@ import { ScopeProvider } from "@silvery/ag-react"
 import { createScope } from "@silvery/scope"
 import { App } from "../App.tsx"
 import { createFakeSession, type ScriptedFakeSession } from "./fake-session.ts"
+
+/**
+ * Drain pending microtasks so async work queued during render (the
+ * controller's `void spawnSession()`, store subscribers' setState, signal
+ * effects) commits before assertions run. Production renders settle the
+ * same way via the host event loop; tests need to flush explicitly.
+ *
+ * The cap (one task + ~5 microtasks) is empirically the floor that makes
+ * controller spawn + 2 await chain + React commit observable. Higher
+ * counts hide real bugs behind extra slack — keep this tight.
+ */
+async function settle(): Promise<void> {
+  // One task lets queued setTimeout(0) effects run; the trailing
+  // microtask drain catches Promise-resolution cascades.
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
+  for (let i = 0; i < 5; i++) await Promise.resolve()
+}
 import { type AccountScenario, installFakes, type InstalledFakes } from "./fake-boundaries.ts"
 
 export type RenderedScenario = {
@@ -186,17 +203,17 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   // controller event assertions in chat-stability + welcome-features
   // (the controller's microtask-based scid mapping races a tighter
   // render loop). Bead: @km/silvercode/render-harness-default-cap.
-  // incremental: false disables incremental rendering AND its STRICT
-  // mismatch check. Visual scenarios drive event-stream-induced rerenders
-  // through Welcome → Chat transitions; the bg-paint clear path has known
-  // residue bugs there (see bead `@km/silvercode/visual-test-chat-content-empty`)
-  // that cause STRICT failures whose remount-fallback loses controller state.
-  // Fresh-render every paint sidesteps the issue while the silvery fix lands.
+  // autoRender: true is the production-equivalent setting — silvery's
+  // run()/createApp wire this for any App that drives state through async
+  // signals (controllers, store subscribers, scope-bound side-effects).
+  // Without it, createRenderer only paints on explicit triggers and async
+  // setState from `store.events.subscribe → setState(messages)` is invisible
+  // to the buffer until the next manual rerender.
   const renderer = createRenderer({
     cols,
     rows,
     maxLayoutPasses: opts.maxLayoutPasses ?? 5,
-    incremental: false,
+    autoRender: true,
   })
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is
@@ -217,40 +234,17 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
       <App {...elementProps} />
     </ScopeProvider>
   )
-  // CRITICAL: capture `app` from EVERY renderer(tree) call. createRenderer
-  // may unmount the previous instance and remount fresh (e.g., when
-  // rerender throws). Stale app references return text="" because the
-  // detached App's buffer is empty. Each renderer(tree) returns the
-  // current live App.
-  let app = renderer(tree)
+  const app = renderer(tree)
 
-  // Let the controller's initial `void spawnSession()` microtask resolve,
-  // then trigger React to re-render with the new session in the list.
-  // 20 flushes covers: controller init → spawnSession's 2 awaits → React
-  // commit → store ready → fake.subscribe registered → Welcome paint.
-  // Lower counts have race-conditioned the chat projection wiring.
-  for (let i = 0; i < 20; i++) {
-    await Promise.resolve()
-  }
-  app = renderer(tree)
+  // Settle the controller's initial `void spawnSession()` so the SessionHandle
+  // is in the controller's list before the test asserts. Production renders
+  // wait on the same microtask cascade naturally via the event loop; tests
+  // need an explicit settle.
+  await settle()
 
   if (opts.autoEmit !== false && !live) {
-    // Emit each event followed by an explicit `app.rerender(tree)` to
-    // force React + the silvery scheduler to commit. Without an explicit
-    // rerender, store.apply → setState fires from the store subscriber but
-    // the reconciler doesn't drain the work queue until the next render
-    // boundary. Microtask flushes alone don't suffice — alien-signals
-    // updates schedule via tick, but the React reconciler needs an explicit
-    // commit signal. Mirrors `s.emit()`'s contract.
-    for (const event of opts.script) {
-      fake.emit(event)
-      app.rerender(tree)
-      await Promise.resolve()
-    }
-    // Final settle: drains any post-commit signal cascades + late effects.
-    for (let i = 0; i < 30; i++) {
-      await Promise.resolve()
-    }
+    for (const event of opts.script) fake.emit(event)
+    await settle()
   }
 
   // Restore process.stdout dims. The renderer captured the frame already;
@@ -278,11 +272,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
       return { text: app.text, lines: app.lines }
     },
     dispose(): void {
-      try {
-        app.unmount()
-      } catch {
-        // Already unmounted; ignore.
-      }
+      app.unmount()
       fakes.dispose()
     },
   }

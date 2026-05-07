@@ -33,6 +33,31 @@ import { createSilvercodeController, type Controller } from "../src/controller.t
 import { createFakeSession, type ScriptedFakeSession } from "../src/test/fake-session.ts"
 
 /**
+ * Resolve when controller.snapshot() reaches `expected` length. Subscribes
+ * to the controller's session-list signal so the wait is deterministic —
+ * no microtask polling, no race.
+ */
+function waitForSnapshot(controller: Controller, expected: number): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (controller.snapshot().length >= expected) {
+      resolve()
+      return
+    }
+    const timeout = setTimeout(() => {
+      unsub()
+      reject(new Error(`waitForSnapshot timed out — got ${controller.snapshot().length}, expected ${expected}`))
+    }, 1000)
+    const unsub = controller.subscribe((list) => {
+      if (list.length >= expected) {
+        clearTimeout(timeout)
+        unsub()
+        resolve()
+      }
+    })
+  })
+}
+
+/**
  * Minimal shape of the real App.tsx wrt useDispose: createController once
  * on mount, wire useDispose(closeAll), accept a prop that changes over time
  * to trigger re-renders.
@@ -90,13 +115,12 @@ describe("layer 3: useDispose regression (ca794509)", () => {
       />,
     )
     expect(app.text).toContain("initial")
-    // Session is spawned by the effect — wait for spawnSession's await
-    // chain (Promise.resolve + factory) to resolve. ~5 ticks is the
-    // empirical floor; the controller's spawnSession needs 2 awaits
-    // before adding the handle to the list.
-    for (let i = 0; i < 10; i++) await Promise.resolve()
+    // The controller is captured during render (useRef-init); the effect
+    // fires `void controller.spawnSession()` after the first commit. Wait
+    // deterministically on the controller's session-list subscription
+    // rather than guessing at a microtask count.
     expect(capturedController).not.toBeNull()
-    expect(capturedController!.snapshot()).toHaveLength(1)
+    await waitForSnapshot(capturedController!, 1)
     // Baseline: dispose must not have fired during mount.
     expect(fake.closeCount).toBe(0)
 
@@ -132,15 +156,23 @@ describe("layer 3: useDispose regression (ca794509)", () => {
 
   test("unmount DOES invoke dispose exactly once", async () => {
     const fake: ScriptedFakeSession = createFakeSession()
+    let captured: Controller | null = null
     const render = createRenderer({ cols: 40, rows: 5 })
 
-    const app = render(<DisposeHarness label="hello" spawnFactory={() => fake} onController={() => {}} />)
+    const app = render(
+      <DisposeHarness
+        label="hello"
+        spawnFactory={() => fake}
+        onController={(c) => {
+          captured = c
+        }}
+      />,
+    )
     expect(app.text).toContain("hello")
-    for (let i = 0; i < 10; i++) await Promise.resolve()
+    await waitForSnapshot(captured!, 1)
 
     // Render an empty tree to unmount DisposeHarness.
     render(<Box />)
-    for (let i = 0; i < 5; i++) await Promise.resolve()
     // dispose fires synchronously on unmount — closeCount is 1, not 0 or 2.
     expect(fake.closeCount).toBe(1)
   })
