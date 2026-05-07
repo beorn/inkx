@@ -14,7 +14,7 @@
  * ```typescript
  * using app = createTestApp(realisticBoard(), { cols: 120, rows: 30 })
  * app.press("j")
- * app.expectScreen("Buy groceries")
+ * expect(app).toContainText("Buy groceries")
  * app.expect("#ch1").toExist()
  * app.command("fold_more")
  * app.expect("#ch1").not.toExist()
@@ -267,20 +267,6 @@ export interface TestApp {
    * ```
    */
   expectNotEditing(): TestApp
-  /**
-   * Assert that the screen contains the given text. Chainable.
-   *
-   * @deprecated Use `expect(app).toContainText(text)` — the canonical matcher.
-   * See `apps/km-tui/tests/CLAUDE.md` for the migration pattern.
-   */
-  expectScreen(text: string): TestApp
-  /**
-   * Assert that the screen does NOT contain the given text. Chainable.
-   *
-   * @deprecated Use `expect(app).not.toContainText(text)` — the canonical matcher.
-   * See `apps/km-tui/tests/CLAUDE.md` for the migration pattern.
-   */
-  expectScreenNot(text: string): TestApp
   /** Assert that row n contains text or matches a regex. Chainable. */
   expectRow(n: number, pattern: string | RegExp): TestApp
   /** Assert cell character at screen position. Chainable. */
@@ -572,7 +558,7 @@ export function createTestApp(nodes: KNode[] | (() => KNode[]), opts: TestAppOpt
  * @example
  * ```typescript
  * using app = createTestApp.fromMarkdown("# col1\n- [ ] task1\n- [ ] task2")
- * app.expectScreen("task1")
+ * expect(app).toContainText("task1")
  * ```
  */
 createTestApp.fromMarkdown = function fromMarkdown(md: string, opts: TestAppOptions = {}): TestApp {
@@ -586,7 +572,7 @@ createTestApp.fromMarkdown = function fromMarkdown(md: string, opts: TestAppOpti
  * @example
  * ```typescript
  * using app = createTestApp.fromVault("tests/fixtures/kanban-simple")
- * app.expectScreen("task1")
+ * expect(app).toContainText("task1")
  * ```
  */
 createTestApp.fromVault = function fromVault(vaultPath: string, opts: TestAppOptions = {}): TestApp {
@@ -1269,16 +1255,6 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     expectNotEditing(): TestApp {
       const textSel = driver.store.getState().sel?.text()
       expect(textSel, "expected NOT to be in edit mode").toBeNull()
-      return app
-    },
-
-    expectScreen(text: string): TestApp {
-      expect(driver.containsText(text)).toBe(true)
-      return app
-    },
-
-    expectScreenNot(text: string): TestApp {
-      expect(driver.containsText(text)).toBe(false)
       return app
     },
 
@@ -2114,16 +2090,6 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
       if (!handle) throw new Error("expectNotEditing() called before handle is ready")
       const textSel = handle.store.getState().sel?.text()
       expect(textSel, "expected NOT to be in edit mode").toBeNull()
-      return app
-    },
-
-    expectScreen(text: string): TestApp {
-      expect(handle?.text ?? "").toContain(text)
-      return app
-    },
-
-    expectScreenNot(text: string): TestApp {
-      expect(handle?.text ?? "").not.toContain(text)
       return app
     },
 

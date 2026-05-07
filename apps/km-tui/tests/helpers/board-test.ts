@@ -1007,28 +1007,6 @@ function createFluentBoardApi(ctx: {
     },
 
     /**
-     * Assert rendered screen text contains the given string.
-     * Chainable — returns board for fluent API.
-     *
-     * @example
-     * ```typescript
-     * board.expectScreen("Task 1").expectScreen("─")
-     * ```
-     */
-    expectScreen(text: string) {
-      expect(result.text).toContain(text)
-      return board
-    },
-
-    /**
-     * Assert rendered screen text does NOT contain the given string.
-     */
-    expectScreenNot(text: string) {
-      expect(result.text).not.toContain(text)
-      return board
-    },
-
-    /**
      * Assert that row n contains text or matches a regex.
      *
      * @example

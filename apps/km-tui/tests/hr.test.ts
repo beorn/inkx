@@ -135,7 +135,7 @@ describe("HR content-based detection", () => {
           rows: 20,
         },
       )
-      board.expectScreen("─")
+      expect(board.screen.text).toContain("─")
       board.command("cursor_down")
       board.expectNodeNoBorder("hr-node")
     })
@@ -147,7 +147,7 @@ describe("HR content-based detection", () => {
       columns: 60,
       rows: 20,
     })
-    board.expectScreen("─")
+    expect(board.screen.text).toContain("─")
     board.command("cursor_down")
     board.expectNodeNoBorder("my-hr")
   })

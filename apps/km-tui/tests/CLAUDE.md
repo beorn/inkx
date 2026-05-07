@@ -183,10 +183,9 @@ expect(app).toBell(1) // exact bell count exposed by app.state.bell
 expect(app).toHaveNodeCount(5) // number of visible nodes
 ```
 
-**`app.expectScreen(text)` is deprecated** — use `expect(app).toContainText(text)` instead.
-The legacy helpers `app.expectScreen` / `app.expectScreenNot` are retained for backward
-compatibility only and are guarded by `check-test-patterns.sh` (baseline = 2; no new
-callsites permitted).
+**Use `expect(app).toContainText(text)` for screen-wide text assertions** — the legacy
+helpers `app.expectScreen` / `app.expectScreenNot` were removed in 2026-05; CI guards
+against re-introduction via `check-test-patterns.sh` (baseline = 0).
 
 **Note**: `toHaveCursorOn` (not `toHaveCursor`) to avoid collision with `@termless/test/matchers` which defines `toHaveCursor` for terminal cursor position. Selection includes the cursor node by default.
 
@@ -610,7 +609,7 @@ board.expectNodeColor("Buy milk", "whiteBright")
 `test:ci` runs `packages/km-infra/scripts/check-test-patterns.sh` after lint but before test execution. It enforces:
 
 - **Hard ban: `testEnv`** in test files (removed deprecated alias — use `createDriverTest` or `createTestApp`)
-- **Baseline guard: `app.expectScreen`** / `app.expectScreenNot` — deprecated; use `expect(app).toContainText(text)` / `.not.toContainText(text)`. Baseline = 2. New callsites fail CI.
+- **Hard ban: `app.expectScreen`** / `app.expectScreenNot` — removed; use `expect(app).toContainText(text)` / `.not.toContainText(text)`. Baseline = 0.
 - **Baseline guard: `.spec.ts` file count** — journey tests only. Baseline = 24. New `.spec.ts` files fail CI (use `.test.ts` for internal tests).
 - **Warn: `store.getState()`** in test files outside helpers (use `app.state` instead) — warning only
 

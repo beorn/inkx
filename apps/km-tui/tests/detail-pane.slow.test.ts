@@ -1183,12 +1183,12 @@ describe("detail pane focus + navigation", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Board cursor is on task1 → detail pane should show task1
-    board.expectScreen("task1")
+    expect(board.screen.text).toContain("task1")
 
     // Return to board, move cursor to task2 → detail pane should follow
     board.press("h")
     board.press("j")
-    board.expectScreen("task2")
+    expect(board.screen.text).toContain("task2")
   })
 
   test("n (pane_focus_next) cycles from detail to board", { timeout: 5000 }, () => {
@@ -1204,16 +1204,16 @@ describe("detail pane focus + navigation", () => {
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Detail pane should show "task1"
-    board.expectScreen("task1")
-    board.expectScreenNot("No node selected")
+    expect(board.screen.text).toContain("task1")
+    expect(board.screen.text).not.toContain("No node selected")
 
     // Press 'n' to cycle pane focus — should go from detail back to board
     board.press("n")
     expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
 
     // The detail pane should still show the node, NOT "No node selected"
-    board.expectScreenNot("No node selected")
-    board.expectScreen("task1")
+    expect(board.screen.text).not.toContain("No node selected")
+    expect(board.screen.text).toContain("task1")
   })
 })
 
@@ -2134,12 +2134,12 @@ describe("detail pane edit-mode styling", () => {
     expect(editBox).not.toBeNull()
 
     // The node should still be visible (editing didn't break rendering)
-    board.expectScreen("child-a")
+    expect(board.screen.text).toContain("child-a")
 
     // Exit edit mode
     board.press("Escape")
 
     // After exiting: selection-bg should return
-    board.expectScreen("child-a")
+    expect(board.screen.text).toContain("child-a")
   })
 })

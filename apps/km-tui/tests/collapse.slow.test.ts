@@ -748,11 +748,11 @@ describe("uncollapse header rendering", () => {
     })
 
     test("column header text visible after collapse/uncollapse round-trip", () => {
-      board.expectScreen("Alpha")
+      expect(board.screen.text).toContain("Alpha")
     })
 
     test("separator line visible after uncollapsing", () => {
-      board.expectScreen("\u2500")
+      expect(board.screen.text).toContain("\u2500")
     })
   })
 

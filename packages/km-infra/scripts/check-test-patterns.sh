@@ -40,7 +40,7 @@ fi
 # intentionally exercises the deprecated API as regression coverage until
 # it is removed. To fully retire the API: delete expectScreen from test-app.ts,
 # drop the visual.test.ts coverage, and set BASELINE_EXPECT_SCREEN=0.
-BASELINE_EXPECT_SCREEN=2
+BASELINE_EXPECT_SCREEN=0
 HITS=$(grep -rn "\bapp\.expectScreen\b\|\bapp\.expectScreenNot\b" apps/km-tui/tests/ \
   --include="*.ts" --include="*.tsx" \
   | grep -v "helpers/" | grep -v "node_modules" | wc -l | tr -d ' ')

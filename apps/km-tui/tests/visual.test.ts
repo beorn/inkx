@@ -78,12 +78,6 @@ describe("visual toolbelt: assertions", () => {
     expect(app).not.toContainText("nonexistent")
   })
 
-  test("expectScreen/expectScreenNot check content (deprecated — prefer toContainText)", () => {
-    using app = createTestApp(item("board", item("col1", item("task1"))))
-    app.expectScreen("task1")
-    app.expectScreenNot("nonexistent")
-  })
-
   test("expectRow checks row content", () => {
     using app = createTestApp(item("board", item("col1", item("task1"))))
     const taskRow = app.screen.findRow("task1")
@@ -105,15 +99,13 @@ describe("visual toolbelt: assertions", () => {
     app.expectCellChar(pos!.x, pos!.y, cell.char)
   })
 
-  test("chaining works — all visual assertions return app", () => {
+  test("chaining works — command/press return app for fluent API", () => {
     using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))))
-    // All assertions should be chainable
-    app
-      .expectScreen("task1")
-      .expectScreen("task2")
-      .expectScreenNot("nonexistent")
-      .command("cursor_down")
-      .expectScreen("task2")
+    expect(app).toContainText("task1")
+    expect(app).toContainText("task2")
+    expect(app).not.toContainText("nonexistent")
+    app.command("cursor_down")
+    expect(app).toContainText("task2")
   })
 })
 
