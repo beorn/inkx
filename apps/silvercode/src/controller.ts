@@ -711,21 +711,37 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       notificationStream.record(sessionId, event)
     }
   }
-  function assertClaudeSubagentDataModelInvariants(sessionId: string, store: SessionStore): void {
+  function claudeSubagentDataModelInvariantError(sessionId: string, store: SessionStore): Error | null {
     const projection = projectCurrentSubagentActivitiesFromMessages(store.state.get().messages, {
       notificationEntries: notificationStream.entries(sessionId),
       sessionId,
     })
     try {
       assertSubagentActivityInvariants(projection, { sessionId })
+      return null
     } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
       dInvariant(
         "subagent activity invariant failed session=%s message=%s",
         sessionId,
-        err instanceof Error ? err.message : String(err),
+        error.message,
       )
-      throw err
+      return error
     }
+  }
+  function assertClaudeSubagentDataModelInvariants(sessionId: string, store: SessionStore): void {
+    const err = claudeSubagentDataModelInvariantError(sessionId, store)
+    if (err) throw err
+  }
+  function recordClaudeSubagentDataModelInvariant(sessionId: string, store: SessionStore): void {
+    const err = claudeSubagentDataModelInvariantError(sessionId, store)
+    if (!err) return
+    store.apply({
+      kind: "error",
+      sessionId: sessionId as SessionId,
+      message: `--resume: recovered transcript has inconsistent subagent activity data: ${err.message}`,
+      ts: Date.now(),
+    })
   }
   if (!opts.disableNotificationAdapters && !opts.disableChannelSources) {
     ctrlStartupTick("controller:create:beforeRegisterNotification")
@@ -1422,7 +1438,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         metadata.replayBoundaryMessageId = replayedMessages.at(-1)?.id
       }
       recordClaudeSidechainSubagents(id, store, metadata, true)
-      assertClaudeSubagentDataModelInvariants(id, store)
+      recordClaudeSubagentDataModelInvariant(id, store)
     } else if (opts.resume && isCodexAgent) {
       // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
       // with a different schema than Claude's stream-json. The codex parser

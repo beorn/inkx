@@ -247,7 +247,7 @@ function backgroundRunBounds(
 const SCROLLBAR_THUMB_CHARS = new Set(["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"])
 const BOTTOM_OVERSCROLL_INDICATOR = "▄"
 
-function sessionHandleWithStore(store: ReturnType<typeof createSessionStore>) {
+function sessionHandleWithStore(store: ReturnType<typeof createSessionStore>, metadata?: unknown) {
   return {
     id: "test-session",
     name: "test-session",
@@ -256,7 +256,7 @@ function sessionHandleWithStore(store: ReturnType<typeof createSessionStore>) {
     unsubscribe: () => {},
     log: { write: () => {}, sessionLogPath: "" },
     account: undefined,
-    metadata: undefined,
+    metadata,
   } as never
 }
 
@@ -477,6 +477,70 @@ describe("content layout", () => {
 
     hidden.rerender(pane(true))
     expect(hidden.text).toContain("Permission mode: auto")
+  })
+
+  test("ChatPane does not reopen the live agents drawer from replayed resume history", () => {
+    const cols = 92
+    const rows = 20
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    store.apply({
+      kind: "user-message",
+      sessionId,
+      turnId: "user-subagents" as never,
+      text: "use 4 subagents to sleep 20s",
+      ts: 1,
+    })
+    store.apply({
+      kind: "assistant-message",
+      sessionId,
+      turnId: "assistant-tool" as never,
+      content: [{ type: "tool_use", id: "toolu_2" as never, name: "Agent", input: { description: "Sleep 20s #2" } }],
+      ts: 2,
+    })
+    store.apply({ kind: "tool-result", sessionId, id: "toolu_2" as never, output: "agent 2: done sleeping 20s", ts: 3 })
+    store.apply({
+      kind: "assistant-message",
+      sessionId,
+      turnId: "assistant-summary" as never,
+      content: [{ type: "text", text: "All 4 done in parallel. Wallclock ~26s." }],
+      ts: 4,
+    })
+    store.apply({
+      kind: "turn-end",
+      sessionId,
+      turnId: "assistant-summary" as never,
+      stopReason: "end_turn",
+      ts: 5,
+    })
+
+    const replayedMessages = store.state.get().messages
+    const handle = sessionHandleWithStore(store, {
+      agent: "claude-code",
+      cwd: "/Users/beorn/Code/pim/km",
+      resumeId: "claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+      replayCompletedAt: 6,
+      replayMessageCount: replayedMessages.length,
+      replayBoundaryMessageId: replayedMessages.at(-1)?.id,
+      spawnedAt: 1,
+    })
+    const renderer = createRenderer({ cols, rows, autoRender: true })
+    const app = renderer(
+      <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+        <ChatPane
+          handle={handle}
+          isFocused
+          onFocus={() => {}}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          composerSlot={<Text>{">"}</Text>}
+        />
+      </Box>,
+    )
+
+    expect(app.text).not.toContain("Agents")
+    expect(app.text).not.toContain("1/4 observed")
+    expect(app.text).not.toContain("Only 1 of 4 Agent events observed")
   })
 
   test("floating composer does not cover the scrollbar bottom row", async () => {

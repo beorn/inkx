@@ -107,6 +107,48 @@ function writeFakeTranscript(cwd: string, sessionId: string): void {
   writeFileSync(join(dir, `${sessionId}.jsonl`), `${lines.join("\n")}\n`)
 }
 
+function writeSubagentCountMismatchTranscript(cwd: string, sessionId: string): void {
+  const dir = join(homedir(), ".claude", "projects", claudeProjDir(cwd))
+  mkdirSync(dir, { recursive: true })
+  createdProjDirs.push(dir)
+  const lines = [
+    JSON.stringify({
+      type: "user",
+      uuid: "u-subagents",
+      message: { role: "user", content: "use 4 subagents to sleep 20s" },
+      sessionId,
+    }),
+    JSON.stringify({
+      type: "assistant",
+      message: {
+        id: "msg-subagent-tool",
+        role: "assistant",
+        content: [{ type: "tool_use", id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
+      },
+      sessionId,
+    }),
+    JSON.stringify({
+      type: "user",
+      uuid: "u-subagent-result",
+      message: {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "toolu_2", content: "agent 2: done sleeping 20s" }],
+      },
+      sessionId,
+    }),
+    JSON.stringify({
+      type: "assistant",
+      message: {
+        id: "msg-subagent-summary",
+        role: "assistant",
+        content: [{ type: "text", text: "All 4 done in parallel. Wallclock ~26s." }],
+      },
+      sessionId,
+    }),
+  ]
+  writeFileSync(join(dir, `${sessionId}.jsonl`), `${lines.join("\n")}\n`)
+}
+
 describe("--resume: input is accepted (status flips back to idle after replay)", () => {
   test("replaySessionFromDisk leaves status === 'idle' even when transcript ends mid-turn", () => {
     const cwd = `${TEST_CWD_BASE}-1`
@@ -151,6 +193,33 @@ describe("--resume: input is accepted (status flips back to idle after replay)",
     expect(fake.sent[0]!.type).toBe("user")
     expect(fake.sent[0]!.payload).toBe("what's up?")
     expect(controller.queuedText(handle.id)).toBe("")
+
+    controller.closeAll()
+  })
+
+  test("controller resume records historical subagent count mismatches without aborting startup", async () => {
+    const cwd = `${TEST_CWD_BASE}-subagent-count-mismatch`
+    const sessionId = `00000000-resume-subagent-mismatch-${process.pid}` as SessionId
+    writeSubagentCountMismatchTranscript(cwd, sessionId)
+
+    const fake = createFakeSession({ sessionId })
+    const controller = createSilvercodeController({
+      cwd,
+      bare: true,
+      agent: "claude-code",
+      resume: sessionId,
+      initialSessions: 0,
+      disableNotificationAdapters: true,
+      disableLegacyTribeSource: true,
+      spawnFactory: () => fake,
+    })
+
+    const handle = await controller.spawnSession("test")
+
+    expect(handle.store.state.get().messages.some((message) => message.text.includes("All 4 done"))).toBe(true)
+    expect(handle.store.state.get().lastError?.message).toMatch(
+      /subagent activity invariant failed.*claimed 4.*observed 1/s,
+    )
 
     controller.closeAll()
   })

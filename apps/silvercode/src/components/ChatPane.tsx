@@ -3,7 +3,7 @@ import { Box, Text, type ListViewHandle } from "silvery"
 import { useSignal } from "@silvery/ag-react"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { createChatSessionProjectionStore } from "../chat/store.ts"
-import type { ChatEventId, ChatLeaf, ChatNodeId } from "../chat/types.ts"
+import type { ChatEvent, ChatEventId, ChatLeaf, ChatNodeId } from "../chat/types.ts"
 import { useNotificationStream } from "../hooks/use-notification-stream.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { SessionUpdateList } from "./SessionUpdateList.tsx"
@@ -63,6 +63,45 @@ function isDebugSystemMessage(message: MessageEntry): boolean {
   if (isRecapSystemText(message.text)) return false
   if (message.text === "Compact summary") return false
   return true
+}
+
+function messageIdForChatEvent(event: ChatEvent): string | undefined {
+  switch (event.type) {
+    case "message.started":
+    case "message.part.added":
+    case "message.completed":
+      return event.payload.messageId
+    default:
+      return undefined
+  }
+}
+
+function eventsAfterReplayBoundary(
+  events: readonly ChatEvent[],
+  replayBoundaryMessageId: string | undefined,
+): readonly ChatEvent[] {
+  if (!replayBoundaryMessageId) return events
+  let boundaryIndex = -1
+  for (let index = 0; index < events.length; index++) {
+    const event = events[index]
+    if (event && messageIdForChatEvent(event) === replayBoundaryMessageId) boundaryIndex = index
+  }
+  return boundaryIndex >= 0 ? events.slice(boundaryIndex + 1) : events
+}
+
+function notificationEntryTs(entry: NotificationStreamEntry): number {
+  return entry.ts ?? entry.timestamp ?? 0
+}
+
+function notificationEntriesAfterProjectedEvents(
+  entries: readonly NotificationStreamEntry[],
+  currentEvents: readonly ChatEvent[],
+  allEvents: readonly ChatEvent[],
+): readonly NotificationStreamEntry[] {
+  if (currentEvents === allEvents) return entries
+  const firstCurrentTs = currentEvents[0]?.ts
+  if (firstCurrentTs === undefined) return []
+  return entries.filter((entry) => notificationEntryTs(entry) >= firstCurrentTs)
 }
 
 function notificationLeafFromEntry(entry: NotificationStreamEntry): ChatLeaf {
@@ -204,13 +243,21 @@ export function ChatPane({
   // controller internally (returns []), keeping rules-of-hooks intact.
   const rawNotificationEntries = useNotificationStream(controller ?? null, handle.id, { respectMute: false })
   const mutedNotificationEntries = useNotificationStream(controller ?? null, handle.id)
+  const currentProjectedEvents = React.useMemo(
+    () => eventsAfterReplayBoundary(projectedEvents, handle.metadata?.replayBoundaryMessageId),
+    [handle.metadata?.replayBoundaryMessageId, projectedEvents],
+  )
+  const currentRawNotificationEntries = React.useMemo(
+    () => notificationEntriesAfterProjectedEvents(rawNotificationEntries, currentProjectedEvents, projectedEvents),
+    [currentProjectedEvents, projectedEvents, rawNotificationEntries],
+  )
   const currentSubagentActivityProjection = React.useMemo(
     () =>
-      projectCurrentSubagentActivitiesFromChatEvents(projectedEvents, {
-        notificationEntries: rawNotificationEntries,
+      projectCurrentSubagentActivitiesFromChatEvents(currentProjectedEvents, {
+        notificationEntries: currentRawNotificationEntries,
         sessionId: handle.id,
       }),
-    [handle.id, projectedEvents, rawNotificationEntries],
+    [currentProjectedEvents, currentRawNotificationEntries, handle.id],
   )
   const currentSubagentActivities = React.useMemo(
     () => subagentActivityRowsFromActivities(currentSubagentActivityProjection.activities),
