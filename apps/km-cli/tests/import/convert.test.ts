@@ -8,7 +8,7 @@
 
 import type { KNode } from "@km/core"
 import type { Heading, List, ListItem } from "@km/markdown"
-import { extractFrontmatter, extractMentions, extractTags, parseMarkdown, parseTaskMetadata } from "@km/markdown"
+import { extractAllRefs, extractFrontmatter, extractTags, parseMarkdown, parseTaskMetadata } from "@km/markdown"
 import { describe, expect, test } from "vitest"
 import type { AsanaApiTask } from "../../src/import/adapters/asana/asana-types.ts"
 import { toImportItem } from "../../src/import/adapters/asana/task-transform.ts"
@@ -1428,7 +1428,7 @@ describe("roundtrip: convert → parse", () => {
 
     // With oi type, inline metadata (due::, start::, p::) is stored in node data, not on the heading line
     // But mentions and tags still appear on the heading line
-    const mentions = extractMentions(taskLine)
+    const { mentions } = extractAllRefs(taskLine)
     expect(mentions).toContain("alice-smith")
 
     const tags = extractTags(taskLine)

@@ -5,8 +5,6 @@ export {
   extractTitleTaskMarker,
   parseWikiLinks,
   extractTags,
-  extractMentions,
-  extractProjects,
   extractAllRefs,
   parseTaskMetadata,
   parseInlineProperties,

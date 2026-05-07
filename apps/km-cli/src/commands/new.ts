@@ -9,7 +9,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { join } from "path"
-import { parseTaskMetadata, extractTags, extractMentions } from "@km/storage"
+import { parseTaskMetadata, extractTags, extractAllRefs } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -61,7 +61,7 @@ export const newCommand = new Command("new")
     // Parse any metadata already in the content
     const existingMetadata = parseTaskMetadata(text)
     const tags = extractTags(text)
-    const mentions = extractMentions(text)
+    const { mentions } = extractAllRefs(text)
 
     // Build the task line
     const taskContent = text

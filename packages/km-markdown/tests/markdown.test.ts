@@ -10,9 +10,8 @@ import { describe, expect, test } from "vitest"
 import { buildNodeTree, parseMarkdownToNodes, parseMarkdownWithLinks } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
 import {
+  extractAllRefs,
   extractFrontmatter,
-  extractMentions,
-  extractProjects,
   extractTags,
   parseMarkdown,
   parseTaskMetadata,
@@ -392,16 +391,19 @@ tags: [a, b, c]
     })
   })
 
-  describe("extractMentions", () => {
+  // extractMentions / extractProjects deleted in
+  // @km/all/L5-deprecation-purge Phase 4 — use extractAllRefs(text).mentions
+  // / .projects (single-pass extractor for all sigil types).
+  describe("extractAllRefs (mentions)", () => {
     test.each([
       { text: "Assigned to @john and @jane", expected: ["john", "jane"] },
       { text: "No mentions here", expected: [] },
     ])("should extract mentions from '$text'", ({ text, expected }) => {
-      expect(extractMentions(text)).toEqual(expected)
+      expect(extractAllRefs(text).mentions).toEqual(expected)
     })
   })
 
-  describe("extractProjects", () => {
+  describe("extractAllRefs (projects)", () => {
     test.each([
       {
         text: "Part of +project-alpha and +beta",
@@ -409,7 +411,7 @@ tags: [a, b, c]
       },
       { text: "No projects here", expected: [] },
     ])("should extract projects from '$text'", ({ text, expected }) => {
-      expect(extractProjects(text)).toEqual(expected)
+      expect(extractAllRefs(text).projects).toEqual(expected)
     })
   })
 

@@ -212,8 +212,7 @@ export type { QueryCondition, QueryRef, DateRange } from "./query.ts"
 export {
   parseTaskMetadata,
   extractTags,
-  extractMentions,
-  extractProjects,
+  extractAllRefs,
   parseWikiLinks,
   nodeToText,
   // For km-watch sync layer

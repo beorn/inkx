@@ -52,7 +52,8 @@ const WIKILINK_REGEX = /(!?)\[\[([^\]|#^]*)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:
  * Verified against an 87K-occurrence vault dry-run: 0 false-positive expansions
  * vs. the prior single-segment regex.
  */
-const COMBINED_REFS_REGEX = /#([\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*)|@([\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*)|\+([\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*)/gu
+const COMBINED_REFS_REGEX =
+  /#([\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*)|@([\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*)|\+([\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*)/gu
 
 /** Fast wikilink presence check (avoid full regex if no wikilinks) */
 const HAS_WIKILINK = /\[\[/
@@ -175,19 +176,11 @@ export function extractTags(text: string): string[] {
   return extractMatches(text, /#([a-zA-Z0-9_-]+)/g)
 }
 
-/**
- * Extract mentions from text (@person)
- */
-export function extractMentions(text: string): string[] {
-  return extractMatches(text, /@([a-zA-Z0-9_-]+)/g)
-}
-
-/**
- * Extract projects from text (+project-name)
- */
-export function extractProjects(text: string): string[] {
-  return extractMatches(text, /\+([a-zA-Z0-9_-]+)/g)
-}
+// extractMentions / extractProjects deleted in @km/all/L5-deprecation-purge
+// Phase 4. Use `extractAllRefs(text)` for the unified single-pass extractor
+// (returns { tags, mentions, projects }) — both legacy single-purpose
+// functions were thin wrappers around the same regex shape, and every
+// caller has been migrated.
 
 /**
  * Combined refs extraction - single-pass for performance (km-load-perf.1)
