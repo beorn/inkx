@@ -1260,6 +1260,47 @@ function ActivitySummaryForOps({
   )
 }
 
+type IndexedMessageOp = { op: MessageOp; index: number }
+
+function coalescedTextChunks(runOps: readonly IndexedMessageOp[]): Array<{ text: string; firstIndex: number }> {
+  const chunks: Array<{ text: string; firstIndex: number }> = []
+  let current = ""
+  let firstIndex: number | null = null
+
+  const flush = (): void => {
+    if (firstIndex !== null && current.trim().length > 0) chunks.push({ text: current, firstIndex })
+    current = ""
+    firstIndex = null
+  }
+
+  for (const { op, index } of runOps) {
+    if (op.kind !== "text") continue
+    const trimmed = op.text.trim()
+    if (/^[.。]+$/.test(trimmed) && op.text.includes("\n")) continue
+    if (firstIndex === null && trimmed.length === 0) continue
+    if (textNeedsStandaloneSpacing(op.text) && /[.!?]$/.test(current.trim())) flush()
+    firstIndex ??= index
+    current += op.text
+  }
+  flush()
+  return chunks
+}
+
+function syntheticLiveToolOps(status: ActivityStatus, inFlightTool: string | null): MessageOp[] | null {
+  if (status !== "tool-running" || !inFlightTool) return null
+  return [
+    {
+      kind: "tool",
+      toolCall: {
+        id: "__activity-inflight-tool" as never,
+        name: inFlightTool,
+        input: {},
+      },
+      ts: Date.now(),
+    },
+  ]
+}
+
 function ExchangeItem({
   m,
   showDebug,
@@ -1368,26 +1409,7 @@ function ExchangeItem({
           ? runs.map((run, runIdx) => {
               if (run.kind === "tool") return null
               if (run.kind === "text") {
-                const chunks: Array<{ text: string; firstIndex: number; ops: MessageOp[] }> = []
-                let current: { text: string; firstIndex: number; ops: MessageOp[] } | null = null
-                const flush = (): void => {
-                  if (current && isVisibleAssistantText(current.text)) chunks.push(current)
-                  current = null
-                }
-                for (const { op, index } of run.ops) {
-                  if (op.kind !== "text") continue
-                  if (textNeedsStandaloneSpacing(op.text)) {
-                    flush()
-                    if (isVisibleAssistantText(op.text)) chunks.push({ text: op.text, firstIndex: index, ops: [op] })
-                    continue
-                  }
-                  if (!current) current = { text: op.text, firstIndex: index, ops: [op] }
-                  else {
-                    current.text += op.text
-                    current.ops.push(op)
-                  }
-                }
-                flush()
+                const chunks = coalescedTextChunks(run.ops)
                 return chunks.map((chunk) => {
                   const standalone = textNeedsStandaloneSpacing(chunk.text)
                   return (
@@ -1479,26 +1501,7 @@ function ExchangeItem({
             </Chat.Turn.ToolGroup>
           ) : run.kind === "text" ? (
             (() => {
-              const chunks: Array<{ text: string; firstIndex: number; ops: MessageOp[] }> = []
-              let current: { text: string; firstIndex: number; ops: MessageOp[] } | null = null
-              const flush = (): void => {
-                if (current && current.text.length > 0) chunks.push(current)
-                current = null
-              }
-              for (const { op, index } of run.ops) {
-                if (op.kind !== "text" || !isVisibleAssistantText(op.text)) continue
-                if (textNeedsStandaloneSpacing(op.text)) {
-                  flush()
-                  chunks.push({ text: op.text, firstIndex: index, ops: [op] })
-                  continue
-                }
-                if (!current) current = { text: op.text, firstIndex: index, ops: [op] }
-                else {
-                  current.text += op.text
-                  current.ops.push(op)
-                }
-              }
-              flush()
+              const chunks = coalescedTextChunks(run.ops)
               return chunks.map((chunk) => {
                 const standalone = textNeedsStandaloneSpacing(chunk.text)
                 return (
@@ -2018,17 +2021,21 @@ export const SessionUpdateList = React.forwardRef<
   let seenReplayMessages = 0
   const seenReplayMessageIds = new Set<string>()
   let insertedLoadedMetadata = false
-  for (const item of merged) {
+  for (let index = 0; index < merged.length; index++) {
+    const item = merged[index]!
     visibleItems.push(item)
     const sourceId = sourceMessageId(item)
     if (sourceId && !seenReplayMessageIds.has(sourceId)) {
       seenReplayMessageIds.add(sourceId)
       seenReplayMessages++
     }
+    const nextSourceId = index + 1 < merged.length ? sourceMessageId(merged[index + 1]!) : null
+    const isLastSliceForSource = sourceId === null || nextSourceId !== sourceId
     const isReplayBoundary =
-      replayBoundaryMessageId !== undefined
+      isLastSliceForSource &&
+      (replayBoundaryMessageId !== undefined
         ? sourceId === replayBoundaryMessageId
-        : replayMessageCount > 0 && seenReplayMessages === replayMessageCount
+        : replayMessageCount > 0 && seenReplayMessages === replayMessageCount)
     if (metadata.loaded && !insertedLoadedMetadata && isReplayBoundary) {
       visibleItems.push(metadata.loaded)
       insertedLoadedMetadata = true
@@ -2104,6 +2111,7 @@ export const SessionUpdateList = React.forwardRef<
     </Box>
   )
   const activityStartupVerb = sessionMetadata?.resumeId ? "resuming" : "spawning"
+  const liveActivityOps = syntheticLiveToolOps(status, inFlightTool)
   const renderSessionItem = (item: Item, _i: number): React.ReactNode =>
     isPadding(item) ? (
       renderPadding(item.height)
@@ -2120,21 +2128,26 @@ export const SessionUpdateList = React.forwardRef<
           agentLabel,
           agentVersion,
           startupVerb: activityStartupVerb,
+          activityOps: liveActivityOps,
         }}
       >
-        <Chat.Body width="prose">
-          <ActivityIndicator
-            status={status}
-            pendingPermissions={pendingPermissions}
-            inFlightTool={inFlightTool}
-            turnStartedAt={turnStartedAt}
-            inputTokens={inputTokens}
-            outputTokens={outputTokens}
-            agentLabel={agentLabel}
-            agentVersion={agentVersion}
-            startupVerb={activityStartupVerb}
-          />
-        </Chat.Body>
+        {liveActivityOps ? (
+          <ActivitySummaryForOps ops={liveActivityOps} onDisclosureToggle={pauseFollowForDisclosure} />
+        ) : (
+          <Chat.Body width="prose">
+            <ActivityIndicator
+              status={status}
+              pendingPermissions={pendingPermissions}
+              inFlightTool={inFlightTool}
+              turnStartedAt={turnStartedAt}
+              inputTokens={inputTokens}
+              outputTokens={outputTokens}
+              agentLabel={agentLabel}
+              agentVersion={agentVersion}
+              startupVerb={activityStartupVerb}
+            />
+          </Chat.Body>
+        )}
       </RawInspector>
     ) : isNotification(item) ? (
       <RawInspector payload={{ kind: "notification", entries: item.entries }}>

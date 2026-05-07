@@ -48,6 +48,14 @@ function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageO
   return out as unknown as MessageEntry
 }
 
+function toolOp(id: string, name: string, input: unknown, output?: unknown): MessageOp {
+  return {
+    kind: "tool",
+    toolCall: { id: id as ToolUseId, name, input },
+    result: output === undefined ? undefined : { id: id as ToolUseId, output },
+  }
+}
+
 function renderList(messages: MessageEntry[], cols = 132, rows = 32) {
   const renderer = createRenderer({ cols, rows })
   return renderer(
@@ -1475,10 +1483,119 @@ describe("content layout", () => {
     )
 
     const proseRow = app.lines.findIndex((line) => line.includes("I am about to run"))
-    const activityRow = app.lines.findIndex((line) => line.includes("running Bash"))
+    const activityRow = app.lines.findIndex((line) => line.includes("Running 1 command"))
     expect(proseRow, app.text).toBeGreaterThanOrEqual(0)
     expect(activityRow, app.text).toBeGreaterThanOrEqual(0)
-    expect(app.lines[activityRow]!.indexOf("◈")).toBe(app.lines[proseRow]!.indexOf("•"))
+    expect(app.text).not.toContain("running Bash")
+    expect(app.lines[activityRow]!.search(/[●▸▾]/)).toBe(app.lines[proseRow]!.indexOf("•"))
+  })
+
+  test("resumed-session metadata stays before live prompt when replay boundary assistant row is sliced", () => {
+    const renderer = createRenderer({ cols: 132, rows: 18 })
+    const app = renderer(
+      <Box width={132} height={18} flexDirection="column">
+        <SessionUpdateList
+          messages={[
+            makeEntry({
+              id: "u-replayed",
+              role: "user",
+              ts: 1_000,
+              ops: [{ kind: "text", text: "old prompt" }],
+            }),
+            makeEntry({
+              id: "a-replayed",
+              role: "assistant",
+              ts: 2_000,
+              ops: [
+                { kind: "text", text: "old answer before tool" },
+                toolOp("read-1", "Read", { file_path: "a.ts" }, "contents"),
+                { kind: "text", text: "old answer after tool" },
+              ],
+            }),
+            makeEntry({
+              id: "u-live",
+              role: "user",
+              ts: 3_000,
+              ops: [{ kind: "text", text: "latest live prompt" }],
+            }),
+          ]}
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          sessionId="test-session"
+          onApprove={() => {}}
+          onDeny={() => {}}
+          follow={false}
+          sessionMetadata={{
+            agent: "claude",
+            cwd: "/Users/beorn/Code/pim/km",
+            resumeId: "0e9413ff-5f95-43ad-a0fa-27bbfaa44dec",
+            spawnedAt: 500,
+            replayStartedAt: 600,
+            replayCompletedAt: 700,
+            replayMessageCount: 2,
+            replayBoundaryMessageId: "a-replayed",
+          }}
+        />
+      </Box>,
+    )
+
+    const oldAnswerRow = app.lines.findIndex((line) => line.includes("old answer after tool"))
+    const resumedRow = app.lines.findIndex((line) => line.includes("Session resumed"))
+    const livePromptRow = app.lines.findIndex((line) => line.includes("latest live prompt"))
+    expect(oldAnswerRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(resumedRow, app.text).toBeGreaterThan(oldAnswerRow)
+    expect(livePromptRow, app.text).toBeGreaterThan(resumedRow)
+  })
+
+  test("high-volume assistant text chunks coalesce before markdown parsing", () => {
+    const renderer = createRenderer({ cols: 132, rows: 28 })
+    const fragmented = [
+      "I want to flag this before char",
+      "ging in, given the bead's history of reverted ",
+      "attempts:\n\n**What's actually happening on welcome paint**",
+      " (from the failing cascade test):",
+    ]
+    const app = renderer(
+      <Box width={132} height={28} flexDirection="column">
+        <Content.Layout>
+          <SessionUpdateList
+            messages={[
+              makeEntry({
+                id: "a-fragmented",
+                role: "assistant",
+                ts: 1_000,
+                ops: [
+                  ...Array.from({ length: 9 }, (_, i) =>
+                    toolOp(`cmd-${i}`, "Bash", { command: `printf ${i}` }, `output ${i}`),
+                  ),
+                  ...fragmented.map((text, i) => ({ kind: "text" as const, text, ts: 2_000 + i })),
+                ],
+              }),
+            ]}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="test-session"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Content.Layout>
+      </Box>,
+    )
+
+    expect(app.text).toContain("I want to flag this before charging in")
+    expect(app.text).toContain("What's actually happening on welcome paint")
+    expect(app.text).not.toMatch(/•\s+ging in/)
+    expect(app.text).not.toMatch(/•\s+attempts:/)
+    expect(app.text).not.toMatch(/•\s+:\*\*/)
   })
 
   test("plan drawer uses a right-aligned narrow block and marks the active entry first", () => {

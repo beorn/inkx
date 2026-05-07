@@ -328,12 +328,23 @@ export function buildChatTurns(messages: readonly MessageEntry[]): ChatTurn[] {
   return turns
 }
 
+function sourceMessageId(message: MessageEntry): string {
+  const tagged = (message as unknown as { __sourceMessageId?: unknown }).__sourceMessageId
+  return typeof tagged === "string" ? tagged : String(message.id)
+}
+
 function sliceMessage(message: MessageEntry, ops: MessageOp[], suffix: string): MessageEntry {
+  const sourceId = sourceMessageId(message)
   const out = {
     ...message,
     id: `${message.id}:${suffix}` as MessageEntry["id"],
     ops,
   } as MessageEntry
+  Object.defineProperty(out, "__sourceMessageId", {
+    value: sourceId,
+    enumerable: false,
+    configurable: true,
+  })
   Object.defineProperty(out, "text", {
     get() {
       return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
