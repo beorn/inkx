@@ -370,11 +370,6 @@ export interface TreeOpResult {
   conflict?: ConflictInfo
 }
 
-/**
- * @deprecated Use TreeOpResult. Kept as an alias for tests/external callers.
- */
-export type OperationResult = TreeOpResult
-
 export class WriteQueue extends EventEmitter {
   private pending: Map<string, WriteTreeOp> = new Map()
   private debounceTimer: ReturnType<typeof setTimeout> | undefined

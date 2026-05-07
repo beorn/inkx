@@ -14,7 +14,7 @@ import {
   getPermissionSuggestion,
   type FileSystemOps,
   type RetryConfig,
-  type OperationResult,
+  type TreeOpResult,
   type ConflictInfo,
   type PermissionError,
   type WriteImplResult,
@@ -31,7 +31,7 @@ type FlushedEvent = {
   retries: number
   conflicts: number
   permissionErrors: number
-  results: OperationResult[]
+  results: TreeOpResult[]
 }
 
 /** Default fast retry config for tests */
