@@ -1873,7 +1873,6 @@ function* initWithFileLoading(
 
   // Now call loadRepo with OUR db (avoids singleton)
   using _loadSpan = initSpan.span("load-repo-generator")
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
   const loadResult = yield* loadRepo(rootPath, {
     searchAncestors: false, // rootPath is already the repo root
     skipLinkResolution: options.skipLinkResolution,

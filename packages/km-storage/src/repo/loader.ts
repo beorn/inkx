@@ -191,8 +191,12 @@ export interface PendingLink {
  * THE unified repo loading function.
  * Handles both memory and disk modes with a shared pipeline.
  *
- * @deprecated Use createRepo() instead for a proper domain object with
- * encapsulated state. This function uses global singletons.
+ * @internal This is the inner generator that `createRepo`'s
+ * `initWithFileLoading` delegates to. Not part of the public API surface
+ * (not re-exported from `packages/km-storage/src/index.ts`). Production
+ * callers must use `createRepo()`; in-package tests and dev scripts may
+ * import directly from `./repo/loader.ts` to drive the loader pipeline
+ * with an injected `db` for isolation.
  *
  * @param rootPath - Directory to load (default: cwd)
  * @param options - Loading options
