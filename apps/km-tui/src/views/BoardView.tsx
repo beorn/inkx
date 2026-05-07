@@ -51,6 +51,7 @@ import { getOwnColor } from "../board/board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
+import { recordRender } from "../render-probe.ts"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { SelectionStore } from "@silvery/selection"
@@ -367,6 +368,7 @@ function BoardCoreImpl({
   collapsedNodes,
   hasDetailPane,
 }: BoardCoreProps): React.ReactElement {
+  recordRender({ component: "BoardCore", rootId })
   useComponentTiming(`BoardCore (${columnIds.length} columns)`)
 
   // Use actual pane dimensions from parent container (critical for multi-pane splits).

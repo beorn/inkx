@@ -30,9 +30,27 @@ describe("reactive node store cursor locality", () => {
     expect(store.cursorChild("parent")()).toBe(true)
   })
 
-  test("TreeNode uses per-node cursor signals instead of the global cursor signal", () => {
-    const treeNodeSource = readFileSync(resolve(__dirname, "../src/views/TreeNode.tsx"), "utf8")
+  test("cursor hot path does not subscribe rendered trees or controller to global cursor", () => {
+    const sourceFiles = [
+      "../src/views/TreeNode.tsx",
+      "../src/views/CardColumn.tsx",
+      "../src/views/useBoardController.ts",
+    ]
 
-    expect(treeNodeSource).not.toContain("useSignal(nodeStore.cursor)")
+    for (const sourceFile of sourceFiles) {
+      const source = readFileSync(resolve(__dirname, sourceFile), "utf8")
+      expect(source, sourceFile).not.toContain("useSignal(nodeStore.cursor)")
+    }
+
+    const controllerSource = readFileSync(resolve(__dirname, "../src/views/useBoardController.ts"), "utf8")
+    expect(controllerSource).not.toContain("useSignal(paneSel.node.cursor)")
+    expect(controllerSource).not.toContain("useSignal(ps.sel.node.cursor)")
+  })
+
+  test("command context keeps a visible-lens node index cache", () => {
+    const boardAppSource = readFileSync(resolve(__dirname, "../src/board/board-app.ts"), "utf8")
+
+    expect(boardAppSource).toContain("nodeIndexCache")
+    expect(boardAppSource).toContain("cachedNodeIndex?.lens === visibleLens")
   })
 })

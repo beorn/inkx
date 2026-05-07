@@ -46,6 +46,7 @@ import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { selectedBg, multiSelectedBg } from "../theme.ts"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
+import { recordRender } from "../render-probe.ts"
 import type { ErrorInfo } from "react"
 
 // ============================================================================
@@ -268,6 +269,7 @@ function TreeNodeImpl({
   maxRows = 0,
   overflowIndicator,
 }: TreeNodeProps): React.ReactElement {
+  recordRender({ component: "TreeNode", nodeId: node.id })
   const _tnStart = renderLog.debug ? performance.now() : 0
   renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
 
