@@ -36,7 +36,7 @@ import { BoundedScroll, DEFAULT_DISCLOSURE_MAX_ROWS } from "./BoundedScroll.tsx"
 import { formatPathForDisplay, resolveDisplayPath } from "../utils/format-path.ts"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 import { detectReferences } from "../detection.ts"
-import { ChatEntryDisclosure } from "./ChatEntryDisclosure.tsx"
+import { EntryDisclosure } from "./EntryDisclosure.tsx"
 
 const ToolMarkerBackgroundContext = React.createContext<string | undefined>(undefined)
 const ToolContentForceExpandedContext = React.createContext(false)
@@ -486,23 +486,56 @@ export function ToolCall({
     [imagePath],
   )
 
+  const rawJsonBlock = React.useMemo(() => {
+    if (!interactive || forceExpanded) return null
+    if (toolCall.rawInput === undefined && toolCall.rawOutput === undefined) return null
+    const payload: Record<string, unknown> = { name: toolCall.title, kind, status }
+    if (toolCall.rawInput !== undefined) payload.input = toolCall.rawInput
+    if (toolCall.rawOutput !== undefined) payload.output = toolCall.rawOutput
+    let serialized: string
+    try {
+      serialized = JSON.stringify(payload, null, 2)
+    } catch {
+      serialized = "[unserializable raw payload]"
+    }
+    return (
+      <Box flexDirection="column" marginTop={1}>
+        <Muted>Raw event</Muted>
+        <Text wrap="wrap" color="$muted">
+          {serialized}
+        </Text>
+      </Box>
+    )
+  }, [interactive, forceExpanded, toolCall.rawInput, toolCall.rawOutput, toolCall.title, kind, status])
+
   const previewPopover =
     interactive && !forceExpanded && imagePath && titleImagePopoverBody
-      ? { body: titleImagePopoverBody, maxWidth: 56 }
+      ? {
+          body: (
+            <Box flexDirection="column">
+              {titleImagePopoverBody}
+              {rawJsonBlock}
+            </Box>
+          ),
+          maxWidth: 100,
+        }
       : interactive && !forceExpanded && hasContent
         ? {
             body: (
               <Box flexDirection="column">
                 {exitCode !== null ? <Muted>Exit code {exitCode}</Muted> : null}
                 <ToolCallContentBody content={content} bounded />
+                {rawJsonBlock}
               </Box>
             ),
             maxWidth: 100,
           }
-        : null
+        : interactive && !forceExpanded && rawJsonBlock
+          ? { body: <Box flexDirection="column">{rawJsonBlock}</Box>, maxWidth: 100 }
+          : null
 
   return (
-    <ChatEntryDisclosure
+    <EntryDisclosure
       popover={previewPopover}
       defaultExpanded={defaultExpanded ?? false}
       onExpandedChange={onExpandedChange}
@@ -602,6 +635,6 @@ export function ToolCall({
           </Box>
         )
       }}
-    </ChatEntryDisclosure>
+    </EntryDisclosure>
   )
 }
