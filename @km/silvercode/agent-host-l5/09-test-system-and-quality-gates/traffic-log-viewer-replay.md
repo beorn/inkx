@@ -23,3 +23,5 @@ Make raw and normalized agent traffic inspectable and replayable as a first-clas
 - A failing traffic fixture can be replayed from the CLI and inspected in the TUI viewer.
 - Replay output includes raw event, normalized event, projection leaf, and UI render provenance.
 - Tests prove replay is deterministic and catches chunk reconciliation, queue/cancel, permission, plan, background, and subagent regressions.
+
+Progress 2026-05-08: shipped 21d761b37 traffic replay core + CLI. `silvercode traffic replay <jsonl> --json` replays raw AgentEvent JSONL through ChatEvent normalization and ChatTree projection with raw/normalized/leaf provenance frames. Tests: apps/silvercode/tests/traffic-log.test.ts and cli-smoke traffic replay; npx tsc --noEmit passed. Remaining: TUI scrubber/viewer, span fixture export, and broader regression fixture matrix for queue/cancel/permission/plan/background/subagent.
