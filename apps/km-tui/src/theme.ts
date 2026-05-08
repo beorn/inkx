@@ -179,6 +179,33 @@ export function selectedBg(theme: Theme): string | undefined {
   return undefined
 }
 
+/** Very subtle column-level selection tint.
+ *
+ * Column selection is a navigation context, not the selected card itself.
+ * It should lightly group the lane without making every card look active.
+ */
+export function selectedColumnBg(theme: Theme): string | undefined {
+  const bg = canvasBg(theme)
+  const accent = accentHex(theme)
+  if (bg && accent && bg.startsWith("#") && accent.startsWith("#")) {
+    return blend(bg, accent, 0.025)
+  }
+  if (isTerminalDefaultCanvas(theme)) {
+    return undefined
+  }
+  return undefined
+}
+
+/** De-emphasized structural-card border for completed/dropped cards. */
+export function doneCardBorder(theme: Theme): string | undefined {
+  const bg = canvasBg(theme)
+  const border = sterlingToken(theme, "border-muted")
+  if (bg && border && bg.startsWith("#") && border.startsWith("#")) {
+    return blend(bg, border, 0.35)
+  }
+  return sterlingToken(theme, "border-muted")
+}
+
 /** Stronger accent-tinted bg for multi-selected items — roughly double the
  * card-selection tint so multi-selected rows "stack" visually and the user
  * can count selected items at a glance. Rule 6 in selection-style.ts.

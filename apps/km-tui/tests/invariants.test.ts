@@ -54,7 +54,11 @@ function validCtx(overrides: Record<string, any> = {}) {
         if (id === "col1") return ["1a", "1b"]
         return []
       },
-      parent: () => null,
+      parent: (id: string) => {
+        if (id === "1a" || id === "1b") return "col1"
+        if (id === "col1") return "board"
+        return null
+      },
     },
     moveState: { active: false },
     focusedPaneViewType: () => "board",
@@ -146,6 +150,41 @@ describe("cursor-not-null invariant", () => {
 // =============================================================================
 
 describe("cursor-under-root invariant", () => {
+  test("cursor visible through the view projection counts as under root", () => {
+    const repo = createFakeRepo({
+      nodes: [
+        ...item("@agent", item("@agent/3")),
+        ...item("@km/silvercode/agent-host-l5.md", item("01KR3438GYZH5K5QJ65PY1V1D8")),
+      ],
+    })
+    const sel = createMockSel()
+    const ctx = validCtx({
+      repo,
+      cursor: "01KR3438GYZH5K5QJ65PY1V1D8",
+      rootId: "@agent",
+      sel,
+      selectedIds: sel.node.ids(),
+      tree: {
+        rootId: "@agent",
+        walkOrder: ["@agent/3", "01KR3438GYZH5K5QJ65PY1V1D8"],
+        node: (id: string) => (["@agent/3", "01KR3438GYZH5K5QJ65PY1V1D8"].includes(id) ? { id } : undefined),
+        children: (id: string) => {
+          if (id === "@agent") return ["@agent/3"]
+          if (id === "@agent/3") return ["01KR3438GYZH5K5QJ65PY1V1D8"]
+          return []
+        },
+        parent: (id: string) => {
+          if (id === "01KR3438GYZH5K5QJ65PY1V1D8") return "@agent/3"
+          if (id === "@agent/3") return "@agent"
+          return null
+        },
+      },
+      nodeIndex: new Map([["01KR3438GYZH5K5QJ65PY1V1D8", { colIndex: 0, cardIndex: 0 }]]),
+    })
+
+    expect(checkInvariants(ctx)).toEqual([])
+  })
+
   test("cursor not under root is FATAL — data-corruption class must surface loudly", () => {
     // Previously this check was marked recoverable as a 24-hour triage while
     // the ghost-writer class (parent_id corruption from unvalidated node_moved
@@ -224,6 +263,44 @@ describe("cursor-under-root invariant", () => {
     spy.mockRestore()
   })
 
+  test("cursor-visible is FATAL — hidden cursors must surface loudly", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const repo = createFakeRepo({
+      nodes: item("board", item("col1", item("visible-card"), item("hidden-card"))),
+    })
+    const sel = createMockSel()
+    const ctx = validCtx({
+      repo,
+      cursor: "hidden-card",
+      rootId: "board",
+      sel,
+      selectedIds: sel.node.ids(),
+      colIndex: 0,
+      cardIndex: 1,
+      isAtCardLevel: true,
+      nodeIndex: new Map([["visible-card", { colIndex: 0, cardIndex: 0 }]]),
+      tree: {
+        rootId: "board",
+        walkOrder: ["col1", "visible-card"],
+        node: (id: string) => (["col1", "visible-card", "hidden-card"].includes(id) ? { id } : undefined),
+        children: (id: string) => {
+          if (id === "board") return ["col1"]
+          if (id === "col1") return ["visible-card"]
+          return []
+        },
+        parent: (id: string) => {
+          if (id === "visible-card" || id === "hidden-card") return "col1"
+          if (id === "col1") return "board"
+          return null
+        },
+      },
+    })
+
+    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
+    expect(() => checkInvariants(ctx)).toThrow(/cursor-visible/)
+    spy.mockRestore()
+  })
+
   test("fatal violations still throw even when a recoverable one is present", () => {
     // If both a recoverable and a fatal violation fire, fatal wins and throws.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
@@ -259,6 +336,47 @@ describe("cursor-under-root invariant", () => {
 // =============================================================================
 
 describe("selection-node-exists invariant", () => {
+  test("missing selected cursor is recoverable stale-cursor drift", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const selectedIds = {
+      size: 1,
+      length: 1,
+      has: (id: string) => id === "ghost-cursor",
+      [Symbol.iterator]: function* () {
+        yield "ghost-cursor"
+      },
+    }
+
+    const ctx = validCtx({
+      cursor: "ghost-cursor",
+      selectedIds,
+      colIndex: -1,
+      cardIndex: -1,
+      isAtCardLevel: false,
+      nodeIndex: new Map(),
+      tree: {
+        rootId: "board",
+        walkOrder: ["col1", "1a", "1b"],
+        node: (id: string) => (["col1", "1a", "1b"].includes(id) ? { id } : undefined),
+        children: (id: string) => {
+          if (id === "board") return ["col1"]
+          if (id === "col1") return ["1a", "1b"]
+          return []
+        },
+        parent: (id: string) => {
+          if (id === "1a" || id === "1b") return "col1"
+          if (id === "col1") return "board"
+          return null
+        },
+      },
+    })
+
+    const violations = checkInvariants(ctx)
+    expect(violations.map((v) => v.check)).toEqual(["cursor-exists", "selection-node-exists"])
+    expect(violations.every((v) => v.recoverable)).toBe(true)
+    spy.mockRestore()
+  })
+
   test("multi-selection with non-existent node triggers violation", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
@@ -312,6 +430,41 @@ describe("colIndex-bounds invariant", () => {
 })
 
 // =============================================================================
+// column-node-exists
+// =============================================================================
+
+describe("column-node-exists invariant", () => {
+  test("stale missing column header is recoverable projection drift", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const ctx = validCtx({
+      cursor: "board",
+      colIndex: -1,
+      cardIndex: -1,
+      isAtCardLevel: false,
+      nodeIndex: new Map(),
+      tree: {
+        rootId: "board",
+        walkOrder: ["deleted-col"],
+        node: (id: string) => (id === "deleted-col" ? { id } : undefined),
+        children: (id: string) => (id === "board" ? ["deleted-col"] : []),
+        parent: (id: string) => (id === "deleted-col" ? "board" : null),
+      },
+    })
+
+    const violations = checkInvariants(ctx)
+    expect(violations).toEqual([
+      {
+        check: "column-node-exists",
+        message: "Column 0 header references non-existent node",
+        ids: { columnNodeId: "deleted-col" },
+        recoverable: true,
+      },
+    ])
+    spy.mockRestore()
+  })
+})
+
+// =============================================================================
 // no-duplicate-columns
 // =============================================================================
 
@@ -334,7 +487,11 @@ describe("no-duplicate-columns invariant", () => {
           if (id === "col1") return ["1a"]
           return []
         },
-        parent: () => null,
+        parent: (id: string) => {
+          if (id === "1a") return "col1"
+          if (id === "col1") return "board"
+          return null
+        },
       },
     })
 
@@ -429,11 +586,16 @@ describe("viewTree-root-matches invariant", () => {
         walkOrder: ["col1", "1a"],
         node: (id: string) => (["col1", "1a"].includes(id) ? { id } : undefined),
         children: (id: string) => {
+          if (id === "board") return ["col1"]
           if (id === "wrong-root") return ["col1"]
           if (id === "col1") return ["1a"]
           return []
         },
-        parent: () => null,
+        parent: (id: string) => {
+          if (id === "1a") return "col1"
+          if (id === "col1") return "board"
+          return null
+        },
       },
     })
 

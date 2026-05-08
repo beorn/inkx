@@ -2174,6 +2174,8 @@ export function* createRepo(
     },
     touch() {
       childrenCache.clear()
+      clearNameIndex()
+      clearResolveCache()
       state.version++
       state.notify()
     },
@@ -2519,6 +2521,8 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     },
     touch() {
       childrenCache.clear()
+      clearNameIndex()
+      clearResolveCache()
       state.version++
       state.notify()
     },

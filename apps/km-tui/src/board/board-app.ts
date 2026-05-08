@@ -761,7 +761,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           // cursor-in-columns, and any future cursor-consistency check that
           // gets marked recoverable. Generalized heuristic so new checks
           // don't need to be added here explicitly.
-          const needsReset = violations.some((v) => v.recoverable === true && v.ids !== undefined && "cursor" in v.ids)
+          const needsReset = violations.some(
+            (v) =>
+              v.recoverable === true &&
+              v.ids !== undefined &&
+              ("cursor" in v.ids || "columnNodeId" in v.ids || "cardNodeId" in v.ids),
+          )
           if (needsReset && freshCtx.rootId) {
             // Find the first visible card via the current view tree (respects
             // filters/folds). Prefer a card. If NO column has any cards
@@ -770,10 +775,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             const VIRTUAL = ["__meta__", "__body__"]
             const isVirtual = (id: string): boolean => VIRTUAL.some((p) => id.startsWith(p))
             const rootId = freshCtx.rootId
-            const colIds = freshCtx.tree.children(rootId).filter((id: string) => !isVirtual(id))
+            const colIds = freshCtx.tree
+              .children(rootId)
+              .filter((id: string) => !isVirtual(id) && freshCtx.repo.getNode(id))
             let firstCard: string | undefined
             for (const colId of colIds) {
-              const cardIds = freshCtx.tree.children(colId).filter((id: string) => !isVirtual(id))
+              const cardIds = freshCtx.tree
+                .children(colId)
+                .filter((id: string) => !isVirtual(id) && freshCtx.repo.getNode(id))
               if (cardIds.length > 0) {
                 firstCard = cardIds[0]
                 break

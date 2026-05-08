@@ -134,7 +134,7 @@ describe("Runtime invariants", () => {
     expect(err.name).toBe("InvariantViolationError")
   })
 
-  test("invariants throw on cursor pointing to deleted node", () => {
+  test("invariants return recoverable stale-cursor violations for deleted cursor node", () => {
     // Suppress log.error output that fires before the throw
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
@@ -163,9 +163,9 @@ describe("Runtime invariants", () => {
       cursor: "nonexistent-node", // <-- this doesn't exist
       ui: { inlineEditBlock: null, multiSelected: new Set<string>() },
       columns: [],
-      colIndex: -1,
-      cardIndex: -1,
-      isAtCardLevel: false,
+      colIndex: 0,
+      cardIndex: 0,
+      isAtCardLevel: true,
       viewIndex: new Map(), // empty — cursor not visible
       viewTree: { id: "board", role: "board", children: [] },
       tree: { rootId: "board", walkOrder: [], node: () => undefined, children: () => [], parent: () => null },
@@ -173,8 +173,9 @@ describe("Runtime invariants", () => {
       focusedPaneViewType: () => "board",
     } as any
 
-    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
-    expect(() => checkInvariants(ctx)).toThrow(/cursor-exists/)
+    const violations = checkInvariants(ctx)
+    expect(violations.map((v) => v.check)).toEqual(["cursor-exists", "selection-node-exists"])
+    expect(violations.every((v) => v.recoverable)).toBe(true)
 
     spy.mockRestore()
   })
@@ -203,14 +204,23 @@ describe("Runtime invariants", () => {
       colIndex: -1,
       cardIndex: -1,
       isAtCardLevel: false,
+      nodeIndex: new Map([["1a", { colIndex: 0, cardIndex: 0 }]]),
       viewIndex: new Map([["1a", {}]]), // cursor is visible
       viewTree: { id: "board", role: "board", children: [] },
       tree: {
         rootId: "board",
         walkOrder: ["1a"],
         node: (id: string) => (id === "1a" ? {} : undefined),
-        children: () => [],
-        parent: () => null,
+        children: (id: string) => {
+          if (id === "board") return ["col1"]
+          if (id === "col1") return ["1a", "1b"]
+          return []
+        },
+        parent: (id: string) => {
+          if (id === "1a" || id === "1b") return "col1"
+          if (id === "col1") return "board"
+          return null
+        },
       },
       moveState: { active: false },
       focusedPaneViewType: () => "board",
@@ -236,17 +246,25 @@ describe("Runtime invariants", () => {
       cursor: "1a",
       ui: { multiSelected: new Set<string>() },
       columns: [],
-      colIndex: -1,
-      cardIndex: -1,
-      isAtCardLevel: false,
+      colIndex: 0,
+      cardIndex: 0,
+      isAtCardLevel: true,
       viewIndex: new Map([["1a", {}]]), // cursor is visible
       viewTree: { id: "board", role: "board", children: [] },
       tree: {
         rootId: "board",
         walkOrder: ["1a"],
         node: (id: string) => (id === "1a" ? {} : undefined),
-        children: () => [],
-        parent: () => null,
+        children: (id: string) => {
+          if (id === "board") return ["col1"]
+          if (id === "col1") return ["1a", "1b"]
+          return []
+        },
+        parent: (id: string) => {
+          if (id === "1a" || id === "1b") return "col1"
+          if (id === "col1") return "board"
+          return null
+        },
       },
       moveState: { active: false },
       focusedPaneViewType: () => "board",

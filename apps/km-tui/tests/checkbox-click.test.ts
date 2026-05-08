@@ -10,6 +10,13 @@
 import { describe, test, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
+import { TC } from "./helpers/theme.ts"
+import { defaultKmTheme, doneCardBorder } from "../src/theme.ts"
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const n = parseInt(hex.slice(1), 16)
+  return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff }
+}
 
 describe("checkbox interaction", () => {
   // =========================================================================
@@ -93,6 +100,103 @@ describe("checkbox interaction", () => {
     // (selection styling wraps the prefix Box in inverse — easy to break).
     app.navigateTo("Build")
     assertMarkerSpaceTitle("\u2713", "Build")
+  })
+
+  test("task column headers render with checkbox marker", () => {
+    const nodes = item.root("board", item("Phase", item.task("child", "todo")))
+    const phase = nodes.find((node) => node.id === "Phase")
+    if (!phase) throw new Error("fixture missing Phase node")
+    phase.item = { task: { marker: "[ ]", status: "todo" } }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    expect(app.text).toContain("\u25A1 Phase")
+  })
+
+  test("clicking task column header marker toggles status", () => {
+    const nodes = item.root("board", item("Phase", item.task("child", "todo")))
+    const phase = nodes.find((node) => node.id === "Phase")
+    if (!phase) throw new Error("fixture missing Phase node")
+    phase.item = { task: { marker: "[ ]", status: "todo" } }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+    const phaseBox = app.q("#Phase").boundingBox()
+    if (!phaseBox) throw new Error("Phase column not rendered")
+
+    app.expectCellChar(phaseBox.x + 1, phaseBox.y, "\u25A1")
+    app.clickDom(phaseBox.x + 1, phaseBox.y)
+
+    expect(app.repo.getNode("Phase")?.item?.task?.status).toBe("done")
+    expect(app.text).toContain("\u2713 Phase")
+  })
+
+  test("done task column headers render title muted when unselected", () => {
+    const nodes = item.root(
+      "board",
+      item("Active", item.task("cursor", "todo")),
+      item("Done Phase", item.task("child", "todo")),
+    )
+    const donePhase = nodes.find((node) => node.id === "Done Phase")
+    if (!donePhase) throw new Error("fixture missing Done Phase node")
+    donePhase.item = { task: { marker: "[x]", status: "done" } }
+
+    using app = createTestApp(nodes, { cols: 100, rows: 24 })
+    const box = app.q("#Done\\ Phase").boundingBox()
+    if (!box) throw new Error("Done Phase column not rendered")
+
+    const titleX = box.x + 3 // left padding + marker + space
+    expect(app.screen.cell(titleX, box.y).char).toBe("D")
+    expect(app.screen.cell(titleX, box.y).fg).toEqual(TC["$fg-muted"])
+  })
+
+  test("selected-looking structural cards hide their border in the selected background", () => {
+    using app = createTestApp(
+      item.root("board", item("Column", item.file("Selected File", item.task("child", "todo")))),
+      {
+        cols: 80,
+        rows: 24,
+      },
+    )
+
+    const inner = app.q("#Selected\\ File").boundingBox()
+    if (!inner) throw new Error("Selected File not rendered")
+    const topLeft = app.screen.cell(inner.x - 1, inner.y - 1)
+
+    expect(topLeft.char).toBe("\u256D")
+    expect(topLeft.fg).toEqual(topLeft.bg)
+  })
+
+  test("done structural card borders are more muted than normal card borders", () => {
+    using app = createTestApp(
+      item.root(
+        "board",
+        item(
+          "Column",
+          item.file("Cursor File", item.task("cursor-child", "todo")),
+          item.file("Done File", item.task("done-child", "todo")),
+          item.file("Open File", item.task("open-child", "todo")),
+        ),
+      ),
+      { cols: 80, rows: 24 },
+    )
+    const done = app.repo.getNode("Done File")
+    if (!done) throw new Error("Done File missing")
+    app.repo.updateNode("Done File", {
+      item: { ...done.item, task: { marker: "[x]", status: "done" } },
+    })
+    app.press("F20")
+
+    const doneInner = app.q("#Done\\ File").boundingBox()
+    const openInner = app.q("#Open\\ File").boundingBox()
+    if (!doneInner || !openInner) throw new Error("fixture cards not rendered")
+
+    const doneBorder = app.screen.cell(doneInner.x - 1, doneInner.y - 1)
+    const openBorder = app.screen.cell(openInner.x - 1, openInner.y - 1)
+
+    const expectedDoneBorder = doneCardBorder(defaultKmTheme)
+    if (!expectedDoneBorder?.startsWith("#")) throw new Error("expected doneCardBorder to resolve to hex")
+    expect(doneBorder.fg).toEqual(hexToRgb(expectedDoneBorder))
+    expect(doneBorder.fg).not.toEqual(openBorder.fg)
   })
 
   // =========================================================================

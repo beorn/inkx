@@ -9,10 +9,11 @@
  */
 import { test, expect, describe } from "vitest"
 import { Database } from "bun:sqlite"
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync } from "fs"
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync, statSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
 import { ulid } from "ulid"
+import { hashContent } from "@km/fs-mount"
 
 import { SCHEMA, applyConnectionPragmas, migrateData, migrateSchema } from "../src/index.ts"
 import { loadRepo } from "../src/repo/loader.ts"
@@ -294,6 +295,56 @@ describe("disk mode filesystem reconciliation", () => {
     } | null
     expect(node).toBeDefined()
     expect(node?.content).toBe("Original content from event")
+  })
+
+  test("reparses unparsed markdown whose file hash already matches disk", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "km-reconcile-"))
+    const filePath = join(tmpDir, "agent.md")
+    const content = "# Agent\n\n## [ ] Queue\n\n![[work]]\n"
+    writeFileSync(filePath, content)
+    const stat = statSync(filePath)
+
+    const db = setupDiskMode(tmpDir, [
+      {
+        type: "node_created",
+        data: {
+          id: "agent.md",
+          type: "h",
+          item: {},
+          fstype: "mdfile",
+          parent_id: ".",
+          parent_idx: 0,
+          fs_path: "agent.md",
+          name: "agent",
+          title: "Agent",
+          content: "Agent",
+          parsed: 0,
+          fs_mtime: stat.mtimeMs,
+          fs_size: stat.size,
+          fs_content_hash: hashContent(content),
+        },
+      },
+      {
+        type: "node_created",
+        data: {
+          id: "stale-heading",
+          type: "h",
+          item: {},
+          parent_id: "agent.md",
+          parent_idx: 0,
+          content: "Queue",
+        },
+      },
+    ])
+
+    runLoadRepo(tmpDir, { db })
+
+    const heading = db
+      .prepare("SELECT content, task_marker, task_status FROM nodes WHERE parent_id = 'agent.md' AND content = 'Queue'")
+      .get() as { content: string; task_marker: string | null; task_status: string | null } | null
+    expect(heading).not.toBeNull()
+    expect(heading!.task_marker).toBe("[ ]")
+    expect(heading!.task_status).toBe("todo")
   })
 
   test("reconciliation does not run in memory mode", () => {

@@ -281,4 +281,30 @@ describe("Bug 2: resolver cache stale after mutations", () => {
     // Should still resolve after move (cache cleared)
     expect(resolveByName(repo.database, "Child")).not.toBeNull()
   })
+
+  test("repo.touch invalidates resolver caches after external DB sync", () => {
+    const repo = createTestRepo()
+
+    repo.addNode(null, {
+      type: "h",
+      item: {},
+      name: "Alpha",
+      content: "Alpha",
+    })
+
+    // Prime the name index and negative result cache before the external row exists.
+    expect(resolveByName(repo.database, "Alpha")).not.toBeNull()
+    expect(repo.resolveNode("Beta")).toBeNull()
+
+    // Simulate fs-watch/reconcile code paths that update SQLite directly and
+    // then call repo.touch() to notify the TUI.
+    repo.database.run(
+      `INSERT INTO nodes (id, type, item, parent_idx, name, content)
+       VALUES ('beta-id', 'h', 1, 1, 'Beta', 'Beta')`,
+    )
+    repo.touch()
+
+    expect(resolveByName(repo.database, "Beta")?.id).toBe("beta-id")
+    expect(repo.resolveNode("Beta")?.id).toBe("beta-id")
+  })
 })

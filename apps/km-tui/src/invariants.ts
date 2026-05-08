@@ -84,6 +84,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "cursor-exists",
         message: `Cursor points to non-existent node`,
         ids: { cursor: ctx.cursor },
+        recoverable: true,
       })
     }
   }
@@ -103,7 +104,8 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // unreachable. Until then, keep it fatal — fire-on-bug is the invariant's
   // intended behavior per km-silvery.selection-focus-plateau.
   if (ctx.cursor && ctx.rootId && !isVirtualNodeId(ctx.cursor as string)) {
-    const isDescendant = isDescendantOf(ctx, ctx.cursor as string, ctx.rootId)
+    const cursorNode = ctx.repo.getNode(ctx.cursor as string)
+    const isDescendant = cursorNode ? isDescendantOf(ctx, ctx.cursor as string, ctx.rootId) : true
     if (!isDescendant) {
       violations.push({
         check: "cursor-under-root",
@@ -140,6 +142,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
           check: "column-node-exists",
           message: `Column ${ci} header references non-existent node`,
           ids: { columnNodeId: colId },
+          recoverable: true,
         })
       }
     }
@@ -154,6 +157,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
           check: "card-node-exists",
           message: `Card ${ci}:${cdi} references non-existent node`,
           ids: { cardNodeId: cardId, columnNodeId: colId },
+          recoverable: true,
         })
       }
     }
@@ -166,10 +170,14 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     if (isVirtualNodeId(nodeId)) continue
     const node = ctx.repo.getNode(nodeId)
     if (!node) {
+      const isMissingCursor = ctx.cursor === nodeId
       violations.push({
         check: "selection-node-exists",
-        message: `Multi-selection contains non-existent node`,
-        ids: { selectedNodeId: nodeId },
+        message: isMissingCursor
+          ? `Selection cursor points to non-existent node`
+          : `Multi-selection contains non-existent node`,
+        ids: isMissingCursor ? { cursor: nodeId } : { selectedNodeId: nodeId },
+        recoverable: isMissingCursor,
       })
     }
   }
@@ -237,11 +245,15 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 8. Cursor-always-visible: cursor must be in the view tree (not hidden by fold/filter)
   // Skip virtual nodes and root-level cursor.
-  // Marked recoverable — same root cause as cursor-under-root (stale cursor).
-  // The caller resets cursor to rootId. See km-tui.cursor-under-root-crash.
+  //
+  // FATAL: navigation, filtering, and folding must maintain selection inside
+  // the visible projection. If the cursor lands on a hidden node, the user has
+  // a disappearing cursor and the action handler missed a required reveal or
+  // cursor rescue. Surface it as a programming error instead of masking it.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string) && (ctx.cursor as string) !== ctx.rootId) {
-    const inTree = ctx.tree.node(ctx.cursor as string)
-    if (!inTree) {
+    const cursorNode = ctx.repo.getNode(ctx.cursor as string)
+    const inVisibleTree = !cursorNode || isInVisibleTree(ctx, ctx.cursor as string)
+    if (!inVisibleTree) {
       violations.push({
         check: "cursor-visible",
         message: `Cursor is on a non-visible node (hidden by fold or filter)`,
@@ -249,7 +261,6 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
           cursor: ctx.cursor,
           rootId: ctx.rootId,
         },
-        recoverable: true,
       })
     }
   }
@@ -302,8 +313,9 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // that MUST surface, not be silently healed. The Phase 3 heal in
   // board-app.ts no longer catches this.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
+    const cursorNode = ctx.repo.getNode(ctx.cursor as string)
     // Check cursor is findable in the ViewTreeProjection
-    const cursorInTree = ctx.tree.node(ctx.cursor as string) !== undefined
+    const cursorInTree = !cursorNode || ctx.tree.node(ctx.cursor as string) !== undefined
     if (!cursorInTree && (ctx.cursor as string) !== ctx.rootId) {
       violations.push({
         check: "cursor-in-walkOrder",
@@ -403,12 +415,48 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
  * Walks up the parent chain. Stops at 100 iterations to prevent infinite loops.
  */
 function isDescendantOf(ctx: OpCtx, nodeId: string, ancestorId: string): boolean {
+  if (isDescendantInViewTree(ctx, nodeId, ancestorId)) return true
+
   let current: string | null = nodeId
   let depth = 0
   while (current && depth < 100) {
     if (current === ancestorId) return true
     const node = ctx.repo.getNode(current)
     current = node?.parent_id ?? null
+    depth++
+  }
+  return false
+}
+
+/**
+ * The board projection can include nodes whose storage parent_id chain does
+ * not reach rootId (for example sigil/query boards like @agent). In that case
+ * the view tree parent chain is the correct "under root" relationship.
+ */
+function isDescendantInViewTree(ctx: OpCtx, nodeId: string, ancestorId: string): boolean {
+  if (nodeId === ancestorId) return true
+  if (!ctx.tree.node(nodeId)) return false
+
+  let current: string | null = nodeId
+  let depth = 0
+  while (current && depth < 100) {
+    if (current === ancestorId) return true
+    current = ctx.tree.parent(current)
+    depth++
+  }
+  return false
+}
+
+function isInVisibleTree(ctx: OpCtx, nodeId: string): boolean {
+  if (nodeId === ctx.rootId) return true
+  let current: string | null = nodeId
+  let depth = 0
+  while (current && depth < 100) {
+    const parent = ctx.tree.parent(current)
+    if (!parent) return false
+    if (!ctx.tree.children(parent).includes(current)) return false
+    if (parent === ctx.rootId) return true
+    current = parent
     depth++
   }
   return false

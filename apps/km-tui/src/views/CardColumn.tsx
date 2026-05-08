@@ -47,7 +47,7 @@ import { isHRContent, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 import { useTheme } from "@silvery/ag-react"
-import { selectedBg, multiSelectedBg } from "../theme.ts"
+import { doneCardBorder, selectedBg, selectedColumnBg, multiSelectedBg } from "../theme.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -196,6 +196,8 @@ interface CardProps {
   isBodyCard?: boolean
   /** Number of children (pre-computed to avoid DB lookup when folded) */
   childCount?: number
+  /** Background used by the selected column container, for border blending. */
+  selectedColumnBg?: string
   /**
    * Height (in rows) of the column's card area — the column's `height` minus
    * the header rows. Used as an upper bound when an expanded (focused) card
@@ -302,6 +304,7 @@ const Card = React.memo(
     prevCardNodeId,
     isBodyCard: isBodyCardProp = false,
     childCount: childCountProp,
+    selectedColumnBg: selectedColumnBgColor,
     columnHeight,
   }: CardProps): React.ReactElement {
     const nodeId = card.id
@@ -496,10 +499,10 @@ const Card = React.memo(
           >
             <Text
               // HR dividers are separator chrome, not content. Selected state
-              // uses $bg-selected (yellow) to match column tint; unselected
-              // uses $fg-muted — the canonical 'secondary text' token. This
-              // replaces the old color="$muted" + dimColor={...} pair, which
-              // double-dimmed (both at truecolor hex and ANSI 16 SGR 2).
+              // uses the cursor accent; unselected uses $fg-muted — the
+              // canonical 'secondary text' token. This replaces the old
+              // color="$muted" + dimColor={...} pair, which double-dimmed
+              // (both at truecolor hex and ANSI 16 SGR 2).
               color={isSelected || isNodeSelected ? "$bg-selected" : "$fg-muted"}
               wrap="truncate"
             >
@@ -649,19 +652,22 @@ const Card = React.memo(
     // whitespace, not visible borders. Borders appear as interactive feedback:
     // hover → $fg-muted (faint), selection → $bg-selected (yellow).
     // Done/dropped use the muted border role; normal cards use the default border role.
-    const defaultBorder = isDoneOrDropped ? "$border-muted" : "$border-default"
+    const defaultBorder = isDoneOrDropped ? doneCardBorder(theme) : "$border-default"
     // "Board level" means cursor is on the board root. Read cursorDepth only
     // for the border-hiding check — this is stable during j/k card movement.
     const selLevel = useSignal(nodeStore.cursorDepth)
     const hasCursor = useSignal(nodeStore.hasCursor)
     const isBoardLevel = selLevel === "board" && hasCursor
+    const selectedLookingBorder = cardBg ?? (isColSelected ? selectedColumnBgColor : undefined)
     const borderColor = isEditing
       ? "$border-focus"
-      : isColSelected || isBoardLevel
-        ? "$bg-surface-default" // hide borders when column/board selected (same space, invisible)
-        : isSelected || isNodeSelected
-          ? "$bg-selected"
-          : (hoverBorderColor ?? defaultBorder)
+      : selectedLookingBorder
+        ? selectedLookingBorder
+        : isColSelected || isBoardLevel
+          ? "$bg-surface-default" // hide borders when column/board selected (same space, invisible)
+          : isSelected || isNodeSelected
+            ? (cardBg ?? "$bg-selected")
+            : (hoverBorderColor ?? defaultBorder)
     const stripInlineSurface = cardBg != null || isColSelected || isBoardLevel
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
@@ -995,7 +1001,7 @@ export const Column = React.memo(function Column({
 
   // Column selection: subtle primary bg tint only when cursor is at column level.
   const colTheme = useTheme()
-  const columnBg = isColumnSelected ? selectedBg(colTheme) : undefined
+  const columnBg = isColumnSelected ? selectedColumnBg(colTheme) : undefined
 
   // Derive column header presentation props (icon, colors, style).
   // When the lens/repo lookup fails (rare), fall back to a minimal stub so
@@ -1089,12 +1095,23 @@ export const Column = React.memo(function Column({
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
           isColumnSelected={isColumnSelected}
+          selectedColumnBg={columnBg}
           prevCardNodeId={prevCard?.id}
           columnHeight={cardAreaHeight}
         />
       )
     },
-    [colIndex, width, isVirtual, cardNodes, bodyCardIds, extraExcludedSigils, isColumnSelected, cardAreaHeight],
+    [
+      colIndex,
+      width,
+      isVirtual,
+      cardNodes,
+      bodyCardIds,
+      extraExcludedSigils,
+      isColumnSelected,
+      columnBg,
+      cardAreaHeight,
+    ],
   )
 
   const getKey = useCallback((card: KNode) => card.id, [])
@@ -1105,7 +1122,10 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$bg-selected" : "$border-default"
+    const borderColor = isColumnSelected ? (columnBg ?? "$bg-selected") : "$border-default"
+    const selectedCollapsedTextColor = columnBg ? "$fg-accent" : "$fg-on-selected"
+    const collapsedTitleColor = isColumnSelected ? selectedCollapsedTextColor : (ownColor ?? "$muted")
+    const collapsedCountColor = isColumnSelected ? selectedCollapsedTextColor : "$muted"
     return (
       <Box
         id={nodeId}
@@ -1127,12 +1147,12 @@ export const Column = React.memo(function Column({
           borderStyle="round"
           borderColor={borderColor}
           overflow="hidden"
-          backgroundColor={isColumnSelected ? "$bg-selected" : undefined}
+          backgroundColor={columnBg ?? (isColumnSelected ? "$bg-selected" : undefined)}
         >
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
-              <Text bold color={isColumnSelected ? "$fg-on-selected" : (ownColor ?? "$muted")}>
+              <Text bold color={collapsedTitleColor}>
                 {ch}
               </Text>
             </Box>
@@ -1140,7 +1160,7 @@ export const Column = React.memo(function Column({
           {/* Count at bottom, pushed down by flexGrow on spacer */}
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
-            <Text bold color={isColumnSelected ? "$fg-on-selected" : "$muted"}>
+            <Text bold color={collapsedCountColor}>
               {countStr}
             </Text>
           </Box>
@@ -1169,7 +1189,7 @@ export const Column = React.memo(function Column({
         displayName={name}
         untitled={untitled}
         ownColor={ownColor}
-        headerStyle={headerStyle}
+        headerStyle={columnBg ? { color: "$fg-accent", backgroundColor: columnBg } : headerStyle}
         icon={icon}
         cardCount={count}
         width={width - 1}
@@ -1179,6 +1199,7 @@ export const Column = React.memo(function Column({
         wipLimit={wipLimit}
         typeSuffix={typeSuffix}
         showSeparator
+        undoHandle={undoHandle}
       >
         {isInlineEditing && colNode ? (
           <InlineEditField

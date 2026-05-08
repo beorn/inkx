@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest"
 import { item } from "./helpers/board-test.ts"
 import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
+import { defaultKmTheme, selectedColumnBg } from "../src/theme.ts"
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,12 @@ function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }):
     (a as { r: number; g: number; b: number }).g === b.g &&
     (a as { r: number; g: number; b: number }).b === b.b
   )
+}
+
+function hexToRgb(hex: string | undefined): { r: number; g: number; b: number } {
+  if (!hex?.startsWith("#")) throw new Error("expected hex color")
+  const n = parseInt(hex.slice(1), 16)
+  return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff }
 }
 
 // ── 1. Cursor visual treatment per role ────────────────────────────────────
@@ -71,7 +78,7 @@ describe("cursor visual treatment", () => {
     expect(colorEquals(titleCell.bg, TC["$bg-selected"]), "new cursor card title bg").toBe(true)
   })
 
-  it("cursor at column level: column header gets inverse", () => {
+  it("cursor at column level: column header gets muted selected surface", () => {
     using app = createTestApp(standardBoard(), { cols: 80, rows: 24 })
 
     app.press("Z") // zoom out to column level
@@ -81,7 +88,10 @@ describe("cursor visual treatment", () => {
     if (!colBox) return
 
     const headerCell = app.screen.cell(colBox.x, colBox.y)
-    expect(colorEquals(headerCell.bg, TC["$bg-selected"]), "column-level cursor header bg").toBe(true)
+    expect(
+      colorEquals(headerCell.bg, hexToRgb(selectedColumnBg(defaultKmTheme))),
+      "column-level cursor header bg",
+    ).toBe(true)
   })
 })
 

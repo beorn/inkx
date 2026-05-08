@@ -104,9 +104,9 @@
  *    (including column titles) gets the subtle bg tint.
  *
  * 5. PARENT INDICATORS: Regardless of cursor depth:
- *    - Card border: yellow ($bg-selected) when card or descendant has cursor
- *    - Column title: yellow when any child has cursor
- *    - Column underline: yellow when any child has cursor
+ *    - Card surface uses selectedBg(theme) when a descendant has cursor
+ *    - Card border is hidden against that selected surface
+ *    - Column container uses selectedColumnBg(theme) when the column has cursor
  *
  * 6. MULTI-SELECTION (isNodeSelected): Gets a STRONGER primary bg tint than
  *    the card-level cursor tint — multiSelectedBg = blend(bg, primary, 14%),

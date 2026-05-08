@@ -5,7 +5,7 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, Muted, Small, CursorLine, ModalDialog, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, Muted, Small, CursorLine, ModalDialog, useBoxRect, useTheme } from "@silvery/ag-react"
 import { usePaneSignals } from "../hooks/use-signal.ts"
 import { createLogger } from "loggily"
 
@@ -22,6 +22,8 @@ import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../state/ui-context.tsx"
 import { useTreeNode } from "../state/reactive.ts"
 import { useSignal } from "../hooks/use-signal.ts"
+import { useUndoHandle } from "../services-context.tsx"
+import { selectedColumnBg } from "../theme.ts"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -225,6 +227,9 @@ export const MemoizedColumnHeader = React.memo(
     const isSelected = isSelectedProp ?? (cursorOnCol || cursorInColDesc)
     const isColSelected = isColSelectedProp ?? cursorOnCol
     const repo = useRepo()
+    const undoHandle = useUndoHandle()
+    const theme = useTheme()
+    const columnBg = isColSelected ? selectedColumnBg(theme) : undefined
     const {
       treeConfig: { iconStyle },
     } = useTreeRenderContext()
@@ -262,7 +267,7 @@ export const MemoizedColumnHeader = React.memo(
           displayName={displayName}
           untitled={untitled}
           ownColor={ownColor}
-          headerStyle={headerStyle}
+          headerStyle={columnBg ? { color: "$fg-accent", backgroundColor: columnBg } : headerStyle}
           icon={icon}
           cardCount={cardCount}
           width={width}
@@ -271,6 +276,7 @@ export const MemoizedColumnHeader = React.memo(
           wipLimit={wipLimit}
           showTopSpacer={showTopSpacer}
           showSeparator={showSeparator}
+          undoHandle={undoHandle}
         />
       </Box>
     )

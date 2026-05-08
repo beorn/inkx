@@ -51,6 +51,8 @@ import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
 import { NodeStoreContext } from "../state/reactive.ts"
 import { useSignal } from "../hooks/use-signal.ts"
+import { getNodeTitleIcon, NodeTitleMarker } from "./NodeTitleMarker.tsx"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 
 const FALSE_SIGNAL = () => false
 
@@ -123,6 +125,8 @@ export interface ColumnHeaderProps {
   hasBody?: boolean
   /** Override content (for inline editing) */
   children?: React.ReactNode
+  /** Optional undo handle for interactive task markers. */
+  undoHandle?: UndoableRepoHandle
 }
 
 // =============================================================================
@@ -154,9 +158,12 @@ export function ColumnHeader({
   showTopSpacer = false,
   hasBody = false,
   children,
+  undoHandle,
 }: ColumnHeaderProps): React.ReactElement {
-  const iconColor = isColumnSelected ? "$fg-on-selected" : icon.color
   const wipExceeded = wipLimit !== undefined && cardCount > wipLimit
+  const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
+  const titleColor = isColumnSelected ? undefined : isDoneOrDropped ? "$fg-muted" : ownColor
+  const separatorColor = isColumnSelected ? (headerStyle.backgroundColor ?? "$bg-selected") : "$fg-muted"
 
   // Build count display
   const countDisplay = wipLimit !== undefined ? `${cardCount}/${wipLimit}` : `${cardCount}`
@@ -185,14 +192,28 @@ export function ColumnHeader({
           {children ? (
             // Custom content (e.g., inline edit field)
             <Text bold color={headerStyle.color} wrap="truncate">
-              <Text color={iconColor}>{icon.char}</Text> {children}
+              <NodeTitleMarker
+                node={node}
+                icon={icon}
+                textColor={headerStyle.color}
+                isSelected={isColumnSelected}
+                interactive={false}
+              />{" "}
+              {children}
             </Text>
           ) : (
             <>
               <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
                 <Text bold={!isVirtual} color={headerStyle.color} wrap="truncate">
-                  <Text color={iconColor}>{icon.char}</Text>{" "}
-                  <Text color={isColumnSelected ? undefined : ownColor}>
+                  <NodeTitleMarker
+                    node={node}
+                    icon={icon}
+                    textColor={headerStyle.color}
+                    shouldDim={!isColumnSelected && isDoneOrDropped}
+                    isSelected={isColumnSelected}
+                    undoHandle={undoHandle}
+                  />{" "}
+                  <Text color={titleColor}>
                     {untitled ? <Text color={"$fg-warning"}>{displayName}</Text> : displayName}
                     {!isVirtual && isSigilName(node.name) && node.name && !slugsMatch(node.name, displayName) && (
                       <>
@@ -227,7 +248,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "$bg-selected" : "$fg-muted"}>{"\u2500".repeat(Math.max(0, width))}</Text>
+          <Text color={separatorColor}>{"\u2500".repeat(Math.max(0, width))}</Text>
         </Box>
       )}
     </Box>
@@ -752,7 +773,8 @@ export function deriveColumnHeaderProps(
     headerStyle.color = "$fg-muted"
   }
 
-  const icon = getColumnHeaderIcon(node, opts.iconStyle, isVirtual, ownColor)
+  const fallbackIcon = getColumnHeaderIcon(node, opts.iconStyle, isVirtual, ownColor)
+  const { icon } = getNodeTitleIcon(node, fallbackIcon, ownColor)
 
   return { displayName, untitled, ownColor, headerStyle, icon, typeSuffix }
 }

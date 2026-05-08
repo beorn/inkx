@@ -12,7 +12,7 @@
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Small, HorizontalVirtualList } from "@silvery/ag-react"
+import { Box, Small, HorizontalVirtualList, useTheme } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:columns")
@@ -28,6 +28,8 @@ import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { extractWipLimits } from "@km/board"
 import type { ColumnFilterState } from "./BoardView.tsx"
+import { useUndoHandle } from "../services-context.tsx"
+import { selectedColumnBg } from "../theme.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -69,6 +71,7 @@ interface ColumnTreeProps {
  */
 const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, height, filter }: ColumnTreeProps) {
   const repo = useRepo()
+  const undoHandle = useUndoHandle()
   const {
     treeConfig: { iconStyle },
   } = useTreeRenderContext()
@@ -124,6 +127,8 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
 
   // Column header is selected when cursor is directly on this column node.
   const isColumnHeaderSelected = isSelected && cursorDepthSignal === "column"
+  const theme = useTheme()
+  const columnBg = isColumnHeaderSelected ? selectedColumnBg(theme) : undefined
 
   // Fallback header node when lens/repo lookup fails
   const headerNode: KNode = colNode ?? ({ id: colId, type: "h", content: "" } as unknown as KNode)
@@ -176,6 +181,7 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
       width={width}
       height={height}
       overflow="hidden"
+      backgroundColor={columnBg}
     >
       {/* Column header — unified NodeView component */}
       <ColumnHeader
@@ -183,7 +189,7 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
         displayName={displayName}
         untitled={untitled}
         ownColor={ownColor}
-        headerStyle={headerStyle}
+        headerStyle={columnBg ? { color: "$fg-accent", backgroundColor: columnBg } : headerStyle}
         icon={icon}
         cardCount={count}
         width={width}
@@ -191,6 +197,7 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
         isSelected={isSelected}
         wipLimit={wipLimit}
         showSeparator
+        undoHandle={undoHandle}
       />
 
       {/* Cards with ScrollTrackingVirtualList */}

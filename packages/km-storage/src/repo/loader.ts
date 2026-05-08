@@ -368,7 +368,8 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
       )
     }
 
-    const pendingLinks = reconcilePendingLinks.length > 0 ? [...source.pendingLinks, ...reconcilePendingLinks] : source.pendingLinks
+    const pendingLinks =
+      reconcilePendingLinks.length > 0 ? [...source.pendingLinks, ...reconcilePendingLinks] : source.pendingLinks
     if (pendingLinks.length > 0) {
       if (skipLinks) {
         returnPendingLinks = pendingLinks
@@ -743,6 +744,8 @@ interface ReconcileDbRow {
   fs_mtime: number | null
   fs_size: number | null
   fs_content_hash: string | null
+  parsed: number | null
+  data: string | null
 }
 
 interface ReconcileFsEntry {
@@ -771,7 +774,7 @@ function* reconcileFilesystem(
   const dbRows = db
     .prepare(
       `
-      SELECT id, fs_path, parent_id, parent_idx, fstype, fs_mtime, fs_size, fs_content_hash
+      SELECT id, fs_path, parent_id, parent_idx, fstype, fs_mtime, fs_size, fs_content_hash, parsed, data
       FROM nodes
       WHERE fs_path IS NOT NULL AND fs_path != '.'
     `,
@@ -1094,9 +1097,25 @@ function* reconcileFilesystem(
   return { changes, deferredFiles, collapsedExtractions, pendingLinks }
 
   function hasFsDrift(row: ReconcileDbRow, entry: ReconcileFsEntry): boolean {
+    const hasFsBaseline = row.fs_size != null || row.fs_mtime != null || row.fs_content_hash != null
+    if (!hasFsBaseline) return false
+    if (
+      (row.fstype === "mdfile" || row.fstype === "txtfile") &&
+      row.parsed === 0 &&
+      row.fs_size != null &&
+      row.fs_mtime != null &&
+      row.fs_content_hash != null &&
+      !isCollapsedRow(row)
+    ) {
+      return true
+    }
     if (row.fs_size == null || row.fs_size !== entry.stat.size) return true
     if (row.fs_mtime == null || row.fs_mtime !== entry.stat.mtimeMs) return true
     return false
+  }
+
+  function isCollapsedRow(row: ReconcileDbRow): boolean {
+    return row.data != null && row.data.includes('"_collapsed"')
   }
 
   function statFields(entry: ReconcileFsEntry): Record<string, unknown> {
@@ -1139,7 +1158,7 @@ function* reconcileFilesystem(
       return
     }
 
-    if (row.fs_content_hash && row.fs_content_hash === nextHash) {
+    if (row.parsed !== 0 && row.fs_content_hash && row.fs_content_hash === nextHash) {
       changes.push({
         id: `reconcile-stat-${row.id}`,
         type: "node_updated",

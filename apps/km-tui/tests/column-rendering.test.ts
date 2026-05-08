@@ -23,6 +23,7 @@ import "@termless/test/matchers"
 import { createDriverTest, createDriverTestWithRepo, item } from "./helpers/board-test.ts"
 import { createTestApp, type CellInfo } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
+import { defaultKmTheme, selectedColumnBg } from "../src/theme.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
 
@@ -35,6 +36,12 @@ function colorEquals(a: CellInfo["fg"], b: { r: number; g: number; b: number }):
     (a as { r: number; g: number; b: number }).g === b.g &&
     (a as { r: number; g: number; b: number }).b === b.b
   )
+}
+
+function hexToRgb(hex: string | undefined): { r: number; g: number; b: number } {
+  if (!hex?.startsWith("#")) throw new Error("expected hex color")
+  const n = parseInt(hex.slice(1), 16)
+  return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff }
 }
 
 // =============================================================================
@@ -104,7 +111,7 @@ describe("col-scroll-indicator", () => {
 // =============================================================================
 
 describe("km-tui.col-selected-style: column selected style at column level", () => {
-  it("column header has yellow fg when cursor is at column level", () => {
+  it("column header has muted selected styling when cursor is at column level", () => {
     using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
       cols: 100,
       rows: 20,
@@ -133,13 +140,15 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     const colTextX = row.indexOf("col1")
     expect(colTextX, "'col1' should be visible in header row").toBeGreaterThan(-1)
 
-    // When cursor is at column level, header has inverse yellow (like selected card title)
+    // Column-level selection uses a muted lane tint, not the strong selected-card inverse.
     const cell = app.screen.cell(colTextX, headerY)
-    expect(cell.fg, "column header fg should be $selectedfg when at column level").toEqual(TC.$selectedfg)
-    expect(cell.bg, "column header bg should be $selected when at column level").toEqual(TC.$selected)
+    expect(cell.fg, "column header fg should be accent when at column level").toEqual(TC["$fg-accent"])
+    expect(cell.bg, "column header bg should be the muted selected column surface").toEqual(
+      hexToRgb(selectedColumnBg(defaultKmTheme)),
+    )
   })
 
-  it("separator line is yellow when cursor is at column level", () => {
+  it("separator line uses the muted selected surface when cursor is at column level", () => {
     using app = createTestApp(item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))), {
       cols: 100,
       rows: 20,
@@ -168,7 +177,9 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(sepX, "separator char should be found").toBeGreaterThanOrEqual(0)
 
     const sepCell = app.screen.cell(sepX, separatorY)
-    expect(sepCell.fg, "separator fg should be $selected when column selected").toEqual(TC.$selected)
+    expect(sepCell.fg, "separator fg should match the selected column surface").toEqual(
+      hexToRgb(selectedColumnBg(defaultKmTheme)),
+    )
     expect(sepCell.dim, "separator should NOT be dim when column selected").toBeFalsy()
   })
 
