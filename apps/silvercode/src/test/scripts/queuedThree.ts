@@ -19,7 +19,7 @@ import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
 const SESSION = "fake-queued-three" as SessionId
 const ASSISTANT_TURN = "a1" as TurnId
 
-/** LLM events. Leaves status as "thinking" so controller.send queues. */
+/** LLM events. Leaves the turn active so controller.send queues. */
 export const queuedThreeLlmSide: ReadonlyArray<AgentEvent> = [
   {
     kind: "session-init",

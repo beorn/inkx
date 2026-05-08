@@ -2,7 +2,7 @@
  * Three-turn conversation: init → (user → assistant) × 3.
  *
  * Used for tests that assert behaviour across multiple back-and-forth turns
- * — e.g. token accumulation, status transitions between idle and thinking,
+ * — e.g. token accumulation, idle/active transitions,
  * or that per-turn state doesn't leak across turn boundaries.
  */
 

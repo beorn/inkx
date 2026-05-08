@@ -13,10 +13,11 @@ describe("ActivityIndicator", () => {
   test("uses the silvercode thinking words", () => {
     vi.useFakeTimers()
     vi.setSystemTime(0)
+    const activeState = "thinking"
     const renderer = createRenderer({ cols: 80, rows: 6 })
     const app = renderer(
       <Box width={80} height={6} flexDirection="column">
-        <ActivityIndicator status="thinking" turnStartedAt={0} />
+        <ActivityIndicator status={activeState} turnStartedAt={0} />
       </Box>,
     )
 

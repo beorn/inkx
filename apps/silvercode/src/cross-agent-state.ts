@@ -136,7 +136,7 @@ export type CrossAgentState = {
   addSession(info: SessionInfo): void
   /** Remove a session and release any claims it held. */
   removeSession(sessionId: CrossAgentSessionId): void
-  /** Update one session's status (e.g. idle → thinking). No-op if unknown. */
+  /** Update one session's coarse lifecycle label. No-op if unknown. */
   updateSessionStatus(sessionId: CrossAgentSessionId, status: SessionStatus): void
 
   /** Append a broadcast to the ring buffer. Oldest is evicted at cap. */

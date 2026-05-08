@@ -17,6 +17,7 @@ import { createSilvercodeController } from "../src/controller.ts"
 import { createFakeSession } from "../src/test/fake-session.ts"
 
 const SESSION = "fake-bg" as SessionId
+const ACTIVE_STATE = "thinking"
 let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
 let writeSpies: Array<ReturnType<typeof vi.spyOn>> = []
 const silentWrite = ((
@@ -90,11 +91,11 @@ describe("controller: background jobs", () => {
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
     fake.emit(textDelta("a1", "Reticulating"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     controller.backgroundActiveJob(handle.id)
 
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
     expect(controller.backgroundJobs(handle.id)).toHaveLength(0)
 
     fake.emit(textDelta("a1", " foreground still receives output"))
@@ -117,7 +118,7 @@ describe("controller: background jobs", () => {
     fake.emit(initEvent())
     controller.send(handle.id, "first")
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     controller.backgroundActiveJob(handle.id)
     controller.send(handle.id, "second")

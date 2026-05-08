@@ -26,6 +26,7 @@ import { installFakes } from "./../src/test/fake-boundaries.ts"
 
 const COLS = 120
 const ROWS = 40
+const ACTIVE_STATE = "thinking"
 const SESSION = "fake-session-1" as SessionId
 
 const settle = (ms = 100) => new Promise<void>((r) => setTimeout(r, ms))
@@ -191,7 +192,7 @@ describe("controller.interruptActiveJob", () => {
 
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     controller.interruptActiveJob(handle.id)
 

@@ -21,6 +21,7 @@ import { createSilvercodeController } from "../src/controller.ts"
 import { createFakeSession } from "../src/test/fake-session.ts"
 
 const SESSION = "fake-queue" as SessionId
+const ACTIVE_STATE = "thinking"
 let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
 let writeSpies: Array<ReturnType<typeof vi.spyOn>> = []
 const silentWrite = ((
@@ -49,6 +50,10 @@ afterEach(() => {
   consoleSpies = []
   writeSpies = []
 })
+
+function createFakeAcpSession() {
+  return Object.assign(createFakeSession({ sessionId: SESSION }), { agent: "fake-acp", protocolVersion: 1 })
+}
 
 function initEvent(): AgentEvent {
   return {
@@ -216,11 +221,11 @@ describe("layer 3: queue batching", () => {
     })
     const handle = await controller.spawnSession("test")
 
-    // Session is idle until turn-start arrives; put it into "thinking"
-    // first so the queue actually buffers instead of sending inline.
+    // Session is idle until turn-start arrives; make the provider turn
+    // active first so the queue actually buffers instead of sending inline.
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     // The first provider turn has been acknowledged, so normal command-box
     // submits can be written to stdin immediately. Claude Code buffers them
@@ -276,8 +281,8 @@ describe("layer 3: queue batching", () => {
   test("regression: queue auto-flushes on turn-end after edits land via setQueuedText", async () => {
     // User scenario: session is busy, user edits the queue TextArea
     // directly (Option B has no "hold" — the TextArea is always live).
-    // When Claude finishes its turn, turn-end → status=idle → controller's
-    // subscribe-path calls tryFlush → queue drains.
+    // When Claude finishes its turn, the controller's subscribe path calls
+    // tryFlush and the queue drains.
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
@@ -289,7 +294,7 @@ describe("layer 3: queue batching", () => {
 
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     // User types directly into the always-live queue TextArea while
     // Claude is mid-turn. Three entries joined as the wire format.
@@ -309,7 +314,7 @@ describe("layer 3: queue batching", () => {
     controller.closeAll()
   })
 
-  test("flushQueue force-sends mid-thinking (Enter in queue region bypasses idle gate)", async () => {
+  test("flushQueue force-sends during an active turn for stdin-buffering transports", async () => {
     // The Option B Enter-in-queue path: flushQueue submits ALL queued
     // items NOW, even if Claude is mid-turn. Claude Code's CLI buffers
     // stdin while it's working, so the user-message lands as the next
@@ -325,13 +330,13 @@ describe("layer 3: queue batching", () => {
 
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     controller.setQueuedText(handle.id, "one\n\ntwo\n\nthree")
     expect(fake.sent).toHaveLength(0)
 
     // User presses Enter in the queue region → controller.flushQueue.
-    // Status is still "thinking"; force-flush bypasses the gate.
+    // The turn is still active; force-flush bypasses the focus guard.
     controller.flushQueue(handle.id)
 
     expect(fake.sent).toHaveLength(1)
@@ -342,6 +347,34 @@ describe("layer 3: queue batching", () => {
     // no double-send.
     fake.emit(turnEnd("a1"))
     expect(fake.sent).toHaveLength(1)
+
+    controller.closeAll()
+  })
+
+  test("normal submit on ACP-shaped sessions queues until the active turn settles", async () => {
+    const fake = createFakeAcpSession()
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test")
+
+    fake.emit(initEvent())
+    fake.emit(turnStart("a1"))
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
+
+    controller.send(handle.id, "one")
+
+    expect(fake.sent).toHaveLength(0)
+    expect(controller.queuedText(handle.id)).toBe("one")
+
+    fake.emit(turnEnd("a1"))
+
+    expect(fake.sent).toHaveLength(1)
+    expect(fake.sent[0]!.payload).toBe("one")
+    expect(controller.queuedText(handle.id)).toBe("")
 
     controller.closeAll()
   })

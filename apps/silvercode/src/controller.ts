@@ -55,12 +55,12 @@ import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
 import { discoverClaudeSubagentSessions } from "./claude-subagent-sessions.ts"
 import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-metadata.ts"
 import type { ReasoningEffort, SessionConfigValue } from "./config-schema.ts"
+import { createTurnOwner, type TurnOwner } from "./runtime/turn-owner.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
 // `DEBUG_LOG=<path>` when running the TUI so the alt-screen UI isn't
-// polluted). Traces every send/setQueuedText/tryFlush and the decision the
-// controller made. Loaded when investigating "queue items stay there"
-// reports — auto-flush should fire on `turn-end`.
+// polluted). Traces every send/setQueuedText/tryFlush decision. Loaded when
+// investigating queue items that do not drain after provider lifecycle edges.
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
 const dRecall = createDebug("silvercode:recall")
@@ -380,11 +380,9 @@ export type Controller = {
   lastSpawnError(): string | null
   onSpawnError(handler: (message: string | null) => void): () => void
   /**
-   * Send a user message. If the session is currently NOT idle (Claude is
-   * thinking / running a tool / waiting for permission), the text is
-   * appended to a queue buffer and the whole buffer is submitted as ONE
-   * user message when Claude returns to idle — matches Claude Code's
-   * batching behaviour.
+   * Send a user message. If the session runtime cannot accept another prompt
+   * yet, the text is appended to the queue buffer and the whole buffer is
+   * submitted as ONE user message when the runtime becomes writable again.
    */
   send(sessionId: string, text: string): void
   /** Current queue buffer for a session. Empty string when none. */
@@ -396,13 +394,10 @@ export type Controller = {
   /** Drop the queue (Esc-to-cancel on empty input). */
   clearQueue(sessionId: string): void
   /**
-   * Force-flush the queue buffer NOW, regardless of idle status. Used by
-   * the queue editor when the user explicitly submits (Enter in the queue
-   * region). Bypasses the `status === "idle"` gate that the notification
-   * auto-flush path uses, because the user's explicit submit is its own
-   * signal — Claude Code's CLI buffers stdin if Claude is mid-turn, so
-   * sending a queued user message during a turn is safe and lands as the
-   * next turn's input. No-op if the queue is empty.
+   * Force-flush the queue buffer NOW when there is no unacknowledged local
+   * start. Used by the queue editor when the user explicitly submits (Enter
+   * in the queue region). This bypasses the focus guard. No-op if the queue
+   * is empty.
    */
   flushQueue(sessionId: string): void
   /**
@@ -768,20 +763,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     for (const fn of spawnErrorSubs) fn(message)
   }
 
-  // Per-session message queue — single string buffer so the on-screen
-  // queue editor can bind a TextArea to it directly. We only auto-queue
-  // when the provider cannot accept another prompt yet: the previous
-  // stdin write has not been acknowledged by any backend event, or the
-  // backend protocol is single-flight (ACP).
-  //
-  // Option B model: the queue TextArea is ALWAYS live (no editor mode,
-  // no "hold" state). Auto-flush drains as soon as the transport is
-  // sendable; explicit submit (Enter in queue region) bypasses the
-  // auto-focus guard but still waits for the transport ack window.
-  const queues = new Map<string, string>()
+  // Per-session turn owners. Each owner is the single place that knows
+  // whether a prompt should start now, stay queued, or wait for provider
+  // acknowledgement. The on-screen queue editor still sees a single string
+  // buffer, but the runtime owner owns backpressure and lifecycle edges.
   const queueSubs = new Set<(sessionId: string, text: string) => void>()
-  type OutboundTurnState = { readonly kind: "awaiting-backend-ack" }
-  const outboundTurns = new Map<string, OutboundTurnState>()
+  const turnOwners = new Map<string, TurnOwner>()
   let localUserTurnSeq = 0
 
   // Recall probe wiring — per-session bookkeeping. We probe recall
@@ -902,87 +889,34 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     }
     queue.set(requestId, decision)
   }
-  function notifyQueue(sessionId: string): void {
-    const t = queues.get(sessionId) ?? ""
-    for (const fn of queueSubs) fn(sessionId, t)
-  }
-  function outboundState(sessionId: string): OutboundTurnState | undefined {
-    return outboundTurns.get(sessionId)
-  }
-  function hasOutbound(sessionId: string): boolean {
-    return outboundState(sessionId) !== undefined
-  }
-  function acceptsPromptWhileBusy(session: AgentSession): boolean {
+  function acceptsInputWhileActive(session: AgentSession): boolean {
     // This is a Silvercode transport rule, not an ACP capability. The
     // stream-json stdin adapters can accept another prompt once the
     // previous write has reached the backend; ACP remains request/response
     // single-flight until the protocol advertises otherwise.
     return !isAcpSession(session)
   }
-  function canSubmitNow(handle: SessionHandle): boolean {
-    if (hasOutbound(handle.id)) return false
-    const status = handle.store.state.get().status
-    if (status === "idle" || status === "ended") return true
-    if (!acceptsPromptWhileBusy(handle.session)) return false
-    return status === "thinking" || status === "tool-running"
-  }
-  function markOutboundSent(sessionId: string): void {
-    outboundTurns.set(sessionId, { kind: "awaiting-backend-ack" })
-    dQueue("outbound %s — gate armed", sessionId)
-  }
-  function acknowledgeOutbound(sessionId: string, reason: string): boolean {
-    const state = outboundState(sessionId)
-    if (state?.kind !== "awaiting-backend-ack") return false
-    outboundTurns.delete(sessionId)
-    dQueue("outbound %s — gate acknowledged by %s", sessionId, reason)
-    return true
-  }
-  function clearOutboundTurn(sessionId: string, turnId: TurnId): void {
-    if (!outboundTurns.delete(sessionId)) return
-    dQueue("outbound %s — gate cleared for turn %s", sessionId, turnId)
-  }
-  function clearUnstartedOutbound(sessionId: string): void {
-    const state = outboundState(sessionId)
-    if (state?.kind !== "awaiting-backend-ack") return
-    outboundTurns.delete(sessionId)
-    dQueue("outbound %s — unstarted gate cleared", sessionId)
-  }
-  function clearOutbound(sessionId: string): void {
-    if (!outboundTurns.delete(sessionId)) return
-    dQueue("outbound %s — gate cleared", sessionId)
-  }
-  function isOutboundAckEvent(event: AgentEvent): boolean {
-    switch (event.kind) {
-      case "session-init":
-      case "turn-start":
-      case "text-delta":
-      case "thinking-delta":
-      case "tool-use":
-      case "tool-result":
-      case "permission-request":
-      case "liveness-check":
-      case "assistant-message":
-      case "user-message":
-      case "raw-transcript":
-      case "status":
-      case "plan-update":
-      case "slash-commands-update":
-      case "km-reference":
-        return true
-      case "turn-end":
-      case "permission-decision":
-      case "session-end":
-      case "handoff":
-      case "session-lifecycle":
-      case "error":
-        return false
+  function turnOwnerFor(handle: SessionHandle): TurnOwner {
+    let owner = turnOwners.get(handle.id)
+    if (!owner) {
+      owner = createTurnOwner({ acceptsInputWhileActive: acceptsInputWhileActive(handle.session) })
+      turnOwners.set(handle.id, owner)
     }
+    return owner
+  }
+  function turnOwnerForSessionId(sessionId: string): TurnOwner | undefined {
+    const handle = sessions.find((h) => h.id === sessionId)
+    if (handle) return turnOwnerFor(handle)
+    return turnOwners.get(sessionId)
+  }
+  function notifyQueue(sessionId: string): void {
+    const t = turnOwnerForSessionId(sessionId)?.queuedText() ?? ""
+    for (const fn of queueSubs) fn(sessionId, t)
   }
 
   function dispatchUserTurn(s: SessionHandle, sessionId: string, text: string): void {
     recordUserPromptForRecall(sessionId, text)
     const ts = Date.now()
-    const statusBeforeSend = s.store.state.get().status
     if (s.metadata.resumeId && s.metadata.liveStartedAt === undefined) s.metadata.liveStartedAt = ts
     const turnId = `u-${ts}-${++localUserTurnSeq}` as TurnId
     s.store.apply({
@@ -992,25 +926,22 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       text,
       ts,
     })
-    if (statusBeforeSend === "idle" || statusBeforeSend === "ended" || !acceptsPromptWhileBusy(s.session)) {
-      markOutboundSent(sessionId)
-    }
     try {
       s.session.send(text)
     } catch (err) {
-      clearUnstartedOutbound(sessionId)
+      turnOwnerFor(s).abandonPendingStart()
       throw err
     }
   }
   /**
-   * Flush the queue buffer to Claude as one user turn, then clear.
+   * Flush the queue buffer as one user turn, then clear.
    *
    * Two callers, two semantics:
-   *  - Auto-flush (`force=false`): no-op until the transport is sendable,
-   *    and the queue editor is not actively focused.
-   *  - Force-flush (`force=true`): bypasses the queue-focus guard. It
-   *    still waits for the previous stdin write's backend ack so we never
-   *    stack multiple unacknowledged writes.
+   *  - Auto-flush (`force=false`): no-op until the turn owner says the
+   *    transport is writable and the queue editor is not actively focused.
+   *  - Force-flush (`force=true`): bypasses the queue-focus guard. It still
+   *    waits for any unacknowledged local start so we never stack writes
+   *    before the backend has seen the previous prompt.
    *
    * Always no-op if the queue is empty.
    */
@@ -1020,17 +951,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       dQueue("tryFlush %s force=%s — no handle", sessionId, force)
       return
     }
-    if (force && outboundState(sessionId)?.kind === "awaiting-backend-ack") {
-      dQueue("tryFlush %s force=%s — outbound awaiting backend ack, skip", sessionId, force)
-      return
-    }
     if (!force) {
-      if (!canSubmitNow(s)) {
-        const status = s.store.state.get().status
-        const outbound = outboundState(sessionId)?.kind ?? "none"
-        dQueue("tryFlush %s — status=%s outbound=%s, skip", sessionId, status, outbound)
-        return
-      }
       // Focus guard — if the user has moved the cursor INTO the queue
       // region (editing / reordering queued entries), don't yank their
       // draft mid-edit. Auto-flush will fire on the NEXT turn-end after
@@ -1043,15 +964,16 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         return
       }
     }
-    const text = queues.get(sessionId) ?? ""
-    if (text.length === 0) {
-      dQueue("tryFlush %s force=%s — queue empty, skip", sessionId, force)
+    const owner = turnOwnerFor(s)
+    const queuedLength = owner.queuedText().length
+    const decision = owner.flushQueue({ force })
+    if (decision.kind === "noop") {
+      dQueue("tryFlush %s force=%s — %s, skip", sessionId, force, decision.reason)
       return
     }
-    dQueue("tryFlush %s force=%s — FLUSHING %d chars", sessionId, force, text.length)
-    queues.set(sessionId, "")
+    dQueue("tryFlush %s force=%s — flushing %d chars", sessionId, force, queuedLength)
     notifyQueue(sessionId)
-    dispatchUserTurn(s, sessionId, text)
+    dispatchUserTurn(s, sessionId, decision.text)
   }
   function notifyFocus(): void {
     for (const fn of focusSubs) fn(focusedId)
@@ -1505,6 +1427,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
     let log: EventLog | undefined
     if (opts.logDir) log = createFileEventLog(opts.logDir)
+    turnOwners.set(id, createTurnOwner({ acceptsInputWhileActive: acceptsInputWhileActive(session) }))
 
     const unsub = session.subscribe((event: AgentEvent) => {
       // Drop stream events for an interrupted turn — the user already saw
@@ -1548,7 +1471,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
             completeJob(id, turnId, "completed")
           }
           backgroundedTurnIds.get(id)?.delete(turnId)
-          clearOutboundTurn(id, turnId as TurnId)
+          turnOwnerForSessionId(id)?.observeProviderEvent(event)
         } else if (event.kind === "error") {
           // Don't terminate the job on every error — the harness emits
           // recoverable errors too. Only flip if the next event is turn-end
@@ -1583,22 +1506,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         }
       }
 
-      let outboundAcknowledged = false
-      if (isOutboundAckEvent(event)) {
-        outboundAcknowledged = acknowledgeOutbound(id, event.kind)
-      }
-      if (event.kind === "turn-end") {
-        clearOutboundTurn(id, event.turnId)
-      } else if (event.kind === "session-end" || (event.kind === "session-lifecycle" && event.state === "ended")) {
-        clearOutbound(id)
-      } else if (event.kind === "error") {
-        clearUnstartedOutbound(id)
-      }
-
-      // Flush when a pending stdin write is acknowledged by backend
-      // activity, or on terminal lifecycle edges. The whole queue still
-      // goes as ONE turn.
-      if (outboundAcknowledged || event.kind === "turn-end" || event.kind === "session-lifecycle") {
+      const turnObservation = turnOwnerForSessionId(id)?.observeProviderEvent(event)
+      // Flush when the runtime owner observes backend acknowledgement or a
+      // lifecycle edge where queued text may now be admissible. The whole
+      // queue still goes as ONE turn.
+      if (turnObservation?.shouldRetryQueue) {
         dQueue("subscribe %s — event=%s, calling tryFlush", id, event.kind)
         tryFlush(id)
       }
@@ -1765,51 +1677,47 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     send(sessionId: string, text: string): void {
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
-      // Non-sendable → append to buffer and let tryFlush drain once the
-      // transport is ready. The extra outbound gate covers the gap
-      // between stdin write and the first provider response event, when
-      // the store still reports idle but another user turn is already in
-      // flight.
-      if (!canSubmitNow(s)) {
-        const prev = queues.get(sessionId) ?? ""
-        const next = prev ? `${prev}\n\n${text}` : text
-        queues.set(sessionId, next)
+      const owner = turnOwnerFor(s)
+      const decision = owner.submitUserText(text)
+      if (decision.kind === "queued") {
         notifyQueue(sessionId)
-        const status = s.store.state.get().status
-        const outbound = outboundState(sessionId)?.kind ?? "none"
-        dQueue("send %s — queued (status=%s outbound=%s len=%d)", sessionId, status, outbound, next.length)
+        dQueue(
+          "send %s — queued (phase=%s pendingStart=%s len=%d)",
+          sessionId,
+          owner.phase(),
+          owner.hasPendingStart(),
+          decision.text.length,
+        )
         return
       }
-      // Idle + no hold → send immediately, but include any pending queue
-      // text (edited or auto-queued earlier) as part of the same turn.
-      const pending = queues.get(sessionId) ?? ""
-      const combined = pending ? `${pending}\n\n${text}` : text
-      queues.set(sessionId, "")
+      if (decision.kind === "noop") {
+        dQueue("send %s — %s, skip", sessionId, decision.reason)
+        return
+      }
       notifyQueue(sessionId)
-      dispatchUserTurn(s, sessionId, combined)
+      dispatchUserTurn(s, sessionId, decision.text)
     },
     queuedText(sessionId: string): string {
-      return queues.get(sessionId) ?? ""
+      return turnOwnerForSessionId(sessionId)?.queuedText() ?? ""
     },
     setQueuedText(sessionId: string, text: string): void {
-      if (text === (queues.get(sessionId) ?? "")) return
-      queues.set(sessionId, text)
+      const owner = turnOwnerForSessionId(sessionId)
+      if (!owner?.setQueuedText(text)) return
       notifyQueue(sessionId)
     },
     onQueueChange(handler: (sessionId: string, text: string) => void): () => void {
       queueSubs.add(handler)
-      for (const [sid, t] of queues) handler(sid, t)
+      for (const [sid, owner] of turnOwners) handler(sid, owner.queuedText())
       return () => queueSubs.delete(handler)
     },
     clearQueue(sessionId: string): void {
-      if (!queues.get(sessionId)) return
-      queues.set(sessionId, "")
+      const owner = turnOwnerForSessionId(sessionId)
+      if (!owner?.clearQueue()) return
       notifyQueue(sessionId)
     },
     flushQueue(sessionId: string): void {
-      // Explicit user-initiated submit — bypasses the idle gate. Claude
-      // Code's CLI buffers stdin while mid-turn, so the message lands as
-      // the next turn's input.
+      // Explicit user-initiated submit. The turn owner still enforces
+      // transport backpressure; this only bypasses the focus guard.
       dQueue("flushQueue %s — explicit submit", sessionId)
       tryFlush(sessionId, true)
     },
@@ -2021,6 +1929,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           reportCloseFailure(s, err)
         }
         s.unsubscribe()
+        turnOwners.delete(s.id)
         // Drop the session from cross-agent state too — releases any
         // claims it held so peers don't see ghost holders.
         crossAgentState.removeSession(s.id)
@@ -2108,14 +2017,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       })
     },
     popQueueHead(sessionId: string): string {
-      const text = queues.get(sessionId) ?? ""
+      const owner = turnOwnerForSessionId(sessionId)
+      const text = owner?.queuedText() ?? ""
       if (text.length === 0) return ""
       // Wire format: entries joined by `\n\n`. Pop the first entry and
       // leave the rest in the queue.
       const sepIdx = text.indexOf("\n\n")
       const head = sepIdx >= 0 ? text.slice(0, sepIdx) : text
       const rest = sepIdx >= 0 ? text.slice(sepIdx + 2) : ""
-      queues.set(sessionId, rest)
+      owner?.setQueuedText(rest)
       notifyQueue(sessionId)
       return head
     },

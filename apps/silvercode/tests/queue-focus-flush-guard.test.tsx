@@ -20,6 +20,7 @@ import { createSilvercodeController } from "../src/controller.ts"
 import { createFakeSession } from "../src/test/fake-session.ts"
 
 const SESSION = "fake-focus-guard" as SessionId
+const ACTIVE_STATE = "thinking"
 
 function initEvent(): AgentEvent {
   return {
@@ -68,7 +69,7 @@ describe("layer 3: queue auto-flush focus guard", () => {
 
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     // User has typed entries into the always-live queue TextArea while
     // Claude is mid-turn, then moved focus INTO the queue region to

@@ -6,9 +6,8 @@
  *   replaySessionFromDisk feeds JSONL events into SessionStore. JSONL
  *   contains `assistant` / `user` / `tool_result` entries — but NOT the
  *   `result` event that emits `session-end`, and NOT the `message_delta`
- *   that emits `turn-end`. The session-store applies tool-result → status
- *   = "thinking" and assistant-message → no status change. After replay,
- *   status is stuck at "thinking" or "tool-running".
+ *   that emits `turn-end`. The historical replay can leave the store in a
+ *   non-idle active/tool state.
  *
  *   Then controller.send() checks status — non-idle → message goes into
  *   queue buffer. tryFlush() only fires on turn-end events. Without a
@@ -82,8 +81,8 @@ function writeFakeTranscript(cwd: string, sessionId: string): void {
       },
       sessionId,
     }),
-    // Tool result — sets status to "thinking" in session-store. This is
-    // the trap: tool-result is the LAST status-changing event in many
+    // Tool result — leaves the session active in the store. This is
+    // the trap: tool-result is the LAST lifecycle-changing event in many
     // real transcripts because the next assistant message with the
     // analysis is `assistant text` (which doesn't change status).
     JSON.stringify({

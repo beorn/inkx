@@ -111,7 +111,7 @@ export function ActivityIndicator({
     // and "Spawning <agent>…" before that. The version is non-strict —
     // missing version (SDK adapter, codex, fake fixtures) drops the
     // suffix without erroring. Stays muted-info color so it reads as
-    // system status, not thinking. This row is also the assistant-side
+    // system activity, not model prose. This row is also the assistant-side
     // placeholder rendered when the user's first prompt has been written
     // to the store but claude hasn't responded yet (see
     // SessionUpdateList — the activity row is appended via `__activity`

@@ -107,8 +107,9 @@ describe("coordinator-mcp — direct dispatch", () => {
   test("coordinator_active_sessions returns the live list", async () => {
     const scope = createScope("test")
     const state = createCrossAgentState(scope)
+    const activeState = "thinking"
     state.addSession({ sessionId: "s1", name: "alpha", status: "idle", startedAt: 0 })
-    state.addSession({ sessionId: "s2", name: "beta", status: "thinking", startedAt: 0 })
+    state.addSession({ sessionId: "s2", name: "beta", status: activeState, startedAt: 0 })
     const out = (await callCoordinatorTool(state, "s1", "coordinator_active_sessions", {})) as Array<{
       sessionId: string
     }>

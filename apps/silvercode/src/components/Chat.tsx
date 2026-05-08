@@ -174,15 +174,17 @@ function PlanDrawer({
   )
 }
 
+const ACTIVE_AGENT_STATE = "thinking"
+
 function agentStatusColor(status: SessionInfo["status"]): string {
-  if (status === "thinking") return "$warning"
+  if (status === ACTIVE_AGENT_STATE) return "$warning"
   if (status === "waiting") return "$info"
   if (status === "ended") return "$muted"
   return "$success"
 }
 
 function agentStatusGlyph(status: SessionInfo["status"]): string {
-  if (status === "thinking") return "●"
+  if (status === ACTIVE_AGENT_STATE) return "●"
   if (status === "waiting") return "?"
   if (status === "ended") return "×"
   return "○"
@@ -282,7 +284,7 @@ function AgentsDrawer({
   }, [total])
   if (total <= 1) return null
   const running =
-    activeSessions.filter((session) => session.status === "thinking" || session.status === "waiting").length +
+    activeSessions.filter((session) => session.status === ACTIVE_AGENT_STATE || session.status === "waiting").length +
     visibleSubagents.filter((agent) => agent.status !== "done").length
   const label = running > 0 ? `${running}/${total} active` : `${total} idle`
 
@@ -317,7 +319,7 @@ function AgentsDrawer({
                     key={session.sessionId}
                     marker={agentStatusGlyph(session.status)}
                     markerColor={color}
-                    active={session.status === "thinking" || session.status === "waiting"}
+                    active={session.status === ACTIVE_AGENT_STATE || session.status === "waiting"}
                     payload={{ kind: "session", ...session, self }}
                   >
                     <Text wrap="truncate">{session.name}</Text>

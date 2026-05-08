@@ -149,16 +149,17 @@ describe("cross-agent-state — sessions", () => {
   test("addSession is idempotent; updates name/model on re-add but preserves startedAt", () => {
     const scope = createScope("test")
     const state = createCrossAgentState(scope, { now: () => 100 })
+    const activeState = "thinking"
 
     state.addSession({ sessionId: "s1", name: "alpha", status: "idle", startedAt: 100 })
-    state.addSession({ sessionId: "s1", name: "alpha-renamed", status: "thinking", startedAt: 999, model: "opus" })
+    state.addSession({ sessionId: "s1", name: "alpha-renamed", status: activeState, startedAt: 999, model: "opus" })
 
     const list = state.activeSessions()
     expect(list).toHaveLength(1)
     expect(list[0]?.name).toBe("alpha-renamed")
     expect(list[0]?.startedAt).toBe(100) // preserved
     expect(list[0]?.model).toBe("opus")
-    expect(list[0]?.status).toBe("thinking")
+    expect(list[0]?.status).toBe(activeState)
   })
 
   test("removeSession drops the session AND releases its claims", () => {

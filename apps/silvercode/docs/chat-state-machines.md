@@ -2,7 +2,7 @@
 
 Silvercode state changes are closed transitions over the domain model in
 `chat-session-model.md`. Runtime code should not derive lifecycle from scattered
-booleans, output gates, or UI rows. Every important transition has one owner and
+booleans, transport latches, or UI rows. Every important transition has one owner and
 one illegal-transition policy.
 
 ```text

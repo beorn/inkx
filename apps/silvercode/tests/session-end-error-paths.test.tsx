@@ -24,6 +24,7 @@ import { sessionEndError, sessionEndGraceful } from "../src/test/scripts/session
 import { summarizeErrorMessage } from "../src/components/Notifications.tsx"
 
 const SESSION = "fake-end-session" as SessionId
+const ACTIVE_STATE = "thinking"
 
 function turnStart(turnId: string, baseTs = 1010): AgentEvent {
   return { kind: "turn-start", sessionId: SESSION, turnId: turnId as TurnId, role: "assistant", ts: baseTs }
@@ -135,7 +136,7 @@ describe("layer 3: session-end (error)", () => {
     controller.closeAll()
   })
 
-  test("injectError mid-turn does NOT transition status away from 'thinking'", async () => {
+  test("injectError mid-turn preserves the active lifecycle label", async () => {
     // Errors emitted while the session is still streaming must surface
     // without auto-ending the session — only an explicit session-end
     // (or session-lifecycle:ended) flips status to "ended".
@@ -150,12 +151,12 @@ describe("layer 3: session-end (error)", () => {
 
     fake.emit(sessionEndError[0]!) // session-init
     fake.emit(turnStart("a1"))
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     fake.injectError("transient API error")
     // Still mid-turn. (The session-store treats `error` events as
     // observability data, not as a status driver.)
-    expect(handle.store.state.get().status).toBe("thinking")
+    expect(handle.store.state.get().status).toBe(ACTIVE_STATE)
 
     // Recover with a normal turn-end — back to idle.
     fake.emit(turnEnd("a1"))

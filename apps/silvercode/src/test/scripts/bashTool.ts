@@ -3,8 +3,7 @@
  * status) → tool_result → assistant text → turn-end.
  *
  * Exercises the tool-use / tool-result pairing in the session store. Useful
- * for testing ToolCall rendering and turn status transitions (thinking
- * → tool-running → thinking → idle).
+ * for testing ToolCall rendering and active/tool/idle transitions.
  */
 
 import type { AgentEvent, SessionId, ToolUseId, TurnId } from "@km/agent-harness"

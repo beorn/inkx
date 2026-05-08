@@ -138,7 +138,7 @@ Ordering contract:
 - Channel-queue events fan out into `recordBroadcast` so the projection
   slice has visibility into recent peer activity even when individual
   sessions don't auto-drain the channel queue.
-- Coarse session status (idle / thinking / ended) is mirrored from the
+- Coarse session state (idle / active / ended) is mirrored from the
   per-session SessionStore so peers see "what is this session up to right
   now" without subscribing to per-session events.
 
