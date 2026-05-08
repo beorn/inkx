@@ -16,7 +16,12 @@
 
 import React from "react"
 import { Box, Muted, Text } from "@silvery/ag-react"
-import { type AutolinkDetection, type AutolinkPreviewKind, resolvePreview } from "@km/autolinks"
+import {
+  type AutolinkDetection,
+  type AutolinkPreviewKind,
+  type PreviewResult,
+  type PreviewRuntime,
+} from "@km/autolinks"
 import type { PopoverContent } from "../views/Popover.tsx"
 
 /** Preview kinds whose body is markdown source — render with newline preservation. */
@@ -54,7 +59,7 @@ function safeParseCommand(s: string): { exec: string; args: string[] } | undefin
  * actually shows (which already has its own dwell delay), so passive
  * detection-rendering does no I/O.
  */
-export function autolinkPopoverContent(d: AutolinkDetection): PopoverContent {
+export function autolinkPopoverContent(d: AutolinkDetection, previewRuntime: PreviewRuntime): PopoverContent {
   const isVirtual = d.payload.virtual === "1" || d.payload.source === "<virtual:plain-url>"
   const resolvesTo = d.payload.resolves_to ?? d.match
   const preview = (d.payload.preview ?? "readme") as AutolinkPreviewKind | string
@@ -78,7 +83,7 @@ export function autolinkPopoverContent(d: AutolinkDetection): PopoverContent {
   return {
     lines: [{ text: d.match, bold: true }],
     maxWidth: 60,
-    render: () => <AutolinkPopoverBody detection={d} />,
+    render: () => <AutolinkPopoverBody detection={d} previewRuntime={previewRuntime} />,
   }
 }
 
@@ -91,20 +96,26 @@ export function autolinkPopoverContent(d: AutolinkDetection): PopoverContent {
  * narrow). For shell/mcp/unknown kinds we show a structural summary — actual
  * subprocess execution is deferred to a later iteration of this bead.
  */
-function AutolinkPopoverBody({ detection: d }: { detection: AutolinkDetection }): React.ReactElement {
+function AutolinkPopoverBody({
+  detection: d,
+  previewRuntime,
+}: {
+  detection: AutolinkDetection
+  previewRuntime: PreviewRuntime
+}): React.ReactElement {
   const resolvesTo = d.payload.resolves_to ?? d.match
   const preview = (d.payload.preview ?? "readme") as AutolinkPreviewKind | string
   const cacheKey = d.payload.cache_key ?? d.match
   const commandJson = d.payload.command
   const command = commandJson ? safeParseCommand(commandJson) : undefined
 
-  // Side-effect-free preview kinds: invoke the resolver. resolvePreview owns
-  // its own cache + 30s TTL, so re-renders during the popover's lifetime hit
-  // the cache instead of re-reading the file.
-  let result: ReturnType<typeof resolvePreview> | null = null
+  // Side-effect-free preview kinds: invoke the resolver. The provider-owned
+  // runtime owns cache + 30s TTL, so re-renders during the popover's
+  // lifetime hit the session-local cache instead of re-reading the file.
+  let result: PreviewResult | null = null
   if (preview === "readme" || preview === "first-paragraph") {
     try {
-      result = resolvePreview({ preview, resolvesTo, cacheKey, command })
+      result = previewRuntime.resolvePreview({ preview, resolvesTo, cacheKey, command })
     } catch {
       result = null
     }

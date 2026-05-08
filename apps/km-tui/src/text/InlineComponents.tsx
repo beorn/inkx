@@ -260,6 +260,7 @@ function AutolinkedPlainText({ text }: { text: string }): React.ReactElement {
  */
 function AutolinkSpan({ detection: d }: { detection: AutolinkDetection }): React.ReactElement {
   const popover = usePopover()
+  const { previewRuntime } = useAutolinks()
 
   // Bind on each render so we always reach the latest popover store actions.
   // popover is a snapshot of `store.getState()` — its `show/hide` refs are
@@ -267,9 +268,9 @@ function AutolinkSpan({ detection: d }: { detection: AutolinkDetection }): React
   const onMouseEnter = React.useCallback(
     (e: SilveryMouseEvent) => {
       if (!popover) return
-      popover.show(autolinkPopoverContent(d), { x: e.clientX ?? e.x, y: e.clientY ?? e.y })
+      popover.show(autolinkPopoverContent(d, previewRuntime), { x: e.clientX ?? e.x, y: e.clientY ?? e.y })
     },
-    [popover, d],
+    [popover, d, previewRuntime],
   )
 
   const onMouseLeave = React.useCallback(() => {

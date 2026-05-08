@@ -1,25 +1,28 @@
 /**
- * AutolinksContext — threads loaded autolink rules down to <InlinePlainText/>.
+ * AutolinksContext — threads loaded autolink rules + preview runtime down
+ * to <InlinePlainText/>.
  *
  * Mirrors the pattern in silvercode's AutolinksContext.tsx: a single
  * <AutolinksProvider rules={…}> at app startup, consumed by the inline
  * renderer via `useAutolinks()` to detect rule-driven patterns inside
  * plain-text runs.
  *
- * Consumers that aren't wrapped in a provider get an empty rule list —
- * autolinks gracefully degrade to "no extra detections" rather than
- * crashing. That keeps tests, isolated harnesses, and the non-interactive
- * CLI path (which doesn't load config) all happy.
+ * Consumers that aren't wrapped in a provider get an empty rule list and
+ * an idle preview runtime — autolinks gracefully degrade to "no extra
+ * detections" rather than crashing. That keeps tests, isolated harnesses,
+ * and the non-interactive CLI path (which doesn't load config) all happy.
  */
 
-import React, { createContext, useContext, useMemo } from "react"
-import type { AutolinkRule } from "@km/autolinks"
+import React, { createContext, useContext, useEffect, useMemo } from "react"
+import { createPreviewRuntime, type AutolinkRule, type PreviewRuntime } from "@km/autolinks"
 
 export type AutolinksContextValue = {
   readonly rules: readonly AutolinkRule[]
+  readonly previewRuntime: PreviewRuntime
 }
 
-const EMPTY: AutolinksContextValue = { rules: [] }
+const EMPTY_RUNTIME = createPreviewRuntime()
+const EMPTY: AutolinksContextValue = { rules: [], previewRuntime: EMPTY_RUNTIME }
 
 const AutolinksCtx = createContext<AutolinksContextValue>(EMPTY)
 
@@ -37,6 +40,12 @@ export function AutolinksProvider({
   // Memoize the value object so consumers don't re-render every time
   // the App re-renders. Rules are loaded once at startup; their identity
   // is stable across the session.
-  const value = useMemo<AutolinksContextValue>(() => ({ rules }), [rules])
+  const previewRuntime = useMemo(() => createPreviewRuntime(), [])
+  const value = useMemo<AutolinksContextValue>(
+    () => ({ rules, previewRuntime }),
+    [rules, previewRuntime],
+  )
+  useEffect(() => () => previewRuntime.dispose(), [previewRuntime])
+
   return <AutolinksCtx.Provider value={value}>{children}</AutolinksCtx.Provider>
 }

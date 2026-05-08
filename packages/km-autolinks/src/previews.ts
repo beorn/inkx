@@ -72,14 +72,6 @@ export type PreviewError = {
 
 export type PreviewResult = PreviewSuccess | PreviewError
 
-/**
- * Module-scoped cache. Keyed by `${preview}::${cache_key}` so the same
- * resolves_to under different preview kinds doesn't collide.
- *
- * Exposed via `clearPreviewCache()` for tests. Production code never
- * resets it manually — file-backed entries evict on fs.watch change events or
- * backing-file stamp mismatch; shell-out entries expire on TTL.
- */
 type FileStamp = {
   readonly path: string
   readonly mtimeMs: number
@@ -90,8 +82,6 @@ type CacheEntry = {
   readonly result: PreviewResult
   readonly file?: FileStamp
 }
-
-const cache = new Map<string, CacheEntry>()
 
 /**
  * Per-cache-key fs.watch handles. When a file-backed preview is cached,
@@ -110,10 +100,31 @@ type PreviewRuntimeState = {
   readonly watchers: Map<string, WatcherEntry>
 }
 
+export type PreviewResolveArgs = {
+  /**
+   * The user-facing preview kind from the source rule, OR a synthetic kind
+   * used for virtual detections (e.g. `"https"` for plain URLs in messages).
+   * Synthetic kinds are routed by URI scheme alone; the value is NOT parsed
+   * back into an `AutolinkPreviewKind` enum.
+   */
+  preview: AutolinkPreviewKind | string
+  resolvesTo: string
+  cacheKey: string
+  /**
+   * Required for `preview === "shell"` — the structured command spec.
+   * Each `args[i]` has `${resolves_to}` substituted at token level (never
+   * concatenated into a shell string). Ignored for other kinds.
+   */
+  command?: { readonly exec: string; readonly args: readonly string[] }
+  /**
+   * Override `now()` for tests. Production callers omit it.
+   */
+  now?: () => number
+}
+
 export type PreviewRuntime = {
-  resolvePreview(args: Parameters<typeof resolvePreview>[0]): PreviewResult
-  clearPreviewCache(): void
-  disposeAllWatchers(): void
+  resolvePreview(args: PreviewResolveArgs): PreviewResult
+  clearCache(): void
   activeWatcherCount(): number
   dispose(): void
 }
@@ -125,8 +136,7 @@ function createPreviewRuntimeState(): PreviewRuntimeState {
   }
 }
 
-const defaultRuntimeState: PreviewRuntimeState = { cache, watchers: new Map<string, WatcherEntry>() }
-const watchers = defaultRuntimeState.watchers
+const defaultRuntimeState: PreviewRuntimeState = createPreviewRuntimeState()
 
 export function createPreviewRuntime(): PreviewRuntime {
   const state = createPreviewRuntimeState()
@@ -134,11 +144,8 @@ export function createPreviewRuntime(): PreviewRuntime {
     resolvePreview(args) {
       return resolvePreviewWithState(state, args)
     },
-    clearPreviewCache() {
+    clearCache() {
       state.cache.clear()
-      disposeAllWatchersForState(state)
-    },
-    disposeAllWatchers() {
       disposeAllWatchersForState(state)
     },
     activeWatcherCount() {
@@ -170,7 +177,7 @@ function sameFileStamp(a: FileStamp, b: FileStamp | null): boolean {
   return a.path === b?.path && a.mtimeMs === b.mtimeMs && a.size === b.size
 }
 
-/** Tear down every active fs.watch handle. Used by `clearPreviewCache()` and exposed for callers (e.g., `AutolinksProvider`) that want to dispose on unmount. */
+/** Compatibility wrapper for callers that have not adopted `createPreviewRuntime()` yet. */
 export function disposeAllWatchers(): void {
   disposeAllWatchersForState(defaultRuntimeState)
 }
@@ -248,34 +255,11 @@ function registerWatcher(state: PreviewRuntimeState, key: string, path: string):
  * Errors never throw — they're returned as `PreviewError` so the popover
  * can show a useful diagnostic instead of crashing the render tree.
  */
-export function resolvePreview(args: {
-  /**
-   * The user-facing preview kind from the source rule, OR a synthetic kind
-   * used for virtual detections (e.g. `"https"` for plain URLs in messages).
-   * Synthetic kinds are routed by URI scheme alone; the value is NOT parsed
-   * back into an `AutolinkPreviewKind` enum.
-   */
-  preview: AutolinkPreviewKind | string
-  resolvesTo: string
-  cacheKey: string
-  /**
-   * Required for `preview === "shell"` — the structured command spec.
-   * Each `args[i]` has `${resolves_to}` substituted at token level (never
-   * concatenated into a shell string). Ignored for other kinds.
-   */
-  command?: { readonly exec: string; readonly args: readonly string[] }
-  /**
-   * Override `now()` for tests. Production callers omit it.
-   */
-  now?: () => number
-}): PreviewResult {
+export function resolvePreview(args: PreviewResolveArgs): PreviewResult {
   return resolvePreviewWithState(defaultRuntimeState, args)
 }
 
-function resolvePreviewWithState(
-  state: PreviewRuntimeState,
-  args: Parameters<typeof resolvePreview>[0],
-): PreviewResult {
+function resolvePreviewWithState(state: PreviewRuntimeState, args: PreviewResolveArgs): PreviewResult {
   const now = args.now ?? Date.now
   const key = `${args.preview}::${args.cacheKey}`
   const t = now()
@@ -434,5 +418,5 @@ function encodeShellHost(value: string): string {
 
 /** Test-only: introspect active watcher count. */
 export function _activeWatcherCount(): number {
-  return watchers.size
+  return defaultRuntimeState.watchers.size
 }

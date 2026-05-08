@@ -1,6 +1,6 @@
 /**
- * AutolinksContext — threads loaded autolink rules + the preview cache
- * down to `<LinkifiedText/>`.
+ * AutolinksContext — threads loaded autolink rules + preview runtime down
+ * to `<LinkifiedText/>`.
  *
  * The context value is read-only from the consumer's perspective. The App
  * mounts a single `<AutolinksProvider rules={…}>` once at startup; any
@@ -11,22 +11,23 @@
  * crashing. That keeps tests, isolated harnesses, and the live-spawn path
  * (which doesn't load config) all happy.
  *
- * The provider also owns the lifecycle of the module-level fs.watch
- * handles registered by `previews.ts`. `useScopeEffect` schedules
- * `disposeAllWatchers()` on the App's root scope so watchers get torn
- * down when the App unmounts (or when SIGINT/SIGTERM disposes the
- * scope) — see `hub/silvery/design/lifecycle-scope.md`.
+ * The provider owns a session-local preview runtime. That runtime owns
+ * its cache, fs.watch handles, and debounce timers; `useScopeEffect`
+ * registers the runtime disposer on the App's root scope so one provider
+ * cannot clear another provider's preview state.
  */
 
 import React, { createContext, useContext, useMemo } from "react"
 import { useScopeEffect } from "silvery"
-import { disposeAllWatchers, type AutolinkRule } from "@km/autolinks"
+import { createPreviewRuntime, type AutolinkRule, type PreviewRuntime } from "@km/autolinks"
 
 export type AutolinksContextValue = {
   readonly rules: readonly AutolinkRule[]
+  readonly previewRuntime: PreviewRuntime
 }
 
-const EMPTY: AutolinksContextValue = { rules: [] }
+const EMPTY_RUNTIME = createPreviewRuntime()
+const EMPTY: AutolinksContextValue = { rules: [], previewRuntime: EMPTY_RUNTIME }
 
 const AutolinksCtx = createContext<AutolinksContextValue>(EMPTY)
 
@@ -44,14 +45,18 @@ export function AutolinksProvider({
   // Memoize the value object so consumers don't re-render every time the
   // App re-renders. Rules are loaded once at startup; their identity is
   // stable across the session.
-  const value = useMemo<AutolinksContextValue>(() => ({ rules }), [rules])
+  const previewRuntime = useMemo(() => createPreviewRuntime(), [])
+  const value = useMemo<AutolinksContextValue>(
+    () => ({ rules, previewRuntime }),
+    [rules, previewRuntime],
+  )
 
-  // Tear down preview fs.watch handles when the provider unmounts (or
-  // when the surrounding scope is disposed by SIGINT/SIGTERM). Empty
-  // deps — watchers live for the lifetime of the provider.
+  // Tear down preview fs.watch handles and debounce timers when the
+  // provider unmounts (or when the surrounding scope is disposed by
+  // SIGINT/SIGTERM). Empty deps for the runtime lifetime.
   useScopeEffect((scope) => {
-    scope.defer(() => disposeAllWatchers())
-  }, [])
+    scope.defer(() => previewRuntime.dispose())
+  }, [previewRuntime])
 
   return <AutolinksCtx.Provider value={value}>{children}</AutolinksCtx.Provider>
 }

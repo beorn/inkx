@@ -3,7 +3,7 @@ import { Box, Image, Muted, Prose, Text } from "silvery"
 import { detectReferences, type Detection } from "../detection.ts"
 import { useAutolinks } from "../AutolinksContext.tsx"
 import { useCwd } from "../CwdContext.tsx"
-import { detectAutolinks, mergeDetections, resolvePreview, type AutolinkPreviewKind } from "@km/autolinks"
+import { detectAutolinks, mergeDetections, type AutolinkPreviewKind, type PreviewRuntime } from "@km/autolinks"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { resolveDisplayPath } from "../utils/format-path.ts"
 import { LinkedTerm } from "./LinkedTerm.tsx"
@@ -36,13 +36,13 @@ function safeParseCommand(s: string): { exec: string; args: string[] } | undefin
   return undefined
 }
 
-function renderAutolinkPopover(d: Detection): React.ReactNode {
+function renderAutolinkPopover(d: Detection, previewRuntime: PreviewRuntime): React.ReactNode {
   const preview = (d.payload.preview ?? "readme") as AutolinkPreviewKind
   const resolvesTo = d.payload.resolves_to ?? ""
   const cacheKey = d.payload.cache_key ?? d.match
   const commandJson = d.payload.command
   const command = commandJson ? safeParseCommand(commandJson) : undefined
-  const result = resolvePreview({ preview, resolvesTo, cacheKey, command })
+  const result = previewRuntime.resolvePreview({ preview, resolvesTo, cacheKey, command })
   if (result.kind === "error") {
     return (
       <Box flexDirection="column">
@@ -111,7 +111,12 @@ function dataImageBuffer(d: Detection): Buffer | null {
   }
 }
 
-function renderPopoverContent(d: Detection, cwd: string, home: string | undefined): React.ReactNode {
+function renderPopoverContent(
+  d: Detection,
+  cwd: string,
+  home: string | undefined,
+  previewRuntime: PreviewRuntime,
+): React.ReactNode {
   switch (d.kind) {
     case "bead":
       return (
@@ -159,7 +164,7 @@ function renderPopoverContent(d: Detection, cwd: string, home: string | undefine
     // — the migration in `bd-km-silvercode.url-detection-via-handlers` removed
     // the dedicated `kind: "url"` branch in favor of the handler registry path.
     case "autolink":
-      return renderAutolinkPopover(d)
+      return renderAutolinkPopover(d, previewRuntime)
   }
 }
 
@@ -327,7 +332,7 @@ export function LinkifiedText({
   color?: string
   wrap?: "wrap" | "truncate" | "even"
 }): React.ReactElement {
-  const { rules } = useAutolinks()
+  const { rules, previewRuntime } = useAutolinks()
   const cwd = useCwd()
   // `process.env.HOME` is read once at render — stable across the session.
   const home = process.env["HOME"]
@@ -392,7 +397,7 @@ export function LinkifiedText({
               )
             }
             const href = hrefFor(d, cwd, home)
-            const popoverBody = renderPopoverContent(d, cwd, home)
+            const popoverBody = renderPopoverContent(d, cwd, home, previewRuntime)
             const visible = visibleLinkText(d)
             rowPieces.push(
               href ? (
@@ -438,7 +443,7 @@ export function LinkifiedText({
             )
           }
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return at line 366 guarantees non-empty
-          const firstPopoverBody = renderPopoverContent(lineDetections[0]!, cwd, home)
+          const firstPopoverBody = renderPopoverContent(lineDetections[0]!, cwd, home, previewRuntime)
           return (
             <PopoverRow key={lineIdx} popoverBody={firstPopoverBody}>
               {rowPieces}
@@ -476,7 +481,7 @@ export function LinkifiedText({
           //   - href == null  → in-app schemes (bd://, km://) where OSC 8
           //     can't help; keep the click-to-popover affordance.
           const href = hrefFor(d, cwd, home)
-          const popoverBody = renderPopoverContent(d, cwd, home)
+          const popoverBody = renderPopoverContent(d, cwd, home, previewRuntime)
           const visible = visibleLinkText(d)
           pieces.push(
             href ? (
