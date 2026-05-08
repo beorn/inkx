@@ -656,7 +656,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   }
 
   async function applyInitialConfigOptions(): Promise<void> {
-    const requested: Record<string, AcpSessionConfigValue> = { ...(opts.sessionConfig ?? {}) }
+    const requested: Record<string, AcpSessionConfigValue> = { ...opts.sessionConfig }
     if (opts.reasoningEffort && requested.reasoning_effort === undefined) {
       requested.reasoning_effort = opts.reasoningEffort
     }

@@ -39,7 +39,12 @@ import { createFakeSession, type ScriptedFakeSession } from "../src/test/fake-se
 import { installFakes } from "../src/test/fake-boundaries.ts"
 import { markdownRich } from "../src/test/scripts/markdownRich.ts"
 import { stressUnwrappable } from "../src/test/scripts/stressUnwrappable.ts"
-import { expectStableFirstVisibleContent, expectStableLayouts, pollTermlessFrames, recordRenderFrames } from "./lib/stability.ts"
+import {
+  expectStableFirstVisibleContent,
+  expectStableLayouts,
+  pollTermlessFrames,
+  recordRenderFrames,
+} from "./lib/stability.ts"
 
 const COLS = 120
 const ROWS = 40

@@ -73,15 +73,12 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
         item(`tabchild${i}_5`),
       )
 
-    using app = createTestApp(
-      item("board", item("col1", ...Array.from({ length: 20 }, (_, i) => tallCard(i)))),
-      {
-        rows: 15,
-        cols: 80,
-        incremental: true,
-        viewMode: "tabs",
-      },
-    )
+    using app = createTestApp(item("board", item("col1", ...Array.from({ length: 20 }, (_, i) => tallCard(i)))), {
+      rows: 15,
+      cols: 80,
+      incremental: true,
+      viewMode: "tabs",
+    })
 
     for (let i = 1; i <= 8; i++) {
       app.command("cursor_down")

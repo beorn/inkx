@@ -30,12 +30,15 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.ambient-context-excellence
+    target: "@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-compositio\
+      n/ambient-context-excellence"
 ---
 
 # [x] Phase 0: forensic-content quarantine + Layer-4 cleanup @km/silvercode #task #P0 @claude:4de4a3ab
 
-blocks:: [[@km/silvercode/ambient-context-excellence]]
+blocks:: [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/ambient-context-excellence]]
 
 See hub/silvercode/design/ambient-context-safety.md §4 Phase 0
+
+blocks:: [[@km/silvercode/ambient-context-excellence]]
 

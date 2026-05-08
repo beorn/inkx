@@ -247,10 +247,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   )
   const sessionIds = useMemo(() => sessions.map((session) => session.id), [sessions])
   const sessionIdsKey = sessionIds.join("\0")
-  const reconciledTree = useMemo(
-    () => reconcileTree(tree, sessionIds),
-    [sessionIdsKey, tree, sessionIds],
-  )
+  const reconciledTree = useMemo(() => reconcileTree(tree, sessionIds), [sessionIdsKey, tree, sessionIds])
   const visibleSessions = sessions.length === 0 ? [pendingSession] : sessions
   const visibleFocusedSessionId = sessions.length === 0 ? pendingSession.id : focusedSessionId
   const visibleTree: LayoutNode =

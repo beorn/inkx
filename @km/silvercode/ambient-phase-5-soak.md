@@ -18,12 +18,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.ambient-context-excellence
+    target: "@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-compositio\
+      n/ambient-context-excellence"
 ---
 
 # [ ] Phase 5 — 7-day Anthropic-only soak for ambient context @km/silvercode #task #P1
 
-blocks:: [[@km/silvercode/ambient-context-excellence]]
+blocks:: [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/ambient-context-excellence]]
 
 Operational plan: hub/silvercode/design/ambient-phase-5-soak.md.
 
@@ -71,4 +72,6 @@ REFERENCES:
 - Phase 1 baseline: docs/ambient-thesis-proof-2026-04-27.md (Anthropic 0/300 on Variant B).
 - Layer sources: apps/silvercode/src/ambient-sanitize.ts, apps/silvercode/src/transcript.ts.
 - Layer 4 hook: ~/.claude/hooks/detect-role-prefix.sh.
+
+blocks:: [[@km/silvercode/ambient-context-excellence]]
 

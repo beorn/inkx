@@ -238,7 +238,13 @@ function AgentDrawerRow({
   payload: unknown
 }): React.ReactElement {
   return (
-    <BlockInteraction detail={safeJson(payload)} language="json" maxWidth={90} canExpand={false} hoverBackground={false}>
+    <BlockInteraction
+      detail={safeJson(payload)}
+      language="json"
+      maxWidth={90}
+      canExpand={false}
+      hoverBackground={false}
+    >
       {({ surfaceProps, isHovered }) => {
         const rowBg = isHovered ? "$bg-surface-hover" : "$bg-surface-raised"
         return (

@@ -79,12 +79,13 @@ props:
       - type: link
         target: km-silvercode.acp-probe-runner
       - type: link
-        target: km-silvercode.acp-session-load
+        target: "@km/silvercode/agent-host-l5/03-thread-session-persistence-and-replay/\
+          acp-session-load"
 ---
 
 # [x] silvercode controller — route via connectAcpRegistry, add --agent CLI flag @km/silvercode #feature #P2 @claude:cd034ca4
 
-blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-probe-runner]], [[@km/silvercode/acp-session-load]]
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-probe-runner]], [[@km/silvercode/agent-host-l5/03-thread-session-persistence-and-replay/acp-session-load]]
 
 Replace the hardcoded `spawnClaude` in silvercode controller with registry-driven dispatch, exposing `--agent <id>` on the bin so users can switch backends.
 
@@ -112,4 +113,6 @@ Replace the hardcoded `spawnClaude` in silvercode controller with registry-drive
 ## Deps
 
 - @km/silvercode/acp-probe-runner (smoke-test the agents work before wiring UI)
+
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-probe-runner]], [[@km/silvercode/acp-session-load]]
 

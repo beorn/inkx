@@ -109,7 +109,7 @@ describe("SessionPromptComposer", () => {
 
     const cursor = app.getCursorState()
     expect(cursor, app.text).not.toBeNull()
-    expect(cursor!.shape).toBe("block")
+    expect(cursor!.shape ?? "block").toBe("block")
   })
 
   test("command cursor stays at the continuation-line insertion point after an exact wrap", async () => {

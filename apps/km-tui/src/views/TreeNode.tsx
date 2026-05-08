@@ -1535,9 +1535,7 @@ function NodeChildren({
 
   const useRevealList = maxVisibleRows !== undefined && maxVisibleRows > 0 && orderedChildren.length > maxVisibleRows
   if (useRevealList) {
-    const revealIndex = revealChildId
-      ? orderedChildren.findIndex((item) => item.node.id === revealChildId)
-      : -1
+    const revealIndex = revealChildId ? orderedChildren.findIndex((item) => item.node.id === revealChildId) : -1
 
     return (
       <Box flexDirection="column">

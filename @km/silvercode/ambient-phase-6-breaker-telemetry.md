@@ -78,10 +78,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.ambient-context-excellence
+    target: "@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-compositio\
+      n/ambient-context-excellence"
 ---
 
 # [x] Ambient Phase 6.b — circuit breaker + Layer 4 telemetry @km/silvercode #feature #P1 @claude:4de4a3ab
+
+blocks:: [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/ambient-context-excellence]]
 
 blocks:: [[@km/silvercode/ambient-context-excellence]]
 

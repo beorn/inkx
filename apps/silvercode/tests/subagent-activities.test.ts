@@ -126,8 +126,6 @@ describe("subagent activity projection", () => {
       agentToolUse("toolu_2", "Sleep 20s #2", 1_200),
     ])
 
-    expect(activities.map((activity) => `${activity.label}:${activity.status}`)).toEqual([
-      "Sleep 20s #2:running",
-    ])
+    expect(activities.map((activity) => `${activity.label}:${activity.status}`)).toEqual(["Sleep 20s #2:running"])
   })
 })

@@ -32,9 +32,9 @@ Active wip; let the owners finish before queueing more on top.
 
 Stop the status-corruption bug-class that recurred 5× in <2 weeks. Logger first (so the next regression is loud), then the L4 reframe (so the class can't recur).
 
-- [[@km/silvercode/session-store-trace]]
+- [[@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner/session-store-trace]]
   - Phase A: 60-min ship. `setStatus(next, reason, eventKind)` helper + `silvercode:status` debug logger + dev-mode invariant check. Without this, every recurrence is forensics from `ps aux` + `lsof`. Ship BEFORE the L4 reframe so Phase B has evidence its new state machine actually holds.
-- [[@km/silvercode/queue-stuck-thinking-l4]]
+- [[@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner/queue-stuck-thinking-l4]]
   - Phase B: 1-2 day refactor. Compress 6 states → 4 (`spawning | idle | busy | ended` with `Busy { kind, turnId, since }` payload). Add Turn owner module (mirrors opencode's Runner). `status` becomes derived getter on the public projection, not a stored field. Eliminates the "two writers disagree" bug class entirely.
 
 ---
@@ -67,7 +67,7 @@ Silvery's app-architecture backbone. Sequential dependency: `tea-useinput` (P1) 
 
 Depends on Phase 0 (injection-framing landed) for the ambient track. The transcript-parity sub-beads can run independently.
 
-- [[@km/silvercode/ambient-context-excellence]]
+- [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/ambient-context-excellence]]
   - Re-enable ambient injection in daily flow. Currently disabled because of role-prefix-emission failure (session e8967322, 2026-04-22). Pro review (DeepSeek + Kimi + Gemini) reshaped the plan — add loop-closure layer, per-adapter wire-byte verification, A vs B split-test on Anthropic. Phased child beads ship as each phase starts.
 - [[@km/silvercode/claude-code-transcript-parity/canonical-agent-plan-model]]
   - Unify Claude TodoWrite + Codex plan_update + ACP/OpenCode plan updates into one canonical Plan model. Render as collapsible bottom-right drawer above command box (60% prose width), not side panel. ~1 week.
@@ -114,6 +114,174 @@ These don't move through phases — they track the destination. Each has its own
 - **Re-ranking** within a phase: edit the line order.
 - **Closing** a bead: just `km bd close`. The link's status indicator updates. Optionally remove the line if it's clutter; the history stays in the bead.
 - **`hub/backlog.md`** is the previous-generation backlog (stale; still says "Now: W3 omnibox"). Retire it once this doc has earned trust.
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+- [[@km/silvercode/ambient-context-excellence]]
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+- [[@km/silvercode/session-store-trace]]
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+- [[@km/silvercode/queue-stuck-thinking-l4]]
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
 
 ---
 

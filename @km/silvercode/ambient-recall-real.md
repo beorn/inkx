@@ -23,10 +23,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.ambient-context-excellence
+    target: "@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-compositio\
+      n/ambient-context-excellence"
 ---
 
 # [x] Recall ambient adapter — real query path + controller hook @km/silvercode #feature #P2 @claude:4de4a3ab
+
+blocks:: [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/ambient-context-excellence]]
 
 blocks:: [[@km/silvercode/ambient-context-excellence]]
 

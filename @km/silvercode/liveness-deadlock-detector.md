@@ -22,12 +22,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.queue-stuck-thinking-l4
+    target: "@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner/queue-st\
+      uck-thinking-l4"
 ---
 
 # [x] Detect silvercode liveness deadlocks @km/silvercode #feature #P0
 
-parent:: [[@km/silvercode/queue-stuck-thinking-l4]]
+parent:: [[@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner/queue-stuck-thinking-l4]]
 
 ## Problem
 
@@ -54,7 +55,7 @@ Detection policy:
 
 Target longer-term architecture:
 
-- Phase B/C of [[@km/silvercode/queue-stuck-thinking-l4]] should replace stored `status` with derived status from the obligation sets.
+- Phase B/C of [[@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner/queue-stuck-thinking-l4]] should replace stored status with derived status from the obligation sets.
 - Fuzz/property tests should generate event sequences and assert these invariants:
   - no `status === "awaiting-permission"` when permission set is empty
   - no `status === "tool-running"` when tool set is empty
@@ -82,8 +83,16 @@ Implemented reducer liveness obligations, Codex resume strict replay/order/incom
 Evidence:
 
 ```bash
-bun vitest run apps/silvercode/tests/side-panel-multi-account.test.tsx apps/silvercode/tests/tool-call-rendering-v2.test.tsx apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/ambient-event-row.test.tsx apps/silvercode/tests/mute-state.test.ts apps/silvercode/tests/codex-resume.test.ts apps/silvercode/tests/autolinks-osc8.test.tsx apps/silvercode/packages/agent-harness/tests/liveness-detector.test.ts apps/silvercode/packages/agent-harness/tests/status-trace.test.ts apps/silvercode/packages/agent-harness/tests/acp-client.test.ts
+bun vitest run apps/silvercode/tests/side-panel-multi-account.test.tsx apps/silvercode/tests/tool-call-rendering-v2.test.tsx apps/silvercode/tests/turn-activity-summary.test.tsx apps/silvercode/tests/ambient-event-row.test.tsx apps/silvercode/tests/mute-state.test.ts apps/silvercode/tests/codex-resume.test.ts apps/silvercode/tests/autolinks-osc8.test.tsx apps/silvercode/packages/agent-harness/tests/liveness-detector.test.ts apps/silvercode/packages/agent-harness/tests/status-trace.test.ts apps/silvercode/packages/agent-harness/tests/acp-client.test.ts
 ```
 
 Result: 10 files passed, 119 tests passed.
+
+- Phase B/C of [[@km/silvercode/queue-stuck-thinking-l4]] should replace stored `status` with derived status from the obligation sets.
+
+parent:: [[@km/silvercode/queue-stuck-thinking-l4]]
+
+```bash
+bun vitest run apps/silvercode/tests/side-panel-multi-account.test.tsx apps/silvercode/tests/tool-call-rendering-v2.test.tsx apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/ambient-event-row.test.tsx apps/silvercode/tests/mute-state.test.ts apps/silvercode/tests/codex-resume.test.ts apps/silvercode/tests/autolinks-osc8.test.tsx apps/silvercode/packages/agent-harness/tests/liveness-detector.test.ts apps/silvercode/packages/agent-harness/tests/status-trace.test.ts apps/silvercode/packages/agent-harness/tests/acp-client.test.ts
+```
 

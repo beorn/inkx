@@ -34,12 +34,13 @@ props:
       - type: link
         target: km-silvercode.acp
       - type: link
-        target: km-silvercode.acp-session-load
+        target: "@km/silvercode/agent-host-l5/03-thread-session-persistence-and-replay/\
+          acp-session-load"
 ---
 
 # [x] @km/claude-acp loadSession — replay session JSONL as ACP SessionUpdate notifications @km/silvercode #feature #P3 @claude:cd034ca4
 
-blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-session-load]]
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/agent-host-l5/03-thread-session-persistence-and-replay/acp-session-load]]
 
 Phase-2 of session-load support: implement loadSession in @km/claude-acp so resuming a Claude session via ACP works. Generic resume support landed in @km/silvercode/acp-session-load.
 
@@ -57,12 +58,14 @@ Phase-2 of session-load support: implement loadSession in @km/claude-acp so resu
 - Emit notifications via connRef.sessionUpdate({sessionId, update})
 - After replay: spawn claude with --resume <sessionId> and attach wire (mirrors newSession path)
 - Return empty LoadSessionResponse {}
-11. Handle file-not-found: throw RequestError(-32000, 'session not found')
-12. Skip unsupported event kinds during replay (silently — they were already handled in the legacy session)
+19. Handle file-not-found: throw RequestError(-32000, 'session not found')
+20. Skip unsupported event kinds during replay (silently — they were already handled in the legacy session)
 
 ## Acceptance
 
 - bun apps/silvercode/tests/probe-acp.ts claude-code 'continue' --resume <prior-sessionId> succeeds with stop_reason=end_turn
 - Test fixture: a real session JSONL replays as the expected SessionUpdate sequence (round-trip via boundary adapter)
 - @km/claude-acp tests pass; resume integration test in agent-harness probes the flow end-to-end via in-memory transport
+
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-session-load]]
 

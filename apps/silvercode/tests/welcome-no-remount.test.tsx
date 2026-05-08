@@ -104,13 +104,7 @@ test("welcome composer survives App's stale empty pane tree during first session
     return <Text>composer-probe</Text>
   }
 
-  function View({
-    sessions,
-    tree,
-  }: {
-    sessions: ReadonlyArray<SessionHandle>
-    tree: LayoutNode
-  }): React.ReactElement {
+  function View({ sessions, tree }: { sessions: ReadonlyArray<SessionHandle>; tree: LayoutNode }): React.ReactElement {
     return (
       <PaneGrid
         sessions={sessions}

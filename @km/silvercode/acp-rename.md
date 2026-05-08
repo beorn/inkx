@@ -49,18 +49,21 @@ props:
       - type: link
         target: km-silvercode.acp
       - type: link
-        target: km-silvercode.acp-session-prompt
+        target: "@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-compositio\
+          n/acp-session-prompt"
       - type: link
         target: km-silvercode.acp-session-update-list
       - type: link
-        target: km-silvercode.acp-tool-call
+        target: "@km/silvercode/agent-host-l5/06-permissions-plans-tools-and-controls/a\
+          cp-tool-call"
       - type: link
-        target: km-silvercode.acp-usage-and-permission
+        target: "@km/silvercode/agent-host-l5/06-permissions-plans-tools-and-controls/a\
+          cp-usage-and-permission"
 ---
 
 # [x] [TRACKING] silvercode component renames to ACP-aligned names @km/silvercode #feature #P1
 
-blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-session-prompt]], [[@km/silvercode/acp-session-update-list]], [[@km/silvercode/acp-tool-call]], [[@km/silvercode/acp-usage-and-permission]]
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/acp-session-prompt]], [[@km/silvercode/acp-session-update-list]], [[@km/silvercode/agent-host-l5/06-permissions-plans-tools-and-controls/acp-tool-call]], [[@km/silvercode/agent-host-l5/06-permissions-plans-tools-and-controls/acp-usage-and-permission]]
 
 Umbrella bead — every existing silvercode source file that drifts from ACP vocabulary moves to its ACP-aligned name. Per /refactor lessons (no backwards-compat re-exports, sweep all 7 layers: data/types/functions/files/comments/docs/tests).
 
@@ -102,4 +105,10 @@ Per docs/lessons/refactoring.md § Rename Checklist:
 ## Status
 
 Open, depends on the 4 component beads. Closing this bead is the gate that confirms the rename refactor genuinely landed everywhere — closing component beads alone won't sweep external consumers.
+
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/acp-session-prompt]], [[@km/silvercode/acp-session-update-list]], [[@km/silvercode/agent-host-l5/06-permissions-plans-tools-and-controls/acp-tool-call]], [[@km/silvercode/acp-usage-and-permission]]
+
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/agent-host-l5/05-context-mentions-and-prompt-composition/acp-session-prompt]], [[@km/silvercode/acp-session-update-list]], [[@km/silvercode/acp-tool-call]], [[@km/silvercode/acp-usage-and-permission]]
+
+blocks:: [[@km/silvercode/acp]], [[@km/silvercode/acp-session-prompt]], [[@km/silvercode/acp-session-update-list]], [[@km/silvercode/acp-tool-call]], [[@km/silvercode/acp-usage-and-permission]]
 

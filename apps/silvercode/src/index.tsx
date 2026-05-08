@@ -75,7 +75,7 @@ function expandHomePath(p: string): string {
 }
 
 function sessionConfigFromEntry(entry: AcpEntry): Record<string, SessionConfigValue> | undefined {
-  const out: Record<string, SessionConfigValue> = { ...(entry.session_config ?? {}) }
+  const out: Record<string, SessionConfigValue> = { ...entry.session_config }
   if (entry.reasoning_effort !== undefined) out.reasoning_effort = entry.reasoning_effort
   if (entry.permission_policy !== undefined) out.permission_policy = entry.permission_policy
   return Object.keys(out).length > 0 ? out : undefined

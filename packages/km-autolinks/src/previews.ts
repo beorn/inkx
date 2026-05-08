@@ -122,7 +122,7 @@ function stampFile(path: string): FileStamp | null {
 }
 
 function sameFileStamp(a: FileStamp, b: FileStamp | null): boolean {
-  return b !== null && a.path === b.path && a.mtimeMs === b.mtimeMs && a.size === b.size
+  return a.path === b?.path && a.mtimeMs === b.mtimeMs && a.size === b.size
 }
 
 /** Tear down every active fs.watch handle. Used by `clearPreviewCache()` and exposed for callers (e.g., `AutolinksProvider`) that want to dispose on unmount. */
