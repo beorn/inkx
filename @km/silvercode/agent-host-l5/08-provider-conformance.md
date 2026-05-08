@@ -23,3 +23,5 @@ This phase owns proof against providers:
 - Provider matrix rows have fake-backed tests where feasible and live-smoke notes where not.
 - Claude, Codex, ACP/opencode/Kilo, and fake providers all run through the same canonical model tests.
 - Unsupported features produce stable UI and logs instead of silent best-effort behavior.
+
+Progress 2026-05-08: shipped 9d2abb9aa with executable provider conformance matrix in `apps/silvercode/src/provider-conformance.ts`, covered by `apps/silvercode/tests/provider-conformance-matrix.test.ts` and included in `bun run test:silvercode:l5`. Evidence: L5 gate passed 34 files, 255 tests, 1 skipped; `npx tsc --noEmit` passed; `git diff --check` passed. Remaining: expand matrix cells into more live-smoke notes and opencode/Kilo executable rows as adapters land.
