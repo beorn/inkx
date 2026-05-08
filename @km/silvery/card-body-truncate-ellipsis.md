@@ -3,9 +3,18 @@ aliases:
   - km-silvery.card-body-truncate-ellipsis
   - km-silvery-card-body-truncate-ellipsis
 created_at: 2026-05-08T21:38:05.789Z
+closed_at: 2026-05-08T22:23:35.068Z
+closeReason: "shipped silvery a3c32087 (feat(ag-term): wrap-truncate mode —
+  ellipsis fallback for atomic overflow) + km wrap-truncate adoption on card
+  titles. silvery: 9 new tests in
+  vendor/silvery/tests/features/wrap-soft-break.test.tsx (24 pass / 0 fail / 0
+  skip @ STRICT=2). km-tui: 2585 pass / 0 fail / 39 skip + 6/6
+  card-content-soft-wrap.slow.test.tsx. tsc --noEmit grep TS errors (excl
+  vendor) = 0. Card titles (variant=multiline depth=0) opt into wrap-truncate;
+  outline / detail / other contexts keep content-preserving char-wrap."
 ---
 
-# Card body should ellipsis-truncate when wrap is impossible #bug #P2
+# [x] Card body should ellipsis-truncate when wrap is impossible #bug #P2
 
 Follow-up to `@km/silvery/card-content-overflow-clip` (closed at de0f08c4 + 3968462ec). The user's original spec called for **two** fixes:
 
@@ -28,6 +37,7 @@ A card body with an atomic token that has zero separators AND exceeds the column
 ## Existing primitives to leverage
 
 Silvery already ships:
+
 - `truncateText` in `vendor/silvery/packages/ag-term/src/unicode.ts` — appends `…` ellipsis when text exceeds maxWidth.
 - `Text` `wrap="truncate"` — single-line truncate-with-ellipsis (used in 4 places in CardColumn for fixed-line content).
 - `Text` `wrap="truncate-middle"` — middle-truncate.
@@ -46,3 +56,4 @@ Implementation likely lives in `vendor/silvery/packages/ag-term/src/unicode.ts` 
 - `@km/silvery/card-content-overflow-clip` — parent (closed)
 - `@km/silvery/wrapper-friendly-render-primitive` — separate sibling (silvery agent surfaced)
 - User's original two-fix spec: 2026-05-08 conversation
+

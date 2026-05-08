@@ -44,7 +44,7 @@ import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { selectedBg, multiSelectedBg } from "../theme.ts"
-import { CheckboxIcon } from "./CheckboxIcon.tsx"
+import { NodeTitleMarker } from "./NodeTitleMarker.tsx"
 import { log } from "../log.ts"
 import { recordRender } from "../render-probe.ts"
 import type { ErrorInfo } from "react"
@@ -913,14 +913,13 @@ function TreeNodeImpl({
           <Box width={prefix.length} flexShrink={0}>
             <Text color={dimTc}>
               {nodeIsTask && style.taskStatusIcon ? (
-                <CheckboxIcon
-                  nodeId={node.id}
+                <NodeTitleMarker
+                  node={node}
                   icon={style.taskStatusIcon}
                   textColor={tc}
                   shouldDim={sd}
                   isSelected={isSelected}
                   isNodeSelected={isNodeSelected}
-                  isDoneOrDropped={style.isDoneOrDropped}
                   undoHandle={undoHandle}
                 />
               ) : (
@@ -987,7 +986,20 @@ function TreeNodeImpl({
                         : (tc ?? (sd ? "$fg-muted" : style.ownColor))
                 }
                 strikethrough={style.shouldStrikethrough}
-                wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
+                // Card titles (variant=multiline depth=0) opt into
+                // `wrap-truncate` so atomic over-long tokens (long
+                // identifiers without `/_:.` separators) end with `…` on
+                // the offending line instead of mid-token character
+                // wrapping. Outline / detail / other contexts keep
+                // content-preserving char-wrap fallback.
+                // Tracks @km/silvery/card-body-truncate-ellipsis.
+                wrap={
+                  isOneliner || isCardChild || node.type === "code" || node.type === "table"
+                    ? "truncate"
+                    : variant === "multiline" && depth === 0
+                      ? "wrap-truncate"
+                      : "wrap"
+                }
               >
                 {isVerbatim ? (
                   processedContent
