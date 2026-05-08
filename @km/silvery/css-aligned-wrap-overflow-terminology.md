@@ -5,92 +5,95 @@ aliases:
 created_at: 2026-05-08T21:43:37.047Z
 ---
 
-# Adopt CSS-aligned wrap/overflow terminology in silvery + clean up consumer call sites #task #P3 ^css-aligned-wrap-overflow-terminology
+# Add CSS-aligned wrap/overflow axes alongside `wrap=` shorthand #task #P3 ^css-aligned-wrap-overflow-terminology
 
-Silvery is a multi-target UI framework with web ambitions (per `docs/silvery-positioning-brief.md`). Today the text-wrap surface uses ad-hoc terminology (`wrap`, `truncate`, `truncate-middle`, `clip`) that doesn't compose, doesn't map cleanly to CSS, and forces consumers to learn silvery-specific vocabulary. With the imminent landing of `@km/silvery/card-body-truncate-ellipsis` (wrap-then-truncate fallback), the surface needs a clean redesign before more cruft accretes.
+Silvery is a multi-target UI framework with web ambitions (per `docs/silvery-positioning-brief.md`). Today the text-wrap surface uses a single-axis `wrap=` prop with named composites (`wrap`, `truncate`, `truncate-middle`, `clip`, …). The plan is to **add** the underlying CSS-aligned axes (`whiteSpace`, `overflowWrap`, `textOverflow`, etc.) as additional first-class props — **not to replace or deprecate `wrap=`**. Both layers coexist, like CSS `border` shorthand vs `border-width` / `border-style` / `border-color`.
 
-This bead drives the redesign and the cleanup of all 145 consumer call sites.
+The shorthand stays because it's ergonomic and accurate for 95% of cases. The axes get added because:
+- Some compositions don't have a named shorthand (truncate-with-wrap-preference, mixed states under hover/focus).
+- Web/canvas targets benefit from speaking the same prop names as the platform.
+- Storybook + design docs improve when the underlying axes are visible.
 
-## Why P3 (demoted from P0 on 2026-05-08)
+## Current API (shipped, supported, not changing)
 
-The user demoted to P3 in favor of a quicker path: document the legacy → CSS mapping in silvery docs so the new vocabulary is at least informally available, and let `@km/silvery/card-body-truncate-ellipsis` land independently against the existing `wrap=` API. The 145 call-site migration is real but not urgent — silvery's web/canvas targets aren't on a near-term ship date.
+The `wrap=` prop on `Text` is a single named-composite axis. Each value bundles `white-space` + `overflow-wrap` + `text-overflow` + `overflow` semantics into one mnemonic.
 
-When this bead becomes urgent again: silvery is about to release a web target, OR a third independent wrap feature is being added (the cost of one more named mode exceeds the migration cost), OR the consumer-error rate from the ad-hoc terminology starts showing up in support load.
+| `wrap=` (current)   | Behavior                                                                                                                                              | CSS-equivalent axes                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `"wrap"` (default)  | Multi-line word wrap. Word boundaries first, then soft-break separators (`/`, `\`, `.`, `_`, `:`, `,`), then character-wrap fallback.                 | `white-space: normal` + `overflow-wrap: break-word`                                            |
+| `"wrap-truncate"` ✨ NEW (a3c32087) | Multi-line word wrap with ellipsis-truncate fallback when atomic-only token exceeds width AND no separator exists.                       | `white-space: normal` + `overflow-wrap: break-word` + `text-overflow: ellipsis`                |
+| `"truncate"`        | Single-line. Trims at end with `…` ellipsis when content exceeds available width.                                                                     | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
+| `"truncate-end"`    | Alias of `"truncate"` (explicit "trim at end").                                                                                                       | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
+| `"truncate-start"`  | Single-line. Trims at start with `…` prefix.                                                                                                          | `direction: rtl` + `text-overflow: ellipsis` (named composite)                                 |
+| `"truncate-middle"` | Single-line. Trims in the middle (e.g. `path/to/.../file.md`).                                                                                        | (no direct CSS analogue; named composite)                                                      |
+| `"clip"`            | Single-line. Hard clips at right edge **without** ellipsis.                                                                                           | `white-space: nowrap` + `overflow: hidden` + `text-overflow: clip`                             |
+| `false`             | No wrapping, no clipping. Text overflows its container. Avoid in bordered cells.                                                                      | `white-space: nowrap` + `overflow: visible`                                                    |
 
-## Goal
+Documented in `vendor/silvery/docs/components/Text.md` "Wrap modes" section (commit `b7481cd5`).
 
-Replace silvery's single-axis `wrap` prop with the canonical CSS axes:
+## Planned API (additive — `wrap=` stays)
 
-| CSS axis     | Values                                            | Meaning                                                    |
-| ------------ | ------------------------------------------------- | ---------------------------------------------------------- |
-| whiteSpace   | normal (default), nowrap, pre, pre-wrap, pre-line | Whether whitespace collapses, whether content wraps at all |
-| overflowWrap | normal (default), break-word, anywhere            | What to do when a token is wider than its container        |
-| wordBreak    | normal (default), break-all, keep-all             | Break-point preference within a token                      |
-| textOverflow | clip (default), ellipsis                          | What to render when content overflows after wrapping       |
-| overflow     | visible (default), hidden, clip                   | Whether overflow is rendered or trimmed at the box         |
+Add the underlying CSS axes as their own props on `Text` (and where applicable, `Box`). All optional; `wrap=` shorthand continues to work and is treated as syntactic sugar for these axes.
 
-The current `wrap=` and `overflow=` props become **named composites** of the CSS axes (kept as syntactic sugar, mapped to the canonical state):
+| New prop        | Values                                                                       | Default     | Notes                                                                |
+| --------------- | ---------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------- |
+| `whiteSpace`    | `"normal"` \| `"nowrap"` \| `"pre"` \| `"pre-wrap"` \| `"pre-line"`          | `"normal"`  | CSS-canonical                                                        |
+| `overflowWrap`  | `"normal"` \| `"break-word"` \| `"anywhere"`                                 | `"normal"`  | CSS-canonical                                                        |
+| `wordBreak`     | `"normal"` \| `"break-all"` \| `"keep-all"`                                  | `"normal"`  | CSS-canonical                                                        |
+| `textOverflow`  | `"clip"` \| `"ellipsis"`                                                     | `"clip"`    | CSS-canonical                                                        |
+| `overflow`      | `"visible"` \| `"hidden"` \| `"clip"`                                        | `"visible"` | Already on `Box`; harmonize on `Text` too                            |
 
-| Legacy wrap=           | CSS-canonical equivalent                                                |
-| ---------------------- | ----------------------------------------------------------------------- |
-| wrap (default)         | whiteSpace="normal" overflowWrap="break-word" textOverflow="clip"       |
-| truncate               | whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis"           |
-| truncate-middle        | (named composite — keep as primitive; CSS doesn't have middle natively) |
-| clip                   | whiteSpace="nowrap" overflow="hidden" textOverflow="clip"               |
-| (NEW) wrap-or-truncate | whiteSpace="normal" overflowWrap="break-word" textOverflow="ellipsis"   |
+**Resolution**: when both `wrap=` and any axis is set, the explicit axis wins (override semantics). When only `wrap=` is set, it expands internally to the equivalent axes. When only axes are set, they apply directly.
 
-Soft-break separator support (the just-shipped `/`, `\`, `.`, `_`, `:`, `,`) becomes a property of `overflowWrap="break-word"` — break at separators preferred over mid-character breaks. `overflowWrap="anywhere"` remains for true mid-character breaks (CSS-aligned).
+This mirrors how CSS users can write either `border: 1px solid red` or `border-width: 1px; border-style: solid; border-color: red` — both produce the same rendered result; the axes are escape-hatches for combinations the shorthand doesn't cover.
 
 ## Acceptance
 
-- [ ] Silvery `Text` component accepts the new CSS-aligned props: `whiteSpace`, `overflowWrap`, `wordBreak`, `textOverflow`, `overflow`.
-- [ ] Silvery `Box` component accepts `overflow` (already partially supported — make CSS-canonical).
-- [ ] Legacy `wrap="…"` continues to work for one minor version, mapped to the new axes via internal compatibility layer; emit a deprecation warning in dev mode.
-- [ ] All 145 consumer call sites in `apps/km-tui/`, `apps/silvercode/`, `apps/km-cli/`, `vendor/silvery/packages/ag-react/src/`, `vendor/silvery/storybook/`, and `vendor/silvery/tests/` migrate to the CSS-aligned API.
-- [ ] Remove the deprecation shim after the migration commit; legacy `wrap=` errors at the type level.
-- [ ] Storybook stories demonstrate every CSS axis combination + the `wrap-or-truncate` named composite.
-- [ ] Documentation in `vendor/silvery/docs/guide/styling.md` and the API ref pages adopt CSS terminology, with a "migration from legacy wrap=" section.
-- [ ] `vendor/silvery/CLAUDE.md` and the design tokens index list the canonical props.
-- [ ] STRICT-mode invariant: render pipeline asserts that consumer didn't pass conflicting axes (e.g. `whiteSpace="nowrap"` with `overflowWrap="break-word"` is a contradiction; pick one).
-- [ ] Cross-target compatibility note: same prop names work for the future canvas + DOM targets without remap.
-- [ ] km-tui `<CardBody>` (or equivalent) uses `whiteSpace="normal"` + `overflowWrap="break-word"` + `textOverflow="ellipsis"` — the canonical wrap-then-truncate composite.
-- [ ] Pre-existing `wrap="truncate"` users in CardColumn (`apps/km-tui/src/views/CardColumn.tsx:504`, `:611`, `:710`, `:801`) port to either named composite or explicit axes.
+- [ ] `Text` accepts the five new optional props above; type definitions updated.
+- [ ] `Box` already accepts `overflow`; harmonize values to the CSS-canonical set.
+- [ ] When `wrap=` is set AND a new axis is set, the axis overrides; document precedence in the API ref.
+- [ ] Internal resolver: a single function maps `wrap=` (or its absence) + axis props to the canonical state used by the wrap pipeline.
+- [ ] STRICT-mode invariant: contradictory combinations are caught (e.g. `whiteSpace="nowrap"` with `overflowWrap="break-word"`); error explains the conflict and recommends one.
+- [ ] `vendor/silvery/docs/components/Text.md` documents the new axes alongside the existing `wrap=` table; cross-references the resolution rule.
+- [ ] `vendor/silvery/docs/guide/styling.md` "Wrap and overflow" section authored.
+- [ ] Storybook stories: one story per axis showing the value matrix; one combo story showing axis overrides on top of `wrap=`.
+- [ ] Cross-target note: same prop names work for the future canvas + DOM targets without remap.
+- [ ] `vendor/silvery/CLAUDE.md` mentions the dual-layer model (shorthand + axes) so future agents don't re-introduce ad-hoc names.
 - [ ] All existing tests pass at SILVERY_STRICT=2.
-- [ ] New property/fuzz tests for the CSS axes interaction matrix.
+- [ ] New tests for axis-override-shorthand precedence + STRICT contradiction-catching.
 
 ## Non-goals
 
-- Removing `truncate-middle` (no clean CSS analogue; keep as named composite).
-- Implementing CSS `text-overflow: fade` or other non-canonical extensions.
-- Changing flexbox or layout primitive names — those are separate (flexily already uses CSS-aligned terminology).
+- **Deprecating `wrap=`** — it stays as the ergonomic shorthand. Don't emit deprecation warnings; don't plan a removal.
+- **Migrating consumer call sites** — if `wrap="truncate"` is the right call, leave it alone. The 145 call sites do not need to be touched as part of this bead. Migration to axes is opt-in per call site, decided by readability.
+- Adding `text-overflow: fade` or other non-canonical CSS extensions.
+- Changing flexbox or layout primitive names (flexily already uses CSS-aligned terminology).
+- Removing `truncate-middle` (no CSS analogue; named composite stays).
 
 ## Related
 
-- `@km/silvery/card-content-overflow-clip` (closed at de0f08c4 + 3968462ec) — the bug that surfaced this need.
-- `@km/silvery/card-body-truncate-ellipsis` (P2) — the next wrap feature; should land on the new API, not the legacy one.
-- `@km/silvery/cell-outside-rect-strict-check` (P3) — STRICT invariant; sibling work.
-- `docs/silvery-positioning-brief.md` — canonical "silvery is multi-target / web-ambitions / Polaris-aligned" reference.
-- `vendor/silvery/docs/guide/styling.md` — current styling docs to update.
-- `vendor/silvery/packages/ag-react/src/components/Text.tsx` — the surface to extend.
-- `vendor/silvery/packages/ag-term/src/unicode.ts` — the wrap/truncate engine that already implements the underlying behaviors.
+- `@km/silvery/card-content-overflow-clip` (closed at de0f08c4 + 3968462ec) — wrap-at-separators surfaced this design need.
+- `@km/silvery/card-body-truncate-ellipsis` (P2) — `wrap-truncate` named composite shipped in silvery `a3c32087` and (when integrated to main) lands the runtime fallback. Independent of this bead.
+- `@km/silvery/cell-outside-rect-strict-check` (P3) — sibling STRICT invariant.
+- `docs/silvery-positioning-brief.md` — multi-target / web-ambitions / Polaris-aligned reference.
+- `vendor/silvery/docs/components/Text.md` — current `wrap=` mapping table (b7481cd5).
+- `vendor/silvery/packages/ag/src/types.ts` — `TextProps` interface.
+- `vendor/silvery/packages/ag-term/src/unicode.ts` — wrap engine.
 
-## Migration plan (phased)
+## Phased plan
 
-1. **Land new props, keep legacy** (1 commit) — extend Text/Box typing; map legacy `wrap=` internally; tests for both APIs pass.
-2. **Migrate vendor/silvery internals** (1 commit) — silvery's own components and storybook stories use CSS-aligned API.
-3. **Migrate apps** (1-3 commits, one per app: km-tui, silvercode, km-cli) — apps adopt new API; km-tui adds `<CardBody>` if appropriate.
-4. **Land `wrap-or-truncate` named composite + the truncate-fallback fix** — closes `@km/silvery/card-body-truncate-ellipsis`.
-5. **Remove legacy shim + type-level error** (1 commit) — deprecation period ends; `wrap=` is no longer valid.
-6. **Docs sweep** (1 commit) — styling.md, the-silvery-way.md, all examples updated.
+1. **Add axis types to `TextProps`** — typing-only commit; runtime continues to use `wrap=`.
+2. **Build the resolver** — `resolveTextWrapPolicy(props): CanonicalWrapState` — single function maps shorthand + axes to the internal state. Tests for precedence.
+3. **Wire pipeline to read from canonical state** — measure-phase, render-text, reconciler all consume `CanonicalWrapState`. Existing `wrap=` callers unchanged; new axis callers work.
+4. **Docs + storybook** — Text.md updated, styling.md authored, stories added.
+5. **STRICT contradiction check** — `bordered-rect-clip` slug or sibling.
 
-Each phase ships independently. Phases 1-4 land before any new wrap features; phases 5-6 conclude the migration.
+No call-site migration phase. The shorthand stays canonical for ergonomic cases; axes are escape-hatches for the rare cases.
 
-## Boil-the-ocean reach (clean as possible, per user)
+## When this bead becomes urgent
 
-- [ ] Audit every styling prop on Text/Box for CSS alignment beyond just wrap/overflow: `align`, `justify`, `padding`, `margin`, `gap`, `flexDirection`, `flexWrap`, `flexGrow`, `flexShrink`, `flexBasis`, `position`, `top/right/bottom/left` — flag any that diverge from CSS for a follow-up bead.
-- [ ] Audit color props for CSS alignment (`color`, `backgroundColor`, `borderColor` — these match; check edge cases like `selectionColor`, `cursorColor`).
-- [ ] Type-system cleanup: every CSS-aligned prop accepts the union of canonical CSS values (autocomplete works in IDE).
-- [ ] Storybook coverage matrix: show all axes × all named composites × all common content types (short word, long path, multi-line, mixed).
-- [ ] `silverize/` skill audit pass — flag any code using legacy terminology after migration.
-- [ ] Update memory: add a feedback entry "silvery adopts CSS terminology; new components accept canonical CSS-aligned props" so future agents don't re-introduce ad-hoc names.
+- Silvery announces a web/canvas target with a near-term ship date.
+- A third independent wrap feature is being added (the cost of one more named mode exceeds adopting axes).
+- A consumer reports a wrap composition the shorthand can't express.
 
+Until then, P3 is the right priority — `wrap-truncate` plus the existing modes cover everything we currently need.
