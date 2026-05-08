@@ -14,25 +14,51 @@ The single source of truth for worktree/branch/concurrency rules in this repo. O
 ## TL;DR
 
 - **Main repo's working directory stays on `main`. Always.** No `git checkout <feature>` in the main repo.
-- **Conflict-prone work goes in a pool slot.** 10 persistent slots: `.claude/worktrees/wt0`..`wt9`, each on stable branch `wtN`.
+- **Conflict-prone work goes in a pool slot.** 10 persistent slots, sibling to the repo: `<repoParent>/<repoBasename>-wt0..wt9` on stable branches `wt0..wt9`. For this repo (`~/Code/pim/km`) that's `~/Code/pim/km-wt0..km-wt9`.
 - **One hat = one worktree.** Lease bead `@agent/N` is the single lock for both the hat AND worktree `wtN`. Claim → work → push → release. Bounded concurrency, visible contention via `km bd list`.
 - **Localized changes in main are fine** for multiple agents on different files — no per-task branches needed.
 - **Read-only / search / diagnosis agents always belong in main.**
 
+## How to create / enter a slot
+
+```bash
+# From the main repo root. The slot id `wtN` is the digit of your hat lease.
+bun worktree create wt5
+# Creates ../<repo>-wt5/ on branch wt5 (the script special-cases names matching
+# wt\d+ to use a plain branch — no `feat/` prefix). Fetches submodules, runs
+# bun install, allows direnv, installs hooks.
+
+# If the slot already exists from a prior claim, just cd:
+cd ../<repo>-wt5
+git fetch origin && git rebase origin/main && git submodule update --recursive
+```
+
+For non-slot work (named features), `bun worktree create my-feature` still
+creates `../<repo>-my-feature/` on branch `feat/my-feature`. The slot
+auto-detection only fires for `wt\d+` names.
+
 ## The pool
 
 ```
-.claude/worktrees/wt0/    on branch wt0   ← lease bead @agent/0
-.claude/worktrees/wt1/    on branch wt1   ← lease bead @agent/1
-.claude/worktrees/wt2/    on branch wt2   ← lease bead @agent/2
+../<repo>-wt0/    on branch wt0   ← lease bead @agent/0
+../<repo>-wt1/    on branch wt1   ← lease bead @agent/1
+../<repo>-wt2/    on branch wt2   ← lease bead @agent/2
 ...
-.claude/worktrees/wt9/    on branch wt9   ← lease bead @agent/9
+../<repo>-wt9/    on branch wt9   ← lease bead @agent/9
 ```
 
 Slots are **persistent** — never created/destroyed per task, always checked out,
 always present. Agents *move in*, do their work, *move out*; the slot persists
 for the next claim. The 10 numeric hat beads are children of the `@agent`
 parent board.
+
+### Legacy location (`.claude/worktrees/wtN`)
+
+Earlier sessions placed slots inside `.claude/worktrees/wtN`. Those still work
+but `bun worktree audit` flags them as `slot-location-legacy`. Migration is
+opportunistic: when an agent next recycles a legacy slot, remove and recreate
+at the canonical sibling location. `git worktree move` does NOT work on slots
+with submodules — you have to remove + recreate.
 
 ## Claim → work → release protocol
 
@@ -43,7 +69,7 @@ km bd update @agent/N --claim
 # (if assignee already set + lease unexpired, slot is busy — pick another)
 
 # 2. Move in
-cd .claude/worktrees/wtN
+cd ../<repo>-wtN   # or absolute path: cd ~/Code/pim/km-wtN
 git fetch origin
 git rebase origin/main
 git submodule update --recursive   # if vendor/ refs moved
@@ -60,7 +86,7 @@ git push origin wtN
 #   git push origin main
 
 # 5. Move out — reset slot to clean baseline + release lease
-cd .claude/worktrees/wtN
+cd ../<repo>-wtN   # or absolute path: cd ~/Code/pim/km-wtN
 git fetch origin
 git reset --hard origin/main
 git submodule update --recursive
@@ -106,7 +132,7 @@ The fallback uses APFS `cp -c -R` (~20-25s) and creates `.claude/worktrees/agent
 
 7. **Cherry-picks beat merges for cross-worktree integration.** The orchestrator's consolidation phase cherry-picks each branch's commits onto main, resolving conflicts inline. Direct `git merge wtN main` from outside the worktree fragments history and risks submodule pointer mismatches.
 
-8. **`cd "$(git rev-parse --show-toplevel)"` — never a hardcoded path.** When agents run inside a `.claude/worktrees/<agent>/` worktree, template substitutions for "the repo root" resolve to the *main repo's* path — Bash-tool calls then leak file writes back to main. Always derive the repo root at command time. (@km/all/agent-worktree-isolation-cd-repo-root-leak)
+8. **`cd "$(git rev-parse --show-toplevel)"` — never a hardcoded path.** When agents run inside a sibling pool worktree (`../<repo>-wtN/`), template substitutions for "the repo root" resolve to the *main repo's* path — Bash-tool calls then leak file writes back to main. Always derive the repo root at command time. (@km/all/agent-worktree-isolation-cd-repo-root-leak)
 
 9. **HARD RULE — 2+ agents on `vendor/<pkg>/`**: every agent MUST be in its own pool slot (or fallback worktree). Never two write-agents sharing a working tree on the same submodule. Silent corruption (orphaned commits, lying bead closure, sweep-up commits) — even with disjoint files, the discipline must hold.
 
@@ -114,7 +140,7 @@ The fallback uses APFS `cp -c -R` (~20-25s) and creates `.claude/worktrees/agent
 
 When the lead spawns a write-agent in /max, the prompt must include:
 
-> CRITICAL: You are in pool slot `.claude/worktrees/wtN/` on branch `wtN`, holding lease `@agent/N`. The slot was rebased on `origin/main` before you started.
+> CRITICAL: You are in pool slot `<repoParent>/<repo>-wtN/` (e.g., `~/Code/pim/km-wtN/`) on branch `wtN`, holding lease `@agent/N`. The slot was rebased on `origin/main` before you started.
 > - Always `cd "$(git rev-parse --show-toplevel)"` — never hardcode paths.
 > - Commit incrementally to branch `wtN` with conventional commits. **Do NOT** create a new feature branch.
 > - **Do NOT push to origin** — the local branch is the deliverable; the lead session integrates via cherry-pick.
@@ -127,13 +153,13 @@ After a slot agent finishes:
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"   # main repo
-git fetch .claude/worktrees/wtN wtN:wtN || true   # ensure tip is reachable
+git fetch ../<repo>-wtN wtN:wtN || true   # ensure tip is reachable
 git cherry-pick <wtN-tip-sha>            # or git merge --ff-only wtN
 # resolve conflicts inline if any
 git push origin main
 
 # Reset the slot
-cd .claude/worktrees/wtN
+cd ../<repo>-wtN   # or absolute path: cd ~/Code/pim/km-wtN
 git fetch origin
 git reset --hard origin/main
 git submodule update --recursive

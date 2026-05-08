@@ -73,7 +73,7 @@ A multi-pane TUI workspace. Each pane spawns an agent session (claude / codex / 
 
 ### tribe
 
-Source: `vendor/bearly/plugins/tribe/`. The bulk of this doc covers tribe because it's the most architecturally novel piece — a per-project coordination daemon that other host apps and agent sessions both consume. Detailed design: [hub/bearly/design/tribe-daemon.md](./bearly/design/tribe-daemon.md). API + user-facing docs: [vendor/bearly/plugins/tribe/README.md](../vendor/bearly/plugins/tribe/README.md), [.claude/skills/tribe/SKILL.md](../.claude/skills/tribe/SKILL.md).
+Source: `vendor/bearly/plugins/tribe/`. The bulk of this doc covers tribe because it's the most architecturally novel piece — a per-project coordination daemon that other host apps and agent sessions both consume. Detailed design: [hub/bearly/design/tribe-daemon.md](./bearly/design/tribe-daemon.md). API + user-facing docs: [vendor/bearly/plugins/tribe/README.md](../vendor/bearly/plugins/tribe/README.md). The slash command is provided by the `tribe@bearly` plugin (`/tribe:tribe`); chief operational runbook at [.claude/runbooks/tribe-chief.md](../.claude/runbooks/tribe-chief.md).
 
 What follows is the runtime topology of tribe and how the host apps + agents connect to it.
 
@@ -275,7 +275,8 @@ The parent-death orphan gap (`km-silvercode.parent-death-orphan-gap`) is deferre
 | silvercode                                                        | silvercode CLAUDE.md, agent-harness CLAUDE.md                                  |
 | silvercode internals                                              | apps/silvercode/docs/{in-process-mcp,multi-agent,channels}.md                  |
 | per-plugin READMEs                                                | vendor/bearly/plugins/{mcp,tty,github,recall,llm,injection-envelope}/README.md |
-| /tribe skill + ops                                                | .claude/skills/tribe/{SKILL,runbook}.md                                        |
+| /tribe slash command                                              | provided by `tribe@bearly` plugin as `/tribe:tribe`                            |
+| Tribe chief runbook                                               | .claude/runbooks/tribe-chief.md                                                |
 | alien- family* (reactive primitives, not part of daemon topology) | vendor/bearly/packages/alien-{projections,resources,trees}/                    |
 
 This doc is the system overview. Component-level READMEs are authoritative for behavior; this doc is authoritative for *where things fit*. It updates when the topology shape changes.

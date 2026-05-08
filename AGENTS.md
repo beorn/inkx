@@ -90,6 +90,27 @@ git add @km/ && git commit -m "..." && git push
 
 Run `km bd`, `km sync`, and `@agent/N` hat-board operations from the monorepo root. If your shell is under `apps/<name>/`, first run `cd "$(git rev-parse --show-toplevel)"` or pass `--repo <root>`. Otherwise km treats the app directory as the vault root and will miss root-level boards such as `@agent.md` and `@agent/3.md`. Use ordinary bd commands for hat boards: `km bd query @agent/3` shows the hat queue, and `km bd list --status wip --assignee me` shows beads/hats you have claimed. Claiming `@agent/N` also claims worktree `wtN`.
 
+## Worktrees (pool slots)
+
+Pool slots are **sibling to the repo**, named `<repoBasename>-wtN`. For this repo (`~/Code/pim/km`) they live at `~/Code/pim/km-wt0`..`~/Code/pim/km-wt9`. Each is on a stable plain branch `wtN` (no `feat/` prefix). Claiming hat `@agent/N` claims slot `wtN`.
+
+```bash
+# Create or recycle a slot (from main repo root):
+bun worktree create wt5
+# → ../<repo>-wt5/ on branch wt5, with submodules + bun install + direnv + hooks.
+
+# Move into an existing slot:
+cd ../<repo>-wt5
+git fetch origin && git rebase origin/main && git submodule update --recursive
+
+# Audit hygiene across all worktrees (read-only, no deletes):
+bun worktree audit
+# Flags: stuck rebase, duplicate-of-main commits, formatter-noise siblings,
+# stale unique work, slot-location-legacy (anything still under .claude/worktrees/).
+```
+
+Don't create worktrees inside `.claude/worktrees/` — that's the legacy location, flagged by the audit. The full rule and concurrency discipline live in `.claude/skills/worktree/SKILL.md`.
+
 Backlinks are automatic and read-only. Persisted hat-board queues require a
 real rule, usually `# @agent/N km.add:: . km.default:: true` on the hat H1.
 Generated embeds should be top-level under that H1. There are no `km.add`
@@ -128,5 +149,8 @@ Don't reference `vendor/<pkg>/...` paths from inside a vendor package's own file
 For full technical documentation (architecture, principles, debug logging, perf triage, all skills), see [CLAUDE.md](./CLAUDE.md). It's longer but it's the source of truth.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+
 <!-- Beads integration managed by `bd setup claude`. Do not remove markers. -->
+
 <!-- END BEADS INTEGRATION -->
+
