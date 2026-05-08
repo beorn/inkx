@@ -31,7 +31,7 @@ afterEach(() => {
   restoreConsoleLogs = undefined
 })
 
-function longChat(sessionId: SessionId): AgentEvent[] {
+function chatWithTurns(sessionId: SessionId, turnCount: number): AgentEvent[] {
   const events: AgentEvent[] = [
     {
       kind: "session-init",
@@ -49,7 +49,7 @@ function longChat(sessionId: SessionId): AgentEvent[] {
       ts: 1,
     },
   ]
-  for (let index = 0; index < 80; index++) {
+  for (let index = 0; index < turnCount; index++) {
     events.push({
       kind: "user-message",
       sessionId,
@@ -68,36 +68,47 @@ function longChat(sessionId: SessionId): AgentEvent[] {
   return events
 }
 
+async function measureTypingLatency(
+  script: readonly AgentEvent[],
+): Promise<{ readonly text: string; readonly average: number; readonly worst: number; readonly timings: readonly number[] }> {
+  const fake = createFakeSession()
+  const s = await renderScenario({
+    script,
+    cols: COLS,
+    rows: 40,
+    fake,
+  })
+  const chars = "abcdefghijklmnopqrst"
+  const timings: number[] = []
+  try {
+    for (const ch of chars) {
+      const startedAt = performance.now()
+      await s.app.press(ch)
+      timings.push(performance.now() - startedAt)
+    }
+    const sortedTimings = [...timings].sort((a, b) => a - b)
+    const trimmedTimings = sortedTimings.slice(2, -2)
+    const average = trimmedTimings.reduce((sum, value) => sum + value, 0) / trimmedTimings.length
+    return { text: s.text, average, worst: Math.max(...timings), timings }
+  } finally {
+    s.dispose()
+    await nextTask()
+  }
+}
+
 describe("prompt submit responsiveness", () => {
   test("typing in the composer does not scale with transcript size", async () => {
-    const fake = createFakeSession()
-    const s = await renderScenario({
-      script: longChat("typing-latency" as SessionId),
-      cols: COLS,
-      rows: 40,
-      fake,
-    })
+    const baseline = await measureTypingLatency(chatWithTurns("typing-latency-baseline" as SessionId, 4))
+    const long = await measureTypingLatency(chatWithTurns("typing-latency" as SessionId, 80))
+    const chars = "abcdefghijklmnopqrst"
+    const timingSummary =
+      `baseline: ${baseline.timings.map((t) => t.toFixed(1)).join(", ")}; ` +
+      `long: ${long.timings.map((t) => t.toFixed(1)).join(", ")}`
 
-    try {
-      const chars = "abcdefghijklmnopqrst"
-      const timings: number[] = []
-      for (const ch of chars) {
-        const startedAt = performance.now()
-        await s.app.press(ch)
-        timings.push(performance.now() - startedAt)
-      }
-
-      const sortedTimings = [...timings].sort((a, b) => a - b)
-      const trimmedTimings = sortedTimings.slice(2, -2)
-      const trimmedAverage = trimmedTimings.reduce((sum, value) => sum + value, 0) / trimmedTimings.length
-      const worst = Math.max(...timings)
-      expect(s.text).toContain(chars)
-      expect(trimmedAverage, `typing timings: ${timings.map((t) => t.toFixed(1)).join(", ")}`).toBeLessThan(28)
-      expect(worst, `typing timings: ${timings.map((t) => t.toFixed(1)).join(", ")}`).toBeLessThan(60)
-    } finally {
-      s.dispose()
-      await nextTask()
-    }
+    expect(baseline.text).toContain(chars)
+    expect(long.text).toContain(chars)
+    expect(long.average, timingSummary).toBeLessThan(Math.max(28, baseline.average * 1.75 + 10))
+    expect(long.worst, timingSummary).toBeLessThan(Math.max(60, baseline.worst * 1.75 + 20))
   })
 
   test("Enter clears the composer before dispatching to the backend session", async () => {

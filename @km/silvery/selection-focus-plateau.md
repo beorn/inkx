@@ -103,3 +103,5 @@ Soft ordering (Phase 1 → 2, Phase 4 parallel to Phase 3) is doc-only — not e
 
 Phase 1 zoomin-atomic-sync is independent and cheap — go first. Phases 2-3 are the weight. Phase 5 unlocks the dialog duplication wins (SearchDialog, ItemPicker, FavoritesDialog, NewItemDialog, DatePromptDialog still on InputBox + useDialogInput).
 
+L5 selection-cell semantics child set added 2026-05-08. Current completion gate: @km/silvery/paint-clear-selectablemode-purge plus children render-plan-selection-parity, direct-cell-write-audit, property-selection-fixtures, semantic-selection-contract, and test-cell-selectability-api. Acceptance for the plateau in this area: no ambient selectable state as an authoritative source, direct/render-plan parity for selectable metadata, documented semantic-selection contract, and app-level Silvercode content-layout gate @km/silvercode/content-layout-selection-l5.
+
