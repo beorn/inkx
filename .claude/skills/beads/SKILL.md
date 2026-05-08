@@ -17,6 +17,31 @@ Bead state is **per-vault markdown** under the path-form id (`@km/<scope>/<slug>
 
 The filesystem path is the canonical identity. Do **not** add `id:` frontmatter when the path already carries the id. Use `aliases:` only for legacy bd/dash forms or old names.
 
+### Frontmatter minimalism (load-bearing — agents over-add)
+
+The default for a new bead is **no frontmatter at all** — the H1 line carries the title, type, and priority via hashtags (`#feature #P2`); the path-form id is canonical; bd auto-generates `aliases:` and `created_at:` when needed. Add frontmatter fields only when they're load-bearing for tooling or migration:
+
+| Field | When to add | When NOT to add |
+|---|---|---|
+| `id:` | never (path is canonical) | always — redundant with the file path |
+| `aliases:` | migration from bd-form / dash-form / renamed beads | new beads with no legacy ids |
+| `parent:` | when path doesn't encode parent | path-form ids encode parent — leave it off |
+| `mentions:` | bd auto-generates; don't hand-author | hand-authored values get overwritten |
+| `created_at:` | bd auto-stamps; don't hand-author | hand-authored values get overwritten |
+| `agent:` | runtime hint for `km agent spawn` (codex/claude/silvercode) | not a workflow signal — leave it off unless spawning |
+| `scope_fit:` | ❌ retired 2026-05-08 (slot redirect) | always — ad-hoc claim brings its own scope |
+| `model:` / `harness:` | ❌ retired 2026-05-08 (slot redirect) | always — overspecified for queue-only slots |
+
+**Trap**: copy-pasting frontmatter from a sibling bead drags in fields that don't apply. Start from the minimum and add only what the tooling specifically reads.
+
+### Queue-only slot beads (`@agent/0..9.md`)
+
+`@agent/N.md` slot beads are **queue-only**: H1 (`# @agent/N` with `[/]` checkbox if wip) plus materialized `![[<bead>]]` queue embeds, nothing else. No `## Persona`, no `## Working agreement`, no `scope_fit:`, no rich body. The claiming agent brings its own working context; the slot is a parking spot for beads.
+
+This is a deliberate departure from the older "slot = pre-defined persona" model retired 2026-05-08. See `@km/agent/slot-files-minimal-form` for the cleanup contract and `.claude/skills/claim/SKILL.md` for the (queue-only) claim flow.
+
+### Sibling file + sibling directory for parents with children
+
 Use the sibling file + sibling directory layout for beads that have children: the `.md` file is the bead body, and the same-stem directory holds child beads. Example: `@km/silvercode/parity-claude.md` is the parent bead body, and child beads live under `@km/silvercode/parity-claude/`. Do not move the parent body inside the child directory as `@km/silvercode/parity-claude/parity-claude.md`.
 
 | Surface | What's there |
