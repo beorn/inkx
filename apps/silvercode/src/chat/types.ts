@@ -12,7 +12,7 @@ export type ChatPlanStepId = Brand<string, "ChatPlanStepId">
 export type ChatPromptId = Brand<string, "ChatPromptId">
 export type ChatPermissionId = Brand<string, "ChatPermissionId">
 
-export const CHAT_CHANNELS = [
+export const CHAT_TRACKS = [
   "transcript",
   "activity",
   "notification",
@@ -24,7 +24,7 @@ export const CHAT_CHANNELS = [
   "error",
 ] as const
 
-export type ChatChannelId = (typeof CHAT_CHANNELS)[number]
+export type ChatTrackId = (typeof CHAT_TRACKS)[number]
 
 export type ChatRole = "user" | "assistant" | "system"
 export type ChatSeverity = "info" | "warning" | "error"
@@ -96,7 +96,7 @@ export type ChatEvent<T extends ChatEventType = ChatEventType> = {
   [Type in T]: {
     id: ChatEventId
     type: Type
-    channel: ChatChannelId
+    track: ChatTrackId
     ts: number
     sessionId: ChatSessionId
     agentEventId?: AgentEventId
@@ -114,7 +114,7 @@ export type ChatMessage = {
 
 export type ChatBlock =
   | { id: ChatBlockId; type: "text"; text: string; eventIds: readonly ChatEventId[] }
-  | { id: ChatBlockId; type: "reasoning"; text: string; eventIds: readonly ChatEventId[] }
+  | { id: ChatBlockId; type: "thought"; text: string; eventIds: readonly ChatEventId[] }
   | { id: ChatBlockId; type: "attachment"; attachment: ChatAttachment; eventIds: readonly ChatEventId[] }
   | { id: ChatBlockId; type: "tool-ref"; toolId: ChatToolId; eventIds: readonly ChatEventId[] }
 
@@ -195,9 +195,8 @@ export type ChatPermissions = {
 export type ChatElementType = "root" | "turn" | "message" | "work" | "subtask"
 
 export type ChatLeafType =
-  | "user-text"
-  | "assistant-text"
-  | "reasoning"
+  | "message"
+  | "thought"
   | "attachment"
   | "recap"
   | "read"
@@ -237,7 +236,7 @@ export type ChatElement =
 type ChatLeafBase<Type extends ChatLeafType, Props extends ChatLeafProps> = {
   id: ChatNodeId
   type: Type
-  channel: ChatChannelId
+  track: ChatTrackId
   eventIds: readonly ChatEventId[]
   messageIds?: readonly ChatMessageId[]
   blockIds?: readonly ChatBlockId[]
@@ -253,9 +252,8 @@ type ChatLeafBase<Type extends ChatLeafType, Props extends ChatLeafProps> = {
 }
 
 export type ChatLeaf =
-  | ChatLeafBase<"user-text", ChatTextLeafProps>
-  | ChatLeafBase<"assistant-text", ChatTextLeafProps>
-  | ChatLeafBase<"reasoning", ChatTextLeafProps>
+  | ChatLeafBase<"message", ChatMessageLeafProps>
+  | ChatLeafBase<"thought", ChatTextLeafProps>
   | ChatLeafBase<"attachment", ChatAttachmentLeafProps>
   | ChatLeafBase<"recap", ChatTextLeafProps>
   | ChatLeafBase<"read", ChatPathLeafProps>
@@ -276,6 +274,7 @@ export type ChatLeaf =
   | ChatLeafBase<"unknown", ChatDebugLeafProps>
 
 export type ChatLeafProps =
+  | ChatMessageLeafProps
   | ChatTextLeafProps
   | ChatAttachmentLeafProps
   | ChatPathLeafProps
@@ -293,6 +292,7 @@ export type ChatLeafProps =
   | ChatErrorLeafProps
   | ChatDebugLeafProps
 
+export type ChatMessageLeafProps = { role: ChatRole; text: string }
 export type ChatTextLeafProps = { text: string }
 export type ChatAttachmentLeafProps = { attachment: ChatAttachment }
 export type ChatPathLeafProps = { path: string; preview?: string }
@@ -330,8 +330,8 @@ export type ChatUsageLeafProps = { inputTokens?: number; outputTokens?: number; 
 export type ChatErrorLeafProps = { message: string; raw?: unknown }
 export type ChatDebugLeafProps = { label: string; raw: unknown }
 
-export type ChatChannelState = {
-  id: ChatChannelId
+export type ChatTrackState = {
+  id: ChatTrackId
   label: string
   visible: boolean
   muted: boolean
@@ -369,7 +369,7 @@ export type ChatSession = {
   promptQueue: ChatPromptQueue
   permissions: ChatPermissions
   tree: ChatTree
-  channels: Readonly<Record<ChatChannelId, ChatChannelState>>
+  tracks: Readonly<Record<ChatTrackId, ChatTrackState>>
 }
 
 export function isChatElement(node: ChatNode): node is ChatElement {

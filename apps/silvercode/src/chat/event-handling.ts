@@ -1,8 +1,8 @@
 import { z } from "zod"
 import {
-  CHAT_CHANNELS,
-  type ChatChannelId,
-  type ChatChannelState,
+  CHAT_TRACKS,
+  type ChatTrackId,
+  type ChatTrackState,
   type ChatDetailAccess,
   type ChatDisclosure,
   type ChatEvent,
@@ -42,8 +42,8 @@ type ChatEventProjection =
   | "state-or-leaf"
 
 export type ChatEventHandling = {
-  defaultChannel: ChatChannelId
-  allowedChannels: readonly ChatChannelId[]
+  defaultTrack: ChatTrackId
+  allowedTracks: readonly ChatTrackId[]
   owner: ChatEventOwner
   projection: ChatEventProjection
   defaultDisclosure: ChatDisclosure
@@ -53,8 +53,8 @@ export type ChatEventHandling = {
 
 export const CHAT_EVENT_HANDLING = {
   "message.started": {
-    defaultChannel: "transcript",
-    allowedChannels: ["transcript", "debug"],
+    defaultTrack: "transcript",
+    allowedTracks: ["transcript", "debug"],
     owner: "message",
     projection: "state-only",
     defaultDisclosure: "expanded",
@@ -62,8 +62,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["cmd-hover"],
   },
   "message.block.added": {
-    defaultChannel: "transcript",
-    allowedChannels: ["transcript", "activity", "debug", "error"],
+    defaultTrack: "transcript",
+    allowedTracks: ["transcript", "activity", "debug", "error"],
     owner: "message-block",
     projection: "message-leaf",
     defaultDisclosure: "expanded",
@@ -71,8 +71,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "message.completed": {
-    defaultChannel: "transcript",
-    allowedChannels: ["transcript", "debug"],
+    defaultTrack: "transcript",
+    allowedTracks: ["transcript", "debug"],
     owner: "message",
     projection: "state-only",
     defaultDisclosure: "collapsed",
@@ -80,8 +80,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["cmd-hover"],
   },
   "tool.started": {
-    defaultChannel: "activity",
-    allowedChannels: ["activity", "debug"],
+    defaultTrack: "activity",
+    allowedTracks: ["activity", "debug"],
     owner: "tool",
     projection: "activity-leaf",
     defaultDisclosure: "collapsed",
@@ -89,8 +89,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "tool.updated": {
-    defaultChannel: "activity",
-    allowedChannels: ["activity", "debug", "error"],
+    defaultTrack: "activity",
+    allowedTracks: ["activity", "debug", "error"],
     owner: "tool",
     projection: "state-or-leaf",
     defaultDisclosure: "collapsed",
@@ -98,8 +98,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "tool.completed": {
-    defaultChannel: "activity",
-    allowedChannels: ["activity", "error", "debug"],
+    defaultTrack: "activity",
+    allowedTracks: ["activity", "error", "debug"],
     owner: "tool",
     projection: "activity-leaf",
     defaultDisclosure: "adaptive",
@@ -107,8 +107,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "permission.requested": {
-    defaultChannel: "permission",
-    allowedChannels: ["permission"],
+    defaultTrack: "permission",
+    allowedTracks: ["permission"],
     owner: "permission",
     projection: "permission-leaf",
     defaultDisclosure: "expanded",
@@ -116,8 +116,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "permission.resolved": {
-    defaultChannel: "permission",
-    allowedChannels: ["permission", "debug"],
+    defaultTrack: "permission",
+    allowedTracks: ["permission", "debug"],
     owner: "permission",
     projection: "state-only",
     defaultDisclosure: "collapsed",
@@ -125,8 +125,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["cmd-hover"],
   },
   "plan.updated": {
-    defaultChannel: "plan",
-    allowedChannels: ["plan", "debug"],
+    defaultTrack: "plan",
+    allowedTracks: ["plan", "debug"],
     owner: "plan",
     projection: "state-or-leaf",
     defaultDisclosure: "adaptive",
@@ -134,8 +134,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "queue.updated": {
-    defaultChannel: "queue",
-    allowedChannels: ["queue", "debug"],
+    defaultTrack: "queue",
+    allowedTracks: ["queue", "debug"],
     owner: "queue",
     projection: "state-or-leaf",
     defaultDisclosure: "adaptive",
@@ -143,8 +143,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "notification.received": {
-    defaultChannel: "notification",
-    allowedChannels: ["notification", "debug", "error"],
+    defaultTrack: "notification",
+    allowedTracks: ["notification", "debug", "error"],
     owner: "notification",
     projection: "notification-leaf",
     defaultDisclosure: "collapsed",
@@ -152,8 +152,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "recap.recorded": {
-    defaultChannel: "notification",
-    allowedChannels: ["notification", "debug"],
+    defaultTrack: "notification",
+    allowedTracks: ["notification", "debug"],
     owner: "recap",
     projection: "recap-leaf",
     defaultDisclosure: "collapsed",
@@ -161,8 +161,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "session.updated": {
-    defaultChannel: "debug",
-    allowedChannels: ["status", "debug"],
+    defaultTrack: "debug",
+    allowedTracks: ["status", "debug"],
     owner: "session",
     projection: "state-only",
     defaultDisclosure: "collapsed",
@@ -170,8 +170,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["cmd-hover"],
   },
   "status.updated": {
-    defaultChannel: "status",
-    allowedChannels: ["status", "debug", "error"],
+    defaultTrack: "status",
+    allowedTracks: ["status", "debug", "error"],
     owner: "status",
     projection: "state-or-leaf",
     defaultDisclosure: "collapsed",
@@ -179,8 +179,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "error.raised": {
-    defaultChannel: "error",
-    allowedChannels: ["error"],
+    defaultTrack: "error",
+    allowedTracks: ["error"],
     owner: "error",
     projection: "error-leaf",
     defaultDisclosure: "expanded",
@@ -188,8 +188,8 @@ export const CHAT_EVENT_HANDLING = {
     detailAccess: ["expand", "cmd-hover"],
   },
   "debug.recorded": {
-    defaultChannel: "debug",
-    allowedChannels: ["debug"],
+    defaultTrack: "debug",
+    allowedTracks: ["debug"],
     owner: "debug",
     projection: "debug-leaf",
     defaultDisclosure: "collapsed",
@@ -204,15 +204,15 @@ export function chatEventHandlingFor(type: ChatEventType): ChatEventHandling {
 
 export function visibleChatEvents<T extends ChatEvent>(
   events: readonly T[],
-  channels: Readonly<Record<string, ChatChannelState | undefined>>,
+  tracks: Readonly<Record<string, ChatTrackState | undefined>>,
 ): T[] {
   return events.filter((event) => {
-    const state = channels[event.channel]
+    const state = tracks[event.track]
     return state !== undefined && state.visible && !state.muted
   })
 }
 
-const channelSchema = z.enum(CHAT_CHANNELS)
+const trackSchema = z.enum(CHAT_TRACKS)
 const roleSchema = z.enum(["user", "assistant", "system"] satisfies ChatRole[])
 const severitySchema = z.enum(["info", "warning", "error"] satisfies ChatSeverity[])
 const statusSchema = z.enum(["pending", "running", "done", "failed", "cancelled"] satisfies ChatStatus[])
@@ -239,7 +239,7 @@ const attachmentSchema = z
   .strict()
 const messageBlockSchema = z.discriminatedUnion("type", [
   z.object({ id: idSchema, type: z.literal("text"), text: textSchema, eventIds: eventIdsSchema }).strict(),
-  z.object({ id: idSchema, type: z.literal("reasoning"), text: textSchema, eventIds: eventIdsSchema }).strict(),
+  z.object({ id: idSchema, type: z.literal("thought"), text: textSchema, eventIds: eventIdsSchema }).strict(),
   z
     .object({ id: idSchema, type: z.literal("attachment"), attachment: attachmentSchema, eventIds: eventIdsSchema })
     .strict(),
@@ -291,7 +291,7 @@ function eventSchema(type: ChatEventType, payload: z.ZodType<unknown>): z.ZodTyp
     .object({
       id: idSchema,
       type: z.literal(type),
-      channel: channelSchema,
+      track: trackSchema,
       ts: z.number().finite(),
       sessionId: idSchema,
       agentEventId: idSchema.optional(),
@@ -301,11 +301,11 @@ function eventSchema(type: ChatEventType, payload: z.ZodType<unknown>): z.ZodTyp
     .strict()
     .superRefine((event, ctx) => {
       const handling = chatEventHandlingFor(type)
-      if (!handling.allowedChannels.includes(event.channel)) {
+      if (!handling.allowedTracks.includes(event.track)) {
         ctx.addIssue({
           code: "custom",
-          path: ["channel"],
-          message: `channel "${event.channel}" is invalid for ${type}; expected one of ${handling.allowedChannels.join(", ")}`,
+          path: ["track"],
+          message: `track "${event.track}" is invalid for ${type}; expected one of ${handling.allowedTracks.join(", ")}`,
         })
       }
     })

@@ -188,7 +188,7 @@ describe("chat model", () => {
     ])
 
     expect(activities.map((activity) => [activity.kind, activity.status, activity.id])).toEqual([
-      ["reasoning", "completed", "reasoning-0"],
+      ["thought", "completed", "thought-0"],
       ["tool", "running", "running"],
       ["tool", "failed", "failed"],
       ["tool", "completed", "completed"],

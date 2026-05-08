@@ -18,7 +18,7 @@ function leaf<T extends ChatLeaf["type"]>(
   return {
     id: id<ChatNodeId>(`leaf-${type}`),
     type,
-    channel: init.channel ?? "transcript",
+    track: init.track ?? "transcript",
     eventIds: [id<ChatEventId>(`event-${type}`)],
     width: "prose",
     defaultDisclosure: "collapsed",
@@ -43,10 +43,10 @@ function render(leaves: readonly ChatLeaf[]) {
 describe("ChatBlockList", () => {
   test("renders projected transcript, notification, and Debug block leaves", () => {
     const app = render([
-      leaf("assistant-text", { text: "Done" }),
-      leaf("queue", { action: "updated" }, { channel: "debug" }),
-      leaf("recap", { text: "RECAP · previous work" }, { channel: "notification" }),
-      leaf("file-snapshot", { files: ["src/app.ts"] }, { channel: "debug" }),
+      leaf("message", { role: "assistant", text: "Done" }),
+      leaf("queue", { action: "updated" }, { track: "debug" }),
+      leaf("recap", { text: "RECAP · previous work" }, { track: "notification" }),
+      leaf("file-snapshot", { files: ["src/app.ts"] }, { track: "debug" }),
     ])
 
     expect(app.text).toContain("Done")

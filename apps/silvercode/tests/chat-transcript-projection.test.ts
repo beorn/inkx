@@ -3,7 +3,7 @@ import { projectChatTree, visibleChatLeaves } from "../src/chat/project-transcri
 import { isChatElement, isChatLeaf } from "../src/chat/types.ts"
 import type {
   ChatBlockId,
-  ChatChannelState,
+  ChatTrackState,
   ChatEvent,
   ChatEventId,
   ChatMessageId,
@@ -16,7 +16,7 @@ function id<T>(value: string): T {
   return value as T
 }
 
-function channels(debugVisible: boolean): Record<string, ChatChannelState> {
+function tracks(debugVisible: boolean): Record<string, ChatTrackState> {
   return {
     transcript: { id: "transcript", label: "Transcript", visible: true, muted: false },
     activity: { id: "activity", label: "Activity", visible: true, muted: false },
@@ -31,7 +31,7 @@ function channels(debugVisible: boolean): Record<string, ChatChannelState> {
 }
 
 describe("projectChatTree", () => {
-  test("projects events into ChatTree leaves and filters visible leaves by event.channel", () => {
+  test("projects events into ChatTree leaves and filters visible leaves by event.track", () => {
     const sessionId = id<ChatSessionId>("session-1")
     const messageId = id<ChatMessageId>("message-1")
     const blockId = id<ChatBlockId>("block-1")
@@ -44,7 +44,7 @@ describe("projectChatTree", () => {
       {
         id: id<ChatEventId>("event-start"),
         type: "message.started",
-        channel: "transcript",
+        track: "transcript",
         ts: 1,
         sessionId,
         payload: { messageId, role: "user" },
@@ -53,7 +53,7 @@ describe("projectChatTree", () => {
       {
         id: textEventId,
         type: "message.block.added",
-        channel: "transcript",
+        track: "transcript",
         ts: 2,
         sessionId,
         payload: {
@@ -66,7 +66,7 @@ describe("projectChatTree", () => {
       {
         id: debugEventId,
         type: "debug.recorded",
-        channel: "debug",
+        track: "debug",
         ts: 3,
         sessionId,
         payload: { label: "Permission mode auto", raw: { permissionMode: "auto" } },
@@ -75,7 +75,7 @@ describe("projectChatTree", () => {
       {
         id: permissionEventId,
         type: "permission.requested",
-        channel: "permission",
+        track: "permission",
         ts: 4,
         sessionId,
         payload: {
@@ -88,7 +88,7 @@ describe("projectChatTree", () => {
       {
         id: notificationEventId,
         type: "notification.received",
-        channel: "notification",
+        track: "notification",
         ts: 5,
         sessionId,
         payload: { source: "agent", body: "Task completed" },
@@ -97,7 +97,7 @@ describe("projectChatTree", () => {
       {
         id: recapEventId,
         type: "recap.recorded",
-        channel: "notification",
+        track: "notification",
         ts: 6,
         sessionId,
         payload: { text: "RECAP · previous work" },
@@ -110,21 +110,21 @@ describe("projectChatTree", () => {
     const leaves = Object.values(tree.nodes).filter(isChatLeaf)
     expect(leaves.length).toBeGreaterThan(0)
 
-    expect(leaves.map((leaf) => leaf.type)).toEqual(["user-text", "unknown", "permission", "notification", "recap"])
-    expect(leaves.map((leaf) => leaf.channel)).toEqual([
+    expect(leaves.map((leaf) => leaf.type)).toEqual(["message", "unknown", "permission", "notification", "recap"])
+    expect(leaves.map((leaf) => leaf.track)).toEqual([
       "transcript",
       "debug",
       "permission",
       "notification",
       "notification",
     ])
-    expect(visibleChatLeaves(tree, channels(false)).map((leaf) => leaf.id)).toEqual([
+    expect(visibleChatLeaves(tree, tracks(false)).map((leaf) => leaf.id)).toEqual([
       id<ChatNodeId>("leaf:event-text"),
       id<ChatNodeId>("leaf:event-permission"),
       id<ChatNodeId>("leaf:event-notification"),
       id<ChatNodeId>("leaf:event-recap"),
     ])
-    expect(visibleChatLeaves(tree, channels(true)).map((leaf) => leaf.id)).toEqual([
+    expect(visibleChatLeaves(tree, tracks(true)).map((leaf) => leaf.id)).toEqual([
       id<ChatNodeId>("leaf:event-text"),
       id<ChatNodeId>("leaf:event-debug"),
       id<ChatNodeId>("leaf:event-permission"),
@@ -143,7 +143,7 @@ describe("projectChatTree", () => {
         {
           id: fileEventId,
           type: "debug.recorded",
-          channel: "debug",
+          track: "debug",
           ts: 1,
           sessionId,
           payload: {
@@ -155,7 +155,7 @@ describe("projectChatTree", () => {
         {
           id: hookEventId,
           type: "debug.recorded",
-          channel: "debug",
+          track: "debug",
           ts: 2,
           sessionId,
           payload: { label: "Hook context: SessionStart", raw: { ok: true } },
@@ -164,10 +164,10 @@ describe("projectChatTree", () => {
       ],
     })
 
-    const leaves = visibleChatLeaves(tree, channels(true))
+    const leaves = visibleChatLeaves(tree, tracks(true))
     expect(leaves.map((leaf) => leaf.type)).toEqual(["file-snapshot", "hook"])
     expect(leaves[0]).toMatchObject({ props: { files: ["src/app.ts"] } })
-    expect(visibleChatLeaves(tree, channels(false))).toEqual([])
+    expect(visibleChatLeaves(tree, tracks(false))).toEqual([])
   })
 
   test("ignores late message parts that arrive after a forced message completion", () => {
@@ -183,7 +183,7 @@ describe("projectChatTree", () => {
         {
           id: id<ChatEventId>("message-start"),
           type: "message.started",
-          channel: "transcript",
+          track: "transcript",
           ts: 1,
           sessionId,
           payload: { messageId, role: "assistant" },
@@ -192,7 +192,7 @@ describe("projectChatTree", () => {
         {
           id: firstEventId,
           type: "message.block.added",
-          channel: "transcript",
+          track: "transcript",
           ts: 2,
           sessionId,
           payload: {
@@ -205,7 +205,7 @@ describe("projectChatTree", () => {
         {
           id: id<ChatEventId>("message-complete"),
           type: "message.completed",
-          channel: "transcript",
+          track: "transcript",
           ts: 3,
           sessionId,
           payload: { messageId },
@@ -214,7 +214,7 @@ describe("projectChatTree", () => {
         {
           id: lateEventId,
           type: "message.block.added",
-          channel: "transcript",
+          track: "transcript",
           ts: 4,
           sessionId,
           payload: {
@@ -227,9 +227,9 @@ describe("projectChatTree", () => {
       ],
     })
 
-    const leaves = visibleChatLeaves(tree, channels(true))
-    expect(leaves.map((leaf) => leaf.props)).toContainEqual({ text: "first chunk" })
-    expect(leaves.map((leaf) => leaf.props)).not.toContainEqual({ text: "late chunk" })
+    const leaves = visibleChatLeaves(tree, tracks(true))
+    expect(leaves.map((leaf) => leaf.props)).toContainEqual({ role: "assistant", text: "first chunk" })
+    expect(leaves.map((leaf) => leaf.props)).not.toContainEqual({ role: "assistant", text: "late chunk" })
   })
 
   test("throws if an unknown ChatEventType reaches projection", () => {
@@ -237,7 +237,7 @@ describe("projectChatTree", () => {
     const bad = {
       id: id<ChatEventId>("event-bad"),
       type: "surprise.event",
-      channel: "debug",
+      track: "debug",
       ts: 1,
       sessionId,
       payload: {},

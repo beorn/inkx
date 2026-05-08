@@ -2,7 +2,7 @@ import { parseAgentEvent, type AgentEvent } from "@km/agent-harness"
 import { parseChatEvent } from "./event-handling.ts"
 import type {
   AgentEventId,
-  ChatChannelId,
+  ChatTrackId,
   ChatEvent,
   ChatEventId,
   ChatEventPayloads,
@@ -18,7 +18,7 @@ import type {
 } from "./types.ts"
 
 type AgentEventProjection = {
-  channel: ChatChannelId
+  track: ChatTrackId
   chatEventTypes: readonly ChatEventType[]
   keepsRaw: boolean
 }
@@ -28,39 +28,39 @@ type SeenMessage = { role: ChatRole; source: MessageStartSource }
 type AssistantContentBlock = Extract<AgentEvent, { kind: "assistant-message" }>["content"][number]
 
 export const AGENT_EVENT_CHAT_PROJECTION = {
-  "session-init": { channel: "status", chatEventTypes: ["session.updated", "debug.recorded"], keepsRaw: true },
-  "turn-start": { channel: "transcript", chatEventTypes: ["message.started"], keepsRaw: true },
-  "text-delta": { channel: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
-  "thinking-delta": { channel: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
-  "tool-use": { channel: "activity", chatEventTypes: ["tool.started"], keepsRaw: true },
-  "tool-result": { channel: "activity", chatEventTypes: ["tool.completed"], keepsRaw: true },
-  "permission-request": { channel: "permission", chatEventTypes: ["permission.requested"], keepsRaw: true },
-  "permission-decision": { channel: "permission", chatEventTypes: ["permission.resolved"], keepsRaw: true },
-  "liveness-check": { channel: "debug", chatEventTypes: ["status.updated"], keepsRaw: true },
-  "turn-end": { channel: "transcript", chatEventTypes: ["message.completed", "debug.recorded"], keepsRaw: true },
+  "session-init": { track: "status", chatEventTypes: ["session.updated", "debug.recorded"], keepsRaw: true },
+  "turn-start": { track: "transcript", chatEventTypes: ["message.started"], keepsRaw: true },
+  "text-delta": { track: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
+  "thinking-delta": { track: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
+  "tool-use": { track: "activity", chatEventTypes: ["tool.started"], keepsRaw: true },
+  "tool-result": { track: "activity", chatEventTypes: ["tool.completed"], keepsRaw: true },
+  "permission-request": { track: "permission", chatEventTypes: ["permission.requested"], keepsRaw: true },
+  "permission-decision": { track: "permission", chatEventTypes: ["permission.resolved"], keepsRaw: true },
+  "liveness-check": { track: "debug", chatEventTypes: ["status.updated"], keepsRaw: true },
+  "turn-end": { track: "transcript", chatEventTypes: ["message.completed", "debug.recorded"], keepsRaw: true },
   "assistant-message": {
-    channel: "transcript",
+    track: "transcript",
     chatEventTypes: ["message.started", "message.block.added", "tool.started", "tool.completed", "debug.recorded"],
     keepsRaw: true,
   },
   "user-message": {
-    channel: "transcript",
+    track: "transcript",
     chatEventTypes: ["message.started", "message.block.added", "debug.recorded", "message.completed"],
     keepsRaw: true,
   },
   "raw-transcript": {
-    channel: "debug",
+    track: "debug",
     chatEventTypes: ["debug.recorded", "queue.updated", "session.updated", "notification.received", "recap.recorded"],
     keepsRaw: true,
   },
-  status: { channel: "status", chatEventTypes: ["status.updated"], keepsRaw: true },
-  "plan-update": { channel: "plan", chatEventTypes: ["plan.updated"], keepsRaw: true },
-  "slash-commands-update": { channel: "debug", chatEventTypes: ["debug.recorded"], keepsRaw: true },
-  "session-end": { channel: "status", chatEventTypes: ["status.updated", "debug.recorded"], keepsRaw: true },
-  handoff: { channel: "debug", chatEventTypes: ["debug.recorded"], keepsRaw: true },
-  "km-reference": { channel: "debug", chatEventTypes: ["debug.recorded"], keepsRaw: true },
-  "session-lifecycle": { channel: "status", chatEventTypes: ["status.updated"], keepsRaw: true },
-  error: { channel: "error", chatEventTypes: ["error.raised"], keepsRaw: true },
+  status: { track: "status", chatEventTypes: ["status.updated"], keepsRaw: true },
+  "plan-update": { track: "plan", chatEventTypes: ["plan.updated"], keepsRaw: true },
+  "slash-commands-update": { track: "debug", chatEventTypes: ["debug.recorded"], keepsRaw: true },
+  "session-end": { track: "status", chatEventTypes: ["status.updated", "debug.recorded"], keepsRaw: true },
+  handoff: { track: "debug", chatEventTypes: ["debug.recorded"], keepsRaw: true },
+  "km-reference": { track: "debug", chatEventTypes: ["debug.recorded"], keepsRaw: true },
+  "session-lifecycle": { track: "status", chatEventTypes: ["status.updated"], keepsRaw: true },
+  error: { track: "error", chatEventTypes: ["error.raised"], keepsRaw: true },
 } satisfies Record<AgentEvent["kind"], AgentEventProjection>
 
 export type NormalizeAgentEventOptions = {
@@ -334,14 +334,14 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
 
   function make<T extends ChatEventType>(
     type: T,
-    channel: ChatChannelId,
+    track: ChatTrackId,
     payload: ChatEventPayloads[T],
     suffix: string = type,
   ): ChatEvent<T> {
     return {
       id: chatEventId(`${agentEventId}:${suffix}`),
       type,
-      channel,
+      track,
       ts: event.ts,
       sessionId,
       agentEventId,
@@ -409,7 +409,7 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
         {
           id: eventId,
           type: "message.block.added",
-          channel: "transcript",
+          track: "transcript",
           ts: event.ts,
           sessionId,
           agentEventId,
@@ -429,14 +429,14 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
         {
           id: eventId,
           type: "message.block.added",
-          channel: "transcript",
+          track: "transcript",
           ts: event.ts,
           sessionId,
           agentEventId,
           payload: {
             messageId: chatMessageId(event.turnId),
             blockId,
-            block: { id: blockId, type: "reasoning", text: event.text, eventIds: [eventId] },
+            block: { id: blockId, type: "thought", text: event.text, eventIds: [eventId] },
           },
           rawRefs,
         },
@@ -511,14 +511,14 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
       return normalizeAssistantMessage(event, make, messageBlock)
     case "user-message": {
       const messageId = chatMessageId(event.turnId)
-      const textBlockId = chatBlockId(`${event.turnId}:user-text`)
-      const textEventId = chatEventId(`${agentEventId}:user-text`)
+      const textBlockId = chatBlockId(`${event.turnId}:text`)
+      const textEventId = chatEventId(`${agentEventId}:text`)
       const out: ChatEvent[] = [
         make("message.started", "transcript", { messageId, role: "user" }, "message-started"),
         {
           id: textEventId,
           type: "message.block.added",
-          channel: "transcript",
+          track: "transcript",
           ts: event.ts,
           sessionId,
           agentEventId,
@@ -631,7 +631,7 @@ function normalizeRawTranscriptEvent(
   event: Extract<AgentEvent, { kind: "raw-transcript" }>,
   make: <T extends ChatEventType>(
     type: T,
-    channel: ChatChannelId,
+    track: ChatTrackId,
     payload: ChatEventPayloads[T],
     suffix?: string,
   ) => ChatEvent<T>,
@@ -661,8 +661,8 @@ function normalizeRawTranscriptEvent(
         event.label.replace(/^(Title|AI title|Agent):\s*/, "").trim()
       if (title.length > 0) {
         const titleSource = rawType === "custom-title" ? "custom" : rawType === "ai-title" ? "ai" : "agent"
-        const channel = rawType === "custom-title" ? "status" : "debug"
-        return [make("session.updated", channel, { title, titleSource }, rawType)]
+        const track = rawType === "custom-title" ? "status" : "debug"
+        return [make("session.updated", track, { title, titleSource }, rawType)]
       }
     }
   }
@@ -708,7 +708,7 @@ function debugEventFromAgentEvent(
   return {
     id: chatEventId(`${agentEventId}:${suffix}`),
     type: "debug.recorded",
-    channel: "debug",
+    track: "debug",
     ts: event.ts,
     sessionId,
     agentEventId,
@@ -721,7 +721,7 @@ function orphanToolCompletionDebugEvent(event: ChatEvent<"tool.completed">): Cha
   return {
     id: chatEventId(`${event.id}:orphan-tool-result`),
     type: "debug.recorded",
-    channel: "debug",
+    track: "debug",
     ts: event.ts,
     sessionId: event.sessionId,
     agentEventId: event.agentEventId,
@@ -741,7 +741,7 @@ function normalizeAssistantMessage(
   event: Extract<AgentEvent, { kind: "assistant-message" }>,
   make: <T extends ChatEventType>(
     type: T,
-    channel: ChatChannelId,
+    track: ChatTrackId,
     payload: ChatEventPayloads[T],
     suffix?: string,
   ) => ChatEvent<T>,
@@ -779,7 +779,7 @@ function normalizeAssistantMessage(
           messageBlock(
             messageId,
             blockId,
-            { id: blockId, type: "reasoning", text: block.text, eventIds: [blockEventId] },
+            { id: blockId, type: "thought", text: block.text, eventIds: [blockEventId] },
             `${suffix}:thinking`,
           ),
         )

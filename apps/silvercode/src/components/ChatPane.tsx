@@ -140,7 +140,7 @@ function notificationLeafFromEntry(entry: ChannelNotification): ChatLeaf {
   return {
     id: `leaf:${id}` as ChatNodeId,
     type: "notification",
-    channel: "notification",
+    track: "notification",
     eventIds: [id as ChatEventId],
     width: "prose",
     defaultDisclosure: "collapsed",
@@ -270,7 +270,7 @@ export function ChatPane({
   )
   React.useEffect(() => () => chatProjection.dispose(), [chatProjection])
   React.useEffect(() => {
-    chatProjection.setChannelVisible("debug", showDebug)
+    chatProjection.setTrackVisible("debug", showDebug)
   }, [chatProjection, showDebug])
   const projectedEvents = useSignal(chatProjection.events) ?? chatProjection.events()
   const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()

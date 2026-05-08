@@ -746,18 +746,18 @@ function AllStoryBody(): React.ReactElement {
                   <Text color="$muted">Session resumed 019ddfc8…389f</Text>
                 </Chat.Body>
               </Chat.Metadata>
-              <Chat.Message>
+              <Chat.MessageGroup>
                 <Chat.Prompt
                   text={"Review the transcript system.\n\n- preserve prose lanes\n- keep activity grouped"}
                 />
                 <Chat.Block>
-                  <Chat.Narration text="I will keep Content.* responsible for layout and move chat semantics into Chat.*." />
+                  <Chat.Message text="I will keep Content.* responsible for layout and move chat semantics into Chat.*." />
                   <Chat.Activity items={[]} />
                 </Chat.Block>
                 <Chat.Summary>
                   <Chat.Stats>metadata · prompt · narration · activity · summary</Chat.Stats>
                 </Chat.Summary>
-              </Chat.Message>
+              </Chat.MessageGroup>
             </Chat.Session>
           </Chat.Pane>
         </>

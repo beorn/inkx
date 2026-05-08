@@ -343,7 +343,7 @@ function AgentsDrawer({
   )
 }
 
-function Message({ children }: { children: React.ReactNode }): React.ReactElement {
+function MessageGroup({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <Box flexDirection="column" gap={1} flexShrink={0} minWidth={0}>
       {children}
@@ -526,7 +526,7 @@ function looksLikeTableHeader(line: string, next: string): boolean {
   return /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(next)
 }
 
-function Narration({
+function Message({
   text,
   marker = "•",
   muted = false,
@@ -576,6 +576,10 @@ function Narration({
       </Prose>
     </SessionEntry>
   )
+}
+
+function Thought({ text, marker = "·" }: { text: string; marker?: React.ReactNode }): React.ReactElement {
+  return <Message text={text} marker={marker} muted />
 }
 
 function Activity({
@@ -652,10 +656,11 @@ export const Chat = {
   PlanDrawer,
   AgentsDrawer,
   Body,
+  MessageGroup,
   Message,
   Prompt,
   Block,
-  Narration,
+  Thought,
   Activity,
   Tool,
   Summary,

@@ -120,19 +120,19 @@ export const chatTurnComponents: Story = {
                 <Text color="$muted">Session resumed 019ddfc8…389f</Text>
               </Chat.Body>
             </Chat.Metadata>
-            <Chat.Message>
+            <Chat.MessageGroup>
               <Chat.Prompt
                 text={"Can you refactor the transcript into Chat.*?\n\n- preserve stream order\n- keep layout generic"}
               />
               <Chat.Block>
-                <Chat.Narration text="I will add the semantic component family first, then migrate the list." />
+                <Chat.Message text="I will add the semantic component family first, then migrate the list." />
                 <Chat.Activity items={directActivityItems} />
               </Chat.Block>
               <Chat.Summary>
-                <Chat.Narration text="The transcript now renders through Chat.* while Content.* still owns lanes." />
+                <Chat.Message text="The transcript now renders through Chat.* while Content.* still owns lanes." />
                 <Chat.Stats>2 tools · 1 test file · prose lane</Chat.Stats>
               </Chat.Summary>
-            </Chat.Message>
+            </Chat.MessageGroup>
           </Chat.Session>
         </Chat.Pane>
       </Screen>
@@ -151,20 +151,20 @@ export const chatStateVariants: Story = {
       <Screen flexDirection="column">
         <Chat.Pane>
           <Chat.Session>
-            <Chat.Message>
+            <Chat.MessageGroup>
               <StorySection label="prompt-only">
                 <Chat.Prompt text="Review the chat projection model." />
               </StorySection>
               <StorySection label="narration-only">
                 <Chat.Block>
-                  <Chat.Narration text="I am tracing the session state before changing components." />
+                  <Chat.Message text="I am tracing the session state before changing components." />
                 </Chat.Block>
               </StorySection>
               <StorySection label="narration-activity-narration">
                 <Chat.Block>
-                  <Chat.Narration text="First I inspect the model." />
+                  <Chat.Message text="First I inspect the model." />
                   <Chat.Activity items={directActivityItems} />
-                  <Chat.Narration text="Then I update the projection." />
+                  <Chat.Message text="Then I update the projection." />
                 </Chat.Block>
               </StorySection>
               <StorySection label="dense-activity">
@@ -187,11 +187,11 @@ export const chatStateVariants: Story = {
               </StorySection>
               <StorySection label="summary-stats">
                 <Chat.Summary>
-                  <Chat.Narration text="The projection now treats turns as idle-delimited UI groups." />
+                  <Chat.Message text="The projection now treats turns as idle-delimited UI groups." />
                   <Chat.Stats>2 prompts · 11 tools · 4.2s · 3.1k tokens</Chat.Stats>
                 </Chat.Summary>
               </StorySection>
-            </Chat.Message>
+            </Chat.MessageGroup>
           </Chat.Session>
         </Chat.Pane>
       </Screen>
@@ -209,21 +209,21 @@ export const chatIdleDelimitedTurn: Story = {
       <Screen flexDirection="column">
         <Chat.Pane>
           <Chat.Session>
-            <Chat.Message>
+            <Chat.MessageGroup>
               <Chat.Prompt text="Start the refactor." />
               <Chat.Block>
-                <Chat.Narration text="I am updating the model first." />
+                <Chat.Message text="I am updating the model first." />
                 <Chat.Activity items={directActivityItems.slice(0, 1)} />
               </Chat.Block>
               <Chat.Prompt text="Also update the docs and Storybook." />
               <Chat.Block>
-                <Chat.Narration text="I will keep that prompt inside the same active turn until both sides go idle." />
+                <Chat.Message text="I will keep that prompt inside the same active turn until both sides go idle." />
                 <Chat.Activity items={directActivityItems.slice(1)} />
               </Chat.Block>
               <Chat.Summary>
                 <Chat.Stats>2 prompts · 2 tools · one idle-delimited turn</Chat.Stats>
               </Chat.Summary>
-            </Chat.Message>
+            </Chat.MessageGroup>
           </Chat.Session>
         </Chat.Pane>
       </Screen>

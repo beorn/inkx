@@ -6,7 +6,7 @@ import {
   visibleChatEvents,
 } from "../src/chat/event-handling.ts"
 import type {
-  ChatChannelState,
+  ChatTrackState,
   ChatEvent,
   ChatEventId,
   ChatEventType,
@@ -14,7 +14,7 @@ import type {
   ChatPermissionId,
   ChatSessionId,
 } from "../src/chat/types.ts"
-import { CHAT_CHANNELS } from "../src/chat/types.ts"
+import { CHAT_TRACKS } from "../src/chat/types.ts"
 
 function id<T>(value: string): T {
   return value as T
@@ -32,7 +32,7 @@ function event<T extends ChatEventType>(init: Omit<ChatEvent<T>, "id" | "ts" | "
   } as ChatEvent<T>
 }
 
-function channels(debugVisible: boolean): Record<string, ChatChannelState> {
+function tracks(debugVisible: boolean): Record<string, ChatTrackState> {
   return {
     transcript: { id: "transcript", label: "Transcript", visible: true, muted: false },
     activity: { id: "activity", label: "Activity", visible: true, muted: false },
@@ -47,8 +47,8 @@ function channels(debugVisible: boolean): Record<string, ChatChannelState> {
 }
 
 describe("ChatEvent handling contract", () => {
-  test("every ChatEventType declares channel, owner, and projection handling", () => {
-    expect(CHAT_CHANNELS).toEqual([
+  test("every ChatEventType declares track, owner, and projection handling", () => {
+    expect(CHAT_TRACKS).toEqual([
       "transcript",
       "activity",
       "notification",
@@ -81,20 +81,20 @@ describe("ChatEvent handling contract", () => {
     ] satisfies ChatEventType[])
 
     const handling = chatEventHandlingFor("debug.recorded")
-    expect(handling.defaultChannel).toBe("debug")
+    expect(handling.defaultTrack).toBe("debug")
     expect(handling.owner).toBe("debug")
     expect(handling.projection).toBe("debug-leaf")
   })
 
-  test("visibleChatEvents filters only by projected event.channel", () => {
+  test("visibleChatEvents filters only by projected event.track", () => {
     const transcript = event({
       type: "message.started",
-      channel: "transcript",
+      track: "transcript",
       payload: { messageId: id<ChatMessageId>("message-1"), role: "user" },
     })
     const debug = event({
       type: "debug.recorded",
-      channel: "debug",
+      track: "debug",
       payload: { label: "Permission mode auto", raw: { permissionMode: "auto" } },
     })
     const rawLookingTranscript = {
@@ -102,14 +102,14 @@ describe("ChatEvent handling contract", () => {
       rawRefs: [{ id: "raw-looking", source: "local" as const, label: "raw" }],
     }
 
-    expect(visibleChatEvents([rawLookingTranscript, debug], channels(false))).toEqual([rawLookingTranscript])
-    expect(visibleChatEvents([rawLookingTranscript, debug], channels(true))).toEqual([rawLookingTranscript, debug])
+    expect(visibleChatEvents([rawLookingTranscript, debug], tracks(false))).toEqual([rawLookingTranscript])
+    expect(visibleChatEvents([rawLookingTranscript, debug], tracks(true))).toEqual([rawLookingTranscript, debug])
   })
 
   test("strict ChatEvent parsing rejects unknown event types and properties", () => {
     const valid = event({
       type: "permission.requested",
-      channel: "permission",
+      track: "permission",
       payload: {
         permissionId: id<ChatPermissionId>("perm-1"),
         prompt: "Run command?",
@@ -117,7 +117,7 @@ describe("ChatEvent handling contract", () => {
       },
     })
 
-    expect(parseChatEvent(valid)).toMatchObject({ type: "permission.requested", channel: "permission" })
+    expect(parseChatEvent(valid)).toMatchObject({ type: "permission.requested", track: "permission" })
     expect(() => parseChatEvent({ ...valid, extra: true })).toThrow(/Unrecognized key|unrecognized/i)
     expect(() =>
       parseChatEvent({
@@ -126,6 +126,6 @@ describe("ChatEvent handling contract", () => {
       }),
     ).toThrow(/Unrecognized key|unrecognized/i)
     expect(() => parseChatEvent({ ...valid, type: "permission.mode" })).toThrow(/invalid|unsupported|type/i)
-    expect(() => parseChatEvent({ ...valid, channel: "transcript" })).toThrow(/channel/i)
+    expect(() => parseChatEvent({ ...valid, track: "transcript" })).toThrow(/track/i)
   })
 })

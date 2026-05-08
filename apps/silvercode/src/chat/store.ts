@@ -6,8 +6,8 @@ import { projectSubagentActivitiesFromChatEvents } from "./subagent-activities.t
 import type {
   ChatBlock,
   ChatBlockId,
-  ChatChannelId,
-  ChatChannelState,
+  ChatTrackId,
+  ChatTrackState,
   ChatEvent,
   ChatLeaf,
   ChatMessage,
@@ -25,11 +25,11 @@ import type {
 
 export type ChatSessionProjectionStore = {
   readonly events: () => readonly ChatEvent[]
-  readonly channels: () => Readonly<Record<ChatChannelId, ChatChannelState>>
+  readonly tracks: () => Readonly<Record<ChatTrackId, ChatTrackState>>
   readonly tree: () => ChatTree
   readonly visibleLeaves: () => readonly ChatLeaf[]
   readonly session: () => ChatSession
-  setChannelVisible(channelId: ChatChannelId, visible: boolean): void
+  setTrackVisible(trackId: ChatTrackId, visible: boolean): void
   dispose(): void
 }
 
@@ -39,27 +39,27 @@ export function createChatSessionProjectionStore(
 ): ChatSessionProjectionStore {
   const sessionId = opts.sessionId as ChatSessionId
   const agentEvents = signal<readonly AgentEvent[]>(store.events.get())
-  const channels = signal(defaultChatChannels())
+  const tracks = signal(defaultChatTracks())
   const unsubscribe = store.events.subscribe((events) => {
     agentEvents(events)
   })
   const events = computed(() => normalizeAgentEventsToChatEvents(agentEvents(), { sessionId }))
   const tree = computed(() => projectChatTree({ sessionId, events: events() }))
-  const visible = computed(() => visibleChatLeaves(tree(), channels()))
-  const session = computed(() => buildChatSession(sessionId, events(), tree(), channels()))
+  const visible = computed(() => visibleChatLeaves(tree(), tracks()))
+  const session = computed(() => buildChatSession(sessionId, events(), tree(), tracks()))
 
   return {
     events,
-    channels,
+    tracks,
     tree,
     visibleLeaves: visible,
     session,
-    setChannelVisible(channelId, isVisible): void {
-      const current = channels()
-      const state = current[channelId]
-      channels({
+    setTrackVisible(trackId, isVisible): void {
+      const current = tracks()
+      const state = current[trackId]
+      tracks({
         ...current,
-        [channelId]: { ...state, visible: isVisible, muted: !isVisible },
+        [trackId]: { ...state, visible: isVisible, muted: !isVisible },
       })
     },
     dispose(): void {
@@ -68,7 +68,7 @@ export function createChatSessionProjectionStore(
   }
 }
 
-export function defaultChatChannels(): Record<ChatChannelId, ChatChannelState> {
+export function defaultChatTracks(): Record<ChatTrackId, ChatTrackState> {
   return {
     transcript: { id: "transcript", label: "Transcript", visible: true, muted: false },
     activity: { id: "activity", label: "Activity", visible: true, muted: false },
@@ -86,7 +86,7 @@ function buildChatSession(
   sessionId: ChatSessionId,
   events: readonly ChatEvent[],
   tree: ChatTree,
-  channels: Readonly<Record<ChatChannelId, ChatChannelState>>,
+  tracks: Readonly<Record<ChatTrackId, ChatTrackState>>,
 ): ChatSession {
   const messages: Record<ChatMessageId, ChatMessage> = {}
   const blocks: Record<ChatBlockId, ChatBlock> = {}
@@ -249,7 +249,7 @@ function buildChatSession(
     promptQueue,
     permissions: { requests: permissionRequests },
     tree,
-    channels,
+    tracks,
   }
 }
 

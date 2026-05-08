@@ -1,6 +1,6 @@
 import { chatEventHandlingFor, parseChatEvent } from "./event-handling.ts"
 import type {
-  ChatChannelState,
+  ChatTrackState,
   ChatEvent,
   ChatEventId,
   ChatLeaf,
@@ -141,11 +141,11 @@ function assertPromptQueueConsistency(event: ChatEvent<"queue.updated">, promptQ
 
 function leafBase(
   event: ChatEvent,
-): Pick<ChatLeaf, "id" | "channel" | "eventIds" | "width" | "defaultDisclosure" | "detailAccess" | "rawRefs"> {
+): Pick<ChatLeaf, "id" | "track" | "eventIds" | "width" | "defaultDisclosure" | "detailAccess" | "rawRefs"> {
   const handling = chatEventHandlingFor(event.type)
   return {
     id: nodeId(`leaf:${event.id}`),
-    channel: event.channel,
+    track: event.track,
     eventIds: [event.id],
     width: handling.width,
     defaultDisclosure: handling.defaultDisclosure,
@@ -248,15 +248,15 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
         if (block.type === "text") {
           pushLeaf({
             ...leafBase(event),
-            type: message.role === "user" ? "user-text" : "assistant-text",
+            type: "message",
             messageIds: [event.payload.messageId],
             blockIds: [event.payload.blockId],
-            props: { text: block.text },
+            props: { role: message.role, text: block.text },
           })
-        } else if (block.type === "reasoning") {
+        } else if (block.type === "thought") {
           pushLeaf({
             ...leafBase(event),
-            type: "reasoning",
+            type: "thought",
             messageIds: [event.payload.messageId],
             blockIds: [event.payload.blockId],
             props: { text: block.text },
@@ -308,7 +308,7 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
         break
       case "tool.updated":
         requireToolState(tools, event)
-        if (event.channel === "error") {
+        if (event.track === "error") {
           pushLeaf({
             ...leafBase(event),
             type: "error",
@@ -370,7 +370,7 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
         })
         break
       case "session.updated":
-        if (event.channel === "status") {
+        if (event.track === "status") {
           pushLeaf({
             ...leafBase(event),
             type: "session-status",
@@ -414,7 +414,7 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
 
 export function visibleChatLeaves(
   tree: ChatTree,
-  channels: Readonly<Record<string, ChatChannelState | undefined>>,
+  tracks: Readonly<Record<string, ChatTrackState | undefined>>,
 ): ChatLeaf[] {
   const root = tree.nodes[tree.rootId]
   if (!root || !("children" in root)) return []
@@ -422,8 +422,8 @@ export function visibleChatLeaves(
   for (const id of root.children) {
     const node = tree.nodes[id]
     if (!node || "children" in node) continue
-    const channel = channels[node.channel]
-    if (channel?.visible && !channel.muted) leaves.push(node)
+    const track = tracks[node.track]
+    if (track?.visible && !track.muted) leaves.push(node)
   }
   return leaves
 }

@@ -52,7 +52,7 @@ function compactDetail(leaf: ChatLeaf): unknown {
   const base: Record<string, unknown> = {
     id: leaf.id,
     type: leaf.type,
-    channel: leaf.channel,
+    track: leaf.track,
     eventIds: leaf.eventIds,
     messageIds: leaf.messageIds,
     blockIds: leaf.blockIds,
@@ -126,22 +126,20 @@ function renderToolSummary(leaf: Extract<ChatLeaf, { type: "tool" }>): string {
 
 function renderChatLeaf(leaf: ChatLeaf): React.ReactNode {
   switch (leaf.type) {
-    case "user-text":
+    case "message":
       return (
         <BlockFrame leaf={leaf}>
-          <Chat.Prompt text={leaf.props.text} />
+          {leaf.props.role === "user" ? (
+            <Chat.Prompt text={leaf.props.text} />
+          ) : (
+            <Chat.Message text={leaf.props.text} />
+          )}
         </BlockFrame>
       )
-    case "assistant-text":
+    case "thought":
       return (
         <BlockFrame leaf={leaf}>
-          <Chat.Narration text={leaf.props.text} />
-        </BlockFrame>
-      )
-    case "reasoning":
-      return (
-        <BlockFrame leaf={leaf}>
-          <Chat.Narration text={leaf.props.text} muted marker="·" />
+          <Chat.Thought text={leaf.props.text} />
         </BlockFrame>
       )
     case "attachment":

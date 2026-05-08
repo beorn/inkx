@@ -199,19 +199,19 @@ describe("normalizeAgentEventToChatEvents", () => {
       "session.updated",
     ])
     expect(normalizeAgentEventToChatEvents(rawEvents[0]!, { sessionId })[0]).toMatchObject({
-      channel: "debug",
+      track: "debug",
       payload: { mode: "auto" },
     })
     expect(normalizeAgentEventToChatEvents(rawEvents[1]!, { sessionId })[0]).toMatchObject({
-      channel: "queue",
+      track: "queue",
       payload: { promptQueue: { prompts: [] } },
     })
     expect(normalizeAgentEventToChatEvents(rawEvents[2]!, { sessionId })[0]).toMatchObject({
-      channel: "notification",
+      track: "notification",
       payload: { text: "RECAP · previous work summary" },
     })
     expect(normalizeAgentEventToChatEvents(rawEvents[3]!, { sessionId })[0]).toMatchObject({
-      channel: "status",
+      track: "status",
       payload: { title: "typed name", titleSource: "custom" },
     })
   })
@@ -238,7 +238,7 @@ describe("normalizeAgentEventToChatEvents", () => {
 
     expect(normalized[0]).toMatchObject({
       type: "session.updated",
-      channel: "status",
+      track: "status",
       payload: { model: "codex", cwd: "/repo" },
     })
     expect(normalized[0]?.payload).not.toHaveProperty("mode")
@@ -256,7 +256,7 @@ describe("normalizeAgentEventToChatEvents", () => {
       { sessionId },
     )
 
-    expect(normalized.map((event) => [event.type, event.channel])).toEqual([
+    expect(normalized.map((event) => [event.type, event.track])).toEqual([
       ["message.started", "transcript"],
       ["message.block.added", "transcript"],
       ["debug.recorded", "debug"],
@@ -466,7 +466,7 @@ describe("normalizeAgentEventToChatEvents", () => {
       { sessionId: projectedSessionId },
     )
 
-    expect(normalized.map((event) => [event.type, event.channel])).toEqual([
+    expect(normalized.map((event) => [event.type, event.track])).toEqual([
       ["message.started", "transcript"],
       ["message.block.added", "transcript"],
       ["message.block.added", "transcript"],

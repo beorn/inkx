@@ -46,7 +46,7 @@ export type ChatTranscriptSlice =
   | { kind: "message"; id: string; message: MessageEntry }
   | { kind: "activity"; id: string; message: MessageEntry; ops: MessageOp[] }
 
-export type ActivityRunKind = "reasoning" | "tool"
+export type ActivityRunKind = "thought" | "tool"
 
 export type ActivityRunStatus = "running" | "completed" | "failed"
 
@@ -284,8 +284,8 @@ export function activityRunsFromOps(ops: readonly MessageOp[]): ActivityRun[] {
     }
     if (op.kind === "thinking" && op.text.trim().length > 0) {
       out.push({
-        id: `reasoning-${index}`,
-        kind: "reasoning",
+        id: `thought-${index}`,
+        kind: "thought",
         status: "completed",
         op,
         index,

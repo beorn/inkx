@@ -1121,7 +1121,7 @@ function ActivityDetails({
               paddingBefore={hasVisibleTurnOpBefore(ops, index)}
               paddingAfter={hasVisibleTurnOpAfter(ops, index)}
             >
-              <Chat.Narration text={op.text} muted />
+              <Chat.Thought text={op.text} />
             </StandaloneProseFrame>
           )
         }
@@ -1133,7 +1133,7 @@ function ActivityDetails({
               paddingBefore={hasVisibleTurnOpBefore(ops, index)}
               paddingAfter={hasVisibleTurnOpAfter(ops, index)}
             >
-              <Chat.Narration text={op.text} />
+              <Chat.Message text={op.text} />
             </StandaloneProseFrame>
           )
         }
@@ -1198,7 +1198,7 @@ function InlineActivityDetails({
 function ActivityLivePreview({ activities }: { activities: readonly ActivityRun[] }): React.ReactElement | null {
   const currentActivity = latestRunningActivityRun(activities)
   const currentTool = currentActivity?.kind === "tool" && currentActivity.op.kind === "tool" ? currentActivity.op : null
-  const thinking = activities.filter((activity) => activity.kind === "reasoning" && activity.op.kind === "thinking")
+  const thinking = activities.filter((activity) => activity.kind === "thought" && activity.op.kind === "thinking")
   if (!currentTool && thinking.length === 0) return null
   return (
     <Box flexDirection="column" gap={0}>
@@ -1212,7 +1212,7 @@ function ActivityLivePreview({ activities }: { activities: readonly ActivityRun[
       ) : null}
       {thinking.map((activity) => {
         if (activity.op.kind !== "thinking") return null
-        return <Chat.Narration key={activity.id} text={activity.op.text} muted />
+        return <Chat.Thought key={activity.id} text={activity.op.text} />
       })}
     </Box>
   )
@@ -1419,7 +1419,7 @@ function ExchangeItem({
     }
   })
   return (
-    <Chat.Message>
+    <Chat.MessageGroup>
       {runs.map((run, runIdx) => (
         // gap=0 inside a run → consecutive tool calls (or coalesced text
         // ops) render contiguously. The outer `gap={1}` only applies
@@ -1471,7 +1471,7 @@ function ExchangeItem({
                       side="left"
                       width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
                     >
-                      <Chat.Narration text={chunk.text} />
+                      <Chat.Message text={chunk.text} />
                     </TimestampedRow>
                   </StandaloneProseFrame>
                 )
@@ -1484,7 +1484,7 @@ function ExchangeItem({
               const firstIndex = run.ops[0]?.index ?? 0
               return (
                 <TimestampedRow key={`thinking-${firstIndex}`} timestamp={formatTime(m.ts)} side="left">
-                  <Chat.Narration text={text} muted />
+                  <Chat.Thought text={text} />
                 </TimestampedRow>
               )
             })()
@@ -1511,7 +1511,7 @@ function ExchangeItem({
           </TimestampedRow>
         </Chat.Summary>
       ) : null}
-    </Chat.Message>
+    </Chat.MessageGroup>
   )
 }
 

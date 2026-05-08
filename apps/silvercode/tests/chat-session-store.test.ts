@@ -40,18 +40,18 @@ describe("ChatSession projection store", () => {
       ts: 3,
     })
 
-    expect(chat.events().map((event) => [event.type, event.channel])).toEqual([
+    expect(chat.events().map((event) => [event.type, event.track])).toEqual([
       ["message.started", "transcript"],
       ["message.block.added", "transcript"],
       ["debug.recorded", "debug"],
     ])
     const projectedEvents = chat.events()
-    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["assistant-text"])
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["message"])
 
-    chat.setChannelVisible("debug", true)
+    chat.setTrackVisible("debug", true)
 
     expect(chat.events()).toBe(projectedEvents)
-    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["assistant-text", "queue"])
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["message", "queue"])
     expect(chat.visibleLeaves()[1]?.rawRefs[0]?.raw).toMatchObject({ kind: "raw-transcript", label: "Queue operation" })
 
     chat.dispose()
@@ -66,11 +66,11 @@ describe("ChatSession projection store", () => {
     sessionStore.apply({ kind: "text-delta", sessionId, turnId: duplicateTurnId, blockIndex: 0, text: "Done", ts: 2 })
     sessionStore.apply({ kind: "turn-start", sessionId, turnId: duplicateTurnId, role: "assistant", ts: 3 })
 
-    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["assistant-text"])
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["message"])
 
-    chat.setChannelVisible("debug", true)
+    chat.setTrackVisible("debug", true)
 
-    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["assistant-text", "unknown"])
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["message", "unknown"])
     expect(chat.visibleLeaves()[1]).toMatchObject({
       props: { label: "Duplicate message start" },
       rawRefs: [{ raw: { kind: "turn-start", turnId: duplicateTurnId } }],
@@ -136,13 +136,7 @@ describe("ChatSession projection store", () => {
       ts: 7,
     })
 
-    expect(replayChat.visibleLeaves().map((leaf) => leaf.type)).toEqual([
-      "reasoning",
-      "assistant-text",
-      "tool",
-      "tool",
-      "tool",
-    ])
+    expect(replayChat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["thought", "message", "tool", "tool", "tool"])
     expect(replayChat.session().messages[splitMessageId as unknown as ChatMessageId]?.blockIds).toHaveLength(3)
     expect(replayChat.session().tools[replayToolId as unknown as ChatToolId]).toMatchObject({
       name: "Read",
@@ -162,7 +156,7 @@ describe("ChatSession projection store", () => {
     sessionStore.apply({ kind: "text-delta", sessionId, turnId: acpTurnId, blockIndex: 0, text: "Hello", ts: 2 })
     sessionStore.apply({ kind: "text-delta", sessionId, turnId: acpTurnId, blockIndex: 0, text: " world", ts: 2 })
 
-    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["assistant-text"])
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["message"])
     expect(chat.visibleLeaves().map((leaf) => ("text" in leaf.props ? leaf.props.text : undefined))).toEqual([
       "Hello world",
     ])
@@ -252,8 +246,8 @@ describe("ChatSession projection store", () => {
       mode: "auto",
       cwd: "/repo",
     })
-    expect(userMessage).toMatchObject({ role: "user", blockIds: ["user-1:user-text"] })
-    expect(session.blocks["user-1:user-text" as ChatBlockId]).toMatchObject({
+    expect(userMessage).toMatchObject({ role: "user", blockIds: ["user-1:text"] })
+    expect(session.blocks["user-1:text" as ChatBlockId]).toMatchObject({
       type: "text",
       text: "Run tests",
     })
@@ -313,7 +307,7 @@ describe("ChatSession projection store", () => {
     })
 
     expect(chat.session()).toMatchObject({ title: "custom name", mode: "auto" })
-    expect(chat.events().map((event) => [event.type, event.channel])).toEqual([
+    expect(chat.events().map((event) => [event.type, event.track])).toEqual([
       ["session.updated", "debug"],
       ["session.updated", "debug"],
       ["session.updated", "status"],
@@ -321,7 +315,7 @@ describe("ChatSession projection store", () => {
     ])
     expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["session-status"])
 
-    chat.setChannelVisible("debug", true)
+    chat.setTrackVisible("debug", true)
 
     expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["session-status"])
 
