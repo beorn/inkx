@@ -202,6 +202,41 @@ describe("card body with long unbreakable token", () => {
   })
 })
 
+describe("user-reported screenshot scenario", () => {
+  test("exact token .claude/skills/{claim,do}/SKILL.md does not paint past card border", () => {
+    // The literal text from the user's screenshot. Card has a body
+    // paragraph containing this token; soft-break wrap must keep every
+    // painted body cell inside the card's bordered rectangle.
+    using app = createTestApp(
+      item(
+        "board",
+        item(
+          "col1",
+          item(
+            "Reference incident",
+            item.p(
+              "Reference incident: 33245818f feat(markdown): collectSigilLinks emits @mention and +project rows accidentally absorbed @agent/0..9.md, @agent.md, .gitignore, .claude/skills/{claim,do}/SKILL.md from a tribe peer (myself, this session)",
+            ),
+          ),
+        ),
+      ),
+      { cols: 80, rows: 25 },
+    )
+
+    const cellAt = (col: number, row: number): string => app.cell(col, row).char || " "
+    const card = findCardBoundsAt(app.text, cellAt, { min: 0, max: 5 })
+    expect(card, "card bordered region should be detectable").not.toBeNull()
+    if (!card) return
+
+    const violations = checkCardBoundary(card, cellAt)
+    if (violations.length > 0) {
+      throw new Error(
+        `User-reported token overflowed card border:\n${violations.join("\n")}\n\nFull screen:\n${app.text}`,
+      )
+    }
+  })
+})
+
 describe("card with long path is rendered, not just hidden", () => {
   test("user's reported scenario: path content remains visible after wrap", () => {
     // The complete user scenario: body paragraph with path token, card
