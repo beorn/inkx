@@ -6,7 +6,15 @@ status: closed
 created_at: 2026-05-06T23:18:00.000Z
 closed_at: 2026-05-06T23:55:00.000Z
 parent: "@km/beads"
-close_reason: "L5 Phase 6: removed legacy bd integration block from .git/hooks/prepare-commit-msg (post-2026-04-29 km bd cutover; standalone Go bd binary retired). Verified via dry-run that 'git add <file> && git commit -m \"...\"' no longer sweeps untracked files into the commit. Documented 'git commit -o <pathspec>' workaround in .claude/skills/commit/SKILL.md (commit 54aa060f1) for the concurrent-agent case. Verified no km bd hooks installer exists in apps/km-cli or packages/km-beads, so no replacement hook needed — km bd state lives in .md files committed via normal git, no out-of-band coordination required."
+close_reason: "L5 Phase 6: removed legacy bd integration block from
+  .git/hooks/prepare-commit-msg (post-2026-04-29 km bd cutover; standalone Go bd
+  binary retired). Verified via dry-run that 'git add <file> && git commit -m
+  \"...\"' no longer sweeps untracked files into the commit. Documented 'git
+  commit -o <pathspec>' workaround in .claude/skills/commit/SKILL.md (commit
+  54aa060f1) for the concurrent-agent case. Verified no km bd hooks installer
+  exists in apps/km-cli or packages/km-beads, so no replacement hook needed — km
+  bd state lives in .md files committed via normal git, no out-of-band
+  coordination required."
 ---
 
 # [x] bd prepare-commit-msg hook auto-stages files the user didn't stage #bug #P3
