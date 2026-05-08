@@ -21,7 +21,7 @@ props:
     target: km-all.plateau
 ---
 
-# [ ] Authoring elegance — framework-adoption bar for silvery plugin API @km/silvery #feature #P0
+# [ ] Authoring elegance — framework-adoption bar for silvery plugin API @km/silvery #feature #P1 ^authoring-elegance
 
 blocks:: [[@km/all/plateau]]
 

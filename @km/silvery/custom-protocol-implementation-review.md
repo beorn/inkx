@@ -9,7 +9,7 @@ created_by: Codex
 created_at: 2026-04-30T06:28:00Z
 ---
 
-# [ ] Review custom terminal protocol implementations @km/silvery #task #P0
+# [ ] Review custom terminal protocol implementations @km/silvery #task #P1 ^custom-protocol-implementation-review
 
 Audit all custom terminal protocol implementations for correctness and test completeness, including Kitty graphics, OSC/DCS/CSI protocol serializers/parsers, terminal capability negotiation, and termless/silvery protocol adapters.
 

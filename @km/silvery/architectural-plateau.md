@@ -21,7 +21,7 @@ props:
     target: km-silvery
 ---
 
-# [ ] [meta-epic] Silvery architectural plateau — view-as-layout-output, TEA, signals, focus/selection unification @km/silvery #epic #P0
+# [ ] [meta-epic] Silvery architectural plateau — view-as-layout-output, TEA, signals, focus/selection unification @km/silvery #epic #P1 ^architectural-plateau
 
 blocks:: [[@km/silvery]]
 

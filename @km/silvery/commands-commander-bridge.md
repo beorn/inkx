@@ -48,3 +48,5 @@ But conceptually they're the same thing: a **command** that can be invoked from 
 - Decision: yes (ship), prototype only (defer), or no (keep separate)
 - If yes: follow-up bead with the implementation plan
 
+Related: @km/silvery/agent-native-cli (P4) — MCP auto-gen via program.serveMCP() needs unified command tree (2026-05-08 groom)
+

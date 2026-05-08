@@ -25,7 +25,7 @@ props:
 
 blocks:: [[@km/all]]
 
-**Review bead, not an implementation epic yet.** Evaluate whether there's a real shared-substrate opportunity across km + kimmi + cloudi — and if so, which primitives to extract, in what order, with what migration strategy. Decision expected: a scoped proposal to commit-or-reject by 2026-05-05.
+**Review bead, not an implementation epic yet.** Evaluate whether there's a real shared-substrate opportunity across km + kimmi + cloudi — and if so, which primitives to extract, in what order, with what migration strategy. Decision expected: a scoped proposal to commit-or-reject. (Original 2026-05-05 deadline slipped during groom 2026-05-08; demoted to P1, no fixed deadline — reprioritize when an integration deadline (km storage stable-ids ship, kimmi extraction window, etc.) creates a forcing function.)
 
 ## Why this bead exists
 
@@ -190,7 +190,7 @@ Only proceed if phase 2's metrics show the pattern pays off. Otherwise the share
 4. **Don't publish before two projects consume.** Publishing to npm binds the API. Extract to `vendor/bearly/packages/` first; publish when km + (kimmi or cloudi) are both consuming from workspace.
 5. **Extraction ≠ abstraction.** Don't introduce new abstractions during extraction. Move the code as-is; refactor later.
 
-## Decision criteria for commit-or-reject (2026-05-05)
+## Decision criteria for commit-or-reject
 
 Extract `@beorn/identity` if:
 
@@ -207,7 +207,7 @@ Reject if any ✗:
 
 ## Review output expected
 
-By 2026-05-05, produce `hub/km/shared-substrate-rfc.md` that either:
+Produce `hub/km/shared-substrate-rfc.md` that either:
 (a) proposes extraction of ONE tier-1 candidate with concrete package shape, migration plan, and rollback plan, OR
 (b) rejects extraction entirely with reasoning (e.g., "the three projects actually have subtly different needs that look similar only at first glance").
 
@@ -231,7 +231,7 @@ Reviewer must have read:
 
 ## Acceptance
 
-- [ ] Review doc `hub/km/shared-substrate-rfc.md` written by 2026-05-05
+- [ ] Review doc `hub/km/shared-substrate-rfc.md` written
 - [ ] Clear verdict: extract `@beorn/identity` Phase 1 OR reject with reasoning
 - [ ] If extract: Phase-1 work bead filed (`km-bearly.identity-extraction`) with acceptance criteria
 - [ ] If reject: memory entry captures the reasoning so the temptation doesn't resurface every 6 months

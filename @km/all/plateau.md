@@ -21,7 +21,7 @@ props:
     target: km-all
 ---
 
-# [ ] Quality Plateau — full-stack roadmap to architectural completeness @km/all #epic #P0
+# [ ] Quality Plateau — full-stack roadmap to architectural completeness @km/all #epic #P1 ^plateau
 
 blocks:: [[@km/all]]
 

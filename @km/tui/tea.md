@@ -34,14 +34,14 @@ props:
       - type: link
         target: km-silvery.tea
       - type: link
-        target: km-silvery.tea-useinput
+        target: "@km/silvery/tea/useinput"
       - type: link
         target: km-tui.atomic-tree-ops
 ---
 
-# [ ] TEA state machines for km-tui: unified selection + atomic operations @km/tui #feature #P0
+# [ ] TEA state machines for km-tui: unified selection + atomic operations @km/tui #feature #P1 ^tea
 
-blocks:: [[@km/silvery/tea]], [[@km/silvery/tea-useinput]], [[@km/tui/atomic-tree-ops]]
+blocks:: [[@km/silvery/tea]], [[@km/silvery/tea/useinput]], [[@km/tui/atomic-tree-ops]]
 
 ## Refactor Plan: @km/tui/tea — Domain Plugin Migration
 
@@ -258,4 +258,6 @@ G3 (atomic-ops)   ──┘
 **(a) Should withSelection() absorb @km/tui/sel-migration?** **YES, absorb.** Separate beads produce the dual-path trap. `km-all.unified-selection` stays as Gate G2 (type only), Phase 4 absorbs the mechanical pass, lands atomically. If tracking reasons require separate beads, they must land in the same epic session with "no commit leaves both patterns working" rule.
 
 **(b) Is silvery's TEA framework ready?** **Substrate library: YES ✓; production cutover: not yet.** Phase 1 blocks specifically on `km-silvery.tea-useinput` closing (migrating `create-app.tsx` from legacy `processEventBatch + runtimeInputListeners + handleFocusNavigation` to `runEventBatch` on a piped chain). It does **not** block on the substrate library, which is shipped and tested. See the "Status" section at the top of this bead for the split gate (G1a / G1b). Earlier versions of this bead said a blanket "NO" — that was a simplification of the actual two-part status and contradicted `km-all.tea-discuss` §8.
+
+blocks:: [[@km/silvery/tea]], [[@km/silvery/tea-useinput]], [[@km/tui/atomic-tree-ops]]
 

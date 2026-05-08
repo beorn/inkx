@@ -13,7 +13,7 @@ owner: bjorn@stabell.org
 assignee: Bjørn Stabell
 ---
 
-# [/] Strictest — km's testing system @km/all #epic #P0 @Bjørn Stabell
+# [/] Strictest — km's testing system @km/all #epic @Bjørn Stabell #P1 ^test-system
 
 ## Strictest — km's Testing System
 

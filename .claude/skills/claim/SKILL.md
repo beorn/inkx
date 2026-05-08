@@ -99,6 +99,37 @@ done
 
 **Reject mismatched scope** — before writing the mention, check the bead's path against the slot's `scope_fit`. Example: `@agent/1` (silvery-engineer) has `scope_fit: [vendor/silvery, "@km/silvery"]`; assigning `@km/silvercode/foo` should print a warning and require an explicit `--force` (skip the warning if the user passed `--force`). Don't silently mis-place beads.
 
+### 4½. Persona-self-relabel (when actual work diverges from slot title)
+
+**Rule**: if the work you're about to do under `@agent/N` doesn't match the slot's current H1 label or `## Persona` body, **update them yourself before starting**. Slots drift over time as priorities shift; the pre-defined persona is a starting point, not a contract.
+
+When to relabel:
+- The slot H1 says `bd / cli-engineer` but the queue is dominated by silvercode L5 work → relabel to `silvercode-engineer`
+- The slot persona says "you preserve bd-compat" but you're doing pure agent-host architecture → rewrite the persona to match
+- The `scope_fit` paths no longer cover the actual work surfaces → update `scope_fit`
+
+How to relabel:
+```bash
+# Edit @agent/<N>.md directly — update three things:
+# 1. The H1 line: "# [/] @agent/<N> — <new-persona-label>"
+# 2. The intro paragraph (what the slot owns)
+# 3. The "## Persona" body (engineering style, expertise areas)
+# 4. The "## Working agreement" bullets if conventions changed
+# 5. Optionally: the `scope_fit:` frontmatter if the surfaces changed
+
+# Add a one-line note in the intro paragraph documenting the change:
+#   "(Slot was originally labeled 'X' but the actual workload converged on Y
+#   in <month>; relabeled <date> during <reason>.)"
+
+# Tribe-broadcast the relabel:
+bun vendor/bearly/tools/tribe-cli.ts send '*' \
+  "relabeled @agent/<N> from <old-label> to <new-label> — actual workload diverged"
+```
+
+**Why self-service**: peers and the chief can't tell from the outside whether the slot's pre-set persona still describes what's happening inside it. Only the agent doing the work knows. Codifying it in claim/ rather than groom/ means the relabel happens at the right time (when you're already loaded with the new persona) instead of belatedly during groom.
+
+**Don't be precious about it** — if the slot has been doing one thing for 2+ weeks, the label should match. Six labels rotating per quarter is healthy; a stale label that doesn't describe reality is not.
+
 ### 5. Tribe broadcast
 
 ```bash
