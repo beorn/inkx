@@ -15,7 +15,7 @@
 
 import { createLogger } from "loggily"
 import { Database } from "bun:sqlite"
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync, type Stats } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"
 import {
   toRelativeFsPath,
@@ -24,8 +24,9 @@ import {
   shouldIgnore,
   isHiddenFile,
   generatePathBasedId,
+  hashContent,
 } from "@km/fs-mount"
-import type { Change } from "@km/core"
+import type { Change, KNode } from "@km/core"
 import { SCHEMA } from "../db/schema.ts"
 import { applyChangeWithDb } from "../db/changes.ts"
 import type { Emitter } from "../emitter.ts"
@@ -51,6 +52,8 @@ import {
 import { extractLinks } from "../markdown/extract-links.ts"
 import { resolveInboundAnchors } from "../markdown/resolve-inbound-anchors.ts"
 import { getCollapseParseConfig } from "../config.ts"
+import { processMarkdownFile } from "../markdown/processing.ts"
+import { parsePlainTextToNodes } from "@km/markdown"
 
 const log = createLogger("km:storage:repo-loader")
 
@@ -284,6 +287,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   //
   // Default (KM_LAZY_HYDRATE!=1): eager reconcile preserves pre-lazy behavior.
   let reconcileDeferredFiles: DeferredFile[] = []
+  let reconcilePendingLinks: PendingLink[] = []
   const lazyHydrate = options?.lazyHydrate ?? process.env.KM_LAZY_HYDRATE === "1"
   if (mode === "disk" && !lazyHydrate) {
     using _reconcileSpan = loadSpan.span("reconcile-filesystem")
@@ -293,6 +297,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     }
     writeCollapsedExtractions(db, reconcileResult.collapsedExtractions)
     reconcileDeferredFiles = reconcileResult.deferredFiles
+    reconcilePendingLinks = reconcileResult.pendingLinks
   }
 
   // 5. Resolve links and evaluate rules
@@ -363,12 +368,13 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
       )
     }
 
-    if (source.pendingLinks.length > 0) {
+    const pendingLinks = reconcilePendingLinks.length > 0 ? [...source.pendingLinks, ...reconcilePendingLinks] : source.pendingLinks
+    if (pendingLinks.length > 0) {
       if (skipLinks) {
-        returnPendingLinks = source.pendingLinks
-        log.debug?.(`skipping link resolution, ${source.pendingLinks.length} links deferred`)
+        returnPendingLinks = pendingLinks
+        log.debug?.(`skipping link resolution, ${pendingLinks.length} links deferred`)
       } else {
-        linkCount = yield* resolveLinksGen(db, source.pendingLinks, errors)
+        linkCount = yield* resolveLinksGen(db, pendingLinks, errors)
       }
     }
 
@@ -725,6 +731,24 @@ interface ReconcileResult {
   changes: Change[]
   deferredFiles: DeferredFile[]
   collapsedExtractions: CollapsedExtraction[]
+  pendingLinks: PendingLink[]
+}
+
+interface ReconcileDbRow {
+  id: string
+  fs_path: string
+  parent_id: string | null
+  parent_idx: number
+  fstype: string | null
+  fs_mtime: number | null
+  fs_size: number | null
+  fs_content_hash: string | null
+}
+
+interface ReconcileFsEntry {
+  fullPath: string
+  relPath: string
+  stat: Stats
 }
 
 function* reconcileFilesystem(
@@ -738,33 +762,42 @@ function* reconcileFilesystem(
   const changes: Change[] = []
   const deferredFiles: DeferredFile[] = []
   const collapsedExtractions: CollapsedExtraction[] = []
+  const pendingLinks: PendingLink[] = []
   const now = Date.now()
   const ignoreMatcher = createIgnoreMatcher(repoRoot)
   const siblingOrders = readSiblingOrder(repoRoot)
 
   // Collect all fs_path values from DB (non-null, excluding repo root ".")
-  const dbRows = db.prepare("SELECT id, fs_path FROM nodes WHERE fs_path IS NOT NULL AND fs_path != '.'").all() as {
-    id: string
-    fs_path: string
-  }[]
+  const dbRows = db
+    .prepare(
+      `
+      SELECT id, fs_path, parent_id, parent_idx, fstype, fs_mtime, fs_size, fs_content_hash
+      FROM nodes
+      WHERE fs_path IS NOT NULL AND fs_path != '.'
+    `,
+    )
+    .all() as ReconcileDbRow[]
 
   // Skip reconciliation if DB contains absolute paths (pre-migration database).
   // Let the health check in createRepo handle this case with IncompleteDatabase.
   if (dbRows.some((row) => isAbsolute(row.fs_path))) {
     log.debug?.("reconcileFilesystem: skipping — DB contains absolute fs_path values")
     yield { current: 0, total: 0 }
-    return { changes, deferredFiles, collapsedExtractions }
+    return { changes, deferredFiles, collapsedExtractions, pendingLinks }
   }
 
   const dbPathSet = new Set<string>()
   const dbPathToId = new Map<string, string>()
+  const dbPathToRow = new Map<string, ReconcileDbRow>()
   for (const row of dbRows) {
     dbPathSet.add(row.fs_path)
     dbPathToId.set(row.fs_path, row.id)
+    dbPathToRow.set(row.fs_path, row)
   }
 
   // Walk the filesystem recursively, collecting all visible entries
   const fsPathSet = new Set<string>()
+  const fsEntries = new Map<string, ReconcileFsEntry>()
 
   let repoRealpath: string
   try {
@@ -772,7 +805,7 @@ function* reconcileFilesystem(
   } catch {
     errors.push({ phase: "discover", message: `Cannot resolve repo root: ${repoRoot}` })
     yield { current: 0, total: 0 }
-    return { changes, deferredFiles, collapsedExtractions }
+    return { changes, deferredFiles, collapsedExtractions, pendingLinks }
   }
 
   const visitedDirs = new Set<string>([repoRealpath])
@@ -824,6 +857,7 @@ function* reconcileFilesystem(
         } else if (targetStat.isFile()) {
           const relPath = toRelativeFsPath(repoRoot, fullPath)
           fsPathSet.add(relPath)
+          fsEntries.set(relPath, { fullPath, relPath, stat: targetStat })
         }
         continue
       }
@@ -847,6 +881,11 @@ function* reconcileFilesystem(
       if (entry.isFile()) {
         const relPath = toRelativeFsPath(repoRoot, fullPath)
         fsPathSet.add(relPath)
+        try {
+          fsEntries.set(relPath, { fullPath, relPath, stat: statSync(fullPath) })
+        } catch {
+          // File disappeared between readdir and stat; the next reconcile will see it.
+        }
       }
     }
   }
@@ -923,6 +962,7 @@ function* reconcileFilesystem(
           parent_id: parentId,
           parent_idx: orderIdx,
           fs_path: relPath,
+          ...statFields({ fullPath, relPath, stat }),
           name: entryName,
           content: entryName,
         },
@@ -934,6 +974,15 @@ function* reconcileFilesystem(
       const isCollapsed = collapseMatcher.matches(relPath)
       const stubData: Record<string, unknown> = { _stub: true }
       if (isCollapsed) stubData._collapsed = true
+      let rawContent: string | null = null
+      let rawHash: string | null = null
+      try {
+        rawContent = readFileSync(fullPath, "utf-8")
+        rawHash = hashContent(rawContent)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        errors.push({ phase: "parse", path: fullPath, message: `file hash failed: ${message}` })
+      }
       changes.push({
         id: nodeId,
         type: "node_created",
@@ -947,6 +996,8 @@ function* reconcileFilesystem(
           parent_id: parentId,
           parent_idx: orderIdx,
           fs_path: relPath,
+          ...statFields({ fullPath, relPath, stat }),
+          fs_content_hash: rawHash,
           name,
           title: name,
           data: stubData,
@@ -960,8 +1011,7 @@ function* reconcileFilesystem(
         // edges so the backlink graph stays intact. Mirrors the same
         // handling in `discoverFiles` for memory-mode loads.
         try {
-          const rawContent = readFileSync(fullPath, "utf-8")
-          const extracted = extractLinks(rawContent)
+          const extracted = extractLinks(rawContent ?? readFileSync(fullPath, "utf-8"))
           if (extracted.length > 0) {
             collapsedExtractions.push({ hostId: nodeId, extracted })
           }
@@ -989,6 +1039,7 @@ function* reconcileFilesystem(
           parent_id: parentId,
           parent_idx: orderIdx,
           fs_path: relPath,
+          ...statFields({ fullPath, relPath, stat }),
           content: entryName,
         },
       })
@@ -1009,12 +1060,174 @@ function* reconcileFilesystem(
     }
   }
 
+  // Find files that exist in both places but whose bytes changed on disk.
+  // The previous loader reconcile only handled created/deleted paths, so
+  // `km view` could read stale markdown until a later watcher event happened.
+  // Reconcile updates by replacing the file subtree from the current bytes.
+  for (const [relPath, row] of dbPathToRow) {
+    if (!fsPathSet.has(relPath)) continue
+    const entry = fsEntries.get(relPath)
+    if (!entry) continue
+    if (!hasFsDrift(row, entry)) continue
+
+    if (row.fstype === "mdfile" && relPath.endsWith(".md")) {
+      reconcileMarkdownUpdate(row, entry)
+    } else if (row.fstype === "txtfile" && relPath.endsWith(".txt")) {
+      reconcileTextUpdate(row, entry)
+    } else {
+      changes.push({
+        id: `reconcile-stat-${row.id}`,
+        type: "node_updated",
+        actor: "fs-reconcile",
+        target: row.id,
+        ts: now,
+        data: statFields(entry),
+      })
+    }
+  }
+
   log.debug?.(
-    `reconcileFilesystem: ${changes.length} changes, ${deferredFiles.length} deferred, ${collapsedExtractions.length} collapsed-link extractions (fs=${fsPathSet.size} db=${dbPathSet.size})`,
+    `reconcileFilesystem: ${changes.length} changes, ${deferredFiles.length} deferred, ${pendingLinks.length} links, ${collapsedExtractions.length} collapsed-link extractions (fs=${fsPathSet.size} db=${dbPathSet.size})`,
   )
   yield { current: changes.length, total: changes.length }
 
-  return { changes, deferredFiles, collapsedExtractions }
+  return { changes, deferredFiles, collapsedExtractions, pendingLinks }
+
+  function hasFsDrift(row: ReconcileDbRow, entry: ReconcileFsEntry): boolean {
+    if (row.fs_size == null || row.fs_size !== entry.stat.size) return true
+    if (row.fs_mtime == null || row.fs_mtime !== entry.stat.mtimeMs) return true
+    return false
+  }
+
+  function statFields(entry: ReconcileFsEntry): Record<string, unknown> {
+    return {
+      fs_dev: entry.stat.dev,
+      fs_ino: entry.stat.ino,
+      fs_mtime: entry.stat.mtimeMs,
+      fs_size: entry.stat.size,
+    }
+  }
+
+  function reconcileMarkdownUpdate(row: ReconcileDbRow, entry: ReconcileFsEntry): void {
+    let content: string
+    try {
+      content = readFileSync(entry.fullPath, "utf-8")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "parse", path: entry.fullPath, message })
+      return
+    }
+
+    const nextHash = hashContent(content)
+    if (collapseMatcher.matches(entry.relPath)) {
+      const extracted = extractLinks(content)
+      collapsedExtractions.push({ hostId: row.id, extracted })
+      changes.push({
+        id: `reconcile-stat-${row.id}`,
+        type: "node_updated",
+        actor: "fs-reconcile",
+        target: row.id,
+        ts: now,
+        data: {
+          ...statFields(entry),
+          fs_content_hash: nextHash,
+          content_hash: nextHash,
+          data: { _stub: true, _collapsed: true },
+          parsed: 0,
+        },
+      })
+      return
+    }
+
+    if (row.fs_content_hash && row.fs_content_hash === nextHash) {
+      changes.push({
+        id: `reconcile-stat-${row.id}`,
+        type: "node_updated",
+        actor: "fs-reconcile",
+        target: row.id,
+        ts: now,
+        data: { ...statFields(entry), fs_content_hash: nextHash },
+      })
+      return
+    }
+
+    try {
+      const processed = processMarkdownFile(content, entry.relPath, entry.stat.ino, entry.stat.mtimeMs)
+      const fileNode = processed.nodes[0]
+      if (!fileNode) return
+      const originalFileId = fileNode.id
+      fileNode.id = row.id
+      fileNode.parent_id = row.parent_id
+      fileNode.parent_idx = row.parent_idx
+      fileNode.fs_path = entry.relPath
+      fileNode.fs_dev = entry.stat.dev
+      fileNode.fs_ino = entry.stat.ino
+      fileNode.fs_mtime = entry.stat.mtimeMs
+      fileNode.fs_size = entry.stat.size
+      fileNode.fs_content_hash = nextHash
+      fileNode.content_hash = processed.hash
+
+      for (const node of processed.nodes) {
+        if (node.parent_id === originalFileId) node.parent_id = row.id
+      }
+      for (const link of processed.wikilinks) {
+        if (link.nodeId === originalFileId) link.nodeId = row.id
+      }
+
+      replaceFileSubtree(row.id, processed.nodes)
+      pendingLinks.push(...processed.wikilinks)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "parse", path: entry.fullPath, message })
+    }
+  }
+
+  function reconcileTextUpdate(row: ReconcileDbRow, entry: ReconcileFsEntry): void {
+    let content: string
+    try {
+      content = readFileSync(entry.fullPath, "utf-8")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "parse", path: entry.fullPath, message })
+      return
+    }
+
+    const nextHash = hashContent(content)
+    const { nodes } = parsePlainTextToNodes(content, entry.relPath, entry.stat.ino, entry.stat.mtimeMs)
+    const fileNode = nodes[0]
+    if (!fileNode) return
+    fileNode.id = row.id
+    fileNode.parent_id = row.parent_id
+    fileNode.parent_idx = row.parent_idx
+    fileNode.fs_path = entry.relPath
+    fileNode.fs_dev = entry.stat.dev
+    fileNode.fs_ino = entry.stat.ino
+    fileNode.fs_mtime = entry.stat.mtimeMs
+    fileNode.fs_size = entry.stat.size
+    fileNode.fs_content_hash = nextHash
+    fileNode.content_hash = nextHash
+    replaceFileSubtree(row.id, nodes)
+  }
+
+  function replaceFileSubtree(fileNodeId: string, nodes: KNode[]): void {
+    changes.push({
+      id: `reconcile-update-${fileNodeId}`,
+      type: "node_deleted",
+      actor: "fs-reconcile",
+      target: fileNodeId,
+      ts: now,
+      data: {},
+    })
+    for (const node of nodes) {
+      changes.push({
+        id: String(node.id),
+        type: "node_created",
+        actor: "fs-reconcile",
+        ts: now,
+        data: { ...node, id: String(node.id) },
+      })
+    }
+  }
 }
 
 // ============================================================================
@@ -1080,6 +1293,13 @@ export function reconcileFilesystemPostFrame(
       if (step.done) break
     }
     writeCollapsedExtractions(db, result.collapsedExtractions)
+    if (result.pendingLinks.length > 0) {
+      const linkGen = resolveLinksGen(db, result.pendingLinks, errors)
+      for (;;) {
+        const step = linkGen.next()
+        if (step.done) break
+      }
+    }
     changesApplied = result.changes.length
   }
 

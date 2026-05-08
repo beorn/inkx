@@ -629,6 +629,18 @@ Vendor tests do not have console enforcement.
 | (default) | :memory: | Normal development            |
 | `real`    | Disk     | CI, releases, drift detection |
 
+## Storage Harnesses
+
+Storage/sync/reconcile tests should use the existing injection seams by default:
+`withTestEnv()` for repo/db/emitter ownership and `createTestSync()` when the
+test needs bidirectional sync. Hand-rolled temp repos, databases, emitters, or
+filesystem fakes need a short code comment explaining the boundary being tested
+and why the canonical harness does not fit.
+
+The usual valid exceptions are schema migrations, public-surface pins, or tests
+that intentionally create malformed `state.db` contents. See
+`packages/km-storage/tests/CLAUDE.md` and `docs/dev/test-fakes.md`.
+
 ---
 
 ## TDD Cycle

@@ -376,6 +376,12 @@ test("creates node", async () => {
 - Integration tests
 - Benchmarks (with `TEST_MODE=real`)
 
+For storage/sync/reconcile integration tests, start here before hand-rolling a
+temp repo, database, and emitter. Pair it with `createTestSync()` when the test
+needs the bidirectional sync layer. If a test bypasses these harnesses, leave a
+short code comment explaining the boundary being tested, such as a schema
+migration, public surface pin, or deliberately malformed `state.db`.
+
 ### createFakeRepo
 
 No database, no filesystem - pure in-memory Map storage.

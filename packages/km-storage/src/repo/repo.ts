@@ -2275,6 +2275,7 @@ export function* createRepo(
       const result = await reconcileFilesystemPostFrame(db, rootPath, {
         collapseMatcher,
         isAborted: reconcileOptions?.isAborted,
+        emitter,
       })
 
       // Bust children cache + bump version so subscribers re-query. Safe even

@@ -19,6 +19,23 @@
 
 ## Helpers
 
+### Harness Selection
+
+Storage and sync tests should use the repo's existing injection seams by default.
+
+| Test layer                  | Default harness                                      |
+| --------------------------- | ---------------------------------------------------- |
+| Schema/query unit tests     | createTestDatabase() or a direct in-memory DB        |
+| Storage/sync/reconcile flow | withTestEnv() + createTestSync()                     |
+| Repo object behavior        | createTestEnvRepo() / withTestEnv()                  |
+| TUI or board state          | createFakeRepo() or the app-level test helpers       |
+| CLI process boundary        | temp repo via the CLI test helper, command owns repo |
+
+If a storage/sync test hand-rolls `repoDir + Database + emitter` instead of
+using `withTestEnv()` / `createTestSync()`, add a short local comment explaining
+why the canonical harness does not fit. The valid low-level cases are usually
+schema migration, public-surface pins, or intentionally malformed databases.
+
 ### `query-test-helpers.ts`
 
 | Helper                    | Purpose                           |
@@ -117,11 +134,11 @@ test("quick check: my scenario", async () => {
 
 ## Related Test Types
 
-| Type       | Location              | When                                                              |
-| ---------- | --------------------- | ----------------------------------------------------------------- |
-| Chaos/fuzz | sync/chaos/\*.fuzz.ts | Randomized concurrent edit sequences. Run with bun run test:fuzz. |
-| Benchmarks | \*.bench.ts           | Sync pipeline performance. Run with bun run bench.                |
-| E2E        | e2e/                  | Full app lifecycle (slow).                                        |
+| Type       | Location             | When                                                              |
+| ---------- | -------------------- | ----------------------------------------------------------------- |
+| Chaos/fuzz | sync/chaos/*.fuzz.ts | Randomized concurrent edit sequences. Run with bun run test:fuzz. |
+| Benchmarks | *.bench.ts           | Sync pipeline performance. Run with bun run bench.                |
+| E2E        | e2e/                 | Full app lifecycle (slow).                                        |
 
 ## See Also
 
