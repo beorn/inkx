@@ -4,7 +4,7 @@
  *
  * Same three cells as `welcome-stability.test.tsx` but on a populated
  * chat session — driven via `ScriptedFakeSession` + the `bashTool`
- * pre-built script, so the SessionUpdateList renders a real exchange
+ * pre-built script, so the ChatBlockList renders a real exchange
  * (user message + tool call + tool result + assistant text) with all the
  * memo / context / measurement hooks the live session uses.
  *
@@ -182,7 +182,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
     )
     try {
       // Drive the markdownRich script (rich-content session) — exercises
-      // the same MarkdownView / SessionUpdateList paths the live repro
+      // the same MarkdownView / ChatBlockList paths the live repro
       // uses on a resumed transcript.
       fake.script(markdownRich, 0)
       // Give the script + initial mount + every effect time to land,

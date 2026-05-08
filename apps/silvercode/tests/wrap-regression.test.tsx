@@ -102,7 +102,7 @@ function Shell({ children }: { children: React.ReactNode }): React.ReactElement 
 }
 
 /**
- * Inline assistant row — same layout as SessionUpdateList's `AssistantRow`:
+ * Inline assistant row — same layout as ChatBlockList's `AssistantRow`:
  * `●` glyph + Prose + MarkdownView with flexShrink/minWidth chain.
  */
 function AssistantRow({ text }: { text: string }): React.ReactElement {

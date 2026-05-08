@@ -146,16 +146,16 @@ const spawnCommonFeatures = features(
       "apps/silvercode/tests/permission-flow.test.tsx",
     ]),
     plans: partial("Plan extraction is parser-specific and normalized into Chat Plan events.", [
-      "apps/silvercode/tests/session-update-projection.test.ts",
+      "apps/silvercode/tests/chat-agent-event-normalization.test.ts",
     ]),
     tools: partial("Tool calls are normalized when the parser can identify provider tool blocks.", [
-      "apps/silvercode/tests/session-update-projection.test.ts",
+      "apps/silvercode/tests/chat-agent-event-normalization.test.ts",
     ]),
     configOptions: unsupported("Legacy spawn paths have no ACP session config list; hide ACP config controls."),
     contextMentions: partial("Host can insert framed context text; typed provider context is unavailable."),
     threadsSessions: partial("Session identity exists, but thread/session capability discovery is not negotiated."),
     persistenceReplay: partial("Replay uses provider-specific transcript readers.", [
-      "apps/silvercode/tests/chat-model.test.ts",
+      "apps/silvercode/tests/chat-session-store.test.ts",
     ]),
     backgroundJobs: partial(
       "Host Job model can detach turns, but provider-native background handles are unavailable.",

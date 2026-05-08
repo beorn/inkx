@@ -4,7 +4,7 @@
  * bodies, hook output stripped from the visible chat surface) and
  * inlines the full body when `showDebug=true`.
  *
- * Tests the inline UserRow rendering baked into SessionUpdateList, using
+ * Tests the inline UserRow rendering baked into ChatBlockList, using
  * the same layout as the production component so the invariants hold.
  *
  * Bead: km-silvercode.resume-show-everything-collapsed.
@@ -16,7 +16,7 @@ import { createRenderer } from "@silvery/test"
 import { LinkifiedText } from "../../src/components/LinkifiedText.tsx"
 
 /**
- * Inline user-message row — same layout as SessionUpdateList's `UserRow`.
+ * Inline user-message row — same layout as ChatBlockList's `UserRow`.
  */
 function UserRow({
   text,

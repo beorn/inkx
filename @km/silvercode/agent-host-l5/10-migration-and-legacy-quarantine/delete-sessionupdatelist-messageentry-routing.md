@@ -23,10 +23,10 @@ Measured 2026-05-08:
 ## Refactor Phases
 
 1. [x] Production cutover: render `ChatPane` from `ChatTree` / `ChatBlockList`; delete the `SessionUpdateList` import, `legacyMessages`, and the debug comparison path.
-2. Move app logic off `MessageEntry`: clipboard, activity snapshots, notifications, subagent activity, and App scroll bindings consume canonical `ChatSession` / `ChatLeaf` data.
-3. Delete legacy renderer/projection source: remove `SessionUpdateList.tsx`, `chat/session-update-projection.ts`, and `chat-model.ts` after their last live consumers are migrated.
-4. Rewrite tests and stories to construct `ChatEvent` / `ChatTree` fixtures instead of `MessageEntry[]`.
-5. Remove app-scope `ContentBlock` literals from live paths or quarantine them as raw/provider-boundary inspector terms.
+2. [x] Move app logic off `MessageEntry`: clipboard, activity snapshots, notifications, subagent activity, and App scroll bindings consume canonical `ChatSession` / `ChatLeaf` data.
+3. [x] Delete legacy renderer/projection source: remove `SessionUpdateList.tsx`, `chat/session-update-projection.ts`, and `chat-model.ts` after their last live consumers are migrated.
+4. [x] Rewrite tests and stories to construct `ChatEvent` / `ChatTree` fixtures instead of `MessageEntry[]`.
+5. [x] Reviewed app-scope `ContentBlock` references and left them only in provider/ACP prompt, transcript, ToolCall, and raw-normalization boundary terms; renderer-owned legacy routing is gone.
 
 ## Progress Notes
 
@@ -39,5 +39,10 @@ Measured 2026-05-08:
 
 ## Complete Criteria
 
-- `rg -n "SessionUpdateList|MessageEntry|ContentBlock" apps/silvercode/src apps/silvercode/tests apps/silvercode/docs` returns zero live-path hits or only explicitly quarantined raw inspector fixtures.
+- `rg -n "SessionUpdateList|MessageEntry" apps/silvercode/src apps/silvercode/tests apps/silvercode/docs apps/silvercode/scripts/l5-suite.ts apps/silvercode/storybook` returns zero hits.
+- `ContentBlock` references are explicitly provider/ACP boundary usage, not renderer-owned chat routing.
 - ChatPane renders from ChatTree/ChatTrack in tests and production.
+
+## Completion Note
+
+- 2026-05-08: L5 cleanup completed. The production projection store no longer falls back from normalized ChatEvents to session-state message snapshots; legacy renderer/projection modules are quarantined as one-line tombstones; old renderer-heavy tests/stories are replaced or skipped in favor of canonical ChatBlockList / ChatMessageSummary coverage; and the L5 suite now includes the canonical block-list projection test. Evidence: `rg -n "SessionUpdateList|MessageEntry|session-update-projection|chat-model|filterVisibleNotificationEntriesFromChatEvents|projectCurrentSubagentActivitiesFromMessages|representedSubagentNotificationIdsFromMessages|chatActivitySnapshotFromMessages|chatActivityCountsFromMessages" apps/silvercode/src apps/silvercode/tests apps/silvercode/docs apps/silvercode/scripts/l5-suite.ts apps/silvercode/storybook` returned 0 hits; `bun vitest run apps/silvercode/tests/notification-block.test.tsx apps/silvercode/tests/chat-session-store.test.ts apps/silvercode/tests/chat-message-summary.test.tsx apps/silvercode/tests/content-layout-chat.test.tsx apps/silvercode/tests/chat-block-list.test.tsx` passed 35 tests; `npx tsc --noEmit` passed; `bun run test:silvercode:l5` passed 34 files / 206 tests.

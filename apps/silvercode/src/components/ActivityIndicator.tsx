@@ -114,7 +114,7 @@ export function ActivityIndicator({
     // system activity, not model prose. This row is also the assistant-side
     // placeholder rendered when the user's first prompt has been written
     // to the store but claude hasn't responded yet (see
-    // SessionUpdateList — the activity row is appended via `__activity`
+    // ChatBlockList — the activity row is appended via `__activity`
     // when status !== "idle"). Bead: km-cr94.
     const who = agentLabel ?? "session"
     const versionSuffix = agentVersion ? ` v${agentVersion}` : ""

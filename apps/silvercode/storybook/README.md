@@ -39,7 +39,7 @@ storybook/
   stories/                 # one *.story.tsx per (component, variant)
   support/                 # shared fixtures and stubs
     fake-session-handle.ts # synthetic SessionHandle for components that need one
-    sample-messages.ts     # MessageEntry[] fixtures for SessionUpdateList variants
+    sample-messages.ts     # assistant turn[] fixtures for ChatBlockList variants
   tests/
     registry.test.ts       # unique ids, knob defaults, etc.
     stories.test.tsx       # smoke-render every story
@@ -116,8 +116,8 @@ Available fixtures (in
 
 ## Use sample data without ACP
 
-For higher-order components like `SessionUpdateList` that take post-aggregation
-shapes (`MessageEntry[]`), prefer `support/sample-messages.ts`. It
+For higher-order components like `ChatBlockList` that take post-aggregation
+shapes (`assistant turn[]`), prefer `support/sample-messages.ts`. It
 contains hand-rolled message arrays — easier to iterate on than raw
 event scripts when you're tuning row layouts.
 

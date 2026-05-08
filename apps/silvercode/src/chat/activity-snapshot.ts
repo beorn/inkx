@@ -1,9 +1,8 @@
-import type { MessageEntry } from "@km/agent-harness"
 import type { BackgroundJob } from "../controller.ts"
 import type { ChannelNotification } from "../notification-stream.ts"
 import type { ChatEvent, ChatToolId } from "./types.ts"
 import {
-  projectCurrentSubagentActivitiesFromMessages,
+  projectCurrentSubagentActivitiesFromChatEvents,
   subagentActivityRowsFromActivities,
   type SubagentActivityRow,
 } from "./subagent-activities.ts"
@@ -40,8 +39,8 @@ export type ChatActivitySnapshotOptions = {
   readonly agents?: readonly SubagentActivityRow[]
 }
 
-export function chatActivitySnapshotFromMessages(
-  messages: readonly MessageEntry[],
+export function chatActivitySnapshotFromChatEvents(
+  events: readonly ChatEvent[],
   backgroundJobs: readonly BackgroundJob[],
   options: ChatActivitySnapshotOptions = {},
 ): ChatActivitySnapshot {
@@ -49,47 +48,11 @@ export function chatActivitySnapshotFromMessages(
   const agents =
     options.agents ??
     subagentActivityRowsFromActivities(
-      projectCurrentSubagentActivitiesFromMessages(messages, {
+      projectCurrentSubagentActivitiesFromChatEvents(events, {
         notificationEntries: options.notificationEntries,
         sessionId: options.sessionId,
       }),
     )
-  const lastUserIndex = findLastMessageIndex(messages, (message) => message.role === "user")
-  const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
-  for (const message of currentMessages) {
-    for (const call of message.toolCalls) {
-      const result = message.toolResults.find((candidate) => candidate.id === call.id)
-      const hasResult = result !== undefined
-      if (call.name === "Task" || call.name === "Agent") continue
-      if (hasResult) continue
-      if (call.name === "Bash" && isBackgroundShellInput(call.input)) {
-        shells.push(
-          backgroundShellActivityFromTool(call.id, "Bash", call.input, {
-            messageId: message.id,
-            messageTs: message.ts,
-          }),
-        )
-      }
-    }
-  }
-  return {
-    counts: {
-      agentsRunning: agents.filter((agent) => agent.status !== "done").length,
-      backgroundJobsRunning: backgroundJobs.filter((job) => job.status === "running").length,
-      shellsRunning: shells.length,
-    },
-    agents,
-    shells,
-  }
-}
-
-export function chatActivitySnapshotFromChatEvents(
-  events: readonly ChatEvent[],
-  backgroundJobs: readonly BackgroundJob[],
-  options: ChatActivitySnapshotOptions = {},
-): ChatActivitySnapshot {
-  const shells: BackgroundShellActivity[] = []
-  const agents = options.agents ?? []
   const currentEvents = eventsSinceLastUserMessage(events)
   const completedToolIds = new Set<ChatToolId>()
   for (const event of currentEvents) {
@@ -118,25 +81,6 @@ export function chatActivitySnapshotFromChatEvents(
     agents,
     shells,
   }
-}
-
-export function chatActivityCountsFromMessages(
-  messages: readonly MessageEntry[],
-  backgroundJobs: readonly BackgroundJob[],
-): ChatActivityCounts {
-  return chatActivitySnapshotFromMessages(messages, backgroundJobs).counts
-}
-
-function findLastMessageIndex(
-  messages: readonly MessageEntry[],
-  predicate: (message: MessageEntry) => boolean,
-): number {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]
-    if (m === undefined) continue
-    if (predicate(m)) return i
-  }
-  return -1
 }
 
 function eventsSinceLastUserMessage(events: readonly ChatEvent[]): readonly ChatEvent[] {

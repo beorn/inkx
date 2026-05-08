@@ -12,15 +12,19 @@
 import React, { useState } from "react"
 import { Box, Text, useHover, useModifierKeys, useSelection, type SilveryMouseEvent } from "silvery"
 import type { ContentBlock, ToolCall as ToolCallType, ToolKind } from "@km/agent-harness"
-import type { ActivityRun } from "../chat-model.ts"
 import { ToolCall, ToolContentForceExpandedProvider, ToolMarkerBackgroundProvider } from "./ToolCall.tsx"
 import { Content, useContentLayout } from "./Content.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 import { pluralForm, type PluralForms } from "../i18n.ts"
 
+export type ChatMessageSummaryActivity = {
+  readonly id: string
+  readonly status: "running" | "completed" | "failed"
+}
+
 export type ChatMessageSummaryItem = {
   id: string
-  activity: ActivityRun
+  activity: ChatMessageSummaryActivity
   toolCall: ToolCallType
   errorMessage?: string
 }

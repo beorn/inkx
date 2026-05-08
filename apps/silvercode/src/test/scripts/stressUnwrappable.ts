@@ -23,7 +23,7 @@ const TOOL_ID = "toolu_stress_1" as ToolUseId
 const LONG_URL =
   "https://example.com/extremely/long/path/segment/that/has/no-break-points-anywhere-and-just-keeps-going-because-the-llm-decided-to-paste-a-tracking-link-with-a-multi-segment-id-and-an-anchor-that-is-itself-an-md5-hash-cb6ef82d48a1e4f0a1d2c3b4e5f6a7b8c9d0e1f2-followed-by-some-more-text-just-for-good-measure-and-an-ending-marker-end"
 
-const TOOL_OUTPUT_LINE = `error in /Users/beorn/Code/pim/km/apps/silvercode/src/components/SessionUpdateList.tsx:336:18 - LongUnwrappableTokenInsideADeeplyNestedFunctionCall(${LONG_URL.slice(0, 80)}) // 336 cols`
+const TOOL_OUTPUT_LINE = `error in /Users/beorn/Code/pim/km/apps/silvercode/src/components/ChatBlockList.tsx:336:18 - LongUnwrappableTokenInsideADeeplyNestedFunctionCall(${LONG_URL.slice(0, 80)}) // 336 cols`
 
 const ASSISTANT_TEXT = `# Stress test — long unwrappable tokens
 

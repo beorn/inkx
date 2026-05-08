@@ -10,7 +10,7 @@
  *     writes are allowed after turn-start acknowledgement.
  *
  * Companion to controller.ts unit tests — this exercises the full wiring
- * from key handler → controller → store → SessionUpdateList + SidePanel.
+ * from key handler → controller → store → ChatBlockList + SidePanel.
  */
 
 import type { AgentEvent, AgentSession, SessionId, TurnId } from "@km/agent-harness"

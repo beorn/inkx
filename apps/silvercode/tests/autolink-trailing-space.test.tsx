@@ -30,7 +30,7 @@ import { Box, Prose, Text } from "silvery"
 import { LinkifiedText } from "../src/components/LinkifiedText.tsx"
 
 /**
- * Render the user-message row in isolation — same layout as SessionUpdateList's
+ * Render the user-message row in isolation — same layout as ChatBlockList's
  * inline `UserRow` component: `>` glyph + Prose + LinkifiedText with role="user".
  */
 function UserRow({ text }: { text: string }): React.ReactElement {

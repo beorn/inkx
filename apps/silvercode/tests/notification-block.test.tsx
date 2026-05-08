@@ -3,19 +3,11 @@ import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, PopoverProvider } from "silvery"
 import { Chat } from "../src/components/Chat.tsx"
-import {
-  filterVisibleNotificationEntries,
-  filterVisibleNotificationEntriesFromChatEvents,
-} from "../src/chat/notification-visibility.ts"
+import { filterVisibleNotificationEntries } from "../src/chat/notification-visibility.ts"
 import { NotificationBlock } from "../src/components/NotificationBlock.tsx"
-import {
-  chatActivityCountsFromMessages,
-  chatActivitySnapshotFromChatEvents,
-  chatActivitySnapshotFromMessages,
-} from "../src/chat/activity-snapshot.ts"
+import { chatActivitySnapshotFromChatEvents } from "../src/chat/activity-snapshot.ts"
 import type { ChannelNotification } from "../src/notification-stream.ts"
 import type { BackgroundJob } from "../src/controller.ts"
-import type { MessageEntry } from "@km/agent-harness"
 import type { ChatEvent, ChatEventType } from "../src/chat/types.ts"
 
 const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
@@ -40,35 +32,6 @@ function renderBlock(element: React.ReactElement) {
   )
 }
 
-function messageWithTools(opts: {
-  toolCalls: Array<{ id: string; name: string; input?: unknown }>
-  toolResults?: Array<{ id: string; output?: unknown }>
-  role?: "assistant" | "user"
-  ts?: number
-}): MessageEntry {
-  return {
-    id: "m-1",
-    role: opts.role ?? "assistant",
-    ops: [],
-    ts: opts.ts ?? Date.now(),
-    text: "",
-    toolCalls: opts.toolCalls,
-    toolResults: opts.toolResults ?? [],
-  } as unknown as MessageEntry
-}
-
-function userMessage(id: string, text: string, ts: number): MessageEntry {
-  return {
-    id,
-    role: "user",
-    ops: [],
-    ts,
-    text,
-    toolCalls: [],
-    toolResults: [],
-  } as unknown as MessageEntry
-}
-
 function chatEvent(type: ChatEventType, ts: number, payload: unknown): ChatEvent {
   return {
     id: `event-${ts}`,
@@ -79,6 +42,18 @@ function chatEvent(type: ChatEventType, ts: number, payload: unknown): ChatEvent
     payload,
     rawRefs: [],
   } as unknown as ChatEvent
+}
+
+function userStarted(messageId: string, ts: number): ChatEvent {
+  return chatEvent("message.started", ts, { messageId, role: "user" })
+}
+
+function toolStarted(toolId: string, name: string, input: unknown = {}, ts = 1_100): ChatEvent {
+  return chatEvent("tool.started", ts, { toolId, name, input })
+}
+
+function toolCompleted(toolId: string, output?: unknown, ts = 1_200, status = "done"): ChatEvent {
+  return chatEvent("tool.completed", ts, { toolId, status, output })
 }
 
 function notificationEntry(opts: {
@@ -129,27 +104,27 @@ describe("NotificationBlock", () => {
     expect(app.text).toContain("◇ 2 agents · ▣ 1 bg")
   })
 
-  test("counts running sub-agents, background jobs, and shells from session state", () => {
-    const messages = [
-      messageWithTools({
-        toolCalls: [
-          { id: "task-1", name: "Task" },
-          { id: "agent-1", name: "Agent" },
-          { id: "bash-1", name: "Bash", input: { run_in_background: true } },
-          { id: "done-task", name: "Task" },
-        ],
-        toolResults: [{ id: "done-task" }],
-      }),
+  test("counts running sub-agents, background jobs, and shells from canonical chat events", () => {
+    const events = [
+      toolStarted("task-1", "Task", {}, 1_100),
+      toolStarted("agent-1", "Agent", {}, 1_200),
+      toolStarted("bash-1", "Bash", { run_in_background: true }, 1_300),
+      toolStarted("done-task", "Task", {}, 1_400),
+      toolCompleted("done-task", undefined, 1_500),
     ]
 
-    expect(chatActivityCountsFromMessages(messages, [runningJob()])).toEqual({
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [runningJob()])
+
+    expect(snapshot.counts).toEqual({
       agentsRunning: 2,
       backgroundJobsRunning: 1,
       shellsRunning: 1,
     })
-    expect(chatActivitySnapshotFromMessages(messages, []).agents.map((agent) => `${agent.id}:${agent.status}`)).toEqual(
-      ["task-1:running", "agent-1:running", "done-task:done"],
-    )
+    expect(snapshot.agents.map((agent) => `${agent.id}:${agent.status}`)).toEqual([
+      "task-1:running",
+      "agent-1:running",
+      "done-task:done",
+    ])
   })
 
   test("counts current-turn shell activity from canonical chat events", () => {
@@ -184,25 +159,19 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot keeps completed current-turn subagents visible", () => {
-    const messages = [
-      messageWithTools({
-        toolCalls: [
-          { id: "task-1", name: "Agent", input: { description: "Sleep 16s #1" } },
-          { id: "task-2", name: "Agent", input: { description: "Sleep 16s #2" } },
-          { id: "task-3", name: "Agent", input: { description: "Sleep 16s #3" } },
-          { id: "task-4", name: "Agent", input: { description: "Sleep 16s #4" } },
-          { id: "task-5", name: "Agent", input: { description: "Sleep 16s #5" } },
-        ],
-        toolResults: [
-          { id: "task-1", output: "agent 1: done sleeping 20s" },
-          { id: "task-2", output: "agent 2: done sleeping 20s" },
-          { id: "task-3", output: "agent 3: done sleeping 20s" },
-          { id: "task-4", output: "agent 4: done sleeping 20s" },
-        ],
-      }),
+    const events = [
+      toolStarted("task-1", "Agent", { description: "Sleep 16s #1" }, 1_100),
+      toolStarted("task-2", "Agent", { description: "Sleep 16s #2" }, 1_200),
+      toolStarted("task-3", "Agent", { description: "Sleep 16s #3" }, 1_300),
+      toolStarted("task-4", "Agent", { description: "Sleep 16s #4" }, 1_400),
+      toolStarted("task-5", "Agent", { description: "Sleep 16s #5" }, 1_500),
+      toolCompleted("task-1", "agent 1: done sleeping 20s", 1_600),
+      toolCompleted("task-2", "agent 2: done sleeping 20s", 1_700),
+      toolCompleted("task-3", "agent 3: done sleeping 20s", 1_800),
+      toolCompleted("task-4", "agent 4: done sleeping 20s", 1_900),
     ]
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [])
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [])
 
     expect(snapshot.counts.agentsRunning).toBe(1)
     expect(snapshot.agents.map((agent) => agent.label)).toEqual([
@@ -216,12 +185,9 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot adds notification-only current-turn subagents", () => {
-    const messages = [
-      userMessage("u-live", "use 4 subagents to sleep 20s", 1_000),
-      messageWithTools({
-        ts: 1_200,
-        toolCalls: [{ id: "task-2", name: "Agent", input: { description: "Sleep 20s #2" } }],
-      }),
+    const events = [
+      userStarted("u-live", 1_000),
+      toolStarted("task-2", "Agent", { description: "Sleep 20s #2" }, 1_200),
     ]
     const entries = [
       notificationEntry({
@@ -247,7 +213,7 @@ describe("NotificationBlock", () => {
       return { ...entry, ts, timestamp: ts }
     })
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -257,12 +223,9 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot merges a tool subagent with its notification lifecycle by tool id", () => {
-    const messages = [
-      userMessage("u-live", "use 4 subagents to sleep 20s", 1_000),
-      messageWithTools({
-        ts: 1_200,
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
-      }),
+    const events = [
+      userStarted("u-live", 1_000),
+      toolStarted("toolu_2", "Agent", { description: "Sleep 20s #2" }, 1_200),
     ]
     const entries = [
       notificationEntry({
@@ -295,7 +258,7 @@ describe("NotificationBlock", () => {
       }),
     ].map((entry, index) => ({ ...entry, ts: 1_300 + index, timestamp: 1_300 + index }))
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -311,12 +274,9 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot merges a sidechain subagent with the matching tool row by unique label", () => {
-    const messages = [
-      userMessage("u-live", "use 4 subagents to sleep 20s", 1_000),
-      messageWithTools({
-        ts: 1_200,
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
-      }),
+    const events = [
+      userStarted("u-live", 1_000),
+      toolStarted("toolu_2", "Agent", { description: "Sleep 20s #2" }, 1_200),
     ]
     const entries = [1, 2, 3, 4].map((i, index) => ({
       ...notificationEntry({
@@ -329,7 +289,7 @@ describe("NotificationBlock", () => {
       timestamp: 1_300 + index,
     }))
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -345,12 +305,9 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot keeps distinct labels when notification tool ids are reused", () => {
-    const messages = [
-      userMessage("u-live", "use 4 subagents to sleep 20s", 1_000),
-      messageWithTools({
-        ts: 1_200,
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
-      }),
+    const events = [
+      userStarted("u-live", 1_000),
+      toolStarted("toolu_2", "Agent", { description: "Sleep 20s #2" }, 1_200),
     ]
     const entries = [1, 2, 3, 4].map((i, index) => ({
       ...notificationEntry({
@@ -364,7 +321,7 @@ describe("NotificationBlock", () => {
       timestamp: 1_300 + index,
     }))
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -379,12 +336,9 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot settles a tool subagent from its completion notification", () => {
-    const messages = [
-      userMessage("u-live", "use 1 subagent to sleep 20s", 1_000),
-      messageWithTools({
-        ts: 1_200,
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
-      }),
+    const events = [
+      userStarted("u-live", 1_000),
+      toolStarted("toolu_2", "Agent", { description: "Sleep 20s #2" }, 1_200),
     ]
     const entries = [
       notificationEntry({
@@ -396,7 +350,7 @@ describe("NotificationBlock", () => {
       }),
     ].map((entry) => ({ ...entry, ts: 1_300, timestamp: 1_300 }))
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -406,7 +360,7 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot resolves parallel started notifications when all complete", () => {
-    const messages = [userMessage("u-live", "use 4 subagents to sleep 20s", 1_000)]
+    const events = [userStarted("u-live", 1_000)]
     const entries = [
       ...[1, 2, 3, 4].map((i) =>
         notificationEntry({
@@ -426,7 +380,7 @@ describe("NotificationBlock", () => {
       ),
     ].map((entry, index) => ({ ...entry, ts: 1_100 + index, timestamp: 1_100 + index }))
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -450,7 +404,7 @@ describe("NotificationBlock", () => {
   })
 
   test("agents drawer snapshot ignores no-description subagent notifications instead of leaking agent ids", () => {
-    const messages = [userMessage("u-live", "continue agent", 1_000)]
+    const events = [userStarted("u-live", 1_000)]
     const entries = [
       notificationEntry({
         id: "agent-id-only",
@@ -461,7 +415,7 @@ describe("NotificationBlock", () => {
       }),
     ].map((entry) => ({ ...entry, ts: 1_100, timestamp: 1_100 }))
 
-    const snapshot = chatActivitySnapshotFromMessages(messages, [], {
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [], {
       notificationEntries: entries,
       sessionId: "s1",
     })
@@ -571,11 +525,9 @@ describe("NotificationBlock", () => {
   })
 
   test("same-session subagent completion notifications are hidden when the matching tool result is in history", () => {
-    const messages = [
-      messageWithTools({
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 16s #2" } }],
-        toolResults: [{ id: "toolu_2", output: "agent 2: done sleeping 16s" }],
-      }),
+    const events = [
+      toolStarted("toolu_2", "Agent", { description: "Sleep 16s #2" }, 1_100),
+      toolCompleted("toolu_2", "agent 2: done sleeping 16s", 1_200),
     ]
     const entries = [
       notificationEntry({
@@ -596,7 +548,7 @@ describe("NotificationBlock", () => {
       }),
     ]
 
-    expect(filterVisibleNotificationEntries(entries, false, "s1", messages).map((entry) => entry.id)).toEqual([
+    expect(filterVisibleNotificationEntries(entries, false, "s1", events).map((entry) => entry.id)).toEqual([
       "own-other",
     ])
   })
@@ -634,17 +586,15 @@ describe("NotificationBlock", () => {
       }),
     ]
 
-    expect(
-      filterVisibleNotificationEntriesFromChatEvents(entries, false, "s1", events).map((entry) => entry.id),
-    ).toEqual(["own-other"])
+    expect(filterVisibleNotificationEntries(entries, false, "s1", events).map((entry) => entry.id)).toEqual([
+      "own-other",
+    ])
   })
 
   test("same-session Claude sidechain completions are hidden when their Agent row is already in history", () => {
-    const messages = [
-      messageWithTools({
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 20s #2" } }],
-        toolResults: [{ id: "toolu_2", output: "agent 2: done sleeping 20s" }],
-      }),
+    const events = [
+      toolStarted("toolu_2", "Agent", { description: "Sleep 20s #2" }, 1_100),
+      toolCompleted("toolu_2", "agent 2: done sleeping 20s", 1_200),
     ]
     const entries = [
       notificationEntry({
@@ -655,15 +605,13 @@ describe("NotificationBlock", () => {
       }),
     ]
 
-    expect(filterVisibleNotificationEntries(entries, false, "s1", messages).map((entry) => entry.id)).toEqual([])
+    expect(filterVisibleNotificationEntries(entries, false, "s1", events).map((entry) => entry.id)).toEqual([])
   })
 
   test("same-session completion hiding keeps distinct labels when notification tool ids are reused", () => {
-    const messages = [
-      messageWithTools({
-        toolCalls: [{ id: "toolu_2", name: "Agent", input: { description: "Sleep 16s #2" } }],
-        toolResults: [{ id: "toolu_2", output: "agent 2: done sleeping 16s" }],
-      }),
+    const events = [
+      toolStarted("toolu_2", "Agent", { description: "Sleep 16s #2" }, 1_100),
+      toolCompleted("toolu_2", "agent 2: done sleeping 16s", 1_200),
     ]
     const entries = [1, 2, 3].map((i) =>
       notificationEntry({
@@ -675,7 +623,7 @@ describe("NotificationBlock", () => {
       }),
     )
 
-    expect(filterVisibleNotificationEntries(entries, false, "s1", messages).map((entry) => entry.id)).toEqual([
+    expect(filterVisibleNotificationEntries(entries, false, "s1", events).map((entry) => entry.id)).toEqual([
       "own-1",
       "own-3",
     ])

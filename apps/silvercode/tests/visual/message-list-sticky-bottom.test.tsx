@@ -1,8 +1,8 @@
 /**
- * SessionUpdateList stickyBottom auto-follow.
+ * ChatBlockList stickyBottom auto-follow.
  *
  * Smoke-tests the wiring of `follow="end"` on the ListView inside
- * SessionUpdateList by driving the real <App/> through a multi-turn scripted
+ * ChatBlockList by driving the real <App/> through a multi-turn scripted
  * session with more turns than fit in the viewport. After all turns
  * complete, the most recent assistant message must be visible — i.e.
  * the viewport auto-followed the tail.
@@ -122,7 +122,7 @@ const streamingTailWithPlan: ReadonlyArray<AgentEvent> = [
   },
 ]
 
-describe("SessionUpdateList follow-end auto-follow (km-silvercode)", () => {
+describe("ChatBlockList follow-end auto-follow (km-silvercode)", () => {
   test("when conversation fits in viewport, latest assistant message is visible", async () => {
     // With a generous 60-row viewport, all 16 messages fit easily — the
     // latest must be present. This is the baseline "no scroll required"

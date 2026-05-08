@@ -15,7 +15,7 @@ import {
   projectCurrentSubagentActivitiesFromChatEvents,
   subagentActivityRowsFromActivities,
 } from "../chat/subagent-activities.ts"
-import { filterVisibleNotificationEntriesFromChatEvents } from "../chat/notification-visibility.ts"
+import { filterVisibleNotificationEntries } from "../chat/notification-visibility.ts"
 import { NotificationBlock } from "./NotificationBlock.tsx"
 import type { ChannelNotification } from "../notification-stream.ts"
 import { useBackgroundJobs } from "../hooks/use-background-jobs.ts"
@@ -427,13 +427,7 @@ export function ChatPane({
     [activeAgents, sessionHandles, sessionStates],
   )
   const notificationEntries = React.useMemo(
-    () =>
-      filterVisibleNotificationEntriesFromChatEvents(
-        mutedNotificationEntries,
-        showDebug,
-        handle.id,
-        currentProjectedEvents,
-      ),
+    () => filterVisibleNotificationEntries(mutedNotificationEntries, showDebug, handle.id, currentProjectedEvents),
     [currentProjectedEvents, handle.id, mutedNotificationEntries, showDebug],
   )
   const notificationLeaves = React.useMemo(

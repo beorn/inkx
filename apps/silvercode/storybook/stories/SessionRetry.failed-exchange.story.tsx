@@ -39,7 +39,7 @@ export const sessionRetryFailedExchange: Story = {
           <SessionRetry
             lastPrompt={
               showLastPrompt
-                ? "Refactor the SessionUpdateList to use the new ACP-shaped message surface and update all imports."
+                ? "Refactor the ChatBlockList to use the new ACP-shaped message surface and update all imports."
                 : undefined
             }
             onRetry={() => {}}

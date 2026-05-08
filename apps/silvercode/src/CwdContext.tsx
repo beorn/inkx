@@ -10,7 +10,7 @@
  * the value is empty.
  *
  * Why a context (and not a prop drilled through every render path):
- * `LinkifiedText` is invoked from `MarkdownView`, `SessionUpdateList`,
+ * `LinkifiedText` is invoked from `MarkdownView`, `ChatBlockList`,
  * `InlinePermissionPrompt`, and `AvailableCommandsPalette` — threading
  * cwd through every caller chain bloats every props type for one piece
  * of notification session state.

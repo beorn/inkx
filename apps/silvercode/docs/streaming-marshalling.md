@@ -35,7 +35,7 @@ provider bytes / deltas
    `MarkdownView` owns paragraph/list/table/code/link interpretation. Upstream stream marshalling must feed it exact text and let the parser decide where paragraphs and links are.
 
 5. UI rows are projection decisions.
-   The ChatTree path may turn a semantic text block into one or more visible leaves, but it must not create a visible leaf per provider delta. The legacy `SessionUpdateList` path may keep per-delta timestamps internally, but rendered prose is coalesced before Markdown parsing.
+   The ChatTree path may turn a semantic text block into one or more visible leaves, but it must not create a visible leaf per provider delta. Rendered prose is coalesced before Markdown parsing.
 
 ## OpenACP Comparison
 
@@ -64,9 +64,6 @@ display structure is derived later.
 
 - `apps/silvercode/src/chat/normalize-agent-event.ts`
   coalesces adjacent `text-delta` events for the same message into one `message.block.added` ChatEvent. This prevents the ChatTree renderer from turning packet boundaries into visible rows.
-
-- `apps/silvercode/src/components/SessionUpdateList.tsx`
-  coalesces adjacent legacy text-delta ops by exact concatenation and breaks only at explicit semantic text boundaries. It deliberately does not infer newline boundaries between chunks.
 
 - `apps/silvercode/src/components/MarkdownView.tsx`
   parses the reconstructed text into Markdown blocks and inline spans.

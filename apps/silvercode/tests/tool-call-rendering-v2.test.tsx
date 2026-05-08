@@ -655,7 +655,7 @@ describe("ToolCall v2 — neutral marker glyph", () => {
 // =============================================================================
 // 5. Consecutive zero-gap clustering
 // =============================================================================
-// This test isn't local to <ToolCall> — gap suppression is a SessionUpdateList
+// This test isn't local to <ToolCall> — gap suppression is a ChatBlockList
 // concern. Stand-alone we render N <ToolCall>s in a column and verify that the
 // rows are contiguous (no blank rows between titles). The actual production
 // concern (gap={1} on ListView) is verified by inspecting that two adjacent

@@ -28,7 +28,7 @@ type SeenMessage = { role: ChatRole; source: MessageStartSource }
 type AssistantContentBlock = Extract<AgentEvent, { kind: "assistant-message" }>["content"][number]
 
 export const AGENT_EVENT_CHAT_PROJECTION = {
-  "session-init": { track: "status", chatEventTypes: ["session.updated", "debug.recorded"], keepsRaw: true },
+  "session-init": { track: "debug", chatEventTypes: ["session.updated", "debug.recorded"], keepsRaw: true },
   "turn-start": { track: "transcript", chatEventTypes: ["message.started"], keepsRaw: true },
   "text-delta": { track: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
   "thinking-delta": { track: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
@@ -431,7 +431,7 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
       if (cwd !== undefined) sessionPayload.cwd = cwd
       const out: ChatEvent[] = []
       if (Object.keys(sessionPayload).length > 0) {
-        out.push(make("session.updated", "status", sessionPayload as ChatEventPayloads["session.updated"], "session"))
+        out.push(make("session.updated", "debug", sessionPayload as ChatEventPayloads["session.updated"], "session"))
       }
       out.push(
         make(

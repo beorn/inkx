@@ -28,10 +28,10 @@ import { toolCallExecute } from "./stories/ToolCall.execute.story.tsx"
 import { toolCallFailed } from "./stories/ToolCall.failed.story.tsx"
 import { toolCallBashSummary } from "./stories/ToolCall.bash-summary.story.tsx"
 import { toolCallSummary } from "./stories/ToolCallSummary.story.tsx"
-import { sessionUpdateListTurnActivityRich, chatMessageSummaryRich } from "./stories/ChatMessageSummary.rich.story.tsx"
+import { chatMessageSummaryActivityRich, chatMessageSummaryRich } from "./stories/ChatMessageSummary.rich.story.tsx"
 import { applyPatch, applyPatchMulti } from "./stories/ApplyPatch.story.tsx"
-import { sessionUpdateListEmpty } from "./stories/SessionUpdateList.empty.story.tsx"
-import { sessionUpdateListMultiTurn } from "./stories/SessionUpdateList.multi-turn.story.tsx"
+import { chatBlockListEmpty } from "./stories/ChatBlockList.empty.story.tsx"
+import { chatBlockListMultiTurn } from "./stories/ChatBlockList.multi-turn.story.tsx"
 import {
   chatBigToolTurn,
   chatIdleDelimitedTurn,
@@ -49,7 +49,7 @@ import { sessionPromptComposerWithText } from "./stories/SessionPromptComposer.w
 import { sessionPromptComposerWithQueue } from "./stories/SessionPromptComposer.with-queue.story.tsx"
 import { sessionPromptHistoryEntries } from "./stories/SessionPromptHistory.entries.story.tsx"
 import { usageMeterFull } from "./stories/UsageMeter.full.story.tsx"
-import { sessionExchangeDividerBetweenExchanges } from "./stories/SessionExchangeDivider.between-exchanges.story.tsx"
+import { chatBlockBoundaryBetweenExchanges } from "./stories/ChatBlockBoundary.between-exchanges.story.tsx"
 import { sessionRetryFailedExchange } from "./stories/SessionRetry.failed-exchange.story.tsx"
 import { subagentActivityPanelCollapsed } from "./stories/SubagentActivityPanel.collapsed.story.tsx"
 import {
@@ -88,10 +88,10 @@ export const STORIES: readonly Story[] = [
   chatMessageSummaryRich,
   applyPatch,
   applyPatchMulti,
-  // Higher-order: full conversation via SessionUpdateList
-  sessionUpdateListEmpty,
-  sessionUpdateListMultiTurn,
-  sessionUpdateListTurnActivityRich,
+  // Higher-order: full conversation via ChatBlockList
+  chatBlockListEmpty,
+  chatBlockListMultiTurn,
+  chatMessageSummaryActivityRich,
   chatTurnComponents,
   chatStateVariants,
   chatIdleDelimitedTurn,
@@ -101,7 +101,7 @@ export const STORIES: readonly Story[] = [
   chatPlanDrawer,
   chatMetadataNotifications,
   // Conversation structure
-  sessionExchangeDividerBetweenExchanges,
+  chatBlockBoundaryBetweenExchanges,
   sessionRetryFailedExchange,
   subagentActivityPanelCollapsed,
   // Notification observations (Phase 6.a — inline NotificationEventRow)

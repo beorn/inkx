@@ -1,6 +1,6 @@
 /**
  * App-level keyboard scroll bindings — Shift+Up/Down/PageUp/PageDown/
- * Home/End scroll the focused session's SessionUpdateList from SessionPromptComposer-
+ * Home/End scroll the focused session's ChatBlockList from SessionPromptComposer-
  * focused state.
  *
  * Why: silvery's TextArea consumes plain Arrow keys, and silvercode's
@@ -9,7 +9,7 @@
  * scroll the update stream from the keyboard once the buffer fills
  * the viewport. We bind Shift+Arrow / Shift+PageUp/Down / Shift+Home/
  * End at the App's `useInput` and route them to the focused
- * ChatPane's SessionUpdateList via the `messageListsRef` registry.
+ * ChatPane's ChatBlockList via the `messageListsRef` registry.
  *
  * SILVERY_STRICT is disabled for this file because silvery's
  * `follow="end"` snap-to-end interacts with strict incremental rendering

@@ -3,7 +3,7 @@
  *
  * Edit-tool diff rendering now uses `<ToolCall>` via
  * silvery's `<Diff>` component. The ACP `ToolCallContent` variant `{ type:
- * "diff" }` feeds hunks to `<Diff>`; `SessionUpdateList.adaptToolCall` builds
+ * "diff" }` feeds hunks to `<Diff>`; `ChatBlockList.adaptToolCall` builds
  * this variant from the legacy `{ old_string, new_string }` Edit-tool input.
  *
  * These tests verify that:

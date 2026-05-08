@@ -6,7 +6,7 @@
  * (shows nested stream), running (spinner), and failed (error accent).
  *
  * The nested stream is simulated with a few static Text rows — in a real
- * session it would be a live <SessionUpdateList>.
+ * session it would be a live <ChatBlockList>.
  */
 import React from "react"
 import { Box, Muted, Screen, Text } from "silvery"

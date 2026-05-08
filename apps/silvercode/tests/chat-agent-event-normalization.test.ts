@@ -244,7 +244,7 @@ describe("normalizeAgentEventToChatEvents", () => {
 
     expect(normalized[0]).toMatchObject({
       type: "session.updated",
-      track: "status",
+      track: "debug",
       payload: { model: "codex", cwd: "/repo" },
     })
     expect(normalized[0]?.payload).not.toHaveProperty("mode")
@@ -318,10 +318,7 @@ describe("normalizeAgentEventToChatEvents", () => {
   test.each([
     [
       "Claude stream-json markdown link",
-      [
-        "See [parse.ts](/Users/beorn/Code/pim/km/apps/silvercode/packages/agent-harness/src/parse.ts:",
-        "572).",
-      ],
+      ["See [parse.ts](/Users/beorn/Code/pim/km/apps/silvercode/packages/agent-harness/src/parse.ts:", "572)."],
     ],
     ["Codex rollout code fence", ["```ts\n", "const answer = ", "42\n", "```\n"]],
     ["ACP/opencode markdown table", ["| Provider | Status |\n", "| --- | --- |\n", "| opencode | partial |\n"]],
@@ -394,10 +391,7 @@ describe("normalizeAgentEventToChatEvents", () => {
     const textBlocks = normalized.filter(isTextBlockAdded)
 
     expect(textBlocks.map((event) => event.payload.block.text)).toEqual(["First block.", "Second block."])
-    expect(textBlocks.map((event) => event.payload.block.eventIds)).toEqual([
-      [textBlocks[0]!.id],
-      [textBlocks[1]!.id],
-    ])
+    expect(textBlocks.map((event) => event.payload.block.eventIds)).toEqual([[textBlocks[0]!.id], [textBlocks[1]!.id]])
   })
 
   test("does not coalesce text deltas across intervening tool activity", () => {

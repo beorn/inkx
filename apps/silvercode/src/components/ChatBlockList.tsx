@@ -242,7 +242,7 @@ function renderChatLeaf(leaf: ChatLeaf): React.ReactNode {
     case "session-status":
       return (
         <BlockFrame leaf={leaf}>
-          <SessionEntry marker="•" markerColor="$muted">
+          <SessionEntry marker="·" markerColor="$muted">
             {mutedText(leaf.props.value ? `${leaf.props.label}: ${leaf.props.value}` : leaf.props.label)}
           </SessionEntry>
         </BlockFrame>

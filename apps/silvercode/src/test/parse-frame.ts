@@ -21,7 +21,7 @@ import type { RenderedScenario } from "./render-harness.tsx"
 import { leftWidthFor } from "./render-harness.tsx"
 
 // Known marker strings used to locate regions. Keep in sync with the
-// actual components (`Welcome.tsx`, `SidePanel.tsx`, `SessionUpdateList.tsx`,
+// actual components (`Welcome.tsx`, `SidePanel.tsx`, `ChatBlockList.tsx`,
 // `ActivityIndicator.tsx`, `ToolCall.tsx`, `SessionPromptComposer.tsx`).
 
 /**

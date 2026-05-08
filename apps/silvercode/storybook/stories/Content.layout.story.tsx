@@ -64,7 +64,7 @@ const activityItems: ChatMessageSummaryItem[] = [
 const markdownTable =
   "| File | Status | Notes |\n" +
   "| --- | --- | --- |\n" +
-  "| src/components/SessionUpdateList.tsx | complete | timestamps attach to the prose lane while wide blocks can still use wider space |\n" +
+  "| src/components/ChatBlockList.tsx | complete | timestamps attach to the prose lane while wide blocks can still use wider space |\n" +
   "| src/components/MarkdownView.tsx | complete | markdown delegates table rendering to Content.Table |\n"
 
 const tableHeaders = ["File", "Status", "Long Notes"]

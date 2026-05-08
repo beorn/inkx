@@ -3,7 +3,7 @@ import { createSessionStore, createStreamJsonParser, type AgentEvent } from "@km
 
 /**
  * End-to-end M0 contract: feeding a realistic stream-json fixture into the
- * parser + session-store produces the state the UI renders (SessionUpdateList
+ * parser + session-store produces the state the UI renders (ChatBlockList
  * iteration, TodoPanel projection, StatusLine token/cost counts).
  *
  * This is the M0 dogfood assertion expressed as a test so we don't rely on a
@@ -91,7 +91,7 @@ const FIXTURE: string[] = [
 ]
 
 describe("silvercode M0 — parser + session-store integration", () => {
-  test("a full turn with text + tool call renders into one MessageEntry", () => {
+  test("a full turn with text + tool call renders into one assistant turn", () => {
     const events: AgentEvent[] = []
     const parser = createStreamJsonParser((e) => events.push(e))
     for (const line of FIXTURE) parser.push(line)

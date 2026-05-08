@@ -1,12 +1,11 @@
 import { computed, signal } from "alien-signals"
-import type { AgentEvent, MessageEntry, SessionStore } from "@km/agent-harness"
+import type { AgentEvent, SessionStore } from "@km/agent-harness"
 import { normalizeAgentEventsToChatEvents } from "./normalize-agent-event.ts"
 import { projectChatTree, visibleChatLeaves } from "./project-transcript.ts"
 import { projectSubagentActivitiesFromChatEvents } from "./subagent-activities.ts"
 import type {
   ChatBlock,
   ChatBlockId,
-  ChatEventId,
   ChatTrackId,
   ChatTrackState,
   ChatEvent,
@@ -40,19 +39,11 @@ export function createChatSessionProjectionStore(
 ): ChatSessionProjectionStore {
   const sessionId = opts.sessionId as ChatSessionId
   const agentEvents = signal<readonly AgentEvent[]>(store.events.get())
-  const sessionState = signal(store.state.get())
   const tracks = signal(defaultChatTracks())
   const unsubscribeEvents = store.events.subscribe((events) => {
     agentEvents(events)
   })
-  const unsubscribeState = store.state.subscribe((state) => {
-    sessionState(state)
-  })
-  const events = computed(() => {
-    const normalizedEvents = normalizeAgentEventsToChatEvents(agentEvents(), { sessionId })
-    if (normalizedEvents.length > 0 || sessionState().messages.length === 0) return normalizedEvents
-    return legacyMessageEntriesToChatEvents(sessionId, sessionState().messages)
-  })
+  const events = computed(() => normalizeAgentEventsToChatEvents(agentEvents(), { sessionId }))
   const tree = computed(() => projectChatTree({ sessionId, events: events() }))
   const visible = computed(() => visibleChatLeaves(tree(), tracks()))
   const session = computed(() => buildChatSession(sessionId, events(), tree(), tracks()))
@@ -73,7 +64,6 @@ export function createChatSessionProjectionStore(
     },
     dispose(): void {
       unsubscribeEvents()
-      unsubscribeState()
     },
   }
 }
@@ -269,82 +259,6 @@ function emptyPlan(): ChatPlan {
 
 function emptyPromptQueue(): ChatPromptQueue {
   return { prompts: [], eventIds: [] }
-}
-
-function legacyMessageEntriesToChatEvents(sessionId: ChatSessionId, messages: readonly MessageEntry[]): ChatEvent[] {
-  const events: ChatEvent[] = []
-  for (const [messageIndex, message] of messages.entries()) {
-    const messageId = String(message.id) as ChatMessageId
-    const baseId = `legacy:${message.id || messageIndex}`
-    events.push(
-      legacyChatEvent(sessionId, `${baseId}:started`, message.ts, "message.started", "transcript", {
-        messageId,
-        role: message.role,
-      }),
-    )
-
-    let textBlockCount = 0
-    for (const [opIndex, op] of message.ops.entries()) {
-      if (op.kind !== "text" && op.kind !== "thinking") continue
-      if (op.text.trim().length === 0) continue
-      const eventId = `${baseId}:block:${opIndex}` as ChatEventId
-      const blockId = `${baseId}:${op.kind}:${opIndex}` as ChatBlockId
-      events.push(
-        legacyChatEvent(sessionId, eventId, message.ts, "message.block.added", "transcript", {
-          messageId,
-          blockId,
-          block: {
-            id: blockId,
-            type: op.kind === "thinking" ? "thought" : "text",
-            text: op.text,
-            eventIds: [eventId],
-          },
-        }),
-      )
-      textBlockCount++
-    }
-
-    if (textBlockCount === 0 && message.text.trim().length > 0) {
-      const eventId = `${baseId}:block:text` as ChatEventId
-      const blockId = `${baseId}:text` as ChatBlockId
-      events.push(
-        legacyChatEvent(sessionId, eventId, message.ts, "message.block.added", "transcript", {
-          messageId,
-          blockId,
-          block: {
-            id: blockId,
-            type: "text",
-            text: message.text,
-            eventIds: [eventId],
-          },
-        }),
-      )
-    }
-
-    events.push(
-      legacyChatEvent(sessionId, `${baseId}:completed`, message.ts, "message.completed", "transcript", { messageId }),
-    )
-  }
-  return events
-}
-
-function legacyChatEvent<T extends ChatEvent["type"]>(
-  sessionId: ChatSessionId,
-  id: string,
-  ts: number,
-  type: T,
-  track: ChatTrackId,
-  payload: Extract<ChatEvent, { type: T }>["payload"],
-): ChatEvent<T> {
-  return {
-    id: id as ChatEventId,
-    type,
-    track,
-    ts,
-    sessionId,
-    payload,
-    rawRefs: [{ id, source: "restore", label: "Legacy MessageEntry" }],
-  } as unknown as ChatEvent<T>
 }
 
 function titlePriority(source: ChatEventPayloadTitleSource | undefined): number {

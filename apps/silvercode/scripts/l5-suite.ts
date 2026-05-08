@@ -52,10 +52,10 @@ export const L5_SUITE: readonly L5SuiteGroup[] = [
     category: "projection",
     files: [
       "apps/silvercode/tests/chat-event-handling.test.ts",
-      "apps/silvercode/tests/chat-model.test.ts",
       "apps/silvercode/tests/chat-session-store.test.ts",
       "apps/silvercode/tests/chat-transcript-projection.test.ts",
-      "apps/silvercode/tests/session-update-projection.test.ts",
+      "apps/silvercode/tests/chat-agent-event-normalization.test.ts",
+      "apps/silvercode/tests/chat-block-list.test.tsx",
     ],
   },
   {

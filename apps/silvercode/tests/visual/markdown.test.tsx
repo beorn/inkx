@@ -36,7 +36,7 @@ describe("markdown rendering at multiple widths", () => {
 
   for (const cols of widths) {
     test(`markdownRich at cols=${cols}: layout invariants hold`, async () => {
-      // rows=200 is required so SessionUpdateList's `follow="end"` doesn't
+      // rows=200 is required so ChatBlockList's `follow="end"` doesn't
       // scroll the leading `●` glyph out of the viewport — markdownRich
       // wraps to ~100 rendered lines at narrow widths.
       const s = await renderScenario({ script: markdownRich, cols, rows: 200 })
