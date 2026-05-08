@@ -163,9 +163,57 @@ describe("silvercode CLI smoke — pre-flight resume validation", () => {
     expect(parsed.rawEvents).toHaveLength(4)
     expect(parsed.normalizedEvents.map((event) => event.type)).toContain("message.block.added")
     expect(parsed.projectedLeaves.some((leaf) => leaf.type === "message")).toBe(true)
-    expect(parsed.frames.some((frame) => frame.normalizedEventIds.length > 0 && frame.projectedLeafIds.length > 0)).toBe(
-      true,
-    )
+    expect(
+      parsed.frames.some((frame) => frame.normalizedEventIds.length > 0 && frame.projectedLeafIds.length > 0),
+    ).toBe(true)
+  })
+
+  test("traffic view scrubs and traffic replay exports selected JSONL before TUI", () => {
+    const dir = mkdtempSync(join(tmpdir(), "silvercode-traffic-view-cli-"))
+    const path = join(dir, "events.jsonl")
+    const sessionId = "traffic-view-session"
+    const turnId = "turn-1"
+    const lines = [
+      {
+        kind: "session-init",
+        sessionId,
+        cwd: "/repo",
+        model: "claude-sonnet",
+        mode: "auto",
+        tools: [],
+        mcp_servers: [],
+        slashCommands: [],
+        skills: [],
+        plugins: [],
+        claudeCodeVersion: "2.1.119",
+        apiKeySource: "OAuth",
+        ts: 1,
+      },
+      { kind: "turn-start", sessionId, turnId, role: "assistant", ts: 2 },
+      { kind: "text-delta", sessionId, turnId, blockIndex: 0, text: "hello", ts: 3 },
+      {
+        kind: "plan-update",
+        sessionId,
+        source: "codex-plan",
+        entries: [{ id: "step-cli", content: "Inspect traffic", status: "in_progress" }],
+        ts: 4,
+      },
+      { kind: "turn-end", sessionId, turnId, stopReason: "end_turn", ts: 5 },
+    ]
+    writeFileSync(path, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`)
+
+    const view = silvercode(["traffic", "view", path, "--track", "plan"])
+    expect(view.status).toBe(0)
+    expect(view.stdout).toContain("traffic viewer")
+    expect(view.stdout).toContain("selector track=plan")
+    expect(view.stdout).toContain("plan.updated")
+    expect(view.stdout).not.toContain("\x1b[?1049h")
+
+    const exported = silvercode(["traffic", "replay", path, "--plan-step", "step-cli", "--export-jsonl"])
+    expect(exported.status).toBe(0)
+    expect(exported.stdout.trim().split("\n")).toHaveLength(1)
+    expect(JSON.parse(exported.stdout)).toMatchObject({ kind: "plan-update", entries: [{ id: "step-cli" }] })
+    expect(exported.stdout).not.toContain("\x1b[?1049h")
   })
 })
 

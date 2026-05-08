@@ -265,6 +265,9 @@ transition decisions, projection inputs, and replay checkpoints.
 Traffic replay must be able to scrub by Thread, SessionBinding, Turn, Track,
 ToolCall, PermissionRequest, PlanStep, Job, and SubagentRun.
 
+The current CLI/debug contract lives in
+[`traffic-log-replay.md`](./traffic-log-replay.md).
+
 ## Migration Notes
 
 Current docs use only the target vocabulary. Historical pre-L5 names are tracked

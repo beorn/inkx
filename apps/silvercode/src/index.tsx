@@ -26,7 +26,14 @@ import { renderReport } from "./doctor/render.ts"
 import { resolveConnection } from "./resolve-connection.ts"
 import { validateResumeId } from "./resume.ts"
 import { parseSid } from "./sid-prefix.ts"
-import { renderTrafficReplaySummary, replayTrafficLogFile } from "./traffic-log.ts"
+import {
+  exportTrafficReplaySpanJsonl,
+  renderTrafficReplayInspector,
+  renderTrafficReplaySummary,
+  replayTrafficLogFile,
+  selectTrafficReplaySpan,
+  type TrafficReplaySelector,
+} from "./traffic-log.ts"
 
 /**
  * Two-phase argv parse: scan `process.argv` for `--config <path>` /
@@ -73,6 +80,36 @@ function expandHomePath(p: string): string {
   if (p === "~") return home
   if (p.startsWith("~/")) return `${home}/${p.slice(2)}`
   return p
+}
+
+function stringOption(opts: Record<string, unknown>, key: string): string | undefined {
+  const value = opts[key]
+  return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+function numberOption(opts: Record<string, unknown>, key: string, label: string): number | undefined {
+  const value = stringOption(opts, key)
+  if (value === undefined) return undefined
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`${label} must be a non-negative integer`)
+  return parsed
+}
+
+function trafficSelectorFromOptions(opts: Record<string, unknown>): TrafficReplaySelector {
+  return {
+    rawFrom: numberOption(opts, "from", "--from"),
+    rawTo: numberOption(opts, "to", "--to"),
+    kind: stringOption(opts, "kind") as TrafficReplaySelector["kind"],
+    sessionId: stringOption(opts, "sessionId"),
+    turnId: stringOption(opts, "turn"),
+    track: stringOption(opts, "track") as TrafficReplaySelector["track"],
+    leafType: stringOption(opts, "leaf") as TrafficReplaySelector["leafType"],
+    toolId: stringOption(opts, "tool"),
+    permissionId: stringOption(opts, "permission"),
+    planStepId: stringOption(opts, "planStep"),
+    jobId: stringOption(opts, "job"),
+    subagentId: stringOption(opts, "subagent"),
+  }
 }
 
 function sessionConfigFromEntry(entry: AcpEntry): Record<string, SessionConfigValue> | undefined {
@@ -323,21 +360,70 @@ async function buildProgram(): Promise<Command> {
     })
 
   const traffic = program.command("traffic").description("inspect and replay raw agent traffic logs")
-  traffic
-    .command("replay <path>")
-    .description("replay an AgentEvent JSONL ledger through normalization and projection")
-    .option("--session-id <id>", "override projected session id")
+  function addTrafficScrubOptions<C extends Command<Record<string, unknown>, [string], Record<string, unknown>>>(
+    command: C,
+  ) {
+    return command
+      .option("--session-id <id>", "override projected session id")
+      .option("--from <index>", "first raw event index to include")
+      .option("--to <index>", "last raw event index to include")
+      .option("--kind <kind>", "scrub by raw AgentEvent kind")
+      .option("--turn <id>", "scrub by turn id")
+      .option("--track <track>", "scrub by projected chat track")
+      .option("--leaf <type>", "scrub by projected leaf type")
+      .option("--tool <id>", "scrub by tool call id")
+      .option("--permission <id>", "scrub by permission request id")
+      .option("--plan-step <id>", "scrub by plan step id")
+      .option("--job <id>", "scrub by background job id")
+      .option("--subagent <id>", "scrub by subagent run or session id")
+  }
+
+  addTrafficScrubOptions(
+    traffic
+      .command("replay <path>")
+      .description("replay an AgentEvent JSONL ledger through normalization and projection"),
+  )
     .option("--json", "emit raw/normalized/projected provenance as JSON")
+    .option("--export-jsonl", "emit selected raw events as AgentEvent JSONL")
     .action((path: string, opts: Record<string, unknown>) => {
       try {
+        const selector = trafficSelectorFromOptions(opts)
         const replay = replayTrafficLogFile(expandHomePath(path), {
           sessionId: typeof opts["sessionId"] === "string" ? opts["sessionId"] : undefined,
         })
-        if (opts["json"]) process.stdout.write(`${JSON.stringify(replay, null, 2)}\n`)
-        else process.stdout.write(renderTrafficReplaySummary(replay))
+        const span = selectTrafficReplaySpan(replay, selector)
+        if (opts["exportJsonl"]) process.stdout.write(exportTrafficReplaySpanJsonl(span))
+        else if (opts["json"])
+          process.stdout.write(
+            `${JSON.stringify(span.frames.length === replay.frames.length ? replay : span, null, 2)}\n`,
+          )
+        else
+          process.stdout.write(
+            span.frames.length === replay.frames.length
+              ? renderTrafficReplaySummary(replay)
+              : renderTrafficReplayInspector(replay, selector),
+          )
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         process.stderr.write(`silvercode traffic replay: ${message}\n`)
+        process.exitCode = 2
+      }
+    })
+
+  addTrafficScrubOptions(traffic.command("view <path>").description("inspect a replay ledger with scrub filters"))
+    .option("--json", "emit the selected span as JSON")
+    .action((path: string, opts: Record<string, unknown>) => {
+      try {
+        const selector = trafficSelectorFromOptions(opts)
+        const replay = replayTrafficLogFile(expandHomePath(path), {
+          sessionId: typeof opts["sessionId"] === "string" ? opts["sessionId"] : undefined,
+        })
+        if (opts["json"])
+          process.stdout.write(`${JSON.stringify(selectTrafficReplaySpan(replay, selector), null, 2)}\n`)
+        else process.stdout.write(renderTrafficReplayInspector(replay, selector))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        process.stderr.write(`silvercode traffic view: ${message}\n`)
         process.exitCode = 2
       }
     })

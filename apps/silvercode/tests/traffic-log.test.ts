@@ -3,7 +3,13 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import type { AgentEvent, PermissionRequestId, SessionId, TurnId } from "@km/agent-harness"
 import { describe, expect, test } from "vitest"
-import { replayTrafficLog, replayTrafficLogFile } from "../src/traffic-log.ts"
+import {
+  exportTrafficReplaySpanJsonl,
+  renderTrafficReplayInspector,
+  replayTrafficLog,
+  replayTrafficLogFile,
+  selectTrafficReplaySpan,
+} from "../src/traffic-log.ts"
 
 const sessionId = "traffic-session" as SessionId
 const turnId = "turn-1" as TurnId
@@ -56,7 +62,12 @@ describe("traffic log replay", () => {
   test("replays raw JSONL into normalized events, projected leaves, and provenance frames", () => {
     const dir = mkdtempSync(join(tmpdir(), "silvercode-traffic-"))
     const path = join(dir, "traffic.jsonl")
-    writeFileSync(path, `${events().map((event) => JSON.stringify(event)).join("\n")}\n`)
+    writeFileSync(
+      path,
+      `${events()
+        .map((event) => JSON.stringify(event))
+        .join("\n")}\n`,
+    )
 
     const replay = replayTrafficLogFile(path)
 
@@ -86,5 +97,43 @@ describe("traffic log replay", () => {
     const second = replayTrafficLog(events())
 
     expect(second).toEqual(first)
+  })
+
+  test("scrubs by track and exports the selected raw span as JSONL", () => {
+    const replay = replayTrafficLog(events())
+
+    const span = selectTrafficReplaySpan(replay, { track: "plan" })
+
+    expect(span.rawEvents.map((event) => event.kind)).toEqual(["plan-update"])
+    expect(span.normalizedEvents.map((event) => event.type)).toEqual(["plan.updated"])
+    expect(span.projectedLeaves.map((leaf) => leaf.type)).toEqual(["plan-update"])
+    expect(exportTrafficReplaySpanJsonl(span)).toBe(`${JSON.stringify(events()[8])}\n`)
+  })
+
+  test("scrubs by raw range, permission request, and plan step ids", () => {
+    const replay = replayTrafficLog(events())
+
+    expect(selectTrafficReplaySpan(replay, { rawFrom: 2, rawTo: 3 }).rawEvents.map((event) => event.kind)).toEqual([
+      "text-delta",
+      "text-delta",
+    ])
+    expect(selectTrafficReplaySpan(replay, { permissionId }).rawEvents.map((event) => event.kind)).toEqual([
+      "permission-request",
+      "permission-decision",
+    ])
+    expect(selectTrafficReplaySpan(replay, { planStepId: "step-1" }).rawEvents.map((event) => event.kind)).toEqual([
+      "plan-update",
+    ])
+  })
+
+  test("renders an inspectable replay view with raw, normalized, and projection provenance", () => {
+    const replay = replayTrafficLog(events())
+    const view = renderTrafficReplayInspector(replay, { rawFrom: 2, rawTo: 3 })
+
+    expect(view).toContain("traffic viewer")
+    expect(view).toContain("selector raw=2..3")
+    expect(view).toContain("2 text-delta")
+    expect(view).toContain("message.block.added")
+    expect(view).toContain("leaf:text-delta:3:traffic-session:turn-1:0:text")
   })
 })
