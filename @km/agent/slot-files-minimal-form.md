@@ -20,7 +20,7 @@ For each `@agent/N.md` (N = 0..9):
 
 - [ ] Frontmatter: deleted (path-form is canonical id; no other fields are
       load-bearing for queue-only slots)
-- [ ] Body: `# @agent/N km.add:: . km.default:: true` (with `[/]`
+- [ ] Body: `# @agent/N km.add:: type:task . km.default:: true` (with `[/]`
       checkbox marker if currently wip), followed by materialized
       top-level `![[<bead>]]` embeds only
 - [ ] No `## Persona`, no `## Working agreement`, no `## Queue` heading

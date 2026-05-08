@@ -22,7 +22,7 @@ Use km's existing sigil + board + rules-engine primitives, plus silvercode as th
 
 - **Hats = files at `@agent.md` + `@agent/0..9.md`** (vault root, sibling to `@km/`). 10 numeric hats; any agent can pick up a hat and wear it for a session. Numeric hat files stay lean: root H1 rule and top-level backlog embeds only.
 - **Assignment = sigil mention.** Adding `@agent/3` (or equivalently `[[@agent/3]]`) to a bead title lands `km:@agent/3` in the canonical `links` table.
-- **Per-hat queue = query first, materialized board second.** `km bd query @agent/N` is the source of truth. If `@agent/N.md` should persist a readable queue, its H1 carries `km.add:: . km.default:: true`; sync evaluates that rule and materializes `![[<bead>]]` embeds directly under the H1. Backlinks alone never write into the hat file.
+- **Per-hat queue = query first, materialized board second.** `km bd query @agent/N` is the source of truth. If `@agent/N.md` should persist a readable queue, its H1 carries `km.add:: type:task . km.default:: true`; sync evaluates that rule and materializes task/bead `![[<bead>]]` embeds directly under the H1. Backlinks alone never write into the hat file, and broad self-rules are intentionally avoided so docs/prose cannot become queue items.
 - **Claim = bead claim at the hat level.** `km bd update @agent/3 --claim` sets assignee + status=wip on the hat and implies ownership of worktree `wt3`. Acts as a lock; one session per hat.
 - **`/do` = "work the highest-priority bead from any hat I've claimed."** Compose with `/loop` for continuous mode.
 - **`km agent spawn @agent/N` = thin orchestrator** — claim hat, set env vars (`KM_AGENT_SLOT=@agent/N`, `KM_AGENT_WORKTREE=wtN`, `KM_VAULT_ROOT`), launch agent (default `silvercode`). Agent-agnostic by design; silvercode is the canonical km-aware harness, alternatives via `--agent`. No silvercode-specific code in `km agent spawn`.
@@ -50,7 +50,7 @@ Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 | Bare @agent/0 (sigil in title) → no entry in links table                       | ❌ Bug — klink.md says it should produce km:@agent/0                                                                |
 | bd list @agent rolls up @agent-mentioning beads                                | ✅ Works (via data.mentions parallel field — being deprecated separately)                                           |
 | bd list @agent/0 rolls up @agent/0-mentioning beads                            | ❌ Doesn't work — depends on the bare-sigil-with-path fix above; persisted board files additionally need `km.add` |
-| @agent/N.md board files have `km.add:: . km.default:: true` on H1             | ✅ Numeric hats now have lean root rule + top-level embeds                                                        |
+| @agent/N.md board files have `km.add:: type:task . km.default:: true` on H1   | ✅ Numeric hats now have lean root rule + top-level task embeds                                                   |
 | `km.add` query supports the shape needed (mention:@agent/3 or equivalent)     | ❓ Needs verification                                                                                               |
 | bd update @agent/N --claim is race-safe across sessions                        | ❓ Today's --claim does read-then-write; needs DB-side compare-and-swap (UPDATE ... WHERE assignee IS NULL)         |
 | Board-level claim respects the existing 20-min agent / 24h user lease          | ❓ Verify; document if needed                                                                                       |
@@ -66,7 +66,7 @@ Phase 1 — substrate fixes (foundational):
 
 Phase 2 — scaffold (depends on Phase 1):
 
-- [x] **Scaffold `@agent.md` + `@agent/0..9.md`** — landed via commit `33245818f`; simplified later to lean numeric hats. Current contract: a numeric hat board persists queue embeds only if its H1 carries `km.add:: . km.default:: true`; otherwise `km bd query @agent/N` remains the queue source of truth. Numeric hats carry no persona/frontmatter/scope text.
+- [x] **Scaffold `@agent.md` + `@agent/0..9.md`** — landed via commit `33245818f`; simplified later to lean numeric hats. Current contract: a numeric hat board persists queue embeds only if its H1 carries `km.add:: type:task . km.default:: true`; otherwise `km bd query @agent/N` remains the queue source of truth. Numeric hats carry no persona/frontmatter/scope text.
 
 Phase 3 — skills + spawn orchestrator (depends on Phase 2):
 
