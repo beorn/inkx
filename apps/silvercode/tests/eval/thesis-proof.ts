@@ -219,7 +219,7 @@ function buildVariantB(
 ): Anthropic.Messages.MessageCreateParamsNonStreaming {
   // Failure-mode shape: notification body lives inside the user-role text,
   // wrapped by inline markup (matching the forensic capture structure).
-  // We replay several prior notification-as-user-text injections to recreate
+  // We replay several prior notification-as-user-role-text injections to recreate
   // the conversational pressure of the forensic session.
   const messages: Anthropic.Messages.MessageParam[] = []
   for (const prior of priorNotifications) {

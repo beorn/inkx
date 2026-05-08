@@ -2,7 +2,7 @@
  * Backend spec: comprehensive fake ACP stream.
  *
  * Local Claude/Codex/opencode transcript surveys show that real sessions are
- * a mix of text, reasoning, tool calls/results, file diffs, terminal output,
+ * a mix of text, thought, tool calls/results, file diffs, terminal output,
  * plans, config/status updates, and occasional binary/resource attachments.
  * The provider-injected fakes must cover those shapes so UI specs exercise the
  * same event families without launching real agents.
@@ -72,7 +72,7 @@ describe("backend spec: comprehensive fake ACP stream", () => {
         )
         expect(events.filter((event) => event.kind === "text-delta").every((event) => event.text.length > 0)).toBe(true)
         expect(events.filter((event) => event.kind === "thinking-delta").map((event) => event.text)).toContain(
-          `fake ${target.backend.id} reasoning trace`,
+          `fake ${target.backend.id} thought trace`,
         )
 
         const statuses = events.flatMap((event) => (event.kind === "status" ? [event.status] : []))

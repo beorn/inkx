@@ -265,21 +265,9 @@ transition decisions, projection inputs, and replay checkpoints.
 Traffic replay must be able to scrub by Thread, SessionBinding, Turn, Track,
 ToolCall, PermissionRequest, PlanStep, Job, and SubagentRun.
 
-## Legacy Replacement Map
+## Migration Notes
 
-These names are migration targets, not current-domain vocabulary:
-
-| Old name                                            | Target                                                                                                    |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `ChatSession`                                       | `ThreadState` or `ThreadProjectionState`, depending on ownership.                                         |
-| `ChatShell`                                         | Thread foreground/control state plus `Job` attachment.                                                    |
-| `ChatSpan`                                          | Projection group or foreground activity group; not a provider turn.                                       |
-| `ChatChannelId`                                     | `ChatTrackId`.                                                                                            |
-| `ChatChannelState`                                  | `ChatTrackState`.                                                                                         |
-| `ChatLeaf.channel` / `event.channel`                | `ChatLeaf.track` / `event.track` after normalization.                                                     |
-| `assistant-text` / `user-text`                      | `Message` with role plus `TextBlock`.                                                                     |
-| `Chat.Narration`                                    | `Chat.Message`; model private-work content renders as `Chat.Thought`.                                     |
-| `ChatReasoningBlock`                                | `ThoughtBlock`. Provider raw/config names such as `reasoning` remain allowed only at provider boundaries. |
-| `SessionUpdateList` / `MessageEntry`                | Legacy renderer/input projection until the ChatTree cutover bead deletes them.                            |
-| `AgentPlanEntry` / `ChatPlanEntry` / `ChatPlanTask` | `PlanStep`.                                                                                               |
-| Generic `ChatRun`                                   | `Job`, `ToolCall`, `SubagentRun`, or a specific run subtype.                                              |
+Current docs use only the target vocabulary. Historical pre-L5 names are tracked
+in the L5 migration beads and should not be copied into new code or evergreen
+documentation. Provider raw/config names can retain provider terminology at the
+parser/config boundary, but normalize before entering ThreadState.

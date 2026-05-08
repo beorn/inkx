@@ -379,7 +379,7 @@ async function emitComprehensivePrompt(ctx: FakeAcpPromptContext): Promise<acp.P
   await sessionUpdate(conn, sessionId, {
     sessionUpdate: "agent_thought_chunk",
     messageId: "00000000-0000-4000-8000-000000000001",
-    content: { type: "text", text: `fake ${ctx.backend.profile.id} reasoning trace` },
+    content: { type: "text", text: `fake ${ctx.backend.profile.id} thought trace` },
   })
   await sessionUpdate(conn, sessionId, {
     sessionUpdate: "agent_message_chunk",
