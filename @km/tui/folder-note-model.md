@@ -21,7 +21,7 @@ props:
     target: km-tui
 ---
 
-# [ ] Folder-note model: refine merge semantics (parked) @km/tui #task #P3
+# [ ] Folder-note model: refine merge semantics (parked) @km/tui #task #P0 ^folder-note-model
 
 blocks:: [[@km/tui]]
 
@@ -38,4 +38,6 @@ Cases:
 Current implementation (27db42fcf) fully merges — the refined model would revert part of computeColumnChildren and introduce a hasNonSlotSections branch.
 
 Parked per user decision 2026-04-14.
+
+@agent/3
 

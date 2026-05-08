@@ -24,9 +24,11 @@ props:
     target: km-tui
 ---
 
-# [x] <folder>.md folder-note renders empty in column view @km/tui #bug #P2
+# [x] <folder>.md folder-note renders empty in column view @km/tui #bug #P0 ^folder-note-same-name
 
 blocks:: [[@km/tui]]
 
 Already fixed in 27db42fcf. Creating bead retroactively for history. Folder containing same-name.md (folder-note convention) rendered as (empty) column because computeColumnChildren filtered the index file without hoisting its sections. Fix: unified with expandIndexFile by splicing index file's children into the column's cards.
+
+@agent/3
 

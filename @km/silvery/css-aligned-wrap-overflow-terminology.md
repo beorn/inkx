@@ -5,39 +5,39 @@ aliases:
 created_at: 2026-05-08T21:43:37.047Z
 ---
 
-# Adopt CSS-aligned wrap/overflow terminology in silvery + clean up consumer call sites #task #P0
+# Adopt CSS-aligned wrap/overflow terminology in silvery + clean up consumer call sites #task #P3 ^css-aligned-wrap-overflow-terminology
 
 Silvery is a multi-target UI framework with web ambitions (per `docs/silvery-positioning-brief.md`). Today the text-wrap surface uses ad-hoc terminology (`wrap`, `truncate`, `truncate-middle`, `clip`) that doesn't compose, doesn't map cleanly to CSS, and forces consumers to learn silvery-specific vocabulary. With the imminent landing of `@km/silvery/card-body-truncate-ellipsis` (wrap-then-truncate fallback), the surface needs a clean redesign before more cruft accretes.
 
 This bead drives the redesign and the cleanup of all 145 consumer call sites.
 
-## Why P0
+## Why P3 (demoted from P0 on 2026-05-08)
 
-- Silvery's web/canvas targets are explicit roadmap items. CSS-aligned semantics are foundation work — every divergence we ship now becomes a back-compat shim later.
-- The next wrap feature (`card-body-truncate-ellipsis`) needs a place to land. Adding `wrap="wrap-or-truncate"` would compound the mess; CSS gives us composable axes (`overflow-wrap` × `text-overflow`).
-- 145 call sites in `apps/` and `vendor/silvery/packages/ag-react/src/` use the legacy API. Each new feature multiplies the migration cost.
+The user demoted to P3 in favor of a quicker path: document the legacy → CSS mapping in silvery docs so the new vocabulary is at least informally available, and let `@km/silvery/card-body-truncate-ellipsis` land independently against the existing `wrap=` API. The 145 call-site migration is real but not urgent — silvery's web/canvas targets aren't on a near-term ship date.
+
+When this bead becomes urgent again: silvery is about to release a web target, OR a third independent wrap feature is being added (the cost of one more named mode exceeds the migration cost), OR the consumer-error rate from the ad-hoc terminology starts showing up in support load.
 
 ## Goal
 
 Replace silvery's single-axis `wrap` prop with the canonical CSS axes:
 
-| CSS axis           | Values                                       | Meaning                                                      |
-| ------------------ | -------------------------------------------- | ------------------------------------------------------------ |
-| `whiteSpace`       | `normal` (default), `nowrap`, `pre`, `pre-wrap`, `pre-line` | Whether whitespace collapses, whether content wraps at all   |
-| `overflowWrap`     | `normal` (default), `break-word`, `anywhere` | What to do when a token is wider than its container          |
-| `wordBreak`        | `normal` (default), `break-all`, `keep-all`  | Break-point preference within a token                        |
-| `textOverflow`     | `clip` (default), `ellipsis`                 | What to render when content overflows after wrapping         |
-| `overflow`         | `visible` (default), `hidden`, `clip`        | Whether overflow is rendered or trimmed at the box           |
+| CSS axis     | Values                                            | Meaning                                                    |
+| ------------ | ------------------------------------------------- | ---------------------------------------------------------- |
+| whiteSpace   | normal (default), nowrap, pre, pre-wrap, pre-line | Whether whitespace collapses, whether content wraps at all |
+| overflowWrap | normal (default), break-word, anywhere            | What to do when a token is wider than its container        |
+| wordBreak    | normal (default), break-all, keep-all             | Break-point preference within a token                      |
+| textOverflow | clip (default), ellipsis                          | What to render when content overflows after wrapping       |
+| overflow     | visible (default), hidden, clip                   | Whether overflow is rendered or trimmed at the box         |
 
 The current `wrap=` and `overflow=` props become **named composites** of the CSS axes (kept as syntactic sugar, mapped to the canonical state):
 
-| Legacy `wrap=` | CSS-canonical equivalent                                                                  |
-| -------------- | ----------------------------------------------------------------------------------------- |
-| `wrap` (default) | `whiteSpace="normal"` `overflowWrap="break-word"` `textOverflow="clip"`                 |
-| `truncate`     | `whiteSpace="nowrap"` `overflow="hidden"` `textOverflow="ellipsis"`                       |
-| `truncate-middle` | (named composite — keep as primitive; CSS doesn't have `middle` natively)              |
-| `clip`         | `whiteSpace="nowrap"` `overflow="hidden"` `textOverflow="clip"`                           |
-| (NEW) `wrap-or-truncate` | `whiteSpace="normal"` `overflowWrap="break-word"` `textOverflow="ellipsis"`     |
+| Legacy wrap=           | CSS-canonical equivalent                                                |
+| ---------------------- | ----------------------------------------------------------------------- |
+| wrap (default)         | whiteSpace="normal" overflowWrap="break-word" textOverflow="clip"       |
+| truncate               | whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis"           |
+| truncate-middle        | (named composite — keep as primitive; CSS doesn't have middle natively) |
+| clip                   | whiteSpace="nowrap" overflow="hidden" textOverflow="clip"               |
+| (NEW) wrap-or-truncate | whiteSpace="normal" overflowWrap="break-word" textOverflow="ellipsis"   |
 
 Soft-break separator support (the just-shipped `/`, `\`, `.`, `_`, `:`, `,`) becomes a property of `overflowWrap="break-word"` — break at separators preferred over mid-character breaks. `overflowWrap="anywhere"` remains for true mid-character breaks (CSS-aligned).
 
@@ -93,3 +93,4 @@ Each phase ships independently. Phases 1-4 land before any new wrap features; ph
 - [ ] Storybook coverage matrix: show all axes × all named composites × all common content types (short word, long path, multi-line, mixed).
 - [ ] `silverize/` skill audit pass — flag any code using legacy terminology after migration.
 - [ ] Update memory: add a feedback entry "silvery adopts CSS terminology; new components accept canonical CSS-aligned props" so future agents don't re-introduce ad-hoc names.
+
