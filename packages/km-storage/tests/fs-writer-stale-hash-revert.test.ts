@@ -91,9 +91,9 @@ describe("fs-writer: external write to unrelated file is preserved across in-app
 
     // First load — DB ingests both files and records `fs_content_hash`.
     const repo1 = runGenerator(createRepo(tempDir, { loadFiles: true }))
-    const beadANode = repo1.database
-      .prepare("SELECT id FROM nodes WHERE fs_path = ?")
-      .get("bead-a.md") as { id: string } | null
+    const beadANode = repo1.database.prepare("SELECT id FROM nodes WHERE fs_path = ?").get("bead-a.md") as {
+      id: string
+    } | null
     expect(beadANode).toBeTruthy()
     repo1.close()
 
@@ -134,9 +134,9 @@ describe("fs-writer: external write to unrelated file is preserved across in-app
     writeFileSync(filePath, "# Unrelated\n\nv1\n", "utf-8")
 
     const repo1 = runGenerator(createRepo(tempDir, { loadFiles: true }))
-    const beadANode = repo1.database
-      .prepare("SELECT id FROM nodes WHERE fs_path = ?")
-      .get("bead-a.md") as { id: string } | null
+    const beadANode = repo1.database.prepare("SELECT id FROM nodes WHERE fs_path = ?").get("bead-a.md") as {
+      id: string
+    } | null
     expect(beadANode).toBeTruthy()
     repo1.close()
 
@@ -168,9 +168,9 @@ describe("fs-writer: external write to unrelated file is preserved across in-app
     writeFileSync(filePath, "# Unrelated\n\nv1\n", "utf-8")
 
     const repo1 = runGenerator(createRepo(tempDir, { loadFiles: true }))
-    const beadANode = repo1.database
-      .prepare("SELECT id FROM nodes WHERE fs_path = ?")
-      .get("bead-a.md") as { id: string } | null
+    const beadANode = repo1.database.prepare("SELECT id FROM nodes WHERE fs_path = ?").get("bead-a.md") as {
+      id: string
+    } | null
     expect(beadANode).toBeTruthy()
     repo1.close()
 
@@ -184,9 +184,9 @@ describe("fs-writer: external write to unrelated file is preserved across in-app
     // NEW conflict_created events land for F after the bd update.
     const eventsTablePresent =
       (
-        repo2.database
-          .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
-          .get() as { name: string } | undefined
+        repo2.database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'").get() as
+          | { name: string }
+          | undefined
       )?.name === "events"
     const beforeCount = eventsTablePresent
       ? (
@@ -268,9 +268,9 @@ describe("fs-writer: external write to unrelated file is preserved across in-app
       // Snapshot conflict_created events for F before the toFs pass.
       const eventsTablePresent =
         (
-          repo.database
-            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
-            .get() as { name: string } | undefined
+          repo.database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'").get() as
+            | { name: string }
+            | undefined
         )?.name === "events"
       expect(eventsTablePresent).toBe(true) // disk mode → events table exists
 

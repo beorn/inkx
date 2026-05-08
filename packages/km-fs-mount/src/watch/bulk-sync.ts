@@ -432,7 +432,28 @@ export const BulkSync = {
   },
 
   /**
-   * Sync from DB to filesystem — write all file nodes to disk.
+   * Sync from DB to filesystem — write file nodes whose rendered content
+   * differs from the DB's `fs_content_hash` baseline.
+   *
+   * Two scoping rules apply (see @km/storage/fs-writer-stale-hash-revert):
+   *
+   * 1. **Skip unparsed stubs**: discovery creates stub nodes
+   *    (`data._stub: true`) for every .md file before deferred parsing
+   *    populates them. A stub's `nodesToMarkdown(getSubtree(...))` renders
+   *    as `---\n_stub: true\n---\n\n` — projecting that to disk would
+   *    overwrite the actual file content. Stubs are never the source of
+   *    truth; they're a placeholder for "we know this file exists, the
+   *    parser hasn't gotten to it yet". The CAS guard alone is not
+   *    sufficient because a stale-but-disk-aligned `fs_content_hash`
+   *    (set by reconcile before the parser runs) lets the guard pass and
+   *    the stub render gets written.
+   *
+   * 2. **CAS-skip on no-op writes**: when the rendered content's hash
+   *    already matches `fs_content_hash`, queueing a write is a no-op
+   *    AND can trigger spurious `safe-write conflict` events when the
+   *    user externally edited the file before we got here. Mirror the
+   *    sibling skip in `BulkSync.fromFs` (the rule-evaluation writeback
+   *    path) so the toFs side is symmetric.
    */
   async toFs(deps: BulkSyncDeps): Promise<{ written: number }> {
     const { db, repoPath, writeQueue, createAnchorAssigner } = deps
@@ -444,14 +465,39 @@ export const BulkSync = {
       (n) => n.type === "h" && n.item && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"),
     )
 
-    log.debug?.(`toFs: writing ${fileNodes.length} files`)
+    log.debug?.(`toFs: considering ${fileNodes.length} files`)
 
+    let written = 0
+    let skippedStub = 0
+    let skippedIdentical = 0
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue
+
+      // (1) Stub guard — never project an unparsed stub back to disk.
+      if (isUnparsedStub(fileNode)) {
+        skippedStub++
+        continue
+      }
+
       const anchors = createAnchorAssigner("sync-to-fs")
       const absPath = toAbsoluteFsPath(repoPath, fileNode.fs_path)
       const subtree = getSubtree(db, fileNode.id)
       const content = nodesToMarkdown(subtree, nodes, anchors.assign)
+
+      // (2) CAS-skip — symmetric with the fromFs writeback path
+      // (see line ~410 of this file). When the rendered content's hash
+      // already matches the DB's `fs_content_hash` baseline, queueing a
+      // write is at best a no-op and at worst a spurious conflict event
+      // (when the user externally edited the file and the safe-write
+      // CAS guard refuses the overwrite). Skip outright; the file on
+      // disk already represents what we'd write, give-or-take a user
+      // edit we shouldn't be touching anyway.
+      const newHash = hashContent(content)
+      if (fileNode.fs_content_hash && fileNode.fs_content_hash === newHash) {
+        skippedIdentical++
+        anchors.rewriteSourceFiles(fileNode.id)
+        continue
+      }
 
       writeQueue.queue({
         path: absPath,
@@ -459,11 +505,26 @@ export const BulkSync = {
         sourceEventId: "sync-to-fs",
       })
       anchors.rewriteSourceFiles(fileNode.id)
+      written++
     }
 
     await writeQueue.forceFlush()
 
-    log.debug?.(`toFs: wrote ${fileNodes.length} files in ${Date.now() - start}ms`)
-    return { written: fileNodes.length }
+    log.debug?.(
+      `toFs: queued=${written} skipped-stub=${skippedStub} skipped-identical=${skippedIdentical} in ${Date.now() - start}ms`,
+    )
+    return { written }
   },
+}
+
+/**
+ * True when the node is an unparsed stub created by discovery — its
+ * subtree is a placeholder, not the actual file content. Projecting it
+ * to disk would render `---\n_stub: true\n---\n\n` and overwrite the
+ * real file. See `BulkSync.toFs` rule (1).
+ */
+function isUnparsedStub(node: { parsed?: number; data?: unknown }): boolean {
+  if (node.parsed === 1) return false
+  const data = node.data as Record<string, unknown> | undefined
+  return data?._stub === true
 }
