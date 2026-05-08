@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import {
   _activeWatcherCount,
   clearPreviewCache,
+  createPreviewRuntime,
   disposeAllWatchers,
   PREVIEW_CACHE_TTL_MS,
   PREVIEW_WATCH_DEBOUNCE_MS,
@@ -265,6 +266,51 @@ describe("autolink previews", () => {
 
     disposeAllWatchers()
     expect(_activeWatcherCount()).toBe(0)
+  })
+
+  test("runtime: cache and watchers are isolated per owner", () => {
+    mkdirSync(join(dir, "owner-a"))
+    mkdirSync(join(dir, "owner-b"))
+    writeFileSync(join(dir, "owner-a", "README.md"), "# alpha\n")
+    writeFileSync(join(dir, "owner-b", "README.md"), "# bravo\n")
+
+    const ownerA = createPreviewRuntime()
+    const ownerB = createPreviewRuntime()
+
+    const resultA = ownerA.resolvePreview({
+      preview: "readme",
+      resolvesTo: join(dir, "owner-a"),
+      cacheKey: "same-key",
+    })
+    const resultB = ownerB.resolvePreview({
+      preview: "readme",
+      resolvesTo: join(dir, "owner-b"),
+      cacheKey: "same-key",
+    })
+
+    expect(resultA.kind).toBe("ok")
+    expect(resultB.kind).toBe("ok")
+    if (resultA.kind !== "ok" || resultB.kind !== "ok") return
+    expect(resultA.body).toContain("alpha")
+    expect(resultB.body).toContain("bravo")
+    expect(ownerA.activeWatcherCount()).toBe(1)
+    expect(ownerB.activeWatcherCount()).toBe(1)
+
+    ownerA.dispose()
+    expect(ownerA.activeWatcherCount()).toBe(0)
+    expect(ownerB.activeWatcherCount()).toBe(1)
+
+    const stillB = ownerB.resolvePreview({
+      preview: "readme",
+      resolvesTo: join(dir, "owner-b"),
+      cacheKey: "same-key",
+    })
+    expect(stillB.kind).toBe("ok")
+    if (stillB.kind !== "ok") return
+    expect(stillB.body).toContain("bravo")
+
+    ownerB.dispose()
+    expect(ownerB.activeWatcherCount()).toBe(0)
   })
 })
 

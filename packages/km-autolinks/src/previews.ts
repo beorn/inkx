@@ -104,12 +104,57 @@ type WatcherEntry = {
   /** Active debounce timer; cleared on eviction. */
   debounce: ReturnType<typeof setTimeout> | null
 }
-const watchers = new Map<string, WatcherEntry>()
+
+type PreviewRuntimeState = {
+  readonly cache: Map<string, CacheEntry>
+  readonly watchers: Map<string, WatcherEntry>
+}
+
+export type PreviewRuntime = {
+  resolvePreview(args: Parameters<typeof resolvePreview>[0]): PreviewResult
+  clearPreviewCache(): void
+  disposeAllWatchers(): void
+  activeWatcherCount(): number
+  dispose(): void
+}
+
+function createPreviewRuntimeState(): PreviewRuntimeState {
+  return {
+    cache: new Map<string, CacheEntry>(),
+    watchers: new Map<string, WatcherEntry>(),
+  }
+}
+
+const defaultRuntimeState: PreviewRuntimeState = { cache, watchers: new Map<string, WatcherEntry>() }
+const watchers = defaultRuntimeState.watchers
+
+export function createPreviewRuntime(): PreviewRuntime {
+  const state = createPreviewRuntimeState()
+  return {
+    resolvePreview(args) {
+      return resolvePreviewWithState(state, args)
+    },
+    clearPreviewCache() {
+      state.cache.clear()
+      disposeAllWatchersForState(state)
+    },
+    disposeAllWatchers() {
+      disposeAllWatchersForState(state)
+    },
+    activeWatcherCount() {
+      return state.watchers.size
+    },
+    dispose() {
+      state.cache.clear()
+      disposeAllWatchersForState(state)
+    },
+  }
+}
 
 /** Test-only: drop every cached preview so the next call goes through fresh. Also tears down all watchers. */
 export function clearPreviewCache(): void {
-  cache.clear()
-  disposeAllWatchers()
+  defaultRuntimeState.cache.clear()
+  disposeAllWatchersForState(defaultRuntimeState)
 }
 
 function stampFile(path: string): FileStamp | null {
@@ -127,7 +172,11 @@ function sameFileStamp(a: FileStamp, b: FileStamp | null): boolean {
 
 /** Tear down every active fs.watch handle. Used by `clearPreviewCache()` and exposed for callers (e.g., `AutolinksProvider`) that want to dispose on unmount. */
 export function disposeAllWatchers(): void {
-  for (const [, entry] of watchers) {
+  disposeAllWatchersForState(defaultRuntimeState)
+}
+
+function disposeAllWatchersForState(state: PreviewRuntimeState): void {
+  for (const [, entry] of state.watchers) {
     if (entry.debounce !== null) clearTimeout(entry.debounce)
     try {
       entry.watcher.close()
@@ -135,12 +184,12 @@ export function disposeAllWatchers(): void {
       log("watcher close failed: %s", String(err))
     }
   }
-  watchers.clear()
+  state.watchers.clear()
 }
 
 /** Tear down the watcher for a single cache key, if any. Idempotent. */
-function disposeWatcher(key: string): void {
-  const entry = watchers.get(key)
+function disposeWatcher(state: PreviewRuntimeState, key: string): void {
+  const entry = state.watchers.get(key)
   if (!entry) return
   if (entry.debounce !== null) clearTimeout(entry.debounce)
   try {
@@ -148,7 +197,7 @@ function disposeWatcher(key: string): void {
   } catch (err) {
     log("watcher close failed for %s: %s", key, String(err))
   }
-  watchers.delete(key)
+  state.watchers.delete(key)
 }
 
 /**
@@ -156,20 +205,20 @@ function disposeWatcher(key: string): void {
  * for `PREVIEW_WATCH_DEBOUNCE_MS`, then evict the cache entry and tear
  * down the watcher (the next resolve will register a fresh one).
  */
-function registerWatcher(key: string, path: string): void {
+function registerWatcher(state: PreviewRuntimeState, key: string, path: string): void {
   // Replace any existing watcher for this key — the file we're tracking
   // may have changed (e.g., README.md vs Readme.md resolution).
-  disposeWatcher(key)
+  disposeWatcher(state, key)
   let watcher: FSWatcher
   try {
     watcher = watch(path, () => {
-      const entry = watchers.get(key)
+      const entry = state.watchers.get(key)
       if (!entry) return
       if (entry.debounce !== null) clearTimeout(entry.debounce)
       entry.debounce = setTimeout(() => {
         log("evicting %s after fs.watch change on %s", key, path)
-        cache.delete(key)
-        disposeWatcher(key)
+        state.cache.delete(key)
+        disposeWatcher(state, key)
       }, PREVIEW_WATCH_DEBOUNCE_MS)
     })
   } catch (err) {
@@ -183,9 +232,9 @@ function registerWatcher(key: string, path: string): void {
   // don't leak.
   watcher.on("error", (err) => {
     log("fs.watch errored for %s: %s", path, String(err))
-    disposeWatcher(key)
+    disposeWatcher(state, key)
   })
-  watchers.set(key, { watcher, debounce: null })
+  state.watchers.set(key, { watcher, debounce: null })
 }
 
 /**
@@ -220,20 +269,27 @@ export function resolvePreview(args: {
    */
   now?: () => number
 }): PreviewResult {
+  return resolvePreviewWithState(defaultRuntimeState, args)
+}
+
+function resolvePreviewWithState(
+  state: PreviewRuntimeState,
+  args: Parameters<typeof resolvePreview>[0],
+): PreviewResult {
   const now = args.now ?? Date.now
   const key = `${args.preview}::${args.cacheKey}`
   const t = now()
 
-  const hit = cache.get(key)
+  const hit = state.cache.get(key)
   if (hit) {
     // File-backed entries stay valid while their backing-file stamp matches;
     // fs.watch eviction handles the common asynchronous path. Shell-out
     // entries expire on TTL.
-    const isFileBacked = watchers.has(key)
+    const isFileBacked = state.watchers.has(key)
     if (isFileBacked && hit.file && sameFileStamp(hit.file, stampFile(hit.file.path))) return hit.result
     if (isFileBacked) {
-      cache.delete(key)
-      disposeWatcher(key)
+      state.cache.delete(key)
+      disposeWatcher(state, key)
     } else if (t - hit.result.resolvedAt < PREVIEW_CACHE_TTL_MS) return hit.result
   }
 
@@ -263,13 +319,13 @@ export function resolvePreview(args: {
     outcomeResult = { kind: "error", message: `preview failed: ${String(err)}`, resolvedAt: t }
   }
   const fileStamp = watchedPath !== null ? stampFile(watchedPath) : null
-  cache.set(key, fileStamp ? { result: outcomeResult, file: fileStamp } : { result: outcomeResult })
+  state.cache.set(key, fileStamp ? { result: outcomeResult, file: fileStamp } : { result: outcomeResult })
   if (watchedPath !== null) {
-    registerWatcher(key, watchedPath)
+    registerWatcher(state, key, watchedPath)
   } else {
     // No file backing — make sure any stale watcher (e.g., from a
     // previous file-backed result that's now an error) is disposed.
-    disposeWatcher(key)
+    disposeWatcher(state, key)
   }
   return outcomeResult
 }
