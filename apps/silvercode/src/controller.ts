@@ -133,10 +133,9 @@ const MAX_LIVE_SESSIONS = 8
 
 /**
  * Prefix that marks a synthetic "background result" system message stuffed
- * into the conversation by `completeJob`. SessionUpdateList recognises this
- * prefix and renders the row with a distinct (system) treatment instead of
- * the default user-message styling. Exported so test + UI code stays in
- * lockstep with the controller — the prefix is the contract.
+ * into the conversation by `completeJob`. Exported so test + UI code stays
+ * in lockstep with the controller — the prefix is the contract until this
+ * becomes a dedicated canonical ChatEvent.
  *
  * Pure ASCII (no fancy unicode chevrons): emoji-leaning code points like
  * U+25B6 BLACK RIGHT-POINTING TRIANGLE silently get the VS16 selector
@@ -1029,17 +1028,38 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     s.add(turnId)
   }
   function findActiveTurnId(handle: SessionHandle): string | null {
-    const state = handle.store.state.get()
-    // The most recent assistant message that hasn't ended is our active turn.
-    // We scan from the end because turns are append-only.
-    for (let i = state.messages.length - 1; i >= 0; i--) {
-      const m = state.messages[i]
-      if (m === undefined) continue
-      if (m.role !== "assistant") continue
-      if (m.stopReason) continue // turn-end already arrived
-      return m.id as string
+    const events = handle.store.events.get()
+    const ended = new Set<string>()
+    for (let i = events.length - 1; i >= 0; i--) {
+      const event = events[i]
+      if (event === undefined) continue
+      if (agentEventSessionId(event) !== handle.session.sessionId) continue
+      if (event.kind === "turn-end") {
+        ended.add(event.turnId)
+        continue
+      }
+      if (!("turnId" in event)) continue
+      if (ended.has(event.turnId)) continue
+      if (event.kind === "turn-start" && event.role === "assistant") return event.turnId
+      if (event.kind === "assistant-message") return event.turnId
     }
     return null
+  }
+
+  function eventsForTurn(handle: SessionHandle, turnId: string): AgentEvent[] {
+    return handle.store.events.get().filter((event) => {
+      if (agentEventSessionId(event) !== handle.session.sessionId) return false
+      return "turnId" in event && event.turnId === turnId
+    })
+  }
+
+  function agentEventSessionId(event: AgentEvent): string | undefined {
+    return "sessionId" in event ? event.sessionId : undefined
+  }
+
+  function seedSnippetForTurn(handle: SessionHandle, turnId: string, fallback: string): string {
+    const snippet = buildSnippet(eventsForTurn(handle, turnId))
+    return snippet === "(no output yet)" ? fallback : snippet
   }
 
   /**
@@ -1118,12 +1138,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       { unref: true },
     )
 
-    // Surface as a system message in the conversation. We send the text
-    // through the regular user-message apply path with a `bg-` prefixed
-    // turnId — SessionUpdateList recognises the prefix and renders a distinct
-    // system-style row. This keeps us from having to extend AgentEvent
-    // with a new kind (which would touch @km/agent-harness — out of scope
-    // for this bead). See `BACKGROUND_MESSAGE_PREFIX` below.
+    // Surface as a short synthetic conversation event without extending
+    // @km/agent-harness's public AgentEvent union in this migration slice.
+    // See `BACKGROUND_MESSAGE_PREFIX` below.
     const handle = sessions.find((h) => h.id === sessionId)
     if (!handle) return
     const elapsedMs = (completed.completedAt ?? Date.now()) - completed.startedAt
@@ -1989,9 +2006,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
 
       // Capture a snippet of the partial output so the user sees what
       // they interrupted — same convention as backgroundActiveJob.
-      const state = handle.store.state.get()
-      const existing = state.messages.find((m) => m.id === turnId)
-      const seedSnippet = existing?.text.trim().split(/\r?\n/)[0]?.slice(0, 120) ?? "(running)"
+      const seedSnippet = seedSnippetForTurn(handle, turnId, "(running)")
 
       // Mark the foreground shell sendable via a synthetic turn-end so the
       // user can keep typing. The real turn-end will arrive later but is
@@ -2005,8 +2020,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       })
 
       // Surface a system message marking the interrupt. Uses the same
-      // BACKGROUND_MESSAGE_PREFIX channel as background results so
-      // SessionUpdateList renders it with the system treatment.
+      // BACKGROUND_MESSAGE_PREFIX channel as background results.
       const sysTurnId = `int-${turnId}-${Date.now()}` as never
       handle.store.apply({
         kind: "user-message",
