@@ -3,9 +3,19 @@ aliases:
   - km-agent.slot-files-minimal-form
   - km-agent-slot-files-minimal-form
 created_at: 2026-05-08T19:27:26.929Z
+closed_at: 2026-05-08T20:55:08.731Z
+closeReason: "shipped d7402a634 on origin/main. All 10 @agent/N.md normalized to
+  single-line H1 (km.add:: . km.default:: true; no type:task, no frontmatter, no
+  persona, no working agreement, no H2 phase headings). @agent.md parent epic
+  also stripped (dropped id/mentions/created_at frontmatter; queue-only model in
+  prose; bare wikilinks in slot list).
+  .claude/skills/{claim,do,worktree}/SKILL.md synced to canonical .agents
+  versions; .agents/skills/beads/SKILL.md synced from .claude (had the
+  queue-only subsection). Persona-self-relabel rule (§ 4½) removed. wc -l
+  @agent/*.md → all 1 line. Slot/hat used interchangeably per user."
 ---
 
-# @agent/N slot files: minimal queue-only form (drop frontmatter + persona + working agreement) #P2
+# [x] @agent/N slot files: minimal queue-only form (drop frontmatter + persona + working agreement) #P2
 
 The @agent/0..9.md slot files should be **queue-only**: the H1 rule and any
 materialized top-level `![[<bead>]]` queue embeds, nothing else. The current state
@@ -72,3 +82,4 @@ Surfaced during groom 2026-05-08 in /plat agent-dispatch lens P1. User
 redirected slot philosophy four times during the session ("not too rich" →
 "no comments" → "drop frontmatter" → "mostly delete frontmatter"); the
 fs-writer bug (P0 above) prevented the cleanup from landing in that session.
+
