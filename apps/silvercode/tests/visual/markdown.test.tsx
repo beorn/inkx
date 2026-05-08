@@ -89,8 +89,9 @@ describe("markdown rendering at multiple widths", () => {
 
       const codeLine = s.text.split("\n").find((line) => line.includes("function hello")) ?? ""
       expect(codeLine.indexOf("function hello")).toBeGreaterThan(0)
-      const commandLine = s.text.split("\n").find((line) => line.includes(">")) ?? ""
-      expect(commandLine.indexOf(">")).toBe(codeLine.indexOf("function hello") - 1)
+      const headingLine = s.text.split("\n").find((line) => line.includes("Heading")) ?? ""
+      expect(headingLine.trimStart()).toMatch(/^•\s+Heading/)
+      expect(codeLine.indexOf("function hello")).toBeGreaterThan(headingLine.indexOf("Heading"))
     } finally {
       s.dispose()
     }

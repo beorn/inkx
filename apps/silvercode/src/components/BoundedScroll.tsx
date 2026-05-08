@@ -7,10 +7,10 @@
  * indefinite vertical scroll-jacking when a tool dumps thousands of lines.
  *
  * Why this exists:
- * Disclosures that show their full content "as-is" turn one expanded block
- * into a screenful of context that pushes everything else out. The user's
- * design rule: any disclosure caps at 30 visible rows and becomes a kinetic
- * scroll container past that bound. The maxRows default matches that rule.
+ * Disclosures that show their full content "as-is" can turn one expanded block
+ * into a screenful of context that pushes everything else out. The default cap
+ * keeps expanded blocks compact; longer bodies become kinetic scroll containers
+ * with overflow chrome.
  *
  * Usage:
  *
@@ -29,10 +29,10 @@
 import React from "react"
 import { Box, useKineticScroll } from "silvery"
 
-export const DEFAULT_DISCLOSURE_MAX_ROWS = 30
+export const DEFAULT_DISCLOSURE_MAX_ROWS = 12
 
 export interface BoundedScrollProps {
-  /** Cap on visible rows. Content exceeding this scrolls. Default: 30. */
+  /** Cap on visible rows. Content exceeding this scrolls. Default: 12. */
   maxRows?: number
   /** Body — any silvery node tree. */
   children: React.ReactNode
@@ -53,6 +53,7 @@ export function BoundedScroll({
       flexShrink={1}
       maxHeight={maxRows}
       overflow="scroll"
+      overflowIndicator
       scrollOffset={scrollOffset}
       onWheel={onWheel}
     >

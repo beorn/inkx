@@ -110,6 +110,31 @@ export const codexAcpProfile: FakeAcpBackendProfile = {
       category: "_codex",
       currentValue: false,
     },
+    {
+      type: "select",
+      id: "permission_policy",
+      name: "Permission Policy",
+      category: "mode",
+      currentValue: "on-request",
+      options: [
+        { value: "untrusted", name: "Untrusted" },
+        { value: "on-failure", name: "On Failure" },
+        { value: "on-request", name: "On Request" },
+        { value: "never", name: "Never" },
+      ],
+    },
+    {
+      type: "select",
+      id: "sandbox",
+      name: "Sandbox",
+      category: "_codex",
+      currentValue: "workspace-write",
+      options: [
+        { value: "read-only", name: "Read Only" },
+        { value: "workspace-write", name: "Workspace Write" },
+        { value: "danger-full-access", name: "Danger Full Access" },
+      ],
+    },
   ],
 }
 

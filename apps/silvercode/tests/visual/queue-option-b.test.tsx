@@ -22,16 +22,50 @@
  */
 
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { leftWidthFor, renderScenario } from "../../src/test/render-harness.tsx"
-import { welcome } from "../../src/test/scripts/welcome.ts"
+import { createFakeSession, type ScriptedFakeSession } from "../../src/test/fake-session.ts"
 
 const COLS = 120
 const ROWS = 30
 const SESSION = "fake-session-1" as SessionId
+let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
+
+beforeEach(() => {
+  consoleSpies = (["log", "info", "debug", "warn", "error"] as const).map((method) =>
+    vi.spyOn(console, method).mockImplementation(() => {}),
+  )
+})
+
+afterEach(() => {
+  for (const spy of consoleSpies) spy.mockRestore()
+  consoleSpies = []
+})
 
 function turnStart(turnId: string): AgentEvent {
   return { kind: "turn-start", sessionId: SESSION, turnId: turnId as TurnId, role: "assistant", ts: 1010 }
+}
+
+function sessionInit(): AgentEvent {
+  return {
+    kind: "session-init",
+    sessionId: SESSION,
+    cwd: "/tmp/silvercode-test",
+    model: "claude-sonnet-4-6",
+    mode: "auto",
+    tools: [],
+    mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: "2.1.119",
+    apiKeySource: "OAuth",
+    ts: 1000,
+  }
+}
+
+function userMessage(): AgentEvent {
+  return { kind: "user-message", sessionId: SESSION, turnId: "u1" as TurnId, text: "seed", ts: 1005 }
 }
 
 function turnEnd(turnId: string): AgentEvent {
@@ -44,46 +78,33 @@ function turnEnd(turnId: string): AgentEvent {
   }
 }
 
+function createQueueFake(): ScriptedFakeSession {
+  return Object.assign(createFakeSession({ sessionId: SESSION }), { agent: "claude", protocolVersion: 1 })
+}
+
 /**
- * Drive the welcome script + a turn-start so the session is in a
- * "thinking" state — that's the realistic context for a queue UX (user
- * types a follow-up while Claude is still working).
+ * Drive a seeded transcript + a turn-start so the session is in a
+ * single-flight "thinking" state — that's the realistic context for a
+ * queue UX (user types a follow-up while the agent is still working).
  */
 async function busySession(opts: { initialQueue?: string } = {}) {
-  const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
-  // Move to mid-turn so subsequent sends queue instead of dispatching
-  // immediately.
-  s.emit(turnStart("a1"))
-  // Seed the queue if requested. The harness uses the sole spawned
-  // session; controller is not exposed directly, so we drive setQueuedText
-  // through the public path: a single send while non-idle goes to queue.
+  const s = await renderScenario({
+    script: [sessionInit(), userMessage(), turnStart("a1")],
+    cols: COLS,
+    rows: ROWS,
+    fake: createQueueFake(),
+  })
   if (opts.initialQueue) {
-    // Multiple sends, joined via controller's "\n\n" wire format.
-    const lines = opts.initialQueue.split("\n\n")
-    // We can't access controller directly, but we can reach it via the
-    // App's controllerRef indirectly. Simplest: dispatch each line as a
-    // user keypress through the command TextArea + Enter, which routes
-    // to handleSubmit → controller.send → queue (because mid-turn).
-    //
-    // App.tsx's handleSubmit has a 50ms dedupe guard against
-    // double-Enter from palette+TextInput racing. Tests press faster
-    // than that, so we wait between Enters.
-    for (const line of lines) {
-      // The default app starts with focusedRegion="command" and an
-      // empty TextArea. Simulate typing each char then Enter.
-      for (const ch of line) {
-        await s.app.press(ch)
-      }
-      await s.app.press("Enter")
-      await new Promise<void>((r) => setTimeout(r, 60))
-    }
+    s.controller.setQueuedText(s.controller.focusedId(), opts.initialQueue)
+    await new Promise<void>((r) => setTimeout(r, 0))
+    s.resample()
   }
   return s
 }
 
 describe("Option B queue — focus handoff and Enter semantics", () => {
   test("scenario 1: empty queue → divider hidden, no QUEUE label visible", async () => {
-    const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
+    const s = await renderScenario({ script: [], cols: COLS, rows: ROWS })
     try {
       // No queue, no divider. The QUEUE / QUEUE HELD label only appears
       // when the queue is non-empty.
@@ -154,8 +175,37 @@ describe("Option B queue — focus handoff and Enter semantics", () => {
     }
   })
 
+  test("leaving queue focus after an idle turn drains the held queue", async () => {
+    const s = await busySession({ initialQueue: "held-after-idle" })
+    try {
+      const baseline = s.fake.sent.length
+
+      await s.app.press("ArrowUp")
+      expect(s.text).toContain("QUEUE HELD")
+
+      // Claude finishes while the user is still focused in the queue.
+      // The focus guard intentionally pauses auto-flush at this point.
+      s.emit(turnEnd("a1"))
+      await new Promise<void>((r) => setTimeout(r, 20))
+      expect(s.fake.sent.length).toBe(baseline)
+      expect(s.text).toContain("QUEUE HELD")
+
+      // Once the user leaves the queue editor, the paused auto-flush
+      // should retry immediately. Otherwise the queue can sit forever
+      // because there may not be another turn boundary.
+      await s.app.press("ArrowDown")
+      await new Promise<void>((r) => setTimeout(r, 20))
+
+      expect(s.fake.sent.length).toBe(baseline + 1)
+      expect(s.fake.sent[s.fake.sent.length - 1]!.payload).toBe("held-after-idle")
+      expect(s.text).not.toContain("QUEUE")
+    } finally {
+      s.dispose()
+    }
+  })
+
   test("scenario 5: empty queue + Up at top of command → no swap (label stays absent)", async () => {
-    const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
+    const s = await renderScenario({ script: [], cols: COLS, rows: ROWS })
     try {
       // No queue, command empty. Press Up — onEdge fires "top" but
       // SessionPromptComposer short-circuits because hasQueue is false; no focus

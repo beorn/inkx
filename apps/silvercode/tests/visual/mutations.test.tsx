@@ -192,6 +192,7 @@ function makeSynthetic(
     // These fields aren't used by invariants; stubs satisfy the type.
     app: null as never,
     fake: null as never,
+    controller: null as never,
     emit() {},
     resample() {
       return { text, lines }

@@ -1,4 +1,4 @@
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import {
   type AgentCapabilities,
   type CapabilityContext,
@@ -155,20 +155,65 @@ describe("BUILTIN_AGENTS — Claude variants share CLAUDE_CAPABILITIES", () => {
     const codex = BUILTIN_AGENTS["codex"]?.capabilities
     expect(codex?.thinking?.map((o) => o.id)).toEqual(["low", "medium", "high", "xhigh"])
     expect(codex?.planning?.map((o) => o.id)).toEqual(["normal", "plan"])
-    expect(codex?.thinking?.find((o) => o.default === true)?.id).toBe("medium")
+    expect(codex?.thinking?.find((o) => o.default === true)?.id).toBe("xhigh")
     expect(codex?.planning?.find((o) => o.default === true)?.id).toBe("normal")
   })
 
-  test("codex thinking cycles through Codex reasoning levels in both directions", () => {
+  test("codex thinking steps through Codex reasoning levels without wrapping", () => {
     const thinking = CODEX_CAPABILITIES.thinking!
 
-    expect(currentCapabilityOption(thinking, "").id).toBe("medium")
     expect(adjacentCapabilityOption(thinking, "medium", 1).id).toBe("high")
     expect(adjacentCapabilityOption(thinking, "high", 1).id).toBe("xhigh")
-    expect(adjacentCapabilityOption(thinking, "xhigh", 1).id).toBe("low")
+    expect(adjacentCapabilityOption(thinking, "xhigh", 1).id).toBe("xhigh")
 
     expect(adjacentCapabilityOption(thinking, "medium", -1).id).toBe("low")
-    expect(adjacentCapabilityOption(thinking, "low", -1).id).toBe("xhigh")
+    expect(adjacentCapabilityOption(thinking, "low", -1).id).toBe("low")
+  })
+
+  test("codex thinking activation updates UI state and ACP reasoning config", async () => {
+    const controller = {
+      setSessionConfigOption: vi.fn(async () => {}),
+      setReasoningEffort: vi.fn(async () => {}),
+    } as unknown as CapabilityContext["controller"]
+    let thinking = ""
+    const high = CODEX_CAPABILITIES.thinking?.find((o) => o.id === "high")
+    expect(high).toBeDefined()
+
+    await high!.activate({
+      controller,
+      sessionId: "s1",
+      setThinking: (next) => {
+        thinking = next
+      },
+      setMode: () => {},
+    })
+
+    expect(thinking).toBe("high")
+    expect(controller.setReasoningEffort).toHaveBeenCalledWith("s1", "high")
+  })
+
+  test("Claude permission mode activation updates UI state and ACP permission policy when present", async () => {
+    const controller = {
+      setSessionConfigOption: vi.fn(async () => {}),
+    } as unknown as CapabilityContext["controller"]
+    let mode = ""
+    const ask = CLAUDE_CAPABILITIES.planning?.find((o) => o.id === "ask")
+    expect(ask).toBeDefined()
+
+    await ask!.activate({
+      controller,
+      sessionId: "s1",
+      setThinking: () => {},
+      setMode: (next) => {
+        mode = next
+      },
+    })
+
+    expect(mode).toBe("ask")
+    expect(controller.setSessionConfigOption).toHaveBeenCalledWith("s1", {
+      configId: "permission_policy",
+      value: "ask",
+    })
   })
 
   test("module load already passed assertCapabilities (no throw at import time)", () => {

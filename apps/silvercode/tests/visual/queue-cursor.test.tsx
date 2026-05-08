@@ -31,6 +31,7 @@ import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
 import { App } from "../../src/App.tsx"
+import type { Controller } from "../../src/controller.ts"
 import { createFakeSession, type ScriptedFakeSession } from "../../src/test/fake-session.ts"
 import { installFakes } from "../../src/test/fake-boundaries.ts"
 
@@ -44,6 +45,28 @@ function turnStart(turnId: string, ts = 1010): AgentEvent {
   return { kind: "turn-start", sessionId: SESSION, turnId: turnId as TurnId, role: "assistant", ts }
 }
 
+function sessionInit(): AgentEvent {
+  return {
+    kind: "session-init",
+    sessionId: SESSION,
+    cwd: "/tmp/silvercode-test",
+    model: "claude-sonnet-4-6",
+    mode: "auto",
+    tools: [],
+    mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: "2.1.119",
+    apiKeySource: "OAuth",
+    ts: 1000,
+  }
+}
+
+function userMessage(): AgentEvent {
+  return { kind: "user-message", sessionId: SESSION, turnId: "u1" as TurnId, text: "seed", ts: 1005 }
+}
+
 function turnEnd(turnId: string, ts = 1020): AgentEvent {
   return { kind: "turn-end", sessionId: SESSION, turnId: turnId as TurnId, stopReason: "end_turn", ts }
 }
@@ -54,14 +77,20 @@ function feed(term: TermlessTerm, data: string): void {
   ;(term as unknown as { sendInput: (s: string) => void }).sendInput(data)
 }
 
+function createQueueFake(): ScriptedFakeSession {
+  return Object.assign(createFakeSession({ sessionId: SESSION }), { agent: "claude", protocolVersion: 1 })
+}
+
 async function bootApp(opts: { fake?: ScriptedFakeSession } = {}): Promise<{
   term: TermlessTerm
   fake: ScriptedFakeSession
+  controller: Controller
   handle: Awaited<ReturnType<typeof run>>
   fakes: ReturnType<typeof installFakes>
 }> {
   const fakes = installFakes({})
   const fake = opts.fake ?? createFakeSession()
+  let controller: Controller | null = null
   const term = createTermless({ cols: COLS, rows: ROWS })
   const handle = await run(
     <App
@@ -70,20 +99,24 @@ async function bootApp(opts: { fake?: ScriptedFakeSession } = {}): Promise<{
       layout="single"
       model="claude-sonnet-4-6"
       spawnFactory={() => fake as unknown as AgentSession}
+      onController={(c) => (controller = c)}
     />,
     term,
   )
   // Boot: spawnSession resolves on a microtask; welcome screen wants
   // a few render passes to settle.
   await settle(150)
-  return { term, fake, handle, fakes }
+  if (!controller) throw new Error("bootApp failed to capture controller")
+  return { term, fake, controller, handle, fakes }
 }
 
 describe("queue editor — termless interaction", () => {
   test("Enter in command during mid-turn enqueues (no new send)", async () => {
-    const fake = createFakeSession()
+    const fake = createQueueFake()
     const { term, handle, fakes } = await bootApp({ fake })
     try {
+      fake.emit(sessionInit())
+      fake.emit(userMessage())
       fake.emit(turnStart("a1"))
       await settle(40)
       const baseline = fake.sent.length
@@ -101,17 +134,14 @@ describe("queue editor — termless interaction", () => {
   })
 
   test("Ctrl+J in queue force-flushes the entire buffer as one send", async () => {
-    const fake = createFakeSession()
-    const { term, handle, fakes } = await bootApp({ fake })
+    const fake = createQueueFake()
+    const { term, controller, handle, fakes } = await bootApp({ fake })
     try {
+      fake.emit(sessionInit())
+      fake.emit(userMessage())
       fake.emit(turnStart("a1"))
       await settle(40)
-      // Queue three entries by submitting mid-turn.
-      feed(term, "one\r")
-      await settle(80)
-      feed(term, "two\r")
-      await settle(80)
-      feed(term, "three\r")
+      controller.setQueuedText(controller.focusedId(), "one\n\ntwo\n\nthree")
       await settle(80)
       const baseline = fake.sent.length
       // ArrowUp at top of (now-empty) command → focus moves to queue.
@@ -137,9 +167,11 @@ describe("queue editor — termless interaction", () => {
   })
 
   test("turn-end auto-flushes queued entries", async () => {
-    const fake = createFakeSession()
+    const fake = createQueueFake()
     const { term, handle, fakes } = await bootApp({ fake })
     try {
+      fake.emit(sessionInit())
+      fake.emit(userMessage())
       fake.emit(turnStart("a1"))
       await settle(40)
       feed(term, "auto-flush-me\r")

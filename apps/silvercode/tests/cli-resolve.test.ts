@@ -81,6 +81,38 @@ describe("resolveConnection — explicit input", () => {
     config.unwatch()
   })
 
+  it("seeds the built-in codex reasoning effort", async () => {
+    const config = await configWith("ai:\n  acp: {}\n")
+    const resolved = resolveConnection("codex", config)
+    expect(resolved.source).toBe("builtin")
+    expect(resolved.entry.agent).toBe("codex")
+    expect(resolved.entry.model).toBe("gpt-5-codex")
+    expect(resolved.entry.reasoning_effort).toBe("xhigh")
+    expect(resolved.entry.permission_policy).toBe("on-request")
+    config.unwatch()
+  })
+
+  it("preserves generic ACP session config defaults from registry entries", async () => {
+    const config = await configWith(
+      `ai:
+  acp:
+    codex-work:
+      agent: codex
+      session_config:
+        permission_policy: never
+        web_search: true
+`,
+    )
+    const resolved = resolveConnection("codex-work", config)
+    expect(resolved.source).toBe("registry-label")
+    expect(resolved.entry.agent).toBe("codex")
+    expect(resolved.entry.session_config).toEqual({
+      permission_policy: "never",
+      web_search: true,
+    })
+    config.unwatch()
+  })
+
   it("throws a multi-line error when input matches nothing", async () => {
     const config = await configWith(
       `ai:

@@ -32,7 +32,7 @@
 import React, { useState } from "react"
 import { Box, ListView, Muted, Small, Text, useKineticScroll } from "silvery"
 import type { SessionState } from "@km/agent-harness"
-import type { NotificationStreamEntry } from "../../src/notification-stream.ts"
+import type { ChannelNotification } from "../../src/notification-stream.ts"
 import { InlinePermissionPrompt } from "../../src/components/InlinePermissionPrompt.tsx"
 import { InlineAskUserQuestionPrompt } from "../../src/components/InlineAskUserQuestionPrompt.tsx"
 import { SessionPromptComposer } from "../../src/components/SessionPromptComposer.tsx"
@@ -259,10 +259,10 @@ function PanelScroll({ children }: { children: React.ReactNode }): React.ReactEl
 }
 
 function fakeController(
-  notificationBySession: ReadonlyMap<string, readonly NotificationStreamEntry[]> = new Map(),
+  notificationBySession: ReadonlyMap<string, readonly ChannelNotification[]> = new Map(),
 ): Controller {
   const muted = new Set<string>()
-  const streamSubscribers = new Set<(sessionId: string, entry: NotificationStreamEntry) => void>()
+  const streamSubscribers = new Set<(sessionId: string, entry: ChannelNotification) => void>()
   const muteSubscribers = new Set<(muted: ReadonlySet<string>) => void>()
   return {
     notificationMuteState: {
@@ -279,15 +279,17 @@ function fakeController(
     },
     notificationStream: {
       entries: (sessionId: string) => notificationBySession.get(sessionId) ?? [],
-      subscribe: (fn: (sessionId: string, entry: NotificationStreamEntry) => void) => {
+      subscribe: (fn: (sessionId: string, entry: ChannelNotification) => void) => {
         streamSubscribers.add(fn)
         return () => streamSubscribers.delete(fn)
       },
     },
-    backgroundTasks: () => [],
-    onBackgroundTasksChange: () => () => {},
-    cancelBackgroundTask: () => {},
-    foregroundTask: () => {},
+    backgroundActiveJob: () => {},
+    interruptActiveJob: () => {},
+    backgroundJobs: () => [],
+    onBackgroundJobsChange: () => () => {},
+    cancelBackgroundJob: () => {},
+    surfaceBackgroundJob: () => {},
   } as unknown as Controller
 }
 
@@ -426,7 +428,7 @@ function SidePanelStub(): React.ReactElement {
 
       <Box flexShrink={0} height={1} />
 
-      {/* Background tasks */}
+      {/* Background jobs */}
       <Box flexDirection="row" gap={1}>
         <Text bold color="$primary">
           Background
@@ -511,7 +513,7 @@ function SidePanelStub(): React.ReactElement {
 
 // ──────────────────────────── All story ────────────────────────────
 
-const allNotificationEntries: NotificationStreamEntry[] = [
+const allNotificationEntries: ChannelNotification[] = [
   {
     kind: "notification",
     id: "amb-tribe-1",
@@ -736,28 +738,28 @@ function AllStoryBody(): React.ReactElement {
       key: "chat-components",
       node: (
         <>
-          <SectionLabel>Chat.Turn.* — direct component hierarchy</SectionLabel>
-          <Chat.Root>
-            <Chat.Transcript>
+          <SectionLabel>Chat.* — direct component hierarchy</SectionLabel>
+          <Chat.Pane>
+            <Chat.Session>
               <Chat.Metadata>
                 <Chat.Body width="prose">
                   <Text color="$muted">Session resumed 019ddfc8…389f</Text>
                 </Chat.Body>
               </Chat.Metadata>
-              <Chat.Turn.Root>
-                <Chat.Turn.Prompt
+              <Chat.Message>
+                <Chat.Prompt
                   text={"Review the transcript system.\n\n- preserve prose lanes\n- keep activity grouped"}
                 />
-                <Chat.Turn.Segment>
-                  <Chat.Turn.Narration text="I will keep Content.* responsible for layout and move chat semantics into Chat.*." />
-                  <Chat.Turn.Activity items={[]} />
-                </Chat.Turn.Segment>
-                <Chat.Turn.Summary>
-                  <Chat.Turn.Stats>metadata · prompt · narration · activity · summary</Chat.Turn.Stats>
-                </Chat.Turn.Summary>
-              </Chat.Turn.Root>
-            </Chat.Transcript>
-          </Chat.Root>
+                <Chat.Block>
+                  <Chat.Narration text="I will keep Content.* responsible for layout and move chat semantics into Chat.*." />
+                  <Chat.Activity items={[]} />
+                </Chat.Block>
+                <Chat.Summary>
+                  <Chat.Stats>metadata · prompt · narration · activity · summary</Chat.Stats>
+                </Chat.Summary>
+              </Chat.Message>
+            </Chat.Session>
+          </Chat.Pane>
         </>
       ),
     },

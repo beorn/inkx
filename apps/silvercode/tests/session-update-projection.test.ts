@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
-import type { MessageEntry, MessageOp, ToolUseId } from "@km/agent-harness"
-import type { NotificationStreamEntry } from "../src/notification-stream.ts"
+import { messageTextFromOps, type MessageEntry, type MessageOp, type ToolUseId } from "@km/agent-harness"
+import type { ChannelNotification } from "../src/notification-stream.ts"
 import {
   isChatLifecycleItem,
   isChatNotificationGroup,
@@ -12,7 +12,7 @@ function message(id: string, role: MessageEntry["role"], ops: MessageOp[], ts: n
   const out: Record<string, unknown> = { id, role, ops, ts }
   Object.defineProperty(out, "text", {
     get() {
-      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
+      return messageTextFromOps(ops)
     },
     enumerable: true,
     configurable: true,
@@ -47,7 +47,7 @@ function tool(id: string, ts: number): MessageOp {
   }
 }
 
-function notification(id: string, ts: number): NotificationStreamEntry {
+function notification(id: string, ts: number): ChannelNotification {
   return { kind: "notification", id, source: "test", content: id, ts }
 }
 

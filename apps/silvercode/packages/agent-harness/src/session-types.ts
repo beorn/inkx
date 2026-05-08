@@ -70,7 +70,8 @@ export type ToolResultEntry = { id: ToolUseId; output: unknown; is_error?: boole
 /**
  * One operation produced by the agent within a turn. The order of `ops`
  * preserves the agent's emission order: `text` op for each contiguous run
- * of text deltas, `tool` op for each tool-use. Result attaches to the
+ * of text deltas, a semantic `text` op for each replayed provider aggregate
+ * text block, and a `tool` op for each tool-use. Result attaches to the
  * matching tool op when it arrives. This preserves codex-style
  * text→tool→text→tool interleavings that are flattened away by the legacy
  * `text` + `toolCalls[]` representation.
@@ -78,10 +79,20 @@ export type ToolResultEntry = { id: ToolUseId; output: unknown; is_error?: boole
  * Bead: km-silvercode.codex-bundling-order.
  */
 export type MessageOp =
-  | { kind: "text"; text: string; ts?: number }
+  | { kind: "text"; text: string; ts?: number; boundary?: "semantic" }
   | { kind: "thinking"; text: string; ts?: number }
   | { kind: "raw"; label: string; raw: unknown; ts?: number }
   | { kind: "tool"; toolCall: ToolCallEntry; result?: ToolResultEntry; ts?: number }
+
+export function messageTextFromOps(ops: readonly MessageOp[]): string {
+  let text = ""
+  for (const op of ops) {
+    if (op.kind !== "text") continue
+    if (op.boundary === "semantic" && text.length > 0) text += "\n\n"
+    text += op.text
+  }
+  return text
+}
 
 /**
  * Public surface — both the new ordered `ops` field AND the legacy
@@ -147,11 +158,7 @@ export type WritableEntry = {
 function installEntryProjections<T extends WritableEntry>(entry: T): MessageEntry {
   Object.defineProperty(entry, "text", {
     get(this: WritableEntry) {
-      let s = ""
-      for (const op of this.ops) {
-        if (op.kind === "text") s += op.text
-      }
-      return s
+      return messageTextFromOps(this.ops)
     },
     enumerable: true,
     configurable: true,

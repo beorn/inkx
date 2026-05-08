@@ -1,20 +1,20 @@
 /**
- * BackgroundPane — list of in-flight + recently completed background tasks
+ * BackgroundJobsPane — list of in-flight + recently completed background jobs
  * for one session.
  *
  * Rendered as a pop-over sibling of the SidePanel "Background N/M" row.
- * Each row shows the task's status, elapsed time, snippet, and offers a
- * cancel/foreground action when relevant. The pane is read-only when the
+ * Each row shows the job's status, elapsed time, snippet, and offers a
+ * cancel/show action when relevant. The pane is read-only when the
  * user is just hovering; clicks fire the controller methods.
  *
  * Design rule: this component does NOT own state — everything flows from
- * `controller.backgroundTasks(sessionId)` via `useBackgroundTasks`. The
- * component re-renders on every onBackgroundTasksChange tick.
+ * `controller.backgroundJobs(sessionId)` via `useBackgroundJobs`. The
+ * component re-renders on every onBackgroundJobsChange tick.
  */
 
 import React from "react"
 import { Box, Muted, Small, Text } from "silvery"
-import type { BackgroundTask } from "../controller.ts"
+import type { BackgroundJob } from "../controller.ts"
 
 function formatElapsed(ms: number): string {
   if (ms < 1000) return `${ms}ms`
@@ -23,7 +23,7 @@ function formatElapsed(ms: number): string {
   return `${Math.round(ms / 3600_000)}h`
 }
 
-function statusColor(status: BackgroundTask["status"]): string {
+function statusColor(status: BackgroundJob["status"]): string {
   switch (status) {
     case "running":
       return "$warning"
@@ -36,7 +36,7 @@ function statusColor(status: BackgroundTask["status"]): string {
   }
 }
 
-function statusLabel(status: BackgroundTask["status"]): string {
+function statusLabel(status: BackgroundJob["status"]): string {
   switch (status) {
     case "running":
       return "running"
@@ -49,48 +49,48 @@ function statusLabel(status: BackgroundTask["status"]): string {
   }
 }
 
-export function BackgroundPane({
-  tasks,
+export function BackgroundJobsPane({
+  jobs,
   onCancel,
-  onForeground,
+  onShow,
 }: {
-  tasks: ReadonlyArray<BackgroundTask>
-  onCancel: (taskId: string) => void
-  onForeground: (taskId: string) => void
+  jobs: ReadonlyArray<BackgroundJob>
+  onCancel: (jobId: string) => void
+  onShow: (jobId: string) => void
 }): React.ReactElement {
-  if (tasks.length === 0) {
+  if (jobs.length === 0) {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <Muted>No background tasks.</Muted>
+        <Muted>No background jobs.</Muted>
       </Box>
     )
   }
   const now = Date.now()
   return (
     <Box flexDirection="column" paddingY={1} gap={1}>
-      <Text bold>Background tasks</Text>
-      <Muted>Backgrounded turns keep streaming; results land in the conversation.</Muted>
+      <Text bold>Background jobs</Text>
+      <Muted>Background jobs keep streaming; results land in the conversation.</Muted>
       <Box flexDirection="column">
-        {tasks.map((t) => {
-          const endedAt = t.completedAt ?? now
-          const elapsed = formatElapsed(endedAt - t.startedAt)
+        {jobs.map((job) => {
+          const endedAt = job.completedAt ?? now
+          const elapsed = formatElapsed(endedAt - job.startedAt)
           return (
-            <Box key={t.id} flexDirection="column">
+            <Box key={job.id} flexDirection="column">
               <Box flexDirection="row" gap={1}>
-                <Text color={statusColor(t.status)}>{statusLabel(t.status)}</Text>
+                <Text color={statusColor(job.status)}>{statusLabel(job.status)}</Text>
                 <Small color="$muted">· {elapsed}</Small>
               </Box>
               <Box flexDirection="row">
-                <Text>{t.snippet}</Text>
+                <Text>{job.snippet}</Text>
               </Box>
               <Box flexDirection="row" gap={1}>
-                {t.status === "running" && (
-                  <Box onClick={() => onCancel(t.id)}>
+                {job.status === "running" && (
+                  <Box onClick={() => onCancel(job.id)}>
                     <Small color="$error">[cancel]</Small>
                   </Box>
                 )}
-                <Box onClick={() => onForeground(t.id)}>
-                  <Small color="$muted">[foreground]</Small>
+                <Box onClick={() => onShow(job.id)}>
+                  <Small color="$muted">[show]</Small>
                 </Box>
               </Box>
             </Box>

@@ -154,6 +154,17 @@ export interface SpawnSilvercodeOptions {
   model?: string
 
   /**
+   * Optional canned AgentEvent script replayed inside the subprocess after
+   * the real silvery runtime mounts. This exercises live incremental frames
+   * through a PTY, unlike transcript replay or in-process settled renders.
+   */
+  script?: "bashTool" | "helloWorld" | "longToolResult" | "markdownRich" | "multiTurn" | "permissionRequest" | "welcome"
+  /** Delay before replaying `script`. Default: 250ms. */
+  scriptDelayMs?: number
+  /** Per-event delay for `script`. Default: 40ms. */
+  scriptIntervalMs?: number
+
+  /**
    * Optional account scenario JSON forwarded to `installFakes` inside the
    * subprocess. `null` skips the override; `undefined` uses the default
    * account fake (test@silvercode.dev, claude_max_20x, light quotas).
@@ -218,6 +229,11 @@ export async function spawnSilvercode(options: SpawnSilvercodeOptions = {}): Pro
     SILVERCODE_TEST_TRACK: options.track ?? "claude",
     SILVERCODE_TEST_MODEL: options.model ?? "claude-sonnet-4-6",
     SILVERCODE_TEST_CWD: cwd,
+    ...(options.script ? { SILVERCODE_TEST_SCRIPT: options.script } : {}),
+    ...(options.scriptDelayMs !== undefined ? { SILVERCODE_TEST_SCRIPT_DELAY_MS: String(options.scriptDelayMs) } : {}),
+    ...(options.scriptIntervalMs !== undefined
+      ? { SILVERCODE_TEST_SCRIPT_INTERVAL_MS: String(options.scriptIntervalMs) }
+      : {}),
     ...(options.fakeAccount !== undefined
       ? { SILVERCODE_TEST_FAKE_ACCOUNT_JSON: JSON.stringify(options.fakeAccount) }
       : {}),

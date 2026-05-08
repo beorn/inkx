@@ -5,14 +5,14 @@
  */
 
 import React from "react"
-import { describe, expect, test, beforeAll } from "vitest"
+import { describe, expect, test, beforeAll, vi } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
 import { Box } from "silvery"
 import { run } from "silvery/runtime"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import type { MessageEntry, MessageOp, ToolCallEntry, ToolResultEntry, ToolUseId } from "@km/agent-harness"
-import { createSessionStore } from "@km/agent-harness"
+import { createSessionStore, messageTextFromOps } from "@km/agent-harness"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 
 beforeAll(() => {
@@ -30,9 +30,7 @@ function makeEntry(opts: { id?: string; ops: MessageOp[]; ts?: number }): Messag
   }
   Object.defineProperty(out, "text", {
     get() {
-      let s = ""
-      for (const op of opts.ops) if (op.kind === "text") s += op.text
-      return s
+      return messageTextFromOps(opts.ops)
     },
     enumerable: true,
     configurable: true,
@@ -127,6 +125,67 @@ function tool(
 }
 
 describe("ChatMessageSummary", () => {
+  test("does not invent paragraph boundaries inside Markdown links split across text ops", () => {
+    const app = renderList(
+      [
+        makeEntry({
+          ops: [
+            {
+              kind: "text",
+              text: "See [parse.ts](/Users/beorn/Code/pim/km/apps/silvercode/packages/agent-harness/src/parse.ts:",
+              ts: 1,
+            },
+            { kind: "text", text: "572).", ts: 2 },
+          ],
+        }),
+      ],
+      8,
+      100,
+    )
+
+    expect(app.text).toContain("parse.ts")
+    expect(app.text).not.toContain("[parse.ts](")
+    expect(app.text).not.toContain("572).")
+  })
+
+  test("does not collapse semantic text blocks into one paragraph", () => {
+    const app = renderList(
+      [
+        makeEntry({
+          ops: [
+            { kind: "text", text: "First paragraph.", ts: 1, boundary: "semantic" },
+            { kind: "text", text: "Second paragraph.", ts: 2, boundary: "semantic" },
+          ],
+        }),
+      ],
+      8,
+      80,
+    )
+
+    expect(app.text).toContain("First paragraph.")
+    expect(app.text).toContain("Second paragraph.")
+    expect(app.text).not.toContain("First paragraph.Second paragraph.")
+  })
+
+  test("keeps paragraph breaks that arrive inside text deltas before Markdown parsing", () => {
+    const app = renderList(
+      [
+        makeEntry({
+          ops: [
+            { kind: "text", text: "First paragraph.", ts: 1 },
+            { kind: "text", text: "\n\nSecond paragraph.", ts: 2 },
+          ],
+        }),
+      ],
+      8,
+      80,
+    )
+
+    expect(app.text).toContain("First paragraph.")
+    expect(app.text).toContain("Second paragraph.")
+    expect(app.text).not.toContain("First paragraph.Second paragraph.")
+  })
+
   test("keeps a single low-content tool call inline as a sentence summary", () => {
     const entry = makeEntry({
       ops: [tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" })],
@@ -172,6 +231,31 @@ describe("ChatMessageSummary", () => {
     expect(app.text).toContain("Plan updated")
     expect(app.text).not.toContain("update_plan")
     expect(app.text.match(/Plan updated/g)?.length ?? 0).toBe(1)
+  })
+
+  test("renders failed structured tool output without object toString leakage", () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    const entry = makeEntry({
+      ops: [
+        tool(
+          "search-1",
+          "Search",
+          { pattern: "SilveryErrorBoundary|ErrorBoundary", path: "apps/silvercode" },
+          { error: "Search failed", details: { reason: "invalid query" } },
+          true,
+        ),
+      ],
+    })
+
+    try {
+      const app = renderList([entry])
+
+      expect(app.text).toContain("Search failed")
+      expect(app.text).toContain("invalid query")
+      expect(app.text).not.toContain("[object Object]")
+    } finally {
+      debugSpy.mockRestore()
+    }
   })
 
   test("renders completed agent tool calls with lifecycle context", () => {
@@ -470,7 +554,7 @@ describe("ChatMessageSummary", () => {
     expect(app.text).not.toContain("bd show @km/foo")
   })
 
-  test("high-volume Codex turns collapse to one activity row and expand back to interleaved narration", async () => {
+  test("high-volume Codex turns summarize contiguous tool runs while preserving narration", async () => {
     const ops: MessageOp[] = [{ kind: "text", text: "I am checking several files." }]
     for (let i = 0; i < 4; i++) ops.push(tool(`cmd-a-${i}`, "exec_command", { cmd: `rg query-${i}` }, "ok"))
     ops.push({ kind: "text", text: "Now I am checking related tests." })
@@ -502,25 +586,27 @@ describe("ChatMessageSummary", () => {
     try {
       await settle(80)
       const collapsed = term.screen.getText()
-      expect(collapsed).toContain("Ran 9 commands")
+      expect(collapsed).toContain("Ran 4 commands")
+      expect(collapsed).toContain("Ran 5 commands")
       expect(collapsed).toContain("I am checking several files.")
       expect(collapsed).toContain("Now I am checking related tests.")
       expect(collapsed).not.toContain("rg query-0")
       expect(collapsed).not.toContain("sed -n")
 
-      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 9 commands"))
+      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 4 commands"))
       expect(row).toBeGreaterThanOrEqual(0)
       const collapsedLines = term.screen.getLines()
       const firstNarrationRow = collapsedLines.findIndex((line) => line.includes("I am checking several files."))
-      expect(firstNarrationRow).toBeGreaterThan(row)
-      await term.mouse.click(term.screen.getLines()[row]!.indexOf("Ran 9 commands"), row)
+      expect(firstNarrationRow).toBeLessThan(row)
+      await term.mouse.click(term.screen.getLines()[row]!.indexOf("Ran 4 commands"), row)
       await settle(80)
 
       const expanded = term.screen.getText()
       expect(expanded).toContain("I am checking several files.")
       expect(expanded).toContain("Now I am checking related tests.")
       expect(expanded).toContain("rg query-0")
-      expect(expanded).toContain("sed -n")
+      expect(expanded).toContain("Ran 5 commands")
+      expect(expanded).not.toContain("sed -n '0,1p' file.ts")
       expect(expanded.match(/I am checking several files\./g)?.length).toBe(1)
       expect(expanded.match(/Now I am checking related tests\./g)?.length).toBe(1)
 
@@ -591,20 +677,25 @@ describe("ChatMessageSummary", () => {
     }
   })
 
-  test("groups a two-command run instead of showing raw commands inline", () => {
+  test("keeps a two-command run inline instead of summarizing", () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
     const entry = makeEntry({
       ops: [
         tool("cmd-1", "Bash", { command: "find @km -name '*.md' | head" }, "a.md\nb.md"),
-        tool("cmd-2", "Bash", { command: "wc -l @km/beads.md" }, "1734 @km/beads.md"),
+        tool("cmd-2", "exec_command", { cmd: "wc -l @km/beads.md" }, "1734 @km/beads.md"),
       ],
     })
 
-    const app = renderList([entry])
+    try {
+      const app = renderList([entry])
 
-    expect(app.text).toContain("Ran 2 commands")
-    expect(app.text).not.toContain("Message activity")
-    expect(app.text).not.toContain("find @km")
-    expect(app.text).not.toContain("wc -l")
+      expect(app.text).toContain("$ find @km -name '*.md' | head")
+      expect(app.text).toContain("$ wc -l @km/beads.md")
+      expect(app.text).not.toContain("Ran 2 commands")
+      expect(app.text).not.toContain("Message activity")
+    } finally {
+      debugSpy.mockRestore()
+    }
   })
 
   test("renders unresolved shell activity as running work", () => {
@@ -620,9 +711,9 @@ describe("ChatMessageSummary", () => {
 
     expect(app.text).toContain("Running 2 commands")
     expect(app.text).toContain("●")
-    expect(app.text).not.toContain("Ran 2 commands")
     expect(app.text).not.toContain("bd list")
-    expect(app.text).toContain("bd show @km/foo")
+    expect(app.text).toContain("$ bd show @km/foo")
+    expect(app.text).not.toContain("Ran 2 commands")
     expect(app.text).toContain("Checking the bead database.")
   })
 
@@ -754,14 +845,16 @@ describe("ChatMessageSummary", () => {
   })
 
   test("expanded failed command strips bare command echo from stderr", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
     const command = "bun vitest run apps/silvercode/tests/tool-call-rendering-v2.test.tsx"
+    const stdout = ["RUN  v4.1.4 /Users/beorn/Code/pim/km", "stdout | test.tsx", "... 97 more lines"].join("\n")
     const entry = makeEntry({
       ops: [
         tool(
           "cmd-1",
           "exec_command",
           { cmd: command },
-          { stdout: "", stderr: `${command}\nAssertionError`, exitCode: 1 },
+          { stdout, stderr: `${command}\nAssertionError`, exitCode: 1 },
           true,
         ),
       ],
@@ -796,7 +889,132 @@ describe("ChatMessageSummary", () => {
 
       expect(term.screen.getLines().filter((line) => line.includes(command)).length).toBe(1)
       expect(term.screen.getText()).toContain("AssertionError")
+      expect(term.screen.getLines().filter((line) => line.includes("RUN  v4.1.4")).length).toBe(1)
+      expect(term.screen.getLines().filter((line) => line.includes("... 97 more lines")).length).toBe(1)
     } finally {
+      debugSpy.mockRestore()
+      handle.unmount()
+    }
+  })
+
+  test("expanded activity summary opens failed command output instead of showing its compact preview", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    const longFailure = [
+      "RUN  v4.1.4 /Users/beorn/Code/pim/km",
+      "stdout | apps/silvercode/tests/visual/prompt-submit-latency.test.tsx",
+      "03:01:57 DEBUG silvercode:claude-version probed",
+      "x",
+      "-------- Failed Tests 1 --------",
+      "FAIL apps/silvercode/tests/visual/prompt-submit-latency.test.tsx",
+      "AssertionError: expected rendered prompt disclosure to be gone",
+    ].join("\n")
+    const entry = makeEntry({
+      ops: [
+        tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" }, "APP"),
+        tool(
+          "cmd-1",
+          "exec_command",
+          { cmd: "bun vitest run apps/silvercode/tests/visual/prompt-submit-latency.test.tsx" },
+          longFailure,
+          true,
+        ),
+        tool("read-2", "Read", { file_path: "apps/silvercode/src/components/SessionUpdateList.tsx" }, "LIST"),
+      ],
+    })
+    using term = createTermless({ cols: 120, rows: 24 })
+    const handle = await run(
+      <Box width={120} height={24} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-failed-disclosure-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const summaryRow = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
+      expect(summaryRow, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(term.screen.getLines()[summaryRow]!.indexOf("Ran 1 command"), summaryRow)
+      await settle(80)
+
+      const expanded = term.screen.getText()
+      expect(expanded).toContain("AssertionError: expected rendered prompt disclosure to be gone")
+      expect(expanded).not.toContain("... 4 more lines")
+    } finally {
+      debugSpy.mockRestore()
+      handle.unmount()
+    }
+  })
+
+  test("expanding a failed command inside an activity summary shows output immediately, not blank scroll space", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    const command = "bun vitest run apps/silvercode/tests/background-jobs.test.tsx"
+    const longFailure = [
+      "RUN  v4.1.4 /Users/beorn/Code/pim/km",
+      "stdout | apps/silvercode/tests/background-jobs.test.tsx",
+      "03:47:37 DEBUG silvercode:claude-version probed { elapsedMs: 50, version: '2.1.133' }",
+      ...Array.from({ length: 80 }, (_, i) => `failure-line-${String(i + 1).padStart(2, "0")}`),
+    ].join("\n")
+    const entry = makeEntry({
+      ops: [
+        tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" }, "APP"),
+        tool("cmd-1", "exec_command", { cmd: command }, longFailure, true),
+        tool("read-2", "Read", { file_path: "apps/silvercode/src/components/SessionUpdateList.tsx" }, "LIST"),
+      ],
+    })
+    using term = createTermless({ cols: 120, rows: 30 })
+    const handle = await run(
+      <Box width={120} height={30} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="turn-summary-failed-command-empty-space-test"
+          status="idle"
+          turnStartedAt={null}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const summaryRow = term.screen.getLines().findIndex((line) => line.includes("Ran 1 command"))
+      expect(summaryRow, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(term.screen.getLines()[summaryRow]!.indexOf("Ran 1 command"), summaryRow)
+      await settle(80)
+
+      let lines = term.screen.getLines()
+      const commandRow = lines.findIndex((line) => line.includes(command))
+      expect(commandRow, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      await term.mouse.click(lines[commandRow]!.indexOf(command), commandRow)
+      await settle(80)
+
+      lines = term.screen.getLines()
+      const expandedCommandRow = lines.findIndex((line) => line.includes(command))
+      const firstOutputRow = lines.findIndex((line) => line.includes("RUN  v4.1.4"))
+      expect(firstOutputRow, term.screen.getText()).toBeGreaterThan(expandedCommandRow)
+      expect(firstOutputRow - expandedCommandRow, term.screen.getText()).toBeLessThanOrEqual(2)
+      expect(term.screen.getText()).toContain("stdout | apps/silvercode/tests/background-jobs.test.tsx")
+      expect(term.screen.getText()).toContain("failure-line-01")
+    } finally {
+      debugSpy.mockRestore()
       handle.unmount()
     }
   })
@@ -1007,6 +1225,25 @@ describe("ChatMessageSummary", () => {
     }
   })
 
+  test("unresolved view_image tool calls render as completed rows", () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    const path = "/tmp/silvercode-shot.png"
+    const entry = makeEntry({
+      ops: [tool("image-1", "view_image", { path })],
+    })
+
+    try {
+      const app = renderList([entry], 12, 100)
+      const row = app.lines.findIndex((line) => line.includes(`View ${path}`))
+
+      expect(row).toBeGreaterThanOrEqual(0)
+      expect(app.lines[row]).toContain("•")
+      expect(app.lines[row]).not.toContain("●")
+    } finally {
+      debugSpy.mockRestore()
+    }
+  })
+
   test("includes edit line deltas in the collapsed summary", () => {
     const entry = makeEntry({
       ops: [
@@ -1017,6 +1254,7 @@ describe("ChatMessageSummary", () => {
           "ok",
         ),
         tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" }, "APP CONTENT"),
+        tool("cmd-1", "Bash", { command: "echo ok" }, "ok"),
       ],
     })
 
@@ -1024,6 +1262,7 @@ describe("ChatMessageSummary", () => {
 
     expect(app.text).toContain("Edited 1 file +2 -1")
     expect(app.text).toContain("Read 1 file")
+    expect(app.text).toContain("Ran 1 command")
   })
 
   test("renders the collapsed summary row as muted text without a leading bullet", () => {
@@ -1067,6 +1306,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" }, "APP CONTENT"),
         tool("cmd-1", "Bash", { command: "bun test" }, "ok"),
+        tool("cmd-2", "Bash", { command: "bun fix" }, "ok"),
       ],
     })
 
@@ -1086,6 +1326,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("cmd-1", "Bash", { command: "printf summary" }, "RAW-COMMAND-OUTPUT"),
         tool("cmd-2", "Bash", { command: "printf again" }, "RAW-COMMAND-OUTPUT"),
+        tool("cmd-3", "Bash", { command: "printf third" }, "RAW-COMMAND-OUTPUT"),
       ],
     })
     const handle = await run(
@@ -1109,12 +1350,12 @@ describe("ChatMessageSummary", () => {
     )
     try {
       await settle(80)
-      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 2 commands"))
+      const row = term.screen.getLines().findIndex((line) => line.includes("Ran 3 commands"))
       expect(row).toBeGreaterThanOrEqual(0)
       expect(term.screen.getText()).not.toContain("▸")
       expect(term.screen.getText()).not.toContain("▾")
 
-      const col = term.screen.getLines()[row]!.indexOf("Ran 2 commands")
+      const col = term.screen.getLines()[row]!.indexOf("Ran 3 commands")
       await term.mouse.move(col, row)
       await settle(80)
       expect(term.screen.getLines()[row]).toContain("▸")
@@ -1139,6 +1380,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("read-1", "Read", { file_path: "apps/silvercode/src/App.tsx" }, "APP CONTENT"),
         tool("cmd-1", "Bash", { command: "printf marker-bg" }, "RAW-COMMAND-OUTPUT"),
+        tool("cmd-2", "Bash", { command: "printf marker-bg-2" }, "RAW-COMMAND-OUTPUT"),
       ],
     })
     const handle = await run(
@@ -1272,6 +1514,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("cmd-1", "Bash", { command: "printf first" }, "FIRST-COMMAND-OUTPUT"),
         tool("cmd-2", "Bash", { command: "printf second" }, "SECOND-COMMAND-OUTPUT"),
+        tool("cmd-3", "Bash", { command: "printf third" }, "THIRD-COMMAND-OUTPUT"),
       ],
     })
     const handle = await run(
@@ -1296,9 +1539,9 @@ describe("ChatMessageSummary", () => {
     try {
       await settle(80)
       const beforeLines = term.screen.getLines()
-      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 3 commands"))
       expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
-      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 3 commands")
 
       await term.mouse.click(summaryCol, summaryRow)
       await settle(80)
@@ -1320,6 +1563,7 @@ describe("ChatMessageSummary", () => {
       expect(term.screen.getText()).not.toContain("FIRST-COMMAND-OUTPUT")
       expect(term.screen.getText()).toContain("$ printf first")
       expect(term.screen.getText()).toContain("$ printf second")
+      expect(term.screen.getText()).toContain("$ printf third")
     } finally {
       handle.unmount()
     }
@@ -1380,6 +1624,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("cmd-1", "Bash", { command: "printf one" }, "one"),
         tool("cmd-2", "Bash", { command: "printf two" }, "two"),
+        tool("cmd-3", "Bash", { command: "printf three" }, "three"),
       ],
     })
     const handle = await run(
@@ -1403,14 +1648,14 @@ describe("ChatMessageSummary", () => {
     try {
       await settle(80)
       const beforeLines = term.screen.getLines()
-      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 3 commands"))
       expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
-      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 3 commands")
 
       await term.mouse.click(summaryCol, summaryRow)
       await settle(80)
 
-      const afterRow = term.screen.getLines().findIndex((line) => line.includes("Ran 2 commands"))
+      const afterRow = term.screen.getLines().findIndex((line) => line.includes("Ran 3 commands"))
       expect(afterRow).toBe(summaryRow)
       expect(term.screen.getLines()[afterRow]).toContain("▾")
     } finally {
@@ -1428,6 +1673,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("cmd-1", "Bash", { command: longCommand }, "ok"),
         tool("cmd-2", "Bash", { command: "printf short" }, "short"),
+        tool("cmd-3", "Bash", { command: "printf tail" }, "tail"),
       ],
     })
     const handle = await run(
@@ -1451,9 +1697,9 @@ describe("ChatMessageSummary", () => {
     try {
       await settle(80)
       const beforeLines = term.screen.getLines()
-      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 3 commands"))
       expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
-      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 3 commands")
 
       await term.mouse.click(summaryCol, summaryRow)
       await settle(80)
@@ -1555,26 +1801,30 @@ describe("ChatMessageSummary", () => {
       </Box>,
     )
 
-    const summaryRow = app.lines.findIndex((line) => line.includes("Ran 11 commands"))
-    expect(summaryRow, app.text).toBeGreaterThanOrEqual(0)
-    const summaryCol = app.lines[summaryRow]!.indexOf("Ran 11 commands")
+    try {
+      const summaryRow = app.lines.findIndex((line) => line.includes("Ran 11 commands"))
+      expect(summaryRow, app.text).toBeGreaterThanOrEqual(0)
+      const summaryCol = app.lines[summaryRow]!.indexOf("Ran 11 commands")
 
-    await app.click(summaryCol, summaryRow)
-    await settle(80)
-    const commandRow = app.lines.findIndex((line) => line.includes("$ printf command-0"))
-    expect(commandRow, app.text).toBeGreaterThanOrEqual(0)
-    const commandCol = app.lines[commandRow]!.indexOf("$ printf command-0")
+      await app.click(summaryCol, summaryRow)
+      await settle(80)
+      const commandRow = app.lines.findIndex((line) => line.includes("$ printf command-0"))
+      expect(commandRow, app.text).toBeGreaterThanOrEqual(0)
+      const commandCol = app.lines[commandRow]!.indexOf("$ printf command-0")
 
-    await app.click(commandCol, commandRow)
-    await settle(80)
-    expect(app.text).toContain("cmd0-output-0")
+      await app.click(commandCol, commandRow)
+      await settle(80)
+      expect(app.text).toContain("cmd0-output-0")
 
-    for (let i = 0; i < 30; i++) {
-      await app.wheel(60, 10, 1)
+      for (let i = 0; i < 30; i++) {
+        await app.wheel(60, 10, 1)
+      }
+
+      expect(app.text).toContain("$ printf command-10")
+      expect(app.text).toContain("TAIL-NARRATION-INSIDE-SUMMARY")
+    } finally {
+      app.unmount()
     }
-
-    expect(app.text).toContain("$ printf command-10")
-    expect(app.text).toContain("TAIL-NARRATION-INSIDE-SUMMARY")
   })
 
   test("expanding a large edit activity summary keeps transcript content visible", async () => {
@@ -1658,6 +1908,7 @@ describe("ChatMessageSummary", () => {
       ops: [
         tool("cmd-1", "Bash", { command: "printf one" }, "one"),
         tool("cmd-2", "Bash", { command: "printf two" }, "two"),
+        tool("cmd-3", "Bash", { command: "printf three" }, "three"),
       ],
     })
     const handle = await run(
@@ -1681,21 +1932,22 @@ describe("ChatMessageSummary", () => {
     try {
       await settle(80)
       const beforeLines = term.screen.getLines()
-      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 2 commands"))
+      const summaryRow = beforeLines.findIndex((line) => line.includes("Ran 3 commands"))
       expect(summaryRow, beforeLines.join("\n")).toBeGreaterThanOrEqual(0)
-      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 2 commands")
+      const summaryCol = beforeLines[summaryRow]!.indexOf("Ran 3 commands")
 
       await term.mouse.click(summaryCol, summaryRow)
       await settle(80)
-      expect(term.screen.getLines().find((line) => line.includes("Ran 2 commands"))).toContain("▾")
+      expect(term.screen.getLines().find((line) => line.includes("Ran 3 commands"))).toContain("▾")
       expect(term.screen.getText()).toContain("$ printf one")
 
       term.resize!(92, 14)
       await settle(100)
 
-      expect(term.screen.getLines().find((line) => line.includes("Ran 2 commands"))).toContain("▾")
+      expect(term.screen.getLines().find((line) => line.includes("Ran 3 commands"))).toContain("▾")
       expect(term.screen.getText()).toContain("$ printf one")
       expect(term.screen.getText()).toContain("$ printf two")
+      expect(term.screen.getText()).toContain("$ printf three")
     } finally {
       handle.unmount()
     }

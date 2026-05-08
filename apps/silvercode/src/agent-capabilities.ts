@@ -111,7 +111,7 @@ export function currentCapabilityOption(options: ReadonlyArray<CapabilityOption>
   return findCapabilityOption(options, selection) ?? defaultCapabilityOption(options)
 }
 
-/** Adjacent descriptor in capability order, wrapping at the ends. */
+/** Adjacent descriptor in capability order, clamped at the ends. */
 export function adjacentCapabilityOption(
   options: ReadonlyArray<CapabilityOption>,
   selection: string,
@@ -119,8 +119,9 @@ export function adjacentCapabilityOption(
 ): CapabilityOption {
   const current = currentCapabilityOption(options, selection)
   const index = options.findIndex((option) => option.id === current.id)
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- currentCapabilityOption throws on empty options, so modulo by options.length is safe
-  return options[(index + direction + options.length) % options.length]!
+  const nextIndex = Math.min(Math.max(index + direction, 0), options.length - 1)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- currentCapabilityOption throws on empty options, so clamp keeps index in bounds
+  return options[nextIndex]!
 }
 
 // ---------------------------------------------------------------------------
@@ -230,10 +231,22 @@ const CLAUDE_THINKING: ReadonlyArray<CapabilityOption> = [
   },
 ]
 
+function activatePermissionPolicy(mode: string): CapabilityOption["activate"] {
+  return ({ controller, sessionId, setMode }) => {
+    setMode(mode)
+    if (sessionId.length > 0) {
+      void controller.setSessionConfigOption(sessionId, {
+        configId: "permission_policy",
+        value: mode,
+      })
+    }
+  }
+}
+
 /**
  * Claude's permission modes — what tool calls are allowed without
- * prompting. Activation: pure App-state setter (mode is consumed by
- * `prompt-assembly` to gate tool-use approvals on the next turn).
+ * prompting. Activation always updates App state and also attempts the ACP
+ * `permission_policy` config option when the backend advertises it.
  *
  * Colors: Claude Code's own conventions:
  *   - $muted (grey) for ask — most conservative, every tool prompts
@@ -249,7 +262,7 @@ const CLAUDE_PLANNING: ReadonlyArray<CapabilityOption> = [
     icon: "?",
     color: "$muted",
     description: "Every tool prompts. Most conservative.",
-    activate: ({ setMode }) => setMode("ask"),
+    activate: activatePermissionPolicy("ask"),
   },
   {
     id: "plan",
@@ -257,7 +270,7 @@ const CLAUDE_PLANNING: ReadonlyArray<CapabilityOption> = [
     icon: "⏸︎",
     color: "$info",
     description: "Plan first, no edits. Switch to accept-edits to execute.",
-    activate: ({ setMode }) => setMode("plan"),
+    activate: activatePermissionPolicy("plan"),
   },
   {
     id: "accept-edits",
@@ -265,7 +278,7 @@ const CLAUDE_PLANNING: ReadonlyArray<CapabilityOption> = [
     icon: "»",
     color: "$purple",
     description: "Auto-accept file edits; still prompt for everything else.",
-    activate: ({ setMode }) => setMode("accept-edits"),
+    activate: activatePermissionPolicy("accept-edits"),
   },
   {
     id: "auto",
@@ -274,7 +287,7 @@ const CLAUDE_PLANNING: ReadonlyArray<CapabilityOption> = [
     color: "$warning",
     description: "Auto-accept everything Claude considers safe.",
     default: true,
-    activate: ({ setMode }) => setMode("auto"),
+    activate: activatePermissionPolicy("auto"),
   },
   {
     id: "bypass",
@@ -282,7 +295,7 @@ const CLAUDE_PLANNING: ReadonlyArray<CapabilityOption> = [
     icon: "!",
     color: "$error",
     description: "Skip ALL approvals — including destructive ops. Audit your prompt.",
-    activate: ({ setMode }) => setMode("bypass"),
+    activate: activatePermissionPolicy("bypass"),
   },
 ]
 
@@ -295,15 +308,24 @@ export const CLAUDE_CAPABILITIES: AgentCapabilities = {
 // Codex capabilities
 // ---------------------------------------------------------------------------
 
+type CodexReasoningEffort = "low" | "medium" | "high" | "xhigh"
+
+function activateCodexReasoning(effort: CodexReasoningEffort): CapabilityOption["activate"] {
+  return ({ controller, sessionId, setThinking }) => {
+    setThinking(effort)
+    if (sessionId.length > 0) void controller.setReasoningEffort(sessionId, effort)
+  }
+}
+
 /**
  * Codex's reasoning-effort tiers — direct map to OpenAI's
  * `reasoning_effort` parameter on the Responses API. Codex CLI exposes
  * these as `Alt+,` (lower) / `Alt+.` (raise) shortcuts, plus per-model
  * defaults that change when the user switches model via `/model`.
  *
- * Activation today is purely client-side state (silvercode's App.tsx
- * stores the selection). Future work: wire through to ACP so the
- * effective `reasoning_effort` persists across turns. See
+ * Activation updates silvercode-local UI state. Startup defaults are
+ * applied through ACP session config in controller.ts so the backend's
+ * effective `reasoning_effort` matches the displayed default. See
  * developers.openai.com/codex/cli for the live shortcut surface.
  *
  * Colors: progressive intensity to match the icon glyphs (○ → ◔ → ◐ → ●).
@@ -317,7 +339,7 @@ const CODEX_THINKING: ReadonlyArray<CapabilityOption> = [
     icon: "○",
     color: "$muted",
     description: "Fast responses with lighter reasoning.",
-    activate: ({ setThinking }) => setThinking("low"),
+    activate: activateCodexReasoning("low"),
   },
   {
     id: "medium",
@@ -325,8 +347,7 @@ const CODEX_THINKING: ReadonlyArray<CapabilityOption> = [
     icon: "◔",
     color: "$muted",
     description: "Balances speed and reasoning depth for everyday tasks.",
-    default: true,
-    activate: ({ setThinking }) => setThinking("medium"),
+    activate: activateCodexReasoning("medium"),
   },
   {
     id: "high",
@@ -334,7 +355,7 @@ const CODEX_THINKING: ReadonlyArray<CapabilityOption> = [
     icon: "◐",
     color: "$muted",
     description: "Greater reasoning depth for complex problems.",
-    activate: ({ setThinking }) => setThinking("high"),
+    activate: activateCodexReasoning("high"),
   },
   {
     id: "xhigh",
@@ -342,7 +363,8 @@ const CODEX_THINKING: ReadonlyArray<CapabilityOption> = [
     icon: "●",
     color: "$muted",
     description: "Extra high reasoning depth for complex problems.",
-    activate: ({ setThinking }) => setThinking("xhigh"),
+    default: true,
+    activate: activateCodexReasoning("xhigh"),
   },
 ]
 
@@ -368,7 +390,10 @@ const CODEX_PLANNING: ReadonlyArray<CapabilityOption> = [
     color: "$muted",
     description: "Default — codex implements directly without a planning step.",
     default: true,
-    activate: ({ setMode }) => setMode("normal"),
+    activate: ({ controller, sessionId, setMode }) => {
+      setMode("normal")
+      if (sessionId.length > 0) void controller.setSessionConfigOption(sessionId, { configId: "mode", value: "normal" })
+    },
   },
   {
     id: "plan",
@@ -377,6 +402,7 @@ const CODEX_PLANNING: ReadonlyArray<CapabilityOption> = [
     color: "$info",
     description: "Codex plans + asks clarifying questions before implementing.",
     activate: ({ controller, sessionId, setMode }) => {
+      if (sessionId.length > 0) void controller.setSessionConfigOption(sessionId, { configId: "mode", value: "plan" })
       controller.runSlashCommand(sessionId, "/plan")
       setMode("plan")
     },

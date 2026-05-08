@@ -2,11 +2,13 @@
  * Layer 3 — queue batching (Option B model).
  *
  * The queue TextArea is ALWAYS live; there is no "hold" state. Auto-flush
- * happens on turn-end when the session returns to idle. Explicit submit
+ * happens once a pending stdin write is acknowledged by any backend event,
+ * or on turn-end when the session returns to idle. Explicit submit
  * (Enter in the queue region) calls `flushQueue` to bypass the idle gate.
  *
- * Mirrors Claude Code's batching behaviour so queued messages collapse
- * into one turn instead of interleaving partial requests mid-tool-call.
+ * Mirrors Claude Code's stdin behaviour: after the provider has acknowledged
+ * the current prompt, subsequent normal submits can be written immediately
+ * while the current assistant turn is still streaming.
  *
  * Failure mode this catches: a past refactor dropped the "join with \n\n"
  * step and sent every queued message as its own send(), turning three
@@ -14,11 +16,39 @@
  * within seconds.
  */
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { createSilvercodeController } from "../src/controller.ts"
 import { createFakeSession } from "../src/test/fake-session.ts"
 
 const SESSION = "fake-queue" as SessionId
+let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
+let writeSpies: Array<ReturnType<typeof vi.spyOn>> = []
+const silentWrite = ((
+  _chunk: string | Uint8Array,
+  encodingOrCallback?: BufferEncoding | ((err?: Error) => void),
+  callback?: (err?: Error) => void,
+): boolean => {
+  const cb = typeof encodingOrCallback === "function" ? encodingOrCallback : callback
+  cb?.()
+  return true
+}) as typeof process.stdout.write
+
+beforeEach(() => {
+  consoleSpies = (["log", "info", "debug", "warn", "error"] as const).map((method) =>
+    vi.spyOn(console, method).mockImplementation(() => {}),
+  )
+  writeSpies = [
+    vi.spyOn(process.stdout, "write").mockImplementation(silentWrite),
+    vi.spyOn(process.stderr, "write").mockImplementation(silentWrite as typeof process.stderr.write),
+  ]
+})
+
+afterEach(() => {
+  for (const spy of consoleSpies) spy.mockRestore()
+  for (const spy of writeSpies) spy.mockRestore()
+  consoleSpies = []
+  writeSpies = []
+})
 
 function initEvent(): AgentEvent {
   return {
@@ -52,6 +82,16 @@ function turnEnd(turnId: string): AgentEvent {
   }
 }
 
+function assistantMessage(turnId: string, text: string): AgentEvent {
+  return {
+    kind: "assistant-message",
+    sessionId: SESSION,
+    turnId: turnId as TurnId,
+    content: [{ type: "text", text }],
+    ts: 1015,
+  }
+}
+
 function textDelta(turnId: string, text: string): AgentEvent {
   return {
     kind: "text-delta",
@@ -64,7 +104,7 @@ function textDelta(turnId: string, text: string): AgentEvent {
 }
 
 describe("layer 3: queue batching", () => {
-  test("second prompt before backend turn-start queues behind the in-flight send and strips its echo", async () => {
+  test("second prompt before backend acknowledgement queues only until the first prompt is acknowledged", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
@@ -86,11 +126,11 @@ describe("layer 3: queue batching", () => {
     expect(controller.queuedText(handle.id)).toBe("its")
 
     fake.emit(turnStart("a1"))
-    fake.emit(turnEnd("a1"))
-
     expect(fake.sent).toHaveLength(2)
     expect(fake.sent[1]!.payload).toBe("its")
     expect(controller.queuedText(handle.id)).toBe("")
+
+    fake.emit(turnEnd("a1"))
 
     fake.emit(turnStart("a2"))
     fake.emit(textDelta("a2", "itsGot it — thanks for the correction."))
@@ -106,7 +146,37 @@ describe("layer 3: queue batching", () => {
     controller.closeAll()
   })
 
-  test("explicit queue flush waits while the previous send has not reached turn-start", async () => {
+  test("aggregate-only assistant response also acknowledges the pending stdin write", async () => {
+    const fake = createFakeSession({ sessionId: SESSION })
+    const controller = createSilvercodeController({
+      cwd: "/tmp/fake",
+      bare: true,
+      initialSessions: 0,
+      spawnFactory: () => fake,
+    })
+    const handle = await controller.spawnSession("test")
+
+    fake.emit(initEvent())
+    controller.send(handle.id, "first")
+    expect(fake.sent.map((s) => s.payload)).toEqual(["first"])
+
+    controller.send(handle.id, "second")
+    expect(fake.sent.map((s) => s.payload)).toEqual(["first"])
+    expect(controller.queuedText(handle.id)).toBe("second")
+
+    // Claude's raw stream-json does not literally contain Silvercode
+    // `turn-start`; replay/aggregate paths can surface an assistant
+    // aggregate first. Any backend event is enough to prove the previous
+    // stdin write reached the provider, so the queued follow-up can flush.
+    fake.emit(assistantMessage("a1", "working"))
+
+    expect(fake.sent.map((s) => s.payload)).toEqual(["first", "second"])
+    expect(controller.queuedText(handle.id)).toBe("")
+
+    controller.closeAll()
+  })
+
+  test("explicit queue flush waits while the previous send has no backend acknowledgement", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
@@ -127,16 +197,16 @@ describe("layer 3: queue batching", () => {
     expect(controller.queuedText(handle.id)).toBe("second")
 
     fake.emit(turnStart("a1"))
-    fake.emit(turnEnd("a1"))
-
     expect(fake.sent).toHaveLength(2)
     expect(fake.sent[1]!.payload).toBe("second")
     expect(controller.queuedText(handle.id)).toBe("")
 
+    fake.emit(turnEnd("a1"))
+
     controller.closeAll()
   })
 
-  test("three sends while thinking collapse to ONE send joined with \\n\\n on turn-end", async () => {
+  test("normal submits while the provider is thinking write immediately after turn-start", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
@@ -152,22 +222,21 @@ describe("layer 3: queue batching", () => {
     fake.emit(turnStart("a1"))
     expect(handle.store.state.get().status).toBe("thinking")
 
-    // Three queued messages while busy — each one goes to the buffer,
-    // nothing is sent to the session.
+    // The first provider turn has been acknowledged, so normal command-box
+    // submits can be written to stdin immediately. Claude Code buffers them
+    // for the next turn.
     controller.send(handle.id, "one")
     controller.send(handle.id, "two")
     controller.send(handle.id, "three")
-    expect(fake.sent).toHaveLength(0)
-    expect(controller.queuedText(handle.id)).toBe("one\n\ntwo\n\nthree")
+    expect(fake.sent.map((s) => s.payload)).toEqual(["one", "two", "three"])
+    expect(controller.queuedText(handle.id)).toBe("")
 
-    // turn-end flips the store to idle; the controller's subscribe-path
-    // calls tryFlush on every turn-end / session-lifecycle event.
+    // turn-end flips the store to idle; there is no buffered command-box text
+    // left to drain.
     fake.emit(turnEnd("a1"))
     expect(handle.store.state.get().status).toBe("idle")
 
-    expect(fake.sent).toHaveLength(1)
-    expect(fake.sent[0]!.type).toBe("user")
-    expect(fake.sent[0]!.payload).toBe("one\n\ntwo\n\nthree")
+    expect(fake.sent).toHaveLength(3)
     expect(controller.queuedText(handle.id)).toBe("")
 
     controller.closeAll()
@@ -289,7 +358,7 @@ describe("layer 3: queue batching", () => {
 
     fake.emit(initEvent())
     fake.emit(turnStart("a1"))
-    controller.send(handle.id, "buffered")
+    controller.setQueuedText(handle.id, "buffered")
     expect(controller.queuedText(handle.id)).toBe("buffered")
 
     controller.clearQueue(handle.id)

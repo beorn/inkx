@@ -86,6 +86,24 @@ describe("status-trace — ring buffer captures every transition", () => {
     expect(trace.map((e) => e.reason)).toEqual(["turn-start-assistant", "tool-use", "tool-result"])
   })
 
+  test("instant-completed view_image tool-use does not enter tool-running without a result event", () => {
+    const state = apply([
+      { kind: "turn-start", sessionId: sid, turnId: t1, role: "assistant", ts: 100 } as AgentEvent,
+      {
+        kind: "tool-use",
+        sessionId: sid,
+        turnId: t1,
+        id: "image-1",
+        name: "view_image",
+        input: { path: "/tmp/screenshot.png" },
+        ts: 200,
+      } as AgentEvent,
+    ])
+    const trace = state.statusTrace ?? []
+    expect(state.status).toBe("thinking")
+    expect(trace.map((e) => e.to)).toEqual(["thinking"])
+  })
+
   test("turn-end clears active turn, status idle", () => {
     const state = apply([
       { kind: "turn-start", sessionId: sid, turnId: t1, role: "assistant", ts: 100 } as AgentEvent,

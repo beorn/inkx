@@ -363,6 +363,28 @@ silvercode-acp-fake --script ./fixtures/edit-file-with-permission.json
 - **Verdict**: distinct subspecies — A5 in this taxonomy. Not a router (single backend, not a CLI multiplexer); not a host (no UI). It's a **dispatcher over a workflow-as-data contract**. The `WORKFLOW.md` pattern is worth stealing; the Linear-only / Codex-only / Elixir-only stack is not.
 - **Under the km-as-workspace frame**: Symphony is a *runtime* that reads km plans as data and writes outcomes back into the workspace. The natural km expression: bead board with `workflow` facet → KNode with `workflow` facet (config + prompt) → `bun worktree` per claimed bead → silvercode pane bound to the worktree → tribe room for status events. km doesn't compete with Symphony; km is the workspace where the artifacts Symphony executes against live, and where the runtime's progress is rendered.
 
+### A6 — heartbeat-driven control plane (multi-adapter, 2026)
+
+#### Paperclip — github.com/paperclipai/paperclip
+
+- **Vendor**: paperclipai org. MIT. Sibling to OpenClaw (same ecosystem; framing line *"If OpenClaw is an employee, Paperclip is the company"*). Node.js server + React/mobile dashboard.
+- **Shape**: long-running control plane that turns BYO-agents into employees in an org chart. Cron-like heartbeat protocol wakes each agent on schedule; agent fetches assigned tickets via REST, runs to completion, exits. Persistent agent state across heartbeats; atomic ticket checkout (no double-work); per-agent monthly budgets with hard stops; board-style approval gates; multi-company isolation.
+- **Loop ownership**: L2. Each heartbeat spawns the agent in one of several adapter shapes (see below).
+- **Transport — eight adapters spanning A1, A4, A5-style HTTP webhooks** (`packages/adapters/`):
+  - `claude-local` — `claude --print - --output-format stream-json --verbose` (A1). Subscription via `CLAUDE_CODE_OAUTH_TOKEN`, API via `ANTHROPIC_API_KEY`, Bedrock branch via `CLAUDE_CODE_USE_BEDROCK`. Typed failure detectors: `parseClaudeStreamJson`, `describeClaudeFailure`, `detectClaudeLoginRequired`, `extractClaudeRetryNotBefore`, `isClaudeMaxTurnsResult`, `isClaudeTransientUpstreamError`, `isClaudeUnknownSessionError`. Resolver `resolveClaudeBillingType()` returns `subscription | api | metered_api`.
+  - `codex-local`, `gemini-local`, `cursor-local`, `pi-local`, `opencode-local` — A1 stream-json variants per vendor.
+  - `acpx-local` — A4 ACP, wraps `claude-agent-acp` + `codex-acp`.
+  - `openclaw-gateway` — HTTP webhook adapter into OpenClaw (their messaging gateway).
+  - `http` / `process` — generic adapters in `cli/src/adapters/`.
+- **Heartbeat protocol** (`docs/guides/agent-developer/heartbeat-protocol.md`): 9-step REST contract. `GET /api/agents/me` → handle approval if `PAPERCLIP_APPROVAL_ID` set → `GET /api/companies/{id}/issues?assigneeAgentId={you}&status=...` → priority pick → `POST /api/issues/{id}/checkout` (atomic CAS, `X-Paperclip-Run-Id` header, **never retry on 409**) → read context + comments → do the work → `PATCH /api/issues/{id} {status, comment}` → optionally delegate via `POST /api/companies/{id}/issues` with `parentId` + `goalId`. `request_confirmation` interactions for explicit yes/no decisions instead of asking in markdown.
+- **Adapter-utils library** (`@paperclipai/adapter-utils`): the cleanest reusable piece. Owns the multi-target execution abstraction (`execution-target.ts`, `sandbox-managed-runtime.ts`, `remote-managed-runtime.ts`, `ssh.ts`, `sandbox-callback-bridge.ts`), skill materialization with content fingerprints, billing tier resolution, structured failure typology, auth-profile rotation. Local / Docker / SSH / sandbox / remote-Paperclip-bridge as a uniform target — `runAdapterExecutionTargetProcess()` is the same call for all of them.
+- **Run liveness**: separate from issue status. `completed`, `advanced`, `plan_only`, `empty_response`, `blocked`, `failed`, `needs_followup`. Only `plan_only` and `empty_response` enqueue bounded continuation wakes. Workspace provisioning alone doesn't count as concrete progress.
+- **What's around the agent**: org chart (titles, reporting lines, roles), atomic ticket checkout with execution locks, monthly $ budgets per agent with hard stops, board approval workflows, multi-company isolation, routines/cron, audit log. Identity gates: trusted-local OR authenticated mode, board users, agent API keys, short-lived run JWTs, company memberships, invite flows.
+- **Status surface**: web + mobile dashboard ("manage your business goals, not pull requests"). 24/7 autonomous; user is the board.
+- **Verdict**: distinct subspecies — **A6 in this taxonomy**. Not a router (governance + scheduling > multiplexing); not a host (UI is dashboard, not pane host); not Symphony's A5 (multi-adapter, multi-tracker, multi-company). The honest description is *control plane that wraps employees as a company*. Transport is multi-shape; the unifying axis is heartbeat + tickets + governance, not stdio convention.
+- **Architectural mismatch with silvercode**: Paperclip's loop is async (heartbeat tickets between exits); silvercode's is sync (live ACP session, permission gating, ambient injection mid-turn). They don't compete — they compose. A future "Paperclip dispatches a silvercode session" wiring uses A2A-shaped HTTP outside (Paperclip → silvercode-as-agent) and ACP inside (silvercode-host ↔ claude-code-subprocess). Two protocols, each at the layer it's shaped for.
+- **What silvercode should borrow**: see beads `@km/silvercode/borrow-paperclip-execution-target`, `@km/silvercode/borrow-paperclip-claude-failure-types`, `@km/silvercode/borrow-skills-fingerprint-materialization`. Not the agent-specific adapters (heartbeat-shaped, don't drop into a session host); the **adapter-utils library** is the reusable surface.
+
 ### Closed source / unverified
 
 #### Conductor (presumed Type A) — conductor.build
@@ -461,6 +483,121 @@ What we want for silvery's potential agent surface (per [02-agent-integration.md
 - **vibe-kanban's per-agent typed Rust adapter pattern**. ~1,500 LOC × N agents is the most expensive answer. The project is sunsetting; learn from it.
 - **claude-squad's substring-matching prompt detection**. Fine for a personal tool, structurally fragile for anything we'd ship.
 - **happy's fd3 sideband as a *primary* transport**. Brilliant for its specific shape (mirror an existing user-facing session) but not the right default.
+
+---
+
+## Type-M features silvercode recovers as Type A — the homogenization play
+
+**Frame**: silvercode's job as a Type-A pane host is to **make heterogeneous Type-M agents homogenized**. Each Type-M agent ships its own opinions about skills, tools, memory, slash commands, plan state, telemetry — formats that don't compose. silvercode-the-cockpit sits above all of them and projects a *single unified surface* that the user interacts with, materializing the per-backend native format at the wire boundary. The Type-A position is what makes this possible; a Type-M host can only ever be one opinion in a field of competing opinions.
+
+The recovery target is everything that's currently **Type-M-locked but cross-cuts** — features each agent has built siloed because they own their own loop, where silvercode's wider lens lets it normalize. Inventory:
+
+### 1. Cross-agent skill defs — the canonical example
+
+Today: every agent has its own skill format. Claude Code = `~/.claude/skills/<name>/{SKILL.md, scripts/}` autoloaded by name match. opencode = its own format under `packages/opencode/.opencode/`. Hermes = `agentskills.io` published standard, SQLite-indexed, 10-turn-review extraction. None speak each other.
+
+silvercode's recovery: define a **km-anchored skill format** once (probably markdown under `@km/skills/`), and **materialize per-backend at session-spawn** using the fingerprint pattern from Paperclip's `@paperclipai/adapter-utils/server-utils` (`packages/adapters/acpx-local/src/server/skills.ts` and `claude-local/src/server/skills.ts`). One source of truth in km-vault; zero, one, or many backends each get the skills they need in *their* native shape, idempotent under unchanged fingerprint, revoked from agent-home when removed from session config.
+
+This is exactly what `@km/silvercode/borrow-skills-fingerprint-materialization` (P1) is scoped for, plus its enclosing epic candidate `@km/silvercode/cross-agent-feature-harmonization` (filed below). A user defines one km skill; silvercode injects it as `~/.claude/skills/<name>/SKILL.md` for Claude Code panes, as opencode-format under `.opencode/` for opencode panes, agentskills.io-format for Hermes-Type-M panes, etc. **Heterogeneous backends, homogenized authoring surface.**
+
+### 2. Cross-agent permission policies
+
+Today: Claude Code permissions are a 5-state ladder (`ask` / `plan` / `accept-edits` / `auto` / `bypass`). Codex permissions are binary `execute` / `plan`. Gemini and Copilot have their own. ACP normalizes the *protocol* of permission requests via `session/request_permission` but not the *policy* — each backend defines what triggers a permission ask differently.
+
+silvercode's recovery: define a single **silvercode permission policy** (e.g. *"auto-approve reads of files inside the vault, ask on writes outside the vault, deny network calls outside an allowlist"*) and **project it to each backend's native vocabulary** at session-init. Codex sees `execute`; Claude Code sees `accept-edits` with allowed-tools list; Gemini sees its equivalent. The user authors policy once; silvercode's permission inbox renders consistently across panes. The cross-pane override queue (already in silvercode) becomes the unified surface.
+
+### 3. Cross-agent plan / todo unification
+
+Today: Claude Code emits `TodoWrite` tool calls with a structured todo list. Codex emits its own plan format. ACP has a `plan` SessionUpdate. Each renders differently in each agent's UI.
+
+silvercode's recovery: silvercode's `<PlanDrawer>` already renders any of these — but the *authoring* and *cross-pane shared plan* is not yet homogenized. Recovery means a unified plan model owned by silvercode, populated by whichever native format any pane's agent emits, and projectable back into a peer pane's native format. Squad mode benefits directly: pane 1 (Claude) writes a plan via TodoWrite; pane 2 (Codex) reads it as part of its initial prompt context (translated to Codex's plan format); pane 3 (Gemini) sees the same plan again in Gemini's vocabulary. The plan is silvercode's, projected per-backend.
+
+### 4. Cross-agent context / memory bank
+
+Today: Hermes has self-managed memory (markdown + 10-turn review). Kilo has Memory Bank (persistent project context). Claude Code has `CLAUDE.md` + recall. Each is per-agent.
+
+silvercode's recovery: a **vault-anchored memory** that survives backend swaps. silvercode's bearly recall is already Type-A-shaped (km-vault is the source of truth, recall hits flow through the ambient pipeline). Extend to: replace any backend's "memory bank" with the km vault — same skill-materialization pattern, but for memory artifacts. Pane 1 (Claude) reads vault memory of yesterday's session; pane 2 (Codex) sees the same memory; user closes silvercode, reopens with opencode panes tomorrow, same memory loads. Backend switches are lossless; agent-side memory is irrelevant.
+
+### 5. Cross-agent telemetry / SessionTrace
+
+Today: Claude Code emits session totals; Codex emits usage events; Gemini quota lines; opencode tracks per-session cost in its own shape. Heterogeneous, can't compare across panes.
+
+silvercode's recovery: adopt OpenClaw's normalized `executionTrace` shape (`@km/silvercode/borrow-openclaw-execution-trace` P1) so every backend emits the *same* trace shape: `{ winnerProvider, winnerModel, attempts, fallbackUsed, requestShaping, completion, systemPromptReport }`. silvercode's "Last turn" hover popover renders consistently across Claude, Codex, Gemini, opencode panes. Cost dashboards span backends. Squad mode shows comparable per-pane cost in the same units.
+
+### 6. Cross-agent slash commands / palette
+
+Today: Claude Code's slash commands (`/help`, `/clear`, `/agents`, `/compact`, `/rename`, ...) are Claude Code-internal. opencode's are opencode-internal. Each pane shows different slash commands.
+
+silvercode's recovery: silvercode-side slash commands (`/inbox`, `/history`, `/handoff`, `/claim`) work the same regardless of which backend is in the pane. Some are silvercode-native (cockpit-level: pane management, permission inbox); some project to backend-native commands (`/compact` triggers Claude's compaction or Codex's equivalent). The unified palette is silvercode's; backend-specific commands stay namespaced.
+
+### 7. Cross-agent capability descriptors
+
+Today: each backend has its own native vocabulary for thinking depth (Codex's `reasoning_effort`, Claude's `think` / `think hard` / `ultrathink`), permission modes, model selection. silvercode already homogenizes the *rendering* via `agent-capabilities.ts` (descriptor-driven UI per agent). The next step: silvercode-level **capability profiles** that let the user say *"deep mode"* once and have silvercode pick `reasoning_effort: high` for Codex panes, `ultrathink` for Claude panes, etc.
+
+### 8. Cross-agent MCP injection
+
+Today: each backend has its own MCP config — Claude Code's `~/.claude.json`, opencode's `opencode.json`, etc. Adding a new MCP server means editing every config separately.
+
+silvercode's recovery: silvercode owns *one* MCP-server registry (it already injects `@km/km-mcp-server`); per-pane silvercode resolves which MCP servers to materialize into the spawned agent's native config at session-init. Same fingerprint pattern as skills. Add an MCP server in silvercode → it shows up in every pane regardless of backend.
+
+### 9. Cross-agent session persistence + resume
+
+Today: Claude Code stores sessions in `~/.claude/projects/<proj>/<id>.jsonl`. Codex has its own format. opencode has another. Resume is per-backend.
+
+silvercode's recovery: silvercode owns a unified session model (already in flight per `@km/silvercode/state-split-client-server`); the per-backend storage becomes derived state. `silvercode --resume <agent>:<sid>` works regardless. *Today this is per-backend*; the bead reframes it as cross-agent.
+
+### Summary — what's recoverable, where
+
+The principle is uniform: **anything a Type-M agent built because it owns its loop is potentially silvercode-recoverable if (a) the cross-cut is real, (b) silvercode's authoring surface is better than N parallel per-vendor surfaces, and (c) the per-backend native format is materializable at session boundaries.** Skills are the prototype; everything in the inventory above follows the same shape.
+
+### The cleavage line — ACP vs silvercode-side materialization
+
+**ACP harmonizes what happens inside a session. silvercode-side materialization harmonizes what each backend reads from disk before a session.** That divide governs how much of the inventory is solvable by better ACP wrapping vs. how much requires silvercode-owned infrastructure:
+
+- **Pure ACP-wrapping wins** (items 3, 6, 7, 9 — plan, slash, capability descriptors, resume): the `session/*` surface already carries the harmonization; silvercode-side adapters or upstream ACP servers translate per-backend native to ACP's homogeneous shape. No new abstractions; zero `_meta` extensions; mostly upstream PRs.
+- **`_meta`-extension wins** (items 2, 5 — permission policies, telemetry/SessionTrace): protocol homogeneous via existing ACP surface (`session/request_permission`, `session/update`); semantics carried in `_meta` extensions (`_meta.category`, `_meta.executionTrace`, `_meta.failureFamily`). Silvercode defines conventions, ships in `@km/claude-acp`, proposes upstream once battle-tested.
+- **Materializer-required wins** (items 1, 4, 8 — skills, memory, MCP injection): the agent reads from disk *before* any ACP session opens (`~/.claude/skills/<name>/SKILL.md`, `CLAUDE.md`, `~/.claude.json`). ACP is a session-time protocol; pre-session disk state is fundamentally outside its surface. silvercode owns a fingerprint-keyed materializer (Paperclip-pattern, generalized) that idempotently writes per-backend native files at session-spawn.
+
+The first two groups are *commodity* — anyone with a Type-A pane host plus ACP wrappers can ship them; silvercode just gets there first via existing borrow beads. The third group is *the moat* — opencode-the-Type-M can't replicate items 1/4/8 without going Type-A; ACP can't grow into them without redefining its scope. Phases A + B make heterogeneous Type-M agents *look* uniform in the UI; Phase C makes them *behave* uniformly across what they read from disk before they ever reach silvercode's UI.
+
+### Prior art — what to borrow from OpenClaw + Hermes
+
+Two adjacent projects have already solved pieces of the harmonization problem for their own product shapes; their patterns transfer cleanly.
+
+**OpenClaw** (per § A1 above) is the cleanest declarative-per-vendor-manifest precedent. Cross-cutting lesson: **per-vendor backend config as pure declarative data; runner + materializer are generic.** Specific patterns to lift:
+
+- **`clawhub` skill directory** (item 1) — skills as a *first-class published-package concept* (versioned, hosted, distributable), not just per-user files. silvercode's `@km/skills/` should support both vault-local *and* published skill packs.
+- **`extensions/memory-*` family** (item 4) — `memory-core` (interface) + `memory-lancedb` (vector) + `memory-wiki` (markdown wiki) + `active-memory` (running context) — pluggable memory backends behind one interface. silvercode's memory layer should expose this interface; km-vault is one backend among many.
+- **`bundleMcpMode: "claude-config-file"`** (item 8) — *the* materializer pattern, just claude-only. silvercode generalizes it: same `bundleMcp` field in session config, different `bundleMcpMode` per backend. **This is the canonical Phase C primitive shape.**
+- **Template-substitution resume contract** (item 9) — `resumeArgs: ["--resume", "{sessionId}"]` as declarative config. silvercode's session-spawn reads per-backend resume strategy from the same manifest.
+- **Full meta envelope** (item 5) — `meta: { agentMeta, executionTrace, requestShaping, completion, systemPromptReport }`. silvercode's `_meta` should carry the full envelope, not just executionTrace.
+- **`requestShaping` field** (item 7) — per-request *normalized* parameters captured as data ("user said 'deep mode' → resolved to `reasoning_effort: high` on Codex / `ultrathink` on Claude"). Auditable per-pane reasoning intensity.
+
+**Hermes** (Type M today, Type A planned) is the closest published memory-architecture precedent:
+
+- **agentskills.io as authoring format** (item 1) — silvercode's skill format aligns with the published standard; materializer projects to per-backend native. Two upsides: free corpus from agentskills.io; no new format for authors to learn.
+- **Markdown-files-as-memory + 10-turn review consolidation** (item 4) — durable insights as markdown; foreground self-review extracts running session into structured insights. **silvercode runs the review loop as a Type-A primitive** — agent-agnostic, runs the same regardless of backend. Mem-thought Tier 4 (`hub/silvercode/design/recall-trigger-design.md`) is the existing internal name; harmonization frames it as cross-agent.
+- **6 execution-environment backends** (Daytona/Modal/Singularity/SSH/Docker/local) — direct prior art for `@km/silvercode/borrow-paperclip-execution-target`. Validates the multi-environment pattern.
+
+### Refined dimensional list (after prior-art pass)
+
+Two refinements added to the original 9:
+
+- **Item 4a — pluggable memory backends** (OpenClaw `memory-*` pattern): km-vault default, LanceDB/FAISS/wiki backends plug in.
+- **Item 4b — silvercode-owned memory consolidation loop** (Hermes 10-turn review pattern): Type-A primitive, agent-agnostic. The cockpit owns the consolidation; backends don't need to know.
+- **Item 1a — agentskills.io as authoring format**: silvercode's skill authoring format aligns with the published standard; materializer projects to per-backend.
+- **Cross-cutting — declarative per-vendor manifest**: generalize `BUILTIN_AGENTS` to OpenClaw's full `cli-backend.ts` shape so Phase C materializers have uniform input. Not a dimension; an implementation discipline. Land as a new **Phase A.5** before any of Phase C lands.
+
+### Phased execution
+
+The harmonization epic `@km/silvercode/cross-agent-feature-harmonization` is structured in three phases (full detail in the bead body):
+
+- **Phase A — pure ACP-wrapping wins** (items 3, 6, 7, 9). Lowest cost, fastest demo, no new abstractions. Mostly upstream PRs against `@agentclientprotocol/claude-agent-acp`, `@zed-industries/codex-acp`, plus polish in `@km/claude-acp`.
+- **Phase A.5 — declarative per-vendor manifest** (cross-cutting from OpenClaw). Generalize `BUILTIN_AGENTS` to OpenClaw's full `cli-backend.ts` shape `{ command, args, modelArg, sessionArg, output, input, bundleMcp, bundleMcpMode, sessionArgs?, resumeArgs }`. Pure data; no behavior change. Unblocks Phase C generality.
+- **Phase B — `_meta`-extension conventions** (items 2, 5). Three existing P1 borrow beads cluster here: `borrow-openclaw-execution-trace` (defines SessionTrace shape, full meta envelope from OpenClaw), `borrow-paperclip-claude-failure-types` (supplies `_meta.failureFamily`), `borrow-paperclip-execution-target` (orthogonal infrastructure for spawn; Hermes's 6-backend matrix is corroborating prior art).
+- **Phase C — silvercode-side materializer** (items 1, 1a, 4, 4a, 4b, 8). The remaining P1 borrow bead `borrow-skills-fingerprint-materialization` lives here — it ships the canonical example (skills) and the fingerprint-keyed writer primitive that items 8 reuses unchanged. Items 4a (pluggable memory backends, OpenClaw pattern) and 4b (consolidation loop, Hermes pattern) are sibling primitives. Item 1a aligns the authoring format to agentskills.io.
+
+Filed under epic **`@km/silvercode/cross-agent-feature-harmonization`** (P2) — gathers the four P1 borrow beads (skills, executionTrace, claude-failure-types, execution-target) under the harmonization narrative and queues the remaining P2 sub-beads (permissions, plan, memory, slash, capabilities, MCP, resume) per phase.
 
 ---
 

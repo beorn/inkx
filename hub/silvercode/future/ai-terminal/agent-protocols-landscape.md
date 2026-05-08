@@ -266,6 +266,15 @@ The unfilled niche — Layer 4 — is the venture target. Layers 1-3 each have a
 | Matrix (transport) | HTTP+JSON                    | ✅             | ✅         | ✅ native     | ✅ event log            | E2E (Olm/Megolm)         |
 | org.agentroom.*    | piggyback on Matrix or JSONL | ✅             | ✅         | ✅ via Matrix | ✅ via JSONL/vault      | E2E via Matrix           |
 
+### Mental-model framing — ACP-Zed vs A2A (Layer 3 vs Layer 2)
+
+The technical-attribute matrix above understates the architectural divergence. ACP-Zed and A2A are often listed as siblings because both came out in 2025 and both let "anything talk to an AI agent." They are not the same shape and don't substitute for each other.
+
+- **ACP says**: *"the agent is a subprocess I'm piloting."* Cockpit pattern. That's why it has `session/request_permission` (host gates every tool call), client-provided `fs/read_text_file` + `fs/write_text_file` + `terminal/*` (host hands tools *to* the agent), `EmbeddedResource` ContentBlocks with `_meta` extensibility (host injects framed observations into prompts), plan messages, and a long-lived bidirectional turn model. The host is in the loop on every action. silvercode's whole UX bet (permission inbox, plan drawer, native per-vendor capability rendering, ambient `[NOTIFICATION — observation]` blocks, mode ladder) **only works on a protocol where the client gates each tool call and assembles each prompt**. ACP gives that for free; nothing else does.
+- **A2A says**: *"the agent is a peer service I'm delegating to."* Service-mesh pattern. That's why it has AgentCard discovery at `/.well-known/agent.json`, OAuth/Bearer/mTLS auth in the card, structured Tasks (`task/send` → poll-or-SSE for `task/status` → collect artifacts), and SSE for long-running work. The caller hands off and waits; it doesn't gate the callee's tool calls. **A2A is closer to Paperclip's heartbeat-shaped model than to ACP's cockpit-shaped model.** A "Paperclip dispatches a silvercode session" wiring naturally puts A2A on the outside (Paperclip → silvercode-as-A2A-server) and ACP on the inside (silvercode-host ↔ claude-code-subprocess). Two protocols, each at the layer it's shaped for; they compose without overlap.
+
+Practical corollary: the cockpit and the org-chart layers want different protocols. That's not coincidence; it's structural. Permission gating + ambient injection require an open-per-turn protocol. Autonomous loops + governance + budgets prefer a protocol that can hand off and reconnect. Forcing both through one protocol either erases ACP's permission model into a bus-shape it wasn't built for, or pushes A2A's task model into a turn-shape that defeats its async benefits.
+
 ### By openness
 
 | Protocol         | License                     | Governance                           | Reference SDKs                             |

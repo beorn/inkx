@@ -79,11 +79,12 @@ function makeStubController(): Controller {
     fork: async () => ({}) as unknown as SessionHandle,
     spawnSession: async () => ({}) as unknown as SessionHandle,
     runSlashCommand: () => {},
-    backgroundActiveTurn: () => {},
-    foregroundTask: () => {},
-    cancelBackgroundTask: () => {},
-    backgroundTasks: () => [],
-    onBackgroundTasksChange: () => () => {},
+    backgroundActiveJob: () => {},
+    interruptActiveJob: () => {},
+    surfaceBackgroundJob: () => {},
+    cancelBackgroundJob: () => {},
+    backgroundJobs: () => [],
+    onBackgroundJobsChange: () => () => {},
     notificationMuteState: {
       isMuted: (key: string) => muted.has(key),
       muted: () => new Set<string>(muted),
@@ -516,16 +517,17 @@ describe("SidePanel — multi-account view", () => {
       expect(app.text).not.toContain("Agents 0/0")
 
       const notificationsRow = app.lines.findIndex((l) => l.includes("Notifications"))
-      const debugRow = app.lines.findIndex((l, row) => row > notificationsRow && /\bdebug\b/i.test(l))
+      const debugRow = app.lines.findIndex((l, row) => row > notificationsRow && /\bdebug\b/.test(l))
       const tribeRow = app.lines.findIndex((l, row) => row > notificationsRow && l.includes("tribe"))
       expect(notificationsRow).toBeGreaterThan(-1)
       expect(debugRow, app.text).toBeGreaterThan(notificationsRow)
       expect(debugRow, app.text).toBeLessThan(tribeRow)
-      expect(app.lines[debugRow], app.text).toContain("[ ]")
+      expect(app.lines[debugRow], app.text).toContain("[ ] debug")
+      expect(app.lines[debugRow], app.text).not.toContain("[x]")
 
       const debugOn = renderPanel({ debugChannelVisible: true })
-      const debugOnRow = debugOn.lines.findIndex((l) => /\bdebug\b/i.test(l))
-      expect(debugOn.lines[debugOnRow], debugOn.text).toContain("[x]")
+      const debugOnRow = debugOn.lines.findIndex((l) => /\bdebug\b/.test(l))
+      expect(debugOn.lines[debugOnRow], debugOn.text).toContain("[x] debug")
     } finally {
       setAllAccountsFactoryOverride(null)
     }

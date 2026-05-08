@@ -7,10 +7,10 @@ import type {
   ChatEventId,
   ChatEventPayloads,
   ChatEventType,
+  ChatBlockId,
   ChatMessageId,
-  ChatMessagePartId,
   ChatPermissionId,
-  ChatPlanTaskId,
+  ChatPlanStepId,
   ChatRawRef,
   ChatRole,
   ChatSessionId,
@@ -30,8 +30,8 @@ type AssistantContentBlock = Extract<AgentEvent, { kind: "assistant-message" }>[
 export const AGENT_EVENT_CHAT_PROJECTION = {
   "session-init": { channel: "status", chatEventTypes: ["session.updated", "debug.recorded"], keepsRaw: true },
   "turn-start": { channel: "transcript", chatEventTypes: ["message.started"], keepsRaw: true },
-  "text-delta": { channel: "transcript", chatEventTypes: ["message.part.added"], keepsRaw: true },
-  "thinking-delta": { channel: "transcript", chatEventTypes: ["message.part.added"], keepsRaw: true },
+  "text-delta": { channel: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
+  "thinking-delta": { channel: "transcript", chatEventTypes: ["message.block.added"], keepsRaw: true },
   "tool-use": { channel: "activity", chatEventTypes: ["tool.started"], keepsRaw: true },
   "tool-result": { channel: "activity", chatEventTypes: ["tool.completed"], keepsRaw: true },
   "permission-request": { channel: "permission", chatEventTypes: ["permission.requested"], keepsRaw: true },
@@ -40,12 +40,12 @@ export const AGENT_EVENT_CHAT_PROJECTION = {
   "turn-end": { channel: "transcript", chatEventTypes: ["message.completed", "debug.recorded"], keepsRaw: true },
   "assistant-message": {
     channel: "transcript",
-    chatEventTypes: ["message.started", "message.part.added", "tool.started", "tool.completed", "debug.recorded"],
+    chatEventTypes: ["message.started", "message.block.added", "tool.started", "tool.completed", "debug.recorded"],
     keepsRaw: true,
   },
   "user-message": {
     channel: "transcript",
-    chatEventTypes: ["message.started", "message.part.added", "debug.recorded", "message.completed"],
+    chatEventTypes: ["message.started", "message.block.added", "debug.recorded", "message.completed"],
     keepsRaw: true,
   },
   "raw-transcript": {
@@ -96,9 +96,23 @@ export function normalizeAgentEventsToChatEvents(
 
   const seenMessages = new Map<string, SeenMessage>()
   const seenTools = new Set<string>()
+  const seenChatEventIds = new Set<string>()
+  const seenMessageBlockIds = new Map<string, number>()
   const pendingToolCompletions = new Map<string, ChatEvent<"tool.completed">[]>()
+  let pendingTextDeltaBlock: ChatEvent<"message.block.added"> | null = null
   const out: ChatEvent[] = []
   const pushChatEvent = (chatEvent: ChatEvent): void => {
+    chatEvent = uniquifyChatEvent(chatEvent)
+    if (isCoalescibleTextDeltaBlock(chatEvent)) {
+      if (pendingTextDeltaBlock && sameMessageTextBlock(pendingTextDeltaBlock, chatEvent)) {
+        pendingTextDeltaBlock = mergeTextDeltaBlocks(pendingTextDeltaBlock, chatEvent)
+      } else {
+        flushPendingTextDeltaBlock()
+        pendingTextDeltaBlock = chatEvent
+      }
+      return
+    }
+    flushPendingTextDeltaBlock()
     if (chatEvent.type === "tool.completed") {
       const key = toolKey(chatEvent.sessionId, chatEvent.payload.toolId)
       if (!seenTools.has(key)) {
@@ -117,6 +131,11 @@ export function normalizeAgentEventsToChatEvents(
       out.push(...completions)
       pendingToolCompletions.delete(key)
     }
+  }
+  const flushPendingTextDeltaBlock = (): void => {
+    if (!pendingTextDeltaBlock) return
+    out.push(pendingTextDeltaBlock)
+    pendingTextDeltaBlock = null
   }
   events.forEach((event, index) => {
     if (event.kind === "tool-use" && latestToolUseIndex.get(`${event.sessionId}:${event.id}`) !== index) {
@@ -169,10 +188,67 @@ export function normalizeAgentEventsToChatEvents(
     }
     flushPendingToolCompletions()
   })
+  flushPendingTextDeltaBlock()
   for (const completions of pendingToolCompletions.values()) {
     for (const completion of completions) out.push(orphanToolCompletionDebugEvent(completion))
   }
   return out.map((chatEvent) => parseChatEvent(chatEvent))
+
+  function uniquifyChatEvent(chatEvent: ChatEvent): ChatEvent {
+    if (chatEvent.type === "message.block.added") {
+      const key = `${chatEvent.sessionId}:${chatEvent.payload.messageId}:${chatEvent.payload.blockId}`
+      const duplicateIndex = seenMessageBlockIds.get(key) ?? 0
+      seenMessageBlockIds.set(key, duplicateIndex + 1)
+      if (duplicateIndex > 0) {
+        const blockId = chatBlockId(`${chatEvent.payload.blockId}:dup:${duplicateIndex}`)
+        const eventId = uniqueChatEventId(`${chatEvent.id}:dup:${duplicateIndex}`)
+        return {
+          ...chatEvent,
+          id: eventId,
+          payload: {
+            ...chatEvent.payload,
+            blockId,
+            block: {
+              ...chatEvent.payload.block,
+              id: blockId,
+              eventIds: chatEvent.payload.block.eventIds.map((id) => (id === chatEvent.id ? eventId : id)),
+            },
+          },
+        }
+      }
+    }
+    return withUniqueEventId(chatEvent)
+  }
+
+  function withUniqueEventId(chatEvent: ChatEvent): ChatEvent {
+    const eventId = uniqueChatEventId(chatEvent.id)
+    if (eventId === chatEvent.id) return chatEvent
+    if (chatEvent.type === "message.block.added") {
+      return {
+        ...chatEvent,
+        id: eventId,
+        payload: {
+          ...chatEvent.payload,
+          block: {
+            ...chatEvent.payload.block,
+            eventIds: chatEvent.payload.block.eventIds.map((id) => (id === chatEvent.id ? eventId : id)),
+          },
+        },
+      }
+    }
+    return { ...chatEvent, id: eventId }
+  }
+
+  function uniqueChatEventId(base: string): ChatEventId {
+    let value = base
+    let index = 1
+    while (seenChatEventIds.has(value)) {
+      value = `${base}:dup-event:${index}`
+      index += 1
+    }
+    seenChatEventIds.add(value)
+    return chatEventId(value)
+  }
 
   function mergeAssistantAggregateIntoStreamedTurn(event: Extract<AgentEvent, { kind: "assistant-message" }>): void {
     const emittedToolIds = new Set<string>()
@@ -185,10 +261,10 @@ export function normalizeAgentEventsToChatEvents(
         pushChatEvent(chatEvent)
         continue
       }
-      if (chatEvent.type === "message.part.added") {
-        const part = chatEvent.payload.part
-        if (part.type !== "tool-ref") continue
-        if (!emittedToolIds.has(part.toolId)) continue
+      if (chatEvent.type === "message.block.added") {
+        const block = chatEvent.payload.block
+        if (block.type !== "tool-ref") continue
+        if (!emittedToolIds.has(block.toolId)) continue
         pushChatEvent(chatEvent)
         continue
       }
@@ -199,6 +275,40 @@ export function normalizeAgentEventsToChatEvents(
     pushChatEvent(
       debugEventFromAgentEvent(event, options, "Assistant message aggregate", "assistant-message-aggregate"),
     )
+  }
+}
+
+function isCoalescibleTextDeltaBlock(event: ChatEvent): event is ChatEvent<"message.block.added"> {
+  if (event.type !== "message.block.added") return false
+  if (event.payload.block.type !== "text") return false
+  return event.rawRefs.some((ref) => ref.label === "text-delta")
+}
+
+function sameMessageTextBlock(
+  left: ChatEvent<"message.block.added">,
+  right: ChatEvent<"message.block.added">,
+): boolean {
+  return left.sessionId === right.sessionId && left.payload.messageId === right.payload.messageId
+}
+
+function mergeTextDeltaBlocks(
+  left: ChatEvent<"message.block.added">,
+  right: ChatEvent<"message.block.added">,
+): ChatEvent<"message.block.added"> {
+  const leftBlock = left.payload.block
+  const rightBlock = right.payload.block
+  if (leftBlock.type !== "text" || rightBlock.type !== "text") return left
+  return {
+    ...left,
+    rawRefs: [...left.rawRefs, ...right.rawRefs],
+    payload: {
+      ...left.payload,
+      block: {
+        ...leftBlock,
+        text: leftBlock.text + rightBlock.text,
+        eventIds: [...leftBlock.eventIds, ...rightBlock.eventIds],
+      },
+    },
   }
 }
 
@@ -240,19 +350,29 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
     } as ChatEvent<T>
   }
 
-  function messagePart(
+  function messageBlock(
     messageId: ChatMessageId,
-    partId: ChatMessagePartId,
-    part: ChatEventPayloads["message.part.added"]["part"],
+    blockId: ChatBlockId,
+    block: ChatEventPayloads["message.block.added"]["block"],
     suffix: string,
-  ): ChatEvent<"message.part.added"> {
-    return make<"message.part.added">("message.part.added", "transcript", { messageId, partId, part }, suffix)
+  ): ChatEvent<"message.block.added"> {
+    return make<"message.block.added">("message.block.added", "transcript", { messageId, blockId, block }, suffix)
   }
 
   switch (event.kind) {
-    case "session-init":
-      return [
-        make("session.updated", "status", { model: event.model, mode: event.mode, cwd: event.cwd }, "session"),
+    case "session-init": {
+      const sessionPayload: Partial<ChatEventPayloads["session.updated"]> = {}
+      const model = nonEmptyString(event.model)
+      const mode = nonEmptyString(event.mode)
+      const cwd = nonEmptyString(event.cwd)
+      if (model !== undefined) sessionPayload.model = model
+      if (mode !== undefined) sessionPayload.mode = mode
+      if (cwd !== undefined) sessionPayload.cwd = cwd
+      const out: ChatEvent[] = []
+      if (Object.keys(sessionPayload).length > 0) {
+        out.push(make("session.updated", "status", sessionPayload as ChatEventPayloads["session.updated"], "session"))
+      }
+      out.push(
         make(
           "debug.recorded",
           "debug",
@@ -270,7 +390,9 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
           },
           "debug",
         ),
-      ]
+      )
+      return out
+    }
     case "turn-start":
       return [
         make(
@@ -281,40 +403,40 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
         ),
       ]
     case "text-delta": {
-      const partId = chatMessagePartId(`${event.turnId}:text:${event.blockIndex}:${event.ts}`)
+      const blockId = chatBlockId(`${event.turnId}:text:${event.blockIndex}:${event.ts}`)
       const eventId = chatEventId(`${agentEventId}:text`)
       return [
         {
           id: eventId,
-          type: "message.part.added",
+          type: "message.block.added",
           channel: "transcript",
           ts: event.ts,
           sessionId,
           agentEventId,
           payload: {
             messageId: chatMessageId(event.turnId),
-            partId,
-            part: { id: partId, type: "text", text: event.text, eventIds: [eventId] },
+            blockId,
+            block: { id: blockId, type: "text", text: event.text, eventIds: [eventId] },
           },
           rawRefs,
         },
       ]
     }
     case "thinking-delta": {
-      const partId = chatMessagePartId(`${event.turnId}:thinking:${event.blockIndex}:${event.ts}`)
+      const blockId = chatBlockId(`${event.turnId}:thinking:${event.blockIndex}:${event.ts}`)
       const eventId = chatEventId(`${agentEventId}:thinking`)
       return [
         {
           id: eventId,
-          type: "message.part.added",
+          type: "message.block.added",
           channel: "transcript",
           ts: event.ts,
           sessionId,
           agentEventId,
           payload: {
             messageId: chatMessageId(event.turnId),
-            partId,
-            part: { id: partId, type: "reasoning", text: event.text, eventIds: [eventId] },
+            blockId,
+            block: { id: blockId, type: "reasoning", text: event.text, eventIds: [eventId] },
           },
           rawRefs,
         },
@@ -386,24 +508,24 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
       return out
     }
     case "assistant-message":
-      return normalizeAssistantMessage(event, make, messagePart)
+      return normalizeAssistantMessage(event, make, messageBlock)
     case "user-message": {
       const messageId = chatMessageId(event.turnId)
-      const textPartId = chatMessagePartId(`${event.turnId}:user-text`)
+      const textBlockId = chatBlockId(`${event.turnId}:user-text`)
       const textEventId = chatEventId(`${agentEventId}:user-text`)
       const out: ChatEvent[] = [
         make("message.started", "transcript", { messageId, role: "user" }, "message-started"),
         {
           id: textEventId,
-          type: "message.part.added",
+          type: "message.block.added",
           channel: "transcript",
           ts: event.ts,
           sessionId,
           agentEventId,
           payload: {
             messageId,
-            partId: textPartId,
-            part: { id: textPartId, type: "text", text: event.text, eventIds: [textEventId] },
+            blockId: textBlockId,
+            block: { id: textBlockId, type: "text", text: event.text, eventIds: [textEventId] },
           },
           rawRefs,
         },
@@ -432,12 +554,12 @@ function normalizeParsedAgentEvent(event: AgentEvent, options: NormalizeAgentEve
           "plan",
           {
             plan: {
-              tasks: event.entries.map((entry, index) => ({
-                id: chatPlanTaskId(entry.id ?? entry.providerEntryId ?? `${event.source}:${index}`),
+              steps: event.entries.map((entry, index) => ({
+                id: chatPlanStepId(entry.id ?? entry.providerEntryId ?? `${event.source}:${index}`),
                 content: entry.content,
                 status: entry.status,
                 priority: entry.priority,
-                parentId: entry.parentId === undefined ? undefined : chatPlanTaskId(entry.parentId),
+                parentId: entry.parentId === undefined ? undefined : chatPlanStepId(entry.parentId),
               })),
               eventIds: [chatEventId(`${agentEventId}:plan`)],
             },
@@ -568,7 +690,11 @@ function normalizeRawTranscriptEvent(
 function stringField(value: unknown, key: string): string | undefined {
   if (!value || typeof value !== "object") return undefined
   const field = (value as Record<string, unknown>)[key]
-  return typeof field === "string" && field.trim().length > 0 ? field : undefined
+  return nonEmptyString(field)
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined
 }
 
 function debugEventFromAgentEvent(
@@ -619,12 +745,12 @@ function normalizeAssistantMessage(
     payload: ChatEventPayloads[T],
     suffix?: string,
   ) => ChatEvent<T>,
-  messagePart: (
+  messageBlock: (
     messageId: ChatMessageId,
-    partId: ChatMessagePartId,
-    part: ChatEventPayloads["message.part.added"]["part"],
+    blockId: ChatBlockId,
+    block: ChatEventPayloads["message.block.added"]["block"],
     suffix: string,
-  ) => ChatEvent<"message.part.added">,
+  ) => ChatEvent<"message.block.added">,
 ): ChatEvent[] {
   const messageId = chatMessageId(event.turnId)
   const out: ChatEvent[] = [make("message.started", "transcript", { messageId, role: "assistant" }, "message-started")]
@@ -634,43 +760,43 @@ function normalizeAssistantMessage(
     const blockKey = assistantBlockKey(event, index, block)
     switch (block.type) {
       case "text": {
-        const partId = chatMessagePartId(`${event.turnId}:text:${blockKey}`)
-        const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:text`)
+        const blockId = chatBlockId(`${event.turnId}:text:${blockKey}`)
+        const blockEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:text`)
         out.push(
-          messagePart(
+          messageBlock(
             messageId,
-            partId,
-            { id: partId, type: "text", text: block.text, eventIds: [partEventId] },
+            blockId,
+            { id: blockId, type: "text", text: block.text, eventIds: [blockEventId] },
             `${suffix}:text`,
           ),
         )
         break
       }
       case "thinking": {
-        const partId = chatMessagePartId(`${event.turnId}:thinking:${blockKey}`)
-        const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:thinking`)
+        const blockId = chatBlockId(`${event.turnId}:thinking:${blockKey}`)
+        const blockEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:thinking`)
         out.push(
-          messagePart(
+          messageBlock(
             messageId,
-            partId,
-            { id: partId, type: "reasoning", text: block.text, eventIds: [partEventId] },
+            blockId,
+            { id: blockId, type: "reasoning", text: block.text, eventIds: [blockEventId] },
             `${suffix}:thinking`,
           ),
         )
         break
       }
       case "image": {
-        const partId = chatMessagePartId(`${event.turnId}:image:${blockKey}`)
-        const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:image`)
+        const blockId = chatBlockId(`${event.turnId}:image:${blockKey}`)
+        const blockEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:image`)
         out.push(
-          messagePart(
+          messageBlock(
             messageId,
-            partId,
+            blockId,
             {
-              id: partId,
+              id: blockId,
               type: "attachment",
               attachment: { kind: "image", label: `Image (${block.mediaType})`, mimeType: block.mediaType },
-              eventIds: [partEventId],
+              eventIds: [blockEventId],
             },
             `${suffix}:image`,
           ),
@@ -679,16 +805,16 @@ function normalizeAssistantMessage(
       }
       case "tool_use": {
         const toolId = chatToolId(block.id)
-        const partId = chatMessagePartId(`${event.turnId}:tool:${block.id}`)
-        const partEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:tool-ref`)
+        const blockId = chatBlockId(`${event.turnId}:tool:${block.id}`)
+        const blockEventId = chatEventId(`${agentEventIdFor(event)}:${suffix}:tool-ref`)
         out.push(
           make("tool.started", "activity", { toolId, name: block.name, input: block.input }, `${suffix}:tool-started`),
         )
         out.push(
-          messagePart(
+          messageBlock(
             messageId,
-            partId,
-            { id: partId, type: "tool-ref", toolId, eventIds: [partEventId] },
+            blockId,
+            { id: blockId, type: "tool-ref", toolId, eventIds: [blockEventId] },
             `${suffix}:tool-ref`,
           ),
         )
@@ -772,8 +898,8 @@ function chatMessageId(value: string): ChatMessageId {
   return value as ChatMessageId
 }
 
-function chatMessagePartId(value: string): ChatMessagePartId {
-  return value as ChatMessagePartId
+function chatBlockId(value: string): ChatBlockId {
+  return value as ChatBlockId
 }
 
 function chatToolId(value: string): ChatToolId {
@@ -784,8 +910,8 @@ function chatPermissionId(value: string): ChatPermissionId {
   return value as ChatPermissionId
 }
 
-function chatPlanTaskId(value: string): ChatPlanTaskId {
-  return value as ChatPlanTaskId
+function chatPlanStepId(value: string): ChatPlanStepId {
+  return value as ChatPlanStepId
 }
 
 function assertNeverAgentEvent(event: never): never {

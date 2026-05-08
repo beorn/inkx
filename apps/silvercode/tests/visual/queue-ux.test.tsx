@@ -18,7 +18,7 @@
 import type { AgentEvent, SessionId, TurnId } from "@km/agent-harness"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { leftWidthFor, renderScenario } from "../../src/test/render-harness.tsx"
-import { welcome } from "../../src/test/scripts/welcome.ts"
+import { createFakeSession, type ScriptedFakeSession } from "../../src/test/fake-session.ts"
 
 const COLS = 120
 const ROWS = 30
@@ -52,18 +52,50 @@ function turnStart(turnId: string): AgentEvent {
   return { kind: "turn-start", sessionId: SESSION, turnId: turnId as TurnId, role: "assistant", ts: 1010 }
 }
 
+function sessionInit(): AgentEvent {
+  return {
+    kind: "session-init",
+    sessionId: SESSION,
+    cwd: "/tmp/silvercode-test",
+    model: "claude-sonnet-4-6",
+    mode: "auto",
+    tools: [],
+    mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: "2.1.119",
+    apiKeySource: "OAuth",
+    ts: 1000,
+  }
+}
+
+function userMessage(): AgentEvent {
+  return { kind: "user-message", sessionId: SESSION, turnId: "u1" as TurnId, text: "seed", ts: 1005 }
+}
+
+function createQueueFake(): ScriptedFakeSession {
+  return Object.assign(createFakeSession({ sessionId: SESSION }), { agent: "claude", protocolVersion: 1 })
+}
+
 /**
- * Drive App + a turn-start so subsequent sends land in the queue. Then
- * seed the queue by typing in the command box and pressing Enter for each
- * entry — the controller's "\n\n" join produces the wire format.
+ * Drive App + a single-flight turn-start so subsequent sends land in the
+ * queue. Then seed the queue by typing in the command box and pressing
+ * Enter for each entry — the controller's "\n\n" join produces the wire
+ * format.
  */
 async function busySession(opts: { entries?: readonly string[] } = {}) {
-  const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
-  s.emit(turnStart("a1"))
-  for (const line of opts.entries ?? []) {
-    for (const ch of line) await s.app.press(ch)
-    await s.app.press("Enter")
-    await new Promise<void>((r) => setTimeout(r, 60))
+  const s = await renderScenario({
+    script: [sessionInit(), userMessage(), turnStart("a1")],
+    cols: COLS,
+    rows: ROWS,
+    fake: createQueueFake(),
+  })
+  const entries = opts.entries ?? []
+  if (entries.length > 0) {
+    s.controller.setQueuedText(s.controller.focusedId(), entries.join("\n\n"))
+    await new Promise<void>((r) => setTimeout(r, 0))
+    s.resample()
   }
   return s
 }
@@ -237,7 +269,7 @@ describe("A3 — plain Enter in queue inserts newline, does NOT flush", () => {
 
 describe("command box padding", () => {
   test("command input leaves one blank cell at the right edge of the pane", async () => {
-    const s = await renderScenario({ script: welcome, cols: COLS, rows: ROWS })
+    const s = await renderScenario({ script: [], cols: COLS, rows: ROWS })
     try {
       const leftWidth = leftWidthFor(COLS)
       for (const ch of "x".repeat(leftWidth - 3)) await s.app.press(ch)

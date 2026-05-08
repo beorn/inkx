@@ -2,7 +2,7 @@
  * React hooks for the notification stream + mute state.
  *
  * `useNotificationStream(controller, sessionId)` returns the (filtered) list of
- * notification observations for a session, re-rendering when either new events
+ * channel notifications for a session, re-rendering when either new events
  * land or the mute set changes.
  *
  * `useNotificationMuteState(controller)` exposes the mute set for the side
@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from "react"
 import type { Controller } from "../controller.ts"
-import type { NotificationStreamEntry } from "../notification-stream.ts"
+import type { ChannelNotification } from "../notification-stream.ts"
 
 export type UseNotificationStreamOptions = {
   readonly respectMute?: boolean
@@ -28,7 +28,7 @@ function snapshot(
   controller: Controller,
   sessionId: string,
   options: UseNotificationStreamOptions = {},
-): readonly NotificationStreamEntry[] {
+): readonly ChannelNotification[] {
   const all = controller.notificationStream.entries(sessionId)
   if (options.respectMute === false) return all
   const muted = controller.notificationMuteState.muted()
@@ -37,7 +37,7 @@ function snapshot(
 }
 
 /**
- * Returns the (mute-filtered) notification observations for `sessionId`.
+ * Returns the (mute-filtered) channel notifications for `sessionId`.
  * Passing `controller: null` is supported and yields an empty array —
  * lets callers compose this hook unconditionally even when they don't
  * have a controller yet (rules-of-hooks-friendly).
@@ -46,8 +46,8 @@ export function useNotificationStream(
   controller: Controller | null,
   sessionId: string,
   options: UseNotificationStreamOptions = {},
-): readonly NotificationStreamEntry[] {
-  const [entries, setEntries] = useState<readonly NotificationStreamEntry[]>(() =>
+): readonly ChannelNotification[] {
+  const [entries, setEntries] = useState<readonly ChannelNotification[]>(() =>
     controller && sessionId ? snapshot(controller, sessionId, options) : [],
   )
   const respectMute = options.respectMute !== false

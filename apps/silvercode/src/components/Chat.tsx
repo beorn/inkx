@@ -1,20 +1,19 @@
 import React from "react"
-import { Box, Prose, Text, type PopoverContent, useHover } from "silvery"
+import { Box, Prose, Text, useHover } from "silvery"
 import type { AgentPlan, AgentPlanEntry } from "@km/agent-harness"
 import type { SessionInfo } from "../cross-agent-state.ts"
 import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import { Content, useContentLayout } from "./Content.tsx"
-import { EntryDisclosure } from "./EntryDisclosure.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
-import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ChatMessageSummary, type ChatMessageSummaryItem } from "./ChatMessageSummary.tsx"
+import { BlockInteraction, safeJson } from "./BlockInteraction.tsx"
 import { parseBlocks, type MdBlock } from "../markdown.ts"
 
 type LaneWidth = "prose" | "wide" | "full" | "auto"
 
-function Root({ children }: { children: React.ReactNode }): React.ReactElement {
+function Pane({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
       {children}
@@ -22,7 +21,11 @@ function Root({ children }: { children: React.ReactNode }): React.ReactElement {
   )
 }
 
-function Transcript({ children }: { children: React.ReactNode }): React.ReactElement {
+function Header({ children }: { children?: React.ReactNode }): React.ReactElement {
+  return <>{children}</>
+}
+
+function Session({ children }: { children: React.ReactNode }): React.ReactElement {
   return <Content.Layout>{children}</Content.Layout>
 }
 
@@ -63,7 +66,7 @@ function planCounts(plan: AgentPlan): { pending: number; active: number; complet
 function planEntryMarker(entry: AgentPlanEntry): { glyph: string; color?: string; active: boolean } {
   if (entry.status === "completed") return { glyph: "✓", color: "$muted", active: false }
   if (entry.status === "cancelled") return { glyph: "×", color: "$muted", active: false }
-  if (entry.status === "in_progress") return { glyph: "▸", color: "$warning", active: false }
+  if (entry.status === "in_progress") return { glyph: "□", color: "$warning", active: true }
   return { glyph: "□", color: undefined, active: false }
 }
 
@@ -83,121 +86,88 @@ function orderedPlanEntries(plan: AgentPlan): AgentPlanEntry[] {
 
 function PlanDrawer({
   plan,
-  defaultExpanded = false,
+  defaultExpanded = true,
 }: {
   plan: AgentPlan | null | undefined
   defaultExpanded?: boolean
 }): React.ReactElement | null {
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
-  const content = useContentLayout()
   if (!plan || plan.entries.length === 0) return null
   if (!planHasOpenEntries(plan)) return null
   const active = plan.entries.find((entry) => entry.status === "in_progress")
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return at line 94 guarantees entries.length > 0
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return above guarantees entries.length > 0
   const next = active ?? plan.entries.find((entry) => entry.status === "pending") ?? plan.entries[0]!
   const counts = planCounts(plan)
-  const collapsedSummaryText = [
-    counts.pending > 0 ? `${counts.pending} pending` : null,
-    counts.completed > 0 ? `${counts.completed} completed` : null,
-    counts.cancelled > 0 ? `${counts.cancelled} cancelled` : null,
-  ]
-    .filter((part): part is string => part != null)
-    .join(" · ")
-  const nextMarker = planEntryMarker(next)
+  const headerMarker = planEntryMarker(next)
   const orderedEntries = orderedPlanEntries(plan)
   const collapseCompleted = counts.completed > 3
-  const visibleExpandedEntries = collapseCompleted
+  const visibleEntries = collapseCompleted
     ? orderedEntries.filter((entry) => entry.status !== "completed")
     : orderedEntries
-  const expandedFooterText = collapseCompleted ? `+${counts.completed} completed` : ""
-  const drawerWidth = Math.max(24, Math.floor(content.measure * 0.6))
+  const detailEntries = visibleEntries.filter((entry) => entry.id !== next.id)
+  const footerText = collapseCompleted ? `+${counts.completed} completed` : ""
 
   return (
     <Content.Row>
       <Content.Body width="prose">
-        <Box width="100%" minWidth={0} flexDirection="row" justifyContent="flex-end">
-          <Box
-            width={drawerWidth}
-            maxWidth="100%"
-            minWidth={0}
-            flexDirection="column"
-            backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
-            paddingLeft={1}
-            paddingRight={2}
-            paddingY={1}
-            onClick={() => setExpanded((value) => !value)}
-            onMouseEnter={hover.onMouseEnter}
-            onMouseLeave={hover.onMouseLeave}
-          >
-            <Box flexDirection="row" gap={1} minWidth={0}>
-              <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
-              {expanded ? (
-                <Text color="$muted">Plan</Text>
-              ) : (
-                <>
-                  <StatusGlyph
-                    glyph={nextMarker.glyph}
-                    active={nextMarker.active}
-                    color={nextMarker.color}
-                    period={1800}
-                  />
-                  <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                    <Text wrap="wrap">{planEntryLabel(next)}</Text>
-                  </Box>
-                </>
-              )}
+        <Box
+          width="100%"
+          minWidth={0}
+          flexDirection="column"
+          backgroundColor={hover.isHovered ? "$bg-surface-hover" : "$bg-surface-raised"}
+          paddingLeft={1}
+          paddingRight={2}
+          paddingY={1}
+          onClick={() => setExpanded((value) => !value)}
+          onMouseEnter={hover.onMouseEnter}
+          onMouseLeave={hover.onMouseLeave}
+        >
+          <Box flexDirection="row" gap={1} minWidth={0}>
+            <Text color="$muted">{expanded ? "▾" : "▸"}</Text>
+            <StatusGlyph
+              glyph={headerMarker.glyph}
+              active={headerMarker.active}
+              color={headerMarker.color}
+              period={1800}
+            />
+            <Box flexGrow={1} flexShrink={1} minWidth={0}>
+              <Text wrap="truncate">{planEntryLabel(next)}</Text>
             </Box>
-            {expanded || collapsedSummaryText.length > 0 ? (
-              <Box flexDirection="column" paddingLeft={2} minWidth={0}>
-                {expanded
-                  ? visibleExpandedEntries.map((entry) => {
-                      const marker = planEntryMarker(entry)
-                      const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
-                      return (
-                        <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
-                          <StatusGlyph
-                            glyph={marker.glyph}
-                            active={marker.active}
-                            color={marker.color ?? color}
-                            period={1800}
-                          />
-                          <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                            <Text
-                              color={color}
-                              strikethrough={entry.status === "completed" ? true : undefined}
-                              wrap="wrap"
-                            >
-                              {planEntryLabel(entry)}
-                            </Text>
-                          </Box>
-                        </Box>
-                      )
-                    })
-                  : null}
-                {expanded && expandedFooterText.length > 0 ? (
-                  <Box flexDirection="row" gap={1} minWidth={0}>
-                    <Text color="$muted"> </Text>
-                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                      <Text color="$muted" wrap="wrap">
-                        {expandedFooterText}
-                      </Text>
-                    </Box>
-                  </Box>
-                ) : null}
-                {!expanded && collapsedSummaryText.length > 0 ? (
-                  <Box flexDirection="row" gap={1} minWidth={0}>
-                    <Text color="$muted"> </Text>
-                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
-                      <Text color="$muted" wrap="wrap">
-                        {collapsedSummaryText}
-                      </Text>
-                    </Box>
-                  </Box>
-                ) : null}
-              </Box>
-            ) : null}
           </Box>
+          {expanded && (detailEntries.length > 0 || footerText.length > 0) ? (
+            <Box flexDirection="column" paddingLeft={2} minWidth={0}>
+              {detailEntries.map((entry) => {
+                const marker = planEntryMarker(entry)
+                const color = entry.status === "completed" || entry.status === "cancelled" ? "$muted" : undefined
+                return (
+                  <Box key={entry.id} flexDirection="row" gap={1} minWidth={0}>
+                    <StatusGlyph
+                      glyph={marker.glyph}
+                      active={marker.active}
+                      color={marker.color ?? color}
+                      period={1800}
+                    />
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                      <Text color={color} strikethrough={entry.status === "completed" ? true : undefined} wrap="wrap">
+                        {planEntryLabel(entry)}
+                      </Text>
+                    </Box>
+                  </Box>
+                )
+              })}
+              {footerText.length > 0 ? (
+                <Box flexDirection="row" gap={1} minWidth={0}>
+                  <Text color="$muted"> </Text>
+                  <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                    <Text color="$muted" wrap="wrap">
+                      {footerText}
+                    </Text>
+                  </Box>
+                </Box>
+              ) : null}
+            </Box>
+          ) : null}
         </Box>
       </Content.Body>
     </Content.Row>
@@ -248,42 +218,10 @@ export type AgentDrawerSubagent = {
   readonly raw?: unknown
 }
 
-export type AgentDrawerDiagnostic = {
-  readonly kind: "subagent-count-mismatch"
-  readonly claimed: number
-  readonly observed: number
-  readonly text: string
-}
-
 export type AgentDrawerSession = SessionInfo & {
   readonly metrics?: AgentDrawerMetrics
   readonly metadata?: AgentDrawerMetadata
   readonly raw?: unknown
-}
-
-function safeJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch (err) {
-    return JSON.stringify(
-      {
-        error: "Unable to serialize agent detail payload",
-        message: err instanceof Error ? err.message : String(err),
-      },
-      null,
-      2,
-    )
-  }
-}
-
-function agentDetailPopover(payload: unknown): PopoverContent {
-  return {
-    body: <SyntaxHighlighter language="json" code={safeJson(payload)} bare />,
-    maxWidth: 90,
-    borderless: true,
-    flushTop: true,
-    anchorOffsetX: 10,
-  }
 }
 
 function AgentDrawerRow({
@@ -300,7 +238,7 @@ function AgentDrawerRow({
   payload: unknown
 }): React.ReactElement {
   return (
-    <EntryDisclosure popover={agentDetailPopover(payload)} canExpand={false}>
+    <BlockInteraction detail={safeJson(payload)} language="json" maxWidth={90} canExpand={false} hoverBackground={false}>
       {({ surfaceProps, isHovered }) => {
         const rowBg = isHovered ? "$bg-surface-hover" : "$bg-surface-raised"
         return (
@@ -312,7 +250,7 @@ function AgentDrawerRow({
           </Box>
         )
       }}
-    </EntryDisclosure>
+    </BlockInteraction>
   )
 }
 
@@ -320,23 +258,19 @@ function AgentsDrawer({
   sessions,
   selfSessionId,
   subagents = [],
-  diagnostics = [],
   defaultExpanded = false,
 }: {
   sessions: readonly AgentDrawerSession[] | null | undefined
   selfSessionId?: string
   subagents?: readonly AgentDrawerSubagent[]
-  diagnostics?: readonly AgentDrawerDiagnostic[]
   defaultExpanded?: boolean
 }): React.ReactElement | null {
   const activeSessions = (sessions ?? []).filter((session) => session.status !== "ended")
   const hasLiveSubagent = subagents.some((agent) => agent.status !== "done")
-  const hasDiagnostics = diagnostics.length > 0
-  const visibleSubagents = hasLiveSubagent || hasDiagnostics ? subagents : []
-  const primaryDiagnostic = diagnostics[0]
+  const visibleSubagents = hasLiveSubagent ? subagents : []
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
-  const total = activeSessions.length + visibleSubagents.length + diagnostics.length
+  const total = activeSessions.length + visibleSubagents.length
   React.useEffect(() => {
     if (total > 1) setExpanded(true)
   }, [total])
@@ -344,11 +278,7 @@ function AgentsDrawer({
   const running =
     activeSessions.filter((session) => session.status === "thinking" || session.status === "waiting").length +
     visibleSubagents.filter((agent) => agent.status !== "done").length
-  const label = primaryDiagnostic
-    ? `${primaryDiagnostic.observed}/${primaryDiagnostic.claimed} observed`
-    : running > 0
-      ? `${running}/${total} active`
-      : `${total} idle`
+  const label = running > 0 ? `${running}/${total} active` : `${total} idle`
 
   return (
     <Content.Row>
@@ -399,19 +329,6 @@ function AgentsDrawer({
                   <Text wrap="truncate">{agent.label}</Text>
                 </AgentDrawerRow>
               ))}
-              {diagnostics.map((diagnostic, index) => (
-                <AgentDrawerRow
-                  key={`diagnostic-${index}-${diagnostic.claimed}-${diagnostic.observed}`}
-                  marker="!"
-                  markerColor="$warning"
-                  active={false}
-                  payload={{ kind: "diagnostic", diagnostic }}
-                >
-                  <Text wrap="truncate">
-                    Only {diagnostic.observed} of {diagnostic.claimed} Agent events observed
-                  </Text>
-                </AgentDrawerRow>
-              ))}
             </Box>
           ) : null}
         </Box>
@@ -420,7 +337,7 @@ function AgentsDrawer({
   )
 }
 
-function TurnRoot({ children }: { children: React.ReactNode }): React.ReactElement {
+function Message({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <Box flexDirection="column" gap={1} flexShrink={0} minWidth={0}>
       {children}
@@ -490,6 +407,7 @@ function Prompt({
   const content = useContentLayout()
   const maxBubbleWidth = Math.max(1, Math.min(58, Math.floor(content.measure * 0.8)))
   const bubbleWidth = userBubbleWidthForText(text, maxBubbleWidth)
+  const innerBubbleWidth = Math.max(1, bubbleWidth - USER_BUBBLE_HORIZONTAL_CHROME)
 
   return (
     <Box flexDirection="column" alignSelf="stretch" width="100%" flexShrink={1} minWidth={0} paddingY={0}>
@@ -504,13 +422,30 @@ function Prompt({
             flexShrink={0}
             minWidth={0}
             backgroundColor={USER_PROMPT_BUBBLE_BG}
-            paddingX={USER_BUBBLE_PADDING_X}
             paddingY={1}
-            userSelect="none"
           >
-            <Prose width="100%" flexGrow={1} flexShrink={1} minWidth={0} userSelect="text">
-              <MarkdownView source={text} role="user" layout="inline" />
+            <Box
+              width={USER_BUBBLE_PADDING_X}
+              flexShrink={0}
+              backgroundColor={USER_PROMPT_BUBBLE_BG}
+              userSelect="none"
+            />
+            <Prose
+              width={innerBubbleWidth}
+              flexGrow={1}
+              flexShrink={1}
+              minWidth={0}
+              backgroundColor={USER_PROMPT_BUBBLE_BG}
+              userSelect="text"
+            >
+              <MarkdownView source={text} role="user" layout="inline" backgroundColor={USER_PROMPT_BUBBLE_BG} />
             </Prose>
+            <Box
+              width={USER_BUBBLE_PADDING_X}
+              flexShrink={0}
+              backgroundColor={USER_PROMPT_BUBBLE_BG}
+              userSelect="none"
+            />
           </Box>
         </Box>
       )}
@@ -532,7 +467,7 @@ function Prompt({
   )
 }
 
-function Segment({ children }: { children: React.ReactNode }): React.ReactElement {
+function Block({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <Box flexDirection="column" flexShrink={0} minWidth={0}>
       {children}
@@ -596,16 +531,7 @@ function Narration({
 }): React.ReactElement {
   const hasCode = hasCodeMarkdownBlock(text)
   const hasTable = hasTableMarkdownBlock(text)
-  const layout = hasCode || hasTable ? "content" : "inline"
-  if (hasCode) {
-    return (
-      <Box flexDirection="column" position="relative" width="100%" maxWidth="100%" minWidth={0}>
-        <Prose flexGrow={1} minWidth={0}>
-          <MarkdownView source={text} layout="inline" />
-        </Prose>
-      </Box>
-    )
-  }
+  const layout = hasTable ? "content" : "inline"
   if (muted) {
     return (
       <SessionEntry marker={marker} markerColor="$muted">
@@ -682,9 +608,9 @@ function Activity({
   )
 }
 
-function ToolGroup({ children }: { children: React.ReactNode }): React.ReactElement {
+function Tool({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
-    <Box flexDirection="column" gap={0} minWidth={0}>
+    <Box flexDirection="column" gap={0} alignSelf="stretch" width="100%" minWidth={0}>
       {children}
     </Box>
   )
@@ -711,22 +637,21 @@ function Body({ width = "prose", children }: { width?: LaneWidth; children: Reac
 }
 
 export const Chat = {
-  Root,
-  Transcript,
+  Pane,
+  Header,
+  Session,
   Metadata,
   Notification,
   Composer,
   PlanDrawer,
   AgentsDrawer,
   Body,
-  Turn: {
-    Root: TurnRoot,
-    Prompt,
-    Segment,
-    Narration,
-    Activity,
-    ToolGroup,
-    Summary,
-    Stats,
-  },
+  Message,
+  Prompt,
+  Block,
+  Narration,
+  Activity,
+  Tool,
+  Summary,
+  Stats,
 }

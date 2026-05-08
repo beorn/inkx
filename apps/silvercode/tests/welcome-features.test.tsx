@@ -67,16 +67,17 @@ type Variant = {
 }
 
 function makeHandle(v: Variant) {
+  const state = {
+    messages: v.messages ?? [],
+    status: v.status,
+    cost: { inputTokens: 0, outputTokens: 0 },
+    permissions: [],
+    claudeCodeVersion: v.claudeCodeVersion ?? "",
+    model: v.model ?? "",
+  }
   const fakeStore = {
     state: {
-      get: () => ({
-        messages: v.messages ?? [],
-        status: v.status,
-        cost: { inputTokens: 0, outputTokens: 0 },
-        permissions: [],
-        claudeCodeVersion: v.claudeCodeVersion ?? "",
-        model: v.model ?? "",
-      }),
+      get: () => state,
       subscribe: () => () => {},
     },
     events: {

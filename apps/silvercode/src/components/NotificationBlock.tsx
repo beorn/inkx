@@ -1,9 +1,9 @@
 import React from "react"
 import { Box, Muted, Text, useHover } from "silvery"
-import type { BackgroundTask } from "../controller.ts"
+import type { BackgroundJob } from "../controller.ts"
 import type { BackgroundShellActivity, ChatActivityCounts, SubagentActivityRow } from "../chat/activity-snapshot.ts"
 import { Content } from "./Content.tsx"
-import { BackgroundPane } from "./BackgroundPane.tsx"
+import { BackgroundJobsPane } from "./BackgroundJobsPane.tsx"
 
 type NotificationBlockDetail = "agents" | "background" | "shells"
 
@@ -14,8 +14,8 @@ function plural(count: number, singular: string, pluralLabel = `${singular}s`): 
 function summaryParts(counts: ChatActivityCounts): Array<{ detail: NotificationBlockDetail; text: string }> {
   const parts: Array<{ detail: NotificationBlockDetail; text: string }> = []
   if (counts.agentsRunning > 0) parts.push({ detail: "agents", text: `◇ ${plural(counts.agentsRunning, "agent")}` })
-  if (counts.backgroundTasksRunning > 0) {
-    parts.push({ detail: "background", text: `▣ ${counts.backgroundTasksRunning} bg` })
+  if (counts.backgroundJobsRunning > 0) {
+    parts.push({ detail: "background", text: `▣ ${counts.backgroundJobsRunning} bg` })
   }
   if (counts.shellsRunning > 0) parts.push({ detail: "shells", text: `$ ${plural(counts.shellsRunning, "shell")}` })
   return parts
@@ -26,24 +26,24 @@ function DetailBody({
   counts,
   agents,
   shells,
-  backgroundTasks,
-  onCancelBackgroundTask,
-  onForegroundBackgroundTask,
+  backgroundJobs,
+  onCancelBackgroundJob,
+  onShowBackgroundJob,
 }: {
   detail: NotificationBlockDetail
   counts: ChatActivityCounts
   agents: readonly SubagentActivityRow[]
   shells: readonly BackgroundShellActivity[]
-  backgroundTasks: readonly BackgroundTask[]
-  onCancelBackgroundTask?: (taskId: string) => void
-  onForegroundBackgroundTask?: (taskId: string) => void
+  backgroundJobs: readonly BackgroundJob[]
+  onCancelBackgroundJob?: (jobId: string) => void
+  onShowBackgroundJob?: (jobId: string) => void
 }): React.ReactElement {
   if (detail === "background") {
     return (
-      <BackgroundPane
-        tasks={backgroundTasks}
-        onCancel={(id) => onCancelBackgroundTask?.(id)}
-        onForeground={(id) => onForegroundBackgroundTask?.(id)}
+      <BackgroundJobsPane
+        jobs={backgroundJobs}
+        onCancel={(id) => onCancelBackgroundJob?.(id)}
+        onShow={(id) => onShowBackgroundJob?.(id)}
       />
     )
   }
@@ -116,16 +116,16 @@ export function NotificationBlock({
   counts,
   agents = [],
   shells = [],
-  backgroundTasks,
-  onCancelBackgroundTask,
-  onForegroundBackgroundTask,
+  backgroundJobs,
+  onCancelBackgroundJob,
+  onShowBackgroundJob,
 }: {
   counts: ChatActivityCounts
   agents?: readonly SubagentActivityRow[]
   shells?: readonly BackgroundShellActivity[]
-  backgroundTasks: readonly BackgroundTask[]
-  onCancelBackgroundTask?: (taskId: string) => void
-  onForegroundBackgroundTask?: (taskId: string) => void
+  backgroundJobs: readonly BackgroundJob[]
+  onCancelBackgroundJob?: (jobId: string) => void
+  onShowBackgroundJob?: (jobId: string) => void
 }): React.ReactElement | null {
   const parts = summaryParts(counts)
   const [expanded, setExpanded] = React.useState<NotificationBlockDetail | null>(null)
@@ -157,9 +157,9 @@ export function NotificationBlock({
                 counts={counts}
                 agents={agents}
                 shells={shells}
-                backgroundTasks={backgroundTasks}
-                onCancelBackgroundTask={onCancelBackgroundTask}
-                onForegroundBackgroundTask={onForegroundBackgroundTask}
+                backgroundJobs={backgroundJobs}
+                onCancelBackgroundJob={onCancelBackgroundJob}
+                onShowBackgroundJob={onShowBackgroundJob}
               />
             </Box>
           ) : null}

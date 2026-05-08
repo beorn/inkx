@@ -1,12 +1,14 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
-import { Box } from "silvery"
+import { Box, PopoverProvider } from "silvery"
 import type { MessageEntry, TurnId } from "@km/agent-harness"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import { run } from "silvery/runtime"
 
-function userMessage(id: string, text: string, ts: number): MessageEntry {
+const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
+
+function userMessage(id: string, text: string, ts: number, additionalContext?: string): MessageEntry {
   return {
     id: id as TurnId,
     role: "user",
@@ -14,6 +16,7 @@ function userMessage(id: string, text: string, ts: number): MessageEntry {
     text,
     toolCalls: [],
     toolResults: [],
+    additionalContext,
     ts,
   } as unknown as MessageEntry
 }
@@ -115,6 +118,82 @@ describe("SessionUpdateList scroll", () => {
     } finally {
       handle.unmount()
     }
+  })
+
+  test("compact summary system row shows raw context on cmd-hover", async () => {
+    const render = createRenderer({ cols: 120, rows: 24, kittyMode: true, autoRender: true })
+    const app = render(
+      <PopoverProvider>
+        <Box width={120} height={24} flexDirection="column">
+          <SessionUpdateList
+            messages={[
+              systemMessage(
+                "compact-summary",
+                "Compact summary",
+                1000,
+                "This session is being continued from a previous conversation.\nRAW-COMPACT-MARKER",
+              ),
+            ]}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="scroll-test"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Box>
+      </PopoverProvider>,
+    )
+
+    expect(app.text).toContain("Compact summary")
+    expect(app.text).not.toContain("RAW-COMPACT-MARKER")
+
+    app.stdin.write(LEFT_SUPER_PRESS)
+    const row = app.lines.findIndex((line) => line.includes("Compact summary"))
+    expect(row, app.text).toBeGreaterThanOrEqual(0)
+    await app.hover(app.lines[row]!.indexOf("Compact summary"), row)
+    await settle(700)
+
+    expect(app.text).toContain("RAW-COMPACT-MARKER")
+  })
+
+  test("user prompt hidden context uses the shared raw cmd-hover inspector", async () => {
+    const render = createRenderer({ cols: 120, rows: 24, kittyMode: true, autoRender: true })
+    const app = render(
+      <PopoverProvider>
+        <Box width={120} height={24} flexDirection="column">
+          <SessionUpdateList
+            messages={[userMessage("prompt-with-context", "Continue", 1000, "RAW-PROMPT-CONTEXT-MARKER")]}
+            status="idle"
+            turnStartedAt={null}
+            inputTokens={0}
+            outputTokens={0}
+            pendingPermissions={0}
+            inFlightTool={null}
+            sessionId="scroll-test"
+            onApprove={() => {}}
+            onDeny={() => {}}
+            follow={false}
+          />
+        </Box>
+      </PopoverProvider>,
+    )
+
+    expect(app.text).toContain("Continue")
+    expect(app.text).toContain("1 line of hidden context")
+    expect(app.text).not.toContain("RAW-PROMPT-CONTEXT-MARKER")
+
+    app.stdin.write(LEFT_SUPER_PRESS)
+    const row = app.lines.findIndex((line) => line.includes("Continue"))
+    expect(row, app.text).toBeGreaterThanOrEqual(0)
+    await app.hover(app.lines[row]!.indexOf("Continue"), row)
+    await settle(700)
+
+    expect(app.text).toContain("RAW-PROMPT-CONTEXT-MARKER")
   })
 
   test("recap system row renders as muted inline recap, not a generic system bullet", () => {

@@ -40,9 +40,13 @@ export function layoutFingerprint(text: string | undefined | null): string {
     .replace(/\n+$/u, "")
 }
 
-/** Strip leading blank-content frames so we compare only content-bearing layouts. */
+function hasContent(frame: string): boolean {
+  return frame.replace(/[\s\u00a0]+/gu, "").length > 0
+}
+
+/** Strip blank-content frames so we compare only content-bearing layouts. */
 export function dropBlankFrames(fingerprints: readonly string[]): string[] {
-  return fingerprints.filter((fp) => fp.replace(/\s+/gu, "").length > 0)
+  return fingerprints.filter(hasContent)
 }
 
 export interface StabilityAssertionOptions {
@@ -107,7 +111,7 @@ export function recordRenderFrames(): RecordedRenderFrames {
       const out: string[] = []
       for (const r of raw) {
         const fp = layoutFingerprint(r)
-        if (fp.replace(/\s+/gu, "").length === 0) continue
+        if (!hasContent(fp)) continue
         if (out.length > 0 && out[out.length - 1] === fp) continue
         out.push(fp)
       }
@@ -116,6 +120,42 @@ export function recordRenderFrames(): RecordedRenderFrames {
     reset() {
       raw.length = 0
     },
+  }
+}
+
+export function firstVisibleContentSignature(text: string | undefined | null): string | null {
+  const frame = layoutFingerprint(text)
+  if (!frame) return null
+  const lines = frame.split("\n")
+  const row = lines.findIndex((line) => line.trim().length > 0)
+  if (row < 0) return null
+  return `${row}:${lines[row]!.trim()}`
+}
+
+export function distinctFirstVisibleContentSignatures(frames: readonly string[]): string[] {
+  const out: string[] = []
+  for (const frame of frames) {
+    const signature = firstVisibleContentSignature(frame)
+    if (signature === null) continue
+    if (out.at(-1) !== signature) out.push(signature)
+  }
+  return out
+}
+
+export function expectStableFirstVisibleContent(frames: readonly string[], opts: { label: string }): void {
+  const signatures = distinctFirstVisibleContentSignatures(frames)
+  if (signatures.length === 0) {
+    throw new Error(`[${opts.label}] no first visible content row captured — harness wiring bug`)
+  }
+  const distinct = [...new Set(signatures)]
+  if (distinct.length > 1) {
+    const summary = distinct.map((signature, index) => `  ${index + 1}. ${signature}`).join("\n")
+    throw new Error(
+      `[${opts.label}] first visible content row changed across captured frames.\n\n` +
+        `Distinct first-row signatures:\n${summary}\n\n` +
+        `First frame preview:\n${preview(frames[0] ?? "")}\n\n` +
+        `Last frame preview:\n${preview(frames.at(-1) ?? "")}`,
+    )
   }
 }
 

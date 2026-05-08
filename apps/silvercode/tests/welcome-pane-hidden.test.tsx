@@ -47,14 +47,15 @@ test("Welcome content renders in focused pane (full app)", async () => {
 })
 
 test("ChatPane with empty messages renders Welcome alongside the focus bar", async () => {
+  const state = {
+    messages: [],
+    status: "idle" as const,
+    cost: { inputTokens: 0, outputTokens: 0 },
+    permissions: [],
+  }
   const fakeStore = {
     state: {
-      get: () => ({
-        messages: [],
-        status: "idle" as const,
-        cost: { inputTokens: 0, outputTokens: 0 },
-        permissions: [],
-      }),
+      get: () => state,
       subscribe: () => () => {},
     },
     events: {
@@ -88,7 +89,7 @@ test("ChatPane with empty messages renders Welcome alongside the focus bar", asy
     </Screen>,
   )
   // Positive-space shaded gradient — SILVER + CODE row-1 signatures.
-  const silverSig = app.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{2}░░░░/.test(l))
+  const silverSig = app.lines.findIndex((l) => /[ \u00a0]▒▒[ \u00a0]+▒▒[ \u00a0]{2}▒▒/.test(l))
   const codeSig = app.lines.findIndex((l) => /[ \u00a0]░░░░░░[ \u00a0]{3}░░░░░░░/.test(l))
   expect(silverSig, "SILVER row 1 should render").toBeGreaterThanOrEqual(0)
   expect(codeSig, "CODE row 1 should render").toBeGreaterThanOrEqual(0)

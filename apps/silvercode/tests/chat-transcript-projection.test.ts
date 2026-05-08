@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest"
-import { projectChatTranscript, visibleChatLeaves } from "../src/chat/project-transcript.ts"
+import { projectChatTree, visibleChatLeaves } from "../src/chat/project-transcript.ts"
 import { isChatElement, isChatLeaf } from "../src/chat/types.ts"
 import type {
+  ChatBlockId,
   ChatChannelState,
   ChatEvent,
   ChatEventId,
   ChatMessageId,
-  ChatMessagePartId,
   ChatNodeId,
   ChatPermissionId,
   ChatSessionId,
@@ -30,11 +30,11 @@ function channels(debugVisible: boolean): Record<string, ChatChannelState> {
   }
 }
 
-describe("projectChatTranscript", () => {
+describe("projectChatTree", () => {
   test("projects events into ChatTree leaves and filters visible leaves by event.channel", () => {
     const sessionId = id<ChatSessionId>("session-1")
     const messageId = id<ChatMessageId>("message-1")
-    const partId = id<ChatMessagePartId>("part-1")
+    const blockId = id<ChatBlockId>("block-1")
     const textEventId = id<ChatEventId>("event-text")
     const debugEventId = id<ChatEventId>("event-debug")
     const permissionEventId = id<ChatEventId>("event-permission")
@@ -52,14 +52,14 @@ describe("projectChatTranscript", () => {
       },
       {
         id: textEventId,
-        type: "message.part.added",
+        type: "message.block.added",
         channel: "transcript",
         ts: 2,
         sessionId,
         payload: {
           messageId,
-          partId,
-          part: { id: partId, type: "text", text: "Run tests", eventIds: [textEventId] },
+          blockId,
+          block: { id: blockId, type: "text", text: "Run tests", eventIds: [textEventId] },
         },
         rawRefs: [{ id: "raw-text", source: "agent" }],
       },
@@ -105,7 +105,7 @@ describe("projectChatTranscript", () => {
       },
     ]
 
-    const tree = projectChatTranscript({ sessionId, events })
+    const tree = projectChatTree({ sessionId, events })
     expect(isChatElement(tree.nodes[tree.rootId]!)).toBe(true)
     const leaves = Object.values(tree.nodes).filter(isChatLeaf)
     expect(leaves.length).toBeGreaterThan(0)
@@ -137,7 +137,7 @@ describe("projectChatTranscript", () => {
     const sessionId = id<ChatSessionId>("session-1")
     const fileEventId = id<ChatEventId>("event-file-history")
     const hookEventId = id<ChatEventId>("event-hook")
-    const tree = projectChatTranscript({
+    const tree = projectChatTree({
       sessionId,
       events: [
         {
@@ -173,11 +173,11 @@ describe("projectChatTranscript", () => {
   test("ignores late message parts that arrive after a forced message completion", () => {
     const sessionId = id<ChatSessionId>("session-1")
     const messageId = id<ChatMessageId>("acp-turn-1")
-    const firstPartId = id<ChatMessagePartId>("part-1")
-    const latePartId = id<ChatMessagePartId>("part-late")
+    const firstBlockId = id<ChatBlockId>("block-1")
+    const lateBlockId = id<ChatBlockId>("block-late")
     const firstEventId = id<ChatEventId>("text-delta:1")
     const lateEventId = id<ChatEventId>("text-delta:late")
-    const tree = projectChatTranscript({
+    const tree = projectChatTree({
       sessionId,
       events: [
         {
@@ -191,14 +191,14 @@ describe("projectChatTranscript", () => {
         },
         {
           id: firstEventId,
-          type: "message.part.added",
+          type: "message.block.added",
           channel: "transcript",
           ts: 2,
           sessionId,
           payload: {
             messageId,
-            partId: firstPartId,
-            part: { id: firstPartId, type: "text", text: "first chunk", eventIds: [firstEventId] },
+            blockId: firstBlockId,
+            block: { id: firstBlockId, type: "text", text: "first chunk", eventIds: [firstEventId] },
           },
           rawRefs: [],
         },
@@ -213,14 +213,14 @@ describe("projectChatTranscript", () => {
         },
         {
           id: lateEventId,
-          type: "message.part.added",
+          type: "message.block.added",
           channel: "transcript",
           ts: 4,
           sessionId,
           payload: {
             messageId,
-            partId: latePartId,
-            part: { id: latePartId, type: "text", text: "late chunk", eventIds: [lateEventId] },
+            blockId: lateBlockId,
+            block: { id: lateBlockId, type: "text", text: "late chunk", eventIds: [lateEventId] },
           },
           rawRefs: [],
         },
@@ -244,6 +244,6 @@ describe("projectChatTranscript", () => {
       rawRefs: [],
     } as unknown as ChatEvent
 
-    expect(() => projectChatTranscript({ sessionId, events: [bad] })).toThrow(/invalid|type/i)
+    expect(() => projectChatTree({ sessionId, events: [bad] })).toThrow(/invalid|type/i)
   })
 })

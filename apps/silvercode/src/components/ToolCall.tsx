@@ -30,7 +30,13 @@
 
 import React from "react"
 import { Box, Diff as SilveryDiff, Image, Link, type DiffHunk, Muted, Text, type SilveryMouseEvent } from "silvery"
-import type { ToolCall as ToolCallType, ToolCallContent, ToolCallLocation, ContentBlock } from "@km/agent-harness"
+import type {
+  ToolCall as ToolCallType,
+  ToolCallContent,
+  ToolCallLocation,
+  ContentBlock,
+  ToolKind,
+} from "@km/agent-harness"
 import { ToolCallStatusTitle } from "./ToolCallStatusTitle.tsx"
 import { BoundedScroll, DEFAULT_DISCLOSURE_MAX_ROWS } from "./BoundedScroll.tsx"
 import { formatPathForDisplay, resolveDisplayPath } from "../utils/format-path.ts"
@@ -145,6 +151,95 @@ function diffContentToHunks(content: { newText: string; oldText?: string | null 
  */
 const SUMMARY_THRESHOLD = 5
 const SUMMARY_PREVIEW_LINES = 3
+const INLINE_ERROR_MAX_LINES = 4
+const ANSI_CONTROL_RE = /\x1B(?:\][^\x07]*(?:\x07|\x1B\\)|\[[0-?]*[ -/]*[@-~]|[@-Z\\-_])/g
+const CONTROL_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g
+const SHELL_COMMAND_HEADS = new Set([
+  "awk",
+  "bash",
+  "biome",
+  "bun",
+  "bunx",
+  "cargo",
+  "cat",
+  "chmod",
+  "cmake",
+  "command",
+  "cp",
+  "curl",
+  "deno",
+  "docker",
+  "docker-compose",
+  "env",
+  "eslint",
+  "find",
+  "fish",
+  "gh",
+  "git",
+  "go",
+  "grep",
+  "head",
+  "jq",
+  "kill",
+  "make",
+  "mkdir",
+  "mv",
+  "node",
+  "npm",
+  "npx",
+  "open",
+  "pkill",
+  "pnpm",
+  "prettier",
+  "ps",
+  "pytest",
+  "python",
+  "python3",
+  "rg",
+  "rm",
+  "sed",
+  "sh",
+  "ssh",
+  "tail",
+  "touch",
+  "tsc",
+  "tsx",
+  "uv",
+  "vitest",
+  "wc",
+  "wget",
+  "yarn",
+  "zsh",
+])
+
+function stripAnsiControl(text: string): string {
+  return text.replace(ANSI_CONTROL_RE, "").replace(CONTROL_RE, "")
+}
+
+function shellCommandHead(title: string): string {
+  let command = title.trim()
+  if (command.startsWith("$ ")) command = command.slice(2).trimStart()
+  command = command.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S+)\s+)+/, "")
+  for (;;) {
+    const next = command.replace(/^(?:sudo|time|env|command)\s+/, "")
+    if (next === command) break
+    command = next
+  }
+  const match = command.match(/^\S+/)
+  return match?.[0]?.split("/").pop() ?? ""
+}
+
+function looksLikeShellCommandTitle(title: string): boolean {
+  const trimmed = title.trim()
+  if (trimmed.length === 0 || /^View(?:\s|$)/.test(trimmed)) return false
+  if (trimmed.startsWith("$ ") || trimmed.startsWith("./")) return true
+  return SHELL_COMMAND_HEADS.has(shellCommandHead(trimmed))
+}
+
+function isShellToolCall(kind: ToolKind, title: string): boolean {
+  if (/^View(?:\s|$)/.test(title)) return false
+  return kind === "execute" || (kind === "other" && looksLikeShellCommandTitle(title))
+}
 
 function renderTextContent(text: string, key: number | string, summarize = true): React.ReactElement {
   const lines = text.split("\n")
@@ -243,9 +338,9 @@ function renderContent(content: ToolCallContent, key: number, summarize = true):
 }
 
 function hasVisibleContentBlock(block: ContentBlock): boolean {
-  if (block.type === "text") return block.text.trim().length > 0
+  if (block.type === "text") return stripAnsiControl(block.text).trim().length > 0
   if (block.type === "image" || block.type === "audio" || block.type === "resource_link") return true
-  if ("text" in block.resource) return block.resource.text.trim().length > 0
+  if ("text" in block.resource) return stripAnsiControl(block.resource.text).trim().length > 0
   return true
 }
 
@@ -260,7 +355,7 @@ function hasVisibleContent(content: ToolCallContent): boolean {
 }
 
 function normalizeDisclosureText(text: string): string {
-  return text.replace(/\s+/g, " ").trim()
+  return stripAnsiControl(text).replace(/\s+/g, " ").trim()
 }
 
 function contentDisclosureText(content: ToolCallContent): string {
@@ -337,9 +432,18 @@ function titleImagePath(title: string): string | null {
 function shellErrorSummary(toolCall: ToolCallType, exitCode: number | null): string | null {
   if (exitCode === null) return null
   const raw = typeof toolCall.title === "string" ? toolCall.title.trim() : ""
-  const script = raw.match(/\b(?:bun|npm|pnpm|yarn)\s+(?:run\s+)?([A-Za-z0-9:_./-]+)/)?.[1]
+  const scriptMatch = raw.match(/\b(?:bun|npm|pnpm|yarn)\s+(?:run\s+)?([A-Za-z0-9:_./-]+)/)?.[1]
+  const script = scriptMatch?.startsWith("-") ? undefined : scriptMatch
   const command = script ?? raw.split(/\s+/)[0] ?? "command"
   return `error: ${command} exited with code ${exitCode}`
+}
+
+function compactInlineErrorMessage(message: string, maxLines = INLINE_ERROR_MAX_LINES): string {
+  const lines = message.split(/\r?\n/)
+  if (lines.length <= maxLines) return message
+  const preview = lines.slice(0, maxLines)
+  const hidden = lines.length - preview.length
+  return [...preview, `... ${hidden} more line${hidden === 1 ? "" : "s"}`].join("\n")
 }
 
 function locationLabel(loc: ToolCallLocation): string {
@@ -465,13 +569,15 @@ export function ToolCall({
   const forceExpanded = React.useContext(ToolContentForceExpandedContext)
   const markerBg = markerBackgroundColor ?? contextMarkerBackgroundColor
   const status = toolCall.status ?? "pending"
+  const forceContentExpanded = forceExpanded
   const kind = toolCall.kind ?? "other"
   const content = toolCall.content ?? []
   const hasContent = hasAdditionalContent(toolCall.title, content)
-  const shell = kind === "execute" && !/^View(?:\s|$)/.test(toolCall.title)
+  const shell = isShellToolCall(kind, toolCall.title)
   const imagePath = titleImagePath(toolCall.title)
   const exitCode = shell ? shellExitCode(toolCall) : null
   const errorSummary = shell && status === "failed" ? shellErrorSummary(toolCall, exitCode) : null
+  const inlineErrorMessage = errorMessage ? compactInlineErrorMessage(errorMessage) : undefined
   const active = status === "in_progress" || status === "pending"
   const markerGlyph = shell ? "$" : active ? "●" : "•"
   const markerColor = status === "failed" ? "$error" : active ? "$info" : "$muted"
@@ -490,7 +596,7 @@ export function ToolCall({
   )
 
   const rawJsonBlock = React.useMemo(() => {
-    if (!interactive || forceExpanded) return null
+    if (!interactive || forceContentExpanded) return null
     if (toolCall.rawInput === undefined && toolCall.rawOutput === undefined) return null
     const payload: Record<string, unknown> = { name: toolCall.title, kind, status }
     if (toolCall.rawInput !== undefined) payload.input = toolCall.rawInput
@@ -509,10 +615,10 @@ export function ToolCall({
         </Text>
       </Box>
     )
-  }, [interactive, forceExpanded, toolCall.rawInput, toolCall.rawOutput, toolCall.title, kind, status])
+  }, [interactive, forceContentExpanded, toolCall.rawInput, toolCall.rawOutput, toolCall.title, kind, status])
 
   const previewPopover =
-    interactive && !forceExpanded && imagePath && titleImagePopoverBody
+    interactive && !forceContentExpanded && imagePath && titleImagePopoverBody
       ? {
           body: (
             <Box flexDirection="column">
@@ -522,7 +628,7 @@ export function ToolCall({
           ),
           maxWidth: 100,
         }
-      : interactive && !forceExpanded && hasContent
+      : interactive && !forceContentExpanded && hasContent
         ? {
             body: (
               <Box flexDirection="column">
@@ -533,7 +639,7 @@ export function ToolCall({
             ),
             maxWidth: 100,
           }
-        : interactive && !forceExpanded && rawJsonBlock
+        : interactive && !forceContentExpanded && rawJsonBlock
           ? { body: <Box flexDirection="column">{rawJsonBlock}</Box>, maxWidth: 100 }
           : null
 
@@ -546,7 +652,7 @@ export function ToolCall({
       canExpand={hasContent}
     >
       {({ surfaceProps, isHovered, expanded, toggleExpanded, collapse }) => {
-        const effectiveExpanded = expanded || forceExpanded
+        const effectiveExpanded = expanded || forceContentExpanded
         const onSurfaceClick =
           surfaceProps.onClick && interactive && hasContent
             ? (e: SilveryMouseEvent): void => {
@@ -620,16 +726,16 @@ export function ToolCall({
               {/* Failed calls inline the error message immediately under the row.
                   No border, no bg, and no red tool color; shell failures read as
                   command + inline stderr. */}
-              {status === "failed" ? (
+              {status === "failed" && !(effectiveExpanded && hasContent) ? (
                 <Box flexDirection="column">
                   <Text color="$error" wrap="wrap">
-                    {errorSummary ?? errorMessage ?? "Tool call failed"}
+                    {errorSummary ?? inlineErrorMessage ?? "Tool call failed"}
                   </Text>
                   {errorSummary &&
-                  errorMessage &&
-                  normalizeDisclosureText(errorMessage) !== normalizeDisclosureText(errorSummary) ? (
+                  inlineErrorMessage &&
+                  normalizeDisclosureText(inlineErrorMessage) !== normalizeDisclosureText(errorSummary) ? (
                     <Text color="$error" wrap="wrap">
-                      {errorMessage}
+                      {inlineErrorMessage}
                     </Text>
                   ) : null}
                 </Box>

@@ -104,7 +104,7 @@ Most agent stacks make one of two compromises: either a generic "low / medium / 
 
 Each backend declares its capabilities as data:
 
-- **Codex** shows **reasoning low / medium / high** — the actual `reasoning_effort` parameter on the OpenAI Responses API, with codex's own keyboard convention (`Alt+,` / `Alt+.`).
+- **Codex** shows **reasoning low / medium / high / xhigh** — the actual `reasoning_effort` parameter on the OpenAI Responses API, with codex's own keyboard convention (`Alt+,` / `Alt+.`).
 - **Claude** shows **think (4K) / think hard (16K) / ultrathink (32K)** — the magic keywords Claude's training recognizes, plus the full permission ladder **ask / plan / accept-edits / auto / bypass** with Claude Code's distinctive purple `accept-edits` and red `bypass`.
 - **Codex's planning** is binary **execute / plan**; **Claude's** is the five-state ladder above. Different vocabularies, both first-class.
 
@@ -141,17 +141,19 @@ The architectural rule from the single-host case still holds: **agents never act
 
 Information is everywhere, but never in your face. **Click to act, hover to learn.**
 
-- **Side panel** — agent + model chip, thinking + mode cycle buttons, quota meters, background-shells / background-tasks / pending-permissions / queue-depth indicators. Every chip and every meter has a hover popover with contextual help.
+- **Side panel** — agent + model chip, thinking + mode cycle buttons, quota meters, background-shells / background-jobs / pending-permissions / queue-depth indicators. Every chip and every meter has a hover popover with contextual help.
 - **Quota popover** — plan label, account email, every quota window with reset/credits captions, and a session-totals footer showing context tokens, $ cost, and in/out token split.
-- **Thinking + mode popovers** — fully descriptor-driven per agent. Codex shows reasoning low/medium/high; Claude shows think/think_hard/ultrathink + ask/plan/accept-edits/auto/bypass; Gemini and Copilot hide the rows until their descriptors land.
+- **Thinking + mode popovers** — fully descriptor-driven per agent. Codex shows reasoning low/medium/high/xhigh; Claude shows think/think_hard/ultrathink + ask/plan/accept-edits/auto/bypass; Gemini and Copilot hide the rows until their descriptors land.
 - **Markdown rendering** — agent responses render via `MarkdownView` with proper headings, lists, blockquotes, tables. `.md` content displays as docs, not prose-pasted-into-a-tool-call.
 - **Syntax highlighting** — tool-call args, code blocks, diff hunks, apply-patch previews — all lit up through Silvery's semantic theme tokens, so palettes adapt to your terminal theme automatically.
 - **Auto-linkified output** — file paths become OSC-8 hyperlinks (cwd-aware so relative paths resolve correctly), URLs and error frames are clickable.
 - **Plan drawer + activity indicator** — the active session plan renders above the composer as a collapsible drawer, while the current step and current tool call render as structured activity, not a generic spinner. Extended thinking gets its own block, separate from streaming text.
 - **Permission inbox** — unified view of every pending permission across every session. Approve once, approve for session, deny, or open the source file inline. `/inbox` opens it directly.
-- **Background tasks panel** — `Ctrl-B` pushes the current turn to background; it streams to completion, lands as a system message, and you can cancel or foreground from the panel.
+- **Background jobs panel** — `Ctrl-B` moves the current foreground job to the background; it streams to completion, lands as a system message, and you can cancel or inspect it from the panel.
 - **Cross-agent sidebar** — when more than one session is alive, peer activity at a glance: who's editing what, who's blocked on what, recent handoffs. Click a session name to route there.
 - **History browser** — `/history` opens a virtualized full-history view with every turn and tool call, scrollable, searchable, hover-popovered.
+
+Streaming text is marshalled under one invariant: provider chunks are bytes, not paragraphs or UI blocks. See [Streaming Marshalling](./docs/streaming-marshalling.md) for the exact contract.
 
 ---
 

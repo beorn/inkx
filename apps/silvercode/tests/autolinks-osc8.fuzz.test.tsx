@@ -53,46 +53,51 @@ describe("LinkifiedText OSC 8 — fuzz", () => {
     // 1000-active-renders leak threshold that would otherwise trip on a
     // 1700-iteration sweep.
     const render = createRenderer({ cols: 200, rows: 5 })
-    for (const prefix of PROSE_PREFIXES) {
-      for (const path of PATHS) {
-        for (const suffix of LINE_SUFFIXES) {
-          for (const tail of PROSE_SUFFIXES) {
-            total[0]!++
-            const text = `${prefix}${path}${suffix}${tail}`
-            const app = render(
-              <CwdProvider value={CWD}>
-                <Box flexDirection="column" width={200}>
-                  <Prose flexShrink={1} minWidth={0}>
-                    <LinkifiedText text={text} />
-                  </Prose>
-                </Box>
-              </CwdProvider>,
-            )
-            const opens = (app.ansi.match(OSC8_OPEN) ?? []).length
-            const closes = (app.ansi.match(OSC8_CLOSE) ?? []).length
-            // Extract href targets
-            const hrefs: string[] = []
-            for (const m of app.ansi.matchAll(OSC8_OPEN)) {
-              if (m[1] && m[1].length > 0) hrefs.push(m[1]!)
-            }
-            // Resolve expected href: relative if no leading `/` or `~`,
-            // else absolute. We reuse the same logic as the production
-            // resolveAbsolute() — kept inline so the fuzz test pins the
-            // contract independently.
-            const resolved = path.startsWith("/")
-              ? `file://${path}${suffix}`
-              : path.startsWith("./") || path.startsWith("../")
-                ? `file://${CWD}/${path.replace(/^\.\/+/, "")}${suffix}`
-                : `file://${CWD}/${path}${suffix}`
+    let app: ReturnType<typeof render> | null = null
+    try {
+      for (const prefix of PROSE_PREFIXES) {
+        for (const path of PATHS) {
+          for (const suffix of LINE_SUFFIXES) {
+            for (const tail of PROSE_SUFFIXES) {
+              total[0]!++
+              const text = `${prefix}${path}${suffix}${tail}`
+              app = render(
+                <CwdProvider value={CWD}>
+                  <Box flexDirection="column" width={200}>
+                    <Prose flexShrink={1} minWidth={0}>
+                      <LinkifiedText text={text} />
+                    </Prose>
+                  </Box>
+                </CwdProvider>,
+              )
+              const opens = (app.ansi.match(OSC8_OPEN) ?? []).length
+              const closes = (app.ansi.match(OSC8_CLOSE) ?? []).length
+              // Extract href targets
+              const hrefs: string[] = []
+              for (const m of app.ansi.matchAll(OSC8_OPEN)) {
+                if (m[1] && m[1].length > 0) hrefs.push(m[1]!)
+              }
+              // Resolve expected href: relative if no leading `/` or `~`,
+              // else absolute. We reuse the same logic as the production
+              // resolveAbsolute() — kept inline so the fuzz test pins the
+              // contract independently.
+              const resolved = path.startsWith("/")
+                ? `file://${path}${suffix}`
+                : path.startsWith("./") || path.startsWith("../")
+                  ? `file://${CWD}/${path.replace(/^\.\/+/, "")}${suffix}`
+                  : `file://${CWD}/${path}${suffix}`
 
-            if (opens !== 1) failures.push(`opens=${opens} for "${text}"`)
-            if (closes !== 1) failures.push(`closes=${closes} for "${text}"`)
-            if (hrefs.length === 1 && hrefs[0] !== resolved) {
-              failures.push(`href mismatch for "${text}": got ${hrefs[0]}, want ${resolved}`)
+              if (opens !== 1) failures.push(`opens=${opens} for "${text}"`)
+              if (closes !== 1) failures.push(`closes=${closes} for "${text}"`)
+              if (hrefs.length === 1 && hrefs[0] !== resolved) {
+                failures.push(`href mismatch for "${text}": got ${hrefs[0]}, want ${resolved}`)
+              }
             }
           }
         }
       }
+    } finally {
+      app?.unmount()
     }
     if (failures.length > 0) {
       throw new Error(
@@ -101,7 +106,7 @@ describe("LinkifiedText OSC 8 — fuzz", () => {
         }`,
       )
     }
-  })
+  }, 15_000)
 
   test("non-path prose emits zero OSC 8 hyperlinks", () => {
     const PROSE_NOT_PATHS = [

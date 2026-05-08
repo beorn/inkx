@@ -19,6 +19,24 @@ function parseLines(lines: readonly string[]): AgentEvent[] {
   return events
 }
 
+async function findAssistantBlocks(
+  scenario: Awaited<ReturnType<typeof renderScenario>>,
+): Promise<{ assistants: ReturnType<typeof parseFrame>["blockStream"]; summary: string }> {
+  let summary = ""
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const p = parseFrame(scenario)
+    summary = summarize(p)
+    const assistants = p.blockStream.filter((b) => b.glyph === "•")
+    if (assistants.length > 0) return { assistants, summary }
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    scenario.resample()
+  }
+
+  return { assistants: [], summary }
+}
+
 describe("visual harness smoke test", () => {
   test("welcome scenario renders and parses", async () => {
     const s = await renderScenario({ script: welcome, cols: 120, rows: 30 })
@@ -32,9 +50,8 @@ describe("visual harness smoke test", () => {
 
   test("helloWorld scenario renders assistant block with ● glyph", async () => {
     const s = await renderScenario({ script: helloWorld, cols: 120, rows: 30 })
-    const p = parseFrame(s)
-    const assistants = p.blockStream.filter((b) => b.glyph === "•")
-    expect(assistants.length, `No • found.\n${summarize(p)}`).toBeGreaterThan(0)
+    const { assistants, summary } = await findAssistantBlocks(s)
+    expect(assistants.length, `No • found.\n${summary}`).toBeGreaterThan(0)
     expect(assistants[0]!.firstLineText).toContain("Hi")
   })
 

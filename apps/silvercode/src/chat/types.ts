@@ -5,10 +5,10 @@ export type ChatEventId = Brand<string, "ChatEventId">
 export type ChatSessionId = Brand<string, "ChatSessionId">
 export type ChatNodeId = Brand<string, "ChatNodeId">
 export type ChatMessageId = Brand<string, "ChatMessageId">
-export type ChatMessagePartId = Brand<string, "ChatMessagePartId">
+export type ChatBlockId = Brand<string, "ChatBlockId">
 export type ChatToolId = Brand<string, "ChatToolId">
 export type ChatSubagentActivityId = Brand<string, "ChatSubagentActivityId">
-export type ChatPlanTaskId = Brand<string, "ChatPlanTaskId">
+export type ChatPlanStepId = Brand<string, "ChatPlanStepId">
 export type ChatPromptId = Brand<string, "ChatPromptId">
 export type ChatPermissionId = Brand<string, "ChatPermissionId">
 
@@ -42,7 +42,7 @@ export type ChatRawRef = {
 
 export type ChatEventType =
   | "message.started"
-  | "message.part.added"
+  | "message.block.added"
   | "message.completed"
   | "tool.started"
   | "tool.updated"
@@ -60,7 +60,7 @@ export type ChatEventType =
 
 export type ChatEventPayloads = {
   "message.started": { messageId: ChatMessageId; role: ChatRole }
-  "message.part.added": { messageId: ChatMessageId; partId: ChatMessagePartId; part: ChatMessagePart }
+  "message.block.added": { messageId: ChatMessageId; blockId: ChatBlockId; block: ChatBlock }
   "message.completed": { messageId: ChatMessageId }
   "tool.started": { toolId: ChatToolId; name: string; input?: unknown }
   "tool.updated": { toolId: ChatToolId; status?: ChatStatus; outputDelta?: unknown }
@@ -108,15 +108,15 @@ export type ChatEvent<T extends ChatEventType = ChatEventType> = {
 export type ChatMessage = {
   id: ChatMessageId
   role: ChatRole
-  partIds: readonly ChatMessagePartId[]
+  blockIds: readonly ChatBlockId[]
   eventIds: readonly ChatEventId[]
 }
 
-export type ChatMessagePart =
-  | { id: ChatMessagePartId; type: "text"; text: string; eventIds: readonly ChatEventId[] }
-  | { id: ChatMessagePartId; type: "reasoning"; text: string; eventIds: readonly ChatEventId[] }
-  | { id: ChatMessagePartId; type: "attachment"; attachment: ChatAttachment; eventIds: readonly ChatEventId[] }
-  | { id: ChatMessagePartId; type: "tool-ref"; toolId: ChatToolId; eventIds: readonly ChatEventId[] }
+export type ChatBlock =
+  | { id: ChatBlockId; type: "text"; text: string; eventIds: readonly ChatEventId[] }
+  | { id: ChatBlockId; type: "reasoning"; text: string; eventIds: readonly ChatEventId[] }
+  | { id: ChatBlockId; type: "attachment"; attachment: ChatAttachment; eventIds: readonly ChatEventId[] }
+  | { id: ChatBlockId; type: "tool-ref"; toolId: ChatToolId; eventIds: readonly ChatEventId[] }
 
 export type ChatAttachment = {
   kind: "file" | "image" | "url" | "resource"
@@ -155,16 +155,16 @@ export type ChatSubagentActivity = {
   raw?: unknown
 }
 
-export type ChatPlanTask = {
-  id: ChatPlanTaskId
+export type ChatPlanStep = {
+  id: ChatPlanStepId
   content: string
   status: "pending" | "in_progress" | "completed" | "cancelled"
   priority?: "high" | "medium" | "low"
-  parentId?: ChatPlanTaskId
+  parentId?: ChatPlanStepId
 }
 
 export type ChatPlan = {
-  tasks: readonly ChatPlanTask[]
+  steps: readonly ChatPlanStep[]
   eventIds: readonly ChatEventId[]
 }
 
@@ -240,7 +240,7 @@ type ChatLeafBase<Type extends ChatLeafType, Props extends ChatLeafProps> = {
   channel: ChatChannelId
   eventIds: readonly ChatEventId[]
   messageIds?: readonly ChatMessageId[]
-  partIds?: readonly ChatMessagePartId[]
+  blockIds?: readonly ChatBlockId[]
   toolIds?: readonly ChatToolId[]
   summary?: string
   status?: ChatStatus
@@ -313,7 +313,7 @@ export type ChatCommandLeafProps = {
 }
 export type ChatToolLeafProps = { name: string; input?: unknown; output?: unknown }
 export type ChatPermissionLeafProps = { prompt: string; decision?: "approved" | "rejected" | "cancelled" }
-export type ChatPlanUpdateLeafProps = { taskCount: number; changedTaskIds?: readonly ChatPlanTaskId[] }
+export type ChatPlanUpdateLeafProps = { stepCount: number; changedStepIds?: readonly ChatPlanStepId[] }
 export type ChatPromptQueueLeafProps = {
   promptId?: ChatPromptId
   action: "queued" | "started" | "finished" | "cancelled" | "updated"
@@ -362,7 +362,7 @@ export type ChatSession = {
   status?: string
   events: readonly ChatEvent[]
   messages: Readonly<Record<ChatMessageId, ChatMessage>>
-  messageParts: Readonly<Record<ChatMessagePartId, ChatMessagePart>>
+  blocks: Readonly<Record<ChatBlockId, ChatBlock>>
   tools: Readonly<Record<ChatToolId, ChatTool>>
   subagentActivities: readonly ChatSubagentActivity[]
   plan: ChatPlan

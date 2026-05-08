@@ -1,6 +1,6 @@
 import type { MessageEntry } from "@km/agent-harness"
-import type { BackgroundTask } from "../controller.ts"
-import type { NotificationStreamEntry } from "../notification-stream.ts"
+import type { BackgroundJob } from "../controller.ts"
+import type { ChannelNotification } from "../notification-stream.ts"
 import {
   projectCurrentSubagentActivitiesFromMessages,
   subagentActivityRowsFromActivities,
@@ -11,7 +11,7 @@ export type { SubagentActivityRow } from "./subagent-activities.ts"
 
 export type ChatActivityCounts = {
   agentsRunning: number
-  backgroundTasksRunning: number
+  backgroundJobsRunning: number
   shellsRunning: number
 }
 
@@ -34,14 +34,14 @@ export type ChatActivitySnapshot = {
 }
 
 export type ChatActivitySnapshotOptions = {
-  readonly notificationEntries?: readonly NotificationStreamEntry[]
+  readonly notificationEntries?: readonly ChannelNotification[]
   readonly sessionId?: string
   readonly agents?: readonly SubagentActivityRow[]
 }
 
 export function chatActivitySnapshotFromMessages(
   messages: readonly MessageEntry[],
-  backgroundTasks: readonly BackgroundTask[],
+  backgroundJobs: readonly BackgroundJob[],
   options: ChatActivitySnapshotOptions = {},
 ): ChatActivitySnapshot {
   const shells: BackgroundShellActivity[] = []
@@ -51,7 +51,7 @@ export function chatActivitySnapshotFromMessages(
       projectCurrentSubagentActivitiesFromMessages(messages, {
         notificationEntries: options.notificationEntries,
         sessionId: options.sessionId,
-      }).activities,
+      }),
     )
   const lastUserIndex = findLastMessageIndex(messages, (message) => message.role === "user")
   const currentMessages = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
@@ -74,7 +74,7 @@ export function chatActivitySnapshotFromMessages(
   return {
     counts: {
       agentsRunning: agents.filter((agent) => agent.status !== "done").length,
-      backgroundTasksRunning: backgroundTasks.filter((task) => task.status === "running").length,
+      backgroundJobsRunning: backgroundJobs.filter((job) => job.status === "running").length,
       shellsRunning: shells.length,
     },
     agents,
@@ -84,9 +84,9 @@ export function chatActivitySnapshotFromMessages(
 
 export function chatActivityCountsFromMessages(
   messages: readonly MessageEntry[],
-  backgroundTasks: readonly BackgroundTask[],
+  backgroundJobs: readonly BackgroundJob[],
 ): ChatActivityCounts {
-  return chatActivitySnapshotFromMessages(messages, backgroundTasks).counts
+  return chatActivitySnapshotFromMessages(messages, backgroundJobs).counts
 }
 
 function findLastMessageIndex(

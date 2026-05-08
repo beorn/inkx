@@ -15,7 +15,7 @@ import {
 
 type ChatEventOwner =
   | "message"
-  | "message-part"
+  | "message-block"
   | "tool"
   | "permission"
   | "plan"
@@ -61,10 +61,10 @@ export const CHAT_EVENT_HANDLING = {
     width: "prose",
     detailAccess: ["cmd-hover"],
   },
-  "message.part.added": {
+  "message.block.added": {
     defaultChannel: "transcript",
     allowedChannels: ["transcript", "activity", "debug", "error"],
-    owner: "message-part",
+    owner: "message-block",
     projection: "message-leaf",
     defaultDisclosure: "expanded",
     width: "prose",
@@ -237,7 +237,7 @@ const attachmentSchema = z
     mimeType: idSchema.optional(),
   })
   .strict()
-const messagePartSchema = z.discriminatedUnion("type", [
+const messageBlockSchema = z.discriminatedUnion("type", [
   z.object({ id: idSchema, type: z.literal("text"), text: textSchema, eventIds: eventIdsSchema }).strict(),
   z.object({ id: idSchema, type: z.literal("reasoning"), text: textSchema, eventIds: eventIdsSchema }).strict(),
   z
@@ -246,7 +246,7 @@ const messagePartSchema = z.discriminatedUnion("type", [
   z.object({ id: idSchema, type: z.literal("tool-ref"), toolId: idSchema, eventIds: eventIdsSchema }).strict(),
 ])
 
-const planTaskSchema = z
+const planStepSchema = z
   .object({
     id: idSchema,
     content: textSchema.min(1),
@@ -255,7 +255,7 @@ const planTaskSchema = z
     parentId: idSchema.optional(),
   })
   .strict()
-const planSchema = z.object({ tasks: z.array(planTaskSchema).readonly(), eventIds: eventIdsSchema }).strict()
+const planSchema = z.object({ steps: z.array(planStepSchema).readonly(), eventIds: eventIdsSchema }).strict()
 const promptSchema = z
   .object({
     id: idSchema,
@@ -314,8 +314,8 @@ function eventSchema(type: ChatEventType, payload: z.ZodType<unknown>): z.ZodTyp
 export const chatEventSchema = z.union([
   eventSchema("message.started", z.object({ messageId: idSchema, role: roleSchema }).strict()),
   eventSchema(
-    "message.part.added",
-    z.object({ messageId: idSchema, partId: idSchema, part: messagePartSchema }).strict(),
+    "message.block.added",
+    z.object({ messageId: idSchema, blockId: idSchema, block: messageBlockSchema }).strict(),
   ),
   eventSchema("message.completed", z.object({ messageId: idSchema }).strict()),
   eventSchema(

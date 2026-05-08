@@ -20,7 +20,7 @@ import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
 import { App } from "./../src/App.tsx"
-import { createSilvercodeController } from "./../src/controller.ts"
+import { createSilvercodeController, type Controller } from "./../src/controller.ts"
 import { createFakeSession, type ScriptedFakeSession } from "./../src/test/fake-session.ts"
 import { installFakes } from "./../src/test/fake-boundaries.ts"
 
@@ -34,20 +34,48 @@ function turnStart(turnId: string, ts = 1010): AgentEvent {
   return { kind: "turn-start", sessionId: SESSION, turnId: turnId as TurnId, role: "assistant", ts }
 }
 
+function sessionInit(): AgentEvent {
+  return {
+    kind: "session-init",
+    sessionId: SESSION,
+    cwd: "/tmp/silvercode-test",
+    model: "claude-sonnet-4-6",
+    mode: "auto",
+    tools: [],
+    mcp_servers: [],
+    slashCommands: [],
+    skills: [],
+    plugins: [],
+    claudeCodeVersion: "2.1.119",
+    apiKeySource: "OAuth",
+    ts: 1000,
+  }
+}
+
+function userMessage(): AgentEvent {
+  return { kind: "user-message", sessionId: SESSION, turnId: "u1" as TurnId, text: "seed", ts: 1005 }
+}
+
 type TermlessTerm = ReturnType<typeof createTermless>
 
 function feed(term: TermlessTerm, data: string): void {
   ;(term as unknown as { sendInput: (s: string) => void }).sendInput(data)
 }
 
+function createQueueFake(): ScriptedFakeSession {
+  return Object.assign(createFakeSession({ sessionId: SESSION }), { agent: "claude", protocolVersion: 1 })
+}
+
 async function bootApp(opts: { fake?: ScriptedFakeSession } = {}): Promise<{
   term: TermlessTerm
   fake: ScriptedFakeSession
+  controller: Controller
   handle: Awaited<ReturnType<typeof run>>
   fakes: ReturnType<typeof installFakes>
 }> {
   const fakes = installFakes({})
   const fake = opts.fake ?? createFakeSession()
+  let controller: Controller | null = null
   const term = createTermless({ cols: COLS, rows: ROWS })
   const handle = await run(
     <App
@@ -56,29 +84,28 @@ async function bootApp(opts: { fake?: ScriptedFakeSession } = {}): Promise<{
       layout="single"
       model="claude-sonnet-4-6"
       spawnFactory={() => fake as unknown as AgentSession}
+      onController={(c) => (controller = c)}
     />,
     term,
   )
   await settle(150)
-  return { term, fake, handle, fakes }
+  if (!controller) throw new Error("bootApp failed to capture controller")
+  return { term, fake, controller, handle, fakes }
 }
 
 const ESC = "\x1b"
 
 describe("Esc parity (Claude Code)", () => {
   test("Esc with non-empty queue + empty command → restores queue HEAD to input (not clearQueue)", async () => {
-    const fake = createFakeSession()
-    const { term, handle, fakes } = await bootApp({ fake })
+    const fake = createQueueFake()
+    const { term, controller, handle, fakes } = await bootApp({ fake })
     try {
-      // Mid-turn so subsequent sends queue.
+      // Mid-turn with a seeded command queue.
+      fake.emit(sessionInit())
+      fake.emit(userMessage())
       fake.emit(turnStart("a1"))
       await settle(40)
-      // Queue three entries.
-      feed(term, "alpha\r")
-      await settle(80)
-      feed(term, "beta\r")
-      await settle(80)
-      feed(term, "gamma\r")
+      controller.setQueuedText(controller.focusedId(), "alpha\n\nbeta\n\ngamma")
       await settle(80)
       // Sanity — divider visible, command box empty.
       expect(term.screen).toContainText("QUEUE")
@@ -131,9 +158,9 @@ describe("Esc parity (Claude Code)", () => {
   })
 })
 
-// Controller-level test for interruptActiveTurn — verifies the contract
+// Controller-level test for interruptActiveJob — verifies the contract
 // without requiring real subprocess + UI plumbing.
-describe("controller.interruptActiveTurn", () => {
+describe("controller.interruptActiveJob", () => {
   function initEvent(): AgentEvent {
     return {
       kind: "session-init",
@@ -152,7 +179,7 @@ describe("controller.interruptActiveTurn", () => {
     }
   }
 
-  test("interruptActiveTurn during a running turn flips status to idle + emits a system message", async () => {
+  test("interruptActiveJob during a running job flips status to idle + emits a system message", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
@@ -166,7 +193,7 @@ describe("controller.interruptActiveTurn", () => {
     fake.emit(turnStart("a1"))
     expect(handle.store.state.get().status).toBe("thinking")
 
-    controller.interruptActiveTurn(handle.id)
+    controller.interruptActiveJob(handle.id)
 
     // Status flipped to idle so UI accepts new input.
     const status = handle.store.state.get().status
@@ -180,7 +207,7 @@ describe("controller.interruptActiveTurn", () => {
     expect(last.text).toMatch(/interrupt/i)
   })
 
-  test("interruptActiveTurn is a no-op when the session is idle", async () => {
+  test("interruptActiveJob is a no-op when the session is idle", async () => {
     const fake = createFakeSession({ sessionId: SESSION })
     const controller = createSilvercodeController({
       cwd: "/tmp/fake",
@@ -193,7 +220,7 @@ describe("controller.interruptActiveTurn", () => {
     // No turn-start → idle.
 
     const beforeMessages = handle.store.state.get().messages.length
-    controller.interruptActiveTurn(handle.id)
+    controller.interruptActiveJob(handle.id)
     const afterMessages = handle.store.state.get().messages.length
 
     // No state change — no synthetic message appended.

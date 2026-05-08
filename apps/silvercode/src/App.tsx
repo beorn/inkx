@@ -34,7 +34,7 @@ import { InlineAskUserQuestionPrompt } from "./components/InlineAskUserQuestionP
 import { useQueue } from "./hooks/use-queue.ts"
 import { SidePanel } from "./components/SidePanel.tsx"
 import { prefixSid } from "./sid-prefix.ts"
-import { BUILTIN_AGENTS } from "./config-schema.ts"
+import { BUILTIN_AGENTS, type ReasoningEffort, type SessionConfigValue } from "./config-schema.ts"
 import { adjacentCapabilityOption, type CapabilityDirection } from "./agent-capabilities.ts"
 import { AvailableCommandsPalette } from "./components/AvailableCommandsPalette.tsx"
 import { Content } from "./components/Content.tsx"
@@ -220,6 +220,8 @@ function SilvercodeLinkOpener(): null {
 export type AppProps = {
   cwd: string
   model?: string
+  reasoningEffort?: ReasoningEffort
+  sessionConfig?: Readonly<Record<string, SessionConfigValue>>
   resume?: string
   bare: boolean
   layout: Layout
@@ -261,11 +263,15 @@ export type AppProps = {
     name: string
     cwd: string
     model?: string
+    reasoningEffort?: ReasoningEffort
+    sessionConfig?: Readonly<Record<string, SessionConfigValue>>
     resume?: string
     bare: boolean
     account?: string
     agent?: string
   }) => AgentSession | Promise<AgentSession>
+  /** Test-only: expose the constructed controller to render harnesses. */
+  onController?: (controller: Controller) => void
 }
 
 export function App(props: AppProps): React.ReactElement {
@@ -297,6 +303,8 @@ export function App(props: AppProps): React.ReactElement {
     controllerRef.current = createSilvercodeController({
       cwd: props.cwd,
       model: props.model,
+      reasoningEffort: props.reasoningEffort,
+      sessionConfig: props.sessionConfig,
       resume: props.resume,
       bare: props.bare,
       agent: props.agent,
@@ -306,6 +314,7 @@ export function App(props: AppProps): React.ReactElement {
       spawnFactory: props.spawnFactory,
       getFocusedRegion: () => focusedRegionRef.current,
     })
+    props.onController?.(controllerRef.current)
     appStartupTick("App:firstRender:afterControllerCreate")
   }
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set above on first render
@@ -325,11 +334,28 @@ export function App(props: AppProps): React.ReactElement {
   useEffect(() => {
     if (spawnError === null || panickedSpawnErrorRef.current === spawnError) return
     panickedSpawnErrorRef.current = spawnError
-    const message = spawnError.startsWith("silvercode:")
-      ? spawnError.slice("silvercode:".length).trim()
-      : spawnError
+    const message = spawnError.startsWith("silvercode:") ? spawnError.slice("silvercode:".length).trim() : spawnError
     silveryPanic(message, { title: "silvercode", exitCode: 1 })
   }, [silveryPanic, spawnError])
+  const panickedSessionErrorsRef = useRef(new Set<string>())
+  useEffect(() => {
+    const unsubs = sessions.map((session) =>
+      session.session.subscribe((event) => {
+        if (event.kind !== "error") return
+        const key = `${session.id}:${event.ts}:${event.message}`
+        if (panickedSessionErrorsRef.current.has(key)) return
+        panickedSessionErrorsRef.current.add(key)
+        silveryPanic(event.message, {
+          title: "silvercode",
+          exitCode: 1,
+          details: [`session: ${session.name}`, `sessionId: ${event.sessionId}`],
+        })
+      }),
+    )
+    return () => {
+      for (const unsub of unsubs) unsub()
+    }
+  }, [sessions, silveryPanic])
 
   const focused = useMemo(
     () => sessions.find((s) => s.id === focusedSessionId) ?? sessions[0],
@@ -340,7 +366,7 @@ export function App(props: AppProps): React.ReactElement {
   const promptColor = MODE_COLOR[mode] ?? "$primary"
   // Thinking mode ("" = none). Set when the user types /think, /think_hard,
   // /ultrathink. Rendered as an optional row in SidePanel's version block.
-  const [thinking, setThinking] = useState<string>("")
+  const [thinking, setThinking] = useState<string>(() => props.reasoningEffort ?? "")
 
   // Pending-permission count across all sessions, kept in sync via per-store
   // subscriptions. Bumps on every state.apply() so the composer is disabled
@@ -678,6 +704,8 @@ export function App(props: AppProps): React.ReactElement {
     () => (focused ? hasConversationContent(focused.store.state.get().messages) : false),
   )
   const welcomeIsFocused = !conversationStarted
+  const [welcomeSubmittedSessionIds, setWelcomeSubmittedSessionIds] = useState<ReadonlySet<string>>(() => new Set())
+  const [preSpawnPromptSubmitted, setPreSpawnPromptSubmitted] = useState(false)
   const [focusedRegion, setFocusedRegion] = useState<"queue" | "command">("command")
   // Mirror focusedRegion into the ref the controller closes over (created
   // once at mount above) so its turn-end auto-flush guard sees the latest
@@ -691,6 +719,25 @@ export function App(props: AppProps): React.ReactElement {
   useEffect(() => {
     if (queueText.length === 0 && focusedRegion === "queue") setFocusedRegion("command")
   }, [queueText, focusedRegion])
+  useEffect(() => {
+    if (!focused || !conversationStarted) return
+    setWelcomeSubmittedSessionIds((prev) => {
+      if (!prev.has(focused.id)) return prev
+      const next = new Set(prev)
+      next.delete(focused.id)
+      return next
+    })
+  }, [conversationStarted, focused])
+  // If a turn ended while the queue editor had focus, the controller's
+  // auto-flush guard deliberately left the queued draft in place. Once
+  // focus returns to the command region, retry the normal idle-gated flush
+  // immediately so the queue does not wait for another turn boundary.
+  useEffect(() => {
+    if (!focused) return
+    if (focusedRegion !== "command") return
+    if (queueText.length === 0) return
+    controller.autoFlushQueue(focused.id)
+  }, [controller, focused, focusedRegion, queueText])
 
   // Dedupe: when the palette is open and user presses Enter, both the
   // palette's useInput AND TextInput's internal Enter handler fire in the
@@ -723,6 +770,7 @@ export function App(props: AppProps): React.ReactElement {
     const pending = pendingFirstPromptRef.current
     if (pending == null) return
     pendingFirstPromptRef.current = null
+    setPreSpawnPromptSubmitted(false)
     handleSubmit(pending)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions.length, focused])
@@ -734,33 +782,21 @@ export function App(props: AppProps): React.ReactElement {
     if (now - lastSubmitAt.current < 50) return
     lastSubmitAt.current = now
     setInputValue("")
-    let trimmed = text.trim()
-    // Trailing '&' submits + immediately backgrounds (Claude Code parity).
-    // Remove the '&' (and any whitespace before it), send the cleaned
-    // message, then call backgroundActiveTurn so the turn runs in the
-    // background and the UI is freed for next input. Edge case: text is
-    // just "&" → no message sent, just background the existing turn (same
-    // as Ctrl+B). Slash commands keep their literal '&' if any (rare).
-    let backgroundAfterSubmit = false
-    if (!trimmed.startsWith("/") && trimmed.endsWith("&")) {
-      // Remove the trailing '&' AND any whitespace before it.
-      const stripped = trimmed.slice(0, -1).trimEnd()
-      if (stripped.length === 0) {
-        // "&" alone → background the existing turn, no send.
-        controller.backgroundActiveTurn(focusedId)
-        return
-      }
-      trimmed = stripped
-      backgroundAfterSubmit = true
+    const trimmed = text.trim()
+    const hideWelcomeComposerForTurn = (): void => {
+      if (conversationStarted) return
+      setWelcomeSubmittedSessionIds((prev) => {
+        if (prev.has(focusedId)) return prev
+        const next = new Set(prev)
+        next.add(focusedId)
+        return next
+      })
     }
     // Let the cleared composer paint before optimistic chat updates or
     // backend stdin writes do heavier synchronous work.
-    const dispatchAfterComposerPaint = (dispatch: () => void, backgroundSessionId?: string): void => {
+    const dispatchAfterComposerPaint = (dispatch: () => void): void => {
       setTimeout(() => {
         dispatch()
-        if (backgroundSessionId) {
-          void Promise.resolve().then(() => controller.backgroundActiveTurn(backgroundSessionId))
-        }
       }, 0)
     }
     if (trimmed.startsWith("/")) {
@@ -821,6 +857,7 @@ export function App(props: AppProps): React.ReactElement {
             return
         }
       } else {
+        hideWelcomeComposerForTurn()
         const dispatchSlash = () => controller.runSlashCommand(focusedId, trimmed)
         const status = focused.store.state.get().status
         if (status === "idle" || status === "ended") {
@@ -830,16 +867,13 @@ export function App(props: AppProps): React.ReactElement {
         }
       }
     } else {
+      hideWelcomeComposerForTurn()
       const dispatchPrompt = () => controller.send(focusedId, injectThinkingKeyword(trimmed, thinking))
-      const backgroundAfterDispatch = () => {
-        if (backgroundAfterSubmit) void Promise.resolve().then(() => controller.backgroundActiveTurn(focusedId))
-      }
       const status = focused.store.state.get().status
       if (status === "idle" || status === "ended") {
-        dispatchAfterComposerPaint(dispatchPrompt, backgroundAfterSubmit ? focusedId : undefined)
+        dispatchAfterComposerPaint(dispatchPrompt)
       } else {
         dispatchPrompt()
-        backgroundAfterDispatch()
       }
     }
   }
@@ -933,7 +967,7 @@ export function App(props: AppProps): React.ReactElement {
         }
         lastEscapeAt.current = now
       }
-      // Esc during an in-flight turn → interrupt the active turn (Claude
+      // Esc during an active job -> interrupt it (Claude
       // Code parity). Forces UI to idle and emits a system message
       // marking the interrupt. v1 cannot abort the underlying subprocess
       // turn surgically (tracked upstream in km-agent-harness.per-turn-abort)
@@ -942,7 +976,7 @@ export function App(props: AppProps): React.ReactElement {
         const status = focused.store.state.get().status
         const inFlight = status !== "idle" && status !== "ended"
         if (inFlight && focusedRegion === "command" && inputValue.length === 0) {
-          controller.interruptActiveTurn(focused.id)
+          controller.interruptActiveJob(focused.id)
           return
         }
       }
@@ -976,15 +1010,6 @@ export function App(props: AppProps): React.ReactElement {
       // Cursor-boundary handoff between command and queue is handled by
       // SessionPromptComposer's own `onEdge` callbacks on the silvery TextAreas —
       // no parent-side Up/Down intercept needed.
-      // Ctrl-B — background the in-flight turn for the focused session.
-      // No-op if there's no active turn (controller checks status). Frees
-      // the UI immediately so the user can keep typing while the turn
-      // keeps streaming in the background; the eventual result surfaces
-      // as a system message in the conversation.
-      if (key.ctrl && input === "b") {
-        if (focused) controller.backgroundActiveTurn(focused.id)
-        return
-      }
       // Side panel toggle — Ctrl+O (safe across terminals; Cmd+I was tried
       // but gets intercepted by cmux / most terminal multiplexers before
       // reaching the app). Slash commands /panel, /aside, /todos are the
@@ -1291,8 +1316,9 @@ export function App(props: AppProps): React.ReactElement {
       setThinking((t) => {
         const tiers = ["normal", "think", "think_hard", "ultrathink"]
         const current = t && tiers.includes(t) ? t : "normal"
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- modulo by tiers.length keeps index in bounds
-        const next = tiers[(tiers.indexOf(current) + direction + tiers.length) % tiers.length]!
+        const nextIndex = Math.min(Math.max(tiers.indexOf(current) + direction, 0), tiers.length - 1)
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- clamp keeps index in bounds
+        const next = tiers[nextIndex]!
         if (focused && next !== "normal") {
           controller.runSlashCommand(focused.id, `/${next}`)
         }
@@ -1452,6 +1478,7 @@ export function App(props: AppProps): React.ReactElement {
         />
       ) : null
     if (!focused) {
+      if (preSpawnPromptSubmitted) return null
       // Pre-spawn (sessions.length === 0): render a buffered composer that
       // routes submits through `handleSubmit` (which queues into a pending
       // ref until SessionHandle materializes). Fresh startup begins spawning
@@ -1473,6 +1500,7 @@ export function App(props: AppProps): React.ReactElement {
               const trimmed = text.trim()
               if (!trimmed || props.resume) return
               pendingFirstPromptRef.current = trimmed
+              setPreSpawnPromptSubmitted(true)
               setInputValue("")
             }}
             onExit={requestExit}
@@ -1520,6 +1548,7 @@ export function App(props: AppProps): React.ReactElement {
         />
       )
     }
+    if (focused && welcomeIsFocused && welcomeSubmittedSessionIds.has(focused.id)) return null
     return renderComposer()
   }
 }

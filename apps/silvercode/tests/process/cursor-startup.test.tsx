@@ -132,6 +132,39 @@ describe("silvercode startup cursor (process harness)", () => {
     expectCursorInCommandRegion(cursor, harness.screen.getText())
   }, 30_000)
 
+  test("typing the first character on a wrapped command continuation advances the hardware cursor", async () => {
+    await using harness = await spawnSilvercode({ cols: COLS, rows: ROWS })
+    await harness.waitFor(isWelcomeReady, { timeoutMs: STARTUP_TIMEOUT_MS })
+    await harness.waitForStable({ stableMs: 400, timeoutMs: STARTUP_TIMEOUT_MS })
+
+    const start = harness.term.getCursor()
+    let atBoundary: { x: number; y: number } | null = null
+
+    for (let i = 0; i < 200; i++) {
+      harness.press("x")
+      await delay(15)
+      const cursor = harness.term.getCursor()
+      if (cursor.y > start.y) {
+        await harness.waitForStable({ stableMs: 100, timeoutMs: 3_000 })
+        atBoundary = harness.term.getCursor()
+        break
+      }
+    }
+
+    expect(atBoundary, `Command text never wrapped.\n--- screen ---\n${harness.screen.getText()}`).not.toBeNull()
+
+    harness.press("i")
+    await harness.waitForStable({ stableMs: 100, timeoutMs: 3_000 })
+
+    const afterInsert = harness.term.getCursor()
+    const commandLane = (harness.screen.getText().split("\n")[afterInsert.y] ?? "").slice(0, Math.floor(COLS * 0.7))
+    const insertedCol = commandLane.lastIndexOf("i")
+    expect(afterInsert.y, harness.screen.getText()).toBe(atBoundary!.y)
+    expect(insertedCol, harness.screen.getText()).toBeGreaterThanOrEqual(0)
+    expect(afterInsert.x, harness.screen.getText()).toBe(insertedCol + 1)
+    expect(afterInsert.x, harness.screen.getText()).toBeGreaterThan(atBoundary!.x)
+  }, 30_000)
+
   test("delayed startup updates keep the logo painted and cursor at the prompt", async () => {
     await using harness = await spawnSilvercode({
       cols: COLS,

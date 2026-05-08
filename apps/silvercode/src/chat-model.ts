@@ -1,4 +1,9 @@
-import type { MessageEntry, MessageOp, ToolResultEntry } from "@km/agent-harness"
+import {
+  messageTextFromOps,
+  type MessageEntry,
+  type MessageOp,
+  type ToolResultEntry,
+} from "@km/agent-harness/session-store"
 
 export type ChatActivityItem = {
   op: MessageOp
@@ -63,6 +68,11 @@ function toolCount(ops: readonly MessageOp[]): number {
 
 function toolName(op: MessageOp): string | null {
   return op.kind === "tool" ? op.toolCall.name : null
+}
+
+export function isInstantCompletedToolName(name: string): boolean {
+  const lower = name.toLowerCase()
+  return lower === "view_image" || lower === "view_image_tool_call" || lower === "viewimage"
 }
 
 function isWriteStdinOp(op: MessageOp): boolean {
@@ -254,6 +264,7 @@ export function splitAssistantOpsIntoDisplaySlices(ops: readonly MessageOp[]): A
 
 function activityStatusForOp(op: MessageOp): ActivityRunStatus {
   if (op.kind !== "tool") return "completed"
+  if (isInstantCompletedToolName(op.toolCall.name)) return "completed"
   if (!op.result) return "running"
   return op.result.is_error ? "failed" : "completed"
 }
@@ -378,7 +389,7 @@ function sliceMessage(message: MessageEntry, ops: MessageOp[], suffix: string): 
   })
   Object.defineProperty(out, "text", {
     get() {
-      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
+      return messageTextFromOps(ops)
     },
     enumerable: true,
     configurable: true,

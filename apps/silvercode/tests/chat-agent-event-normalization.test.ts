@@ -7,14 +7,20 @@ import {
   normalizeAgentEventsToChatEvents,
   normalizeAgentEventToChatEvents,
 } from "../src/chat/normalize-agent-event.ts"
-import type { ChatEvent, ChatEventType } from "../src/chat/types.ts"
+import type { ChatBlock, ChatEvent, ChatEventType } from "../src/chat/types.ts"
 
 function id<T>(value: string): T {
   return value as T
 }
 
-function isMessagePartAdded(event: ChatEvent): event is ChatEvent<"message.part.added"> {
-  return event.type === "message.part.added"
+function isMessageBlockAdded(event: ChatEvent): event is ChatEvent<"message.block.added"> {
+  return event.type === "message.block.added"
+}
+
+function isTextBlockAdded(
+  event: ChatEvent,
+): event is ChatEvent<"message.block.added"> & { payload: { block: Extract<ChatBlock, { type: "text" }> } } {
+  return event.type === "message.block.added" && event.payload.block.type === "text"
 }
 
 function isToolStarted(event: ChatEvent): event is ChatEvent<"tool.started"> {
@@ -108,16 +114,16 @@ describe("normalizeAgentEventToChatEvents", () => {
     expect(observed).toEqual({
       "session-init": ["session.updated", "debug.recorded"],
       "turn-start": ["message.started"],
-      "text-delta": ["message.part.added"],
-      "thinking-delta": ["message.part.added"],
+      "text-delta": ["message.block.added"],
+      "thinking-delta": ["message.block.added"],
       "tool-use": ["tool.started"],
       "tool-result": ["tool.completed"],
       "permission-request": ["permission.requested"],
       "permission-decision": ["permission.resolved"],
       "liveness-check": ["status.updated"],
       "turn-end": ["message.completed", "debug.recorded"],
-      "assistant-message": ["message.started", "message.part.added"],
-      "user-message": ["message.started", "message.part.added", "message.completed"],
+      "assistant-message": ["message.started", "message.block.added"],
+      "user-message": ["message.started", "message.block.added", "message.completed"],
       "raw-transcript": ["debug.recorded"],
       status: ["status.updated"],
       "plan-update": ["plan.updated"],
@@ -210,6 +216,34 @@ describe("normalizeAgentEventToChatEvents", () => {
     })
   })
 
+  test("omits empty session-init metadata fields instead of emitting invalid ChatEvents", () => {
+    const normalized = normalizeAgentEventToChatEvents(
+      {
+        kind: "session-init",
+        sessionId,
+        cwd: "/repo",
+        model: "codex",
+        mode: "",
+        tools: [],
+        mcp_servers: [],
+        slashCommands: [],
+        skills: [],
+        plugins: [],
+        claudeCodeVersion: "",
+        apiKeySource: "",
+        ts: 1,
+      } satisfies AgentEvent,
+      { sessionId },
+    )
+
+    expect(normalized[0]).toMatchObject({
+      type: "session.updated",
+      channel: "status",
+      payload: { model: "codex", cwd: "/repo" },
+    })
+    expect(normalized[0]?.payload).not.toHaveProperty("mode")
+  })
+
   test("coalesces duplicate assistant turn starts into Debug instead of crashing projected transcripts", () => {
     const duplicateTurnId = "msg_01GE15xRAqBbnxU9ihrxhHFk" as TurnId
 
@@ -224,13 +258,102 @@ describe("normalizeAgentEventToChatEvents", () => {
 
     expect(normalized.map((event) => [event.type, event.channel])).toEqual([
       ["message.started", "transcript"],
-      ["message.part.added", "transcript"],
+      ["message.block.added", "transcript"],
       ["debug.recorded", "debug"],
     ])
     expect(normalized[2]).toMatchObject({
       payload: { label: "Duplicate message start" },
       rawRefs: [{ raw: { kind: "turn-start", turnId: duplicateTurnId } }],
     })
+  })
+
+  test("coalesces adjacent text deltas into one exact text block", () => {
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        { kind: "turn-start", sessionId, turnId, role: "assistant", ts: 1 },
+        {
+          kind: "text-delta",
+          sessionId,
+          turnId,
+          blockIndex: 0,
+          text: "See [parse.ts](/Users/beorn/Code/pim/km/apps/silvercode/packages/agent-harness/src/parse.ts:",
+          ts: 2,
+        },
+        {
+          kind: "text-delta",
+          sessionId,
+          turnId,
+          blockIndex: 0,
+          text: "572).",
+          ts: 3,
+        },
+        { kind: "turn-end", sessionId, turnId, stopReason: "end_turn", ts: 4 },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    const textBlocks = normalized.filter(isTextBlockAdded)
+
+    expect(textBlocks).toHaveLength(1)
+    expect(textBlocks[0]?.payload.block).toMatchObject({
+      type: "text",
+      text: "See [parse.ts](/Users/beorn/Code/pim/km/apps/silvercode/packages/agent-harness/src/parse.ts:572).",
+    })
+    expect(normalized.map((event) => event.type)).toEqual([
+      "message.started",
+      "message.block.added",
+      "message.completed",
+      "debug.recorded",
+    ])
+  })
+
+  test("does not coalesce text deltas across intervening tool activity", () => {
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        { kind: "turn-start", sessionId, turnId, role: "assistant", ts: 1 },
+        { kind: "text-delta", sessionId, turnId, blockIndex: 0, text: "Before tool.", ts: 2 },
+        { kind: "tool-use", sessionId, turnId, id: toolId, name: "Read", input: { file_path: "a.ts" }, ts: 3 },
+        { kind: "tool-result", sessionId, id: toolId, output: "ok", ts: 4 },
+        { kind: "text-delta", sessionId, turnId, blockIndex: 0, text: "After tool.", ts: 5 },
+        { kind: "turn-end", sessionId, turnId, stopReason: "end_turn", ts: 6 },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    const textBlocks = normalized.filter(isTextBlockAdded)
+
+    expect(textBlocks.map((event) => event.payload.block.text)).toEqual(["Before tool.", "After tool."])
+    expect(normalized.map((event) => event.type)).toEqual([
+      "message.started",
+      "message.block.added",
+      "tool.started",
+      "tool.completed",
+      "message.block.added",
+      "message.completed",
+      "debug.recorded",
+    ])
+  })
+
+  test("keeps provider aggregate text blocks as separate semantic blocks", () => {
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        {
+          kind: "assistant-message",
+          sessionId,
+          turnId,
+          content: [
+            { type: "text", text: "First paragraph." },
+            { type: "text", text: "Second paragraph." },
+          ],
+          ts: 1,
+        },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    const textBlocks = normalized.filter(isTextBlockAdded)
+
+    expect(textBlocks.map((event) => event.payload.block.text)).toEqual(["First paragraph.", "Second paragraph."])
   })
 
   test("merges aggregate-only tool_use blocks into a streamed assistant turn", () => {
@@ -287,7 +410,9 @@ describe("normalizeAgentEventToChatEvents", () => {
       "toolu_3",
       "toolu_4",
     ])
-    expect(normalized.filter(isMessagePartAdded).filter((event) => event.payload.part.type === "text")).toHaveLength(2)
+    expect(normalized.filter(isMessageBlockAdded).filter((event) => event.payload.block.type === "text")).toHaveLength(
+      2,
+    )
   })
 
   test("coalesces split assistant aggregates when projected session id differs from provider session id", () => {
@@ -343,24 +468,24 @@ describe("normalizeAgentEventToChatEvents", () => {
 
     expect(normalized.map((event) => [event.type, event.channel])).toEqual([
       ["message.started", "transcript"],
-      ["message.part.added", "transcript"],
-      ["message.part.added", "transcript"],
+      ["message.block.added", "transcript"],
+      ["message.block.added", "transcript"],
       ["tool.started", "activity"],
-      ["message.part.added", "transcript"],
+      ["message.block.added", "transcript"],
       ["tool.completed", "error"],
       ["tool.started", "activity"],
-      ["message.part.added", "transcript"],
+      ["message.block.added", "transcript"],
       ["message.completed", "transcript"],
       ["debug.recorded", "debug"],
     ])
     expect(normalized.every((event) => event.sessionId === projectedSessionId)).toBe(true)
-    const partIds = normalized.filter(isMessagePartAdded).map((event) => event.payload.partId)
-    expect(new Set(partIds).size).toBe(partIds.length)
+    const blockIds = normalized.filter(isMessageBlockAdded).map((event) => event.payload.blockId)
+    expect(new Set(blockIds).size).toBe(blockIds.length)
     expect(normalized.filter(isToolStarted).map((event) => event.payload.name)).toEqual(["Read", "Bash"])
     expect(normalized.filter((event) => event.type === "message.completed")).toHaveLength(1)
     expect(normalized[2]).toMatchObject({
-      type: "message.part.added",
-      payload: { part: { type: "text", text: "Picking up the suggested agenda." } },
+      type: "message.block.added",
+      payload: { block: { type: "text", text: "Picking up the suggested agenda." } },
       rawRefs: [{ raw: { kind: "assistant-message", turnId: splitMessageId } }],
     })
     expect(() =>

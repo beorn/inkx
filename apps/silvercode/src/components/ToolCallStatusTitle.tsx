@@ -11,9 +11,10 @@
  */
 
 import React from "react"
-import { Box, Text } from "silvery"
+import { Box, Text, useBoxRect } from "silvery"
 import type { ToolCallStatus, ToolKind } from "@km/agent-harness"
 import { LinkifiedText } from "./LinkifiedText.tsx"
+import { useContentLayout } from "./Content.tsx"
 
 // =============================================================================
 // Component
@@ -41,6 +42,14 @@ export interface ToolCallStatusTitleProps {
   wrap?: "truncate" | "wrap"
 }
 
+function truncateText(text: string, width: number, wrap: "truncate" | "wrap"): string {
+  if (wrap !== "truncate" || width <= 0) return text
+  const chars = Array.from(text)
+  if (chars.length <= width) return text
+  if (width <= 1) return "…"
+  return `${chars.slice(0, width - 1).join("")}…`
+}
+
 export function ToolCallStatusTitle({
   status: _status,
   kind: _kind,
@@ -52,11 +61,17 @@ export function ToolCallStatusTitle({
   wrap = "truncate",
 }: ToolCallStatusTitleProps): React.ReactElement {
   const text = label ?? title
+  const rect = useBoxRect()
+  const layout = useContentLayout()
+  const fallbackWidth = Math.max(0, layout.measure - 2)
+  const measuredWidth = Math.floor(rect.width)
+  const maxWidth = measuredWidth > 0 && fallbackWidth > 0 ? Math.min(measuredWidth, fallbackWidth) : fallbackWidth
+  const displayText = truncateText(text, maxWidth, wrap)
 
   if (shell) {
     return (
       <Box flexShrink={1} minWidth={0}>
-        <LinkifiedText text={text} color={color ?? "$muted"} wrap={wrap} />
+        <LinkifiedText text={displayText} color={color ?? "$muted"} wrap={wrap} />
       </Box>
     )
   }
@@ -64,10 +79,10 @@ export function ToolCallStatusTitle({
   return (
     <Box flexShrink={1} minWidth={0}>
       {linkify ? (
-        <LinkifiedText text={text} color={color ?? "$muted"} wrap={wrap} />
+        <LinkifiedText text={displayText} color={color ?? "$muted"} wrap={wrap} />
       ) : (
         <Text color={color ?? "$muted"} wrap={wrap}>
-          {text}
+          {displayText}
         </Text>
       )}
     </Box>

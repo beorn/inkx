@@ -18,7 +18,7 @@ import { createRenderer, createTermless } from "@silvery/test"
 import { Box, Text } from "silvery"
 import { run } from "silvery/runtime"
 import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
-import { ToolCall } from "../src/components/ToolCall.tsx"
+import { ToolCall, ToolContentForceExpandedProvider } from "../src/components/ToolCall.tsx"
 
 const id = (s: string) => s as ToolCallId
 
@@ -276,6 +276,49 @@ describe("ToolCall v2 — body preview and toggle", () => {
 // =============================================================================
 
 describe("ToolCall v2 — failed shell status is visible", () => {
+  test("failed command-shaped tool with missing kind still renders as shell", () => {
+    const app = freshRender()(
+      <ToolCall
+        toolCall={tc({
+          kind: "other",
+          status: "failed",
+          title: "bun -e 'await import(\"./apps/silvercode/src/test/render-harness.tsx\")'",
+          rawOutput: { exitCode: 1 },
+        })}
+        errorMessage="script failed"
+      />,
+    )
+
+    expect(app.text).toMatch(/\$\s+bun -e/)
+    expect(app.text).not.toMatch(/•\s+bun -e/)
+    expect(app.text).toContain("error: bun exited with code 1")
+  })
+
+  test("failed shell with ansi-only content does not reserve an empty expanded block", () => {
+    const app = freshRender()(
+      <Box flexDirection="column">
+        <ToolCall
+          defaultExpanded
+          toolCall={tc({
+            kind: "execute",
+            status: "failed",
+            title: "bun -e 'noop'",
+            rawOutput: { exitCode: 1 },
+            content: [{ type: "content", content: { type: "text", text: "\x1b[31m\x1b[0m\n".repeat(20) } }],
+          })}
+          errorMessage="script failed"
+        />
+        <Text>NEXT-ROW</Text>
+      </Box>,
+    )
+
+    const lines = app.text.split("\n")
+    const commandRow = lines.findIndex((line) => line.includes("bun -e"))
+    const nextRow = lines.findIndex((line) => line.includes("NEXT-ROW"))
+    expect(commandRow).toBeGreaterThanOrEqual(0)
+    expect(nextRow).toBeLessThanOrEqual(commandRow + 3)
+  })
+
   test("failed Bash: command row and marker render in error color", () => {
     const app = freshRender()(
       <ToolCall
@@ -365,6 +408,107 @@ describe("ToolCall v2 — failed shell status is visible", () => {
     expect(app.text).not.toContain("exit 1")
   })
 
+  test("failed calls render output content behind compact scroll when details are force-expanded", () => {
+    const output = Array.from({ length: 40 }, (_, i) => `TRACE-LINE-${i + 1}`).join("\n")
+    const app = createRenderer({ cols: 100, rows: 30 })(
+      <ToolContentForceExpandedProvider value>
+        <ToolCall
+          toolCall={tc({
+            kind: "execute",
+            status: "failed",
+            title: "bun test",
+            rawOutput: { exitCode: 1 },
+            content: [{ type: "content", content: { type: "text", text: output } }],
+          })}
+          errorMessage="AssertionError: expected false to be true"
+        />
+      </ToolContentForceExpandedProvider>,
+    )
+
+    expect(app.text).toContain("TRACE-LINE-1")
+    expect(app.text).not.toContain("TRACE-LINE-29")
+    expect(app.text).toContain("▼")
+    expect(app.text).not.toContain("error: test exited with code 1")
+    expect(app.text).not.toContain("AssertionError: expected false to be true")
+  })
+
+  test("failed call does not disclose duplicate error body", async () => {
+    using term = createTermless({ cols: 100, rows: 20 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <ToolCall
+          toolCall={tc({
+            kind: "execute",
+            status: "failed",
+            title: "npx tsc --noEmit",
+            content: [
+              {
+                type: "content",
+                content: {
+                  type: "text",
+                  text: "apps/silvercode/tests/process/live-visual-stream.test.tsx(24,10): error TS2352",
+                },
+              },
+            ],
+          })}
+          errorMessage="apps/silvercode/tests/process/live-visual-stream.test.tsx(24,10): error TS2352"
+        />
+        <Text>NEXT-ROW</Text>
+      </Box>,
+      term,
+      { mouse: true } as never,
+    )
+    try {
+      await settle(80)
+      const before = term.screen.getText()
+      expect(before.match(/error TS2352/g)?.length).toBe(1)
+      const rowIdx = term.screen.getLines().findIndex((l) => l.includes("npx tsc --noEmit"))
+      expect(rowIdx).toBeGreaterThanOrEqual(0)
+      const col = term.screen.getLines()[rowIdx]!.indexOf("npx")
+      await term.mouse.click(col + 1, rowIdx)
+      await settle(80)
+      const after = term.screen.getText()
+      expect(after.match(/error TS2352/g)?.length).toBe(1)
+      expect(term.screen.getLines().findIndex((l) => l.includes("NEXT-ROW"))).toBe(rowIdx + 2)
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("failed Bash caps verbose inline error output", () => {
+    const errorMessage = [
+      "RUN v4.1.4 /Users/beorn/Code/pim/km",
+      "",
+      "stdout | apps/silvercode/tests/welcome-no-remount.test.tsx",
+      "02:52:42 DEBUG silvercode:claude-version probed { elapsedMs: 38, version: '2.1.133' }",
+      "",
+      "------- Failed Tests 1 -------",
+      "FAIL apps/silvercode/tests/welcome-no-remount.test.tsx:91:1 > welcome composer survives remount",
+      "AssertionError: expected '' to contain 'composer-probe'",
+      "",
+      "Test Files 1 failed (1)",
+      "Tests 1 failed | 1 passed (2)",
+    ].join("\n")
+    const app = createRenderer({ cols: 120, rows: 30 })(
+      <ToolCall
+        toolCall={tc({
+          kind: "execute",
+          status: "failed",
+          title: "bun vitest run apps/silvercode/tests/welcome-no-remount.test.tsx",
+          rawOutput: { exitCode: 1 },
+        })}
+        errorMessage={errorMessage}
+      />,
+    )
+
+    expect(app.text).toContain("error: vitest exited with code 1")
+    expect(app.text).toContain("RUN v4.1.4")
+    expect(app.text).toContain("stdout | apps/silvercode/tests/welcome-no-remount.test.tsx")
+    expect(app.text).toContain("... 7 more lines")
+    expect(app.text).not.toContain("AssertionError: expected")
+    expect(app.text).not.toContain("Test Files 1 failed")
+  })
+
   test("expanded Bash command and output are muted and not bold", () => {
     const app = freshRender()(
       <ToolCall
@@ -424,9 +568,10 @@ describe("ToolCall v2 — failed shell status is visible", () => {
     )
 
     expect(app.text).toContain("line-01")
-    expect(app.text).toContain("line-29")
+    expect(app.text).not.toContain("line-29")
     expect(app.text).not.toContain("line-60")
     expect(app.text).not.toContain("more lines")
+    expect(app.text).toContain("▼")
   })
 
   test("expanded command collapses when clicking the row background after the title", async () => {

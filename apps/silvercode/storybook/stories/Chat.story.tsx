@@ -109,32 +109,32 @@ export const chatTurnComponents: Story = {
   id: "Chat/turn-components",
   component: "Chat",
   variant: "turn-components",
-  description: "Direct Chat.Turn.* hierarchy with prompt, narration, activity, summary, and stats.",
+  description: "Direct Chat.* hierarchy with prompt, narration, activity, summary, and stats.",
   render() {
     return (
       <Screen flexDirection="column">
-        <Chat.Root>
-          <Chat.Transcript>
+        <Chat.Pane>
+          <Chat.Session>
             <Chat.Metadata>
               <Chat.Body width="prose">
                 <Text color="$muted">Session resumed 019ddfc8…389f</Text>
               </Chat.Body>
             </Chat.Metadata>
-            <Chat.Turn.Root>
-              <Chat.Turn.Prompt
+            <Chat.Message>
+              <Chat.Prompt
                 text={"Can you refactor the transcript into Chat.*?\n\n- preserve stream order\n- keep layout generic"}
               />
-              <Chat.Turn.Segment>
-                <Chat.Turn.Narration text="I will add the semantic component family first, then migrate the list." />
-                <Chat.Turn.Activity items={directActivityItems} />
-              </Chat.Turn.Segment>
-              <Chat.Turn.Summary>
-                <Chat.Turn.Narration text="The transcript now renders through Chat.Turn.* while Content.* still owns lanes." />
-                <Chat.Turn.Stats>2 tools · 1 test file · prose lane</Chat.Turn.Stats>
-              </Chat.Turn.Summary>
-            </Chat.Turn.Root>
-          </Chat.Transcript>
-        </Chat.Root>
+              <Chat.Block>
+                <Chat.Narration text="I will add the semantic component family first, then migrate the list." />
+                <Chat.Activity items={directActivityItems} />
+              </Chat.Block>
+              <Chat.Summary>
+                <Chat.Narration text="The transcript now renders through Chat.* while Content.* still owns lanes." />
+                <Chat.Stats>2 tools · 1 test file · prose lane</Chat.Stats>
+              </Chat.Summary>
+            </Chat.Message>
+          </Chat.Session>
+        </Chat.Pane>
       </Screen>
     )
   },
@@ -149,29 +149,29 @@ export const chatStateVariants: Story = {
   render() {
     return (
       <Screen flexDirection="column">
-        <Chat.Root>
-          <Chat.Transcript>
-            <Chat.Turn.Root>
+        <Chat.Pane>
+          <Chat.Session>
+            <Chat.Message>
               <StorySection label="prompt-only">
-                <Chat.Turn.Prompt text="Review the chat projection model." />
+                <Chat.Prompt text="Review the chat projection model." />
               </StorySection>
               <StorySection label="narration-only">
-                <Chat.Turn.Segment>
-                  <Chat.Turn.Narration text="I am tracing the session state before changing components." />
-                </Chat.Turn.Segment>
+                <Chat.Block>
+                  <Chat.Narration text="I am tracing the session state before changing components." />
+                </Chat.Block>
               </StorySection>
               <StorySection label="narration-activity-narration">
-                <Chat.Turn.Segment>
-                  <Chat.Turn.Narration text="First I inspect the model." />
-                  <Chat.Turn.Activity items={directActivityItems} />
-                  <Chat.Turn.Narration text="Then I update the projection." />
-                </Chat.Turn.Segment>
+                <Chat.Block>
+                  <Chat.Narration text="First I inspect the model." />
+                  <Chat.Activity items={directActivityItems} />
+                  <Chat.Narration text="Then I update the projection." />
+                </Chat.Block>
               </StorySection>
               <StorySection label="dense-activity">
-                <Chat.Turn.Activity items={denseActivityItems} />
+                <Chat.Activity items={denseActivityItems} />
               </StorySection>
               <StorySection label="queued-prompt">
-                <Chat.Turn.Prompt text="Also update Storybook with all variants." />
+                <Chat.Prompt text="Also update Storybook with all variants." />
               </StorySection>
               <StorySection label="notification">
                 <Chat.Notification>
@@ -186,14 +186,14 @@ export const chatStateVariants: Story = {
                 </Chat.Composer>
               </StorySection>
               <StorySection label="summary-stats">
-                <Chat.Turn.Summary>
-                  <Chat.Turn.Narration text="The projection now treats turns as idle-delimited UI groups." />
-                  <Chat.Turn.Stats>2 prompts · 11 tools · 4.2s · 3.1k tokens</Chat.Turn.Stats>
-                </Chat.Turn.Summary>
+                <Chat.Summary>
+                  <Chat.Narration text="The projection now treats turns as idle-delimited UI groups." />
+                  <Chat.Stats>2 prompts · 11 tools · 4.2s · 3.1k tokens</Chat.Stats>
+                </Chat.Summary>
               </StorySection>
-            </Chat.Turn.Root>
-          </Chat.Transcript>
-        </Chat.Root>
+            </Chat.Message>
+          </Chat.Session>
+        </Chat.Pane>
       </Screen>
     )
   },
@@ -207,25 +207,25 @@ export const chatIdleDelimitedTurn: Story = {
   render() {
     return (
       <Screen flexDirection="column">
-        <Chat.Root>
-          <Chat.Transcript>
-            <Chat.Turn.Root>
-              <Chat.Turn.Prompt text="Start the refactor." />
-              <Chat.Turn.Segment>
-                <Chat.Turn.Narration text="I am updating the model first." />
-                <Chat.Turn.Activity items={directActivityItems.slice(0, 1)} />
-              </Chat.Turn.Segment>
-              <Chat.Turn.Prompt text="Also update the docs and Storybook." />
-              <Chat.Turn.Segment>
-                <Chat.Turn.Narration text="I will keep that prompt inside the same active turn until both sides go idle." />
-                <Chat.Turn.Activity items={directActivityItems.slice(1)} />
-              </Chat.Turn.Segment>
-              <Chat.Turn.Summary>
-                <Chat.Turn.Stats>2 prompts · 2 tools · one idle-delimited turn</Chat.Turn.Stats>
-              </Chat.Turn.Summary>
-            </Chat.Turn.Root>
-          </Chat.Transcript>
-        </Chat.Root>
+        <Chat.Pane>
+          <Chat.Session>
+            <Chat.Message>
+              <Chat.Prompt text="Start the refactor." />
+              <Chat.Block>
+                <Chat.Narration text="I am updating the model first." />
+                <Chat.Activity items={directActivityItems.slice(0, 1)} />
+              </Chat.Block>
+              <Chat.Prompt text="Also update the docs and Storybook." />
+              <Chat.Block>
+                <Chat.Narration text="I will keep that prompt inside the same active turn until both sides go idle." />
+                <Chat.Activity items={directActivityItems.slice(1)} />
+              </Chat.Block>
+              <Chat.Summary>
+                <Chat.Stats>2 prompts · 2 tools · one idle-delimited turn</Chat.Stats>
+              </Chat.Summary>
+            </Chat.Message>
+          </Chat.Session>
+        </Chat.Pane>
       </Screen>
     )
   },
@@ -282,8 +282,8 @@ export const chatPlanDrawer: Story = {
     }
     return (
       <Screen flexDirection="column">
-        <Chat.Root>
-          <Chat.Transcript>
+        <Chat.Pane>
+          <Chat.Session>
             <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
               <Chat.Composer>
                 <Box flexDirection="column" gap={1} width="100%" minWidth={0}>
@@ -305,8 +305,8 @@ export const chatPlanDrawer: Story = {
                 </Box>
               </Chat.Composer>
             </Box>
-          </Chat.Transcript>
-        </Chat.Root>
+          </Chat.Session>
+        </Chat.Pane>
       </Screen>
     )
   },

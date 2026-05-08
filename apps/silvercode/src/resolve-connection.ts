@@ -182,6 +182,9 @@ function builtinEntry(id: string): AcpEntry {
     agent: builtin.id,
   }
   if (builtin.defaultModel) (entry as { model?: string }).model = builtin.defaultModel
+  if (builtin.defaultReasoningEffort) entry.reasoning_effort = builtin.defaultReasoningEffort
+  if (builtin.defaultPermissionPolicy) entry.permission_policy = builtin.defaultPermissionPolicy
+  if (builtin.defaultSessionConfig) entry.session_config = { ...builtin.defaultSessionConfig }
   if (builtin.transport === "spawn") (entry as { transport?: string }).transport = "spawn"
   return entry
 }

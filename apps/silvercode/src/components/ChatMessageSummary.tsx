@@ -283,12 +283,24 @@ export function ChatMessageSummary({
             <Box flexDirection="column">
               {details ??
                 items.map((item) => (
-                  <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />
+                  <ToolCall
+                    key={item.id}
+                    toolCall={item.toolCall}
+                    errorMessage={item.errorMessage}
+                    defaultExpanded={item.toolCall.status === "failed"}
+                  />
                 ))}
             </Box>
           ) : (
             (details ??
-            items.map((item) => <ToolCall key={item.id} toolCall={item.toolCall} errorMessage={item.errorMessage} />))
+            items.map((item) => (
+              <ToolCall
+                key={item.id}
+                toolCall={item.toolCall}
+                errorMessage={item.errorMessage}
+                defaultExpanded={item.toolCall.status === "failed"}
+              />
+            )))
           )}
         </ToolContentForceExpandedProvider>
       </ToolMarkerBackgroundProvider>

@@ -11,7 +11,7 @@ import {
   usePopoverHandlers,
   useStdout,
 } from "silvery"
-import { BackgroundPane } from "./BackgroundPane.tsx"
+import { BackgroundJobsPane } from "./BackgroundJobsPane.tsx"
 import type { Controller, SessionHandle } from "../controller.ts"
 import { planLabel, type QuotaWindow, windowShortLabel } from "../claude-account.ts"
 import { getClaudeVersion } from "../claude-version.ts"
@@ -31,7 +31,7 @@ import {
 import { gitBranchFor } from "../git-branch.ts"
 import { useNotificationMuteState } from "../hooks/use-notification-stream.ts"
 import { useAllAccounts } from "../hooks/use-all-accounts.ts"
-import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
+import { useBackgroundJobs } from "../hooks/use-background-jobs.ts"
 import { useClaudeAccount } from "../hooks/use-claude-account.ts"
 import { useStoreSignal } from "../hooks/use-store-signal.ts"
 import { isTransientAccountError, type AccountSummary } from "../account-status.ts"
@@ -1016,22 +1016,22 @@ function EmptySidePanel({
       defaultModel={defaultModel}
       debugChannelVisible={debugChannelVisible}
       onDebugChannelVisibleChange={onDebugChannelVisibleChange}
-      backgroundTasks={EMPTY_BACKGROUND_TASKS}
+      backgroundJobs={EMPTY_BACKGROUND_JOBS}
     />
   )
 }
 
-const EMPTY_BACKGROUND_TASKS: ReadonlyArray<never> = []
+const EMPTY_BACKGROUND_JOBS: ReadonlyArray<never> = []
 
 /**
- * Focused variant — wires per-session signals (state + background tasks)
+ * Focused variant — wires per-session signals (state + background jobs)
  * and delegates to SidePanelChrome. The hooks live here so they only run
  * when there's an actual session to subscribe to.
  */
 function FocusedSidePanel({ focused, ...rest }: SidePanelProps & { focused: SessionHandle }): React.ReactElement {
   const state = useStoreSignal(focused.store)
-  const backgroundTasks = useBackgroundTasks(rest.controller, focused.id)
-  return <SidePanelChrome {...rest} focusedId={focused.id} state={state} backgroundTasks={backgroundTasks} />
+  const backgroundJobs = useBackgroundJobs(rest.controller, focused.id)
+  return <SidePanelChrome {...rest} focusedId={focused.id} state={state} backgroundJobs={backgroundJobs} />
 }
 
 type SidePanelChromeProps = Omit<SidePanelProps, "focused"> & {
@@ -1039,13 +1039,13 @@ type SidePanelChromeProps = Omit<SidePanelProps, "focused"> & {
   focusedId: string
   /** Null when no focused session. */
   state: import("@km/agent-harness").SessionState | null
-  backgroundTasks: ReadonlyArray<import("../controller.ts").BackgroundTask>
+  backgroundJobs: ReadonlyArray<import("../controller.ts").BackgroundJob>
 }
 
 function SidePanelChrome({
   focusedId,
   state,
-  backgroundTasks,
+  backgroundJobs,
   sessions,
   focusedSessionId,
   onFocusSession,
@@ -1128,11 +1128,11 @@ function SidePanelChrome({
     return n + bg.length
   }, 0)
 
-  // Background tasks (Ctrl-B): backgrounded turns for this session. Total =
-  // every task in the session's history (running + terminal); running =
-  // those still streaming. The Background row only renders when total > 0.
-  const bgRunning = backgroundTasks.filter((t) => t.status === "running").length
-  const bgTotal = backgroundTasks.length
+  // Background jobs: provider-native background work for this session.
+  // The old Ctrl-B synthetic backgrounding path is disabled; the row only
+  // renders if a backend/future path records jobs here.
+  const bgRunning = backgroundJobs.filter((job) => job.status === "running").length
+  const bgTotal = backgroundJobs.length
 
   const branch = useMemo(() => gitBranchFor(cwd), [cwd])
   const cwdLabel = `${shortCwd(cwd)}${branch ? `:${branch}` : ""}`
@@ -1162,7 +1162,7 @@ function SidePanelChrome({
         <Text>
           <Muted>• </Muted>
           <Text>/handoff &lt;prompt&gt;</Text>
-          <Muted> — move task + context</Muted>
+          <Muted> — move work + context</Muted>
         </Text>
         <Text>
           <Muted>• </Muted>
@@ -1207,20 +1207,20 @@ function SidePanelChrome({
     ),
     maxWidth: 52,
   })
-  // Background tasks (Ctrl-B). The popover shows the live BackgroundPane so
-  // the user can cancel / foreground without leaving the SidePanel hover.
+  // Background jobs. The popover shows the live BackgroundJobsPane so the
+  // user can cancel / inspect without leaving the SidePanel hover.
   const backgroundHover = usePopoverHandlers({
     body: (
       <Box flexDirection="column" gap={1}>
-        <Text bold>Background tasks</Text>
+        <Text bold>Background jobs</Text>
         <Muted>
-          Press <Text>Ctrl-B</Text> during a running turn to push it into the background. The turn keeps streaming; when
-          it completes, the result lands in the conversation as a system message.
+          Synthetic Ctrl-B backgrounding is disabled until the active backend exposes a stable native job id. Native
+          background jobs will appear here when available.
         </Muted>
-        <BackgroundPane
-          tasks={backgroundTasks}
-          onCancel={(id) => focusedId && controller.cancelBackgroundTask(focusedId, id)}
-          onForeground={(id) => focusedId && controller.foregroundTask(focusedId, id)}
+        <BackgroundJobsPane
+          jobs={backgroundJobs}
+          onCancel={(id) => focusedId && controller.cancelBackgroundJob(focusedId, id)}
+          onShow={(id) => focusedId && controller.surfaceBackgroundJob(focusedId, id)}
         />
       </Box>
     ),
@@ -1433,9 +1433,8 @@ function SidePanelChrome({
         onDebugChannelVisibleChange={onDebugChannelVisibleChange}
       />
 
-      {/* Background tasks — Ctrl-B during a running turn pushes the in-flight
-          turn into the background so the user can keep typing. The row only
-          shows once at least one task exists in this session. The "running /
+      {/* Background jobs — provider-native background work. The row only
+          shows once at least one job exists in this session. The "running /
           total" pattern matches Agents/Shells above. */}
       {bgTotal > 0 && (
         <>

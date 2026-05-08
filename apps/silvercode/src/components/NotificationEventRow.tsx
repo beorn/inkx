@@ -35,7 +35,7 @@ import { BoundedScroll } from "./BoundedScroll.tsx"
 import { Content, useHasContentLayout } from "./Content.tsx"
 import { LinkedTerm } from "./LinkedTerm.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
-import type { NotificationStreamEntry } from "../notification-stream.ts"
+import type { ChannelNotification } from "../notification-stream.ts"
 
 /**
  * Source presentation: one neutral label per source. The row intentionally
@@ -304,6 +304,9 @@ function dedupeSourcePrefix(label: string, source: string, preview: string): str
     return value
   }
   const stripSourceTags = (value: string): string => {
+    if (source === "tribe" && /^\[tribe\s+[^\]]+\]\s+/i.test(value.trim())) {
+      return value.trim()
+    }
     const sourceTokens = new Set(
       [label, source, source.replace(/-/g, " "), source.replace(/-/g, "")]
         .flatMap((part) => part.split(/\s+/))
@@ -354,6 +357,13 @@ function dedupeSourcePrefix(label: string, source: string, preview: string): str
 
 function compactTribePreview(preview: string): string {
   let out = preview.replace(/\s+/g, " ").trim()
+  const tribe = out.match(/^\[tribe\s+([^\]]+)\]\s*(.+)$/i)
+  if (tribe) {
+    const sender = (tribe[1] ?? "").trim()
+    const body = (tribe[2] ?? "").trim()
+    out = sender.length > 0 ? `${sender}: ${body}` : body
+  }
+
   const legacy = out.match(/^\[(dm|broadcast|session)\s+([^\]]+)\]\s*(.+)$/i)
   if (legacy) {
     const sender = (legacy[2] ?? "").trim()
@@ -379,18 +389,18 @@ function normalizeDisclosureText(text: string): string {
   return text.replace(/\s+/g, " ").trim()
 }
 
-function notificationHref(entry: NotificationStreamEntry): string | undefined {
+function notificationHref(entry: ChannelNotification): string | undefined {
   const href = entry.meta?.["href"]
   return typeof href === "string" && /^https?:\/\//.test(href) ? href : undefined
 }
 
-function notificationDetails(entry: NotificationStreamEntry): string | undefined {
+function notificationDetails(entry: ChannelNotification): string | undefined {
   const details = entry.meta?.["details"]
   return typeof details === "string" && details.trim().length > 0 ? details : undefined
 }
 
 export interface NotificationEventRowProps {
-  entry: NotificationStreamEntry
+  entry: ChannelNotification
   previewOverride?: string
   bodyOverride?: string
   /** When true, the full body is rendered inline below the row. */
@@ -400,8 +410,8 @@ export interface NotificationEventRowProps {
 }
 
 type NotificationStackItem =
-  | { kind: "single"; entry: NotificationStreamEntry }
-  | { kind: "group"; key: string; entries: readonly NotificationStreamEntry[]; preview: string; body: string }
+  | { kind: "single"; entry: ChannelNotification }
+  | { kind: "group"; key: string; entries: readonly ChannelNotification[]; preview: string; body: string }
 
 function isFilewatchSource(source: string): boolean {
   return source === "filewatch" || source === "file-watch"
@@ -434,7 +444,7 @@ function groupKeyFor(source: string, preview: string): string {
   return `${source}:${canonical}`
 }
 
-function groupNotificationEntries(entries: readonly NotificationStreamEntry[]): NotificationStackItem[] {
+function groupNotificationEntries(entries: readonly ChannelNotification[]): NotificationStackItem[] {
   const items: NotificationStackItem[] = []
   const byKey = new Map<string, Extract<NotificationStackItem, { kind: "group" }>>()
 
@@ -471,7 +481,7 @@ function groupNotificationEntries(entries: readonly NotificationStreamEntry[]): 
   })
 }
 
-export function NotificationStack({ entries }: { entries: readonly NotificationStreamEntry[] }): React.ReactElement {
+export function NotificationStack({ entries }: { entries: readonly ChannelNotification[] }): React.ReactElement {
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
   const hasContentLayout = useHasContentLayout()
   const toggle = (id: string): void => {
@@ -634,10 +644,9 @@ export function NotificationEventRow({
         </Box>
       </SessionEntry>
       {/* Expanded body — full payload, indented to align under the row text.
-          Same surface bg so it reads as a continuation
-          of the row, not a separate block. Bounded to 30 visible rows
-          with kinetic-scroll past that bound — a chatty filewatch burst
-          shouldn't push 200 lines of "X changed" into the chat. */}
+          Same surface bg so it reads as a continuation of the row, not a
+          separate block. Bounded with kinetic-scroll past that bound so a
+          chatty filewatch burst does not push 200 lines into the chat. */}
       {expanded && clickable ? (
         <Box flexDirection="column" paddingBottom={0}>
           <BoundedScroll>

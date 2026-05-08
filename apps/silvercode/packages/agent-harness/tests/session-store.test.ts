@@ -10,7 +10,8 @@
  *
  * These tests pin:
  *   1. Codex-shape interleave (text/tool/text/tool) → 4 ops in arrival order.
- *   2. Claude-shape coalesce (text×3 + tool×2) → 1 text op + 2 tool ops.
+ *   2. Claude-shape text deltas coalesce for display while replayed
+ *      aggregate text blocks keep explicit semantic boundaries.
  *   3. tool-result on a later turn attaches to the originating tool op.
  *   4. Backward-compat: `.text` / `.toolCalls` / `.toolResults` projections
  *      still resolve correctly even with interleaving.
@@ -267,6 +268,28 @@ describe("session-store — ops-order preservation (codex bundling fix)", () => 
     expect(msg.ops[1]).toMatchObject({ kind: "tool", toolCall: { id: tu(1), name: "Read" } })
     expect(msg.ops[2]).toMatchObject({ kind: "text", text: "Then grep:" })
     expect(msg.ops[3]).toMatchObject({ kind: "tool", toolCall: { id: tu(2), name: "Grep" } })
+  })
+
+  test("resumed transcript: adjacent aggregate text blocks stay separate semantic ops", () => {
+    const store = createSessionStore()
+    const t = tid(1)
+    store.apply({
+      kind: "assistant-message",
+      sessionId: sid,
+      turnId: t,
+      content: [
+        { type: "text", text: "First paragraph." },
+        { type: "text", text: "Second paragraph." },
+      ],
+      ts: 0,
+    })
+
+    const msg = store.state.get().messages[0]!
+    expect(msg.ops).toEqual([
+      { kind: "text", text: "First paragraph.", ts: 0, boundary: "semantic" },
+      { kind: "text", text: "Second paragraph.", ts: 0, boundary: "semantic" },
+    ])
+    expect(msg.text).toBe("First paragraph.\n\nSecond paragraph.")
   })
 
   test("resumed transcript: split assistant aggregates with the same message id append into one turn", () => {

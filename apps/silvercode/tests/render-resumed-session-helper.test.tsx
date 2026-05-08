@@ -62,10 +62,50 @@ describe("renderResumedSession", () => {
     const text = stripAnsi(session.text)
     expect(session.messages.length).toBeGreaterThan(0)
     expect(text).toContain("make a plan of 4 todos, and then do them")
-    expect(text).toContain("Ran 11 commands")
+    expect(text).toContain("Ran 5 commands · Updated 4 todos")
     expect(text.split("\n").filter((line) => line.trim().length > 0).length).toBeGreaterThan(5)
     session.dispose()
   })
+
+  test("renders the real claude id-path sleep subagents without duplicate activity spam", () => {
+    const session = renderResumedSession({
+      resume: "claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+      cols: 100,
+      rows: 400,
+      follow: "end",
+      includeMetadata: true,
+    })
+
+    const text = stripAnsi(session.text)
+    expect(text).not.toMatch(/Agent completed - Sleep 20s #[0-9]/)
+    expect(text).toMatch(/Agent completed - agent [0-9]: done sleeping 20s/)
+    session.dispose()
+  }, 30_000)
+
+  test("dedupes replay bookkeeping metadata in the real claude id-path session", () => {
+    const session = renderResumedSession({
+      resume: "claude:f9eb64dc-d982-4a46-9a8e-da5fd882ac5f",
+      cols: 100,
+      rows: 400,
+      follow: "end",
+      includeMetadata: true,
+    })
+
+    const lines = stripAnsi(session.text).split("\n")
+    for (let i = 1; i < lines.length; i++) {
+      const previous = lines[i - 1]!.trim()
+      const current = lines[i]!.trim()
+      expect(
+        current === previous &&
+          (current.includes("Title: id-path") ||
+            current.includes("AI title: Build architectural decision skill") ||
+            current.includes("Permission mode: auto") ||
+            current.includes("Queue dequeue")),
+        `duplicate adjacent replay metadata at rows ${i - 1}/${i}: ${current}`,
+      ).toBe(false)
+    }
+    session.dispose()
+  }, 30_000)
 
   test("does not visibly scroll down after the resumed transcript first appears", async () => {
     const visibleFirstLine = (text: string): string | undefined =>
@@ -142,7 +182,7 @@ describe("renderResumedSession", () => {
     })
 
     const beforeLines = stripAnsi(session.text).split("\n")
-    const summaryLabel = "Ran 5 commands · Updated 5 todos"
+    const summaryLabel = "Ran 5 commands · Updated 4 todos"
     const summaryRow = beforeLines.findIndex((line) => line.includes(summaryLabel))
     expect(summaryRow, session.text).toBeGreaterThanOrEqual(0)
     const summaryCol = beforeLines[summaryRow]!.indexOf(summaryLabel)

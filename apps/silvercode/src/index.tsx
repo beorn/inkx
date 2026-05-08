@@ -13,7 +13,14 @@ function startupTick(label: string, extra?: Record<string, unknown>): void {
   startupLog.info?.(label, { elapsedMs: Date.now() - bootT0, ...extra })
 }
 startupTick("indexModuleEvaluated")
-import { AcpEntryKind, BUILTIN_AGENTS, McpKind, type AcpEntry, type McpEntry } from "./config-schema.ts"
+import {
+  AcpEntryKind,
+  BUILTIN_AGENTS,
+  McpKind,
+  type AcpEntry,
+  type McpEntry,
+  type SessionConfigValue,
+} from "./config-schema.ts"
 import { runDoctor, severityToExitCode, CHECKER_NAMES } from "./doctor/index.ts"
 import { renderReport } from "./doctor/render.ts"
 import { resolveConnection } from "./resolve-connection.ts"
@@ -65,6 +72,13 @@ function expandHomePath(p: string): string {
   if (p === "~") return home
   if (p.startsWith("~/")) return `${home}/${p.slice(2)}`
   return p
+}
+
+function sessionConfigFromEntry(entry: AcpEntry): Record<string, SessionConfigValue> | undefined {
+  const out: Record<string, SessionConfigValue> = { ...(entry.session_config ?? {}) }
+  if (entry.reasoning_effort !== undefined) out.reasoning_effort = entry.reasoning_effort
+  if (entry.permission_policy !== undefined) out.permission_policy = entry.permission_policy
+  return Object.keys(out).length > 0 ? out : undefined
 }
 
 /**
@@ -226,6 +240,8 @@ async function buildProgram(): Promise<Command> {
           bare={bare}
           layout="single"
           agent={resolved.entry.agent}
+          reasoningEffort={resolved.entry.reasoning_effort}
+          sessionConfig={sessionConfigFromEntry(resolved.entry)}
           logDir={typeof opts.logDir === "string" && opts.logDir.length > 0 ? opts.logDir : undefined}
           account={account}
           paneHeaders={false}

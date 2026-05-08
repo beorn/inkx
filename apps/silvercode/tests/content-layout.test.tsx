@@ -1,5 +1,5 @@
 import React, { act } from "react"
-import { beforeAll, describe, expect, test } from "vitest"
+import { beforeAll, describe, expect, test, vi } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
@@ -9,10 +9,11 @@ import type { AgentPlan, MessageEntry, MessageOp, ToolUseId } from "@km/agent-ha
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import { ChatPane } from "../src/components/ChatPane.tsx"
-import type { NotificationStreamEntry } from "../src/notification-stream.ts"
+import type { ChannelNotification } from "../src/notification-stream.ts"
 import { Chat } from "../src/components/Chat.tsx"
 import { Content } from "../src/components/Content.tsx"
-import { createSessionStore } from "@km/agent-harness"
+import { createSessionStore, messageTextFromOps } from "@km/agent-harness"
+import { SessionPromptComposer } from "../src/components/SessionPromptComposer.tsx"
 
 beforeAll(() => {
   if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexilyZeroEngine())
@@ -29,7 +30,7 @@ function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageO
   }
   Object.defineProperty(out, "text", {
     get() {
-      return opts.ops.map((op) => (op.kind === "text" ? op.text : "")).join("")
+      return messageTextFromOps(opts.ops)
     },
     enumerable: true,
   })
@@ -79,6 +80,54 @@ function renderList(messages: MessageEntry[], cols = 132, rows = 32) {
   )
 }
 
+test("Esc interrupt marker renders as status chrome, not a user prompt bubble", () => {
+  const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+  try {
+    const app = renderList([
+      makeEntry({
+        id: "int-a1-123",
+        role: "user",
+        ts: 1000,
+        ops: [{ kind: "text", text: "[bg] interrupted by Esc: partial assistant text" }],
+      }),
+    ])
+
+    expect(app.text).toContain("Interrupted by Esc · partial assistant text")
+    expect(app.text).not.toContain("[bg]")
+  } finally {
+    debugSpy.mockRestore()
+  }
+})
+
+test("Esc interrupt marker suppresses the generic interrupted banner", () => {
+  const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+  try {
+    const app = renderList([
+      {
+        ...makeEntry({
+          id: "assistant-turn-1",
+          role: "assistant",
+          ts: 1000,
+          ops: [{ kind: "text", text: "partial assistant text" }],
+        }),
+        stopReason: "interrupted",
+      } as MessageEntry,
+      makeEntry({
+        id: "int-a1-123",
+        role: "user",
+        ts: 1001,
+        ops: [{ kind: "text", text: "[bg] interrupted by Esc: partial assistant text" }],
+      }),
+    ])
+
+    expect(app.text).toContain("Interrupted by Esc · partial assistant text")
+    expect(app.text).not.toContain("Conversation interrupted")
+    expect(app.text).not.toContain("/feedback")
+  } finally {
+    debugSpy.mockRestore()
+  }
+})
+
 function renderListWithMetadata(messages: MessageEntry[], cols = 132, rows = 32, follow: "end" | false = false) {
   const renderer = createRenderer({ cols, rows })
   return renderer(
@@ -113,7 +162,7 @@ function renderListWithMetadata(messages: MessageEntry[], cols = 132, rows = 32,
 
 function renderListWithMetadataAndNotification(
   messages: MessageEntry[],
-  notificationEntries: readonly NotificationStreamEntry[],
+  notificationEntries: readonly ChannelNotification[],
   cols = 132,
   rows = 32,
 ) {
@@ -150,7 +199,7 @@ function renderListWithMetadataAndNotification(
 
 function renderListWithNotification(
   messages: MessageEntry[],
-  notificationEntries: readonly NotificationStreamEntry[],
+  notificationEntries: readonly ChannelNotification[],
   cols = 132,
   rows = 32,
 ) {
@@ -547,8 +596,6 @@ describe("content layout", () => {
     )
 
     expect(app.text).not.toContain("Agents")
-    expect(app.text).not.toContain("1/4 observed")
-    expect(app.text).not.toContain("Only 1 of 4 Agent events observed")
   })
 
   test("floating composer does not cover the scrollbar bottom row", async () => {
@@ -784,13 +831,12 @@ describe("content layout", () => {
 
     const composerRow = app.lines.findIndex((line) => line.includes("> ready"))
     const planRow = app.lines.findIndex((line) => line.includes("Confirm current worktree state"))
-    const summaryRow = app.lines.findIndex((line) => line.includes("1 completed"))
     expect(composerRow, app.text).toBeGreaterThanOrEqual(0)
     expect(planRow, app.text).toBeGreaterThanOrEqual(0)
-    expect(summaryRow, app.text).toBeGreaterThan(planRow)
-    expect(app.lines[planRow], app.text).not.toContain("1 completed")
+    expect(app.lines[planRow], app.text).not.toContain("completed")
+    expect(app.lines[planRow], app.text).not.toContain("pending")
     expect(app.lines[composerRow - 1]?.trim(), app.text).toBe("")
-    expect(summaryRow, app.text).toBeLessThan(composerRow - 1)
+    expect(planRow, app.text).toBeLessThan(composerRow - 1)
   })
 
   test("responsive markdown table expands rows into key-value blocks when columns cannot fit", () => {
@@ -942,8 +988,9 @@ describe("content layout", () => {
     expect(app.text).not.toContain("kind: text")
   })
 
-  test("cmd-hover on notification rows exposes raw notification payload", async () => {
-    const notificationEntries: NotificationStreamEntry[] = [
+  test("cmd-hover on notification rows does not dump raw notification payload inline", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    const notificationEntries: ChannelNotification[] = [
       {
         kind: "notification",
         id: "n-raw",
@@ -953,37 +1000,42 @@ describe("content layout", () => {
         meta: { session: "peer-1" },
       },
     ]
-    const renderer = createRenderer({ cols: 132, rows: 40, kittyMode: true, autoRender: true })
-    const tree = (
-      <PopoverProvider>
-        <Box width={132} height={40} flexDirection="column">
-          <SessionUpdateList
-            messages={[]}
-            status="idle"
-            turnStartedAt={null}
-            inputTokens={0}
-            outputTokens={0}
-            pendingPermissions={0}
-            inFlightTool={null}
-            sessionId="test-session"
-            onApprove={() => {}}
-            onDeny={() => {}}
-            follow={false}
-            notificationEntries={notificationEntries}
-          />
-        </Box>
-      </PopoverProvider>
-    )
-    const app = renderer(tree)
+    try {
+      const renderer = createRenderer({ cols: 132, rows: 40, kittyMode: true, autoRender: true })
+      const tree = (
+        <PopoverProvider>
+          <Box width={132} height={40} flexDirection="column">
+            <SessionUpdateList
+              messages={[]}
+              status="idle"
+              turnStartedAt={null}
+              inputTokens={0}
+              outputTokens={0}
+              pendingPermissions={0}
+              inFlightTool={null}
+              sessionId="test-session"
+              onApprove={() => {}}
+              onDeny={() => {}}
+              follow={false}
+              notificationEntries={notificationEntries}
+            />
+          </Box>
+        </PopoverProvider>
+      )
+      const app = renderer(tree)
 
-    const row = app.lines.findIndex((line) => line.includes("Tribe") && line.includes("peer ready"))
-    expect(row, app.text).toBeGreaterThanOrEqual(0)
-    app.stdin.write(LEFT_SUPER_PRESS)
-    await app.hover(app.lines[row]!.indexOf("Tribe"), row)
-    await new Promise((r) => setTimeout(r, 650))
-    expect(app.text).toContain("entries:")
-    expect(app.text).toContain('source: "tribe"')
-    expect(app.text).toContain('session: "peer-1"')
+      const row = app.lines.findIndex((line) => line.includes("Tribe") && line.includes("peer ready"))
+      expect(row, app.text).toBeGreaterThanOrEqual(0)
+      app.stdin.write(LEFT_SUPER_PRESS)
+      await app.hover(app.lines[row]!.indexOf("Tribe"), row)
+      await new Promise((r) => setTimeout(r, 650))
+      expect(app.text).toContain("Tribe - health from daemon — peer ready")
+      expect(app.text).not.toContain("entries:")
+      expect(app.text).not.toContain('source: "tribe"')
+      expect(app.text).not.toContain('session: "peer-1"')
+    } finally {
+      debugSpy.mockRestore()
+    }
   })
 
   test("cmd-hover on activity summaries exposes raw activity payload", async () => {
@@ -1127,7 +1179,7 @@ describe("content layout", () => {
         </Content.Layout>
       </Box>,
       term,
-      undefined,
+      { mouse: true },
     )
     await new Promise((r) => setTimeout(r, 100))
 
@@ -1224,7 +1276,7 @@ describe("content layout", () => {
         </Content.Layout>
       </Box>,
       term,
-      undefined,
+      { mouse: true },
     )
     await new Promise((r) => setTimeout(r, 100))
 
@@ -1377,6 +1429,63 @@ describe("content layout", () => {
     expect(backgroundRunBounds(app, row, col).right).toBe(proseRightEdge)
   })
 
+  test("floating composer background right-aligns with user prompt bubbles", () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    const cols = 132
+    const rows = 16
+    const store = createSessionStore()
+    const sessionId = "test-session" as never
+    store.apply({
+      kind: "user-message",
+      sessionId,
+      turnId: "u1" as never,
+      text: "you can't just loggily log?",
+      ts: new Date(2026, 4, 7, 18, 48).getTime(),
+    })
+    try {
+      const renderer = createRenderer({ cols, rows })
+      const tree = (
+        <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+          <ChatPane
+            handle={sessionHandleWithStore(store)}
+            isFocused
+            onFocus={() => {}}
+            onApprove={() => {}}
+            onDeny={() => {}}
+            composerSlot={
+              <SessionPromptComposer
+                queueText=""
+                onQueueChange={() => {}}
+                onQueueSubmit={() => {}}
+                inputValue=""
+                onInputChange={() => {}}
+                onSubmit={() => {}}
+                onExit={() => {}}
+                focusedRegion="command"
+                onFocusRegion={() => {}}
+              />
+            }
+            follow={false}
+          />
+        </Box>
+      )
+      const app = renderer(tree)
+
+      const promptRow = app.lines.findIndex((line) => line.includes("you can't just loggily log?"))
+      const promptCol = app.lines[promptRow]!.indexOf("you can't just loggily log?")
+      const composerRow = app.lines.findIndex((line) => /^\s*>\s/.test(line))
+      const composerCol = app.lines[composerRow]!.indexOf(">")
+      const promptBounds = backgroundRunBounds(app, promptRow, promptCol)
+      const composerBounds = backgroundRunBounds(app, composerRow, composerCol)
+
+      expect(promptBounds.right, app.text).toBe(composerBounds.right)
+      expect(composerBounds.right - composerBounds.left + 1, app.text).toBe(88)
+      expect(composerBounds.left, app.text).toBeLessThanOrEqual(promptBounds.left)
+    } finally {
+      debugSpy.mockRestore()
+    }
+  })
+
   test("prose lane preserves a one-cell right gutter when side panel leaves less than measure", () => {
     const cols = 84
     const app = renderList(
@@ -1465,6 +1574,45 @@ describe("content layout", () => {
 
     expect(app.text).toContain("I am still checking the result.")
     expect(app.lines.filter((line) => line.trim().startsWith("•")).length).toBe(1)
+  })
+
+  test("assistant prose keeps its bullet when the same message contains code blocks", () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+    try {
+      const app = renderList(
+        [
+          makeEntry({
+            id: "a1",
+            role: "assistant",
+            ts: new Date(2026, 4, 7, 18, 49).getTime(),
+            ops: [
+              {
+                kind: "text",
+                text:
+                  "Yes. I added loggily debug probes under silvercode:welcome in Welcome.tsx.\n\n" +
+                  "Run a live repro like:\n\n" +
+                  "```bash\n" +
+                  "DEBUG_LOG=/tmp/silvercode-welcome.log LOG_LEVEL=debug bun silvercode\n" +
+                  "```",
+              },
+            ],
+          }),
+        ],
+        132,
+        16,
+      )
+
+      const proseRow = app.lines.findIndex((line) => line.includes("Yes. I added"))
+      const codeRow = app.lines.findIndex((line) => line.includes("DEBUG_LOG=/tmp"))
+      expect(proseRow, app.text).toBeGreaterThanOrEqual(0)
+      expect(codeRow, app.text).toBeGreaterThan(proseRow)
+      expect(app.lines[proseRow]!.trimStart(), app.text).toMatch(/^•\s+Yes\. I added/)
+      expect(app.lines[codeRow]!.indexOf("DEBUG_LOG=/tmp"), app.text).toBeGreaterThan(
+        app.lines[proseRow]!.indexOf("Yes. I added"),
+      )
+    } finally {
+      debugSpy.mockRestore()
+    }
   })
 
   test("punctuation-only assistant text chunks do not render phantom rows", () => {
@@ -1910,12 +2058,10 @@ describe("content layout", () => {
     expect(app.text).not.toMatch(/•\s+:\*\*/)
   })
 
-  test("plan drawer uses a right-aligned narrow block and marks the active entry first", () => {
+  test("plan drawer opens at composer width and titles itself with the active action", () => {
     const cols = 132
     const measure = 56
     const proseLeft = Math.floor((cols - measure) / 2)
-    const drawerWidth = Math.floor(measure * 0.6)
-    const drawerLeft = proseLeft + measure - drawerWidth
     const plan: AgentPlan = {
       id: "plan-test",
       sessionId: "session" as AgentPlan["sessionId"],
@@ -1948,25 +2094,113 @@ describe("content layout", () => {
     const app = renderer(
       <Box width={cols} height={12} flexDirection="column">
         <Content.Layout measure={measure}>
-          <Chat.PlanDrawer plan={plan} defaultExpanded />
+          <Chat.PlanDrawer plan={plan} />
         </Content.Layout>
       </Box>,
     )
 
-    const headerRow = app.lines.findIndex((line) => line.includes("▾ Plan"))
+    const headerRow = app.lines.findIndex((line) => line.includes("▾") && line.includes("Implementing plan lane"))
     expect(headerRow, app.text).toBeGreaterThanOrEqual(0)
-    expect(app.lines[headerRow]!.search(/\S/)).toBe(drawerLeft + 1)
+    expect(app.text).not.toContain("▾ Plan")
+    expect(app.lines[headerRow]!.search(/\S/)).toBe(proseLeft + 1)
+    expect(app.lines[headerRow], app.text).toContain("□ Implementing plan lane")
+    expect(app.lines[headerRow], app.text).not.toContain("pending")
+    expect(app.lines[headerRow], app.text).not.toContain("completed")
+    expect(backgroundRunWidth(app, headerRow, proseLeft + 1)).toBe(measure)
 
-    const activeRow = app.lines.findIndex((line) => line.includes("▸ Implementing plan lane"))
-    expect(activeRow, app.text).toBeGreaterThan(headerRow)
+    const activeRow = app.lines.findIndex((line) => line.includes("Implementing plan lane"))
+    expect(activeRow, app.text).toBe(headerRow)
     const completedRow = app.lines.findIndex((line) => line.includes("✓ Inspect"))
     expect(completedRow, app.text).toBe(-1)
     const wrappedRow = app.lines.findIndex((line) => line.includes("enough detail to wrap"))
-    expect(wrappedRow, app.text).toBeGreaterThan(activeRow)
-    expect(app.lines[wrappedRow]!.search(/\S/)).toBeGreaterThan(drawerLeft + 1)
+    expect(wrappedRow, app.text).toBeGreaterThan(headerRow)
+    expect(app.lines[wrappedRow]!.search(/\S/)).toBeGreaterThan(proseLeft + 1)
 
     const summaryRow = app.lines.findIndex((line) => line.includes("+4 completed"))
-    expect(summaryRow, app.text).toBeGreaterThan(activeRow)
+    expect(summaryRow, app.text).toBeGreaterThan(headerRow)
+  })
+
+  test("plan drawer pulses the active checkbox marker", async () => {
+    const plan: AgentPlan = {
+      id: "plan-active-pulse",
+      sessionId: "session" as AgentPlan["sessionId"],
+      scope: { sessionId: "session" as AgentPlan["sessionId"] },
+      source: "codex-plan",
+      version: 1,
+      status: "active",
+      updatedAt: 0,
+      entries: [
+        {
+          id: "active",
+          content: "Implement plan lane",
+          activeForm: "Implementing plan lane",
+          status: "in_progress",
+          order: 0,
+        },
+        { id: "next", content: "Verify targeted tests", status: "pending", order: 1 },
+      ],
+    }
+    using term = createTermless({ cols: 100, rows: 8 })
+    const handle = await run(
+      <Box width={100} height={8} flexDirection="column">
+        <Content.Layout measure={56}>
+          <Chat.PlanDrawer plan={plan} />
+        </Content.Layout>
+      </Box>,
+      term,
+    )
+    try {
+      await new Promise((r) => setTimeout(r, 120))
+      const row = term.screen.getLines().findIndex((line) => line.includes("Implementing plan lane"))
+      expect(row, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      const col = term.screen.getLines()[row]!.indexOf("□")
+      expect(col, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      const lowStyle = termCellStyleKey(term, row, col)
+      await new Promise((r) => setTimeout(r, 1000))
+      expect(termCellStyleKey(term, row, col)).not.toBe(lowStyle)
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("non-expanded list and search commands stay in the prose lane and truncate", () => {
+    const cols = 160
+    const measure = 88
+    const proseLeft = Math.floor((cols - measure) / 2)
+    const app = renderList(
+      [
+        makeEntry({
+          id: "a-command-prose",
+          role: "assistant",
+          ts: new Date(2026, 4, 7, 20, 23).getTime(),
+          ops: [
+            { kind: "text", text: "I’ll trace the Silvercode code paths first." },
+            toolOp("list-1", "list_dir", { path: "/Users/beorn/Code/pim/km/apps/silvercode" }, "ok"),
+            toolOp(
+              "search-1",
+              "Search",
+              {
+                pattern:
+                  "silvercode|job|background|process|session|agent|queue|extremely|long|query|that|must|truncate",
+              },
+              "ok",
+            ),
+          ],
+        }),
+      ],
+      cols,
+      14,
+    )
+
+    const proseRow = app.lines.findIndex((line) => line.includes("I’ll trace"))
+    const listRow = app.lines.findIndex((line) => line.includes("Listed ~km/apps/silvercode"))
+    const searchRow = app.lines.findIndex((line) => line.includes("Searched silvercode|job|background"))
+    expect(proseRow, app.text).toBeGreaterThanOrEqual(0)
+    expect(listRow, app.text).toBeGreaterThan(proseRow)
+    expect(searchRow, app.text).toBeGreaterThan(listRow)
+    expect(app.lines[listRow]!.indexOf("•")).toBe(proseLeft)
+    expect(app.lines[searchRow]!.indexOf("•")).toBe(proseLeft)
+    expect(app.lines[searchRow]!.trimEnd().length).toBeLessThanOrEqual(proseLeft + measure)
   })
 
   test("completed plans do not render in the bottom drawer", () => {
@@ -2035,9 +2269,14 @@ describe("content layout", () => {
     expect(app.text).not.toContain("text")
     const introCol = app.lines[introRow]!.indexOf("Here is code:")
     const codeCol = app.lines[codeRow]!.indexOf("alpha")
+    const codeBgCol = Array.from({ length: cols }, (_, col) => col).find((col) => app.cell(col, codeRow).bg !== null)
+    expect(codeBgCol, app.text).toBeDefined()
+    const codeBgStart = codeBgCol ?? -1
     expect(introCol).toBeGreaterThanOrEqual(proseLeft)
     expect(introCol).toBeLessThan(proseLeft + 6)
-    expect(codeCol).toBe(proseLeft + 2)
+    expect(codeBgStart).toBeGreaterThanOrEqual(proseLeft)
+    expect(codeBgStart).toBeLessThan(proseLeft + 6)
+    expect(codeCol).toBe(codeBgStart + 2)
     expect(app.cell(codeCol, codeRow).bg).not.toBeNull()
 
     await app.hover(codeCol, codeRow)
@@ -2358,8 +2597,12 @@ describe("content layout", () => {
           role: "assistant",
           ts: 1_000,
           ops: [
-            { kind: "text", text: "The targeted tests now pass." },
-            { kind: "text", text: "Implemented both fixes.\n\nChanged:\n- Prompt padding\n- Side panel quota" },
+            { kind: "text", text: "The targeted tests now pass.", boundary: "semantic" },
+            {
+              kind: "text",
+              text: "Implemented both fixes.\n\nChanged:\n- Prompt padding\n- Side panel quota",
+              boundary: "semantic",
+            },
           ],
         }),
       ],

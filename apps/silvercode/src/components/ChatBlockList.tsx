@@ -1,11 +1,11 @@
 import React from "react"
-import { Box, ListView, Text, type ListViewHandle, type PopoverContent } from "silvery"
+import { Box, ListView, Text, type ListViewHandle } from "silvery"
 import type { ChatLeaf, ChatRawRef, ChatWidth } from "../chat/types.ts"
 import { Chat } from "./Chat.tsx"
-import { EntryDisclosure } from "./EntryDisclosure.tsx"
 import { Content } from "./Content.tsx"
 import { SessionEntry } from "./SessionEntry.tsx"
 import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
+import { BlockInteraction, safeJson } from "./BlockInteraction.tsx"
 
 export type ChatBlockListProps = {
   leaves: readonly ChatLeaf[]
@@ -48,21 +48,6 @@ function contentWidth(width: ChatWidth): "prose" | "wide" | "full" {
   return width
 }
 
-function safeJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch (err) {
-    return JSON.stringify(
-      {
-        error: "Unable to serialize detail payload",
-        message: err instanceof Error ? err.message : String(err),
-      },
-      null,
-      2,
-    )
-  }
-}
-
 function compactDetail(leaf: ChatLeaf): unknown {
   const base: Record<string, unknown> = {
     id: leaf.id,
@@ -70,7 +55,7 @@ function compactDetail(leaf: ChatLeaf): unknown {
     channel: leaf.channel,
     eventIds: leaf.eventIds,
     messageIds: leaf.messageIds,
-    partIds: leaf.partIds,
+    blockIds: leaf.blockIds,
     toolIds: leaf.toolIds,
     summary: leaf.summary,
     status: leaf.status,
@@ -84,16 +69,6 @@ function compactDetail(leaf: ChatLeaf): unknown {
   return Object.fromEntries(Object.entries(base).filter(([, value]) => value !== undefined))
 }
 
-function detailPopover(code: string): PopoverContent {
-  return {
-    body: <SyntaxHighlighter language="json" code={code} bare />,
-    maxWidth: 90,
-    borderless: true,
-    flushTop: true,
-    anchorOffsetX: 10,
-  }
-}
-
 function hasRawRefs(rawRefs: readonly ChatRawRef[]): boolean {
   return rawRefs.length > 0
 }
@@ -102,29 +77,27 @@ function DetailDisclosure({ leaf, children }: { leaf: ChatLeaf; children: React.
   const detail = React.useMemo(() => safeJson(compactDetail(leaf)), [leaf])
   const canInspect = hasRawRefs(leaf.rawRefs) || leaf.detailAccess.length > 0
   const canExpand = canInspect && leaf.detailAccess.includes("expand")
-  const popover = canInspect && leaf.detailAccess.includes("cmd-hover") ? detailPopover(detail) : null
   return (
-    <EntryDisclosure popover={popover} canExpand={canExpand} interactive={canInspect} defaultExpanded={false}>
-      {({ surfaceProps, isHovered, expanded }) => (
-        <Box
-          {...surfaceProps}
-          flexDirection="column"
-          minWidth={0}
-          backgroundColor={isHovered && canInspect ? "$bg-surface-hover" : undefined}
-        >
-          {children}
-          {expanded && canExpand ? (
-            <Content.Row>
-              <Content.Body width={contentWidth(leaf.width)}>
-                <Box flexDirection="column" paddingTop={1} minWidth={0}>
-                  <SyntaxHighlighter language="json" code={detail} bare />
-                </Box>
-              </Content.Body>
-            </Content.Row>
-          ) : null}
-        </Box>
-      )}
-    </EntryDisclosure>
+    <BlockInteraction
+      detail={detail}
+      language="json"
+      maxWidth={90}
+      popover={canInspect && leaf.detailAccess.includes("cmd-hover") ? undefined : null}
+      canExpand={canExpand}
+      interactive={canInspect}
+      defaultExpanded={false}
+      expandedContent={
+        <Content.Row>
+          <Content.Body width={contentWidth(leaf.width)}>
+            <Box flexDirection="column" paddingTop={1} minWidth={0}>
+              <SyntaxHighlighter language="json" code={detail} bare />
+            </Box>
+          </Content.Body>
+        </Content.Row>
+      }
+    >
+      {children}
+    </BlockInteraction>
   )
 }
 
@@ -156,19 +129,19 @@ function renderChatLeaf(leaf: ChatLeaf): React.ReactNode {
     case "user-text":
       return (
         <BlockFrame leaf={leaf}>
-          <Chat.Turn.Prompt text={leaf.props.text} />
+          <Chat.Prompt text={leaf.props.text} />
         </BlockFrame>
       )
     case "assistant-text":
       return (
         <BlockFrame leaf={leaf}>
-          <Chat.Turn.Narration text={leaf.props.text} />
+          <Chat.Narration text={leaf.props.text} />
         </BlockFrame>
       )
     case "reasoning":
       return (
         <BlockFrame leaf={leaf}>
-          <Chat.Turn.Narration text={leaf.props.text} muted marker="·" />
+          <Chat.Narration text={leaf.props.text} muted marker="·" />
         </BlockFrame>
       )
     case "attachment":
@@ -199,7 +172,7 @@ function renderChatLeaf(leaf: ChatLeaf): React.ReactNode {
       return (
         <BlockFrame leaf={leaf}>
           <SessionEntry marker="□" markerColor="$muted">
-            {mutedText(`Plan updated: ${leaf.props.taskCount} task${leaf.props.taskCount === 1 ? "" : "s"}`)}
+            {mutedText(`Plan updated: ${leaf.props.stepCount} step${leaf.props.stepCount === 1 ? "" : "s"}`)}
           </SessionEntry>
         </BlockFrame>
       )

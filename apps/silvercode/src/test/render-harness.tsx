@@ -28,10 +28,12 @@
 
 import type { AgentEvent } from "@km/agent-harness"
 import React from "react"
+import { afterEach } from "vitest"
 import { createRenderer, type App as RendererApp } from "@silvery/test"
 import { ScopeProvider } from "@silvery/ag-react"
 import { createScope } from "@silvery/scope"
 import { App } from "../App.tsx"
+import type { Controller } from "../controller.ts"
 import { createFakeSession, type ScriptedFakeSession } from "./fake-session.ts"
 
 /**
@@ -67,6 +69,8 @@ export type RenderedScenario = {
   readonly app: RendererApp
   /** The fake session wired into the app's controller. */
   readonly fake: ScriptedFakeSession
+  /** The real App controller used by the scenario. */
+  readonly controller: Controller
   /** Emit an additional event after the initial script finishes. */
   emit(event: AgentEvent): void
   /** Re-sample the frame after additional state changes. */
@@ -155,6 +159,12 @@ export function leftWidthFor(cols: number, showSidePanel = true): number {
 
 const DEFAULT_COLS = 120
 const DEFAULT_ROWS = 30
+const activeScenarioDisposers = new Set<() => void>()
+
+afterEach(() => {
+  for (const dispose of activeScenarioDisposers) dispose()
+  activeScenarioDisposers.clear()
+})
 
 /**
  * Wire up the real <App/> with a ScriptedFakeSession and render it.
@@ -199,6 +209,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   Object.defineProperty(process.stdout, "rows", { configurable: true, get: () => rows })
 
   const fake = opts.fake ?? createFakeSession()
+  let controller: Controller | null = null
   // Default cap = 5 mirrors the pre-max-layout-passes-knob classic-loop
   // default. Tests that need production-matching cap=2 can override via
   // `opts.maxLayoutPasses`. Lowering the default broke timing-dependent
@@ -222,8 +233,17 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   // ignored — the real subprocess produces the events.
   const agent = opts.agent
   const elementProps = live
-    ? { cwd, bare, layout, model, agent, resume: opts.resume }
-    : { cwd, bare, layout, model, agent, resume: opts.resume, spawnFactory: () => fake }
+    ? { cwd, bare, layout, model, agent, resume: opts.resume, onController: (c: Controller) => (controller = c) }
+    : {
+        cwd,
+        bare,
+        layout,
+        model,
+        agent,
+        resume: opts.resume,
+        spawnFactory: () => fake,
+        onController: (c: Controller) => (controller = c),
+      }
   // ScopeProvider wraps App so the lifecycle-scope hooks (useScopeEffect /
   // useScope, shipped with vendor/silvery 7d9ee808) have a notification scope
   // to register against. createApp/run() do this for production paths;
@@ -237,6 +257,15 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     </ScopeProvider>
   )
   const app = renderer(tree)
+  let disposed = false
+  const dispose = (): void => {
+    if (disposed) return
+    disposed = true
+    activeScenarioDisposers.delete(dispose)
+    app.unmount()
+    fakes.dispose()
+  }
+  activeScenarioDisposers.add(dispose)
 
   // Settle the controller's initial `void spawnSession()` so the SessionHandle
   // is in the controller's list before the test asserts. Production renders
@@ -247,6 +276,9 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   if (opts.autoEmit !== false && !live) {
     for (const event of opts.script) fake.emit(event)
     await settle()
+  }
+  if (!controller) {
+    throw new Error("renderScenario failed to capture App controller")
   }
 
   // Restore process.stdout dims. The renderer captured the frame already;
@@ -265,6 +297,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     rows,
     app,
     fake,
+    controller,
     emit(event: AgentEvent): void {
       fake.emit(event)
       app.rerender(tree)
@@ -273,9 +306,6 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
       app.rerender(tree)
       return { text: app.text, lines: app.lines }
     },
-    dispose(): void {
-      app.unmount()
-      fakes.dispose()
-    },
+    dispose,
   }
 }

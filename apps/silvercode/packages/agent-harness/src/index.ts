@@ -32,7 +32,7 @@ export { runInjectors, activeBeadInjector, cwdInjector, channelDigestInjector } 
 export type { Injector, InjectorContext } from "./injectors.ts"
 export { createFileEventLog, createMemoryEventLog } from "./event-log.ts"
 export type { EventLog } from "./event-log.ts"
-export { createSessionStore } from "./session-store.ts"
+export { createSessionStore, messageTextFromOps } from "./session-store.ts"
 export type {
   SessionState,
   SessionStore,
@@ -137,6 +137,8 @@ export type {
   AcpAgentSession,
   AcpConnectOpts,
   AcpRegistryId,
+  AcpSessionConfigDefaults,
+  AcpSessionConfigValue,
   AcpSetSessionConfigOptionParams,
   AcpSpawn,
   AcpSpawnedChild,

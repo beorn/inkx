@@ -1,10 +1,13 @@
 import React from "react"
 import { resolve as resolvePath } from "node:path"
 import { existsSync, readFileSync } from "node:fs"
-import { Box, Image, MeasuredBox, Muted, Small, Text, isKittyGraphicsSupported, useTerm } from "silvery"
+import { Box, Image, Muted, Small, Text, isKittyGraphicsSupported, useBoxRect, useTerm } from "silvery"
+import { createLogger } from "loggily"
 import type { SessionHandle } from "../controller.ts"
 import { prefixSid } from "../sid-prefix.ts"
 import { Chat } from "./Chat.tsx"
+
+const welcomeLog = createLogger("silvercode:welcome")
 
 /**
  * Per-agent display label. Mirrors the `AGENT_DISPLAY` map in `SidePanel.tsx`
@@ -289,6 +292,9 @@ export function SilverCodeBanner({
   availableWidth: number
 }): React.ReactElement {
   const tier = chooseBannerTier(availableWidth)
+  React.useEffect(() => {
+    welcomeLog.debug?.("bannerTier", { availableWidth, tier, kittySupported: KITTY_SUPPORTED })
+  }, [availableWidth, tier])
 
   let block: React.ReactElement
   if (tier === "image") {
@@ -355,6 +361,9 @@ function FixedBitmapBanner(): React.ReactElement {
   const cols = useTerm((term) => term.size.cols())
   const availableWidth = Math.max(IMAGE_MIN_COLS + 4, Math.floor(cols * 0.45))
   const { width, height } = imageCellSize(availableWidth)
+  React.useEffect(() => {
+    welcomeLog.debug?.("bitmapBanner", { termCols: cols, availableWidth, imageWidth: width, imageHeight: height })
+  }, [availableWidth, cols, height, width])
   return (
     <Box flexDirection="column" alignItems="center" marginBottom={2}>
       <Image src={SILVER_CODE_PNG_PATH} width={width} height={height} fallback="" />
@@ -373,10 +382,22 @@ function FixedBitmapBanner(): React.ReactElement {
  * for full-width row padding.
  */
 export function MeasuredBanner({ agentLabel }: { agentLabel?: string }): React.ReactElement {
+  const rect = useBoxRect()
+  const termCols = useTerm((term) => term.size.cols())
+  const availableWidth = rect.width > 0 ? rect.width : termCols
+  React.useEffect(() => {
+    welcomeLog.debug?.("bannerMeasure", {
+      rectWidth: rect.width,
+      rectHeight: rect.height,
+      termCols,
+      availableWidth,
+      usedFallback: rect.width <= 0,
+    })
+  }, [availableWidth, rect.height, rect.width, termCols])
   return (
-    <MeasuredBox flexDirection="column" alignSelf="stretch" alignItems="center">
-      {({ width }) => <SilverCodeBanner agentLabel={agentLabel} availableWidth={width} />}
-    </MeasuredBox>
+    <Box flexDirection="column" alignSelf="stretch" width="100%" alignItems="center">
+      <SilverCodeBanner agentLabel={agentLabel} availableWidth={availableWidth} />
+    </Box>
   )
 }
 
@@ -464,6 +485,30 @@ export function Welcome(props: {
   const showComposer = Boolean(props.composerSlot && !isLoading)
   const banner =
     props.bitmapBanner === false ? <StaticTextBanner /> : KITTY_SUPPORTED ? <FixedBitmapBanner /> : <MeasuredBanner />
+  const bannerKind = props.bitmapBanner === false ? "static-text" : KITTY_SUPPORTED ? "bitmap" : "measured-text"
+  React.useEffect(() => {
+    welcomeLog.debug?.("render", {
+      agent: props.agent,
+      agentLabel,
+      bannerKind,
+      centerVertically,
+      hasResumeId,
+      isLoading,
+      showComposer,
+      hasComposerSlot: Boolean(props.composerSlot),
+      model: props.model,
+    })
+  }, [
+    agentLabel,
+    bannerKind,
+    centerVertically,
+    hasResumeId,
+    isLoading,
+    props.agent,
+    props.composerSlot,
+    props.model,
+    showComposer,
+  ])
   const lowerContent = (
     <Box flexDirection="column" alignItems="center" gap={1} width="100%" minWidth={0}>
       {agentLabel ? <Small color="$muted">{agentLabel}</Small> : null}

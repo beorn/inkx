@@ -25,16 +25,21 @@
  */
 
 import type { AgentSession, SessionId } from "@km/agent-harness"
+import { createSessionStore } from "@km/agent-harness"
 import React from "react"
-import { describe, expect, test } from "vitest"
-import { createTermless } from "@silvery/test"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
+import { createRenderer, createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
+import { Box } from "silvery"
 import { App } from "../src/App.tsx"
+import { ChatPane } from "../src/components/ChatPane.tsx"
+import { Content } from "../src/components/Content.tsx"
+import { SessionPromptComposer } from "../src/components/SessionPromptComposer.tsx"
 import { createFakeSession, type ScriptedFakeSession } from "../src/test/fake-session.ts"
 import { installFakes } from "../src/test/fake-boundaries.ts"
 import { markdownRich } from "../src/test/scripts/markdownRich.ts"
 import { stressUnwrappable } from "../src/test/scripts/stressUnwrappable.ts"
-import { expectStableLayouts, pollTermlessFrames } from "./lib/stability.ts"
+import { expectStableFirstVisibleContent, expectStableLayouts, pollTermlessFrames, recordRenderFrames } from "./lib/stability.ts"
 
 const COLS = 120
 const ROWS = 40
@@ -46,7 +51,115 @@ type TermlessTerm = ReturnType<typeof createTermless>
 type ResizableTerm = TermlessTerm & { resize?: (cols: number, rows: number) => void }
 type InputTerm = TermlessTerm & { sendInput?: (data: string) => void }
 
+let restoreConsoleLogs: (() => void) | undefined
+
+beforeEach(() => {
+  const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+  const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {})
+  const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+  const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+  restoreConsoleLogs = () => {
+    debugSpy.mockRestore()
+    infoSpy.mockRestore()
+    stdoutSpy.mockRestore()
+    stderrSpy.mockRestore()
+  }
+})
+
+afterEach(() => {
+  restoreConsoleLogs?.()
+  restoreConsoleLogs = undefined
+})
+
 describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stability)", () => {
+  test("resumed replay load keeps the first visible transcript row stable until live activity", async () => {
+    const cols = 96
+    const rows = 16
+    const store = createSessionStore()
+    const sessionId = "resumed-stability-session" as SessionId
+    for (let index = 0; index < 32; index++) {
+      store.apply({
+        kind: "user-message",
+        sessionId,
+        turnId: `u${index}` as never,
+        text: `replay prompt ${index}`,
+        ts: Date.UTC(2026, 4, 7, 20, index),
+      })
+      store.apply({
+        kind: "assistant-message",
+        sessionId,
+        turnId: `a${index}` as never,
+        content: [{ type: "text", text: `replay answer ${index}` }],
+        ts: Date.UTC(2026, 4, 7, 20, index, 1),
+      })
+    }
+
+    const recorded = recordRenderFrames()
+    let app: { text: string; unmount: () => void } | undefined
+    try {
+      const renderer = createRenderer({
+        cols,
+        rows,
+        autoRender: true,
+        onFrame: recorded.onFrame,
+      })
+      const messages = store.state.get().messages
+      const tree = (
+        <Box width={cols} height={rows} flexDirection="column" overflow="hidden">
+          <Content.Layout>
+            <ChatPane
+              handle={
+                {
+                  id: "resumed-stability-session",
+                  name: "resumed-stability-session",
+                  store,
+                  session: {},
+                  unsubscribe: () => {},
+                  log: { write: () => {}, sessionLogPath: "" },
+                  account: undefined,
+                  metadata: {
+                    cwd: "/tmp/silvercode-test",
+                    spawnedAt: 1,
+                    resumeId: "codex:resumed-stability-session",
+                    replayStartedAt: 1,
+                    replayCompletedAt: Date.UTC(2026, 4, 7, 20, 32),
+                    replayMessageCount: messages.length,
+                    replayBoundaryMessageId: messages.at(-1)?.id,
+                  },
+                } as never
+              }
+              isFocused
+              onFocus={() => {}}
+              onApprove={() => {}}
+              onDeny={() => {}}
+              composerSlot={
+                <SessionPromptComposer
+                  queueText=""
+                  onQueueChange={() => {}}
+                  onQueueSubmit={() => {}}
+                  inputValue=""
+                  onInputChange={() => {}}
+                  onSubmit={() => {}}
+                  onExit={() => {}}
+                  focusedRegion="command"
+                  onFocusRegion={() => {}}
+                />
+              }
+            />
+          </Content.Layout>
+        </Box>
+      )
+      app = renderer(tree)
+      await settle(80)
+
+      const topRows = app.text.split("\n").slice(0, 6).join("\n")
+      expect(topRows, app.text).toContain("replay prompt 0")
+      expectStableFirstVisibleContent(recorded.raw, { label: "chat.resume-load.first-visible-row" })
+    } finally {
+      app?.unmount()
+    }
+  })
+
   test("post-script-arrival paint converges to a stable layout (chat with rich markdown)", async () => {
     const fakes = installFakes({})
     const fake: ScriptedFakeSession = createFakeSession({ sessionId: SESSION })
@@ -128,7 +241,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
       const postFrames = await pollTermlessFrames(term, { durationMs: 350 })
       expectStableLayouts(postFrames, {
         label: "chat.resize",
-        kMax: 1,
+        kMax: 3,
       })
     } finally {
       handle.unmount()

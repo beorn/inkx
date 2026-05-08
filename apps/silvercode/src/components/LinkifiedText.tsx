@@ -357,7 +357,7 @@ export function LinkifiedText({
   const lines = text.split("\n")
   let offset = 0
   return (
-    <Prose>
+    <Prose flexGrow={1} flexShrink={1} minWidth={0}>
       {lines.map((line, lineIdx) => {
         const lineStart = offset
         const lineEnd = offset + line.length

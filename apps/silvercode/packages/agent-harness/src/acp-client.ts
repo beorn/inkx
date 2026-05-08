@@ -70,6 +70,10 @@ export type TerminalHandler = {
   killTerminal?: (req: acp.KillTerminalRequest) => Promise<acp.KillTerminalResponse | void>
 }
 
+export type AcpReasoningEffort = "low" | "medium" | "high" | "xhigh"
+export type AcpSessionConfigValue = string | boolean
+export type AcpSessionConfigDefaults = Readonly<Record<string, AcpSessionConfigValue>>
+
 export type AcpConnectOpts = {
   /** Executable to spawn (e.g. `npx`, `codex`, absolute path). */
   command: string
@@ -103,6 +107,10 @@ export type AcpConnectOpts = {
   terminalHandler?: TerminalHandler
   /** When true, swallow subprocess stderr instead of forwarding as `error` events. */
   silentStderr?: boolean
+  /** Initial ACP session config values, applied when the agent advertises matching options. */
+  sessionConfig?: AcpSessionConfigDefaults
+  /** Initial Codex reasoning effort, applied through ACP session config when supported. */
+  reasoningEffort?: AcpReasoningEffort
   /** Spawn implementation for this connection. Tests and fake providers inject here. */
   spawn?: AcpSpawn
   /** Skip the initial `newSession` call. Caller drives the session lifecycle. */
@@ -622,6 +630,41 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     }
   }
 
+  async function setConfigOptionValue(configId: string, value: AcpSessionConfigValue): Promise<void> {
+    const option = configOptions.find((item) => item.id === configId)
+    if (!option) {
+      dSpawn("session config requested id=%s value=%o but agent did not advertise the option", configId, value)
+      return
+    }
+    if (option.type === "boolean" && typeof value !== "boolean") {
+      throw new Error(`ACP ${configId} config option expects boolean value`)
+    }
+    if (option.type !== "boolean" && typeof value !== "string") {
+      throw new Error(`ACP ${configId} config option expects select value`)
+    }
+    if (option.currentValue === value) return
+
+    dSpawn("setSessionConfigOption id=%s value=%o sessionId=%s", configId, value, sessionId)
+    const result = await agent.setSessionConfigOption({
+      sessionId,
+      configId: configId as acp.SessionConfigId,
+      ...(typeof value === "boolean"
+        ? { type: "boolean" as const, value }
+        : { value: value as acp.SessionConfigValueId }),
+    } as acp.SetSessionConfigOptionRequest)
+    configOptions = result.configOptions
+  }
+
+  async function applyInitialConfigOptions(): Promise<void> {
+    const requested: Record<string, AcpSessionConfigValue> = { ...(opts.sessionConfig ?? {}) }
+    if (opts.reasoningEffort && requested.reasoning_effort === undefined) {
+      requested.reasoning_effort = opts.reasoningEffort
+    }
+    for (const [configId, value] of Object.entries(requested)) {
+      await setConfigOptionValue(configId, value)
+    }
+  }
+
   // Surface stderr as legacy `error` events so the UI's existing
   // `state.lastError` panel works unchanged.
   child.stderr?.on("data", (chunk: Buffer | string) => {
@@ -796,6 +839,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
         mcpServers: opts.mcpServers ?? [],
       })
       configOptions = loadSessionResult.configOptions ?? []
+      await applyInitialConfigOptions()
       dSpawn("loadSession ok sessionId=%s", sessionId)
     } else {
       const newSessionResult = await agent.newSession({
@@ -804,6 +848,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
       })
       sessionId = newSessionResult.sessionId as SessionId
       configOptions = newSessionResult.configOptions ?? []
+      await applyInitialConfigOptions()
       dSpawn("newSession ok sessionId=%s", sessionId)
     }
     // Surface a legacy session-init so existing session-store consumers

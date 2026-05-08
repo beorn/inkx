@@ -39,6 +39,13 @@ import { run } from "silvery/runtime"
 import { App } from "../../src/App.tsx"
 import { createFakeSession } from "../../src/test/fake-session.ts"
 import { installFakes, type AccountScenario } from "../../src/test/fake-boundaries.ts"
+import { bashTool } from "../../src/test/scripts/bashTool.ts"
+import { helloWorld } from "../../src/test/scripts/helloWorld.ts"
+import { longToolResult } from "../../src/test/scripts/longToolResult.ts"
+import { markdownRich } from "../../src/test/scripts/markdownRich.ts"
+import { multiTurn } from "../../src/test/scripts/multiTurn.ts"
+import { permissionRequest } from "../../src/test/scripts/permissionRequest.ts"
+import { welcome } from "../../src/test/scripts/welcome.ts"
 
 function readBool(name: string): boolean {
   const v = process.env[name]
@@ -59,6 +66,37 @@ function readAccountScenario(): AccountScenario | undefined {
     // Fall through to default scenario; harness gets a deterministic UI even
     // if the env var was malformed.
     return undefined
+  }
+}
+
+function readNum(name: string, fallback: number): number {
+  const raw = process.env[name]
+  if (!raw) return fallback
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function readScript() {
+  switch (process.env.SILVERCODE_TEST_SCRIPT) {
+    case undefined:
+    case "":
+      return null
+    case "bashTool":
+      return bashTool
+    case "helloWorld":
+      return helloWorld
+    case "longToolResult":
+      return longToolResult
+    case "markdownRich":
+      return markdownRich
+    case "multiTurn":
+      return multiTurn
+    case "permissionRequest":
+      return permissionRequest
+    case "welcome":
+      return welcome
+    default:
+      return null
   }
 }
 
@@ -97,6 +135,12 @@ async function main(): Promise<void> {
     />,
     { mode: "fullscreen", handleTabCycling: false },
   )
+  const script = readScript()
+  if (script) {
+    const delayMs = readNum("SILVERCODE_TEST_SCRIPT_DELAY_MS", 250)
+    const intervalMs = readNum("SILVERCODE_TEST_SCRIPT_INTERVAL_MS", 40)
+    setTimeout(() => fake.script(script, intervalMs), delayMs)
+  }
   await handle.waitUntilExit()
 }
 

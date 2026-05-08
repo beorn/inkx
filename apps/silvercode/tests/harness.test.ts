@@ -85,6 +85,7 @@ const FIXTURE: string[] = [
     subtype: "success",
     session_id: "s-abc",
     total_cost_usd: 0.0025,
+    usage: { input_tokens: 100, output_tokens: 20 },
     duration_ms: 1234,
   }),
 ]

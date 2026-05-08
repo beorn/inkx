@@ -40,18 +40,20 @@ A shared `CrossAgentState` signal carries:
 
 Visually: silvery renders this as a 2×2 grid of panes with a kanban-style file-claim map across the top and the override queue across the bottom.
 
-## Why this beats Kilo / Cursor / Claude Code on the dimensions that matter
+## Why this beats Kilo / Cursor / Claude Code / Paperclip on the dimensions that matter
 
-| Dimension                                   | Kilo                              | Cursor  | Claude Code     | silvercode squad    |
-| ------------------------------------------- | --------------------------------- | ------- | --------------- | ------------------- |
-| Multi-backend                               | ✅                                 | partial | single          | ✅                   |
-| Multiple agents in parallel on same repo    | worktree-isolated, no file-claims | ❌       | ❌               | ✅                   |
-| Shared project index (no per-agent re-read) | ❌                                 | ❌       | ❌               | ✅                   |
-| Ambient handoff between agents              | ❌                                 | ❌       | ❌               | ✅                   |
-| Human-readable conflict resolution          | diff review                       | ❌       | ❌               | ✅                   |
-| Subscription auth                           | ✅                                 | ✅ (own) | native          | ✅                   |
-| Polished IDE UX                             | ✅                                 | ✅       | partial         | ⚠ different surface |
-| Enterprise features (SSO/SCIM/audit)        | ✅                                 | ✅       | enterprise plan | future              |
+| Dimension                                   | Kilo                              | Cursor  | Claude Code     | Paperclip                     | silvercode squad    |
+| ------------------------------------------- | --------------------------------- | ------- | --------------- | ----------------------------- | ------------------- |
+| Multi-backend                               | ✅                                 | partial | single          | ✅ (8 adapters: stream-json + ACP + HTTP) | ✅                   |
+| Multiple agents in parallel on same repo    | worktree-isolated, no file-claims | ❌       | ❌               | per-issue worktrees, no file-claims (issue-thread coordination) | ✅                   |
+| Shared project index (no per-agent re-read) | ❌                                 | ❌       | ❌               | ❌ (each heartbeat re-reads)    | ✅                   |
+| Ambient handoff between agents              | ❌                                 | ❌       | ❌               | issue-comment async (next heartbeat) | ✅ (in-turn `[AMBIENT — observation]` blocks) |
+| Human-readable conflict resolution          | diff review                       | ❌       | ❌               | board approval workflow         | ✅                   |
+| Subscription auth                           | ✅                                 | ✅ (own) | native          | ✅ (`resolveClaudeBillingType`) | ✅                   |
+| Polished IDE UX                             | ✅                                 | ✅       | partial         | mobile dashboard, not IDE       | ⚠ different surface |
+| Enterprise features (SSO/SCIM/audit)        | ✅                                 | ✅       | enterprise plan | ✅ (multi-company isolation, run JWTs, board approvals) | future              |
+| Time scale                                  | sync (live IDE)                   | sync    | sync            | **async (heartbeat tickets)**   | sync (live ACP)     |
+| User role                                   | pilot                             | pilot   | pilot           | **board / governance**          | pilot               |
 
 The squad-mode columns are where silvercode wins; the rest are commodity.
 
@@ -66,6 +68,7 @@ The squad-mode columns are where silvercode wins; the rest are commodity.
 ## What it doesn't do (explicit non-goals)
 
 - **It is not an orchestrator.** silvercode does not pick which agent does what; the user does (or a Symphony-style external runtime does). silvercode is a *pane host* that loops snap into. Per /pro convergent advice: *"Don't build an orchestrator. Symphony clones are a graveyard. Build a pane host that deterministic loops snap into."*
+- **It is not Paperclip.** Paperclip occupies the layer above (heartbeat-driven control plane, org chart, governance, monthly budgets, mobile dashboard, multi-company isolation — see [10-agent-router-landscape.md § A6](10-agent-router-landscape.md)). silvercode-squad and Paperclip don't compete; they compose. A future "Paperclip dispatches a silvercode session" wiring uses A2A-shaped HTTP outside (Paperclip → silvercode-as-agent) and ACP inside (silvercode-host ↔ claude-code-subprocess). Two protocols, each at the layer it's shaped for. The cockpit and the org-chart layers want different protocols — that's structural.
 - **It does not replace beads / Linear / Jira.** Plan management lives in km-bd or external trackers. Squad mode is execution, not planning.
 - **It does not do automatic agent task-routing.** Architect / Coder / Debugger sub-modes are Kilo's Orchestrator-mode play. silvercode squad mode is human-driven role assignment per pane.
 - **It does not target individual indie devs primarily.** They have Cursor / Claude Code / Aider. Squad mode targets teams that have outgrown single-agent loops and need parallel safety.

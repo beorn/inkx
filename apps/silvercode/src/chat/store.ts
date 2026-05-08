@@ -1,17 +1,17 @@
 import { computed, signal } from "alien-signals"
 import type { AgentEvent, SessionStore } from "@km/agent-harness"
 import { normalizeAgentEventsToChatEvents } from "./normalize-agent-event.ts"
-import { projectChatTranscript, visibleChatLeaves } from "./project-transcript.ts"
+import { projectChatTree, visibleChatLeaves } from "./project-transcript.ts"
 import { projectSubagentActivitiesFromChatEvents } from "./subagent-activities.ts"
 import type {
+  ChatBlock,
+  ChatBlockId,
   ChatChannelId,
   ChatChannelState,
   ChatEvent,
   ChatLeaf,
   ChatMessage,
   ChatMessageId,
-  ChatMessagePart,
-  ChatMessagePartId,
   ChatPermissionId,
   ChatPermissionRequest,
   ChatPlan,
@@ -44,7 +44,7 @@ export function createChatSessionProjectionStore(
     agentEvents(events)
   })
   const events = computed(() => normalizeAgentEventsToChatEvents(agentEvents(), { sessionId }))
-  const tree = computed(() => projectChatTranscript({ sessionId, events: events() }))
+  const tree = computed(() => projectChatTree({ sessionId, events: events() }))
   const visible = computed(() => visibleChatLeaves(tree(), channels()))
   const session = computed(() => buildChatSession(sessionId, events(), tree(), channels()))
 
@@ -89,7 +89,7 @@ function buildChatSession(
   channels: Readonly<Record<ChatChannelId, ChatChannelState>>,
 ): ChatSession {
   const messages: Record<ChatMessageId, ChatMessage> = {}
-  const messageParts: Record<ChatMessagePartId, ChatMessagePart> = {}
+  const blocks: Record<ChatBlockId, ChatBlock> = {}
   const tools: Record<ChatToolId, ChatTool> = {}
   const permissionRequests: Record<ChatPermissionId, ChatPermissionRequest> = {}
   let plan = emptyPlan()
@@ -110,22 +110,22 @@ function buildChatSession(
         messages[event.payload.messageId] = {
           id: event.payload.messageId,
           role: event.payload.role,
-          partIds: [],
+          blockIds: [],
           eventIds: [event.id],
         }
         break
-      case "message.part.added": {
+      case "message.block.added": {
         const message = messages[event.payload.messageId]
         if (!message) {
-          throw new Error(`message.part.added ${event.id} references unknown message ${event.payload.messageId}`)
+          throw new Error(`message.block.added ${event.id} references unknown message ${event.payload.messageId}`)
         }
-        if (messageParts[event.payload.partId]) {
-          throw new Error(`message.part.added ${event.id} duplicates part ${event.payload.partId}`)
+        if (blocks[event.payload.blockId]) {
+          throw new Error(`message.block.added ${event.id} duplicates block ${event.payload.blockId}`)
         }
-        messageParts[event.payload.partId] = event.payload.part
+        blocks[event.payload.blockId] = event.payload.block
         messages[event.payload.messageId] = {
           ...message,
-          partIds: [...message.partIds, event.payload.partId],
+          blockIds: [...message.blockIds, event.payload.blockId],
           eventIds: [...message.eventIds, event.id],
         }
         break
@@ -242,9 +242,9 @@ function buildChatSession(
     status,
     events,
     messages,
-    messageParts,
+    blocks,
     tools,
-    subagentActivities: projectSubagentActivitiesFromChatEvents(events, { sessionId, currentOnly: false }).activities,
+    subagentActivities: projectSubagentActivitiesFromChatEvents(events, { sessionId, currentOnly: false }),
     plan,
     promptQueue,
     permissions: { requests: permissionRequests },
@@ -254,7 +254,7 @@ function buildChatSession(
 }
 
 function emptyPlan(): ChatPlan {
-  return { tasks: [], eventIds: [] }
+  return { steps: [], eventIds: [] }
 }
 
 function emptyPromptQueue(): ChatPromptQueue {

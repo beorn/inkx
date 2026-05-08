@@ -6,13 +6,13 @@ import { Chat } from "../src/components/Chat.tsx"
 import { filterVisibleNotificationEntries } from "../src/chat/notification-visibility.ts"
 import { NotificationBlock } from "../src/components/NotificationBlock.tsx"
 import { chatActivityCountsFromMessages, chatActivitySnapshotFromMessages } from "../src/chat/activity-snapshot.ts"
-import type { NotificationStreamEntry } from "../src/notification-stream.ts"
-import type { BackgroundTask } from "../src/controller.ts"
+import type { ChannelNotification } from "../src/notification-stream.ts"
+import type { BackgroundJob } from "../src/controller.ts"
 import type { MessageEntry } from "@km/agent-harness"
 
 const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
 
-function runningTask(id = "bg-1"): BackgroundTask {
+function runningJob(id = "bg-1"): BackgroundJob {
   return {
     id,
     turnId: `turn-${id}`,
@@ -68,7 +68,7 @@ function notificationEntry(opts: {
   fromSessionId?: string
   status?: string
   toolUseId?: string
-}): NotificationStreamEntry {
+}): ChannelNotification {
   return {
     kind: "notification",
     id: opts.id,
@@ -89,8 +89,8 @@ describe("NotificationBlock", () => {
   test("renders nothing when there is no notification work", () => {
     const app = renderBlock(
       <NotificationBlock
-        counts={{ agentsRunning: 0, backgroundTasksRunning: 0, shellsRunning: 0 }}
-        backgroundTasks={[]}
+        counts={{ agentsRunning: 0, backgroundJobsRunning: 0, shellsRunning: 0 }}
+        backgroundJobs={[]}
       />,
     )
 
@@ -100,15 +100,15 @@ describe("NotificationBlock", () => {
   test("renders compact running counts", () => {
     const app = renderBlock(
       <NotificationBlock
-        counts={{ agentsRunning: 2, backgroundTasksRunning: 1, shellsRunning: 0 }}
-        backgroundTasks={[runningTask()]}
+        counts={{ agentsRunning: 2, backgroundJobsRunning: 1, shellsRunning: 0 }}
+        backgroundJobs={[runningJob()]}
       />,
     )
 
     expect(app.text).toContain("◇ 2 agents · ▣ 1 bg")
   })
 
-  test("counts running sub-agents, background tasks, and shells from session state", () => {
+  test("counts running sub-agents, background jobs, and shells from session state", () => {
     const messages = [
       messageWithTools({
         toolCalls: [
@@ -121,9 +121,9 @@ describe("NotificationBlock", () => {
       }),
     ]
 
-    expect(chatActivityCountsFromMessages(messages, [runningTask()])).toEqual({
+    expect(chatActivityCountsFromMessages(messages, [runningJob()])).toEqual({
       agentsRunning: 2,
-      backgroundTasksRunning: 1,
+      backgroundJobsRunning: 1,
       shellsRunning: 1,
     })
     expect(chatActivitySnapshotFromMessages(messages, []).agents.map((agent) => `${agent.id}:${agent.status}`)).toEqual(
@@ -420,8 +420,8 @@ describe("NotificationBlock", () => {
   test("clicking a chip opens inline detail", async () => {
     const app = renderBlock(
       <NotificationBlock
-        counts={{ agentsRunning: 0, backgroundTasksRunning: 1, shellsRunning: 0 }}
-        backgroundTasks={[runningTask()]}
+        counts={{ agentsRunning: 0, backgroundJobsRunning: 1, shellsRunning: 0 }}
+        backgroundJobs={[runningJob()]}
       />,
     )
 
@@ -431,7 +431,7 @@ describe("NotificationBlock", () => {
 
     await app.click(col, row)
 
-    expect(app.text).toContain("Background tasks")
+    expect(app.text).toContain("Background jobs")
     expect(app.text).toContain("reviewing transcript display")
   })
 
@@ -612,30 +612,6 @@ describe("NotificationBlock", () => {
     )
 
     expect(app.text.trim()).toBe("")
-  })
-
-  test("agents drawer shows mismatch diagnostics without fabricating missing agent rows", () => {
-    const app = renderBlock(
-      <Chat.AgentsDrawer
-        sessions={[{ sessionId: "s1", name: "session 1", status: "idle", startedAt: 1 }]}
-        selfSessionId="s1"
-        defaultExpanded
-        subagents={[{ id: "task-2", label: "Sleep 20s #2", status: "done" }]}
-        diagnostics={[
-          {
-            kind: "subagent-count-mismatch",
-            claimed: 4,
-            observed: 1,
-            text: "use 4 subagents to sleep 20s",
-          },
-        ]}
-      />,
-    )
-
-    expect(app.text).toContain("1/4 observed")
-    expect(app.text).toContain("Sleep 20s #2")
-    expect(app.text).not.toContain("Missing Agent event")
-    expect(app.text).toContain("Only 1 of 4 Agent events observed")
   })
 
   test("cmd-hovering an agents drawer row shows raw session and task details", async () => {

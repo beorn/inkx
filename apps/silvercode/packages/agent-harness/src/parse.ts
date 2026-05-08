@@ -409,7 +409,7 @@ function taskNotificationLabel(raw: string): string {
   const summary = firstTagBody(raw, "summary")
   const taskId = firstTagBody(raw, "task-id")
   const statusPrefix = status.length > 0 ? `Task ${status}` : "Task notification"
-  const subject = summary.length > 0 ? summary : taskId.length > 0 ? taskId : "background task"
+  const subject = summary.length > 0 ? summary : taskId.length > 0 ? taskId : "background job"
   return `${statusPrefix}: ${subject}`
 }
 

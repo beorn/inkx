@@ -1,5 +1,5 @@
 /**
- * Notification stream — per-session in-memory journal of notification observations
+ * Notification stream — per-session in-memory journal of channel notifications
  * delivered to the agent. Mirrors the prompt-assembly flow: when an
  * notification `ChannelEvent` is wrapped as an `EmbeddedResource` and shipped
  * to the agent, the same event is recorded here so the chat scrollback
@@ -31,11 +31,11 @@ import {
 import type { ChannelEvent } from "./channel-queue.ts"
 
 /**
- * One notification observation in the chat journal. Narrows `ChannelEvent`
+ * One channel notification in the chat journal. Narrows `ChannelEvent`
  * to the fields the inline UI needs — the full event still flows through
  * `channelQueue` / `assembleAcpPrompt`; this is the visible echo.
  */
-export type NotificationStreamEntry = {
+export type ChannelNotification = {
   readonly kind: "notification"
   readonly id: string
   readonly source: string
@@ -64,10 +64,10 @@ export type NotificationStream = {
    * Layer 4 telemetry counters in `notification-telemetry.ts`.
    */
   record(sessionId: string, event: ChannelEvent): boolean
-  /** Snapshot of one session's journal in chronological order. */
-  entries(sessionId: string): readonly NotificationStreamEntry[]
-  /** Subscribe to record events. Handler receives `(sessionId, entry)`. */
-  subscribe(handler: (sessionId: string, entry: NotificationStreamEntry) => void): () => void
+  /** Snapshot of one session's channel notifications in chronological order. */
+  entries(sessionId: string): readonly ChannelNotification[]
+  /** Subscribe to record events. Handler receives `(sessionId, notification)`. */
+  subscribe(handler: (sessionId: string, notification: ChannelNotification) => void): () => void
   /**
    * Reactive signal for global change-counter — components that read
    * `entries(sessionId)` can `useSignal(stream.version)` to re-render on
@@ -86,7 +86,7 @@ export type NotificationStream = {
 
 const MAX_PER_SESSION = 500
 
-function toEntry(event: ChannelEvent): NotificationStreamEntry {
+function toChannelNotification(event: ChannelEvent): ChannelNotification {
   return {
     kind: "notification",
     id: event.id,
@@ -127,8 +127,8 @@ export type CreateNotificationStreamOpts = {
  *   4. Append to the per-session ring buffer + notify subscribers.
  */
 export function createNotificationStream(scope: Scope, opts: CreateNotificationStreamOpts = {}): NotificationStream {
-  const buffers = new Map<string, NotificationStreamEntry[]>()
-  const subs = new Set<(sessionId: string, entry: NotificationStreamEntry) => void>()
+  const buffers = new Map<string, ChannelNotification[]>()
+  const subs = new Set<(sessionId: string, notification: ChannelNotification) => void>()
   const version = signal(0)
   let disposed = false
   const breaker = opts.breaker ?? createNotificationBreaker(opts.breakerOpts)
@@ -187,9 +187,9 @@ export function createNotificationStream(scope: Scope, opts: CreateNotificationS
         }
       }
       recordAdmitted({ source: event.source, kind: "notification", sessionId })
-      const entry = toEntry(sanitized)
+      const notification = toChannelNotification(sanitized)
       const buf = buffers.get(sessionId) ?? []
-      buf.push(entry)
+      buf.push(notification)
       if (buf.length > MAX_PER_SESSION) {
         // Trim oldest entries — bounded ring buffer semantics.
         buf.splice(0, buf.length - MAX_PER_SESSION)
@@ -198,14 +198,14 @@ export function createNotificationStream(scope: Scope, opts: CreateNotificationS
       version(version() + 1)
       for (const fn of subs) {
         try {
-          fn(sessionId, entry)
+          fn(sessionId, notification)
         } catch {
           /* a misbehaving subscriber must not block the stream */
         }
       }
       return true
     },
-    entries(sessionId: string): readonly NotificationStreamEntry[] {
+    entries(sessionId: string): readonly ChannelNotification[] {
       // Defensive copy: the per-session buffer is mutated in-place by
       // `record()`, so returning the live reference defeats React's
       // referential-equality check — the hook's `setEntries(snapshot)` would

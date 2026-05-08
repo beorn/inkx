@@ -12,6 +12,29 @@ import { welcome } from "../../src/test/scripts/welcome.ts"
 import { parseFrame, summarize } from "../../src/test/parse-frame.ts"
 import { MODE_ICONS_EXPECTED, MODE_LABELS_EXPECTED } from "./_invariants.ts"
 
+async function findWrappedModelRows(
+  scenario: Awaited<ReturnType<typeof renderScenario>>,
+): Promise<{ agentRow: number; modelRow: number; summary: string }> {
+  let summary = ""
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const p = parseFrame(scenario)
+    summary = summarize(p)
+    const lines = p.sidePanel?.lines.map((line) => line.trimEnd()) ?? []
+    const agentRow = lines.findIndex((line) => line.includes("Claude Code v2.1.132"))
+    const modelRow = lines.findIndex((line, i) => i > agentRow && line.includes("Opus 4.7"))
+
+    if (agentRow >= 0 && modelRow >= 0) {
+      return { agentRow, modelRow, summary }
+    }
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    scenario.resample()
+  }
+
+  return { agentRow: -1, modelRow: -1, summary }
+}
+
 describe("side panel", () => {
   test("welcome scenario: side panel shows all expected rows", async () => {
     const s = await renderScenario({ script: welcome, cols: 120, rows: 30 })
@@ -75,13 +98,10 @@ describe("side panel", () => {
       rows: 30,
       version: "2.1.132",
     })
-    const p = parseFrame(s)
-    const lines = p.sidePanel!.lines.map((line) => line.trimEnd())
-    const agentRow = lines.findIndex((line) => line.includes("Claude Code v2.1.132"))
-    const modelRow = lines.findIndex((line, i) => i > agentRow && line.includes("Opus 4.7"))
+    const { agentRow, modelRow, summary } = await findWrappedModelRows(s)
 
-    expect(agentRow, `Claude Code row missing.\n${summarize(p)}`).toBeGreaterThanOrEqual(0)
-    expect(modelRow, `Opus model row missing.\n${summarize(p)}`).toBeGreaterThanOrEqual(0)
+    expect(agentRow, `Claude Code row missing.\n${summary}`).toBeGreaterThanOrEqual(0)
+    expect(modelRow, `Opus model row missing.\n${summary}`).toBeGreaterThanOrEqual(0)
     expect(modelRow).toBe(agentRow + 1)
   })
 })

@@ -18,7 +18,7 @@
 import React from "react"
 import { Box, Screen } from "silvery"
 import { NotificationEventRow, NotificationStack } from "../../src/components/NotificationEventRow.tsx"
-import type { NotificationStreamEntry } from "../../src/notification-stream.ts"
+import type { ChannelNotification } from "../../src/notification-stream.ts"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import { MULTI_TURN } from "../support/sample-messages.ts"
 import type { Story } from "../types.ts"
@@ -31,7 +31,7 @@ const at = (offsetSec: number): number => NOW + offsetSec * 1000
  * descriptive so the visual story communicates "this is the row for
  * source X" without requiring any backstory.
  */
-const ALL_SOURCES_FIXTURES: NotificationStreamEntry[] = [
+const ALL_SOURCES_FIXTURES: ChannelNotification[] = [
   {
     kind: "notification",
     id: "amb-tribe-1",
@@ -77,7 +77,7 @@ const ALL_SOURCES_FIXTURES: NotificationStreamEntry[] = [
   },
 ]
 
-const TRIBE_CONCISE_FIXTURES: NotificationStreamEntry[] = [
+const TRIBE_CONCISE_FIXTURES: ChannelNotification[] = [
   {
     kind: "notification",
     id: "tribe-commit",
@@ -221,14 +221,14 @@ export const notificationEventRowInlineSequence: Story = {
 }
 
 function InlineSequenceStory(): React.ReactElement {
-  const notification1: NotificationStreamEntry = {
+  const notification1: ChannelNotification = {
     kind: "notification",
     id: "seq-1",
     source: "tribe",
     timestamp: at(0),
     content: "peer alice opened PR #42 in DZ/decker — review requested on the auth refactor",
   }
-  const notification2: NotificationStreamEntry = {
+  const notification2: ChannelNotification = {
     kind: "notification",
     id: "seq-2",
     source: "ci",

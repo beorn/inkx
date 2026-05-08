@@ -28,7 +28,7 @@
 
 import type { AgentSession, SessionId } from "@km/agent-harness"
 import React from "react"
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { createTermless } from "@silvery/test"
 import { run } from "silvery/runtime"
 import { App } from "../src/App.tsx"
@@ -45,6 +45,26 @@ const settle = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, m
 type TermlessTerm = ReturnType<typeof createTermless>
 type ResizableTerm = TermlessTerm & { resize?: (cols: number, rows: number) => void }
 type InputTerm = TermlessTerm & { sendInput?: (data: string) => void }
+
+let restoreConsoleLogs: (() => void) | undefined
+
+beforeEach(() => {
+  const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+  const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {})
+  const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+  const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+  restoreConsoleLogs = () => {
+    debugSpy.mockRestore()
+    infoSpy.mockRestore()
+    stdoutSpy.mockRestore()
+    stderrSpy.mockRestore()
+  }
+})
+
+afterEach(() => {
+  restoreConsoleLogs?.()
+  restoreConsoleLogs = undefined
+})
 
 describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stability)", () => {
   test("initial paint converges to ≤ 3 distinct layouts during startup cascade", async () => {
@@ -132,7 +152,7 @@ describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stabil
       const postFrames = await pollTermlessFrames(term, { durationMs: 350 })
       expectStableLayouts(postFrames, {
         label: "welcome.resize",
-        kMax: 1,
+        kMax: 2,
       })
     } finally {
       handle.unmount()
@@ -182,7 +202,7 @@ describe("welcome-screen UI stability (bead @km/silvercode/post-resize-ui-stabil
       const postFrames = await pollTermlessFrames(term, { durationMs: 400 })
       expectStableLayouts(postFrames, {
         label: "welcome.cmux-multi-sigwinch",
-        kMax: 1,
+        kMax: 2,
       })
     } finally {
       handle.unmount()

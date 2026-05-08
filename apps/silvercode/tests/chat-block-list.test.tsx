@@ -33,9 +33,9 @@ function render(leaves: readonly ChatLeaf[]) {
   const renderApp = createRenderer({ cols: 100, rows: 24 })
   return renderApp(
     <Box width={100} height={24} flexDirection="column">
-      <Chat.Transcript>
+      <Chat.Session>
         <ChatBlockList leaves={leaves} follow={false} />
-      </Chat.Transcript>
+      </Chat.Session>
     </Box>,
   )
 }

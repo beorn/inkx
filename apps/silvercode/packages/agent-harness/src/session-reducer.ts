@@ -1013,6 +1013,11 @@ function applyToolUse(next: InternalSessionState, action: Extract<AgentEvent, { 
     const parsed = parseAskUserQuestionInput(action.id, action.input)
     if (parsed) next.pendingQuestion = parsed
   }
+  // `view_image` is display-only for Codex-style image attachments. The
+  // renderer treats an unresolved call as complete, and providers do not
+  // emit a matching result event, so opening liveness here would leave the
+  // session stuck in tool-running.
+  if (action.name === "view_image" || action.name === "view_image_tool_call" || action.name === "ViewImage") return
   // tool-use implies a turn is in flight. In replay paths or harnesses
   // that synthesize tool-use without a preceding turn-start (e.g., tests
   // and some MCP-injection paths), upgrade `_activeTurnId` here so the
@@ -1128,12 +1133,7 @@ function deriveOpsFromBlocks(
       const [s2, stripped] = consumeStrip(s, turnId, b.text)
       s = s2
       if (stripped.length === 0) continue
-      const last = ops[ops.length - 1]
-      if (last?.kind === "text") {
-        ops[ops.length - 1] = { kind: "text", text: last.text + stripped, ts: last.ts ?? ts }
-      } else {
-        ops.push({ kind: "text", text: stripped, ts })
-      }
+      ops.push({ kind: "text", text: stripped, ts, boundary: "semantic" })
     } else if (b.type === "tool_use") {
       ops.push({
         kind: "tool",

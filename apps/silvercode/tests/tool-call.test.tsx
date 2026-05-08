@@ -23,13 +23,14 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, PopoverProvider } from "silvery"
+import { Box, PopoverProvider, Text } from "silvery"
 import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { ToolCall } from "../src/components/ToolCall.tsx"
 import { ToolCallStatusTitle } from "../src/components/ToolCallStatusTitle.tsx"
 import { ToolCallError } from "../src/components/ToolCallError.tsx"
 import { ToolCallSummary } from "../src/components/ToolCallSummary.tsx"
 import { ApplyPatch, parseAiderPatch } from "../src/components/ApplyPatch.tsx"
+import { BoundedScroll } from "../src/components/BoundedScroll.tsx"
 
 const id = (s: string) => s as ToolCallId
 const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
@@ -542,10 +543,12 @@ describe("ToolCall text summarization", () => {
     }
   }
 
-  test("28-line bash output: expanded body shows all lines inline", () => {
+  test("28-line bash output: expanded body is capped inline", () => {
     const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
     const lineCount = app.text.split("\n").filter((l) => l.trim().startsWith("file")).length
-    expect(lineCount).toBe(28)
+    expect(lineCount).toBeLessThan(28)
+    expect(lineCount).toBeGreaterThanOrEqual(10)
+    expect(app.text).toContain("▼")
   })
 
   test("28-line bash output: preview shows first 3 lines", () => {
@@ -560,10 +563,11 @@ describe("ToolCall text summarization", () => {
     expect(app.text).not.toContain("25 more lines")
   })
 
-  test("28-line bash output: lines 4-28 are visible when expanded", () => {
+  test("28-line bash output: overflowing tail is hidden behind scroll chrome", () => {
     const app = freshRender()(<ToolCall toolCall={bashLsToolCall()} defaultExpanded />)
     expect(app.text).toContain("file04.ts")
-    expect(app.text).toContain("file28.ts")
+    expect(app.text).not.toContain("file28.ts")
+    expect(app.text).toContain("▼")
   })
 
   test("short output (≤5 lines) renders verbatim — no accordion", () => {
@@ -640,6 +644,80 @@ describe("ToolCall text summarization", () => {
     )
     expect(app.text).toContain("x5")
     expect(app.text).not.toContain("more line")
+  })
+
+  test("expanded terminal-style output strips control rows instead of reserving blank space", () => {
+    const text = [
+      "\x1b[2K\rRUN v4.1.4 /Users/beorn/Code/pim/km",
+      "\x1b[2K\rstdout | apps/silvercode/tests/background-jobs.test.tsx",
+      "\x1b[2K\r03:47:37 DEBUG silvercode:claude-version probed",
+      "line-04",
+      "line-05",
+      "line-06",
+    ].join("\n")
+    const app = freshRender()(
+      <ToolCall
+        toolCall={{
+          toolCallId: id("terminal-output"),
+          title: "bun vitest run apps/silvercode/tests/background-jobs.test.tsx",
+          kind: "execute",
+          status: "completed",
+          content: [{ type: "content", content: { type: "text", text } }],
+        }}
+        defaultExpanded
+      />,
+    )
+
+    expect(app.text).toContain("RUN v4.1.4")
+    expect(app.text).toContain("stdout | apps/silvercode/tests/background-jobs.test.tsx")
+    expect(app.text).toContain("03:47:37 DEBUG silvercode:claude-version probed")
+    const commandRow = app.lines.findIndex((line) => line.includes("bun vitest run"))
+    const firstOutputRow = app.lines.findIndex((line) => line.includes("RUN v4.1.4"))
+    expect(firstOutputRow - commandRow, app.text).toBe(1)
+  })
+})
+
+describe("BoundedScroll", () => {
+  test("short content shrink-wraps instead of reserving the disclosure cap", () => {
+    const app = createRenderer({ cols: 80, rows: 40 })(
+      <Box width={80} height={40} flexDirection="column">
+        <BoundedScroll>
+          <Box flexDirection="column">
+            <Text>visible-1</Text>
+            <Text>visible-2</Text>
+            <Text>visible-3</Text>
+          </Box>
+        </BoundedScroll>
+        <Text>AFTER</Text>
+      </Box>,
+    )
+
+    const firstPatch = app.lines.findIndex((line) => line.includes("visible-1"))
+    const after = app.lines.findIndex((line) => line.includes("AFTER"))
+    expect(firstPatch, app.text).toBeGreaterThanOrEqual(0)
+    expect(after - firstPatch, app.text).toBeLessThan(10)
+  })
+
+  test("long content uses a compact disclosure cap", () => {
+    const app = createRenderer({ cols: 80, rows: 40 })(
+      <Box width={80} height={40} flexDirection="column">
+        <Text>BEFORE</Text>
+        <BoundedScroll>
+          <Box flexDirection="column">
+            {Array.from({ length: 40 }, (_, i) => (
+              <Text key={i}>line-{String(i + 1).padStart(2, "0")}</Text>
+            ))}
+          </Box>
+        </BoundedScroll>
+        <Text>AFTER</Text>
+      </Box>,
+    )
+
+    const before = app.lines.findIndex((line) => line.includes("BEFORE"))
+    const after = app.lines.findIndex((line) => line.includes("AFTER"))
+    expect(before, app.text).toBe(0)
+    expect(after - before, app.text).toBeLessThanOrEqual(13)
+    expect(app.text).toContain("▼")
   })
 })
 

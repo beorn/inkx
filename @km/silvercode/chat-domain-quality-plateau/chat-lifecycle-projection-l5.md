@@ -3,11 +3,22 @@ aliases:
   - km-silvercode.chat-lifecycle-projection-l5
   - km-silvercode-chat-lifecycle-projection-l5
 created_at: 2026-05-07T20:06:42.805Z
+dependencies:
+  - issue_id: "@km/silvercode/chat-domain-quality-plateau/chat-lifecycle-projection-l5"
+    depends_on_id: "@km/silvercode/chat-domain-quality-plateau/vocabulary-first"
+    type: blocked-by
+    created_at: 2026-05-07T20:11:16Z
+    created_by: codex
+    metadata: "{}"
+props:
+  blocked-by:
+    type: link
+    target: "@km/silvercode/chat-domain-quality-plateau/vocabulary-first"
 ---
 
 # L5: make Silvercode chat lifecycle/projection bugs impossible #P0
 
-Get Silvercode chat lifecycle/projection to L5 for the recurring stuck-thinking, leaked prompt echo, missing subagent, duplicate activity summary, notification duplication, and lifecycle-marker ordering bug class. The target design is one ownership path: AgentEvent / Notification -> ChatEvent -> ChatSession -> ChatTree -> UI. Provider quirks end at normalization; render components do not infer provider/session/activity semantics from MessageEntry, status, NotificationStreamEntry, or AgentEvent side paths.
+Get Silvercode chat lifecycle/projection to L5 for the recurring stuck-thinking, leaked prompt echo, missing subagent, duplicate activity summary, notification duplication, and lifecycle-marker ordering bug class. Vocabulary changes happen first, then code migration follows the stable target terms. The target design is one ownership path: `AgentEvent` / `ChannelNotification` / `ProtocolNotification` -> `ChatEvent` -> `ChatSession` -> `ChatTree` -> `Chat.Pane`. Agent/source quirks end at normalization; render components do not infer source, session, activity, notification, or lifecycle semantics from compatibility transcript entries, status fields, channel notifications, protocol notifications, or raw agent events.
 
 Seeded from 2026-05-07 /big after fixes 14b1668ca and 13e5e351b. Current state is roughly L3 with L2/L3 guards; target is L5: old workaround paths deleted, invariant/property/replay tests cover the class.
 
@@ -15,7 +26,7 @@ Seeded from 2026-05-07 /big after fixes 14b1668ca and 13e5e351b. Current state i
 
 Silvercode has the right target model on paper, but the implementation still has parallel ownership paths:
 
-- provider adapters and ACP glue can still settle or echo lifecycle facts incorrectly before chat normalization owns them;
+- agent backends and protocol glue can still settle or echo lifecycle facts incorrectly before chat normalization owns them;
 - `SessionStore.state.messages` / `MessageEntry` is still treated as a render model in legacy UI paths;
 - `SessionUpdateList` synthesizes live activity rows from `status + inFlightTool`;
 - notification filtering and subagent activity merging still have side-channel heuristics;
@@ -28,32 +39,43 @@ This is why the same class keeps reappearing as different symptoms: stuck thinki
 One ownership path:
 
 ```text
-AgentEvent / Notification
+AgentEvent / ChannelNotification / ProtocolNotification
   -> ChatEvent
   -> ChatSession
   -> ChatTree
-  -> UI
+  -> Chat.Pane
 ```
 
-Provider quirks end at normalization. `ChatSession` owns durable state. `ChatTree` owns visible projection, grouping, lifecycle placement, channels, and summaries. Components render `ChatTree` and do not infer provider/session/activity semantics from `MessageEntry`, `status`, `NotificationStreamEntry`, or `AgentEvent`.
+Agent/source quirks end at normalization. `ChatSession` owns durable state. `ChatTree` owns visible projection, grouping, lifecycle placement, channels, and summaries. Components render `ChatTree` and do not infer source/session/activity semantics from compatibility transcript entries, status fields, `ChannelNotification`, `ProtocolNotification`, or `AgentEvent`.
+
+## Vocabulary Baseline
+
+This bead depends on the vocabulary-first phase in `@km/silvercode/chat-domain-quality-plateau/vocabulary-first`.
+
+- `ChatBlock` is the typed content unit. Do not add new `ChatMessagePart` surfaces.
+- `ChatPlanStep` is one ordered item in a `ChatPlan`. Do not add `ChatPlanEntry` or `ChatPlanTask`.
+- `ChannelNotification` is pre-normalization side-channel input. `ChatNotification` is the normalized chat-domain fact.
+- `ProtocolNotification` is protocol/transport mechanics. Use `Acp*`, `Claude*`, or `Codex*` only for exact source shapes.
+- `AgentBackend` is a selectable/runnable agent source. `AgentConnection` is one live session. Translation pieces are parsers or normalizers, not domain adapters.
+- `Chat.Pane` is the visible UI frame. It contains `Chat.Header`, `Chat.Session`, and `Chat.Composer`.
 
 ## Non-Negotiable Invariants
 
-- Provider `tool_use` / intermediate stop reasons cannot close a Silvercode-owned running job/span.
+- Source `tool_use` / intermediate stop reasons cannot close a Silvercode-owned running job/span.
 - Live ACP/Claude user-message echoes cannot become transcript user messages while a local prompt is agent-owned.
 - `ChatMessage`, `ChatTool`, `ChatPermission`, `ChatJob`, `ChatSpan`, and `ChatSubagentActivity` lifecycles have closed transition tables.
 - `ChatToolId` is unique per session: one start, zero or one terminal result.
 - Tool completions without known starts become diagnostics/debug facts, not normal activity.
 - One visible activity summary owner per span. A synthetic live tail cannot render when real running tool activity exists.
 - Subagent drawer rows are derived from tool/activity lifecycle facts; notifications may annotate but cannot invent canonical identity.
-- Assistant narration can produce diagnostics when it claims more subagents than lifecycle events show, but must not fabricate rows.
+- Assistant narration remains transcript prose; it cannot change subagent drawer cardinality or fabricate rows.
 - Background jobs do not keep the foreground `ChatSpan` open.
 - Interrupted/abandoned output routes to debug/provenance unless the adapter confirms it is still owned by active chat state.
 - Every visible non-debug leaf has an owning `ChatEvent` or an approved keyed synthesis rule.
 
 ## Must Cover These Regressions
 
-- `f9eb64dc-d982-4a46-9a8e-da5fd882ac5f`: `use 4 subagents to sleep 20s` shows all four subagent activities and returns idle.
+- `f9eb64dc-d982-4a46-9a8e-da5fd882ac5f`: `use 4 subagents to sleep 20s` shows the structured subagent activities Claude actually emitted, preserves assistant prose as transcript text, and returns idle.
 - Claude `stop_reason: "tool_use"` does not resolve ACP prompt or emit terminal turn completion.
 - Live Claude/ACP user-message echoes do not leak subagent prompts into transcript.
 - Same-session subagent notifications do not duplicate tool-owned Agent rows.
@@ -66,22 +88,22 @@ Provider quirks end at normalization. `ChatSession` owns durable state. `ChatTre
 
 1. Move live activity tail synthesis into the chat-domain projection.
    - Input: `ChatSession + ChatShell/ChatSpan` state.
-   - Output: keyed `ChatLeaf` / approved synthesis node.
+   - Output: keyed `ChatTree` leaf / approved synthesis node.
    - Delete component-local synthesis from `SessionUpdateList`.
 
-2. Make `SessionUpdateList` render `ChatTree` instead of `MessageEntry` as its source of truth.
+2. Make the visible chat session render `ChatTree` instead of compatibility transcript entries as its source of truth.
    - Preserve visual behavior by adapting existing rows to leaves.
    - Keep legacy projection only behind temporary compatibility tests while migrating.
    - Delete `session-update-projection.ts` paths that duplicate `ChatTree` responsibilities.
 
 3. Centralize notification admission.
-   - Normalize `NotificationStreamEntry` into `ChatEvent` or debug-only diagnostics before UI rendering.
+   - Normalize `ChannelNotification` into `ChatEvent` or debug-only diagnostics before UI rendering.
    - Remove render-time notification/subagent filtering that re-implements merge rules.
 
 4. Make subagent activity a chat-domain derived model only.
    - One row per tool-derived activity id.
    - Notifications annotate/settle only when explicit identity matches.
-   - Narration mismatch becomes an error/debug leaf and test assertion.
+   - Narration claims stay transcript prose and never repair, invent, or diagnose missing lifecycle rows.
 
 5. Close the state machines.
    - Add pure transition helpers for message/tool/job/span/permission.
@@ -95,9 +117,9 @@ Provider quirks end at normalization. `ChatSession` owns durable state. `ChatTre
    - OpenCode/Kilo: session/message/update streams normalize into the same contract.
 
 7. Delete old workaround paths.
-   - No component should read `AgentEvent` or `NotificationStreamEntry` for visible chat semantics.
+   - No component should read `AgentEvent`, `ProtocolNotification`, or `ChannelNotification` for visible chat semantics.
    - No component should synthesize activity summaries from `status + inFlightTool`.
-   - No separate subagent drawer projection from `MessageEntry` once `ChatTree` owns it.
+   - No separate subagent drawer projection from compatibility transcript entries once `ChatTree` owns it.
 
 8. Add enforcement.
    - Test helper `assertChatInvariants(session, tree)`.
@@ -124,10 +146,10 @@ Provider quirks end at normalization. `ChatSession` owns durable state. `ChatTre
 ## Acceptance Checklist
 
 - [ ] Live activity tail is projected from canonical chat state, not `SessionUpdateList` local synthesis.
-- [ ] `SessionUpdateList` consumes `ChatTree` or a `ChatTree`-derived render model.
+- [ ] `Chat.Session` consumes `ChatTree` or a `ChatTree`-derived render model.
 - [ ] Notification admission and filtering happen before projection, not in render components.
 - [ ] Subagent drawer consumes canonical subagent activity state only.
-- [ ] `MessageEntry` legacy render/projection paths are deleted or quarantined behind explicit compatibility code.
+- [ ] Legacy message-entry render/projection paths are deleted or quarantined behind explicit compatibility code.
 - [ ] Strict chat invariant helper exists and is used by unit/replay tests.
 - [ ] Replay fixtures cover Claude subagents, ACP prompt lifecycle, Codex interleaving, resume markers, and duplicate summaries.
 - [ ] Property/metamorphic tests cover harmless reordering/splitting/noise insertion.

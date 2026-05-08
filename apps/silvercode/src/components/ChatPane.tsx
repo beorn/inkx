@@ -18,8 +18,8 @@ import {
 } from "../chat/subagent-activities.ts"
 import { filterVisibleNotificationEntries } from "../chat/notification-visibility.ts"
 import { NotificationBlock } from "./NotificationBlock.tsx"
-import type { NotificationStreamEntry } from "../notification-stream.ts"
-import { useBackgroundTasks } from "../hooks/use-background-tasks.ts"
+import type { ChannelNotification } from "../notification-stream.ts"
+import { useBackgroundJobs } from "../hooks/use-background-jobs.ts"
 
 /**
  * Per-agent display labels for the inline activity row's spawning state.
@@ -68,7 +68,7 @@ function isDebugSystemMessage(message: MessageEntry): boolean {
 function messageIdForChatEvent(event: ChatEvent): string | undefined {
   switch (event.type) {
     case "message.started":
-    case "message.part.added":
+    case "message.block.added":
     case "message.completed":
       return event.payload.messageId
     default:
@@ -79,7 +79,7 @@ function messageIdForChatEvent(event: ChatEvent): string | undefined {
 function isLiveActivityAnchor(event: ChatEvent): boolean {
   switch (event.type) {
     case "message.started":
-    case "message.part.added":
+    case "message.block.added":
     case "message.completed":
     case "tool.started":
     case "tool.updated":
@@ -120,22 +120,22 @@ function eventsAfterReplayBoundary(
   return firstLiveActivityIndex >= 0 ? events.slice(firstLiveActivityIndex) : []
 }
 
-function notificationEntryTs(entry: NotificationStreamEntry): number {
+function notificationEntryTs(entry: ChannelNotification): number {
   return entry.ts ?? entry.timestamp ?? 0
 }
 
 function notificationEntriesAfterProjectedEvents(
-  entries: readonly NotificationStreamEntry[],
+  entries: readonly ChannelNotification[],
   currentEvents: readonly ChatEvent[],
   allEvents: readonly ChatEvent[],
-): readonly NotificationStreamEntry[] {
+): readonly ChannelNotification[] {
   if (currentEvents === allEvents) return entries
   const firstCurrentTs = currentEvents[0]?.ts
   if (firstCurrentTs === undefined) return []
   return entries.filter((entry) => notificationEntryTs(entry) >= firstCurrentTs)
 }
 
-function notificationLeafFromEntry(entry: NotificationStreamEntry): ChatLeaf {
+function notificationLeafFromEntry(entry: ChannelNotification): ChatLeaf {
   const id = `notification:${entry.id}`
   return {
     id: `leaf:${id}` as ChatNodeId,
@@ -152,6 +152,14 @@ function notificationLeafFromEntry(entry: NotificationStreamEntry): ChatLeaf {
       actionable: entry.actionable,
     },
   }
+}
+
+function useStableCallback<Args extends readonly unknown[], Return>(
+  callback: (...args: Args) => Return,
+): (...args: Args) => Return {
+  const callbackRef = React.useRef(callback)
+  callbackRef.current = callback
+  return React.useCallback((...args: Args) => callbackRef.current(...args), [])
 }
 
 function ProjectedTranscriptCompare({ leaves }: { leaves: readonly ChatLeaf[] }): React.ReactElement | null {
@@ -247,8 +255,8 @@ export function ChatPane({
    *  state so there's only ever one composer mounted. Bead:
    *  km-silvercode.welcome-bypassed-by-pane-grid-spawn. */
   composerSlot?: React.ReactNode
-  /** Chat panes follow the latest turn; natural-height story previews can disable it. */
-  follow?: "end" | false
+  /** Chat panes follow the latest turn; natural-height story previews can disable ListView. */
+  follow?: "end" | "none" | false
   /** PaneGrid enables this when pane chrome is meaningful; standalone panes stay chrome-free. */
   showFocusBar?: boolean
   /** All live sessions, used only to enrich the agents drawer metadata. */
@@ -268,7 +276,7 @@ export function ChatPane({
   const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()
   const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
   const sessionStates = useAllSessionStates(sessionHandles)
-  const backgroundTasks = useBackgroundTasks(controller, handle.id)
+  const backgroundJobs = useBackgroundJobs(controller, handle.id)
   // Notification stream — pre-filtered through the mute set so muted source
   // rows never reach `SessionUpdateList`. The hook handles a null
   // controller internally (returns []), keeping rules-of-hooks intact.
@@ -293,7 +301,7 @@ export function ChatPane({
     () => notificationEntriesAfterProjectedEvents(rawNotificationEntries, currentProjectedEvents, projectedEvents),
     [currentProjectedEvents, projectedEvents, rawNotificationEntries],
   )
-  const currentSubagentActivityProjection = React.useMemo(
+  const currentProjectedSubagentActivities = React.useMemo(
     () =>
       projectCurrentSubagentActivitiesFromChatEvents(currentProjectedEvents, {
         notificationEntries: currentRawNotificationEntries,
@@ -302,16 +310,16 @@ export function ChatPane({
     [currentProjectedEvents, currentRawNotificationEntries, handle.id],
   )
   const currentSubagentActivities = React.useMemo(
-    () => subagentActivityRowsFromActivities(currentSubagentActivityProjection.activities),
-    [currentSubagentActivityProjection],
+    () => subagentActivityRowsFromActivities(currentProjectedSubagentActivities),
+    [currentProjectedSubagentActivities],
   )
   const notificationBlock = React.useMemo(
     () =>
-      chatActivitySnapshotFromMessages(state.messages, backgroundTasks, {
+      chatActivitySnapshotFromMessages(state.messages, backgroundJobs, {
         agents: currentSubagentActivities,
         sessionId: handle.id,
       }),
-    [backgroundTasks, currentSubagentActivities, handle.id, state.messages],
+    [backgroundJobs, currentSubagentActivities, handle.id, state.messages],
   )
   const notificationBlockCounts = React.useMemo(
     () => ({ ...notificationBlock.counts, agentsRunning: 0 }),
@@ -390,10 +398,18 @@ export function ChatPane({
     () => [...projectedLeaves, ...notificationLeaves],
     [notificationLeaves, projectedLeaves],
   )
+  const stableOnApprove = useStableCallback(onApprove)
+  const stableOnDeny = useStableCallback(onDeny)
   const legacyMessages = React.useMemo(
     () => (showDebug ? state.messages : state.messages.filter((message) => !isDebugSystemMessage(message))),
     [showDebug, state.messages],
   )
+  const resumeReplayOnly =
+    handle.metadata?.resumeId !== undefined &&
+    handle.metadata.replayCompletedAt !== undefined &&
+    handle.metadata.liveStartedAt === undefined &&
+    (handle.metadata.replayMessageCount === undefined || state.messages.length <= handle.metadata.replayMessageCount)
+  const transcriptFollow = resumeReplayOnly && follow === "end" ? "none" : follow
   // Callback ref — fires with the live ListViewHandle on mount and with
   // null on unmount. Mirrors the handle into App's registration map so
   // app-level Shift+Up/Down scroll bindings can reach this pane's list
@@ -408,7 +424,7 @@ export function ChatPane({
 
   // The most recent tool call that doesn't yet have a matching result is
   // the one currently in flight. Used in the activity indicator label.
-  const inFlightTool = (() => {
+  const inFlightTool = React.useMemo(() => {
     for (let i = state.messages.length - 1; i >= 0; i--) {
       const m = state.messages[i]
       if (m === undefined) continue
@@ -420,16 +436,82 @@ export function ChatPane({
       }
     }
     return null
-  })()
+  }, [state.messages])
 
   // Elapsed time is anchored to the latest MessageEntry's `ts` (most
   // recent turn, user or assistant); if there are no messages yet we
   // pass null and the indicator omits the elapsed segment.
   const turnStartedAt = state.messages[state.messages.length - 1]?.ts ?? null
-  const hasTranscriptContent = hasVisibleTranscriptContent(legacyMessages)
+  const hasTranscriptContent = React.useMemo(() => hasVisibleTranscriptContent(legacyMessages), [legacyMessages])
   const [composerHeight, setComposerHeight] = React.useState(0)
   const composerOverlayHeight = composerSlot ? Math.max(3, composerHeight) : 0
   const transcriptBottomPadding = hasTranscriptContent ? 1 : 0
+  const agentLabel = React.useMemo(() => agentLabelFor(agent), [agent])
+  const metadata = handle.metadata
+  const transcriptList = React.useMemo(
+    () => (
+      <SessionUpdateList
+        ref={scrollListRefCb}
+        messages={legacyMessages}
+        onApprove={stableOnApprove}
+        onDeny={stableOnDeny}
+        sessionId={handle.id}
+        status={state.status}
+        turnStartedAt={turnStartedAt}
+        inputTokens={state.cost.inputTokens}
+        outputTokens={state.cost.outputTokens}
+        pendingPermissions={state.permissions.length}
+        inFlightTool={inFlightTool}
+        showDebug={showDebug}
+        notificationEntries={notificationEntries}
+        sessionMetadata={metadata}
+        agentLabel={agentLabel}
+        agentVersion={state.claudeCodeVersion || null}
+        follow={transcriptFollow}
+        paddingTop={hasTranscriptContent ? 1 : 0}
+        paddingBottom={transcriptBottomPadding}
+        viewportBottomInset={composerOverlayHeight}
+      />
+    ),
+    [
+      agentLabel,
+      composerOverlayHeight,
+      handle.id,
+      hasTranscriptContent,
+      inFlightTool,
+      legacyMessages,
+      metadata,
+      metadata?.account,
+      metadata?.agent,
+      metadata?.cwd,
+      metadata?.endedAt,
+      metadata?.liveStartedAt,
+      metadata?.model,
+      metadata?.replayBoundaryMessageId,
+      metadata?.replayCompletedAt,
+      metadata?.replayMessageCount,
+      metadata?.replayStartedAt,
+      metadata?.resumeId,
+      metadata?.sessionId,
+      metadata?.sessionInitAt,
+      metadata?.spawnedAt,
+      metadata?.subagentSessions,
+      metadata?.transcriptPath,
+      notificationEntries,
+      scrollListRefCb,
+      showDebug,
+      stableOnApprove,
+      stableOnDeny,
+      state.claudeCodeVersion,
+      state.cost.inputTokens,
+      state.cost.outputTokens,
+      state.permissions.length,
+      state.status,
+      transcriptBottomPadding,
+      transcriptFollow,
+      turnStartedAt,
+    ],
+  )
 
   return (
     // `userSelect="contain"` is a hard CSS-style selection boundary here:
@@ -467,32 +549,11 @@ export function ChatPane({
             />
           ) : (
             <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
-              <Chat.Transcript>
+              <Chat.Session>
                 <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} position="relative">
                   <Box flexDirection="column" flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
                     <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} overflow="hidden">
-                      <SessionUpdateList
-                        ref={scrollListRefCb}
-                        messages={legacyMessages}
-                        onApprove={onApprove}
-                        onDeny={onDeny}
-                        sessionId={handle.id}
-                        status={state.status}
-                        turnStartedAt={turnStartedAt}
-                        inputTokens={state.cost.inputTokens}
-                        outputTokens={state.cost.outputTokens}
-                        pendingPermissions={state.permissions.length}
-                        inFlightTool={inFlightTool}
-                        showDebug={showDebug}
-                        notificationEntries={notificationEntries}
-                        sessionMetadata={handle.metadata}
-                        agentLabel={agentLabelFor(agent)}
-                        agentVersion={state.claudeCodeVersion || null}
-                        follow={follow}
-                        paddingTop={hasTranscriptContent ? 1 : 0}
-                        paddingBottom={transcriptBottomPadding}
-                        viewportBottomInset={composerOverlayHeight}
-                      />
+                      {transcriptList}
                     </Box>
                     {showDebug ? <ProjectedTranscriptCompare leaves={projectedCompareLeaves} /> : null}
                   </Box>
@@ -500,7 +561,7 @@ export function ChatPane({
                     <Box
                       position="absolute"
                       left={0}
-                      right={0}
+                      right={1}
                       bottom={0}
                       paddingY={1}
                       flexDirection="column"
@@ -514,16 +575,15 @@ export function ChatPane({
                         sessions={drawerSessions}
                         selfSessionId={handle.id}
                         subagents={notificationBlock.agents}
-                        diagnostics={currentSubagentActivityProjection.diagnostics}
                       />
                       <Chat.PlanDrawer plan={state.plan} />
                       <NotificationBlock
                         counts={notificationBlockCounts}
                         agents={[]}
                         shells={notificationBlock.shells}
-                        backgroundTasks={backgroundTasks}
-                        onCancelBackgroundTask={(taskId) => controller?.cancelBackgroundTask(handle.id, taskId)}
-                        onForegroundBackgroundTask={(taskId) => controller?.foregroundTask(handle.id, taskId)}
+                        backgroundJobs={backgroundJobs}
+                        onCancelBackgroundJob={(jobId) => controller?.cancelBackgroundJob(handle.id, jobId)}
+                        onShowBackgroundJob={(jobId) => controller?.surfaceBackgroundJob(handle.id, jobId)}
                       />
                       <Chat.Composer>
                         <Box flexDirection="column" width="100%" minWidth={0} backgroundColor="$bg-surface-raised">
@@ -533,7 +593,7 @@ export function ChatPane({
                     </Box>
                   ) : null}
                 </Box>
-              </Chat.Transcript>
+              </Chat.Session>
             </Box>
           )}
         </Box>

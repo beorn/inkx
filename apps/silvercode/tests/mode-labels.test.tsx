@@ -17,7 +17,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { readFileSync } from "node:fs"
 import React from "react"
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { MODE_COLORS, MODE_ICONS, MODE_LABELS, SidePanel } from "../src/components/SidePanel.tsx"
 import type { Controller, SessionHandle } from "../src/controller.ts"
@@ -26,6 +26,29 @@ import { renderScenario } from "../src/test/render-harness.tsx"
 
 const TOTAL_COLS = 120
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
+let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = []
+const silentWrite = ((
+  _chunk: string | Uint8Array,
+  encodingOrCallback?: BufferEncoding | ((err?: Error) => void),
+  callback?: (err?: Error) => void,
+): boolean => {
+  const cb = typeof encodingOrCallback === "function" ? encodingOrCallback : callback
+  cb?.()
+  return true
+}) as typeof process.stdout.write
+
+beforeEach(() => {
+  consoleSpies = (["log", "info", "debug", "warn", "error"] as const).map((method) =>
+    vi.spyOn(console, method).mockImplementation(() => {}),
+  )
+  vi.spyOn(process.stdout, "write").mockImplementation(silentWrite)
+  vi.spyOn(process.stderr, "write").mockImplementation(silentWrite as typeof process.stderr.write)
+})
+
+afterEach(() => {
+  for (const spy of consoleSpies) spy.mockRestore()
+  consoleSpies = []
+})
 
 function sameRgb(a: unknown, b: unknown): boolean {
   if (a == null || b == null) return a === b
@@ -66,11 +89,12 @@ function makeStubController(): Controller {
     fork: async () => ({}) as any,
     spawnSession: async () => ({}) as any,
     runSlashCommand: () => {},
-    backgroundActiveTurn: () => {},
-    foregroundTask: () => {},
-    cancelBackgroundTask: () => {},
-    backgroundTasks: () => [],
-    onBackgroundTasksChange: () => () => {},
+    backgroundActiveJob: () => {},
+    interruptActiveJob: () => {},
+    surfaceBackgroundJob: () => {},
+    cancelBackgroundJob: () => {},
+    backgroundJobs: () => [],
+    onBackgroundJobsChange: () => () => {},
     notificationMuteState: {
       isMuted: () => false,
       muted: () => new Set<string>(),
@@ -203,19 +227,29 @@ describe("App default mode + cycleMode order", () => {
     expect(appSrc).toMatch(/MODE_COLOR:\s*Record<string,\s*string>\s*=\s*\{[\s\S]*?ask:\s*"\$muted"/)
   })
 
-  test("Option comma/period cycle Codex reasoning down/up in the real App", async () => {
+  test("Option comma/period adjust Codex reasoning without wrapping in the real App", async () => {
     const scenario = await renderScenario({ script: [], agent: "codex", cols: 140, rows: 30 })
     try {
-      expect(scenario.text).toContain("reasoning medium")
-
       await scenario.app.press("Alt+.")
-      expect(scenario.resample().text).toContain("reasoning high")
+      await scenario.app.press("Alt+.")
+      await scenario.app.press("Alt+.")
+      await scenario.app.press("Alt+.")
+      expect(scenario.resample().text).toContain("reasoning xhigh")
 
       await scenario.app.press("Alt+.")
       expect(scenario.resample().text).toContain("reasoning xhigh")
 
       await scenario.app.press("Alt+,")
       expect(scenario.resample().text).toContain("reasoning high")
+
+      await scenario.app.press("Alt+,")
+      expect(scenario.resample().text).toContain("reasoning medium")
+
+      await scenario.app.press("Alt+,")
+      expect(scenario.resample().text).toContain("reasoning low")
+
+      await scenario.app.press("Alt+,")
+      expect(scenario.resample().text).toContain("reasoning low")
     } finally {
       scenario.dispose()
     }

@@ -27,7 +27,14 @@ import { Box } from "silvery"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
-import type { MessageEntry, MessageOp, ToolCallEntry, ToolResultEntry, ToolUseId } from "@km/agent-harness"
+import {
+  messageTextFromOps,
+  type MessageEntry,
+  type MessageOp,
+  type ToolCallEntry,
+  type ToolResultEntry,
+  type ToolUseId,
+} from "@km/agent-harness"
 
 beforeAll(() => {
   if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexilyZeroEngine())
@@ -47,9 +54,7 @@ function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageO
   }
   Object.defineProperty(out, "text", {
     get() {
-      let s = ""
-      for (const op of opts.ops) if (op.kind === "text") s += op.text
-      return s
+      return messageTextFromOps(opts.ops)
     },
     enumerable: true,
     configurable: true,
@@ -228,6 +233,46 @@ describe("SessionUpdateList — codex tool-call interleaving (km-silvercode.code
     // tool call, the two anchors would be adjacent (whitespace only).
     const between = frame.slice(idxAlpha + "ANCHOR_ALPHA".length, idxBeta)
     expect(between).toMatch(/•/)
+  })
+
+  test("does not collapse an entire high-volume turn when narration is interspersed", () => {
+    const ops: MessageOp[] = [{ kind: "text", text: "ANCHOR_START before tools" }]
+    for (let i = 0; i < 10; i++) {
+      ops.push({
+        kind: "tool",
+        toolCall: { id: `tu_${i}` as ToolUseId, name: "Read", input: { file_path: `file-${i}.ts` } },
+        result: { id: `tu_${i}` as ToolUseId, output: `file ${i}`, is_error: false },
+      })
+    }
+    ops.push({ kind: "text", text: "ANCHOR_END after tools" })
+
+    const entry = makeEntry({ id: "m1", role: "assistant", ops })
+
+    const COLS = 120
+    const ROWS = 36
+    const app = createRenderer({ cols: COLS, rows: ROWS })(
+      <Box width={COLS} height={ROWS} flexDirection="column">
+        <SessionUpdateList
+          messages={[entry]}
+          onApprove={() => {}}
+          onDeny={() => {}}
+          sessionId="s1"
+          status="idle"
+          turnStartedAt={0}
+          inputTokens={0}
+          outputTokens={0}
+          pendingPermissions={0}
+          inFlightTool={null}
+          follow={false}
+        />
+      </Box>,
+    )
+    app.press("")
+
+    expect(app.text).toContain("ANCHOR_START")
+    expect(app.text).toContain("ANCHOR_END")
+    expect(app.text).toContain("Read 10 files")
+    expect(app.text).not.toContain("Using 10 tools")
   })
 
   test("legacy projections (text/toolCalls/toolResults) reflect ops correctly", () => {

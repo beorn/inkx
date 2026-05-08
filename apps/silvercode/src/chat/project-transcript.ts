@@ -27,7 +27,7 @@ function nodeId(value: string): ChatNodeId {
 
 function assertNeverEvent(event: never): never {
   const type = (event as { type?: unknown }).type
-  throw new Error(`Unhandled ChatEventType in projectChatTranscript: ${String(type)}`)
+  throw new Error(`Unhandled ChatEventType in projectChatTree: ${String(type)}`)
 }
 
 function assertSameSession(expected: ChatSessionId, event: ChatEvent): void {
@@ -39,7 +39,7 @@ function assertSameSession(expected: ChatSessionId, event: ChatEvent): void {
 type MessageProjectionState = {
   role: ChatRole
   completed: boolean
-  partIds: Set<string>
+  blockIds: Set<string>
 }
 
 type ToolProjectionState = {
@@ -58,11 +58,11 @@ function assertEventIdsInclude(owner: string, eventId: ChatEventId, eventIds: re
 
 function requireMessageState(
   messages: Map<ChatMessageId, MessageProjectionState>,
-  event: ChatEvent<"message.part.added">,
+  event: ChatEvent<"message.block.added">,
 ): MessageProjectionState | null {
   const state = messages.get(event.payload.messageId)
   if (!state) {
-    throw new Error(`message.part.added ${event.id} references unknown message ${event.payload.messageId}`)
+    throw new Error(`message.block.added ${event.id} references unknown message ${event.payload.messageId}`)
   }
   if (state.completed) {
     // ACP servers can deliver a trailing text delta after Silvercode has
@@ -70,14 +70,14 @@ function requireMessageState(
     // stale stream data instead of crashing the projection.
     return null
   }
-  if (event.payload.part.id !== event.payload.partId) {
-    throw new Error(`message.part.added ${event.id} payload part id does not match partId`)
+  if (event.payload.block.id !== event.payload.blockId) {
+    throw new Error(`message.block.added ${event.id} payload block id does not match blockId`)
   }
-  if (state.partIds.has(event.payload.partId)) {
-    throw new Error(`message.part.added ${event.id} duplicates part ${event.payload.partId}`)
+  if (state.blockIds.has(event.payload.blockId)) {
+    throw new Error(`message.block.added ${event.id} duplicates block ${event.payload.blockId}`)
   }
-  assertEventIdsInclude(`message.part.added ${event.id} payload part`, event.id, event.payload.part.eventIds)
-  state.partIds.add(event.payload.partId)
+  assertEventIdsInclude(`message.block.added ${event.id} payload block`, event.id, event.payload.block.eventIds)
+  state.blockIds.add(event.payload.blockId)
   return state
 }
 
@@ -114,15 +114,15 @@ function requirePermissionState(
 function assertPlanConsistency(event: ChatEvent<"plan.updated">, plan: ChatPlan): void {
   assertEventIdsInclude(`plan.updated ${event.id} payload plan`, event.id, plan.eventIds)
   const ids = new Set<string>()
-  for (const task of plan.tasks) {
-    if (ids.has(task.id)) {
-      throw new Error(`plan.updated ${event.id} duplicates task ${task.id}`)
+  for (const step of plan.steps) {
+    if (ids.has(step.id)) {
+      throw new Error(`plan.updated ${event.id} duplicates step ${step.id}`)
     }
-    ids.add(task.id)
+    ids.add(step.id)
   }
-  for (const task of plan.tasks) {
-    if (task.parentId && !ids.has(task.parentId)) {
-      throw new Error(`plan.updated ${event.id} task ${task.id} references unknown parent ${task.parentId}`)
+  for (const step of plan.steps) {
+    if (step.parentId && !ids.has(step.parentId)) {
+      throw new Error(`plan.updated ${event.id} step ${step.id} references unknown parent ${step.parentId}`)
     }
   }
 }
@@ -212,7 +212,7 @@ function debugLeafFor(event: ChatEvent<"debug.recorded">): ChatLeaf {
   }
 }
 
-export function projectChatTranscript({ sessionId, events }: ProjectArgs): ChatTree {
+export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
   const rootId = nodeId("root")
   const root = {
     id: rootId,
@@ -238,47 +238,47 @@ export function projectChatTranscript({ sessionId, events }: ProjectArgs): ChatT
         if (messages.has(event.payload.messageId)) {
           throw new Error(`message.started ${event.id} duplicates message ${event.payload.messageId}`)
         }
-        messages.set(event.payload.messageId, { role: event.payload.role, completed: false, partIds: new Set() })
+        messages.set(event.payload.messageId, { role: event.payload.role, completed: false, blockIds: new Set() })
         break
       }
-      case "message.part.added": {
+      case "message.block.added": {
         const message = requireMessageState(messages, event)
         if (!message) break
-        const part = event.payload.part
-        if (part.type === "text") {
+        const block = event.payload.block
+        if (block.type === "text") {
           pushLeaf({
             ...leafBase(event),
             type: message.role === "user" ? "user-text" : "assistant-text",
             messageIds: [event.payload.messageId],
-            partIds: [event.payload.partId],
-            props: { text: part.text },
+            blockIds: [event.payload.blockId],
+            props: { text: block.text },
           })
-        } else if (part.type === "reasoning") {
+        } else if (block.type === "reasoning") {
           pushLeaf({
             ...leafBase(event),
             type: "reasoning",
             messageIds: [event.payload.messageId],
-            partIds: [event.payload.partId],
-            props: { text: part.text },
+            blockIds: [event.payload.blockId],
+            props: { text: block.text },
           })
-        } else if (part.type === "attachment") {
+        } else if (block.type === "attachment") {
           pushLeaf({
             ...leafBase(event),
             type: "attachment",
             messageIds: [event.payload.messageId],
-            partIds: [event.payload.partId],
-            props: { attachment: part.attachment },
+            blockIds: [event.payload.blockId],
+            props: { attachment: block.attachment },
           })
         } else {
-          if (!tools.has(part.toolId)) {
-            throw new Error(`message.part.added ${event.id} references unknown tool ${part.toolId}`)
+          if (!tools.has(block.toolId)) {
+            throw new Error(`message.block.added ${event.id} references unknown tool ${block.toolId}`)
           }
           pushLeaf({
             ...leafBase(event),
             type: "tool",
             messageIds: [event.payload.messageId],
-            partIds: [event.payload.partId],
-            toolIds: [part.toolId],
+            blockIds: [event.payload.blockId],
+            toolIds: [block.toolId],
             props: { name: "tool-ref" },
           })
         }
@@ -348,7 +348,7 @@ export function projectChatTranscript({ sessionId, events }: ProjectArgs): ChatT
         pushLeaf({
           ...leafBase(event),
           type: "plan-update",
-          props: { taskCount: event.payload.plan.tasks.length },
+          props: { stepCount: event.payload.plan.steps.length },
         })
         break
       case "queue.updated":

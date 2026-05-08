@@ -107,7 +107,7 @@ function writeFakeTranscript(cwd: string, sessionId: string): void {
   writeFileSync(join(dir, `${sessionId}.jsonl`), `${lines.join("\n")}\n`)
 }
 
-function writeSubagentCountMismatchTranscript(cwd: string, sessionId: string): void {
+function writeSubagentProseClaimTranscript(cwd: string, sessionId: string): void {
   const dir = join(homedir(), ".claude", "projects", claudeProjDir(cwd))
   mkdirSync(dir, { recursive: true })
   createdProjDirs.push(dir)
@@ -197,10 +197,10 @@ describe("--resume: input is accepted (status flips back to idle after replay)",
     controller.closeAll()
   })
 
-  test("controller resume records historical subagent count mismatches without aborting startup", async () => {
-    const cwd = `${TEST_CWD_BASE}-subagent-count-mismatch`
-    const sessionId = `00000000-resume-subagent-mismatch-${process.pid}` as SessionId
-    writeSubagentCountMismatchTranscript(cwd, sessionId)
+  test("controller resume preserves assistant prose claims without converting them into errors", async () => {
+    const cwd = `${TEST_CWD_BASE}-subagent-prose-claim`
+    const sessionId = `00000000-resume-subagent-prose-${process.pid}` as SessionId
+    writeSubagentProseClaimTranscript(cwd, sessionId)
 
     const fake = createFakeSession({ sessionId })
     const controller = createSilvercodeController({
@@ -217,9 +217,7 @@ describe("--resume: input is accepted (status flips back to idle after replay)",
     const handle = await controller.spawnSession("test")
 
     expect(handle.store.state.get().messages.some((message) => message.text.includes("All 4 done"))).toBe(true)
-    expect(handle.store.state.get().lastError?.message).toMatch(
-      /subagent activity invariant failed.*claimed 4.*observed 1/s,
-    )
+    expect(handle.store.state.get().lastError).toBeNull()
 
     controller.closeAll()
   })

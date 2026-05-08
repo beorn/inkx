@@ -1,6 +1,6 @@
-import type { MessageEntry, MessageOp } from "@km/agent-harness"
+import { messageTextFromOps, type MessageEntry, type MessageOp } from "@km/agent-harness/session-store"
 import { normalizeCommandSessionOps, splitAssistantMessageForTranscript } from "../chat-model.ts"
-import type { NotificationStreamEntry } from "../notification-stream.ts"
+import type { ChannelNotification } from "../notification-stream.ts"
 import type { SessionHistoryMetadata } from "../session-metadata.ts"
 
 export type SessionMetadataRowKind = "start" | "loaded" | "ended"
@@ -14,7 +14,7 @@ export type SessionMetadataRowData = {
 }
 
 export type LiveActivityTail = { __activity: true }
-export type ChatNotificationGroup = { __notification: true; entries: NotificationStreamEntry[] }
+export type ChatNotificationGroup = { __notification: true; entries: ChannelNotification[] }
 export type AssistantActivitySegment = {
   __assistantActivity: true
   id: string
@@ -42,7 +42,7 @@ type SessionMetadataItems = {
 
 export type ProjectSessionUpdateTranscriptArgs = {
   messages: readonly MessageEntry[]
-  notificationEntries?: readonly NotificationStreamEntry[]
+  notificationEntries?: readonly ChannelNotification[]
   sessionMetadata?: SessionHistoryMetadata
   showActivity: boolean
   paddingY?: number
@@ -389,12 +389,8 @@ function itemBlockText(item: TranscriptItem): string {
     return ""
   }
   const ops = isAssistantActivitySegment(item) ? item.ops : item.ops
-  return ops
-    .flatMap((op) => {
-      if (op.kind === "text" || op.kind === "thinking") return [op.text]
-      return []
-    })
-    .join("")
+  const thinking = ops.flatMap((op) => (op.kind === "thinking" ? [op.text] : [])).join("")
+  return messageTextFromOps(ops) + thinking
 }
 
 function itemHasInternalBlankLine(item: TranscriptItem): boolean {
@@ -405,7 +401,7 @@ function opTimestamp(op: MessageOp, fallback: number): number {
   return op.ts ?? fallback
 }
 
-function notificationTimestamp(entry: NotificationStreamEntry): number {
+function notificationTimestamp(entry: ChannelNotification): number {
   return entry.ts ?? entry.timestamp ?? 0
 }
 
@@ -425,7 +421,7 @@ function cloneMessageForTimeline(message: MessageEntry, ops: MessageOp[], suffix
   })
   Object.defineProperty(out, "text", {
     get() {
-      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
+      return messageTextFromOps(ops)
     },
     enumerable: true,
     configurable: true,
@@ -447,11 +443,8 @@ function cloneMessageForTimeline(message: MessageEntry, ops: MessageOp[], suffix
   return out
 }
 
-function interleave(
-  messages: readonly MessageEntry[],
-  notification: readonly NotificationStreamEntry[],
-): TranscriptItem[] {
-  function pushNotification(out: TranscriptItem[], entry: NotificationStreamEntry): void {
+function interleave(messages: readonly MessageEntry[], notification: readonly ChannelNotification[]): TranscriptItem[] {
+  function pushNotification(out: TranscriptItem[], entry: ChannelNotification): void {
     const last = out[out.length - 1]
     if (last && isChatNotificationGroup(last)) {
       last.entries.push(entry)
@@ -517,6 +510,36 @@ function messageItems(messages: readonly MessageEntry[]): TranscriptItem[] {
   return out
 }
 
+function dedupeAdjacentReplayBookkeeping(items: TranscriptItem[]): TranscriptItem[] {
+  const out: TranscriptItem[] = []
+  let previousLabel: string | null = null
+  for (const item of items) {
+    const label = replayBookkeepingLabel(item)
+    if (label && label === previousLabel) continue
+    out.push(item)
+    previousLabel = label
+  }
+  return out
+}
+
+function replayBookkeepingLabel(item: TranscriptItem): string | null {
+  if (!isTranscriptMessageEntry(item) || item.role !== "system") return null
+  const text = item.text.trim()
+  return isReplayBookkeepingText(text) ? text : null
+}
+
+function isReplayBookkeepingText(text: string): boolean {
+  return (
+    text === "Last prompt snapshot" ||
+    text === "Queue enqueue" ||
+    text === "Queue dequeue" ||
+    text.startsWith("Permission mode: ") ||
+    text.startsWith("Title: ") ||
+    text.startsWith("AI title: ") ||
+    text.startsWith("Agent: ")
+  )
+}
+
 export function projectSessionUpdateTranscript({
   messages,
   notificationEntries,
@@ -531,6 +554,7 @@ export function projectSessionUpdateTranscript({
     notificationEntries && notificationEntries.length > 0
       ? interleave(messages, notificationEntries)
       : messageItems(messages)
+  const timelineItems = dedupeAdjacentReplayBookkeeping(merged)
   const metadata = sessionMetadataItems(sessionMetadata)
   const replayMessageCount = Math.max(0, sessionMetadata?.replayMessageCount ?? 0)
   const replayBoundaryMessageId = sessionMetadata?.replayBoundaryMessageId
@@ -544,8 +568,8 @@ export function projectSessionUpdateTranscript({
   const seenReplayMessageIds = new Set<string>()
   let insertedLoadedMetadata = false
   let sawReplayItemBeforeLiveThreshold = false
-  for (let index = 0; index < merged.length; index++) {
-    const item = merged[index]
+  for (let index = 0; index < timelineItems.length; index++) {
+    const item = timelineItems[index]
     if (item === undefined) continue
     const timestamp = itemTimestamp(item)
     if (metadata.loaded && !insertedLoadedMetadata && replayCompletedAt !== undefined) {
@@ -574,7 +598,7 @@ export function projectSessionUpdateTranscript({
       seenReplayMessageIds.add(sourceId)
       seenReplayMessages++
     }
-    const nextItem = merged[index + 1]
+    const nextItem = timelineItems[index + 1]
     const nextSourceId = nextItem !== undefined ? sourceMessageId(nextItem) : null
     const isLastSliceForSource = sourceId === null || nextSourceId !== sourceId
     const isReplayBoundary =

@@ -24,6 +24,7 @@ import {
   type SessionId,
   type SessionStore,
   type TurnId,
+  type AcpSetSessionConfigOptionParams,
   acpRequestPermissionToSilvercode,
   silvercodeRequestPermissionResponseToAcp,
   channelDigestInjector,
@@ -52,12 +53,8 @@ import { type CoordinatorMcpServer, createCoordinatorMcpServer } from "./coordin
 import { type CrossAgentState, createCrossAgentState } from "./cross-agent-state.ts"
 import { replaySessionFromDisk, sessionJsonlPath } from "./resume.ts"
 import { discoverClaudeSubagentSessions } from "./claude-subagent-sessions.ts"
-import { normalizeAgentEventsToChatEvents } from "./chat/normalize-agent-event.ts"
-import {
-  assertSubagentActivityInvariants,
-  projectCurrentSubagentActivitiesFromChatEvents,
-} from "./chat/subagent-activities.ts"
 import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-metadata.ts"
+import type { ReasoningEffort, SessionConfigValue } from "./config-schema.ts"
 
 // Queue diagnostics — enable with `DEBUG=silvercode:queue` (combined with
 // `DEBUG_LOG=<path>` when running the TUI so the alt-screen UI isn't
@@ -67,12 +64,12 @@ import type { SessionHistoryMetadata, SubagentSessionSummary } from "./session-m
 const dQueue = createDebug("silvercode:queue")
 const dBackground = createDebug("silvercode:background")
 const dRecall = createDebug("silvercode:recall")
-const dInvariant = createDebug("silvercode:chat-invariants")
 
 function createReplayOnlySession(sessionId: string, sendFailureMessage: string): AgentSession {
   const subscribers = new Set<(event: AgentEvent) => void>()
   let closed = false
   const sid = sessionId as SessionId
+  let offlineTurnSeq = 0
 
   function emit(event: AgentEvent): void {
     if (closed) return
@@ -84,7 +81,7 @@ function createReplayOnlySession(sessionId: string, sendFailureMessage: string):
     send(text: string): void {
       if (closed) return
       const ts = Date.now()
-      const turnId = `offline-${ts}` as TurnId
+      const turnId = `offline-${ts}-${++offlineTurnSeq}` as TurnId
       emit({ kind: "user-message", sessionId: sid, turnId, text, ts })
       emit({ kind: "error", sessionId: sid, message: sendFailureMessage, ts: ts + 1 })
     },
@@ -136,7 +133,7 @@ const MAX_LIVE_SESSIONS = 8
 
 /**
  * Prefix that marks a synthetic "background result" system message stuffed
- * into the conversation by `completeTask`. SessionUpdateList recognises this
+ * into the conversation by `completeJob`. SessionUpdateList recognises this
  * prefix and renders the row with a distinct (system) treatment instead of
  * the default user-message styling. Exported so test + UI code stays in
  * lockstep with the controller — the prefix is the contract.
@@ -228,29 +225,19 @@ export type SessionHandle = {
 }
 
 /**
- * Per-turn background task — see `Controller.backgroundActiveTurn`.
- *
- * When the user presses Ctrl-B during a running turn, the turn's events keep
- * flowing into the SessionStore (the foreground UI sees its outcome) AND get
- * mirrored into a BackgroundTask so the SidePanel + BackgroundPane can show
- * "this turn is running in the background — you can keep typing".
- *
- * `events` accumulates a snapshot of every harness event seen for this turn
- * after backgrounding. On `turn-end`, the task's `status` flips to
- * `completed` (or `cancelled` if the user explicitly cancelled) and a
- * "background-result" message is emitted into the conversation as a SYSTEM
- * message — not as an assistant message — so the user can see what came
- * back without confusing the UI's notion of "whose turn was that".
+ * Background job snapshot. The synthetic Ctrl-B path is disabled because
+ * assistant message ids are not stable provider job ids across tool-call
+ * boundaries. This type remains for native/future backend background work.
  */
-export type BackgroundTaskStatus = "running" | "completed" | "cancelled" | "failed"
+export type BackgroundJobStatus = "running" | "completed" | "cancelled" | "failed"
 
-export type BackgroundTask = {
+export type BackgroundJob = {
   readonly id: string
   readonly turnId: string
   readonly startedAt: number
   /** `completedAt` is set on the terminal status flip. */
   readonly completedAt?: number
-  readonly status: BackgroundTaskStatus
+  readonly status: BackgroundJobStatus
   /** Snapshot of harness events seen for this turn since it was backgrounded. */
   readonly events: ReadonlyArray<AgentEvent>
   /** Snippet preview built from the last assistant text-delta seen — for the SidePanel + system message. */
@@ -260,6 +247,8 @@ export type BackgroundTask = {
 export type ControllerOptions = {
   cwd: string
   model?: string
+  reasoningEffort?: ReasoningEffort
+  sessionConfig?: Readonly<Record<string, SessionConfigValue>>
   resume?: string
   /**
    * When true, spawn Claude with `--bare` for deterministic subprocess
@@ -365,6 +354,8 @@ export type SpawnSessionOptions = {
   agent?: string
   cwd: string
   model?: string
+  reasoningEffort?: ReasoningEffort
+  sessionConfig?: Readonly<Record<string, SessionConfigValue>>
   resume?: string
   bare: boolean
   /** Anthropic account name — pass-through from ControllerOptions.account. */
@@ -414,6 +405,12 @@ export type Controller = {
    * next turn's input. No-op if the queue is empty.
    */
   flushQueue(sessionId: string): void
+  /**
+   * Retry the normal auto-flush path without forcing a mid-turn send.
+   * Used by the UI when focus leaves the queue editor after a turn-end
+   * skipped auto-flush because the queue was focused.
+   */
+  autoFlushQueue(sessionId: string): void
   respondPermission(sessionId: string, requestId: string, approved: boolean): void
   /**
    * Multi-option ACP permission response. Routes the user's chosen option to
@@ -424,6 +421,10 @@ export type Controller = {
    * For legacy (stream-json) sessions this falls back to `respondPermission`.
    */
   respondPermissionOption(sessionId: string, requestId: string, optionId: PermissionOptionId, approved: boolean): void
+  /** Set any ACP session config option advertised by the live backend. */
+  setSessionConfigOption(sessionId: string, params: AcpSetSessionConfigOptionParams): Promise<void>
+  /** Set Codex's ACP `reasoning_effort` option for a live ACP-backed session. */
+  setReasoningEffort(sessionId: string, effort: ReasoningEffort): Promise<void>
   /**
    * Answer a pending AskUserQuestion tool call. The answers are formatted
    * as a follow-up user message describing what the user picked, then
@@ -449,7 +450,7 @@ export type Controller = {
   cancelAskUserQuestion(sessionId: string, toolUseId: string): void
   runSlashCommand(sessionId: string, text: string): void
   spawnSession(name?: string): Promise<SessionHandle>
-  /** Move task+context from source → destination session. */
+  /** Move work+context from source → destination session. */
   handoff(fromId: string, toId: string, prompt: string): void
   /** Fork a session — spawn a new one pre-seeded with the source's context. */
   fork(fromId: string): Promise<SessionHandle>
@@ -461,20 +462,15 @@ export type Controller = {
    */
   closeAll(): void
   /**
-   * Background the in-flight turn for `sessionId`. Idempotent + safe to call
-   * when no turn is running (no-op). After this returns:
-   *   - the SessionStore is forced to `idle` so the UI immediately accepts
-   *     new input,
-   *   - subsequent harness events for the backgrounded turn keep streaming
-   *     into a BackgroundTask (mirrored from the original subscribe path)
-   *     until `turn-end` or `session-end`,
-   *   - on terminal event, a SYSTEM message is appended to the SessionStore
-   *     summarising the result so the user sees what came back.
+   * Disabled compatibility shim. The earlier synthetic implementation
+   * keyed background work by assistant message id, which is not a stable
+   * provider job id across tool calls. Keep the method as a no-op until a
+   * backend exposes native job/background semantics.
    */
-  backgroundActiveTurn(sessionId: string): void
+  backgroundActiveJob(sessionId: string): void
   /**
-   * Interrupt the in-flight turn for `sessionId` (Esc-during-turn parity
-   * with Claude Code). Idempotent + safe to call when no turn is running
+   * Interrupt the active foreground job for `sessionId` (Esc parity with
+   * Claude Code). Idempotent + safe to call when no job is running
    * (no-op).
    *
    * v1 semantics — until `km-agent-harness.per-turn-abort` lands we cannot
@@ -489,7 +485,7 @@ export type Controller = {
    * The underlying Claude subprocess keeps running until its turn-end
    * arrives naturally — at which point the result is suppressed.
    */
-  interruptActiveTurn(sessionId: string): void
+  interruptActiveJob(sessionId: string): void
   /**
    * Pop the head of the queue (everything before the first `\n\n`),
    * leaving the rest in place. Returns the popped head; empty string
@@ -498,25 +494,23 @@ export type Controller = {
    */
   popQueueHead(sessionId: string): string
   /**
-   * Re-foreground a completed (or running) background task. v1 semantics:
-   * inject the captured snippet as a system message into the conversation
-   * if it isn't already there (running tasks get a "still running" hint).
-   * Future: full state-restore.
+   * Surface a completed (or running) background job. v1 semantics:
+   * inject the captured snippet as a system message into the conversation.
    */
-  foregroundTask(sessionId: string, taskId: string): void
+  surfaceBackgroundJob(sessionId: string, jobId: string): void
   /**
-   * Cancel a backgrounded task. v1 semantics: marks the task as `cancelled`
+   * Cancel a backgrounded job. v1 semantics: marks the job as `cancelled`
    * + emits a system message; the underlying subprocess turn keeps running
    * because `AgentSession` does not yet expose per-turn cancellation. The
    * cancellation is recorded so the eventual `turn-end` is dropped (no
    * stale "result arrived" message). See bead
    * `km-agent-harness.per-turn-abort` for the upstream gap.
    */
-  cancelBackgroundTask(sessionId: string, taskId: string): void
-  /** Snapshot of background tasks for one session, newest first. */
-  backgroundTasks(sessionId: string): ReadonlyArray<BackgroundTask>
-  /** Subscribe to background-task list changes (per session). */
-  onBackgroundTasksChange(handler: (sessionId: string, tasks: ReadonlyArray<BackgroundTask>) => void): () => void
+  cancelBackgroundJob(sessionId: string, jobId: string): void
+  /** Snapshot of background jobs for one session, newest first. */
+  backgroundJobs(sessionId: string): ReadonlyArray<BackgroundJob>
+  /** Subscribe to background-job list changes (per session). */
+  onBackgroundJobsChange(handler: (sessionId: string, jobs: ReadonlyArray<BackgroundJob>) => void): () => void
   /**
    * Channel queue — silvercode-owned notification-event buffer. Subscribers
    * (tribe, telegram, CI, lore, sub-agent) push `ChannelEvent`s here on
@@ -630,10 +624,6 @@ function notificationStatusForSubagentSummary(
   return "started"
 }
 
-function shouldCheckClaudeSubagentDataModelInvariants(event: AgentEvent): boolean {
-  return event.kind === "text-delta" || event.kind === "assistant-message" || event.kind === "turn-end"
-}
-
 export function createSilvercodeController(opts: ControllerOptions): Controller {
   ctrlStartupTick("controller:create:enter")
   const sessions: SessionHandle[] = []
@@ -684,7 +674,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   let subagentAdapter: ReturnType<typeof registerAllNotificationAdapters>["subagent"] | undefined
   const claudeSidechainNotificationKeys = new Map<string, Set<string>>()
   const lastClaudeSidechainScanAt = new Map<string, number>()
-  const lastClaudeSubagentInvariantBySession = new Map<string, string>()
   function recordClaudeSidechainSubagents(
     sessionId: string,
     store: SessionStore,
@@ -712,42 +701,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       seen.add(event.id)
       notificationStream.record(sessionId, event)
     }
-  }
-  function claudeSubagentDataModelInvariantError(sessionId: string, store: SessionStore): Error | null {
-    const projection = projectCurrentSubagentActivitiesFromChatEvents(
-      normalizeAgentEventsToChatEvents(store.events.get(), { sessionId }),
-      {
-        notificationEntries: notificationStream.entries(sessionId),
-        sessionId,
-      },
-    )
-    try {
-      assertSubagentActivityInvariants(projection, { sessionId })
-      return null
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err))
-      dInvariant("subagent activity invariant failed session=%s message=%s", sessionId, error.message)
-      return error
-    }
-  }
-  function recordClaudeSubagentDataModelInvariant(sessionId: string, store: SessionStore): void {
-    const err = claudeSubagentDataModelInvariantError(sessionId, store)
-    if (!err) {
-      lastClaudeSubagentInvariantBySession.delete(sessionId)
-      return
-    }
-    const key = err.message
-    if (lastClaudeSubagentInvariantBySession.get(sessionId) === key) {
-      dInvariant("subagent activity invariant deduped session=%s message=%s", sessionId, key)
-      return
-    }
-    lastClaudeSubagentInvariantBySession.set(sessionId, key)
-    store.apply({
-      kind: "error",
-      sessionId: sessionId as SessionId,
-      message: `Claude provider subagent data mismatch: ${err.message}`,
-      ts: Date.now(),
-    })
   }
   if (!opts.disableNotificationAdapters && !opts.disableChannelSources) {
     ctrlStartupTick("controller:create:beforeRegisterNotification")
@@ -816,20 +769,20 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   }
 
   // Per-session message queue — single string buffer so the on-screen
-  // queue editor can bind a TextArea to it directly. While Claude is
-  // mid-turn (status != idle), new user messages are appended (separated
-  // by "\n\n"). On idle, the whole buffer is flushed as ONE user message
-  // — matches Claude Code's batching behaviour.
+  // queue editor can bind a TextArea to it directly. We only auto-queue
+  // when the provider cannot accept another prompt yet: the previous
+  // stdin write has not been acknowledged by any backend event, or the
+  // backend protocol is single-flight (ACP).
   //
   // Option B model: the queue TextArea is ALWAYS live (no editor mode,
-  // no "hold" state). Auto-flush waits for `turn-end`; explicit submit
-  // (Enter in queue region) calls `flushQueue` to bypass the idle gate.
+  // no "hold" state). Auto-flush drains as soon as the transport is
+  // sendable; explicit submit (Enter in queue region) bypasses the
+  // auto-focus guard but still waits for the transport ack window.
   const queues = new Map<string, string>()
   const queueSubs = new Set<(sessionId: string, text: string) => void>()
-  type OutboundTurnState =
-    | { readonly kind: "awaiting-turn-start" }
-    | { readonly kind: "running"; readonly turnId: TurnId }
+  type OutboundTurnState = { readonly kind: "awaiting-backend-ack" }
   const outboundTurns = new Map<string, OutboundTurnState>()
+  let localUserTurnSeq = 0
 
   // Recall probe wiring — per-session bookkeeping. We probe recall
   // every Nth assistant `turn-end` against the most recent user
@@ -884,6 +837,38 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     const value = session as { agent?: unknown; protocolVersion?: unknown }
     return value.agent !== undefined && typeof value.protocolVersion === "number"
   }
+  function isConfigurableAcpSession(session: AgentSession): session is AgentSession & {
+    readonly configOptions?: unknown[]
+    setSessionConfigOption(params: AcpSetSessionConfigOptionParams): Promise<{ configOptions: unknown[] }>
+  } {
+    return typeof (session as { setSessionConfigOption?: unknown }).setSessionConfigOption === "function"
+  }
+  function advertisesConfigOption(session: AgentSession, configId: string): boolean {
+    const configOptions = (session as { configOptions?: unknown }).configOptions
+    if (!Array.isArray(configOptions)) return true
+    return configOptions.some((option) => {
+      if (!option || typeof option !== "object") return false
+      return (option as { id?: unknown }).id === configId
+    })
+  }
+  async function setSessionConfigOption(sessionId: string, params: AcpSetSessionConfigOptionParams): Promise<void> {
+    const s = sessions.find((h) => h.id === sessionId)
+    if (!s) return
+    if (!isConfigurableAcpSession(s.session)) {
+      return
+    }
+    if (!advertisesConfigOption(s.session, params.configId)) return
+    try {
+      await s.session.setSessionConfigOption(params)
+    } catch (err) {
+      s.store.apply({
+        kind: "error",
+        sessionId: s.session.sessionId,
+        message: `set ACP config option failed: ${(err as Error).message}`,
+        ts: Date.now(),
+      })
+    }
+  }
   function resolveAcpPermission(entry: AcpPermEntry, decision: AcpPermDecision): void {
     if (!decision.approved) {
       entry.resolve({ outcome: { outcome: "cancelled" } })
@@ -927,29 +912,38 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   function hasOutbound(sessionId: string): boolean {
     return outboundState(sessionId) !== undefined
   }
-  function isSendable(sessionId: string, store: SessionStore): boolean {
-    const status = store.state.get().status
-    return (status === "idle" || status === "ended") && !hasOutbound(sessionId)
+  function acceptsPromptWhileBusy(session: AgentSession): boolean {
+    // This is a Silvercode transport rule, not an ACP capability. The
+    // stream-json stdin adapters can accept another prompt once the
+    // previous write has reached the backend; ACP remains request/response
+    // single-flight until the protocol advertises otherwise.
+    return !isAcpSession(session)
+  }
+  function canSubmitNow(handle: SessionHandle): boolean {
+    if (hasOutbound(handle.id)) return false
+    const status = handle.store.state.get().status
+    if (status === "idle" || status === "ended") return true
+    if (!acceptsPromptWhileBusy(handle.session)) return false
+    return status === "thinking" || status === "tool-running"
   }
   function markOutboundSent(sessionId: string): void {
-    outboundTurns.set(sessionId, { kind: "awaiting-turn-start" })
+    outboundTurns.set(sessionId, { kind: "awaiting-backend-ack" })
     dQueue("outbound %s — gate armed", sessionId)
   }
-  function bindOutboundTurn(sessionId: string, turnId: TurnId): void {
+  function acknowledgeOutbound(sessionId: string, reason: string): boolean {
     const state = outboundState(sessionId)
-    if (state?.kind !== "awaiting-turn-start") return
-    outboundTurns.set(sessionId, { kind: "running", turnId })
-    dQueue("outbound %s — gate bound to turn %s", sessionId, turnId)
+    if (state?.kind !== "awaiting-backend-ack") return false
+    outboundTurns.delete(sessionId)
+    dQueue("outbound %s — gate acknowledged by %s", sessionId, reason)
+    return true
   }
   function clearOutboundTurn(sessionId: string, turnId: TurnId): void {
-    const state = outboundState(sessionId)
-    if (state?.kind !== "running" || state.turnId !== turnId) return
-    outboundTurns.delete(sessionId)
+    if (!outboundTurns.delete(sessionId)) return
     dQueue("outbound %s — gate cleared for turn %s", sessionId, turnId)
   }
   function clearUnstartedOutbound(sessionId: string): void {
     const state = outboundState(sessionId)
-    if (state?.kind !== "awaiting-turn-start") return
+    if (state?.kind !== "awaiting-backend-ack") return
     outboundTurns.delete(sessionId)
     dQueue("outbound %s — unstarted gate cleared", sessionId)
   }
@@ -957,11 +951,40 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     if (!outboundTurns.delete(sessionId)) return
     dQueue("outbound %s — gate cleared", sessionId)
   }
+  function isOutboundAckEvent(event: AgentEvent): boolean {
+    switch (event.kind) {
+      case "session-init":
+      case "turn-start":
+      case "text-delta":
+      case "thinking-delta":
+      case "tool-use":
+      case "tool-result":
+      case "permission-request":
+      case "liveness-check":
+      case "assistant-message":
+      case "user-message":
+      case "raw-transcript":
+      case "status":
+      case "plan-update":
+      case "slash-commands-update":
+      case "km-reference":
+        return true
+      case "turn-end":
+      case "permission-decision":
+      case "session-end":
+      case "handoff":
+      case "session-lifecycle":
+      case "error":
+        return false
+    }
+  }
+
   function dispatchUserTurn(s: SessionHandle, sessionId: string, text: string): void {
     recordUserPromptForRecall(sessionId, text)
     const ts = Date.now()
+    const statusBeforeSend = s.store.state.get().status
     if (s.metadata.resumeId && s.metadata.liveStartedAt === undefined) s.metadata.liveStartedAt = ts
-    const turnId = `u-${ts}` as never
+    const turnId = `u-${ts}-${++localUserTurnSeq}` as TurnId
     s.store.apply({
       kind: "user-message",
       sessionId: s.session.sessionId,
@@ -969,7 +992,9 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       text,
       ts,
     })
-    markOutboundSent(sessionId)
+    if (statusBeforeSend === "idle" || statusBeforeSend === "ended" || !acceptsPromptWhileBusy(s.session)) {
+      markOutboundSent(sessionId)
+    }
     try {
       s.session.send(text)
     } catch (err) {
@@ -981,12 +1006,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
    * Flush the queue buffer to Claude as one user turn, then clear.
    *
    * Two callers, two semantics:
-   *  - Auto-flush (`force=false`): no-op unless session is idle. Used by
-   *    the turn-end subscriber.
-   *  - Force-flush (`force=true`): bypasses the idle gate. Used by the
-   *    queue editor's explicit submit (Enter in queue region). Claude
-   *    Code's CLI buffers stdin while mid-turn, so sending a user-message
-   *    during a turn is safe — it lands as the next turn's input.
+   *  - Auto-flush (`force=false`): no-op until the transport is sendable,
+   *    and the queue editor is not actively focused.
+   *  - Force-flush (`force=true`): bypasses the queue-focus guard. It
+   *    still waits for the previous stdin write's backend ack so we never
+   *    stack multiple unacknowledged writes.
    *
    * Always no-op if the queue is empty.
    */
@@ -996,12 +1020,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       dQueue("tryFlush %s force=%s — no handle", sessionId, force)
       return
     }
-    if (force && outboundState(sessionId)?.kind === "awaiting-turn-start") {
-      dQueue("tryFlush %s force=%s — outbound awaiting turn-start, skip", sessionId, force)
+    if (force && outboundState(sessionId)?.kind === "awaiting-backend-ack") {
+      dQueue("tryFlush %s force=%s — outbound awaiting backend ack, skip", sessionId, force)
       return
     }
     if (!force) {
-      if (!isSendable(sessionId, s.store)) {
+      if (!canSubmitNow(s)) {
         const status = s.store.state.get().status
         const outbound = outboundState(sessionId)?.kind ?? "none"
         dQueue("tryFlush %s — status=%s outbound=%s, skip", sessionId, status, outbound)
@@ -1033,43 +1057,43 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     for (const fn of focusSubs) fn(focusedId)
   }
 
-  // ───── Background tasks ─────
-  // Per-session list of backgrounded turns. A turn enters this map when the
-  // user presses Ctrl-B; it leaves the "running" state when its turn-end
-  // event arrives. Completed tasks remain in the list (so the user can
-  // foreground / re-inspect them) but are GC'd after BACKGROUND_TASK_TTL_MS.
+  // ───── Background jobs ─────
+  // Per-session list of background jobs. The old synthetic Ctrl-B path is
+  // disabled; this storage remains for native/future backend background
+  // work. Completed jobs remain in the list (so the user can inspect them
+  // again) but are GC'd after BACKGROUND_JOB_TTL_MS.
   //
   // The set is keyed by sessionId so each block maintains its own
-  // independent background-task list. `tasksBySession.get(id)!` is mutated
+  // independent background-job list. `jobsBySession.get(id)!` is mutated
   // in place + then notifyBackground() is called — keeps the wiring
   // identical to the queue store above.
-  const BACKGROUND_TASK_TTL_MS = 10 * 60 * 1000
-  const tasksBySession = new Map<string, BackgroundTask[]>()
+  const BACKGROUND_JOB_TTL_MS = 10 * 60 * 1000
+  const jobsBySession = new Map<string, BackgroundJob[]>()
   const backgroundedTurnIds = new Map<string, Set<string>>() // sessionId → Set<turnId>
-  /** Tasks that the user explicitly cancelled — drop the eventual turn-end result. */
-  const cancelledTaskIds = new Map<string, Set<string>>()
+  /** Jobs that the user explicitly cancelled — drop the eventual turn-end result. */
+  const cancelledJobIds = new Map<string, Set<string>>()
   /**
    * Turns the user explicitly interrupted (Esc during in-flight turn).
    * Stream events for these turnIds are dropped — they don't get mirrored
-   * into background tasks, and turn-end arrives as a no-op (no synthetic
+   * into background jobs, and turn-end arrives as a no-op (no synthetic
    * "completed" message is surfaced because the user already saw the
    * "interrupted" system message). Tracked per session so the same turnId
    * across sessions doesn't collide.
    */
   const interruptedTurnIds = new Map<string, Set<string>>()
-  const backgroundSubs = new Set<(sessionId: string, tasks: ReadonlyArray<BackgroundTask>) => void>()
+  const backgroundSubs = new Set<(sessionId: string, jobs: ReadonlyArray<BackgroundJob>) => void>()
 
-  function getTasks(sessionId: string): BackgroundTask[] {
-    let list = tasksBySession.get(sessionId)
+  function getJobs(sessionId: string): BackgroundJob[] {
+    let list = jobsBySession.get(sessionId)
     if (!list) {
       list = []
-      tasksBySession.set(sessionId, list)
+      jobsBySession.set(sessionId, list)
     }
     return list
   }
   function notifyBackground(sessionId: string): void {
-    const tasks = tasksBySession.get(sessionId) ?? []
-    for (const fn of backgroundSubs) fn(sessionId, tasks)
+    const jobs = jobsBySession.get(sessionId) ?? []
+    for (const fn of backgroundSubs) fn(sessionId, jobs)
   }
   function isBackgroundedTurn(sessionId: string, turnId: string): boolean {
     return backgroundedTurnIds.get(sessionId)?.has(turnId) === true
@@ -1097,7 +1121,7 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
   }
 
   /**
-   * Build a one-line snippet from a task's accumulated events. Prefers the
+   * Build a one-line snippet from a job's accumulated events. Prefers the
    * most recent text-delta or the assistant-message content; falls back to
    * the active tool name when no text is available yet.
    */
@@ -1118,56 +1142,43 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     return "(no output yet)"
   }
 
-  /**
-   * Update a task in place. Returns true if found.
-   */
-  function updateTask(sessionId: string, taskId: string, fn: (t: BackgroundTask) => BackgroundTask): boolean {
-    const list = getTasks(sessionId)
-    const idx = list.findIndex((t) => t.id === taskId)
-    if (idx < 0) return false
-    const current = list[idx]
-    if (current === undefined) return false
-    list[idx] = fn(current)
-    return true
-  }
-
   function appendBackgroundEvent(sessionId: string, turnId: string, event: AgentEvent): void {
-    const list = getTasks(sessionId)
-    const idx = list.findIndex((t) => t.turnId === turnId && t.status === "running")
+    const list = getJobs(sessionId)
+    const idx = list.findIndex((job) => job.turnId === turnId && job.status === "running")
     if (idx < 0) return
-    const task = list[idx]
-    if (task === undefined) return
-    const events = [...task.events, event]
+    const job = list[idx]
+    if (job === undefined) return
+    const events = [...job.events, event]
     const fresh = buildSnippet(events)
     // Prefer fresh content from events that arrived AFTER backgrounding;
     // fall back to the seed snippet (captured pre-backgrounding) when the
     // post-background events are still toolless / textless. This keeps the
-    // SidePanel + system message useful even when the turn was already
-    // most-of-the-way through emitting text when the user pressed Ctrl-B.
+    // SidePanel + system message useful even when a native background job
+    // is already most-of-the-way through emitting text.
     const hasFresh = fresh && fresh !== "(no output yet)"
-    const snippet = hasFresh ? fresh : task.snippet
-    list[idx] = { ...task, events, snippet }
+    const snippet = hasFresh ? fresh : job.snippet
+    list[idx] = { ...job, events, snippet }
     notifyBackground(sessionId)
   }
 
   /**
-   * Mark a task terminal + surface a system message in the conversation.
+   * Mark a job terminal + surface a system message in the conversation.
    * The system message is intentionally short — full output is preserved in
-   * task.events for the BackgroundPane / foregroundTask flow.
+   * job.events for the BackgroundJobsPane / surfaceBackgroundJob flow.
    */
-  function completeTask(sessionId: string, turnId: string, status: BackgroundTaskStatus): void {
-    const list = getTasks(sessionId)
-    const idx = list.findIndex((t) => t.turnId === turnId && t.status === "running")
+  function completeJob(sessionId: string, turnId: string, status: BackgroundJobStatus): void {
+    const list = getJobs(sessionId)
+    const idx = list.findIndex((job) => job.turnId === turnId && job.status === "running")
     if (idx < 0) return
-    const task = list[idx]
-    if (task === undefined) return
-    const fresh = buildSnippet(task.events)
+    const job = list[idx]
+    if (job === undefined) return
+    const fresh = buildSnippet(job.events)
     const hasFresh = fresh && fresh !== "(no output yet)"
-    const completed: BackgroundTask = {
-      ...task,
+    const completed: BackgroundJob = {
+      ...job,
       status,
       completedAt: Date.now(),
-      snippet: hasFresh ? fresh : task.snippet,
+      snippet: hasFresh ? fresh : job.snippet,
     }
     list[idx] = completed
     notifyBackground(sessionId)
@@ -1176,12 +1187,12 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     // browser DOM `number`); .unref() lets the process exit even when the
     // timer is still pending.
     const gcHandle: unknown = setTimeout(() => {
-      const cur = tasksBySession.get(sessionId)
+      const cur = jobsBySession.get(sessionId)
       if (!cur) return
       const filtered = cur.filter((t) => t.id !== completed.id)
-      tasksBySession.set(sessionId, filtered)
+      jobsBySession.set(sessionId, filtered)
       notifyBackground(sessionId)
-    }, BACKGROUND_TASK_TTL_MS)
+    }, BACKGROUND_JOB_TTL_MS)
     if (gcHandle && typeof gcHandle === "object" && "unref" in gcHandle) {
       ;(gcHandle as { unref: () => void }).unref()
     }
@@ -1307,6 +1318,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         // resolved (e.g. an entry with no `--model` and no
         // `defaultModel` on the built-in agent).
         model: s.model ?? "",
+        sessionConfig: s.sessionConfig,
+        reasoningEffort: s.reasoningEffort,
         // ACP loadSession path: when the user passes --resume <sid>,
         // call agent.loadSession({ sessionId, ... }) instead of
         // newSession. Throws AcpResumeUnsupportedError if the agent
@@ -1444,7 +1457,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         metadata.replayBoundaryMessageId = replayedMessages.at(-1)?.id
       }
       recordClaudeSidechainSubagents(id, store, metadata, true)
-      recordClaudeSubagentDataModelInvariant(id, store)
     } else if (opts.resume && isCodexAgent) {
       // Codex stores rollouts at ~/.codex/sessions/YYYY/MM/DD/rollout-*-<sid>.jsonl
       // with a different schema than Claude's stream-json. The codex parser
@@ -1470,6 +1482,8 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           agent: opts.agent,
           cwd: opts.cwd,
           model: opts.model,
+          reasoningEffort: opts.reasoningEffort,
+          sessionConfig: opts.sessionConfig,
           resume: opts.resume,
           bare: opts.bare,
           account: opts.account,
@@ -1509,9 +1523,42 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           return
         }
       }
-      // Route to the SessionStore first so the foreground UI keeps animating
-      // even while a turn is backgrounded — the background pane is a
-      // SHADOW, not a replacement.
+      // Mirror events for any backgrounded turn into its BackgroundJob
+      // event buffer. We match by turnId (events that don't carry a turnId
+      // can't be associated with a specific background job and are
+      // skipped). turn-end / error events also flip job status.
+      const turnId = "turnId" in event ? (event.turnId as string | undefined) : undefined
+      if (turnId && isBackgroundedTurn(id, turnId)) {
+        dBackground("mirror %s/%s event=%s", id, turnId, event.kind)
+        if (log) log.append(event)
+        appendBackgroundEvent(id, turnId, event)
+        if (event.kind === "turn-end") {
+          // If the user already cancelled this job, suppress the surfaced
+          // result message — we already showed "cancelled" — but still flip
+          // the running flag so the indicator decrements.
+          const cancelled = cancelledJobIds.get(id)
+          const jobs = getJobs(id)
+          const runningJob = jobs.find((job) => job.turnId === turnId && job.status === "running")
+          if (runningJob && cancelled?.has(runningJob.id)) {
+            const idx = jobs.findIndex((job) => job.id === runningJob.id)
+            if (idx >= 0) {
+              jobs[idx] = { ...runningJob, status: "cancelled", completedAt: Date.now() }
+              notifyBackground(id)
+            }
+          } else {
+            completeJob(id, turnId, "completed")
+          }
+          backgroundedTurnIds.get(id)?.delete(turnId)
+          clearOutboundTurn(id, turnId as TurnId)
+        } else if (event.kind === "error") {
+          // Don't terminate the job on every error — the harness emits
+          // recoverable errors too. Only flip if the next event is turn-end
+          // (handled above). For now record the error and let turn-end take
+          // over; failed terminal status is reserved for future use.
+        }
+        return
+      }
+
       store.apply(event)
       if (log) log.append(event)
 
@@ -1537,42 +1584,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         }
       }
 
-      // Mirror events for any backgrounded turn into its BackgroundTask
-      // event buffer. We match by turnId (events that don't carry a turnId
-      // can't be associated with a specific background task and are
-      // skipped). turn-end / error events also flip task status.
-      const turnId = "turnId" in event ? (event.turnId as string | undefined) : undefined
-      if (turnId && isBackgroundedTurn(id, turnId)) {
-        dBackground("mirror %s/%s event=%s", id, turnId, event.kind)
-        appendBackgroundEvent(id, turnId, event)
-        if (event.kind === "turn-end") {
-          // If the user already cancelled this task, suppress the surfaced
-          // result message — we already showed "cancelled" — but still flip
-          // the running flag so the indicator decrements.
-          const cancelled = cancelledTaskIds.get(id)
-          const tasks = getTasks(id)
-          const runningTask = tasks.find((t) => t.turnId === turnId && t.status === "running")
-          if (runningTask && cancelled?.has(runningTask.id)) {
-            const idx = tasks.findIndex((t) => t.id === runningTask.id)
-            if (idx >= 0) {
-              tasks[idx] = { ...runningTask, status: "cancelled", completedAt: Date.now() }
-              notifyBackground(id)
-            }
-          } else {
-            completeTask(id, turnId, "completed")
-          }
-          backgroundedTurnIds.get(id)?.delete(turnId)
-        } else if (event.kind === "error") {
-          // Don't terminate the task on every error — the harness emits
-          // recoverable errors too. Only flip if the next event is turn-end
-          // (handled above). For now record the error and let turn-end take
-          // over; failed terminal status is reserved for future use.
-        }
+      let outboundAcknowledged = false
+      if (isOutboundAckEvent(event)) {
+        outboundAcknowledged = acknowledgeOutbound(id, event.kind)
       }
-
-      if (event.kind === "turn-start") {
-        bindOutboundTurn(id, event.turnId)
-      } else if (event.kind === "turn-end") {
+      if (event.kind === "turn-end") {
         clearOutboundTurn(id, event.turnId)
       } else if (event.kind === "session-end" || (event.kind === "session-lifecycle" && event.state === "ended")) {
         clearOutbound(id)
@@ -1580,8 +1596,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         clearUnstartedOutbound(id)
       }
 
-      // Flush on every turn boundary — the whole queue goes as ONE turn.
-      if (event.kind === "turn-end" || event.kind === "session-lifecycle") {
+      // Flush when a pending stdin write is acknowledged by backend
+      // activity, or on terminal lifecycle edges. The whole queue still
+      // goes as ONE turn.
+      if (outboundAcknowledged || event.kind === "turn-end" || event.kind === "session-lifecycle") {
         dQueue("subscribe %s — event=%s, calling tryFlush", id, event.kind)
         tryFlush(id)
       }
@@ -1622,9 +1640,6 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
           metadata,
           event.kind === "session-init" || event.kind === "tool-result" || event.kind === "turn-end",
         )
-        if (shouldCheckClaudeSubagentDataModelInvariants(event)) {
-          recordClaudeSubagentDataModelInvariant(id, store)
-        }
       }
     })
 
@@ -1752,11 +1767,11 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       const s = sessions.find((h) => h.id === sessionId)
       if (!s) return
       // Non-sendable → append to buffer and let tryFlush drain once the
-      // current outbound turn has a complete backend lifecycle. The extra
-      // outbound gate covers the gap between stdin write and provider
-      // turn-start, when the store still reports idle but another user
-      // turn is already in flight.
-      if (!isSendable(sessionId, s.store)) {
+      // transport is ready. The extra outbound gate covers the gap
+      // between stdin write and the first provider response event, when
+      // the store still reports idle but another user turn is already in
+      // flight.
+      if (!canSubmitNow(s)) {
         const prev = queues.get(sessionId) ?? ""
         const next = prev ? `${prev}\n\n${text}` : text
         queues.set(sessionId, next)
@@ -1798,6 +1813,10 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       // the next turn's input.
       dQueue("flushQueue %s — explicit submit", sessionId)
       tryFlush(sessionId, true)
+    },
+    autoFlushQueue(sessionId: string): void {
+      dQueue("autoFlushQueue %s — retry normal auto-flush", sessionId)
+      tryFlush(sessionId)
     },
     respondPermission(sessionId: string, requestId: string, approved: boolean): void {
       // Check ACP queue first — if there's a pending resolver for this
@@ -1846,6 +1865,15 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         return
       }
       s.session.respondToPermission(requestId as PermissionRequestId, approved)
+    },
+    async setSessionConfigOption(sessionId: string, params: AcpSetSessionConfigOptionParams): Promise<void> {
+      await setSessionConfigOption(sessionId, params)
+    },
+    async setReasoningEffort(sessionId: string, effort: ReasoningEffort): Promise<void> {
+      await setSessionConfigOption(sessionId, {
+        configId: "reasoning_effort",
+        value: effort,
+      })
     },
     respondAskUserQuestion(
       sessionId: string,
@@ -2019,76 +2047,23 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         })
       }
     },
-    backgroundActiveTurn(sessionId: string): void {
+    backgroundActiveJob(sessionId: string): void {
       const handle = sessions.find((h) => h.id === sessionId)
       if (!handle) return
       const status = handle.store.state.get().status
-      if (status === "idle" || status === "ended") {
-        dBackground("backgroundActiveTurn %s — no active turn (status=%s)", sessionId, status)
-        return
-      }
-      const turnId = findActiveTurnId(handle)
-      if (!turnId) {
-        dBackground("backgroundActiveTurn %s — no active turn id (status=%s)", sessionId, status)
-        return
-      }
-      // Idempotent: if we've already backgrounded this turn, no-op.
-      if (isBackgroundedTurn(sessionId, turnId)) {
-        dBackground("backgroundActiveTurn %s/%s — already backgrounded", sessionId, turnId)
-        return
-      }
-      markBackgrounded(sessionId, turnId)
-      const list = getTasks(sessionId)
-      // Capture any events ALREADY in the store for this turn (text deltas,
-      // tool calls etc.) so the background task starts with the partial
-      // output as its snippet baseline.
-      const state = handle.store.state.get()
-      const existing = state.messages.find((m) => m.id === turnId)
-      const seedSnippet = existing?.text.trim().split(/\r?\n/)[0]?.slice(0, 120) ?? "(running)"
-      const task: BackgroundTask = {
-        id: `bg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        turnId,
-        startedAt: existing?.ts ?? Date.now(),
-        status: "running",
-        events: [],
-        snippet: seedSnippet,
-      }
-      list.unshift(task)
-      notifyBackground(sessionId)
-      dBackground("backgroundActiveTurn %s/%s — task %s", sessionId, turnId, task.id)
-      // Force the foreground UI to "idle" so the user can keep typing.
-      // The store's status field is internally a signal; we apply a
-      // synthetic session-lifecycle "resumed" event which the store treats
-      // as a no-op (only "ended" affects status), so we instead surface a
-      // synthetic turn-end-style state nudge by emitting a status event
-      // with `requesting` does the wrong thing. Cleanest: emit a synthetic
-      // user-message which the store handles WITHOUT changing status, then
-      // immediately clear via a short queue pass — but actually status is
-      // ONLY flipped to idle by `turn-end`. To keep the foreground UI
-      // responsive without faking a turn-end (which would also fire the
-      // queue auto-flush), we apply a synthetic turn-end for the
-      // backgrounded turn. The original turn-end will arrive later but is
-      // a no-op against the same turnId in the store (stopReason just gets
-      // overwritten).
-      handle.store.apply({
-        kind: "turn-end",
-        sessionId: handle.session.sessionId,
-        turnId: turnId as never,
-        stopReason: "backgrounded",
-        ts: Date.now(),
-      })
+      dBackground("backgroundActiveJob %s disabled (status=%s)", sessionId, status)
     },
-    interruptActiveTurn(sessionId: string): void {
+    interruptActiveJob(sessionId: string): void {
       const handle = sessions.find((h) => h.id === sessionId)
       if (!handle) return
       const status = handle.store.state.get().status
       if (status === "idle" || status === "ended") {
-        dBackground("interruptActiveTurn %s — no active turn (status=%s)", sessionId, status)
+        dBackground("interruptActiveJob %s — no active job (status=%s)", sessionId, status)
         return
       }
       const turnId = findActiveTurnId(handle)
       if (!turnId) {
-        dBackground("interruptActiveTurn %s — no active turn id (status=%s)", sessionId, status)
+        dBackground("interruptActiveJob %s — no active turn id (status=%s)", sessionId, status)
         return
       }
       // Already interrupted? no-op (idempotent).
@@ -2098,19 +2073,19 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         interruptedTurnIds.set(sessionId, interrupted)
       }
       if (interrupted.has(turnId)) {
-        dBackground("interruptActiveTurn %s/%s — already interrupted", sessionId, turnId)
+        dBackground("interruptActiveJob %s/%s — already interrupted", sessionId, turnId)
         return
       }
       interrupted.add(turnId)
-      dBackground("interruptActiveTurn %s/%s — interrupting", sessionId, turnId)
+      dBackground("interruptActiveJob %s/%s — interrupting", sessionId, turnId)
 
       // Capture a snippet of the partial output so the user sees what
-      // they interrupted — same convention as backgroundActiveTurn.
+      // they interrupted — same convention as backgroundActiveJob.
       const state = handle.store.state.get()
       const existing = state.messages.find((m) => m.id === turnId)
       const seedSnippet = existing?.text.trim().split(/\r?\n/)[0]?.slice(0, 120) ?? "(running)"
 
-      // Force the foreground UI to "idle" via a synthetic turn-end so the
+      // Mark the foreground shell sendable via a synthetic turn-end so the
       // user can keep typing. The real turn-end will arrive later but is
       // a no-op (stopReason just gets overwritten).
       handle.store.apply({
@@ -2145,19 +2120,18 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
       notifyQueue(sessionId)
       return head
     },
-    foregroundTask(sessionId: string, taskId: string): void {
+    surfaceBackgroundJob(sessionId: string, jobId: string): void {
       const handle = sessions.find((h) => h.id === sessionId)
       if (!handle) return
-      const list = getTasks(sessionId)
-      const task = list.find((t) => t.id === taskId)
-      if (!task) return
+      const list = getJobs(sessionId)
+      const job = list.find((candidate) => candidate.id === jobId)
+      if (!job) return
       // v1: inject a status note into the conversation so the user sees
       // the snippet again as a reminder + receives a fresh anchor for the
-      // foregrounded task. The full event log is in `task.events` for
-      // future state-restore work.
-      const verb = task.status === "running" ? "still running" : task.status
-      const text = `${BACKGROUND_MESSAGE_PREFIX}${verb} (foregrounded): ${task.snippet}`
-      const sysTurnId = `bg-fg-${task.id}-${Date.now()}` as never
+      // surfaced job. The full event log is in `job.events`.
+      const verb = job.status === "running" ? "still running" : job.status
+      const text = `${BACKGROUND_MESSAGE_PREFIX}${verb} (shown): ${job.snippet}`
+      const sysTurnId = `bg-show-${job.id}-${Date.now()}` as never
       handle.store.apply({
         kind: "user-message",
         sessionId: handle.session.sessionId,
@@ -2165,52 +2139,52 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
         text,
         ts: Date.now(),
       })
-      dBackground("foregroundTask %s/%s — surfaced", sessionId, taskId)
+      dBackground("surfaceBackgroundJob %s/%s — surfaced", sessionId, jobId)
     },
-    cancelBackgroundTask(sessionId: string, taskId: string): void {
-      const list = getTasks(sessionId)
-      const idx = list.findIndex((t) => t.id === taskId)
+    cancelBackgroundJob(sessionId: string, jobId: string): void {
+      const list = getJobs(sessionId)
+      const idx = list.findIndex((t) => t.id === jobId)
       if (idx < 0) return
-      const task = list[idx]
-      if (task === undefined) return
+      const job = list[idx]
+      if (job === undefined) return
       // Already terminal? no-op.
-      if (task.status !== "running") return
+      if (job.status !== "running") return
       // Record the cancellation so the eventual turn-end is treated as a
       // no-op (don't surface "completed" after the user already saw
       // "cancelled"). The underlying subprocess turn keeps running because
       // AgentSession does not yet expose per-turn cancellation —
       // `session.close()` would kill the WHOLE session and lose all other
       // state. Tracked upstream in km-agent-harness.per-turn-abort.
-      let cancelled = cancelledTaskIds.get(sessionId)
+      let cancelled = cancelledJobIds.get(sessionId)
       if (!cancelled) {
         cancelled = new Set()
-        cancelledTaskIds.set(sessionId, cancelled)
+        cancelledJobIds.set(sessionId, cancelled)
       }
-      cancelled.add(task.id)
-      list[idx] = { ...task, status: "cancelled", completedAt: Date.now() }
+      cancelled.add(job.id)
+      list[idx] = { ...job, status: "cancelled", completedAt: Date.now() }
       notifyBackground(sessionId)
       // Surface a short cancellation message in the conversation.
       const handle = sessions.find((h) => h.id === sessionId)
       if (handle) {
-        const sysTurnId = `bg-cancel-${task.id}` as never
+        const sysTurnId = `bg-cancel-${job.id}` as never
         handle.store.apply({
           kind: "user-message",
           sessionId: handle.session.sessionId,
           turnId: sysTurnId,
-          text: `${BACKGROUND_MESSAGE_PREFIX}cancelled: ${task.snippet}`,
+          text: `${BACKGROUND_MESSAGE_PREFIX}cancelled: ${job.snippet}`,
           ts: Date.now(),
         })
       }
-      dBackground("cancelBackgroundTask %s/%s", sessionId, taskId)
+      dBackground("cancelBackgroundJob %s/%s", sessionId, jobId)
     },
-    backgroundTasks(sessionId: string): ReadonlyArray<BackgroundTask> {
-      return tasksBySession.get(sessionId) ?? []
+    backgroundJobs(sessionId: string): ReadonlyArray<BackgroundJob> {
+      return jobsBySession.get(sessionId) ?? []
     },
-    onBackgroundTasksChange(handler: (sessionId: string, tasks: ReadonlyArray<BackgroundTask>) => void): () => void {
+    onBackgroundJobsChange(handler: (sessionId: string, jobs: ReadonlyArray<BackgroundJob>) => void): () => void {
       backgroundSubs.add(handler)
       // Replay current state for every session so the subscriber sees an
       // initial snapshot.
-      for (const [sid, tasks] of tasksBySession) handler(sid, tasks)
+      for (const [sid, jobs] of jobsBySession) handler(sid, jobs)
       return () => backgroundSubs.delete(handler)
     },
     channelQueue,

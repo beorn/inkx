@@ -54,6 +54,15 @@ import {
  * - `account`   — optional Anthropic account name. Resolves via
  *                 `accounts.ts` to `~/.config/claude-profiles/<name>/`.
  * - `model`     — optional model id; passed through to the agent.
+ * - `reasoning_effort` — optional Codex ACP reasoning tier. Applied to
+ *                        the session's `reasoning_effort` config option
+ *                        when the backend exposes it.
+ * - `permission_policy` — optional ACP permission policy default. Applied to
+ *                         the session's `permission_policy` config option
+ *                         when the backend exposes it.
+ * - `session_config` — generic ACP session config defaults. Keys are backend
+ *                      advertised config option ids; values are string select
+ *                      ids or boolean toggle values.
  * - `bare`      — optional. Spawns claude with `--bare` (deterministic
  *                 mode, no hooks/plugins/skills/CLAUDE.md). Boolean-coerced.
  * - `label`     — optional human-readable name for the SidePanel.
@@ -65,11 +74,19 @@ import {
  *                   spawned through this connection. Empty/undefined means
  *                   the controller's default set is used.
  */
+export const ReasoningEffortSchema = z.enum(["low", "medium", "high", "xhigh"])
+export type ReasoningEffort = z.infer<typeof ReasoningEffortSchema>
+export const SessionConfigValueSchema = z.union([z.string(), z.boolean()])
+export type SessionConfigValue = z.infer<typeof SessionConfigValueSchema>
+
 const AcpEntrySchema = z.object({
   transport: z.string().optional(),
   agent: z.string(),
   account: z.string().optional(),
   model: z.string().optional(),
+  reasoning_effort: ReasoningEffortSchema.optional(),
+  permission_policy: z.string().optional(),
+  session_config: z.record(z.string(), SessionConfigValueSchema).optional(),
   bare: z.boolean().optional(),
   label: z.string().optional(),
   color: z.string().optional(),
@@ -147,6 +164,12 @@ export type BuiltinAgent = {
   readonly credDir?: string
   /** Default model id used when nothing overrides it. */
   readonly defaultModel?: string
+  /** Default Codex ACP reasoning effort. Optional for agents without this knob. */
+  readonly defaultReasoningEffort?: ReasoningEffort
+  /** Default ACP permission policy when the backend advertises a matching config option. */
+  readonly defaultPermissionPolicy?: string
+  /** Additional ACP session config defaults keyed by backend-advertised config id. */
+  readonly defaultSessionConfig?: Readonly<Record<string, SessionConfigValue>>
   /** One-line description for `silvercode config acp list` etc. */
   readonly description: string
   /**
@@ -191,6 +214,8 @@ export const BUILTIN_AGENTS: Readonly<Record<string, BuiltinAgent>> = {
     transport: "acp",
     credEnv: ["OPENAI_API_KEY"],
     defaultModel: "gpt-5-codex",
+    defaultReasoningEffort: "xhigh",
+    defaultPermissionPolicy: "on-request",
     description: "OpenAI Codex (ACP) — ChatGPT subscription",
     capabilities: CODEX_CAPABILITIES,
   },

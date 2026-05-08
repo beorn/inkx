@@ -48,6 +48,7 @@
 
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { Box, Text, useBoxRect, useMouseCursor, type ListViewHandle } from "silvery"
+import { createSessionStore, type AgentSession, type SessionId } from "@km/agent-harness"
 import type { Controller, SessionHandle } from "../controller.ts"
 import {
   type DropEdge,
@@ -55,14 +56,13 @@ import {
   type LayoutSplit,
   type SplitDirection,
   moveLeafTo,
+  reconcileTree,
   savePanes,
   setSplitWeight,
   swapLeaves,
 } from "../pane-layout.ts"
 import { PaneHeader } from "./PaneHeader.tsx"
 import { ChatPane } from "./ChatPane.tsx"
-import { Content } from "./Content.tsx"
-import { Welcome } from "./Welcome.tsx"
 
 /** Width of a single divider column / row in cells. */
 const DIVIDER_SIZE = 1
@@ -186,6 +186,40 @@ type DragState = ResizeDragState | MoveDragState
 /** Where each leaf is on screen — populated as leaves report their rects. */
 type LeafRect = { x: number; y: number; w: number; h: number }
 
+function createInertAgentSession(sessionId: string): AgentSession {
+  return {
+    sessionId: sessionId as SessionId,
+    send: () => {},
+    respondToPermission: () => {},
+    subscribe: () => () => {},
+    close: () => Promise.resolve(),
+    [Symbol.asyncDispose]: () => Promise.resolve(),
+    get closed() {
+      return false
+    },
+  }
+}
+
+function createPendingSessionHandle(opts: { cwd: string; model?: string; resume?: string }): SessionHandle {
+  const id = opts.resume ?? "pending"
+  return {
+    id,
+    name: "pending",
+    store: createSessionStore(),
+    session: createInertAgentSession(id),
+    unsubscribe: () => {},
+    coordinatorMcp: null as never,
+    metadata: {
+      cwd: opts.cwd,
+      model: opts.model,
+      sessionId: opts.resume,
+      resumeId: opts.resume,
+      spawnedAt: 0,
+    },
+    resumeId: opts.resume,
+  }
+}
+
 export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneGrid(props, ref): React.ReactElement {
   const {
     sessions,
@@ -207,6 +241,21 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     composerSlot,
   } = props
 
+  const pendingSession = useMemo(
+    () => createPendingSessionHandle({ cwd, model: props.model, resume: props.resume }),
+    [cwd, props.model, props.resume],
+  )
+  const sessionIds = useMemo(() => sessions.map((session) => session.id), [sessions])
+  const sessionIdsKey = sessionIds.join("\0")
+  const reconciledTree = useMemo(
+    () => reconcileTree(tree, sessionIds),
+    [sessionIdsKey, tree, sessionIds],
+  )
+  const visibleSessions = sessions.length === 0 ? [pendingSession] : sessions
+  const visibleFocusedSessionId = sessions.length === 0 ? pendingSession.id : focusedSessionId
+  const visibleTree: LayoutNode =
+    sessions.length === 0 ? { kind: "leaf", sessionId: pendingSession.id } : reconciledTree
+
   const dragRef = useRef<DragState | null>(null)
   const [dragVersion, setDragVersion] = useState(0)
   const bumpDragVersion = useCallback(() => setDragVersion((n) => n + 1), [])
@@ -227,7 +276,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
     leafRectsRef.current.set(id, rect)
   }, [])
 
-  const sessionMap = useMemo(() => new Map(sessions.map((s) => [s.id, s] as const)), [sessions])
+  const sessionMap = useMemo(() => new Map(visibleSessions.map((s) => [s.id, s] as const)), [visibleSessions])
 
   // ----- divider drag (resize) -----
 
@@ -383,11 +432,11 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       const isTargetLeaf = moveDrag?.targetId === handle.id
       const dropEdge = isTargetLeaf ? (moveDrag?.edge ?? null) : null
       const isMinimized = minimizedPaneIds?.has(handle.id) ?? false
-      const showPaneChrome = paneHeaders || sessions.length > 1
+      const showPaneChrome = paneHeaders || visibleSessions.length > 1
       return (
         <LeafContainer
           handle={handle}
-          isFocused={handle.id === focusedSessionId}
+          isFocused={handle.id === visibleFocusedSessionId}
           isSourceLeaf={isSourceLeaf}
           dropEdge={dropEdge}
           onReportRect={reportLeafRect}
@@ -406,15 +455,15 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
           controller={controller}
           agent={agent}
           composerSlot={composerSlot}
-          allSessions={sessions}
+          allSessions={visibleSessions}
         />
       )
     },
     [
       sessionMap,
-      sessions,
-      sessions.length,
-      focusedSessionId,
+      visibleSessions,
+      visibleSessions.length,
+      visibleFocusedSessionId,
       onFocusSession,
       props,
       moveDrag,
@@ -439,35 +488,9 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
   // each render.
   void dragVersion
 
-  // Empty-sessions placeholder. The initial spawn is fire-and-forget; until
-  // the first SessionHandle lands the layout tree has no leaves. Fresh and
-  // resumed sessions both show the product banner immediately so startup does
-  // not look like an unbranded blank/loading shell.
-  //
-  // Bead: km-silvercode.welcome-bypassed-by-pane-grid-spawn.
-  if (sessions.length === 0) {
-    const placeholderHandle = {
-      id: props.resume ?? "pending",
-      name: "pending",
-      resumeId: props.resume,
-      metadata: {
-        cwd: process.cwd(),
-        model: props.model,
-        sessionId: props.resume,
-        resumeId: props.resume,
-        spawnedAt: 0,
-      },
-    } as SessionHandle
-    return (
-      <Content.Layout>
-        <Welcome handle={placeholderHandle} agent={agent} model={props.model} composerSlot={composerSlot} />
-      </Content.Layout>
-    )
-  }
-
   // Zoom mode: render only the focused pane, full area, no dividers.
-  if (zoomedPaneId) {
-    const zoomed = sessions.find((s) => s.id === zoomedPaneId)
+  if (zoomedPaneId && sessions.length > 0) {
+    const zoomed = visibleSessions.find((s) => s.id === zoomedPaneId)
     if (zoomed) {
       return (
         <Box flexDirection="row" flexGrow={1} flexShrink={1} minHeight={0} minWidth={0}>
@@ -484,7 +507,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
               agent={agent}
               composerSlot={composerSlot}
               showFocusBar
-              allSessions={sessions}
+              allSessions={visibleSessions}
             />
           </Box>
         </Box>
@@ -504,7 +527,7 @@ export const PaneGrid = forwardRef<PaneGridHandle, PaneGridProps>(function PaneG
       onMouseLeave={handleWrapperMouseUp}
     >
       <NodeRenderer
-        node={tree}
+        node={visibleTree}
         path={[]}
         draggingPath={dragRef.current?.mode === "resize" ? dragRef.current.path : null}
         onDividerMouseDown={handleDividerMouseDown}

@@ -35,24 +35,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import type { ContentBlock, MessageEntry, MessageOp, ToolCallId, ToolCallStatus, ToolKind } from "@km/agent-harness"
 import type { ToolCall as ToolCallType, ToolCallContent } from "@km/agent-harness"
-import {
-  Box,
-  Divider,
-  ListView,
-  type ListViewHandle,
-  Small,
-  Text,
-  useHover,
-  useModifierKeys,
-  usePopoverHandlers,
-  useSelection,
-} from "silvery"
+import { Box, Divider, ListView, type ListViewHandle, Text, useHover, useModifierKeys, useSelection } from "silvery"
 import { ActivityIndicator, type ActivityStatus } from "./ActivityIndicator.tsx"
 import { NotificationStack } from "./NotificationEventRow.tsx"
-import type { NotificationStreamEntry } from "../notification-stream.ts"
+import type { ChannelNotification } from "../notification-stream.ts"
 import { BoundedScroll } from "./BoundedScroll.tsx"
-import { EntryDisclosure } from "./EntryDisclosure.tsx"
-import { SyntaxHighlighter } from "./SyntaxHighlighter.tsx"
 import { ToolCall } from "./ToolCall.tsx"
 import type { ChatMessageSummaryItem } from "./ChatMessageSummary.tsx"
 import { BACKGROUND_MESSAGE_PREFIX } from "../controller.ts"
@@ -61,9 +48,11 @@ import { parseBlocks } from "../markdown.ts"
 import { SessionEntry } from "./SessionEntry.tsx"
 import type { SessionHistoryMetadata } from "../session-metadata.ts"
 import { Chat } from "./Chat.tsx"
+import { BlockInteraction } from "./BlockInteraction.tsx"
 import { createLogger } from "loggily"
 import {
   activityRunsFromOps,
+  isInstantCompletedToolName,
   latestRunningActivityRun,
   normalizeCommandSessionOps,
   type ActivityRun,
@@ -81,6 +70,7 @@ import {
   itemTimestamp,
   projectSessionUpdateTranscript,
   renderItemKey,
+  type AssistantActivitySegment,
   type SessionMetadataRowData,
   type TranscriptItem,
   type TranscriptRenderItem,
@@ -408,6 +398,15 @@ function stripCommandEcho(text: string, title: string): string {
 }
 
 function toolResultContent(output: unknown, _isError?: boolean, title?: string): ToolCallContent[] {
+  const structuredText = structuredTextOutput(output)
+  if (structuredText !== null) {
+    return [
+      {
+        type: "content",
+        content: { type: "text", text: title ? stripCommandEcho(structuredText, title) : structuredText },
+      },
+    ]
+  }
   if (output && typeof output === "object") {
     const o = output as Record<string, unknown>
     const stdout = typeof o.stdout === "string" ? (title ? stripCommandEcho(o.stdout, title) : o.stdout) : ""
@@ -433,6 +432,16 @@ function toolResultContent(output: unknown, _isError?: boolean, title?: string):
   ]
 }
 
+function structuredTextOutput(output: unknown): string | null {
+  if (!Array.isArray(output)) return null
+  const parts = output.flatMap((item) => {
+    if (!item || typeof item !== "object") return []
+    const o = item as Record<string, unknown>
+    return o.type === "text" && typeof o.text === "string" ? [o.text] : []
+  })
+  return parts.length > 0 ? parts.join("\n") : null
+}
+
 function singleLineGenericToolContentTitle(
   toolName: string,
   title: string,
@@ -455,6 +464,17 @@ function singleLineTextToolContent(content: ToolCallContent[] | undefined): stri
   return text
 }
 
+function singleLineAgentResultContent(content: ToolCallContent[] | undefined): string | null {
+  if (content?.length !== 1) return null
+  const only = content[0]
+  if (only?.type !== "content" || only.content.type !== "text") return null
+  const line = only.content.text
+    .split(/\r?\n/)
+    .map((part) => part.trim())
+    .find((part) => part.length > 0 && !part.startsWith("agentId:"))
+  return line && !line.includes("\n") ? line : null
+}
+
 function agentLifecycleTitle(toolName: string, title: string, status: ToolCallStatus): string {
   if (toolName !== "Agent" && toolName !== "Task") return title
   const lifecycle =
@@ -473,8 +493,24 @@ function toolErrorMessage(output: unknown, title?: string): string {
     if (content.length > 0) return content
     const stdout = typeof o.stdout === "string" ? o.stdout.trim() : ""
     if (stdout.length > 0) return stdout
+    const message = typeof o.message === "string" ? o.message.trim() : ""
+    if (message.length > 0) return message
+    const error = typeof o.error === "string" ? o.error.trim() : ""
+    const details = safeStructuredToolText(o.details)
+    if (error.length > 0) return details ? `${error}\n${details}` : error
+    const structured = safeStructuredToolText(output)
+    if (structured.length > 0) return structured
   }
   return String(output ?? "Tool call failed")
+}
+
+function safeStructuredToolText(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2) ?? ""
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return `Unable to serialize tool output: ${message}`
+  }
 }
 
 function stripShellRunnerMetadata(text: string): string {
@@ -514,7 +550,8 @@ function adaptToolCall(
   running: boolean,
 ): ToolCallType {
   const kind = toolKindFromName(c.name, c.input)
-  const status: ToolCallStatus = running ? "in_progress" : result?.is_error ? "failed" : "completed"
+  const status: ToolCallStatus =
+    running && !isInstantCompletedToolName(c.name) ? "in_progress" : result?.is_error ? "failed" : "completed"
   let title = toolTitle(c.name, c.input)
   title = agentLifecycleTitle(c.name, title, status)
 
@@ -554,7 +591,7 @@ function adaptToolCall(
   }
   const inlineTitle = singleLineGenericToolContentTitle(c.name, title, content)
   const inlineAgentResult =
-    (c.name === "Agent" || c.name === "Task") && status === "completed" ? singleLineTextToolContent(content) : null
+    (c.name === "Agent" || c.name === "Task") && status === "completed" ? singleLineAgentResultContent(content) : null
   if (inlineAgentResult) {
     title = `Agent completed - ${inlineAgentResult}`
     content = undefined
@@ -699,15 +736,17 @@ function adaptAskUserQuestion(
 // =============================================================================
 
 /**
- * Background-task system message. Rendered when the controller surfaces a
- * "▶ Background task ..." row. Distinct treatment vs user/assistant rows so
- * the user can see "this came from a backgrounded turn, not from me typing."
+ * Background-job system message. Rendered when the controller surfaces a
+ * background job row. Distinct treatment vs user/assistant rows so the user
+ * can see "this came from background work, not from me typing."
  */
 function BackgroundSystemRow({ text }: { text: string }): React.ReactElement {
+  const unprefixed = text.startsWith(BACKGROUND_MESSAGE_PREFIX) ? text.slice(BACKGROUND_MESSAGE_PREFIX.length) : text
+  const displayText = unprefixed.replace(/^interrupted by Esc:\s*/i, "Interrupted by Esc · ")
   return (
     <SessionEntry marker="•" markerColor="$info">
       <Text color="$info" wrap="wrap">
-        {text}
+        {displayText}
       </Text>
     </SessionEntry>
   )
@@ -738,47 +777,46 @@ function RecapSystemRow({ text }: { text: string }): React.ReactElement {
 function ExpandableSystemRow({
   text,
   details,
+  rawPayload,
   onDisclosureToggle,
 }: {
   text: string
   details: string
+  rawPayload?: unknown
   onDisclosureToggle?: () => void
 }): React.ReactElement {
   return (
-    <EntryDisclosure popover={null} onExpandedChange={() => onDisclosureToggle?.()}>
-      {({ surfaceProps, isHovered, expanded }) => (
-        <Box
-          {...surfaceProps}
-          flexDirection="column"
-          minWidth={0}
-          backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
-        >
-          <SessionEntry
-            marker={
-              <Text color="$info" {...surfaceProps}>
-                {expanded ? "▾" : "▸"}
-              </Text>
-            }
-            markerColor="$info"
-          >
-            <Box flexDirection="column" minWidth={0}>
-              <Text color="$info" wrap="wrap" {...surfaceProps}>
-                {text}
-              </Text>
-              {expanded ? (
-                <Box flexDirection="column" paddingTop={1} minWidth={0}>
-                  <BoundedScroll>
-                    <Text color="$muted" wrap="wrap">
-                      {details}
-                    </Text>
-                  </BoundedScroll>
-                </Box>
-              ) : null}
-            </Box>
-          </SessionEntry>
+    <BlockInteraction
+      raw={rawPayload}
+      canExpand
+      onExpandedChange={() => onDisclosureToggle?.()}
+      expandedContent={
+        <Box flexDirection="column" paddingTop={1} minWidth={0}>
+          <BoundedScroll>
+            <Text color="$muted" wrap="wrap">
+              {details}
+            </Text>
+          </BoundedScroll>
         </Box>
+      }
+    >
+      {({ surfaceProps, expanded }) => (
+        <SessionEntry
+          marker={
+            <Text color="$info" {...surfaceProps}>
+              {expanded ? "▾" : "▸"}
+            </Text>
+          }
+          markerColor="$info"
+        >
+          <Box flexDirection="column" minWidth={0}>
+            <Text color="$info" wrap="wrap" {...surfaceProps}>
+              {text}
+            </Text>
+          </Box>
+        </SessionEntry>
       )}
-    </EntryDisclosure>
+    </BlockInteraction>
   )
 }
 
@@ -849,112 +887,6 @@ function InterruptedRow(): React.ReactElement {
  * Render one `MessageEntry`. Dispatches on role and handles the background-
  * system-message sentinel pattern.
  */
-/**
- * Pretty-print a value as YAML for the debug popover. We emit YAML (not
- * JSON) because:
- *
- *   1. Multi-line string values render as a `|` block scalar — body lines
- *      are plain text, no `\n` escapes, no surrounding quotes. YAML's
- *      grammar supports this natively; JSON does not.
- *   2. shiki's YAML tokenizer correctly classifies block-scalar bodies as
- *      strings AND keeps them readable. Asking shiki to highlight an
- *      almost-but-not-quite-JSON string trips up the JSON tokenizer's
- *      string-fallback path, which applies italic-pink github-dark
- *      coloring to the entire body — unreadable for prose / markdown.
- *
- * Use `language="yaml"` on the SyntaxHighlighter consumer.
- */
-function prettyYamlForDebug(value: unknown, indent = 0): string {
-  const pad = "  ".repeat(indent)
-  if (value === null || value === undefined) return "null"
-  if (typeof value === "boolean") return String(value)
-  if (typeof value === "number") return String(value)
-  if (typeof value === "string") {
-    if (value.includes("\n")) {
-      const body = value
-        .split("\n")
-        .map((l) => "  ".repeat(indent + 1) + l)
-        .join("\n")
-      return "|\n" + body
-    }
-    return JSON.stringify(value)
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "[]"
-    const childIndent = "  ".repeat(indent + 1)
-    return value
-      .map((v) => {
-        const inner = prettyYamlForDebug(v, indent + 1)
-        const lines = inner.split("\n")
-        const first = lines[0] ?? ""
-        // YAML idiom: `- ` substitutes for two chars of leading indent on
-        // the first line. Continuation lines stay at indent+1.
-        if (first.startsWith(childIndent)) {
-          lines[0] = pad + "- " + first.slice(childIndent.length)
-        } else {
-          lines[0] = pad + "- " + first
-        }
-        return lines.join("\n")
-      })
-      .join("\n")
-  }
-  if (typeof value === "object") {
-    const entries = Object.entries(value as object)
-    if (entries.length === 0) return "{}"
-    return entries
-      .map(([k, v]) => {
-        const key = /^[A-Za-z_][\w-]*$/.test(k) ? k : JSON.stringify(k)
-        const isBlock =
-          typeof v === "object" && v !== null && (Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0)
-        const inner = prettyYamlForDebug(v, indent + 1)
-        return isBlock ? pad + key + ":\n" + inner : pad + key + ": " + inner
-      })
-      .join("\n")
-  }
-  return String(value)
-}
-
-function compactDebugPayload(value: unknown): unknown | null {
-  if (value === null || value === undefined) return null
-  if (typeof value === "string") return value.trim().length > 0 ? value : null
-  if (typeof value !== "object") return value
-  if (Array.isArray(value)) {
-    const items = value.flatMap((item) => {
-      const compact = compactDebugPayload(item)
-      return compact === null ? [] : [compact]
-    })
-    return items.length > 0 ? items : null
-  }
-
-  const input = value as Record<string, unknown>
-  if (
-    typeof input.kind === "string" &&
-    (input.kind === "text" || input.kind === "thinking") &&
-    typeof input.text === "string" &&
-    Object.keys(input).every((key) => key === "kind" || key === "text")
-  ) {
-    return null
-  }
-
-  const entries = Object.entries(input).flatMap(([key, entry]) => {
-    if (key === "ops") return []
-    if (key === "text" && "raw" in input) return []
-    const compact = compactDebugPayload(entry)
-    return compact === null ? [] : ([[key, compact]] as Array<[string, unknown]>)
-  })
-  return entries.length > 0 ? Object.fromEntries(entries) : null
-}
-
-function timestampFromPayload(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null
-  const ts = (payload as { ts?: unknown }).ts
-  if (typeof ts !== "number" || !Number.isFinite(ts)) return null
-  const d = new Date(ts)
-  const hh = d.getHours().toString().padStart(2, "0")
-  const mm = d.getMinutes().toString().padStart(2, "0")
-  return `${hh}:${mm}`
-}
-
 function useCmdHoverArmed(isHovered: boolean, enabled = true): boolean {
   const selection = useSelection()
   const selectionActive = !!selection?.range || !!selection?.selecting
@@ -1128,62 +1060,35 @@ function TimestampedRow({
  * Bead: km-silvercode.raw-entry-inspector.
  */
 function RawInspector({ payload, children }: { payload: unknown; children: React.ReactNode }): React.ReactElement {
-  const debugPayload = useMemo(() => compactDebugPayload(payload), [payload])
-  // Always compute a valid PopoverContent (the hook requires non-null).
-  const popoverContent = useMemo(() => {
-    // Pretty-print: when a string value contains newlines, render the body
-    // as an indented block under the key (no JSON escapes, no surrounding
-    // quotes) so tool output / commands read like the actual text. Trades
-    // strict JSON validity for human readability — the popover is for
-    // eyeballing, not parsing.
-    const yaml = prettyYamlForDebug(debugPayload)
-    const allLines = yaml.split("\n")
-    const displayYaml =
-      allLines.length > 60 ? [...allLines.slice(0, 60), `# ... (${allLines.length - 60} more lines)`].join("\n") : yaml
-    const timestamp = timestampFromPayload(debugPayload)
-    return {
-      body: (
-        <Box flexDirection="column">
-          {timestamp ? (
-            <Box flexDirection="row">
-              <Box flexGrow={1} />
-              <Small>{timestamp}</Small>
-            </Box>
-          ) : null}
-          {/* YAML — shiki's YAML highlighter handles `|` block scalars
-              natively and colors prose bodies as plain string content
-              (no italic-pink JSON-string fallback). `bare` drops chrome
-              and switches to wrap="wrap" so long lines flow within the
-              popover width. */}
-          <SyntaxHighlighter language="yaml" code={displayYaml} bare />
-        </Box>
-      ),
-      // Tighter maxWidth so the +10 anchorOffsetX doesn't get clamped away
-      // by the right-edge constraint on typical terminal widths.
-      maxWidth: 80,
-      // Borderless + flush-top + 10-col right offset so the popover doesn't
-      // cover the immediately-adjacent lines and the user can sweep the
-      // cursor down through other entries while debug is active.
-      borderless: true,
-      flushTop: true,
-      anchorOffsetX: 10,
-    }
-  }, [debugPayload])
-  const handlers = usePopoverHandlers(popoverContent)
-  if (debugPayload === null) return <>{children}</>
-  return (
-    <Box onMouseEnter={handlers.onMouseEnter} onMouseLeave={handlers.onMouseLeave}>
-      {children}
-    </Box>
-  )
+  return <BlockInteraction raw={payload}>{children}</BlockInteraction>
 }
 
 function isHighContentToolRun(run: Array<{ op: MessageOp; index: number }>): boolean {
   const toolOps = run.filter(({ op }) => op.kind === "tool")
-  if (toolOps.length <= 1) return false
-  const resultCount = toolOps.filter(({ op }) => op.kind === "tool" && op.result !== undefined).length
-  if (resultCount >= 2) return true
-  return toolOps.some(({ op }) => op.kind === "tool" && op.result?.is_error === true)
+  return toolOps.length >= 3
+}
+
+function shouldSummarizeActivityOps(ops: readonly MessageOp[]): boolean {
+  const toolNames = ops.flatMap((op) => (op.kind === "tool" ? [op.toolCall.name] : []))
+  if (toolNames.length >= 3) return true
+  return toolNames.length === 2 && toolNames[0] === toolNames[1]
+}
+
+function assistantActivitySegments(items: readonly TranscriptItem[]): AssistantActivitySegment[] {
+  return items.filter(isAssistantActivitySegment)
+}
+
+function assistantActivityPayload(items: readonly TranscriptItem[]): {
+  kind: "assistant-activity"
+  messageId: MessageEntry["id"] | undefined
+  activityOps: MessageOp[]
+} {
+  const segments = assistantActivitySegments(items)
+  return {
+    kind: "assistant-activity",
+    messageId: segments[0]?.message.id,
+    activityOps: segments.flatMap((segment) => segment.ops),
+  }
 }
 
 function chatMessageSummaryItemForActivity(activity: ActivityRun): ChatMessageSummaryItem | null {
@@ -1216,7 +1121,7 @@ function ActivityDetails({
               paddingBefore={hasVisibleTurnOpBefore(ops, index)}
               paddingAfter={hasVisibleTurnOpAfter(ops, index)}
             >
-              <Chat.Turn.Narration text={op.text} muted />
+              <Chat.Narration text={op.text} muted />
             </StandaloneProseFrame>
           )
         }
@@ -1228,7 +1133,7 @@ function ActivityDetails({
               paddingBefore={hasVisibleTurnOpBefore(ops, index)}
               paddingAfter={hasVisibleTurnOpAfter(ops, index)}
             >
-              <Chat.Turn.Narration text={op.text} />
+              <Chat.Narration text={op.text} />
             </StandaloneProseFrame>
           )
         }
@@ -1245,12 +1150,48 @@ function ActivityDetails({
             key={op.toolCall.id}
             toolCall={adaptedCall}
             errorMessage={op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined}
+            defaultExpanded={adaptedCall.status === "failed"}
             titleWrap="wrap"
             onExpandedChange={() => onDisclosureToggle?.()}
           />
         )
       })}
     </Box>
+  )
+}
+
+function InlineActivityDetails({
+  ops,
+  timestamp,
+  onDisclosureToggle,
+}: {
+  ops: readonly MessageOp[]
+  timestamp?: string
+  onDisclosureToggle?: () => void
+}): React.ReactElement {
+  return (
+    <Chat.Tool>
+      {ops.map((op, index) => {
+        if (op.kind !== "tool") {
+          return <ActivityDetails key={`activity-${index}`} ops={[op]} onDisclosureToggle={onDisclosureToggle} />
+        }
+        const adaptedCall = adaptToolCall(op.toolCall, op.result, op.result === undefined)
+        return (
+          <TimestampedRow
+            key={op.toolCall.id}
+            timestamp={timestamp ?? ""}
+            side="left"
+            width={opRendersDiff(op) ? "wide" : "prose"}
+          >
+            <ToolCall
+              toolCall={adaptedCall}
+              errorMessage={op.result?.is_error ? toolErrorMessage(op.result.output, adaptedCall.title) : undefined}
+              onExpandedChange={() => onDisclosureToggle?.()}
+            />
+          </TimestampedRow>
+        )
+      })}
+    </Chat.Tool>
   )
 }
 
@@ -1271,7 +1212,7 @@ function ActivityLivePreview({ activities }: { activities: readonly ActivityRun[
       ) : null}
       {thinking.map((activity) => {
         if (activity.op.kind !== "thinking") return null
-        return <Chat.Turn.Narration key={activity.id} text={activity.op.text} muted />
+        return <Chat.Narration key={activity.id} text={activity.op.text} muted />
       })}
     </Box>
   )
@@ -1292,7 +1233,7 @@ function ChatMessageSummaryForOps({
   const activities = activityRunsFromOps(displayOps)
   const items = activities.flatMap((activity) => chatMessageSummaryItemForActivity(activity) ?? [])
   return (
-    <Chat.Turn.Activity
+    <Chat.Activity
       items={items}
       timestamp={timestamp}
       details={<ActivityDetails ops={displayOps} onDisclosureToggle={onDisclosureToggle} />}
@@ -1322,12 +1263,23 @@ function coalescedTextChunks(runOps: readonly IndexedMessageOp[]): Array<{ text:
     const trimmed = op.text.trim()
     if (/^[.。]+$/.test(trimmed) && op.text.includes("\n")) continue
     if (firstIndex === null && trimmed.length === 0) continue
-    if (textNeedsStandaloneSpacing(op.text) && /[.!?]$/.test(current.trim())) flush()
+    if (op.boundary === "semantic" && current.trim().length > 0) flush()
     firstIndex ??= index
-    current += op.text
+    current += textOpBoundary(current, op.text) + op.text
+    if (op.boundary === "semantic") flush()
   }
   flush()
   return chunks
+}
+
+function textOpBoundary(previous: string, next: string): string {
+  void previous
+  void next
+  // Text ops from live streams are byte chunks, not syntax or paragraph
+  // boundaries. MarkdownView parses the exact concatenated text into
+  // paragraphs, links, lists, and code blocks; inferred newlines here corrupt
+  // split Markdown constructs such as `[file.ts](/abs/file.ts:572)`.
+  return ""
 }
 
 function syntheticLiveToolOps(status: ActivityStatus, inFlightTool: string | null): MessageOp[] | null {
@@ -1366,26 +1318,33 @@ function ExchangeItem({
   m,
   showDebug,
   onDisclosureToggle,
+  suppressGenericInterruptedBanner,
 }: {
   m: MessageEntry
   showDebug: boolean
   onDisclosureToggle?: () => void
+  suppressGenericInterruptedBanner?: boolean
 }): React.ReactElement {
-  const [highVolumeExpanded, setHighVolumeExpanded] = useState(false)
-  // Background-task system messages: user-role entries with a "bg-" turnId
+  // Background-job system messages: user-role entries with a "bg-" turnId
   // prefix AND the BACKGROUND_MESSAGE_PREFIX text prefix.
   if (isBackgroundSystemMessage(m)) {
-    return (
+    const row = (
       <TimestampedRow timestamp={formatTime(m.ts)} side="left">
         <BackgroundSystemRow text={m.text} />
       </TimestampedRow>
     )
+    return <RawInspector payload={m}>{row}</RawInspector>
   }
   if (m.role === "user") {
-    return (
+    const row = (
       <TimestampedRow timestamp={formatTime(m.ts)} side="right">
-        <Chat.Turn.Prompt text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
+        <Chat.Prompt text={m.text} additionalContext={m.additionalContext} showDebug={showDebug} />
       </TimestampedRow>
+    )
+    return m.additionalContext ? (
+      <RawInspector payload={{ text: m.text, raw: m.additionalContext }}>{row}</RawInspector>
+    ) : (
+      row
     )
   }
   if (m.role === "system") {
@@ -1407,7 +1366,12 @@ function ExchangeItem({
       return (
         <TimestampedRow timestamp={formatTime(m.ts)} side="left">
           <Chat.Notification>
-            <ExpandableSystemRow text={m.text} details={details} onDisclosureToggle={onDisclosureToggle} />
+            <ExpandableSystemRow
+              text={m.text}
+              details={details}
+              rawPayload={{ text: m.text, raw: details }}
+              onDisclosureToggle={onDisclosureToggle}
+            />
           </Chat.Notification>
         </TimestampedRow>
       )
@@ -1454,82 +1418,13 @@ function ExchangeItem({
       runs.push({ kind: k, ops: [{ op, index: i }] })
     }
   })
-  const toolOpCount = displayOps.reduce((count, op) => count + (op.kind === "tool" ? 1 : 0), 0)
-  if (toolOpCount > 8) {
-    return (
-      <Chat.Turn.Root>
-        <Chat.Turn.Segment>
-          <ChatMessageSummaryForOps
-            ops={displayOps}
-            timestamp={formatTime(m.ts)}
-            onDisclosureToggle={onDisclosureToggle}
-            onExpandedChange={setHighVolumeExpanded}
-          />
-        </Chat.Turn.Segment>
-        {!highVolumeExpanded
-          ? runs.map((run, runIdx) => {
-              if (run.kind === "tool") return null
-              if (run.kind === "text") {
-                const chunks = coalescedTextChunks(run.ops)
-                return chunks.map((chunk) => {
-                  const standalone = textNeedsStandaloneSpacing(chunk.text)
-                  return (
-                    <Chat.Turn.Segment key={`text-${chunk.firstIndex}`}>
-                      <StandaloneProseFrame
-                        paddingBefore={standalone && hasVisibleTurnOpBefore(displayOps, chunk.firstIndex)}
-                        paddingAfter={standalone && hasVisibleTurnOpAfter(displayOps, chunk.firstIndex)}
-                      >
-                        <TimestampedRow
-                          timestamp={formatTime(m.ts)}
-                          side="left"
-                          width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
-                        >
-                          <Chat.Turn.Narration text={chunk.text} />
-                        </TimestampedRow>
-                      </StandaloneProseFrame>
-                    </Chat.Turn.Segment>
-                  )
-                })
-              }
-              if (run.kind === "thinking") {
-                const text = run.ops.flatMap(({ op }) => (op.kind === "thinking" ? [op.text] : [])).join("")
-                if (text.length === 0) return null
-                const firstIndex = run.ops[0]?.index ?? runIdx
-                return (
-                  <Chat.Turn.Segment key={`thinking-${firstIndex}`}>
-                    <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                      <Chat.Turn.Narration text={text} muted />
-                    </TimestampedRow>
-                  </Chat.Turn.Segment>
-                )
-              }
-              return run.ops.map(({ op, index }) => {
-                if (op.kind === "raw") {
-                  return (
-                    <Chat.Turn.Segment key={`raw-${index}`}>
-                      <RawInspector payload={op.raw}>
-                        <TimestampedRow timestamp={formatTime(m.ts)} side="left">
-                          <RawRow label={op.label} />
-                        </TimestampedRow>
-                      </RawInspector>
-                    </Chat.Turn.Segment>
-                  )
-                }
-                return null
-              })
-            })
-          : null}
-      </Chat.Turn.Root>
-    )
-  }
-
   return (
-    <Chat.Turn.Root>
+    <Chat.Message>
       {runs.map((run, runIdx) => (
         // gap=0 inside a run → consecutive tool calls (or coalesced text
         // ops) render contiguously. The outer `gap={1}` only applies
         // BETWEEN runs.
-        <Chat.Turn.Segment key={runIdx}>
+        <Chat.Block key={runIdx}>
           {run.kind === "tool" && isHighContentToolRun(run.ops) ? (
             <ChatMessageSummaryForOps
               ops={run.ops.map(({ op }) => op)}
@@ -1537,7 +1432,7 @@ function ExchangeItem({
               onDisclosureToggle={onDisclosureToggle}
             />
           ) : run.kind === "tool" ? (
-            <Chat.Turn.ToolGroup>
+            <Chat.Tool>
               {run.ops.map(({ op }) => {
                 if (op.kind !== "tool") return null
                 const c = op.toolCall
@@ -1559,7 +1454,7 @@ function ExchangeItem({
                   </TimestampedRow>
                 )
               })}
-            </Chat.Turn.ToolGroup>
+            </Chat.Tool>
           ) : run.kind === "text" ? (
             (() => {
               const chunks = coalescedTextChunks(run.ops)
@@ -1576,7 +1471,7 @@ function ExchangeItem({
                       side="left"
                       width={hasTableMarkdownBlock(chunk.text) ? "wide" : "prose"}
                     >
-                      <Chat.Turn.Narration text={chunk.text} />
+                      <Chat.Narration text={chunk.text} />
                     </TimestampedRow>
                   </StandaloneProseFrame>
                 )
@@ -1589,7 +1484,7 @@ function ExchangeItem({
               const firstIndex = run.ops[0]?.index ?? 0
               return (
                 <TimestampedRow key={`thinking-${firstIndex}`} timestamp={formatTime(m.ts)} side="left">
-                  <Chat.Turn.Narration text={text} muted />
+                  <Chat.Narration text={text} muted />
                 </TimestampedRow>
               )
             })()
@@ -1607,21 +1502,31 @@ function ExchangeItem({
               return null
             })
           )}
-        </Chat.Turn.Segment>
+        </Chat.Block>
       ))}
-      {m.stopReason === "interrupted" ? (
-        <Chat.Turn.Summary>
+      {m.stopReason === "interrupted" && !suppressGenericInterruptedBanner ? (
+        <Chat.Summary>
           <TimestampedRow timestamp={formatTime(m.ts)} side="left">
             <InterruptedRow />
           </TimestampedRow>
-        </Chat.Turn.Summary>
+        </Chat.Summary>
       ) : null}
-    </Chat.Turn.Root>
+    </Chat.Message>
   )
 }
 
 function isBackgroundSystemMessage(m: MessageEntry): boolean {
-  return m.role === "user" && (m.id as string).startsWith("bg-") && m.text.startsWith(BACKGROUND_MESSAGE_PREFIX)
+  const id = m.id as string
+  return (
+    m.role === "user" && (id.startsWith("bg-") || id.startsWith("int-")) && m.text.startsWith(BACKGROUND_MESSAGE_PREFIX)
+  )
+}
+
+function isEscInterruptSystemMessage(m: MessageEntry): boolean {
+  return (
+    isBackgroundSystemMessage(m) &&
+    m.text.slice(BACKGROUND_MESSAGE_PREFIX.length).trimStart().startsWith("interrupted by Esc:")
+  )
 }
 
 function textNeedsStandaloneSpacing(text: string): boolean {
@@ -1662,7 +1567,7 @@ export const SessionUpdateList = React.forwardRef<
      * inline as styled observation rows between turns.
      * Bead: km-silvercode.notification-inline-display.
      */
-    notificationEntries?: readonly NotificationStreamEntry[]
+    notificationEntries?: readonly ChannelNotification[]
     sessionMetadata?: SessionHistoryMetadata
     /** Display name for the running agent. Forwarded to the inline
      *  ActivityIndicator so the spawning-state label can read
@@ -1671,8 +1576,8 @@ export const SessionUpdateList = React.forwardRef<
     /** CLI version string from session-init (e.g. "2.1.119"). Forwarded
      *  to ActivityIndicator. `null` until session-init resolves. */
     agentVersion?: string | null
-    /** Chat panes follow the latest turn; natural-height story previews can disable it. */
-    follow?: "end" | false
+    /** Chat panes follow the latest turn; natural-height story previews can disable ListView. */
+    follow?: "end" | "none" | false
     /** Vertical breathing room rendered inside the scroll content. */
     paddingY?: number
     /** Overrides paddingY for the top edge when the viewport has asymmetric chrome. */
@@ -1718,6 +1623,7 @@ export const SessionUpdateList = React.forwardRef<
     status !== "idle" &&
     status !== "ended" &&
     !(status === "tool-running" && currentTranscriptHasRunningToolActivity(messages))
+  const hasEscInterruptSystemMessage = messages.some(isEscInterruptSystemMessage)
   const { visibleItems, contentItems, items, renderItems, topPadding, bottomPadding, listEpoch } = useMemo(
     () =>
       projectSessionUpdateTranscript({
@@ -1826,11 +1732,9 @@ export const SessionUpdateList = React.forwardRef<
         )}
       </RawInspector>
     ) : isChatNotificationGroup(item) ? (
-      <RawInspector payload={{ kind: "notification", entries: item.entries }}>
-        <Chat.Notification>
-          <NotificationStack entries={item.entries} />
-        </Chat.Notification>
-      </RawInspector>
+      <Chat.Notification>
+        <NotificationStack entries={item.entries} />
+      </Chat.Notification>
     ) : isChatLifecycleItem(item) ? (
       <RawInspector payload={item.data}>
         <Chat.Metadata>
@@ -1839,32 +1743,57 @@ export const SessionUpdateList = React.forwardRef<
       </RawInspector>
     ) : isAssistantActivitySegment(item) ? (
       <RawInspector payload={{ kind: "assistant-activity", messageId: item.message.id, activityOps: item.ops }}>
-        <ChatMessageSummaryForOps
-          ops={item.ops}
-          timestamp={formatTime(item.message.ts)}
-          onDisclosureToggle={pauseFollowForDisclosure}
-        />
+        {shouldSummarizeActivityOps(item.ops) ? (
+          <ChatMessageSummaryForOps
+            ops={item.ops}
+            timestamp={formatTime(item.message.ts)}
+            onDisclosureToggle={pauseFollowForDisclosure}
+          />
+        ) : (
+          <InlineActivityDetails
+            ops={item.ops}
+            timestamp={formatTime(item.message.ts)}
+            onDisclosureToggle={pauseFollowForDisclosure}
+          />
+        )}
       </RawInspector>
     ) : item.role === "assistant" || item.role === "system" || item.role === "user" ? (
       // Assistant turns wrap each op (text/tool) individually inside
       // ExchangeItem so the hover popover shows ONLY the hovered op,
-      // not the whole turn's combined JSON. System rows may provide their
-      // own disclosure surface, and user prompts have no hidden payload, so
-      // do not wrap them in another RawInspector.
-      <ExchangeItem m={item} showDebug={showDebug} onDisclosureToggle={pauseFollowForDisclosure} />
+      // not the whole turn's combined JSON. System/user rows provide their
+      // own disclosure/raw surfaces when they have hidden payloads, so do
+      // not wrap the whole exchange again here.
+      <ExchangeItem
+        m={item}
+        showDebug={showDebug}
+        onDisclosureToggle={pauseFollowForDisclosure}
+        suppressGenericInterruptedBanner={hasEscInterruptSystemMessage}
+      />
     ) : (
       <RawInspector payload={item}>
-        <ExchangeItem m={item} showDebug={showDebug} onDisclosureToggle={pauseFollowForDisclosure} />
+        <ExchangeItem
+          m={item}
+          showDebug={showDebug}
+          onDisclosureToggle={pauseFollowForDisclosure}
+          suppressGenericInterruptedBanner={hasEscInterruptSystemMessage}
+        />
       </RawInspector>
     )
   const renderGroupedTranscriptItem = (item: TranscriptRenderItem, i: number): React.ReactNode =>
-    isGrouped(item) && item.kind === "assistant-tool-activity" && item.items.length >= 2 ? (
-      <RawInspector
-        payload={{
-          kind: "assistant-tool-activity",
-          activityOps: item.items.flatMap((child) => (isAssistantActivitySegment(child) ? child.ops : [])),
-        }}
-      >
+    isGrouped(item) &&
+    item.kind === "assistant-tool-activity" &&
+    shouldSummarizeActivityOps(
+      item.items.flatMap((child) =>
+        isLiveActivityTail(child) || isChatNotificationGroup(child) || isChatLifecycleItem(child)
+          ? []
+          : isAssistantActivitySegment(child)
+            ? child.ops
+            : isTranscriptPadding(child)
+              ? []
+              : child.ops,
+      ),
+    ) ? (
+      <RawInspector payload={assistantActivityPayload(item.items)}>
         <ChatMessageSummaryForOps
           timestamp={formatTime(item.items.flatMap((child) => itemTimestamp(child) ?? [])[0] ?? 0)}
           onDisclosureToggle={pauseFollowForDisclosure}
@@ -1901,7 +1830,7 @@ export const SessionUpdateList = React.forwardRef<
         ))}
       </Box>
     )
-    return hasContentLayout ? body : <Chat.Transcript>{body}</Chat.Transcript>
+    return hasContentLayout ? body : <Chat.Session>{body}</Chat.Session>
   }
 
   const list = (
@@ -1918,5 +1847,5 @@ export const SessionUpdateList = React.forwardRef<
       renderItem={renderGroupedTranscriptItem}
     />
   )
-  return hasContentLayout ? list : <Chat.Transcript>{list}</Chat.Transcript>
+  return hasContentLayout ? list : <Chat.Session>{list}</Chat.Session>
 })

@@ -38,6 +38,32 @@ function ExpandableNotificationRow({
 }
 
 describe("NotificationEventRow disclosure", () => {
+  test("tribe rows keep the sender instead of collapsing to a bare body", async () => {
+    using term = createTermless({ cols: 80, rows: 6 })
+    const handle = await run(
+      <Box flexDirection="column">
+        <NotificationEventRow
+          entry={{
+            kind: "notification",
+            id: "tribe-persistent",
+            source: "tribe",
+            timestamp: 1_700_000_000_000,
+            content: "[tribe alice] persistent",
+          }}
+        />
+      </Box>,
+      term,
+    )
+
+    try {
+      await settle(80)
+      expect(term.screen.getText()).toContain("Tribe - alice: persistent")
+      expect(term.screen.getText()).not.toContain("Tribe - persistent")
+    } finally {
+      handle.unmount()
+    }
+  })
+
   test("CI adapter links a failed check through the notification stack", async () => {
     await using scope = createScope("ci-notification-link-test")
     const queue = createChannelQueue(scope)

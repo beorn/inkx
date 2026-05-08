@@ -70,7 +70,7 @@ Silvercode already has useful fakes, but they are not complete backend fakes:
   - Live backend smoke for connect/close only.
   - Good teardown coverage, but not a behavioral contract suite.
 
-The missing layer is a fake backend provider that speaks the same ACP or stream protocol as the real agent backend. It can run in-process for ordinary tests and still exercise the real adapter code above the protocol boundary.
+Silvercode now has a Layer 2 fake backend provider that speaks ACP through the same spawn seam as the real agent backend. It runs in-process for ordinary tests while still exercising the adapter code above the protocol boundary.
 
 ## Fake Layers
 
@@ -83,7 +83,7 @@ Use explicit layers so tests choose the smallest fake that still covers the beha
 | 2     | Fake backend provider  | ACP or stream-json protocol  | Adapter integration, config options, permissions, prompt lifecycle |
 | 3     | Live backend           | Real external binary/service | Drift checks, auth, release smoke                                  |
 
-Layer 2 is the new work. Config options must use Layer 2 because `session/set_config_option` is a protocol feature.
+Layer 2 is the contract layer for adapter behavior. Config options use Layer 2 because `session/set_config_option` is a protocol feature.
 
 ## Shared Fake Engine
 
@@ -124,7 +124,7 @@ Implemented first slice:
 - `AcpAgentSession.configOptions` and `AcpAgentSession.setSessionConfigOption()` expose the latest ACP config surface to tests and UI callers.
 - `@km/agent-harness/agent-backends` defines `AgentBackend`, `AgentBackends`, `createAcpAgentBackend()`, and provider-injected fake ACP backends.
 - `@km/agent-harness/testing/backend-spec-runner` runs the same assertion function against fake targets by default and live targets when `SILVERCODE_BACKEND_CONTRACT=live`.
-- `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts` is the first fake/live contract, covering Codex `reasoning_effort`.
+- `apps/silvercode/tests/backend-contracts/config-options.contract.test.ts` covers Codex `reasoning_effort` plus generic select/boolean ACP config defaults and live mutations across every registered fake ACP backend.
 - `apps/silvercode/tests/backend-contracts/prompt.contract.test.ts` runs the prompt lifecycle spec against every registered fake ACP backend, and appends selected live backends in live mode.
 - `apps/silvercode/tests/backend-contracts/comprehensive-session-updates.contract.test.ts` runs against every fake ACP provider and verifies representative text, reasoning, tool, result, plan, slash-command, status, binary, and resource update families.
 
@@ -275,7 +275,7 @@ Codex is the first profile because config options are already user-visible.
 
 Must model:
 
-- `thought_level` config with `low`, `medium`, `high`, `xhigh`
+- `reasoning_effort` config in the `thought_level` category with `low`, `medium`, `high`, `xhigh`
 - `session/set_config_option` returning full updated `configOptions`
 - model/mode config options when surfaced
 - plan updates
@@ -288,7 +288,7 @@ First contract:
 
 1. Start fake Codex backend.
 2. Create session.
-3. Assert `thought_level` options are present.
+3. Assert the `reasoning_effort` option in the `thought_level` category is present.
 4. Press `Option+.` in Silvercode.
 5. Assert the adapter sent `session/set_config_option`.
 6. Assert UI updates from returned `configOptions`, not local-only state.
@@ -411,9 +411,9 @@ Live tests should skip cleanly when a binary or credential is missing. They shou
 
 Config options should be the first consumer of Layer 2 backend fakes.
 
-Implementation tasks:
+Implemented config-option path:
 
-1. Project ACP `configOptions` from `newSession`, `loadSession`, `resumeSession`, and `config_option_update`.
+1. Project ACP `configOptions` from session creation and `config_option_update`.
 2. Store config options in session state.
 3. Expose a typed harness method for `session/set_config_option`.
 4. Update state from the returned full `configOptions`.
@@ -424,9 +424,10 @@ Implementation tasks:
 Tests:
 
 - Fake Codex config contract.
+- Generic config default + mutation contracts for every fake ACP backend.
 - Fake config rejection contract.
-- Session reducer update from `config_option_update`.
-- UI keybinding test proving the setter is called.
+- ACP client update from `config_option_update`.
+- Controller, CLI resolution, and UI keybinding tests proving options are threaded through.
 - Fallback test when no config option exists.
 - Live Codex drift test behind `SILVERCODE_BACKEND_CONTRACT=live`.
 
@@ -447,7 +448,7 @@ const codexThoughtLevel = {
 }
 ```
 
-The option id must be learned from real Codex if it differs. The category and value set are the stable contract Silvercode should consume.
+Current Codex ACP behavior uses id `reasoning_effort` and category `thought_level`. The live drift contract should fail if the wrapper changes this surface.
 
 ## Fake vs Live Drift
 
@@ -497,7 +498,7 @@ Use the smallest fake that crosses the behavior under test:
 | Reducer response to one event              | Layer 0/1 event fixture             | Backend provider fake       |
 | App rendering of existing state            | AgentSession fake or story fixture  | Live backend                |
 | ACP adapter maps protocol update correctly | Layer 2 fake ACP backend            | Mocked SessionState         |
-| Keybinding mutates backend config          | Layer 2 fake Codex profile          | Local capability state fake |
+| Keybinding mutates backend config          | Layer 2 fake ACP config profile     | Local capability state fake |
 | Backend connection closes cleanly          | Layer 2 fake provider or live smoke | Pure session fake           |
 | Backend compatibility before release       | Live contract mode                  | Fake-only tests             |
 
@@ -513,14 +514,14 @@ Use the smallest fake that crosses the behavior under test:
 
 Exit criteria: `connectAcpRegistry` can connect to fake ACP backend through provider injection.
 
-### Phase 2: Codex Config Profile
+### Phase 2: ACP Config Profiles
 
 - Add Codex profile with `thought_level`.
 - Wire config options through harness/session state/UI.
-- Add Codex fake contracts for config read/set/reject.
+- Add generic fake contracts for config defaults and read/set/reject across registered ACP backends.
 - Add live Codex contract gate.
 
-Exit criteria: Codex reasoning UI is not cosmetic; it mutates backend config through ACP.
+Exit criteria: Codex reasoning UI and descriptor-driven permission-mode UI are not cosmetic; they mutate advertised backend config through ACP.
 
 ### Phase 3: Claude and Legacy Transports
 
@@ -549,8 +550,7 @@ Exit criteria: fake-vs-real drift has a standard workflow and a clear failure po
 
 ## Open Questions
 
-- What exact config option id does Codex use for `thought_level` in the current ACP wrapper?
-- Do Gemini and Copilot expose config options today, or should their profiles assert descriptor fallback?
+- Do live Gemini and Copilot expose backend-specific config options beyond the generic descriptor fallback?
 - Should live backend contracts run in nightly CI, local-only, or release-only?
 - Do we need recording support that captures a real live session and turns it into a fake scenario fixture?
 - Should fake ACP profiles live in `agent-harness` only, or should Silvercode app-level scenarios wrap them with UI-specific helpers?
@@ -585,4 +585,3 @@ Config options consumer:
 ## Rule of Thumb
 
 When a fake and a real backend disagree, neither automatically wins. First determine whether Silvercode relies on the behavior. If it does, update the fake to match real behavior and add a regression. If real behavior is a backend bug, keep the fake strict and document the live exception.
-

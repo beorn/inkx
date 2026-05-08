@@ -63,7 +63,7 @@ describe("ChatEvent handling contract", () => {
     const types = Object.keys(CHAT_EVENT_HANDLING)
     expect(types).toEqual([
       "message.started",
-      "message.part.added",
+      "message.block.added",
       "message.completed",
       "tool.started",
       "tool.updated",

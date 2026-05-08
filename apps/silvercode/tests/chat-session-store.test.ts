@@ -5,15 +5,24 @@ import {
   type ToolUseId,
   type TurnId,
 } from "@km/agent-harness"
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { createChatSessionProjectionStore } from "../src/chat/store.ts"
-import type { ChatMessageId, ChatMessagePartId, ChatPermissionId, ChatToolId } from "../src/chat/types.ts"
+import type { ChatBlockId, ChatMessageId, ChatPermissionId, ChatToolId } from "../src/chat/types.ts"
 
 const sessionId = "session-1" as SessionId
 const turnId = "turn-1" as TurnId
 const toolId = "tool-1" as ToolUseId
 const subagentToolId = "subagent-1" as ToolUseId
 const permissionId = "permission-1" as PermissionRequestId
+let debugSpy: ReturnType<typeof vi.spyOn>
+
+beforeEach(() => {
+  debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {})
+})
+
+afterEach(() => {
+  debugSpy.mockRestore()
+})
 
 describe("ChatSession projection store", () => {
   test("reactively projects AgentEvents and filters Debug without mutating retained ChatEvents", () => {
@@ -33,7 +42,7 @@ describe("ChatSession projection store", () => {
 
     expect(chat.events().map((event) => [event.type, event.channel])).toEqual([
       ["message.started", "transcript"],
-      ["message.part.added", "transcript"],
+      ["message.block.added", "transcript"],
       ["debug.recorded", "debug"],
     ])
     const projectedEvents = chat.events()
@@ -134,7 +143,7 @@ describe("ChatSession projection store", () => {
       "tool",
       "tool",
     ])
-    expect(replayChat.session().messages[splitMessageId as unknown as ChatMessageId]?.partIds).toHaveLength(3)
+    expect(replayChat.session().messages[splitMessageId as unknown as ChatMessageId]?.blockIds).toHaveLength(3)
     expect(replayChat.session().tools[replayToolId as unknown as ChatToolId]).toMatchObject({
       name: "Read",
       status: "failed",
@@ -142,6 +151,24 @@ describe("ChatSession projection store", () => {
     })
 
     replayChat.dispose()
+  })
+
+  test("handles same-millisecond ACP text chunks without duplicate block crashes", () => {
+    const sessionStore = createSessionStore()
+    const chat = createChatSessionProjectionStore(sessionStore, { sessionId })
+    const acpTurnId = "acp-turn-1778204055987" as TurnId
+
+    sessionStore.apply({ kind: "turn-start", sessionId, turnId: acpTurnId, role: "assistant", ts: 1 })
+    sessionStore.apply({ kind: "text-delta", sessionId, turnId: acpTurnId, blockIndex: 0, text: "Hello", ts: 2 })
+    sessionStore.apply({ kind: "text-delta", sessionId, turnId: acpTurnId, blockIndex: 0, text: " world", ts: 2 })
+
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["assistant-text"])
+    expect(chat.visibleLeaves().map((leaf) => ("text" in leaf.props ? leaf.props.text : undefined))).toEqual([
+      "Hello world",
+    ])
+    expect(chat.session().messages[acpTurnId as unknown as ChatMessageId]?.blockIds).toHaveLength(1)
+
+    chat.dispose()
   })
 
   test("accumulates ChatSession state from the same canonical ChatEvents that feed the tree", () => {
@@ -225,8 +252,8 @@ describe("ChatSession projection store", () => {
       mode: "auto",
       cwd: "/repo",
     })
-    expect(userMessage).toMatchObject({ role: "user", partIds: ["user-1:user-text"] })
-    expect(session.messageParts["user-1:user-text" as ChatMessagePartId]).toMatchObject({
+    expect(userMessage).toMatchObject({ role: "user", blockIds: ["user-1:user-text"] })
+    expect(session.blocks["user-1:user-text" as ChatBlockId]).toMatchObject({
       type: "text",
       text: "Run tests",
     })
@@ -243,7 +270,7 @@ describe("ChatSession projection store", () => {
       status: "approved",
       prompt: "Bash permission requested",
     })
-    expect(session.plan.tasks).toEqual([{ id: "task-1", content: "Check projection", status: "completed" }])
+    expect(session.plan.steps).toEqual([{ id: "task-1", content: "Check projection", status: "completed" }])
 
     chat.dispose()
   })

@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest"
 import {
   createSessionStore,
   createStreamJsonParser,
+  messageTextFromOps,
   type AgentEvent,
   type MessageEntry,
   type MessageOp,
@@ -41,6 +42,13 @@ function runningTool(id: string, command: string): MessageOp {
   }
 }
 
+function unresolvedTool(id: string, name: string, input: unknown): MessageOp {
+  return {
+    kind: "tool",
+    toolCall: { id: id as ToolUseId, name, input },
+  }
+}
+
 function codexTool(id: string, name: string, input: unknown, output: string): MessageOp {
   return {
     kind: "tool",
@@ -58,7 +66,7 @@ function message(id: string, role: MessageEntry["role"], ops: MessageOp[]): Mess
   }
   Object.defineProperty(out, "text", {
     get() {
-      return ops.flatMap((op) => (op.kind === "text" ? [op.text] : [])).join("")
+      return messageTextFromOps(ops)
     },
     enumerable: true,
     configurable: true,
@@ -196,6 +204,21 @@ describe("chat model", () => {
     ])
 
     expect(latestRunningActivityRun(activities)?.id).toBe("second")
+  })
+
+  test("Codex View Image activity is complete even when no result event follows", () => {
+    const activities = activityRunsFromOps([
+      unresolvedTool("image-1", "view_image", { path: "/tmp/screenshot.png" }),
+      unresolvedTool("image-2", "view_image_tool_call", { path: "/tmp/screenshot-2.png" }),
+      runningTool("running", "bun test"),
+    ])
+
+    expect(activities.map((activity) => [activity.id, activity.status])).toEqual([
+      ["image-1", "completed"],
+      ["image-2", "completed"],
+      ["running", "running"],
+    ])
+    expect(latestRunningActivityRun(activities)?.id).toBe("running")
   })
 
   test("splits assistant ops into narration/activity/narration/activity order", () => {

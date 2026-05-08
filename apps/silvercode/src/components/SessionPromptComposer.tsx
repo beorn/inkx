@@ -132,7 +132,7 @@ export function SessionPromptComposer({
     <Box
       backgroundColor={hover.isHovered ? "$bg-surface-overlay" : "$bg-surface-raised"}
       paddingY={1}
-      paddingRight={1}
+      paddingRight={2}
       flexShrink={0}
       flexDirection="column"
       width="100%"
@@ -161,12 +161,13 @@ export function SessionPromptComposer({
                 </Text>
               ))}
             </Box>
-            <Box flexGrow={1} minWidth={0} paddingRight={1}>
+            <Box flexGrow={1} minWidth={0}>
               <TextArea
                 ref={queueRef}
                 value={displayQueueText}
                 onChange={(text) => onQueueChange(displayToWire(text))}
                 isActive={queueIsFocused}
+                cursorShape="block"
                 showInactiveCursor={false}
                 // Auto-grow with the content, capped at 12 rows (per
                 // design — scrolls beyond that via TextArea's built-in
@@ -208,12 +209,13 @@ export function SessionPromptComposer({
         <Text color={commandIsFocused ? promptColor : "$fg-muted"} bold>
           {" > "}
         </Text>
-        <Box flexGrow={1} minWidth={0} paddingRight={1}>
+        <Box flexGrow={1} minWidth={0}>
           <TextArea
             ref={commandRef}
             value={inputValue}
             onChange={onInputChange}
             isActive={commandIsFocused && !inputDisabled}
+            cursorShape="block"
             showInactiveCursor={false}
             // Defaults give chat-input behavior (fieldSizing=content,
             // minRows=1, maxRows=8). Empty input is 1 row; multi-line

@@ -16,7 +16,7 @@ export function SessionEntry({
 }): React.ReactElement {
   const markerNode = React.isValidElement(marker) ? marker : <Text color={markerColor}>{marker}</Text>
   return (
-    <Box flexDirection="row" gap={gap} width={width} maxWidth={width} flexShrink={0} minWidth={0} userSelect="none">
+    <Box flexDirection="row" gap={gap} width={width} maxWidth={width} flexShrink={0} minWidth={0}>
       <Box width={1} flexShrink={0} userSelect="none">
         {markerNode}
       </Box>

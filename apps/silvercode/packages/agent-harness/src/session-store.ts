@@ -31,6 +31,7 @@ import type { SessionState } from "./session-types.ts"
 
 // Re-export the public type surface so existing consumers continue to
 // import from `./session-store.ts` without touching their import paths.
+export { messageTextFromOps } from "./session-types.ts"
 export type {
   AgentPlan,
   AgentPlanEntry,
