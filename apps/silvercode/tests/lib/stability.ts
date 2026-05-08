@@ -167,6 +167,46 @@ interface TermlessScreenLike {
   screen: { text?: string; getText?: () => string } | null
 }
 
+function readTermlessText(term: TermlessScreenLike): string {
+  const screen = term.screen
+  return screen ? (typeof screen.getText === "function" ? screen.getText() : (screen.text ?? "")) : ""
+}
+
+export async function waitForStableTermlessFrame(
+  term: TermlessScreenLike,
+  opts: { label: string; timeoutMs: number; quietMs: number; intervalMs?: number },
+): Promise<string> {
+  const interval = opts.intervalMs ?? 10
+  const timeoutAt = Date.now() + opts.timeoutMs
+  let last = ""
+  let lastChangedAt = Date.now()
+  const observed: string[] = []
+
+  while (Date.now() < timeoutAt) {
+    let fp = ""
+    try {
+      fp = layoutFingerprint(readTermlessText(term))
+    } catch {
+      fp = ""
+    }
+    if (fp && fp !== last) {
+      last = fp
+      lastChangedAt = Date.now()
+      if (observed.at(-1) !== fp) observed.push(fp)
+    }
+    if (last && Date.now() - lastChangedAt >= opts.quietMs) return last
+    await new Promise((r) => setTimeout(r, interval))
+  }
+
+  const summary = observed
+    .slice(-4)
+    .map((fp, i) => `--- observed layout ${i + 1} ---\n${preview(fp)}`)
+    .join("\n\n")
+  throw new Error(
+    `[${opts.label}] layout did not remain unchanged for ${opts.quietMs}ms within ${opts.timeoutMs}ms.\n\n${summary}`,
+  )
+}
+
 /**
  * Poll an emulator-backed terminal's screen for the duration window,
  * keeping each distinct content-bearing fingerprint observed.
@@ -188,9 +228,7 @@ export async function pollTermlessFrames(
   while (Date.now() < stop) {
     let fp = ""
     try {
-      const screen = term.screen
-      const text = screen ? (typeof screen.getText === "function" ? screen.getText() : (screen.text ?? "")) : ""
-      fp = layoutFingerprint(text)
+      fp = layoutFingerprint(readTermlessText(term))
     } catch {
       // Swallow polling errors during teardown / async transitions.
     }

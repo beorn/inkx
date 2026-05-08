@@ -44,6 +44,7 @@ import {
   expectStableLayouts,
   pollTermlessFrames,
   recordRenderFrames,
+  waitForStableTermlessFrame,
 } from "./lib/stability.ts"
 
 const COLS = 120
@@ -51,6 +52,9 @@ const ROWS = 40
 const SESSION = "fake-md-rich" as SessionId
 
 const settle = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+const waitForChatQuiet = (term: TermlessTerm, label: string): Promise<string> =>
+  waitForStableTermlessFrame(term, { label, timeoutMs: 5000, quietMs: 350 })
 
 type TermlessTerm = ReturnType<typeof createTermless>
 type ResizableTerm = TermlessTerm & { resize?: (cols: number, rows: number) => void }
@@ -190,7 +194,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
       // frames the script delivery itself produces (those are intrinsic
       // to streaming) — we're testing whether the chat is stable AFTER
       // it has settled into its final state.
-      await settle(1500)
+      await waitForChatQuiet(term, "chat.post-arrival.pre-measure")
 
       const screenText = readScreenText(term)
       expect(screenText.length, "termless screen never received output").toBeGreaterThan(0)
@@ -228,7 +232,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
     try {
       fake.script(markdownRich, 0)
       // Let the chat settle into its steady state.
-      await settle(1500)
+      await waitForChatQuiet(term, "chat.resize.pre-event")
 
       const screenText = readScreenText(term)
       expect(screenText.length, "termless screen never received output").toBeGreaterThan(0)
@@ -278,7 +282,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
     )
     try {
       fake.script(markdownRich, 0)
-      await settle(1500)
+      await waitForChatQuiet(term, "chat.cmux-multi-sigwinch.pre-event")
       expect(typeof term.resize, "termless Term must expose .resize(cols, rows)").toBe("function")
 
       const burst = [81, 113, 126, 94]
@@ -323,7 +327,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
     )
     try {
       fake.script(stressUnwrappable, 0)
-      await settle(1500)
+      await waitForChatQuiet(term, "chat.stress-unwrappable.pre-event")
       expect(typeof term.resize, "termless Term must expose .resize(cols, rows)").toBe("function")
 
       // Tighter burst — SIGWINCH events arrive faster than the 16ms
@@ -363,7 +367,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
     )
     try {
       fake.script(markdownRich, 0)
-      await settle(1500)
+      await waitForChatQuiet(term, "chat.focus-regain.pre-event")
       expect(typeof term.sendInput, "termless Term must expose .sendInput(data)").toBe("function")
       term.sendInput?.("\x1b[O")
       await settle(80)
@@ -398,7 +402,7 @@ describe("chat-session UI stability (bead @km/silvercode/post-resize-ui-stabilit
     )
     try {
       fake.script(markdownRich, 0)
-      await settle(1500)
+      await waitForChatQuiet(term, "chat.side-panel-toggle.pre-event")
 
       const screenText = readScreenText(term)
       expect(screenText.length, "termless screen never received output").toBeGreaterThan(0)
