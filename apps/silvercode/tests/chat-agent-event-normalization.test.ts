@@ -313,6 +313,51 @@ describe("normalizeAgentEventToChatEvents", () => {
     ])
   })
 
+  const osc8Link = "\u001b]8;;https://example.test/path\u001b\\Open link\u001b]8;;\u001b\\"
+
+  test.each([
+    [
+      "Claude stream-json markdown link",
+      [
+        "See [parse.ts](/Users/beorn/Code/pim/km/apps/silvercode/packages/agent-harness/src/parse.ts:",
+        "572).",
+      ],
+    ],
+    ["Codex rollout code fence", ["```ts\n", "const answer = ", "42\n", "```\n"]],
+    ["ACP/opencode markdown table", ["| Provider | Status |\n", "| --- | --- |\n", "| opencode | partial |\n"]],
+    ["fake provider OSC8 link", ["Inspect ", osc8Link, " before rendering."]],
+  ])("coalesces pathological %s chunks without mutating text", (_label, chunks) => {
+    const providerTurnId = id<TurnId>(`pathological-${chunks.length}`)
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        { kind: "turn-start", sessionId, turnId: providerTurnId, role: "assistant", ts: 1 },
+        ...chunks.map((text, index) => ({
+          kind: "text-delta" as const,
+          sessionId,
+          turnId: providerTurnId,
+          blockIndex: 0,
+          text,
+          ts: index + 2,
+        })),
+        { kind: "turn-end", sessionId, turnId: providerTurnId, stopReason: "end_turn", ts: chunks.length + 2 },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    const textBlocks = normalized.filter(isTextBlockAdded)
+
+    expect(textBlocks).toHaveLength(1)
+    expect(textBlocks[0]?.payload.block.text).toBe(chunks.join(""))
+    expect(textBlocks[0]?.payload.block.eventIds).toHaveLength(chunks.length)
+    expect(textBlocks[0]?.rawRefs.map((ref) => ref.label)).toEqual(chunks.map(() => "text-delta"))
+    expect(normalized.map((event) => event.type)).toEqual([
+      "message.started",
+      "message.block.added",
+      "message.completed",
+      "debug.recorded",
+    ])
+  })
+
   test("coalesces adjacent thought deltas into one canonical Thought block", () => {
     const normalized = normalizeAgentEventsToChatEvents(
       [
