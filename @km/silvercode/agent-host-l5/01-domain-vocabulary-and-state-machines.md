@@ -3,9 +3,17 @@ aliases:
   - km-silvercode.agent-host-l5.01-domain-vocabulary-and-state-machines
   - km-silvercode-agent-host-l5-01-domain-vocabulary-and-state-machines
 created_at: 2026-05-08T06:22:19.048Z
+closed_at: 2026-05-08T07:45:21.382Z
+closeReason: "Shipped 95b5ad4d3, d28d322ad, and 4d98ce6f6.
+  apps/silvercode/docs/chat-session-model.md and chat-state-machines.md now
+  define the L5 vocabulary/state machines in present tense; later L5 beads link
+  to that vocabulary. Evidence: legacy channel grep returns 0 hits; old
+  UI/domain text names are gone except allowed provider-boundary Codex reasoning
+  config/raw names. Tests: focused chat suite, comprehensive session updates
+  contract, and npx tsc --noEmit passed."
 ---
 
-# [/] Domain vocabulary and state machines #P0 @agent/3
+# [x] Domain vocabulary and state machines #P0 @agent/3
 
 Lock the domain model and names before implementation: Thread, Session, Turn, Message, Block, Thought, Track, Mention, Tool, Permission, Plan, Job, SubagentRun/Subthread. Define closed state machines and naming grep gates aligned with docs/principles.md.
 
