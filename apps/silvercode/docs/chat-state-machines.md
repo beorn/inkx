@@ -5,6 +5,9 @@ Silvercode state changes are closed transitions over the domain model in
 booleans, transport latches, or UI rows. Every important transition has one owner and
 one illegal-transition policy.
 
+Streaming provider chunks are normalized before they reach these state machines;
+see `chat-stream-normalization.md` for block stitching and raw-provenance rules.
+
 ```text
 Provider event
   -> parser

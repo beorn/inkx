@@ -23,6 +23,12 @@ function isTextBlockAdded(
   return event.type === "message.block.added" && event.payload.block.type === "text"
 }
 
+function isThoughtBlockAdded(
+  event: ChatEvent,
+): event is ChatEvent<"message.block.added"> & { payload: { block: Extract<ChatBlock, { type: "thought" }> } } {
+  return event.type === "message.block.added" && event.payload.block.type === "thought"
+}
+
 function isToolStarted(event: ChatEvent): event is ChatEvent<"tool.started"> {
   return event.type === "tool.started"
 }
@@ -304,6 +310,48 @@ describe("normalizeAgentEventToChatEvents", () => {
       "message.block.added",
       "message.completed",
       "debug.recorded",
+    ])
+  })
+
+  test("coalesces adjacent thought deltas into one canonical Thought block", () => {
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        { kind: "turn-start", sessionId, turnId, role: "assistant", ts: 1 },
+        { kind: "thinking-delta", sessionId, turnId, blockIndex: 0, text: "Check", ts: 2 },
+        { kind: "thinking-delta", sessionId, turnId, blockIndex: 0, text: " constraints", ts: 3 },
+        { kind: "turn-end", sessionId, turnId, stopReason: "end_turn", ts: 4 },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    const thoughtBlocks = normalized.filter(isThoughtBlockAdded)
+
+    expect(thoughtBlocks).toHaveLength(1)
+    expect(thoughtBlocks[0]?.payload.block).toMatchObject({
+      type: "thought",
+      text: "Check constraints",
+    })
+    expect(thoughtBlocks[0]?.payload.block.eventIds).toHaveLength(2)
+    expect(thoughtBlocks[0]?.rawRefs.map((ref) => ref.label)).toEqual(["thinking-delta", "thinking-delta"])
+  })
+
+  test("does not coalesce adjacent stream deltas from different provider block indexes", () => {
+    const normalized = normalizeAgentEventsToChatEvents(
+      [
+        { kind: "turn-start", sessionId, turnId, role: "assistant", ts: 1 },
+        { kind: "text-delta", sessionId, turnId, blockIndex: 0, text: "First block.", ts: 2 },
+        { kind: "text-delta", sessionId, turnId, blockIndex: 1, text: "Second block.", ts: 3 },
+        { kind: "turn-end", sessionId, turnId, stopReason: "end_turn", ts: 4 },
+      ] satisfies AgentEvent[],
+      { sessionId },
+    )
+
+    const textBlocks = normalized.filter(isTextBlockAdded)
+
+    expect(textBlocks.map((event) => event.payload.block.text)).toEqual(["First block.", "Second block."])
+    expect(textBlocks.map((event) => event.payload.block.eventIds)).toEqual([
+      [textBlocks[0]!.id],
+      [textBlocks[1]!.id],
     ])
   })
 

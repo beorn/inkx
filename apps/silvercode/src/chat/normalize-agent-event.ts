@@ -99,20 +99,20 @@ export function normalizeAgentEventsToChatEvents(
   const seenChatEventIds = new Set<string>()
   const seenMessageBlockIds = new Map<string, number>()
   const pendingToolCompletions = new Map<string, ChatEvent<"tool.completed">[]>()
-  let pendingTextDeltaBlock: ChatEvent<"message.block.added"> | null = null
+  let pendingStreamBlock: ChatEvent<"message.block.added"> | null = null
   const out: ChatEvent[] = []
   const pushChatEvent = (chatEvent: ChatEvent): void => {
     chatEvent = uniquifyChatEvent(chatEvent)
-    if (isCoalescibleTextDeltaBlock(chatEvent)) {
-      if (pendingTextDeltaBlock && sameMessageTextBlock(pendingTextDeltaBlock, chatEvent)) {
-        pendingTextDeltaBlock = mergeTextDeltaBlocks(pendingTextDeltaBlock, chatEvent)
+    if (isCoalescibleStreamBlock(chatEvent)) {
+      if (pendingStreamBlock && sameMessageStreamBlock(pendingStreamBlock, chatEvent)) {
+        pendingStreamBlock = mergeStreamBlocks(pendingStreamBlock, chatEvent)
       } else {
-        flushPendingTextDeltaBlock()
-        pendingTextDeltaBlock = chatEvent
+        flushPendingStreamBlock()
+        pendingStreamBlock = chatEvent
       }
       return
     }
-    flushPendingTextDeltaBlock()
+    flushPendingStreamBlock()
     if (chatEvent.type === "tool.completed") {
       const key = toolKey(chatEvent.sessionId, chatEvent.payload.toolId)
       if (!seenTools.has(key)) {
@@ -132,10 +132,10 @@ export function normalizeAgentEventsToChatEvents(
       pendingToolCompletions.delete(key)
     }
   }
-  const flushPendingTextDeltaBlock = (): void => {
-    if (!pendingTextDeltaBlock) return
-    out.push(pendingTextDeltaBlock)
-    pendingTextDeltaBlock = null
+  const flushPendingStreamBlock = (): void => {
+    if (!pendingStreamBlock) return
+    out.push(pendingStreamBlock)
+    pendingStreamBlock = null
   }
   events.forEach((event, index) => {
     if (event.kind === "tool-use" && latestToolUseIndex.get(`${event.sessionId}:${event.id}`) !== index) {
@@ -188,7 +188,7 @@ export function normalizeAgentEventsToChatEvents(
     }
     flushPendingToolCompletions()
   })
-  flushPendingTextDeltaBlock()
+  flushPendingStreamBlock()
   for (const completions of pendingToolCompletions.values()) {
     for (const completion of completions) out.push(orphanToolCompletionDebugEvent(completion))
   }
@@ -278,26 +278,37 @@ export function normalizeAgentEventsToChatEvents(
   }
 }
 
-function isCoalescibleTextDeltaBlock(event: ChatEvent): event is ChatEvent<"message.block.added"> {
+function isCoalescibleStreamBlock(event: ChatEvent): event is ChatEvent<"message.block.added"> {
   if (event.type !== "message.block.added") return false
-  if (event.payload.block.type !== "text") return false
-  return event.rawRefs.some((ref) => ref.label === "text-delta")
+  if (event.payload.block.type !== "text" && event.payload.block.type !== "thought") return false
+  return streamBlockKey(event) !== null
 }
 
-function sameMessageTextBlock(
+function sameMessageStreamBlock(
   left: ChatEvent<"message.block.added">,
   right: ChatEvent<"message.block.added">,
 ): boolean {
-  return left.sessionId === right.sessionId && left.payload.messageId === right.payload.messageId
+  return (
+    left.sessionId === right.sessionId &&
+    left.payload.messageId === right.payload.messageId &&
+    left.payload.block.type === right.payload.block.type &&
+    streamBlockKey(left) === streamBlockKey(right)
+  )
 }
 
-function mergeTextDeltaBlocks(
+function mergeStreamBlocks(
   left: ChatEvent<"message.block.added">,
   right: ChatEvent<"message.block.added">,
 ): ChatEvent<"message.block.added"> {
   const leftBlock = left.payload.block
   const rightBlock = right.payload.block
-  if (leftBlock.type !== "text" || rightBlock.type !== "text") return left
+  if (
+    (leftBlock.type !== "text" && leftBlock.type !== "thought") ||
+    leftBlock.type !== rightBlock.type ||
+    !("text" in rightBlock)
+  ) {
+    return left
+  }
   return {
     ...left,
     rawRefs: [...left.rawRefs, ...right.rawRefs],
@@ -310,6 +321,18 @@ function mergeTextDeltaBlocks(
       },
     },
   }
+}
+
+function streamBlockKey(event: ChatEvent<"message.block.added">): string | null {
+  const blockType = event.payload.block.type
+  if (blockType !== "text" && blockType !== "thought") return null
+  const raw = event.rawRefs.findLast((ref) => ref.source === "agent")?.raw
+  if (!raw || typeof raw !== "object") return null
+  const kind = (raw as { kind?: unknown }).kind
+  if (kind !== "text-delta" && kind !== "thinking-delta") return null
+  const blockIndex = (raw as { blockIndex?: unknown }).blockIndex
+  if (typeof blockIndex !== "number") return null
+  return `${kind}:${blockIndex}`
 }
 
 function messageKey(sessionId: ChatSessionId, messageId: ChatMessageId): string {
