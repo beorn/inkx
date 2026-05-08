@@ -19,7 +19,7 @@ import { realpathSync } from "fs"
 import { resolve } from "path"
 import { buildEmbedChild } from "@km/storage"
 import { resolvePathArg } from "@km/fs-mount"
-import { KNode, type KNode as KNodeType } from "@km/core"
+import { KNode, findDefaultAddSection, type KNode as KNodeType } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -182,30 +182,12 @@ export const addCommand = new Command("add")
       process.exit(0)
     }
 
-    // Find the default column: explicit km.default:: true wins,
-    // otherwise first non-collapsed, non-removed section.
+    // Find the default section: km.default:: true wins, otherwise first
+    // non-collapsed, non-removed section.
     // If no sections exist, items are added directly to the target node.
     t0 = Date.now()
     let actualTarget = targetNode
-    const findDefaultSection = (parentId: string): KNodeType | undefined => {
-      const children = repo.getChildren(parentId)
-      let firstEligible: KNodeType | undefined
-      for (const child of children) {
-        if (KNode.isOutline(child) && child.fstype === "mdsection") {
-          const rules = child.data?.rules as { default?: boolean; collapse?: boolean; removed?: boolean } | undefined
-          if (rules?.default) {
-            return child // explicit override
-          }
-          if (!firstEligible && !rules?.collapse && !rules?.removed) {
-            firstEligible = child
-          }
-          const found = findDefaultSection(child.id)
-          if (found) return found
-        }
-      }
-      return firstEligible
-    }
-    const defaultColumn = findDefaultSection(targetNode.id)
+    const defaultColumn = findDefaultAddSection(targetNode.id, (parentId) => repo.getChildren(parentId))
     if (defaultColumn) {
       actualTarget = defaultColumn
     }

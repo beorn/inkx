@@ -20,6 +20,7 @@ import {
   getNodesWithRule,
   createRuleContext,
 } from "../src/db/rules.ts"
+import { createDbOps } from "../src/db/ops.ts"
 import { getChildren, getChildCountsBatch } from "../src/db/queries/index.ts"
 import { KNode } from "@km/core"
 
@@ -133,8 +134,8 @@ describe("Database Rules", () => {
       ))
   })
 
-  describe("evaluateNodeRules - add= rule", () => {
-    test("should create symlink children for matching nodes", () =>
+  describe("evaluateNodeRules - km.add rule", () => {
+    test("should create embed children for matching nodes", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -166,14 +167,14 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const symlinks = children.filter((c) => KNode.isEmbed(c))
+          const embeds = children.filter((c) => KNode.isEmbed(c))
 
-          expect(symlinks.length).toBe(2)
-          expect(symlinks.every((e) => e.embed_of)).toBe(true)
+          expect(embeds.length).toBe(2)
+          expect(embeds.every((e) => e.embed_of)).toBe(true)
         },
       ))
 
-    test("should not create symlinks for direct children", () =>
+    test("should not create embeds for direct children", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -203,10 +204,10 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const symlinks = children.filter((c) => KNode.isEmbed(c))
+          const embeds = children.filter((c) => KNode.isEmbed(c))
           const directTasks = children.filter((c) => c.item?.task?.status != null)
 
-          expect(symlinks.length).toBe(1)
+          expect(embeds.length).toBe(1)
           expect(directTasks.length).toBe(1)
         },
       ))
@@ -261,10 +262,191 @@ describe("Database Rules", () => {
           expect(doneSymlinks.length).toBe(1)
         },
       ))
+
+    test("does not materialize incoming sigil links without km.add opt-in", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(
+            join(repoDir, "@agent", "3.md"),
+            `# @agent/3
+
+Persona text.
+`,
+          )
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          expect(board?.name).toBe("3")
+          expect(board?.rules).toBeUndefined()
+
+          const embeds = getChildren(store.getDatabase(), board!.id).filter((c) => KNode.isEmbed(c))
+          expect(embeds).toHaveLength(0)
+        },
+      ))
+
+    test("H1 km.add self alias matches the file node and materializes into explicit default section", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(join(repoDir, "@agent", "3.md"), `# @agent/3 km.add:: .\n\n## Queue km.default:: true\n`)
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const queue = allNodes.find(
+            (n) => n.parent_id === board?.id && n.fstype === "mdsection" && (n.title ?? n.content) === "Queue",
+          )
+          expect(board?.rules?.add).toBe(".")
+          expect(queue?.rules?.default).toBe(true)
+          expect(getChildren(store.getDatabase(), board!.id).filter((c) => KNode.isEmbed(c))).toHaveLength(0)
+
+          const embeds = getChildren(store.getDatabase(), queue!.id).filter((c) => KNode.isEmbed(c))
+          expect(embeds).toHaveLength(1)
+
+          const target = allNodes.find((n) => n.id === embeds[0]!.embed_of)
+          expect(target?.fs_path).toBe("@km/silvercode/work.md")
+        },
+      ))
+
+    test("H1 km.add falls back to the first non-collapsed, non-removed child section", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(join(repoDir, "@agent", "3.md"), `# @agent/3 km.add:: .\n\n## Queue\n`)
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const queue = allNodes.find(
+            (n) => n.parent_id === board?.id && n.fstype === "mdsection" && (n.title ?? n.content) === "Queue",
+          )
+
+          expect(getChildren(store.getDatabase(), queue!.id).filter((c) => KNode.isEmbed(c))).toHaveLength(1)
+        },
+      ))
+
+    test("km.add matches wiki sigil assignments through canonical href", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(join(repoDir, "@agent", "3.md"), `# @agent/3 km.add:: .\n\n## Queue km.default:: true\n`)
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 [[@agent/3]]\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const queue = allNodes.find(
+            (n) => n.parent_id === board?.id && n.fstype === "mdsection" && (n.title ?? n.content) === "Queue",
+          )
+
+          expect(getChildren(store.getDatabase(), queue!.id).filter((c) => KNode.isEmbed(c))).toHaveLength(1)
+        },
+      ))
+
+    test("km.add does not drag a moved embed back to the default section", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(
+            join(repoDir, "@agent", "3.md"),
+            `# @agent/3 km.add:: .
+
+## Queue km.default:: true
+
+## Doing
+`,
+          )
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const queue = allNodes.find(
+            (n) => n.parent_id === board?.id && n.fstype === "mdsection" && (n.title ?? n.content) === "Queue",
+          )
+          const doing = allNodes.find(
+            (n) => n.parent_id === board?.id && n.fstype === "mdsection" && (n.title ?? n.content) === "Doing",
+          )
+          const [embed] = getChildren(store.getDatabase(), queue!.id).filter((c) => KNode.isEmbed(c))
+          expect(embed).toBeDefined()
+
+          createDbOps(store.getDatabase()).moveNode(embed!.id, doing!.id, Date.now())
+
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          expect(getChildren(store.getDatabase(), queue!.id).filter((c) => KNode.isEmbed(c))).toHaveLength(0)
+          expect(getChildren(store.getDatabase(), doing!.id).filter((c) => KNode.isEmbed(c))).toHaveLength(1)
+        },
+      ))
+
+    test("km.add materialization skips non-item backlink hosts by default", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          writeFileSync(join(repoDir, "@agent", "3.md"), `# @agent/3 km.add:: .\n\n## Queue km.default:: true\n`)
+          writeFileSync(
+            join(repoDir, "mixed.md"),
+            `# Mixed
+
+Body paragraph mentions @agent/3 but is not an item.
+
+- [ ] Item mentions @agent/3
+`,
+          )
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const queue = allNodes.find(
+            (n) => n.parent_id === board?.id && n.fstype === "mdsection" && (n.title ?? n.content) === "Queue",
+          )
+          const embeds = getChildren(store.getDatabase(), queue!.id).filter((c) => KNode.isEmbed(c))
+
+          expect(embeds).toHaveLength(1)
+          const target = allNodes.find((n) => n.id === embeds[0]!.embed_of)
+          expect(target?.content).toBe("Item mentions @agent/3")
+        },
+      ))
   })
 
   describe("getChildren with computed links", () => {
-    test("should include symlink children from km.add:: rule", () =>
+    test("should include embed children from km.add:: rule", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -302,7 +484,7 @@ describe("Database Rules", () => {
         },
       ))
 
-    test("should deduplicate direct children and linked children", () =>
+    test("should deduplicate direct children and embed children", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -329,7 +511,7 @@ describe("Database Rules", () => {
         },
       ))
 
-    test("should not duplicate symlinks already present in markdown", () =>
+    test("should not duplicate embeds already present in markdown", () =>
       withMemoryStore(
         (repoDir) => {
           mkdirSync(join(repoDir, "inbox"), { recursive: true })
@@ -340,7 +522,7 @@ describe("Database Rules", () => {
 - [ ] Buy groceries ^buy1
 `,
           )
-          // Board has a km.add:: rule AND an existing symlink reference to the same task
+          // Board has a km.add:: rule AND an existing embed reference to the same task
           writeFileSync(
             join(repoDir, "board.md"),
             `# Board
@@ -362,7 +544,7 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), inboxSection!.id, ctx)
 
           const children = getChildren(store.getDatabase(), inboxSection!.id)
-          // The symlink from markdown + rule should not create a duplicate
+          // The embed from markdown + rule should not create a duplicate
           const embedTargets = children.filter((c) => c.embed_of).map((c) => c.embed_of)
           const uniqueTargets = new Set(embedTargets)
           expect(embedTargets.length).toBe(uniqueTargets.size)
@@ -434,7 +616,7 @@ describe("Database Rules", () => {
   })
 
   describe("getChildCountsBatch with computed links", () => {
-    test("should count linked children from query:add rules", () =>
+    test("should count embed children from km.add rules", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(

@@ -4,7 +4,7 @@
 
 ## Architecture
 
-Issues are regular km tasks with an `@issue` link — there is no separate issue tracker database. The `@issues.md` board shows backlinks automatically. Issues live alongside notes and tasks in the same markdown tree, benefit from the same sync/history infrastructure, and can be viewed in the TUI.
+Issues are regular km tasks with an `@issue` link — there is no separate issue tracker database. Backlinks are automatic/read-only and power queries such as `km bd query @issue`; a persisted `@issues.md` queue needs `km.add:: @issue` on the heading that owns the generated embed cards. Issues live alongside notes and tasks in the same markdown tree, benefit from the same sync/history infrastructure, and can be viewed in the TUI.
 
 ### Unified Query Interface
 

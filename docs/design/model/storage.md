@@ -286,18 +286,41 @@ interface KNode {
 
 ### NodeRules
 
-Rules control column/section behavior in boards:
+Rules control column/section behavior in boards. `km.add` is the only
+query-driven persisted materialization gate: links and backlinks are indexed
+automatically, but they do not create embed children unless an outline item opts
+in with `km.add::`.
 
 ```typescript
 interface NodeRules {
-  add?: string // Query to auto-pull matching tasks
+  add?: string // Query to materialize matching item nodes as embed children
   sync?: string // Bidirectional field sync (e.g., "status:blocked")
   collapse?: boolean // Start collapsed
   limit?: number // WIP limit
-  default?: boolean // Default column for new items
+  default?: boolean // Default section for generated additions/new items
   color?: string // Board/section color (cyan, yellow, magenta, etc.)
 }
 ```
+
+`km.add` may live on any outline item, including a file H1. Use `.` when the
+rule should match the owner node's path-form:
+
+```markdown
+# @agent/3 km.add:: .
+
+## Queue km.default:: true
+```
+
+Generated children are embed nodes. `km.default:: true` below the rule owner
+selects the initial landing section for generated additions; without it, storage
+uses the first non-collapsed, non-removed child section, then the rule owner.
+Once a card exists, normal outline moves may place it in workflow sections such
+as Doing, Archive, or Done. Rule materialization should not drag an existing
+card back to the default section.
+
+Matching is href-based: `@agent/3` and `[[@agent/3]]` both match the same query.
+The default materialization target set is item-only (`KNode.isItem()`); body
+blocks may host links/backlinks but are not generated as board cards.
 
 ### Node Types
 
@@ -1037,4 +1060,3 @@ km doctor reset       # Reset from worktree only (trust filesystem)
 - [concepts.md](concepts.md) — Core concepts, two modes overview
 - [architecture.md](architecture.md) — Change system, data flow
 - [guides/markdown.md](guides/markdown.md) — Parsing .md to nodes
-

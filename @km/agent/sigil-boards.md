@@ -20,7 +20,7 @@ Use km's existing sigil + board + rules-engine primitives, plus silvercode as th
 
 - **Boards = files at `@agent.md` + `@agent/0..9.md`** (vault root, sibling to `@km/`). 10 numeric slots; persona definition lives in the slot's body + frontmatter.
 - **Assignment = sigil mention.** Adding `@agent/3` (or equivalently `[[@agent/3]]`) to a bead title lands `km:@agent/3` in the canonical `links` table.
-- **Per-board view = self-aggregating via `NodeRules.add`.** Each `@agent/N.md` carries `rules: { add: "<query for incoming @agent/N links>" }`. Sync evaluates the rule and materializes `![[<bead>]]` embeds INTO the board body. Reading the board file = seeing the queue.
+- **Per-slot queue = query first, materialized board second.** `km bd query @agent/N` is the source of truth. If `@agent/N.md` should persist a readable queue, its H1 carries `km.add:: .` and a child queue heading carries `km.default:: true`; sync evaluates that rule and materializes `![[<bead>]]` embeds into the default section. Backlinks alone never write into the slot file.
 - **Claim = bead claim at the board level.** `km bd update @agent/3 --claim` sets assignee + status=wip on the slot. Acts as a lock; one session per slot. The body content of the claimed board becomes the session's persona context.
 - **`/do` = "work the highest-priority embed from any slot I've claimed."** Compose with `/loop` for continuous mode.
 - **`km agent spawn @agent/N` = thin orchestrator** — claim slot, compose session brief (persona body + queue + env vars), launch agent (default `silvercode`). Agent-agnostic by design; silvercode is the canonical km-aware harness, alternatives via `--agent`. No silvercode-specific code in `km agent spawn`.
@@ -43,9 +43,9 @@ Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 | [[@agent/5]] (wikilink in body) → km:@agent/5 in links table                   | ✅ Works per spec                                                                                                   |
 | Bare @agent/0 (sigil in title) → no entry in links table                       | ❌ Bug — klink.md says it should produce km:@agent/0                                                                |
 | bd list @agent rolls up @agent-mentioning beads                                | ✅ Works (via data.mentions parallel field — being deprecated separately)                                           |
-| bd list @agent/0 rolls up @agent/0-mentioning beads                            | ❌ Doesn't work — depends on (a) the bare-sigil-with-path fix above, AND (b) rules.add materialization on the board |
-| @agent/N.md board files have rules.add block                                   | ❌ Don't exist yet — need to be authored                                                                            |
-| rules.add DSL supports the query shape needed (mention:@agent/3 or equivalent) | ❓ Needs verification                                                                                               |
+| bd list @agent/0 rolls up @agent/0-mentioning beads                            | ❌ Doesn't work — depends on the bare-sigil-with-path fix above; persisted board files additionally need `km.add` |
+| @agent/N.md board files have `km.add:: .` on H1 and `km.default:: true` Queue | ❌ Need to be authored if persisted slot boards are desired                                                        |
+| `km.add` query supports the shape needed (mention:@agent/3 or equivalent)     | ❓ Needs verification                                                                                               |
 | bd update @agent/N --claim is race-safe across sessions                        | ❓ Today's --claim does read-then-write; needs DB-side compare-and-swap (UPDATE ... WHERE assignee IS NULL)         |
 | Board-level claim respects the existing 20-min agent / 24h user lease          | ❓ Verify; document if needed                                                                                       |
 
@@ -54,13 +54,13 @@ Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 Phase 1 — substrate fixes (foundational):
 
 - [x] **Fix the inline `@<sigil>/<sub>` extractor** — landed via commits `ace46c133` (failing tests), `e66321f04` (COMBINED_REFS_REGEX path-form), `f7f303032` (extract-links MENTION_RE/TAG_RE path-form), `33245818f` (collectHashtagLinks → collectSigilLinks emits `@mention` + `+project` rows alongside `#tag`). Bare `@agent/0` now lands `km:@agent/0` in the links table. Dry-run verified: 87,735 new path-form matches across the vault, 54% resolve, 0 false-positive classes (boundary rule prevents `bjorn@stabell.org` etc).
-- [x] **Verify the `rules.add` DSL** supports sigil-mention queries with path-form values — investigation only, no code change needed. Query parser (`packages/km-core/src/query/parser.ts:229` `classifyRef`) already accepts path-form (`term.slice(1)` captures everything after the sigil including `/`). Query executor (`packages/km-storage/src/query.ts:482` `buildRefCondition`) queries `data.mentions` JSON LIKE — populated by the same widened regex from Phase 1.1(a). End-to-end: Phase 1.1's regex change makes the rules engine match path-form sigil queries automatically. (Future: switch executor to query the `links` table directly once `data.*` parallel fields are deprecated under `@km/all/dissolve-data-tags-to-links`.)
+- [x] **Verify `km.add` query support** for sigil-mention queries with path-form values — investigation only, no code change needed. Query parser (`packages/km-core/src/query/parser.ts:229` `classifyRef`) already accepts path-form (`term.slice(1)` captures everything after the sigil including `/`). Query executor (`packages/km-storage/src/query.ts:482` `buildRefCondition`) queries `data.mentions` JSON LIKE — populated by the same widened regex from Phase 1.1(a). End-to-end: Phase 1.1's regex change makes the rules engine match path-form sigil queries automatically. (Future: switch executor to query the `links` table directly once `data.*` parallel fields are deprecated under `@km/all/dissolve-data-tags-to-links`.)
 - [ ] **Atomic board claim** — DB-side compare-and-swap on `bd update --claim`: `UPDATE nodes SET assignee = ?, task_status = 'wip' WHERE id = ? AND (assignee IS NULL OR <lease-expired>)`. Return failure with current holder if the row didn't update. Race-safe across sessions. **In-flight via parallel agent.**
 - [x] **Lease expiry at board level** — investigation: existing claim path (`apps/km-cli/src/commands/tasks/lifecycle-plan.ts:planClaim`) doesn't carry distinct lease semantics today — assignee is set + status=wip without an expiry timestamp distinct from `updated_at`. The CAS implementation (above) folds lease-via-staleness directly into the WHERE clause. Board claims = bead claims (the slot IS a bead), so the unified path covers both. Constants (20min agent / 24h user) belong in `packages/km-beads/src/lease.ts`.
 
 Phase 2 — scaffold (depends on Phase 1):
 
-- [x] **Scaffold `@agent.md` + `@agent/0..9.md`** — landed via commit `33245818f`. 11 markdown files at vault root, each with frontmatter (`agent`, `scope_fit`, `rules.add`) + persona body + `## Queue` section ready for `rules.add` materialization. Starter personas: 0=generalist, 1=silvery-engineer (`vendor/silvery`, `@km/silvery`), 2=silvercode-engineer (`apps/silvercode`, `@km/silvercode`), 3=bd/cli-engineer (`apps/km-cli`, `packages/km-beads`, `@km/cli`, `@km/beads`, `@km/bd-compat`); 4-9 open. `.gitignore` extended with `!@agent.md` negation so the parent file isn't caught by the `@*.md` test-artifact rule.
+- [x] **Scaffold `@agent.md` + `@agent/0..9.md`** — landed via commit `33245818f`. 11 markdown files at vault root. Current contract: a slot board only persists queue embeds if its H1 carries `km.add:: .` and a queue section carries `km.default:: true`; otherwise `km bd query @agent/N` remains the queue source of truth. Starter personas: 0=generalist, 1=silvery-engineer (`vendor/silvery`, `@km/silvery`), 2=silvercode-engineer (`apps/silvercode`, `@km/silvercode`), 3=bd/cli-engineer (`apps/km-cli`, `packages/km-beads`, `@km/cli`, `@km/beads`, `@km/bd-compat`); 4-9 open. `.gitignore` extended with `!@agent.md` negation so the parent file isn't caught by the `@*.md` test-artifact rule.
 
 Phase 3 — skills + spawn orchestrator (depends on Phase 2):
 
@@ -89,7 +89,7 @@ Three docs that define the moving parts. Read them before proposing alternative 
 
 1. **`docs/concepts.md` § Links** — sigils-as-name; `@`/`#`/`+` all behave identically.
 2. **`docs/design/model/klink.md`** — KLink model; `@blah ≡ [[@blah]]` → `km:@blah`; the `links` table is canonical.
-3. **`docs/design/model/storage.md` § NodeRules** — boards self-aggregate via `rules.add`; sync materializes embeds into the board body.
+3. **`docs/design/model/storage.md` § NodeRules** — `km.add` materializes matching item nodes into the owning outline item; backlinks alone are read-only.
 
 If observed behavior contradicts these docs, that's an implementation gap (file as a sub-task), not a design alternative.
 
@@ -102,4 +102,3 @@ If observed behavior contradicts these docs, that's an implementation gap (file 
 - `@km/storage/sync-roundtrip-completeness` — the parent doctrine that all mutations converge on `repo.updateNode` and sync handles FS materialization. The board-aggregation behavior is part of that pipeline.
 - `hub/km/design/vision.md:37` — "persona facet (durable agent identity)" plan in the vision doc.
 - Composable with: `/loop` (continuous run), `tribe` (cross-session coordination), `km agent spawn` (runtime instances).
-

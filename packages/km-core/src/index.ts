@@ -146,6 +146,10 @@ export { parseLinkHref, stringifyLinkRef } from "./klink-ref.ts"
 export type { KLinkResolver, KResolution, NameIndex } from "./klink-resolver.ts"
 export { createLinkResolver } from "./klink-resolver.ts"
 
+// Rule placement — shared `km.default:: true` targeting for generated additions.
+export { findDefaultAddSection } from "./rule-placement.ts"
+export type { RulePlacementNode } from "./rule-placement.ts"
+
 // Sigils — name-prefix characters with semantic meaning. See docs/design/model/klink.md.
 export type { SigilChar, SigilKind, SigilDefinition } from "./sigils.ts"
 export { SIGILS, isSigilChar, hasSigilPrefix, getSigilChar, stripSigil, isInlineSigilStart } from "./sigils.ts"

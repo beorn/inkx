@@ -51,5 +51,10 @@ km bd query @agent/3                    # queue membership for slot 3
 km bd list --status wip --assignee me   # claimed beads and persona slots
 ```
 
+`km bd query @agent/N` is the source of truth. A persisted `@agent/N.md` queue
+requires a rule, usually `# @agent/N km.add:: .` on the slot H1 plus
+`## Queue km.default:: true` for initial placement; backlinks alone do not write
+embeds into the slot file.
+
 The `km bd agent ...` subgroup is older persisted-agent plumbing; don't use it
 to inspect `@agent/N` slot boards.

@@ -33,6 +33,12 @@ See `km bd --help` for full command reference.
 
 km provides beads-compatible issue tracking by treating issues as **tasks with links**:
 
+> Status note: the backlink-only board materialization model below is
+> superseded for persisted queues. Backlinks remain automatic/read-only, but
+> writing embed cards into a board requires a `km.add:: <query>` rule
+> on the owning heading. See `docs/architecture.md` and
+> `docs/design/model/storage.md` § NodeRules.
+
 1. **Any task can be an issue** — Add `@issue` link to workflow it on `@issues` board
 2. **`@issues.md` board** — Shows backlinks (tasks that reference `@issue`)
 3. **`km bd`** — CLI with beads-compatible commands, backed by km storage
@@ -43,7 +49,7 @@ km provides beads-compatible issue tracking by treating issues as **tasks with l
 | Benefit            | Description                                                   |
 | ------------------ | ------------------------------------------------------------- |
 | No special storage | Issues are regular km tasks with @issue link                  |
-| Backlink-based     | Board shows backlinks automatically, no km.add:: rules needed |
+| Backlink-based     | Queries use automatic backlinks; persisted boards use km.add  |
 | Unified model      | Same fields: task_status, priority, assigned_to               |
 | Flexible workflow  | Add @issue to any task to track it                            |
 | Links for deps     | Use existing link system for dependencies                     |
@@ -123,7 +129,8 @@ Waiting on dependencies.
 Recently completed.
 ```
 
-**No `km.add::` rules needed** — backlinks handle aggregation.
+Read-only queries need no `km.add::` rule; persisted board queues use `km.add`
+to write embed cards.
 
 ### Issue Type Tags
 
@@ -813,4 +820,3 @@ The bar: a vault written by km should open cleanly in Obsidian. If it doesn't, t
 - `docs/design/model/kast.md` — markdown ↔ km-ast transforms
 - `packages/km-beads/` — current implementation
 - `.km/config.yaml` — per-repo prefix and board configuration
-

@@ -113,7 +113,8 @@ Any task becomes an issue by adding `@issue`:
 - [ ] Fix login bug @issue #bug #P1 @alice blocks:: [[km-auth]]
 ```
 
-The `@issues` board shows all backlinks to `@issue` - no `add=` rules needed.
+`km bd query @issue` reads automatic backlinks. A persisted `@issues` board
+uses `km.add:: @issue` on the heading that should own generated embed cards.
 
 ## CLI Commands
 
@@ -1682,4 +1683,3 @@ Do NOT add a hard error / require --orphan flag — that diverges from bd compat
 - @km/beads/list-json-malformed — another integrity bug in km bd output
 
 Found 2026-04-29 by user testing in main session.
-

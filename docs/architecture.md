@@ -44,6 +44,39 @@ The single most important distinction: **Item** (`item: {}`) = structural, has c
 
 See [design/model/knode.md](design/model/knode.md) for the canonical field-by-field reference, item/block semantics, and km-ast ↔ KNode mapping.
 
+### Links, Backlinks, and Materialization
+
+Links are automatic; materialization is opt-in. The parser extracts
+wikilinks, embeds, bare sigils, and URLs into the canonical `links` cache
+(`host_id`, `href`, `rel`). Backlinks are reverse lookups over that cache and
+are safe to compute for every link occurrence.
+
+Creating persisted embed children is different: it writes markdown back to the
+owning file. That write only happens through materialization surfaces:
+
+- authored embeds, `![[target]]`
+- `km.add:: <query>` rules on an outline item, including an H1
+
+There is no implicit "sigil board" materializer. A file named `@agent/3.md` does
+not receive embeds just because items link to `@agent/3`; its H1 or a child
+section must carry a rule. The preferred slot-board shape is:
+
+```markdown
+# @agent/3 km.add:: .
+
+## Queue km.default:: true
+```
+
+`.` is a self alias for the rule owner's path-form. `km.default:: true` selects
+where generated embeds initially land and wins anywhere below the owner;
+without it, the first non-collapsed, non-removed child section is used, then
+the owner itself.
+
+`km.add` materializes item nodes by default (`KNode.isItem()`); body blocks may
+still contribute links and backlinks, but they do not become queue/card embeds.
+Bare sigils and wiki sigils intentionally match the same way: `@agent/3` and
+`[[@agent/3]]` both normalize to `links.href = 'km:@agent/3'`.
+
 ### Position — Where in the Tree
 
 ```typescript
@@ -375,4 +408,3 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 - [design/tea.md](design/tea.md) — TEA vision and phase plan
 - [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
 - [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles
-

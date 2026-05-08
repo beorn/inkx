@@ -7,13 +7,13 @@
  * ensuring a single source of truth at the storage layer.
  *
  * Rules evaluated here:
- * - add: Query to auto-pull matching nodes as virtual children
+ * - add: Query to materialize matching item nodes as embed children
  * - sync: Bidirectional field sync (future)
+ * - default: Initial placement target for add-rule children
  *
  * Rules NOT evaluated here (display-time only):
  * - collapse: Start collapsed
  * - limit: WIP limit
- * - default: Default column for new items
  * - color: Board/section color
  */
 
@@ -22,7 +22,7 @@ import type { Database } from "bun:sqlite"
 import { queryNodes, materializeEffectivePaths, dropEffectivePaths } from "../query.ts"
 import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./queries/index.ts"
 import { createDbOps, buildEmbedChild } from "./ops.ts"
-import { parseQuery, KNode, type NodeRules } from "@km/core"
+import { parseQuery, KNode, fsPathOf, findDefaultAddSection, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
 
@@ -132,28 +132,17 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   using ruleSpan = log.span("evaluate-add-rule", { sectionId, queryCount: queries.length })
   log.debug?.(`evaluateAddRule: section=${sectionId} queries=${queries.join(" | ")}`)
 
-  const section = getNode(db, sectionId)
-  if (!section) {
-    log.debug?.("evaluateAddRule: section not found")
-    return
-  }
-
-  // Guard: rules must be on outline items (type: "h", item: {}).
-  // Rule-created children are outline items, which can only nest inside outline parents.
-  if (!KNode.isOutline(section)) {
-    throw new Error(
-      `km.add:: rule on non-outline node (type=${section.type}, item=${String(section.item)}). Rules are only supported on section headings.`,
-    )
-  }
+  const sectionForWarnings = getNode(db, sectionId)
+  const selfTarget = resolveRuleSelfTarget(db, sectionId, ctx)
 
   // Warn about path patterns that escape the repo root
   for (const query of queries) {
-    const ast = parseQuery(query)
+    const ast = parseQuery(expandRuleSelfAlias(query, selfTarget))
     for (const pathFilter of ast.paths) {
       const p = pathFilter.pattern
       if (p.startsWith("../") || p === ".." || p.includes("/../")) {
         log.warn?.(
-          `km.add:: rule path "${query}" resolves outside the repo root — it will match no nodes. Section: ${section.content ?? sectionId}`,
+          `km.add:: rule path "${query}" resolves outside the repo root — it will match no nodes. Section: ${sectionForWarnings?.content ?? sectionId}`,
         )
       }
     }
@@ -169,7 +158,8 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Reuse `ctx.queryResultCache` when present — same query text → same
   // matches across rules in this batch.
   const matchingMap = new Map<string, KNode>()
-  for (const query of queries) {
+  for (const rawQuery of queries) {
+    const query = expandRuleSelfAlias(rawQuery, selfTarget)
     let matches = ctx.queryResultCache?.get(query)
     if (matches === undefined) {
       matches = queryNodes(db, query)
@@ -179,8 +169,77 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
       matchingMap.set(node.id, node)
     }
   }
-  const matchingNodes = [...matchingMap.values()]
+  // Materialized queue/card children are item-only by default. Body blocks
+  // still emit link rows and backlinks for navigation, but `km.add` should
+  // not turn arbitrary prose paragraphs into persisted embed cards.
+  //
+  // Current option posture:
+  // - only items, not body blocks: yes
+  // - only bare sigil links, not `[[@sigil]]` wikilinks: no. Bare and wiki
+  //   sigil forms intentionally normalize to the same `links.href`.
+  // Rule owners and their immediate children are not materialized back into
+  // themselves, even when `km.default` routes new embeds into a child section.
+  const matchingNodes = [...matchingMap.values()].filter(
+    (node) => KNode.isItem(node) && node.id !== sectionId && node.parent_id !== sectionId,
+  )
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
+
+  const targetSectionId = resolveMaterializationTarget(db, sectionId)
+  const result = materializeEmbedMatches(db, targetSectionId, matchingNodes, ctx)
+
+  ruleSpan.spanData.added = result.added
+  ruleSpan.spanData.removed = result.removed
+  ruleSpan.spanData.skipped = result.skipped
+  ruleSpan.spanData.matches = matchingNodes.length
+  ruleSpan.spanData.targetSectionId = targetSectionId
+}
+
+function expandRuleSelfAlias(query: string, selfTarget: string | null): string {
+  if (!selfTarget) return query
+  return query.replace(/(^|\s)\.(?=\s|$)/g, `$1${selfTarget}`)
+}
+
+function resolveRuleSelfTarget(db: Database, sectionId: string, ctx: RuleContext): string | null {
+  const node = getNode(db, sectionId)
+  const ownPath = node ? fsPathOf(node) : null
+  if (ownPath) return ownPath
+
+  const file = findFileAncestor(db, sectionId, ctx)
+  const path = file ? fsPathOf(file) : null
+  if (path) return path
+  return null
+}
+
+function resolveMaterializationTarget(db: Database, ownerSectionId: string): string {
+  const defaultTarget = findDefaultAddSection(ownerSectionId, (parentId) => getChildren(db, parentId))
+  return defaultTarget?.id ?? ownerSectionId
+}
+
+interface EmbedMaterializeResult {
+  added: number
+  removed: number
+  skipped: number
+}
+
+function materializeEmbedMatches(
+  db: Database,
+  sectionId: string,
+  matchingNodes: KNode[],
+  ctx: RuleContext,
+): EmbedMaterializeResult {
+  const section = getNode(db, sectionId)
+  if (!section) {
+    log.debug?.("materializeEmbedMatches: section not found")
+    return { added: 0, removed: 0, skipped: 0 }
+  }
+
+  // Guard: rules must be on outline items (type: "h", item: {}).
+  // Rule-created children are outline items, which can only nest inside outline parents.
+  if (!KNode.isOutline(section)) {
+    throw new Error(
+      `rule materialization on non-outline node (type=${section.type}, item=${String(section.item)}). Rules are only supported on section headings.`,
+    )
+  }
 
   // Reuse ctx.fileAncestorCache when present (built once at the top of
   // evaluateAllRules over the whole tree). Falling back to the per-rule
@@ -208,7 +267,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     }
   }
   if (removedCount > 0) {
-    log.debug?.(`evaluateAddRule: removed ${removedCount} stale embeds`)
+    log.debug?.(`materializeEmbedMatches: removed ${removedCount} stale embeds`)
   }
 
   // Get the board root (parent of section) to check board-wide deduplication
@@ -227,7 +286,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   }
   const { exactPaths: existingEmbedPathsOnBoard, filePaths: existingEmbedFilesOnBoard } = embedPathSets
   log.debug?.(
-    `evaluateAddRule: existing embed paths on board: ${existingEmbedPathsOnBoard.size} (${existingEmbedFilesOnBoard.size} files)`,
+    `materializeEmbedMatches: existing embed paths on board: ${existingEmbedPathsOnBoard.size} (${existingEmbedFilesOnBoard.size} files)`,
   )
 
   // Get next parent_idx for new embeds (reuse sectionChildren from above)
@@ -263,19 +322,16 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     existingEmbedFilesOnBoard.add(candidatePath.split("#")[0]!)
   }
 
-  ruleSpan.spanData.added = addedCount
-  ruleSpan.spanData.removed = removedCount
-  ruleSpan.spanData.skipped = skippedCount
-  ruleSpan.spanData.matches = matchingNodes.length
-
   // Mark the file for write-back if we added or removed any embeds
   if (addedCount > 0 || removedCount > 0) {
     const fileNode = findFileAncestor(db, sectionId, ctx)
     if (fileNode?.fs_path) {
       ctx.pendingWriteBack.add(fileNode.fs_path)
-      log.debug?.(`evaluateAddRule: marked ${fileNode.fs_path} for write-back`)
+      log.debug?.(`materializeEmbedMatches: marked ${fileNode.fs_path} for write-back`)
     }
   }
+
+  return { added: addedCount, removed: removedCount, skipped: skippedCount }
 }
 
 /**

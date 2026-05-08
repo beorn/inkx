@@ -138,19 +138,28 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 Columns can have rules that control task membership:
 
-| Attribute | Syntax                | Effect                               |
-| --------- | --------------------- | ------------------------------------ |
-| km.add    | km.add:: query        | Pull in tasks matching query         |
-| km.sync   | km.sync:: field:value | Bidirectional: move here ↔ set field |
+| Attribute | Syntax                | Effect                                           |
+| --------- | --------------------- | ------------------------------------------------ |
+| km.add    | km.add:: query        | Materialize matching item nodes as embed cards   |
+| km.sync   | km.sync:: field:value | Bidirectional: move here ↔ set field             |
 
 > Note: km.sync:: parsing is supported (stored in node.rules.sync), but automatic sync evaluation is planned for a future release. Currently, km.sync:: rules serve as documentation of intended column behavior.
 
-**`km.add:: query`** — Continuously pulls in matching tasks:
+**`km.add:: query`** — Declares that a heading should materialize matching
+items. The query can match tasks, headings, files, or sigil-linked items;
+generated children are embed cards under the heading's default section. Links and
+backlinks alone are read-only and do not write embeds into the target file.
+`km.add` materializes `KNode.isItem()` matches by default, so body paragraphs can
+host links without becoming cards.
 
 ```markdown
 ## today km.add:: due:past status:todo # Overdue open tasks appear here
 
 ## inbox km.add:: ./inbox/**(.) # Files in inbox/ folder
+
+# @agent/3 km.add:: .
+
+## Queue km.default:: true
 ```
 
 **`km.sync:: field:value`** — Bidirectional synchronization:
@@ -175,13 +184,16 @@ Columns can have rules that control task membership:
 ## review
 ```
 
-The first non-collapsed, non-removed column is the default target for `km add`. Override with `km.default:: true`.
+`km.default:: true` selects where generated additions initially land. This is
+shared by `km.add` materialization and the `km add` CLI command, and wins
+anywhere below the owner. Without it, km uses the first non-collapsed,
+non-removed child section, then the owner itself.
 
 | Attribute          | Effect                                           |
 | ------------------ | ------------------------------------------------ |
 | km.collapse:: true | Collapsed in UI                                  |
 | km.limit:: N       | WIP limit (visual warning)                       |
-| km.default:: true  | Override: new items go here instead of first col |
+| km.default:: true  | Generated additions initially land here          |
 
 ### Embeds
 
@@ -443,4 +455,3 @@ km init gtd --dry-run      # Preview what would be created
 - [ref/task-fields.md](../ref/task-fields.md) — Task fields, cross-system mapping
 - [guides/query.md](../guides/query.md) — Query language
 - [storage.md](../design/model/storage.md) — Node schema details
-

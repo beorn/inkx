@@ -90,6 +90,11 @@ git add @km/ && git commit -m "..." && git push
 
 Run `km bd`, `km sync`, and `@agent/N` slot-board operations from the monorepo root. If your shell is under `apps/<name>/`, first run `cd "$(git rev-parse --show-toplevel)"` or pass `--repo <root>`. Otherwise km treats the app directory as the vault root and will miss root-level boards such as `@agent.md` and `@agent/3.md`. Use ordinary bd commands for slot boards: `km bd query @agent/3` shows the slot queue, and `km bd list --status wip --assignee me` shows beads/persona slots you have claimed.
 
+Backlinks are automatic and read-only. Persisted slot-board queues require a
+real rule, usually `# @agent/N km.add:: .` on the slot H1 plus
+`## Queue km.default:: true` for initial placement. There are no `km.add` rules
+just because a file is named `@agent/N.md`.
+
 When closing, include a brief reason:
 
 ```bash

@@ -179,7 +179,7 @@ A node is an "embed" iff `embed_of != null`. This is **runtime-materialized at l
 Embeds created by different paths:
 
 - **Markdown parser**: `![[target]]` as sole content of a li/heading/paragraph → KLink `{ href: 'km:target', rel: 'embed', md: { form: 'wiki' } }`; loader populates `embed_of` from the resolved target
-- **Board rules** (`km.add::`): creates `type:"h", item:{}` with content set to a single embed KLink
+- **Board rules** (`km.add::`): creates `type:"h", item:{}` with content set to a single embed KLink. Plain backlinks never create these nodes by themselves.
 - **CLI add**: creates `type:"p", item:{list:"-"}` with content set to a single embed KLink
 
 | Field    | Type    | Notes                                                                                                   |
@@ -195,6 +195,7 @@ Embeds created by different paths:
 - A KNode is an **embed node** iff its content is exactly one KLink with `rel='embed'` and nothing else
 - The `embed_of` field is a runtime-materialized convenience for the embed-only case; the `links` table is the durable cache
 - All KLink occurrences flow into the `links` cache table (3 columns: `host_id`, `href`, `rel`) for indexed queries
+- `km.add` materializes matching item nodes by default (`KNode.isItem()`), not body blocks. Bare sigils and wiki sigils share the same href, so `@agent/3` and `[[@agent/3]]` are equivalent for matching.
 
 See [klink.md](klink.md) for the full link model, URI scheme, `rel` taxonomy, and recovery semantics.
 
@@ -743,4 +744,3 @@ Two representations of the same thing:
 | quote             | type: "quote" (no item)           | Blockquote                                |
 
 **`oi` and `li` don't exist in KNode** — they're kast parse types. Storage uses `type` + `item` object (`ItemData`).
-

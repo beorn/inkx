@@ -145,6 +145,20 @@ Exception: `#` in wiki form means self-ref (next section) — you can't use `[[#
 | link  | Reference — plain links, sigils, external URLs |
 | embed | Inline content rendering (![[Note]], )         |
 
+Backlinks are the reverse view of `rel='link'` rows. They are automatic and
+read-only. A backlink never creates an embed node and never writes to the target
+file by itself.
+
+Persisted materialization requires an embed-producing surface:
+
+- authored embed syntax, `![[target]]`
+- `km.add:: <query>` on the outline item that should own generated embed
+  children
+
+This is the write-permission boundary. `@agent/3` and `[[@agent/3]]` both
+normalize to `href = 'km:@agent/3'`; `km.add` currently matches both forms
+because it queries canonical hrefs, not markdown source notation.
+
 ## Markdown → KLink
 
 Complete notation → `(href, rel, md.form)` table:
@@ -314,6 +328,8 @@ An **embed node** is a KNode whose sole purpose is transclusion — no content o
 
 - Parse time: `getEmbeddingText()` only recognizes sole-content `![[...]]`.
 - Write time: `buildEmbedChild()` creates empty-content nodes with `embed_of`.
+- Rule time: `km.add` materializes matching `KNode.isItem()` nodes by default;
+  body blocks can still host backlinks but do not become generated embed cards.
 
 ## Write protocol
 
@@ -376,4 +392,3 @@ No partial updates. No diff-based row edits. The cache is always in sync with th
 See also: [data-model.md](data-model.md), [glossary.md](../glossary.md).
 
 Review history: GPT-5.4 Pro 2026-04-07 (original), conversational 2026-04-15 (ambiguity, normalization, render invariant), GPT-5.4 Pro review 2026-04-16 (schema options evaluation), simplification 2026-04-16 (3-column schema, runtime resolution, KLink naming), terminology + scope 2026-04-16 (host_id, symlink→embed unification, rel closed to `link|embed`, `/` as path separator, case-insensitive lookup, self-reference, determinism invariant), sigil-as-name 2026-04-16 (sigil is part of node name, canonical bare serialization, `#` special-cased to preserve Obsidian self-ref, letter-after-sigil parsing rule, RFC 3986 percent-encoding for reserved chars).
-

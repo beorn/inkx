@@ -176,8 +176,8 @@ function buildTaskContent(item: ImportItem, currentProject?: string, userSlugMap
   }
   if (item.tags?.length) parts.push(...new Set(item.tags.map((t) => `#${slugify(t)}`)))
   // Always emit +<projectSlug> mentions for every project the task belongs to
-  // (Set-deduped). Sigil-board pattern: the +project file's `rules.add` materializes
-  // these mentions back as embeds in the project file.
+  // (Set-deduped). The +project file's km.add rule materializes these mentions
+  // back as embeds in the project file.
   // `currentProject` is unused now but kept in the signature for callsite stability.
   void currentProject
   if (item.projects && item.projects.length > 0) {
@@ -736,8 +736,8 @@ function projectToNodes(
   }
 
   const projectTitle = project.title.trim() || "(untitled)"
-  // Sigil-board pattern: project files carry `rules.add: "+<slug>"` so sync
-  // materializes embeds for every task that mentions `+<slug>`.
+  // Sigil-board pattern: project files carry a km.add rule so sync materializes
+  // embeds for every task that mentions `+<slug>`.
   // See docs/design/model/storage.md § NodeRules and @km/import/asana-projects-as-sigil-nodes.
   const fileRules = sigilSlug ? { add: sigilSlug } : undefined
   nodes.push(
@@ -1054,7 +1054,7 @@ function buildPrimaryMap(data: ImportData): {
       const rawTitle = project.title.trim() || "untitled"
       const projectSlug = projectSlugOverrides.get(project.sourceId) ?? slugify(rawTitle)
       // `+` sigil prefix — projects are sigil-boards (mirrors @user, #tag).
-      // Tasks emit `+<projectSlug>` mentions; the project file's `rules.add`
+      // Tasks emit `+<projectSlug>` mentions; the project file's km.add rule
       // materializes them back as embeds. See docs/design/model/storage.md § NodeRules.
       const sigilSlug = `+${projectSlug}`
       projectSigilSlug = sigilSlug

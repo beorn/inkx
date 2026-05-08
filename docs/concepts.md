@@ -141,6 +141,12 @@ Two relation kinds, one canonical type — the **KLink** (see [docs/design/model
 
 When a KNode's content is exactly one KLink with `rel='embed'` and nothing else, the node becomes an **embed node** — `embed_of` is runtime-materialized from the `links` cache (`SELECT host_id, href FROM links WHERE rel='embed'`) at load and resolved via the name index. The ViewTree exposes this through `viewNode.display`: always the renderable node.
 
+Backlinks are reverse lookups over the `links` cache. They are automatic and
+read-only; they do not mutate the target node or target file. Persisted
+materialization happens through either an authored `![[...]]` embed or a
+`km.add:: <query>` rule on the outline item that should own generated embed
+children.
+
 ---
 
 ## Task Model
@@ -166,6 +172,10 @@ Every reference — wikilinks, embeds, sigils, external URLs — is a single can
 | text          | link  | mdlink   | url (+ alias:text) | Standard Markdown link |
 | https://x.com | link  | autolink | https://x.com      | Autolink               |
 | https://x.com | link  | bare     | https://x.com      | Bare URL               |
+
+`@Alice` and `[[@Alice]]` are different markdown forms for the same target:
+both produce `href = 'km:@Alice'`. Query and `km.add` matching works by href, not
+by the original markdown form.
 
 ### Sigils
 
@@ -287,4 +297,3 @@ Key differences: we use stable node IDs (not fragile index paths), effects are d
 - [storage.md](design/model/storage.md) — Mode detection, SQLite schema, sync
 - [guides/tasks.md](guides/tasks.md) — Task management, GTD workflow
 - [principles.md](principles.md) — Composability and architectural principles
-

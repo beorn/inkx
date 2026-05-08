@@ -16,14 +16,14 @@ The Asana import (`apps/km-cli/src/import/convert.ts`) treats projects as plain 
 
 - Project file naming: `<wsSlug>/<teamSlug>/<projectSlug>.md` (no sigil prefix)
 - Tasks belonging to a project: rendered into the project's file body, no inline `+project` mention back to the project — UNLESS `item.projects.length > 1` (then "other" projects get `+slug` mentions but the primary doesn't)
-- No `rules.add` on project files; they're static text dumps
+- No `km.add` rule on project files; they're static text dumps
 - Tag projects already use `#tag.md` aggregate files (`generateTagFiles`); user projects already use `@user.md`. **Projects are the missing third sigil.**
 
 Per `docs/dev/agent-dispatch.md` + `docs/design/model/storage.md` § NodeRules, the canonical km pattern for "this thing aggregates everything mentioning it" is:
 
 1. The aggregator file lives at `<sigil><name>.md`
 2. Every member has `<sigil><name>` in its content → lands `km:<sigil><name>` in the `links` table
-3. The aggregator carries `rules.add: "<sigil><name>"` → sync materializes `![[<member>]]` embeds INTO the aggregator's body
+3. The aggregator H1 or queue heading carries `km.add:: <sigil><name>` → sync materializes `![[<member>]]` embeds INTO that outline item
 
 The Asana import already does (1) for `#tags` and `@users`. Projects are the gap.
 
@@ -32,26 +32,19 @@ The Asana import already does (1) for `#tags` and `@users`. Projects are the gap
 After this refactor, an Asana project named "API Refactor" produces:
 
 - File: `<wsSlug>/<teamSlug>/+api-refactor.md` (sigil-prefixed name)
-  ```yaml
-  ---
-  id: "+api-refactor"               # OR scoped if collisions
-  agent: silvercode                 # pattern-borrow from @agent/N
-  rules:
-    add: "+api-refactor"
-  ---
+  ```markdown
+  # +api-refactor km.add:: +api-refactor
 
-  # +api-refactor — <project description>
+  <project description, ownership, links to docs>
 
-  <persona-equivalent: project context, ownership, links to docs>
-
-  ## Queue
+  ## Queue km.default:: true
 
   <!-- materialized embeds appear here on next sync -->
   ```
 
 - Every task that belongs to that project (regardless of whether it has multiple projects) gets `+api-refactor` in its title content. Today's "only mention non-primary projects" logic is wrong — it assumes the file path encodes the primary association, but the `links` table is the canonical store; **every** project-membership should produce a link row.
 
-- The link relationship goes through the canonical pipeline (extractor → links table → rules.add materialization). `bd query "+api-refactor"` returns matching tasks. Backlinks work. Sigil-mention-driven boards (Phase 1.1 of `@km/agent/sigil-boards`) made this end-to-end live; Asana imports just need to emit the right surface form.
+- The link relationship goes through the canonical pipeline (extractor → links table → `km.add` materialization). `bd query "+api-refactor"` returns matching tasks. Backlinks work. Asana imports just need to emit the right surface form and rule-bearing heading.
 
 ## Scope
 
@@ -90,16 +83,19 @@ if (item.projects && item.projects.length > 0) {
 
 The `Set` dedups; same pattern as the tag emission directly above.
 
-### Frontmatter & rules.add on project files
+### H1 `km.add` on project files
 
 When the project file is generated (`projectToNodes` writes the file body), inject:
 
-```yaml
-rules:
-  add: "+<projectSlug>"
+```markdown
+# +<projectSlug> km.add:: +<projectSlug>
+
+## Queue km.default:: true
 ```
 
-into the file's frontmatter. Mirror the `@agent/N` pattern from the boards.
+into the file H1 and queue section. The explicit `+<projectSlug>` query is used
+when the project file is nested under workspace/team folders but tasks mention
+the unscoped project sigil.
 
 ### Primary-map / cross-references
 
@@ -118,10 +114,10 @@ into the file's frontmatter. Mirror the `@agent/N` pattern from the boards.
 - Update `primaryMap` and any inbound cross-references in the test fixture suite
 - Tests: `apps/km-cli/tests/import/convert.test.ts` — verify project file path includes `+`, verify task content includes the project mention
 
-### Phase 2 — `rules.add` injection on project files
+### Phase 2 — `km.add` injection on project files
 
-- `projectToNodes` (or wherever the file's frontmatter is written) — inject `rules: { add: "+<projectSlug>" }`
-- Tests: parse a sample project file, verify the frontmatter
+- `projectToNodes` (or wherever the file heading is written) — inject `km.add:: +<projectSlug>` on the H1 and `km.default:: true` on the Queue section
+- Tests: parse a sample project file, verify the H1 rule and Queue default
 
 ### Phase 3 — End-to-end verification
 
@@ -142,7 +138,7 @@ into the file's frontmatter. Mirror the `@agent/N` pattern from the boards.
 
 - [ ] All non-tag, non-user Asana project files renamed to `+<slug>.md`
 - [ ] Every imported task content includes `+<projectSlug>` for every project it belongs to (Set-deduped)
-- [ ] Every project file has `rules.add: "+<slug>"` frontmatter
+- [ ] Every project file has `km.add:: +<slug>` on its H1 and `km.default:: true` on Queue
 - [ ] After import + sync: `bd query "+<projectSlug>"` returns the project's tasks via the links table
 - [ ] `convert.test.ts` covers all three: file naming, content emission, frontmatter
 - [ ] `bun fix && bun vitest run apps/km-cli/tests/import/` green
