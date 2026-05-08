@@ -28,8 +28,10 @@ const OPERATION_WEIGHTS: Partial<Record<TreeOp, number>> = {
 /**
  * Create a picker that generates random FS events while tracking file state.
  * Returns a picker function suitable for vimonkey's gen().
+ *
+ * Mixes add/change/unlink/rename ops with weighted bias toward change.
  */
-function createFsEventPicker(initialFiles: string[]): Picker<FsEvent> {
+export function createFsEventPicker(initialFiles: string[]): Picker<FsEvent> {
   const state: FileState = {
     files: new Set(initialFiles),
     directories: new Set<string>(),
