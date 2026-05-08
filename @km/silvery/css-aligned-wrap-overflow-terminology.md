@@ -14,38 +14,65 @@ The shorthand stays because it's ergonomic and accurate for 95% of cases. The ax
 - Web/canvas targets benefit from speaking the same prop names as the platform.
 - Storybook + design docs improve when the underlying axes are visible.
 
-## Current API (shipped, supported, not changing)
+## Current API — silvery's `wrap=` shorthand (shipped, supported, not changing)
 
-The `wrap=` prop on `Text` is a single named-composite axis. Each value bundles `white-space` + `overflow-wrap` + `text-overflow` + `overflow` semantics into one mnemonic.
+`Text` has a single named-composite prop `wrap=`. Each value is a silvery-defined mnemonic that bundles multiple underlying behaviors.
 
-| `wrap=` (current)   | Behavior                                                                                                                                              | CSS-equivalent axes                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `"wrap"` (default)  | Multi-line word wrap. Word boundaries first, then soft-break separators (`/`, `\`, `.`, `_`, `:`, `,`), then character-wrap fallback.                 | `white-space: normal` + `overflow-wrap: break-word`                                            |
-| `"wrap-truncate"` ✨ NEW (a3c32087) | Multi-line word wrap with ellipsis-truncate fallback when atomic-only token exceeds width AND no separator exists.                       | `white-space: normal` + `overflow-wrap: break-word` + `text-overflow: ellipsis`                |
-| `"truncate"`        | Single-line. Trims at end with `…` ellipsis when content exceeds available width.                                                                     | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
-| `"truncate-end"`    | Alias of `"truncate"` (explicit "trim at end").                                                                                                       | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
-| `"truncate-start"`  | Single-line. Trims at start with `…` prefix.                                                                                                          | `direction: rtl` + `text-overflow: ellipsis` (named composite)                                 |
-| `"truncate-middle"` | Single-line. Trims in the middle (e.g. `path/to/.../file.md`).                                                                                        | (no direct CSS analogue; named composite)                                                      |
-| `"clip"`            | Single-line. Hard clips at right edge **without** ellipsis.                                                                                           | `white-space: nowrap` + `overflow: hidden` + `text-overflow: clip`                             |
-| `false`             | No wrapping, no clipping. Text overflows its container. Avoid in bordered cells.                                                                      | `white-space: nowrap` + `overflow: visible`                                                    |
+| silvery `wrap=` value | What silvery renders                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"wrap"` (default)    | Multi-line word wrap. Word boundaries first, then soft-break separators (`/`, `\`, `.`, `_`, `:`, `,`), then character-wrap fallback (no info loss).  |
+| `"wrap-truncate"` ✨ NEW (a3c32087) | Multi-line word wrap with ellipsis-truncate fallback when atomic-only token exceeds width AND no separator exists.                      |
+| `"truncate"`          | Single-line. Trims at end with `…` ellipsis when content exceeds available width.                                                                     |
+| `"truncate-end"`      | Alias of `"truncate"` (explicit "trim at end").                                                                                                       |
+| `"truncate-start"`    | Single-line. Trims at start with `…` prefix.                                                                                                          |
+| `"truncate-middle"`   | Single-line. Trims in the middle (e.g. `path/to/.../file.md`).                                                                                        |
+| `"clip"`              | Single-line. Hard clips at right edge **without** ellipsis.                                                                                           |
+| `false`               | No wrapping, no clipping. Text overflows the container (anti-pattern in bordered cells).                                                              |
 
 Documented in `vendor/silvery/docs/components/Text.md` "Wrap modes" section (commit `b7481cd5`).
 
-## Planned API (additive — `wrap=` stays)
+`Box` has an existing `overflow=` prop that's separate from text wrap concerns: `"visible"` (default) | `"hidden"` | `"clip"`. It controls whether descendant cells outside the box's rectangle get painted; nothing to do with text flow.
 
-Add the underlying CSS axes as their own props on `Text` (and where applicable, `Box`). All optional; `wrap=` shorthand continues to work and is treated as syntactic sugar for these axes.
+## CSS reference — what each silvery shorthand maps to
 
-| New prop        | Values                                                                       | Default     | Notes                                                                |
-| --------------- | ---------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------- |
-| `whiteSpace`    | `"normal"` \| `"nowrap"` \| `"pre"` \| `"pre-wrap"` \| `"pre-line"`          | `"normal"`  | CSS-canonical                                                        |
-| `overflowWrap`  | `"normal"` \| `"break-word"` \| `"anywhere"`                                 | `"normal"`  | CSS-canonical                                                        |
-| `wordBreak`     | `"normal"` \| `"break-all"` \| `"keep-all"`                                  | `"normal"`  | CSS-canonical                                                        |
-| `textOverflow`  | `"clip"` \| `"ellipsis"`                                                     | `"clip"`    | CSS-canonical                                                        |
-| `overflow`      | `"visible"` \| `"hidden"` \| `"clip"`                                        | `"visible"` | Already on `Box`; harmonize on `Text` too                            |
+The same rendering can be described in CSS terms. This table is for reasoning about silvery's behavior in CSS-native words (useful for the upcoming web/canvas targets and for Polaris-aligned design conversations). silvery does NOT use these CSS prop names today.
 
-**Resolution**: when both `wrap=` and any axis is set, the explicit axis wins (override semantics). When only `wrap=` is set, it expands internally to the equivalent axes. When only axes are set, they apply directly.
+| silvery `wrap=` value | `white-space` | `overflow-wrap` | `text-overflow` | `overflow` (on parent box) |
+| --------------------- | ------------- | --------------- | --------------- | -------------------------- |
+| `"wrap"`              | `normal`      | `break-word`    | `clip`          | `visible`                  |
+| `"wrap-truncate"`     | `normal`      | `break-word`    | `ellipsis`      | `hidden` (effective)       |
+| `"truncate"` / `"truncate-end"` | `nowrap` | `normal`     | `ellipsis`      | `hidden`                   |
+| `"truncate-start"`    | `nowrap`      | `normal`        | `ellipsis` (start side; named composite — no native CSS) | `hidden` |
+| `"truncate-middle"`   | `nowrap`      | `normal`        | (named composite — no native CSS)        | `hidden`                   |
+| `"clip"`              | `nowrap`      | `normal`        | `clip`          | `hidden`                   |
+| `false`               | `nowrap`      | `normal`        | `clip`          | `visible`                  |
 
-This mirrors how CSS users can write either `border: 1px solid red` or `border-width: 1px; border-style: solid; border-color: red` — both produce the same rendered result; the axes are escape-hatches for combinations the shorthand doesn't cover.
+The soft-break separator behavior (silvery breaks at `/`, `\`, `.`, `_`, `:`, `,` before falling back to character wrap) is silvery's interpretation of `overflow-wrap: break-word` — CSS leaves the precise break heuristic to the user agent, and silvery's heuristic is documented in `Text.md`.
+
+## Planned additions — silvery's CSS-aligned axes (additive; `wrap=` stays)
+
+When a single `wrap=` shorthand value can't express what we need, add silvery-side props that mirror the CSS axis names. **`wrap=` continues to work.** This is exactly how CSS users can write `border: 1px solid red` OR `border-width: 1px; border-style: solid; border-color: red`.
+
+| silvery prop (proposed)     | silvery values                                                       | Default     | CSS analogue                  |
+| --------------------------- | -------------------------------------------------------------------- | ----------- | ----------------------------- |
+| `whiteSpace`                | `"normal"` \| `"nowrap"` \| `"pre"` \| `"pre-wrap"` \| `"pre-line"`  | `"normal"`  | `white-space`                 |
+| `overflowWrap`              | `"normal"` \| `"break-word"` \| `"anywhere"`                         | `"normal"`  | `overflow-wrap`               |
+| `wordBreak`                 | `"normal"` \| `"break-all"` \| `"keep-all"`                          | `"normal"`  | `word-break`                  |
+| `textOverflow`              | `"clip"` \| `"ellipsis"`                                             | `"clip"`    | `text-overflow`               |
+
+`Box overflow=` already exists and matches CSS `overflow` directly; it's not changing.
+
+**Resolution rule**: when both `wrap=` and an axis are set, the explicit axis wins (override semantics). `wrap=` alone expands internally to the canonical axis state. Axes alone apply directly.
+
+## Why not rename `wrap=` to `overflow=`?
+
+(asked 2026-05-08) — three reasons:
+
+1. **Name clash.** `Box overflow=` already exists with `visible|hidden|clip` matching CSS. Adding `Text overflow=` with different values (`wrap|truncate|wrap-truncate|clip`) creates two `overflow` props with different value sets in the same framework.
+2. **Semantic mismatch.** CSS `overflow` controls whether content beyond the box bounds is painted/clipped/scrolled. Wrap is about *text flow*, which CSS expresses with `white-space` and `overflow-wrap`. `overflow=wrap` reads as "overflow strategy = wrap" which doesn't match how the CSS-fluent reader parses it.
+3. **`wrap-truncate` is genuinely about wrapping**, not just overflow handling — "wrap normally; ellipsis only as last resort". `wrap=wrap-truncate` reads correctly; `overflow=wrap-truncate` reads roundabout.
+
+Closest CSS-aligned single-prop alternative would be `textOverflow=` — which matches CSS but only covers the truncate/clip axis, not the wrap axis. Hence the planned axis additions above (each axis covers what its CSS counterpart covers).
 
 ## Acceptance
 
