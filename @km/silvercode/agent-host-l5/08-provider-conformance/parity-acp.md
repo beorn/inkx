@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-07T01:30:33.422Z
 ---
 
-# [/] ACP parity tracker @km/silvercode #feature #P1
+# [/] ACP parity tracker @km/silvercode #feature #P1 @agent/3
 
 Track Silvercode parity with ACP proper as a provider boundary. This is not a provider-specific tracker; Claude, Codex, and Kilo/opencode have sibling parity trackers.
 

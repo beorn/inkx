@@ -2,7 +2,7 @@
 id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-chatblock-cutover"
 ---
 
-# [/] L5: ChatPane cutover to projected ChatBlocks from ChatTree #feature #P0
+# [/] L5: ChatPane cutover to projected ChatBlocks from ChatTree #feature #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

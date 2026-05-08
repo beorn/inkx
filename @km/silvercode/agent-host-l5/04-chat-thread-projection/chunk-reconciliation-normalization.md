@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T08:00:00.000Z
 ---
 
-# [/] Canonical chunk reconciliation and stream normalization #feature #P0
+# [/] Canonical chunk reconciliation and stream normalization #feature #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/04-chat-thread-projection]]
 

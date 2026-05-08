@@ -13,7 +13,7 @@ reopened_at: 2026-05-06T23:55:00Z
 reopenReason: "Live Silvercode rendering still flowed through legacy MessageEntry/MessageOp projections; ChatSession.tree was not the reactive source of truth; Debug filtering and control-event classification were incomplete."
 ---
 
-# [/] Claude provider conformance tracker #feature #P1
+# [/] Claude provider conformance tracker #feature #P1 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance]]
 

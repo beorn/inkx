@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T03:59:25.130Z
 ---
 
-# [/] OpenACP-inspired Silvercode runtime hardening: event taxonomy, lifecycle machines, queue authority #feature #P1
+# [/] OpenACP-inspired Silvercode runtime hardening: event taxonomy, lifecycle machines, queue authority #feature #P1 @agent/3
 
 Architectural follow-up from reviewing OpenACP at 8cd7617 vs Silvercode.
 

@@ -2,7 +2,7 @@
 id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-fixture-inventory"
 ---
 
-# [/] L5: replay fixture inventory and unknown event fail-fast gate #P0
+# [/] L5: replay fixture inventory and unknown event fail-fast gate #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-07T19:16:41.372Z
 ---
 
-# [/] Expand BUILTIN_AGENTS with ACP-Registry agents (opencode, kilo, goose, auggie, qwen-code) #P1
+# [/] Expand BUILTIN_AGENTS with ACP-Registry agents (opencode, kilo, goose, auggie, qwen-code) #P1 @agent/3
 
 Per the systematic provider review (chat 2026-05-07): the ACP Registry now ships 25+ agents (Amp, Auggie, Cline, Codebuddy, crow-cli, Cursor, DeepAgents, Factory Droid, goose, Junie, Kilo, Kimi, Mistral Vibe, Nova, OpenCode, Pi ACP, Qoder, Qwen Code, Stakpak, etc.). Most of these are one-line BUILTIN_AGENT entries — silvercode owns the cockpit, the Registry owns the wire.
 

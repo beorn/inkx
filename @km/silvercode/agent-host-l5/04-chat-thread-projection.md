@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T06:22:27.641Z
 ---
 
-# [/] Chat thread projection and UI cutover #feature #P0
+# [/] Chat thread projection and UI cutover #feature #P0 @agent/3
 
 Make ChatTree/ChatTrack projection the production transcript path. Migrate from legacy MessageEntry/SessionUpdateList ownership, rename channel to Track, reasoning UI content to Thought, and Chat.Narration to Chat.Message/Chat.Thought.
 

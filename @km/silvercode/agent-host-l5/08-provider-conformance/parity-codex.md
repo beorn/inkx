@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-07T01:30:33.438Z
 ---
 
-# [/] Codex parity tracker @km/silvercode #feature #P1
+# [/] Codex parity tracker @km/silvercode #feature #P1 @agent/3
 
 Track Silvercode parity with Codex across the ACP path, the legacy/direct stream-json scaffold, local rollout resume, config/model controls, and Codex-local agent behavior.
 

@@ -3,7 +3,7 @@ id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-project-transcri\
   pt-rules"
 ---
 
-# [/] L5: central projectChatTranscript rules for grouping summaries disclosure and widths #P0
+# [/] L5: central projectChatTranscript rules for grouping summaries disclosure and widths #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

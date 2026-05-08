@@ -3,7 +3,7 @@ id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-control-event-st\
   ate-routing"
 ---
 
-# [/] L5: state-first handling for permission queue title recap hook and snapshot events #P0
+# [/] L5: state-first handling for permission queue title recap hook and snapshot events #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

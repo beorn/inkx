@@ -3,7 +3,7 @@ id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-canonical-event-\
   contract"
 ---
 
-# [/] L5: canonical ChatEvent contract with event.track as the only routing source #P0
+# [/] L5: canonical ChatEvent contract with event.track as the only routing source #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

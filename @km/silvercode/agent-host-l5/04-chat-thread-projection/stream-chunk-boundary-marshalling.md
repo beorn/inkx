@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T04:05:31.356Z
 ---
 
-# [/] Silvercode stream chunk boundaries corrupt Markdown links and chat blocks #bug #P1
+# [/] Silvercode stream chunk boundaries corrupt Markdown links and chat blocks #bug #P1 @agent/3
 
 ## Problem
 

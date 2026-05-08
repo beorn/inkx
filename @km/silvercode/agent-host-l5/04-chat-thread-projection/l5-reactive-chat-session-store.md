@@ -3,7 +3,7 @@ id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-reactive-chat-se\
   ssion-store"
 ---
 
-# [/] L5: reactive ChatSession store with accumulated state and projected ChatTree #P0
+# [/] L5: reactive ChatSession store with accumulated state and projected ChatTree #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

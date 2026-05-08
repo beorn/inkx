@@ -19,7 +19,7 @@ props:
 _stub: true
 ---
 
-# [/] Wire ACP session config options through Silvercode #feature #P1
+# [/] Wire ACP session config options through Silvercode #feature #P1 @agent/3
 
 blocks:: [[@km/silvercode]]
 

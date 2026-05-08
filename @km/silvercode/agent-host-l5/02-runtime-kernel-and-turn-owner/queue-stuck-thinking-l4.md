@@ -23,7 +23,7 @@ props:
     target: km-silvercode
 ---
 
-# [/] L4 architectural reframe — Turn owner module + derived status getter @km/silvercode #task #P0
+# [/] L4 architectural reframe — Turn owner module + derived status getter @km/silvercode #task #P0 @agent/3
 
 blocks:: [[@km/silvercode]]
 

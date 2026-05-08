@@ -16,7 +16,7 @@ props:
     target: "@km/silvercode/agent-host-l5/01-domain-vocabulary-and-state-machines/vocabulary-first"
 ---
 
-# [/] L5: make Silvercode chat lifecycle/projection bugs impossible #P0
+# [/] L5: make Silvercode chat lifecycle/projection bugs impossible #P0 @agent/3
 
 Get Silvercode chat lifecycle/projection to L5 for the recurring stuck-thinking, leaked prompt echo, missing subagent, duplicate activity summary, notification duplication, and lifecycle-marker ordering bug class. Vocabulary changes happen first, then code migration follows the stable target terms. The target design is one ownership path: provider/runtime input -> `ChatEvent` -> `ChatSession` -> `ChatTree` -> `Chat.Pane`. Agent/source quirks end at normalization; render components do not infer source, session, activity, notification, or lifecycle semantics from compatibility transcript entries, status fields, side inputs, protocol notifications, or raw agent events.
 

@@ -21,7 +21,7 @@ props:
     target: km-silvercode
 ---
 
-# [/] [epic] Ambient-context pipeline — make it bulletproof, well-tested, and observably correct @km/silvercode #epic #P0
+# [/] [epic] Ambient-context pipeline — make it bulletproof, well-tested, and observably correct @km/silvercode #epic #P0 @agent/3
 
 blocks:: [[@km/silvercode]]
 

@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T06:22:39.014Z
 ---
 
-# [/] Background jobs and subagents #feature #P0
+# [/] Background jobs and subagents #feature #P0 @agent/3
 
 Model detached/background work and child agent execution as Jobs/SubagentRuns/Subthreads with parent-child provenance, navigation, cancellation, completion delivery, restart recovery, and provider-specific discovery.
 

@@ -21,7 +21,7 @@ props:
     target: km-silvercode
 ---
 
-# [/] Status transition trace — silvercode:status logger + dev-mode invariant check @km/silvercode #task #P0 ^session-store-trace
+# [/] Status transition trace — silvercode:status logger + dev-mode invariant check @km/silvercode #task #P0 ^session-store-trace @agent/3
 
 blocks:: [[@km/silvercode]]
 parent:: [[@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner/queue-stuck-thinking-l4]]

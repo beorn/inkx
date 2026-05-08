@@ -21,7 +21,7 @@ props:
     target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system"
 ---
 
-# [/] Silvercode test system v2 — UI driver (keystrokes + fake clock + scroll) @km/silvercode #feature #P2
+# [/] Silvercode test system v2 — UI driver (keystrokes + fake clock + scroll) @km/silvercode #feature #P2 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system]]
 

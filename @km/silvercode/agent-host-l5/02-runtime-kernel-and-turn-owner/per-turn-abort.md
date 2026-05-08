@@ -11,7 +11,7 @@ created_at: 2026-04-25T06:20:50Z
 owner: bjorn@stabell.org
 ---
 
-# [/] agent-harness: per-turn abort / interrupt API @km/agent-harness #feature #P2
+# [/] agent-harness: per-turn abort / interrupt API @km/agent-harness #feature #P2 @agent/3
 
 AgentSession lacks per-turn cancellation. Today only `close()` exists (kills the whole subprocess). Silvercode's Ctrl-B background flow needs a way to cancel a SPECIFIC backgrounded turn without killing the rest of the session.
 

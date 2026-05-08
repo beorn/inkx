@@ -21,7 +21,7 @@ props:
     target: km-silvercode
 ---
 
-# [/] ACP session store + mid-conversation agent switch with context carry-over @km/silvercode #feature #P2
+# [/] ACP session store + mid-conversation agent switch with context carry-over @km/silvercode #feature #P2 @agent/3
 
 blocks:: [[@km/silvercode]]
 

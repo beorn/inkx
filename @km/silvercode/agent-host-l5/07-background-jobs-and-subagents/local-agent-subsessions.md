@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-07T00:31:55.001Z
 ---
 
-# [/] Local-agent sub-session view and navigation @km/silvercode #feature #P0
+# [/] Local-agent sub-session view and navigation @km/silvercode #feature #P0 @agent/3
 
 Enable Claude-Code-style local-agent sub-session viewing in Silvercode.
 

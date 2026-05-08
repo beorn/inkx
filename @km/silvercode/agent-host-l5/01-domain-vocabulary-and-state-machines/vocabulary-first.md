@@ -9,7 +9,7 @@ status: wip
 parent: "@km/silvercode/chat-domain-quality-plateau"
 ---
 
-# [/] Phase 0: vocabulary-first chat domain refactor #P0
+# [/] Phase 0: vocabulary-first chat domain refactor #P0 @agent/3
 
 Lock the target chat vocabulary before code migration. Every later L5 phase uses this language; no phase should introduce new names that conflict with the model in `apps/silvercode/docs/chat-session-model.md` and `apps/silvercode/docs/chat-state-machines.md`.
 

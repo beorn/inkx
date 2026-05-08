@@ -3,7 +3,7 @@ id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-visual-replay-pa\
   rity"
 ---
 
-# [/] L5: visual replay parity against Claude Code screenshot sessions #P1
+# [/] L5: visual replay parity against Claude Code screenshot sessions #P1 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T06:22:47.106Z
 ---
 
-# [/] Robust test system and quality gates #feature #P0
+# [/] Robust test system and quality gates #feature #P0 @agent/3
 
 Implement transition tests, property tests, golden stream fixtures, raw ledger replay, provider fake/live conformance, visual replay, queue/cancel races, permissions, background/subagent tests, and grep/lint gates.
 

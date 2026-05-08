@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T06:22:16.510Z
 ---
 
-# [/] Prior art and provider feature matrix #docs #P0
+# [/] Prior art and provider feature matrix #docs #P0 @agent/3
 
 Study ACPX, Zed ACP host, Claude/Codex wrappers, ACP providers, OpenClaw/OpenACP-style systems, and background-agent models. Produce the canonical feature matrix against providers and identify which prior-art invariant Silvercode adopts, adapts, or rejects.
 

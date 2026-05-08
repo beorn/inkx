@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T06:22:19.048Z
 ---
 
-# [/] Domain vocabulary and state machines #P0
+# [/] Domain vocabulary and state machines #P0 @agent/3
 
 Lock the domain model and names before implementation: Thread, Session, Turn, Message, Block, Thought, Track, Mention, Tool, Permission, Plan, Job, SubagentRun/Subthread. Define closed state machines and naming grep gates aligned with docs/principles.md.
 

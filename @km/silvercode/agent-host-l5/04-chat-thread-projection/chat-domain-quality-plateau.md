@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-07T05:32:11.697Z
 ---
 
-# [/] Chat domain quality plateau tracker #epic #P1
+# [/] Chat domain quality plateau tracker #epic #P1 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/04-chat-thread-projection]]
 

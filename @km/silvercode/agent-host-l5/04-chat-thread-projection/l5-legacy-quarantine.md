@@ -2,7 +2,7 @@
 id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/l5-legacy-quarantine"
 ---
 
-# [/] L5: delete or quarantine legacy MessageEntry routing behind ChatEvent adapters #P0
+# [/] L5: delete or quarantine legacy MessageEntry routing behind ChatEvent adapters #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/08-provider-conformance/parity-claude]]
 

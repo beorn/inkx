@@ -5,7 +5,7 @@ aliases:
 created_at: 2026-05-08T08:00:00.000Z
 ---
 
-# [/] Delete legacy plan/todo compatibility projections #task #P1
+# [/] Delete legacy plan/todo compatibility projections #task #P1 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/10-migration-and-legacy-quarantine]]
 

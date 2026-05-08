@@ -23,7 +23,7 @@ props:
     target: km-silvercode
 ---
 
-# [/] Kilo/opencode parity tracker @km/silvercode #feature #P1
+# [/] Kilo/opencode parity tracker @km/silvercode #feature #P1 @agent/3
 
 Track Silvercode parity with Kilo/opencode. This bead moved over the previous `@km/silvercode/opencode-parity` epic and keeps its original four ergonomics gaps while adding provider/backend parity notes.
 
