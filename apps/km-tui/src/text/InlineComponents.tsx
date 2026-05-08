@@ -650,7 +650,14 @@ export function InlineText({
   if (context) {
     // Merge with parent context so overrides (e.g. stripInlineColors) don't wipe
     // resolution functions (resolveWikiLink, buildLinkPopover)
-    const merged = { ...parentCtx, ...context }
+    const merged = {
+      ...parentCtx,
+      ...context,
+      // Selected/tinted surfaces often provide this at an ancestor. Treat
+      // undefined as "no local opinion" so per-call contexts do not
+      // accidentally re-enable inline chip backgrounds; pass false to clear.
+      stripInlineColors: context.stripInlineColors ?? parentCtx.stripInlineColors,
+    }
     return <InlineRenderProvider value={merged}>{inner}</InlineRenderProvider>
   }
   return inner

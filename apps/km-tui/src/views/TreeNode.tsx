@@ -58,6 +58,36 @@ import type { ErrorInfo } from "react"
  */
 export const DEFAULT_OVERFLOW_INDICATOR = "···"
 
+function revealChildWindow<T extends { id: string }>(
+  children: readonly T[],
+  maxChildren: number,
+  revealChildId: string | null,
+): T[] {
+  if (children.length <= maxChildren) return [...children]
+  const revealIndex = revealChildId ? children.findIndex((child) => child.id === revealChildId) : -1
+  if (revealIndex < 0) return children.slice(0, maxChildren)
+  const start = Math.max(0, Math.min(revealIndex - maxChildren + 1, children.length - maxChildren))
+  return children.slice(start, start + maxChildren)
+}
+
+function directChildOnPath(
+  repo: { getNode(id: string): KNode | null },
+  nodeId: string | null,
+  ancestorId: string,
+): string | null {
+  if (!nodeId || nodeId === ancestorId) return null
+  let childId = nodeId
+  let parentId = repo.getNode(childId)?.parent_id ?? null
+  let depth = 0
+  while (parentId && depth < 100) {
+    if (parentId === ancestorId) return childId
+    childId = parentId
+    parentId = repo.getNode(childId)?.parent_id ?? null
+    depth++
+  }
+  return null
+}
+
 /** Log NodeChildren rendering errors via loggily instead of silently swallowing them.
  * The ErrorBoundary shows [error] fallback text; this ensures the actual error is logged
  * so developers can diagnose the root cause (bug: km-tui.delete-shows-error). */
@@ -102,6 +132,11 @@ interface TreeNodeProps {
   isBody?: boolean
   /** Suppress direct cursor row highlight while an ancestor is editing. */
   suppressCursorHighlight?: boolean
+  /** Top-level card occurrence that owns this rendered row. */
+  ownerCardId?: string | null
+  cursorRevealChildId?: string | null
+  /** Suppress inline leaf fg/bg styling when an ancestor card paints a continuous background. */
+  forceStripInlineColors?: boolean
   /**
    * Override for the expanded-card child cap (`MAX_EXPANDED_CHILDREN` by
    * default). The cards-view Card sets this to bound an expanded card to
@@ -217,6 +252,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Body flag
   if (prev.isBody !== next.isBody) return false
   if (prev.suppressCursorHighlight !== next.suppressCursorHighlight) return false
+  if (prev.ownerCardId !== next.ownerCardId) return false
+  if (prev.cursorRevealChildId !== next.cursorRevealChildId) return false
+  if (prev.forceStripInlineColors !== next.forceStripInlineColors) return false
 
   // Row-budget clamp — re-render on budget or indicator identity change
   if (prev.maxRows !== next.maxRows) return false
@@ -265,6 +303,9 @@ function TreeNodeImpl({
   remainingDepth = Infinity,
   isBody = false,
   suppressCursorHighlight = false,
+  ownerCardId = null,
+  cursorRevealChildId = null,
+  forceStripInlineColors = false,
   maxExpandedChildren,
   maxRows = 0,
   overflowIndicator,
@@ -294,7 +335,9 @@ function TreeNodeImpl({
   const nodeStore = useNodeStore()
   const n = useTreeNode(node.id)
   const cursorOnThis = useSignal(n.cursor)
+  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
   const cursorPathChildId = useSignal(n.cursorPathChildId)
+  const cursorId = useSignal(sel.node.cursor)
   const isNodeSelected = useSignal(n.selected)
   const editState = useSignal(n.edit)
   const foldOverride = useSignal(n.foldOverride)
@@ -305,7 +348,11 @@ function TreeNodeImpl({
   const isFolded = resolvedDepth <= 0
   const editBlockIndex = editState?.blockIndex ?? null
   const isInlineEditing = editBlockIndex !== null
-  const isSelected = !suppressCursorHighlight && !isInlineEditing && (isSelectedProp || cursorOnThis)
+  const effectiveOwnerCardId = ownerCardId ?? (depth === 0 ? node.id : null)
+  const isCursorInThisOccurrence =
+    depth === 0 || effectiveOwnerCardId == null || effectiveOwnerCardId === cursorCardNodeId
+  const isSelected =
+    !suppressCursorHighlight && !isInlineEditing && (isSelectedProp || (cursorOnThis && isCursorInThisOccurrence))
   const editingTitle = editBlockIndex === 0
   const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
@@ -339,6 +386,11 @@ function TreeNodeImpl({
         isBrokenEmbed: viewNode.isBrokenEmbed,
       }
     : resolveEmbed(repo, node)
+  const embeddedCursorChildId = useMemo(
+    () => (isEmbedded && resolvedNode ? directChildOnPath(repo, cursorId as string | null, resolvedNode.id) : null),
+    [isEmbedded, resolvedNode?.id, repo, cursorId],
+  )
+  const effectiveCursorPathChildId = cursorRevealChildId ?? cursorPathChildId ?? embeddedCursorChildId
 
   // Children: use ViewTree childIds when available (already fold/hidden/embed resolved).
   // Fallback to manual fetch for contexts without ViewTree (storybook, tests).
@@ -400,7 +452,9 @@ function TreeNodeImpl({
   // Multi-selected sub-item (isNodeSelected && !isSelected): stronger bg tint
   // on the head row so the user can visually count selected items.
   const cursorInDescendant = useSignal(nodeStore.cursorDescendant(node.id))
-  const isParentOfCursor = depth === 0 && cursorInDescendant
+  const effectiveCursorInDescendant =
+    cursorInDescendant || cursorRevealChildId !== null || embeddedCursorChildId !== null
+  const isParentOfCursor = depth === 0 && effectiveCursorInDescendant
 
   // If an ancestor is selected, the card/column already provides the visual bg
   // (selectedBg from CardColumn). Don't add per-node multiSelectedBg on top —
@@ -546,7 +600,11 @@ function TreeNodeImpl({
   // selected card background.
   const _isHighlighted = isSelected || isNodeSelected
   const shouldStripColor =
-    (isSelected && tc != null) || hasCursorAncestor || hasSelectedAncestor || style.isDoneOrDropped
+    forceStripInlineColors ||
+    (isSelected && tc != null) ||
+    hasCursorAncestor ||
+    hasSelectedAncestor ||
+    style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
   const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
@@ -726,7 +784,7 @@ function TreeNodeImpl({
     // Edit: expand when any descendant is being edited (reduced signal)
     editingDescendant ||
     // Cursor: expand card when cursor is on a descendant
-    (depth === 0 && cursorInDescendant) ||
+    (depth === 0 && effectiveCursorInDescendant) ||
     // Cursor: expand sub-items when cursor is a direct child
     (depth > 0 && cursorIsChild)
 
@@ -758,9 +816,12 @@ function TreeNodeImpl({
   const { renderedChildren, hiddenCount, childViewportRows } = useMemo(() => {
     if (taskStatusFilter.size === 0) {
       const effectiveMax = children.length === maxChildren + 1 ? maxChildren + 1 : maxChildren
+      const rendered = shouldExpand
+        ? revealChildWindow(children, effectiveMax, effectiveCursorPathChildId)
+        : children.slice(0, effectiveMax)
       return {
-        renderedChildren: shouldExpand ? children : children.slice(0, effectiveMax),
-        hiddenCount: Math.max(0, children.length - effectiveMax),
+        renderedChildren: rendered,
+        hiddenCount: Math.max(0, children.length - rendered.length),
         childViewportRows: effectiveMax,
       }
     }
@@ -776,12 +837,15 @@ function TreeNodeImpl({
       }
     }
     const effectiveMax = totalPassing === maxChildren + 1 ? maxChildren + 1 : maxChildren
+    const rendered = shouldExpand
+      ? revealChildWindow(passing, effectiveMax, effectiveCursorPathChildId)
+      : passing.slice(0, effectiveMax)
     return {
-      renderedChildren: shouldExpand ? passing : passing.slice(0, effectiveMax),
-      hiddenCount: Math.max(0, totalPassing - effectiveMax),
+      renderedChildren: rendered,
+      hiddenCount: Math.max(0, totalPassing - rendered.length),
       childViewportRows: effectiveMax,
     }
-  }, [children, shouldExpand, taskStatusFilter, maxChildren, repo])
+  }, [children, shouldExpand, taskStatusFilter, maxChildren, repo, effectiveCursorPathChildId])
 
   // Children are hidden when individually folded
   const childrenVisible = hasChildren && !isFolded
@@ -1044,7 +1108,9 @@ function TreeNodeImpl({
             bodyIdSet={stableBodyIdSet}
             suppressCursorHighlight={isInlineEditing || editingDescendant}
             maxVisibleRows={isInlineEditing || !shouldExpand ? undefined : childViewportRows}
-            revealChildId={isInlineEditing || !shouldExpand ? null : cursorPathChildId}
+            revealChildId={isInlineEditing || !shouldExpand ? null : effectiveCursorPathChildId}
+            ownerCardId={effectiveOwnerCardId}
+            forceStripInlineColors={forceStripInlineColors}
           />
         </ErrorBoundary>
       )}
@@ -1134,6 +1200,8 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   childCount,
   isBody,
   suppressCursorHighlight,
+  ownerCardId,
+  forceStripInlineColors,
 }: {
   node: KNode
   depth: number
@@ -1148,15 +1216,22 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   childCount: number
   isBody?: boolean
   suppressCursorHighlight?: boolean
+  ownerCardId?: string | null
+  forceStripInlineColors?: boolean
 }): React.ReactElement {
+  const nodeStore = useNodeStore()
   const n = useTreeNode(node.id)
   const foldOverride = useSignal(n.foldOverride)
   const cursorOnThis = useSignal(n.cursor)
-  const isSelected = !suppressCursorHighlight && cursorOnThis
+  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+  const hasCursorDescendant = useSignal(n.cursorDescendant) as boolean
+  const isCursorInThisOccurrence = ownerCardId == null || ownerCardId === cursorCardNodeId
+  const isSelected = !suppressCursorHighlight && cursorOnThis && isCursorInThisOccurrence
 
-  // If this child has an explicit unfold override or is the cursor target,
-  // use full TreeNode (cursor can land here via J/K block navigation)
-  if ((foldOverride !== undefined && foldOverride > 0) || isSelected) {
+  // If this child has an explicit unfold override, is the cursor target, or
+  // contains the cursor, use full TreeNode. Otherwise descendants under a
+  // FoldedChildRow can hold the cursor while remaining unrendered.
+  if ((foldOverride !== undefined && foldOverride > 0) || isSelected || hasCursorDescendant) {
     return (
       <TreeNode
         node={node}
@@ -1170,9 +1245,11 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
         getParentContext={getParentContext}
         getBoardPills={getBoardPills}
         extraExcludedSigils={extraExcludedSigils}
-        remainingDepth={foldOverride ?? 0}
+        remainingDepth={foldOverride ?? (hasCursorDescendant ? 1 : 0)}
         isBody={isBody}
         suppressCursorHighlight={suppressCursorHighlight}
+        ownerCardId={ownerCardId}
+        forceStripInlineColors={forceStripInlineColors}
       />
     )
   }
@@ -1185,6 +1262,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
       childCount={childCount}
       extraExcludedSigils={extraExcludedSigils}
       isBody={isBody}
+      forceStripInlineColors={forceStripInlineColors}
     />
   )
 })
@@ -1213,6 +1291,7 @@ const FoldedChildRow = React.memo(
     childCount = 0,
     extraExcludedSigils,
     isBody = false,
+    forceStripInlineColors = false,
   }: {
     node: KNode
     depth: number
@@ -1220,6 +1299,7 @@ const FoldedChildRow = React.memo(
     childCount?: number
     extraExcludedSigils?: string[]
     isBody?: boolean
+    forceStripInlineColors?: boolean
   }): React.ReactElement {
     renderLog.debug?.(`FoldedChildRow ${sid(node.id)} depth=${depth}`)
 
@@ -1285,7 +1365,12 @@ const FoldedChildRow = React.memo(
     const inlineContext = useTreeInlineContext(repo, rootBoardId, extraExcludedSigils, sigilColors, resolveSigilColor)
     const foldSearchDecorations = useSearchDecorations(displayContent, searchHighlight, searchQuery, isCurrentMatch)
     const shouldStripColor =
-      searchHighlight || isNodeSelected || hasSelectedAncestor || hasCursorAncestor || style.isDoneOrDropped
+      forceStripInlineColors ||
+      searchHighlight ||
+      isNodeSelected ||
+      hasSelectedAncestor ||
+      hasCursorAncestor ||
+      style.isDoneOrDropped
     // Per-node sigil un-exclusion: see km-tui.folder-card-empty-title above.
     // Folded titles are even more critical to keep visible — the card is
     // collapsed to a single line; if the only sigil is stripped, the row is blank.
@@ -1350,7 +1435,9 @@ const FoldedChildRow = React.memo(
     prev.depth === next.depth &&
     prev.dim === next.dim &&
     prev.childCount === next.childCount &&
-    prev.extraExcludedSigils === next.extraExcludedSigils,
+    prev.extraExcludedSigils === next.extraExcludedSigils &&
+    prev.isBody === next.isBody &&
+    prev.forceStripInlineColors === next.forceStripInlineColors,
 )
 
 // =============================================================================
@@ -1392,6 +1479,10 @@ interface NodeChildrenProps {
   maxVisibleRows?: number
   /** Child id to reveal inside the bounded list. */
   revealChildId?: string | null
+  /** Top-level card occurrence that owns these rendered child rows. */
+  ownerCardId?: string | null
+  /** Suppress inline leaf fg/bg styling when an ancestor card paints a continuous background. */
+  forceStripInlineColors?: boolean
 }
 
 type OrderedChild = {
@@ -1417,6 +1508,8 @@ function NodeChildren({
   suppressCursorHighlight = false,
   maxVisibleRows,
   revealChildId = null,
+  ownerCardId = null,
+  forceStripInlineColors = false,
 }: NodeChildrenProps): React.ReactElement {
   // Classify each child as body or structural using the STABLE body ID set
   // computed from the parent's full children array (cursor-independent).
@@ -1485,6 +1578,8 @@ function NodeChildren({
             childCount={childCounts?.get(item.node.id) ?? 0}
             isBody={item.isBody}
             suppressCursorHighlight={suppressCursorHighlight}
+            ownerCardId={ownerCardId}
+            forceStripInlineColors={forceStripInlineColors}
           />
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
@@ -1515,6 +1610,9 @@ function NodeChildren({
       remainingDepth={remainingDepth}
       isBody={item.isBody}
       suppressCursorHighlight={suppressCursorHighlight}
+      ownerCardId={ownerCardId}
+      maxExpandedChildren={maxVisibleRows}
+      forceStripInlineColors={forceStripInlineColors}
     />
   )
 

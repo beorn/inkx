@@ -308,6 +308,93 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     }
   })
 
+  it("inline code in a selected embedded card inherits the card background", async () => {
+    const nodes = [
+      ...item("board", item("col1", item.link("agent-host-l5", "Sigil-board agent dispatch"))),
+      ...item(
+        "source-root",
+        item(
+          "source-col",
+          item.file(
+            "Sigil-board agent dispatch",
+            item("Build the `@agent` + `@agent/0..9` hat scheme"),
+            item("The design", item("Hats = files at `@agent.md`")),
+          ),
+        ),
+      ),
+    ]
+
+    using app = createTestApp(nodes, { cols: 100, rows: 24 })
+    if (process.env.TEST_BACKEND === "termless") {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    app.expect('[id="agent-host-l5"][data-cursor]').toExist()
+
+    const rowBox = app.screen.nodeBox("Build the `@agent` + `@agent/0..9` hat scheme")
+    expect(rowBox).not.toBeNull()
+    if (!rowBox) return
+
+    const row = app.screen.row(rowBox.y)
+    const proseIdx = row.indexOf("Build")
+    const codeIdx = row.indexOf("@agent")
+    expect(proseIdx, "prose text should be visible").toBeGreaterThan(-1)
+    expect(codeIdx, "inline code text should be visible").toBeGreaterThan(-1)
+
+    const expectedBg = app.screen.cell(proseIdx, rowBox.y).bg
+    for (let x = codeIdx; x < codeIdx + "@agent".length; x++) {
+      const cell = app.screen.cell(x, rowBox.y)
+      expect(cell.bg, `embedded card inline code bg at (${x},${rowBox.y}) should inherit surrounding bg`).toEqual(
+        expectedBg,
+      )
+      expect(cell.bg, `embedded card inline code bg at (${x},${rowBox.y}) should not keep code chip bg`).not.toEqual(
+        TC["$bg-muted"],
+      )
+    }
+  })
+
+  it("inline code in cards under a selected column inherits the column background", async () => {
+    const nodes = item(
+      "board",
+      item(
+        "col1",
+        item(
+          "Sigil-board agent dispatch",
+          item("Build the `@agent` + `@agent/0..9` hat scheme"),
+          item("The design", item("Hats = files at `@agent.md`")),
+        ),
+      ),
+    )
+
+    using app = createTestApp(nodes, { cols: 100, rows: 24 })
+    if (process.env.TEST_BACKEND === "termless") {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    app.press("k")
+    app.expect('[id="col1"][data-cursor]').toExist()
+
+    const rowBox = app.screen.nodeBox("Build the `@agent` + `@agent/0..9` hat scheme")
+    expect(rowBox).not.toBeNull()
+    if (!rowBox) return
+
+    const row = app.screen.row(rowBox.y)
+    const proseIdx = row.indexOf("Build")
+    const codeIdx = row.indexOf("@agent")
+    expect(proseIdx, "prose text should be visible").toBeGreaterThan(-1)
+    expect(codeIdx, "inline code text should be visible").toBeGreaterThan(-1)
+
+    const expectedBg = app.screen.cell(proseIdx, rowBox.y).bg
+    for (let x = codeIdx; x < codeIdx + "@agent".length; x++) {
+      const cell = app.screen.cell(x, rowBox.y)
+      expect(cell.bg, `column-selected inline code bg at (${x},${rowBox.y}) should inherit surrounding bg`).toEqual(
+        expectedBg,
+      )
+      expect(cell.bg, `column-selected inline code bg at (${x},${rowBox.y}) should not keep code chip bg`).not.toEqual(
+        TC["$bg-muted"],
+      )
+    }
+  })
+
   it("date range on selected card is black-on-yellow (not green/red)", () => {
     // Task with both scheduled and due date
     const today = new Date()

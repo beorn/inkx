@@ -9,10 +9,11 @@
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "@silvery/test"
+import { Text } from "@silvery/ag-react"
 import { parseInlineText, parseToPlainText, inlineNodesToPlainText, prettifyUrl } from "@km/text-render"
 import type { InlineNode } from "@km/text-render"
 import { stripKnownMentions } from "../../src/views/detail-pane-helpers.ts"
-import { InlineText } from "../../src/text/InlineComponents.tsx"
+import { InlineRenderProvider, InlineText } from "../../src/text/InlineComponents.tsx"
 import { item } from "../helpers/board-test.ts"
 import { createTestApp } from "../helpers/test-app.ts"
 
@@ -385,6 +386,37 @@ describe("inline rendering edge cases", () => {
 // =============================================================================
 
 describe("bareurl visible styling", () => {
+  it("parent stripInlineColors survives child contexts that leave it undefined", () => {
+    const render = createRenderer({ cols: 80, rows: 5 })
+    const app = render(
+      React.createElement(
+        InlineRenderProvider,
+        { value: { stripInlineColors: true } },
+        React.createElement(
+          Text,
+          null,
+          React.createElement(InlineText, {
+            text: "Build `codeword` now",
+            context: { stripInlineColors: undefined },
+          }),
+        ),
+      ),
+    )
+
+    const row = app.text.split("\n").findIndex((line) => line.includes("Build"))
+    expect(row).toBeGreaterThanOrEqual(0)
+    const line = app.text.split("\n")[row]!
+    const proseIdx = line.indexOf("Build")
+    const codeIdx = line.indexOf("codeword")
+    expect(proseIdx).toBeGreaterThanOrEqual(0)
+    expect(codeIdx).toBeGreaterThanOrEqual(0)
+
+    const proseBg = app.term.cell(proseIdx, row).bg
+    for (let x = codeIdx; x < codeIdx + "codeword".length; x++) {
+      expect(app.term.cell(x, row).bg).toEqual(proseBg)
+    }
+  })
+
   it("bareurl https://... renders with underline SGR (InlineText direct)", () => {
     // Before: UrlHoverBox had underline={false}, so bareurls read as plain
     // text in a slightly different color — the user couldn't tell they were

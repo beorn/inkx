@@ -22,7 +22,7 @@ import { extractWipLimits } from "@km/board"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
-import { parseToPlainText, InlineText } from "../text/index.ts"
+import { parseToPlainText, InlineRenderProvider, InlineText } from "../text/index.ts"
 import { displayLength } from "@km/text-render"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { composeRawEditContent } from "./tree-node-edit.tsx"
@@ -68,6 +68,24 @@ const ESTIMATED_CARD_HEIGHT = 4
  * estimated and actual heights during the measurement stabilization pass.
  */
 const OVERSCAN = 5
+
+function directChildOnPath(
+  repo: { getNode(id: string): KNode | null },
+  nodeId: string | null,
+  ancestorId: string,
+): string | null {
+  if (!nodeId || nodeId === ancestorId) return null
+  let childId = nodeId
+  let parentId = repo.getNode(childId)?.parent_id ?? null
+  let depth = 0
+  while (parentId && depth < 100) {
+    if (parentId === ancestorId) return childId
+    childId = parentId
+    parentId = repo.getNode(childId)?.parent_id ?? null
+    depth++
+  }
+  return null
+}
 
 /**
  * Maximum number of cards to render at once.
@@ -297,14 +315,6 @@ const Card = React.memo(
     const treeNode = useTreeNode(nodeId)
     const isCursorOnThis = useSignal(treeNode.cursor)
     const cursorInDescendant = useSignal(treeNode.cursorDescendant) as boolean
-    const isSelected = isCursorOnThis || cursorInDescendant
-
-    // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
-    const {
-      hoverBorderColor,
-      cardRectRef,
-      handlers: hoverHandlers,
-    } = useCardInteraction(nodeId, isSelected || isColSelected)
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
@@ -330,6 +340,21 @@ const Card = React.memo(
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
     // Also accounts for title wrap lines (long titles that wrap to 2 lines).
     const repo = useRepo()
+    const sel = useSel()
+    const cursorId = useSignal(sel.node.cursor) as string | null
+    const cursorRevealChildId = useMemo(
+      () => (card.embed_of ? directChildOnPath(repo, cursorId, card.embed_of) : null),
+      [repo, cursorId, card.embed_of],
+    )
+    const cursorInCardDescendant = cursorInDescendant || cursorRevealChildId !== null
+    const isSelected = isCursorOnThis || cursorInCardDescendant
+
+    // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
+    const {
+      hoverBorderColor,
+      cardRectRef,
+      handlers: hoverHandlers,
+    } = useCardInteraction(nodeId, isSelected || isColSelected)
     // Per-card child ID signal — re-derive children only when THIS card's children change,
     // not on every repo mutation. Uses useChildIdsSignal for per-card granularity.
     const store = useStore()
@@ -337,7 +362,10 @@ const Card = React.memo(
     const childIds = ResourceState.isLoaded(childIdsState) ? childIdsState.value : []
     const { treeConfig, taskStatusFilter } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id, childIds])
+    const rawChildren = useMemo(
+      () => repo.getChildren(card.embed_of ?? card.id),
+      [repo, card.id, card.embed_of, childIds],
+    )
     // Filter out collapsed children AND task-status-filtered children.
     // Must match TreeNode's filtering so overflow count reflects what's actually rendered.
     const children = useMemo(() => {
@@ -354,7 +382,7 @@ const Card = React.memo(
     // Must match TreeNode's shouldExpand logic — only expand when cursor is on a
     // descendant, not when cursor is on the card title itself.
     // cursorInDescendant is already read from treeNode above.
-    const isExpanded = cursorInDescendant || isEditing
+    const isExpanded = cursorInCardDescendant || isEditing
 
     const childCount = childCountProp ?? children.length
     // Match TreeNode's "+1 more" elimination: if exactly 1 would be hidden, show it instead.
@@ -426,7 +454,7 @@ const Card = React.memo(
       ? undefined
       : isCursorOnThis
         ? "$bg-selected"
-        : cursorInDescendant
+        : cursorInCardDescendant
           ? selectedBg(theme)
           : isNodeSelected
             ? multiSelectedBg(theme)
@@ -542,6 +570,8 @@ const Card = React.memo(
             compactContent
             hideChildCount
             maxRows={bodyMaxRows}
+            ownerCardId={card.id}
+            forceStripInlineColors={bodyBlockBg != null || isColSelected}
           />
         </Box>
       )
@@ -554,6 +584,7 @@ const Card = React.memo(
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const collapsedBorder =
         isSelected || isNodeSelected || isColSelected ? "$bg-selected" : (hoverBorderColor ?? "$border-muted")
+      const collapsedStripInlineColors = isSelected || isNodeSelected || isColSelected
       return (
         <Box
           data-view="card"
@@ -579,7 +610,9 @@ const Card = React.memo(
             })}
           >
             <Text color={!isSelected && !isNodeSelected ? "$muted" : undefined} wrap="truncate">
-              <InlineText text={collapsedTitleText} />
+              <InlineRenderProvider value={{ stripInlineColors: collapsedStripInlineColors }}>
+                <InlineText text={collapsedTitleText} />
+              </InlineRenderProvider>
               {childCount > 0 ? ` ··· ${childCount}` : " ···"}
             </Text>
           </Box>
@@ -603,7 +636,7 @@ const Card = React.memo(
       ? undefined
       : isCursorOnThis
         ? "$bg-selected"
-        : cursorInDescendant
+        : cursorInCardDescendant
           ? selectedBg(theme)
           : isNodeSelected
             ? multiSelectedBg(theme)
@@ -629,6 +662,7 @@ const Card = React.memo(
         : isSelected || isNodeSelected
           ? "$bg-selected"
           : (hoverBorderColor ?? defaultBorder)
+    const stripInlineSurface = cardBg != null || isColSelected || isBoardLevel
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
       // Inner width excludes the 2 border columns (left + right)
@@ -671,6 +705,9 @@ const Card = React.memo(
               extraExcludedSigils={extraExcludedSigils}
               hideChildCount
               maxExpandedChildren={baseMax}
+              cursorRevealChildId={cursorRevealChildId}
+              ownerCardId={card.id}
+              forceStripInlineColors={stripInlineSurface}
             />
           </Box>
           <Box width={width} height={1} flexShrink={0} backgroundColor={cardBg}>
@@ -712,6 +749,9 @@ const Card = React.memo(
           extraExcludedSigils={extraExcludedSigils}
           hideChildCount
           maxExpandedChildren={baseMax}
+          cursorRevealChildId={cursorRevealChildId}
+          ownerCardId={card.id}
+          forceStripInlineColors={stripInlineSurface}
         />
       </Box>
     )
