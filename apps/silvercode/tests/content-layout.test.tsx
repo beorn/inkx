@@ -242,7 +242,8 @@ function colorKey(value: unknown): string {
 
 function termCellStyleKey(term: ReturnType<typeof createTermless>, row: number, col: number): string {
   const cell = term.cell(row, col)
-  return `${colorKey(cell.fg)}|${colorKey(cell.bg)}|${cell.inverse ? "inverse" : ""}`
+  const inverse = "inverse" in cell && cell.inverse === true
+  return `${colorKey(cell.fg)}|${colorKey(cell.bg)}|${inverse ? "inverse" : ""}`
 }
 
 function backgroundRunWidth(app: ReturnType<typeof renderList>, row: number, col: number): number {
