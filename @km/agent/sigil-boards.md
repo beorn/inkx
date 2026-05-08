@@ -12,19 +12,21 @@ parent: "@km/agent"
 
 # [ ] Sigil-board agent dispatch — @agent/0..9 + /claim + /do #epic #P2
 
-Build the `@agent` + `@agent/0..9` sigil-board scheme for assigning bead work to agent persona slots, claimable as locks, with `/claim` + `/do` skills that compose with `/loop` for continuous work.
+Build the `@agent` + `@agent/0..9` hat scheme for assigning bead work to
+claimable locks, with `/claim` + `/do` skills that compose with `/loop` for
+continuous work.
 
 ## The design (in one breath)
 
 Use km's existing sigil + board + rules-engine primitives, plus silvercode as the default runtime:
 
-- **Boards = files at `@agent.md` + `@agent/0..9.md`** (vault root, sibling to `@km/`). 10 numeric slots; persona definition lives in the slot's body + frontmatter.
+- **Hats = files at `@agent.md` + `@agent/0..9.md`** (vault root, sibling to `@km/`). 10 numeric hats; any agent can pick up a hat and wear it for a session. Numeric hat files stay lean: H1 rule, Queue heading, and backlog embeds only.
 - **Assignment = sigil mention.** Adding `@agent/3` (or equivalently `[[@agent/3]]`) to a bead title lands `km:@agent/3` in the canonical `links` table.
-- **Per-slot queue = query first, materialized board second.** `km bd query @agent/N` is the source of truth. If `@agent/N.md` should persist a readable queue, its H1 carries `km.add:: .` and a child queue heading carries `km.default:: true`; sync evaluates that rule and materializes `![[<bead>]]` embeds into the default section. Backlinks alone never write into the slot file.
-- **Claim = bead claim at the board level.** `km bd update @agent/3 --claim` sets assignee + status=wip on the slot. Acts as a lock; one session per slot. The body content of the claimed board becomes the session's persona context.
-- **`/do` = "work the highest-priority embed from any slot I've claimed."** Compose with `/loop` for continuous mode.
-- **`km agent spawn @agent/N` = thin orchestrator** — claim slot, compose session brief (persona body + queue + env vars), launch agent (default `silvercode`). Agent-agnostic by design; silvercode is the canonical km-aware harness, alternatives via `--agent`. No silvercode-specific code in `km agent spawn`.
-- **Tribe notifications at every transition** — `/claim`, `/do` bead-pick, bead-close, `km agent spawn`, slot-release all broadcast on tribe so the chief and peers can see "who's on which slot, working what" without polling.
+- **Per-hat queue = query first, materialized board second.** `km bd query @agent/N` is the source of truth. If `@agent/N.md` should persist a readable queue, its H1 carries `km.add:: .` and a child queue heading carries `km.default:: true`; sync evaluates that rule and materializes `![[<bead>]]` embeds into the default section. Backlinks alone never write into the hat file.
+- **Claim = bead claim at the hat level.** `km bd update @agent/3 --claim` sets assignee + status=wip on the hat and implies ownership of worktree `wt3`. Acts as a lock; one session per hat.
+- **`/do` = "work the highest-priority bead from any hat I've claimed."** Compose with `/loop` for continuous mode.
+- **`km agent spawn @agent/N` = thin orchestrator** — claim hat, set env vars (`KM_AGENT_SLOT=@agent/N`, `KM_AGENT_WORKTREE=wtN`, `KM_VAULT_ROOT`), launch agent (default `silvercode`). Agent-agnostic by design; silvercode is the canonical km-aware harness, alternatives via `--agent`. No silvercode-specific code in `km agent spawn`.
+- **Tribe notifications at every transition** — `/claim`, `/do` bead-pick, bead-close, `km agent spawn`, hat-release all broadcast on tribe so the chief and peers can see "who's wearing which hat, working what" without polling.
 
 ## Why this is the right design
 
@@ -32,7 +34,11 @@ It composes existing primitives — nothing new is invented:
 
 ![[silvercode-squad-mode#Bead]]
 
-The "10 slots" cap forces persona discipline (no proliferation). The parent-child structure (`@agent` parent of `@agent/N`) gives both per-persona views and a unified "all agent work" view.
+The "10 hats" cap keeps generic concurrency small. The parent-child structure
+(`@agent` parent of `@agent/N`) gives both per-hat views and a unified "all
+agent work" view. If we later want a personified/specialized agent, create a
+named hat such as `@agent/silvercode-expert` plus an associated worktree; do not
+turn a numeric hat into a persona document.
 
 ## Implementation gaps (the actual work)
 
@@ -44,7 +50,7 @@ Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 | Bare @agent/0 (sigil in title) → no entry in links table                       | ❌ Bug — klink.md says it should produce km:@agent/0                                                                |
 | bd list @agent rolls up @agent-mentioning beads                                | ✅ Works (via data.mentions parallel field — being deprecated separately)                                           |
 | bd list @agent/0 rolls up @agent/0-mentioning beads                            | ❌ Doesn't work — depends on the bare-sigil-with-path fix above; persisted board files additionally need `km.add` |
-| @agent/N.md board files have `km.add:: .` on H1 and `km.default:: true` Queue | ❌ Need to be authored if persisted slot boards are desired                                                        |
+| @agent/N.md board files have `km.add:: .` on H1 and `km.default:: true` Queue | ✅ Numeric hats now have lean rule + Queue scaffolds                                                               |
 | `km.add` query supports the shape needed (mention:@agent/3 or equivalent)     | ❓ Needs verification                                                                                               |
 | bd update @agent/N --claim is race-safe across sessions                        | ❓ Today's --claim does read-then-write; needs DB-side compare-and-swap (UPDATE ... WHERE assignee IS NULL)         |
 | Board-level claim respects the existing 20-min agent / 24h user lease          | ❓ Verify; document if needed                                                                                       |
@@ -60,15 +66,15 @@ Phase 1 — substrate fixes (foundational):
 
 Phase 2 — scaffold (depends on Phase 1):
 
-- [x] **Scaffold `@agent.md` + `@agent/0..9.md`** — landed via commit `33245818f`. 11 markdown files at vault root. Current contract: a slot board only persists queue embeds if its H1 carries `km.add:: .` and a queue section carries `km.default:: true`; otherwise `km bd query @agent/N` remains the queue source of truth. Starter personas: 0=generalist, 1=silvery-engineer (`vendor/silvery`, `@km/silvery`), 2=silvercode-engineer (`apps/silvercode`, `@km/silvercode`), 3=bd/cli-engineer (`apps/km-cli`, `packages/km-beads`, `@km/cli`, `@km/beads`, `@km/bd-compat`); 4-9 open. `.gitignore` extended with `!@agent.md` negation so the parent file isn't caught by the `@*.md` test-artifact rule.
+- [x] **Scaffold `@agent.md` + `@agent/0..9.md`** — landed via commit `33245818f`; simplified later to lean numeric hats. Current contract: a numeric hat board persists queue embeds only if its H1 carries `km.add:: .` and a queue section carries `km.default:: true`; otherwise `km bd query @agent/N` remains the queue source of truth. Numeric hats carry no persona/frontmatter/scope text.
 
 Phase 3 — skills + spawn orchestrator (depends on Phase 2):
 
-- [x] **`/claim` skill** at `.claude/skills/claim/SKILL.md` — landed via commit `33245818f`. Wraps `km bd update @agent/<N> --claim`, reads the slot's body content into session context as a `<persona>...</persona>` envelope, **broadcasts `tribe.send: claimed @agent/<N> — <persona> — <session>`** after the CAS succeeds. On lock failure, surfaces holder + lease expiry. (CAS lands when Phase 1.3 agent completes; today's read-then-write claim is the interim path.)
-- [x] **`/do` skill** at `.claude/skills/do/SKILL.md` — landed via commit `33245818f`. For each `@agent/N` the session has claimed, reads the materialized embed-list, picks the top-priority bead (priority desc → path-form id asc tiebreak), claims, presents/auto-executes, closes. **Tribe notifications:** on bead-pick `working @km/<scope>/<slug> — <title> (slot @agent/<N>)`, on close `closed @km/<scope>/<slug> — <reason>`. Composable with `/loop`.
+- [x] **`/claim` skill** at `.claude/skills/claim/SKILL.md` — wraps `km bd update @agent/<N> --claim`, treats `@agent/N` as a hat, verifies the hat board stays lean, and broadcasts after CAS succeeds. Claiming `@agent/N` also claims worktree `wtN`.
+- [x] **`/do` skill** at `.claude/skills/do/SKILL.md` — for each claimed hat, reads `km bd query @agent/N`, picks the top-priority bead (priority desc → path-form id asc tiebreak), claims, presents/auto-executes, closes. **Tribe notifications:** on bead-pick `working @km/<scope>/<slug> — <title> (slot @agent/<N>)`, on close `closed @km/<scope>/<slug> — <reason>`. Composable with `/loop`.
 - [x] **`km agent spawn @agent/<N>` orchestrator** — landed via commit `a7c12567d`. Three-step launcher: claim → compose brief → launch agent. Default `--agent silvercode`; alternatives `claude` (active), `pi` / `headless-acp` (TODO stubs). Cleanup wrapper handles SIGINT (130) / SIGTERM (143) / child exit; tribe broadcasts at every transition. `--dry-run` prints the brief + planned exec without claiming or spawning. Stop-gap claim path piggybacks on `planClaim` until `repo.tryClaim` CAS lands (Phase 1.3 in-flight). Legacy `km agent spawn <name>` path preserved for non-slot refs. 11 tests, 0 non-vendor tsc errors.
-  1. **Claim the slot** via the Phase-1 CAS. On failure, print holder + exit. On success, **broadcast `tribe.send: spawned @agent/<N> agent=<agent> pid=<X>`**.
-  1. **Compose the session brief** — concatenate persona body (the slot's `.md` body) + materialized embed-list (the queue) + env vars (`TRIBE_NAME=@agent/<N>`, `KM_AGENT_SLOT=@agent/<N>`, `KM_VAULT_ROOT`). Write to a temp file `system-prompt-<N>.md`.
+  1. **Claim the hat** via the Phase-1 CAS. On failure, print holder + exit. On success, **broadcast `tribe.send: spawned @agent/<N> agent=<agent> pid=<X>`**.
+  1. **Compose the session env** — set `TRIBE_NAME=@agent/<N>`, `KM_AGENT_SLOT=@agent/<N>`, `KM_AGENT_WORKTREE=wt<N>`, and `KM_VAULT_ROOT`. The queue comes from `km bd query @agent/N`; the hat file is not a persona prompt.
   1. **Launch the agent** — `--agent silvercode` (default), `--agent claude`, `--agent pi`, `--agent headless-acp`. Spawn the configured binary with `--system-prompt-file <temp>` (or agent-equivalent flag). Wrapper catches SIGTERM / process exit and releases the claim with `tribe.send: released @agent/<N> (exit=<code>)`.
   - **silvercode is the default agent** because it's the canonical km-aware agent harness — already speaks ACP, has `/claim` and `/do` skills available, and reads markdown system prompts natively. No silvercode-specific code in `km agent spawn`; the contract is just "system-prompt-file injection + env vars". Other agents integrate by implementing the same contract.
 
@@ -78,10 +84,10 @@ Phase 4 — cleanup (separate sweep, file as follow-up bead under `@km/markdown`
 
 ## Out of scope (defer; revisit when there's clear demand)
 
-- **Named slots** (`@agent/architect`, `@agent/reviewer`) beyond numeric — start numeric; the cap forces persona discipline. Add named slots only if 10 isn't enough.
-- **Multi-agent fanout on one persona** (`km agent fanout @agent/1 3` to spawn 3 workers on the same slot) — needs queue partitioning. Defer.
-- **Persona auto-suggest** (given a bead, propose which slot fits best by `scope_fit` match) — defer; manual assignment first.
-- **silvercode-specific spawn integration** (custom IPC, side-channel hooks) — `km agent spawn` stays agent-agnostic. silvercode is the *default* agent, not a baked-in dependency. If silvercode wants richer integration (e.g., live persona-body re-injection on edit), that's a feature on the silvercode side reading `KM_AGENT_SLOT` env, not a coupling in `km agent spawn`.
+- **Named hats** (`@agent/silvercode-expert`, `@agent/reviewer`) beyond numeric — add when we actually want a personified/specialized agent, and create the associated worktree at the same time.
+- **Multi-agent fanout on one hat** (`km agent fanout @agent/1 3` to spawn 3 workers on the same hat) — needs queue partitioning. Defer.
+- **Hat auto-suggest** (given a bead, propose which hat fits best) — defer; manual assignment first.
+- **silvercode-specific spawn integration** (custom IPC, side-channel hooks) — `km agent spawn` stays agent-agnostic. silvercode is the *default* agent, not a baked-in dependency. If silvercode wants richer integration, that's a feature on the silvercode side reading `KM_AGENT_SLOT` / `KM_AGENT_WORKTREE` env, not a coupling in `km agent spawn`.
 
 ## Canonical model — load before changing this work
 

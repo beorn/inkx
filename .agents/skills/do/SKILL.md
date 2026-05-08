@@ -1,20 +1,32 @@
 ---
-description: Pick and work the highest-priority bead from any @agent/N slot you've claimed, OR work specific beads passed as args. Composes with /loop for continuous mode. Tribe-broadcasts on bead-pick and bead-close.
+description: Pick and work the highest-priority bead from any @agent/N hat you've claimed, OR work specific beads passed as args. Composes with /loop for continuous mode. Tribe-broadcasts on bead-pick and bead-close.
 argument-hint: "[<bead-id>...] [--once]   (no args: pick from queue; with bead args: work those beads in order)"
 allowed-tools: Bash, Read, Edit, Write, Task, TodoWrite
 ---
 
-# /do — work the next bead from your claimed slots (or specific beads)
+# /do — work the next bead from your claimed hats (or specific beads)
 
-**Keywords**: do, work, next, queue, agent, persona, dispatch, bead
+**Keywords**: do, work, next, queue, agent, slot, dispatch, bead
 
 The bead-execution primitive. Two modes:
-- **Queue mode (no args)** — reads the materialized embed-list from every `@agent/N` slot you've claimed, picks the top-priority bead, claims it, and starts implementing.
-- **Direct mode (bead args)** — claims each named bead's lease (`assignee`) in order and works them. Skips the queue-rank step. Useful when you want to work a specific bead without queue-assigning it permanently to a persona slot.
+- **Queue mode (no args)** — queries every `@agent/N` hat you've claimed, picks the top-priority bead, claims it, and starts implementing.
+- **Direct mode (bead args)** — claims each named bead's lease (`assignee`) in order and works them. Skips the queue-rank step. Useful when you want to work a specific bead without queue-assigning it permanently to a hat.
 
 Both modes compose with `/loop` for continuous mode (queue mode runs until the queue empties; direct mode runs until the arg list empties).
 
 See `@km/agent/sigil-boards` (epic) for the full design. **Queue mode requires** at least one slot claimed via `/claim` first; direct mode does not (the bead lease is independent of slot membership).
+
+Hat files are deliberately lean. Do not parse persona text from `@agent/N.md`,
+and do not add frontmatter, descriptions, scope hints, or working agreements to
+hat files. A hat board should contain only:
+
+```markdown
+# @agent/N km.add:: .
+
+## Queue km.default:: true
+
+![[queued-bead]]
+```
 
 ## Usage
 
@@ -29,7 +41,7 @@ See `@km/agent/sigil-boards` (epic) for the full design. **Queue mode requires**
 ```
 
 **Queue mode vs direct mode**:
-- **Queue mode** assumes you want to drain a persona's backlog. The queue is the slot's `![[<bead>]]` embed list, populated by `rules.add` materialization from beads with the slot mention.
+- **Queue mode** assumes you want to drain a hat backlog. The queue source of truth is `km bd query @agent/N`; any `![[<bead>]]` embed list in `@agent/N.md` is only the persisted debug view populated by `km.add:: .`.
 - **Direct mode** is "I have a specific bead, work it now". The bead does NOT get queue-assigned (no mention written) — only its lease (`assignee`) is taken. After close the bead is fully released; nothing persists in any slot's queue.
 
 If you want the bead to also live permanently in the slot's queue, use `/claim @agent/N <bead>` (which writes the mention) BEFORE `/do <bead>`. Or just `/claim @agent/N <bead>` alone and let `/do` (queue mode) pick it up next.
@@ -68,19 +80,23 @@ km bd list --status wip --assignee me --json --limit 500 \
 
 There is no stable `km whoami` command in the current CLI. Do not invent one in scripts. If ownership is ambiguous, stop and ask rather than draining another session's queue.
 
-If zero slots are claimed: **stop**. Tell the user "no slots claimed — run `/claim @agent/<N>` first." Don't guess a slot.
+If zero hats are claimed: **stop**. Tell the user "no hats claimed — run `/claim @agent/<N>` first." Don't guess a hat.
 
 ### 2. Read each slot's queue
 
-The canonical queue read is a normal bd query for beads that mention the slot:
+The canonical queue read is a normal bd query for beads that mention the hat:
 
 ```bash
 km bd query @agent/<N>
 ```
 
-Exclude the slot bead itself from work candidates. If the query returns only `@agent/<N> — ...`, the queue is empty.
+Exclude the hat bead itself from work candidates. If the query returns only `@agent/<N> — ...`, the queue is empty.
 
-The markdown board body is a debug view, not the source you should parse first. If `cat @agent/<N>.md` shows repeated non-work embeds such as `![[sigil-boards]]` or `![[@agent]]`, treat that as broken materialization state and report it; do not fall back to global `km bd ready`.
+The markdown board body is a debug view, not the source you should parse first.
+If `cat @agent/<N>.md` shows repeated non-work embeds such as
+`![[sigil-boards]]`, `![[@agent]]`, persona text, frontmatter, or scope hints,
+treat that as board drift and report/clean it; do not fall back to global
+`km bd ready`.
 
 ### 3. Rank candidates
 
@@ -123,7 +139,8 @@ The bead's body has the description, acceptance criteria, and any sub-tasks. App
 - **Task** → load `.claude/skills/pm/workflows/tasks.md`
 - **Epic with sub-task checklist** → walk the `- [ ]` items inline; close each as you complete it; close the epic when all checked
 
-Honor the persona's working agreement (read from your claimed slot's body). E.g., `@agent/1` (silvery-engineer) requires STRICT tests before pipeline changes.
+Honor repository steering from `AGENTS.md`, `CLAUDE.md`, package-local docs, and
+the bead itself. The hat board is not a persona prompt.
 
 ### 7. Close the bead
 
@@ -172,17 +189,21 @@ If the claim fails (race): stop and report — don't auto-fall-through to the ne
 tribe.send(to="*", message="working <bead-id> — <title> (direct mode)")
 ```
 
-Direct mode does NOT mention which slot you're in — the bead isn't queue-assigned to any slot. If you have a slot claimed and want to honor its working agreement, do so by reading your claimed slot's body for context, but the bead itself isn't bound to that slot.
+Direct mode does NOT mention which slot you're in — the bead isn't queue-assigned to any slot.
 
 ### 4. Implement + close
 
-Same as queue mode steps 6–7. Apply the appropriate workflow (bug / feature / task / epic), honor any persona working agreement from your claimed slot, close with verification SHA and reason.
+Same as queue mode steps 6–7. Apply the appropriate workflow (bug / feature /
+task / epic), close with verification SHA and reason.
 
 ### 5. Loop (only when invoked via `/loop /do <beads>`)
 
 Move to the next bead in the arg list. Loop terminates when the arg list is empty or any single bead's claim fails.
 
-**Direct mode + scope_fit**: if you have `@agent/N` claimed and the bead's path doesn't match the slot's `scope_fit`, print a warning but proceed — the user named the bead explicitly, so don't block. Use `/claim @agent/N <bead>` (the queue-assign path) if you want scope-fit enforcement.
+**Direct mode + hat fit**: the hat file carries no `scope_fit`. Use the bead
+path, current user request, and repository steering to decide whether the work
+belongs in this session. If the user named the bead explicitly, don't block on a
+missing hat taxonomy.
 
 ## Composing with /loop
 
@@ -196,13 +217,13 @@ For pace control under cost concerns, use `/loop --interval=300 /do` to throttle
 
 ## What `/do` is NOT
 
-- **Not a multi-agent orchestrator** — for spawning multiple personas in parallel, use `km agent spawn @agent/<N>` from a shell.
+- **Not a multi-agent orchestrator** — for spawning multiple workers in parallel, use `km agent spawn @agent/<N>` from a shell.
 - **Not silent** — every bead-pick and bead-close broadcasts on tribe so coordination is observable.
 - **Direct mode does NOT queue-assign** — passing a bead to `/do` claims its lease for this session and closes it. The bead does not gain an `@agent/N` mention. If you want it to live in the slot's queue durably, use `/claim @agent/N <bead>`.
 
 ## See also
 
-- `/claim` — required preceding step (claim one or more `@agent/N` slots)
+- `/claim` — required preceding step (claim one or more `@agent/N` hats)
 - `km agent spawn @agent/<N>` — out-of-process variant
 - `@agent.md` — parent board, lists all slots
 - `@km/agent/sigil-boards` — design + tracking

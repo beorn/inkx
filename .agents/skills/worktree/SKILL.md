@@ -7,34 +7,38 @@ benefits-from: [beads, max, merge]
 
 # Worktree — pool model + concurrency discipline
 
-**Keywords**: worktree, pool, slot, wt1, wt2, claim, release, isolation, concurrent agents, branch hopping, parallel work
+**Keywords**: worktree, pool, hat, slot, wt0, wt1, wt2, claim, release, isolation, concurrent agents, branch hopping, parallel work
 
 The single source of truth for worktree/branch/concurrency rules in this repo. Other skills (`/max`, `/merge`, `/refactor`, `/complete`) link here instead of duplicating.
 
 ## TL;DR
 
 - **Main repo's working directory stays on `main`. Always.** No `git checkout <feature>` in the main repo.
-- **Conflict-prone work goes in a pool slot.** 9 persistent slots: `.claude/worktrees/wt1`..`wt9`, each on stable branch `wtN`.
-- **One agent = one worktree.** Lease bead `@agent/N` is the single lock for both the persona slot AND worktree `wtN`. Claim → work → push → release. Bounded concurrency, visible contention via `km bd list`.
+- **Conflict-prone work goes in a pool slot.** 10 persistent slots: `.claude/worktrees/wt0`..`wt9`, each on stable branch `wtN`.
+- **One hat = one worktree.** Lease bead `@agent/N` is the single lock for both the hat AND worktree `wtN`. Claim → work → push → release. Bounded concurrency, visible contention via `km bd list`.
 - **Localized changes in main are fine** for multiple agents on different files — no per-task branches needed.
 - **Read-only / search / diagnosis agents always belong in main.**
 
 ## The pool
 
 ```
+.claude/worktrees/wt0/    on branch wt0   ← lease bead @agent/0
 .claude/worktrees/wt1/    on branch wt1   ← lease bead @agent/1
 .claude/worktrees/wt2/    on branch wt2   ← lease bead @agent/2
 ...
 .claude/worktrees/wt9/    on branch wt9   ← lease bead @agent/9
 ```
 
-Slots are **persistent** — never created/destroyed per task, always checked out, always present. Agents *move in*, do their work, *move out*; the slot persists for the next claim. The 9 slot beads are children of the `@agent` parent board.
+Slots are **persistent** — never created/destroyed per task, always checked out,
+always present. Agents *move in*, do their work, *move out*; the slot persists
+for the next claim. The 10 numeric hat beads are children of the `@agent`
+parent board.
 
 ## Claim → work → release protocol
 
 ```bash
-# 1. Claim a free slot via /claim @agent/N (try lowest open id)
-#    This claims the persona AND the matching worktree wtN — one lease bead, both locks.
+# 1. Claim a free hat via /claim @agent/N (try lowest open id)
+#    This claims the hat AND the matching worktree wtN — one lease bead, both locks.
 km bd update @agent/N --claim
 # (if assignee already set + lease unexpired, slot is busy — pick another)
 
@@ -61,7 +65,7 @@ git fetch origin
 git reset --hard origin/main
 git submodule update --recursive
 cd $(git rev-parse --show-toplevel)   # back to main repo
-km bd update @agent/N --assignee "" --status open   # release single lease for persona + worktree
+km bd update @agent/N --assignee "" --status open   # release single lease for hat + worktree
 ```
 
 The slot is now free for the next claim. Don't delete the directory or branch — recycle in place.
@@ -80,7 +84,7 @@ The slot is now free for the next claim. Don't delete the directory or branch �
 
 The default for /max should be: **claim a pool slot and spawn the agent into it**, not ephemeral isolation. Use `isolation: "worktree"` only when:
 
-- All 9 pool slots are claimed (rare under normal workflow)
+- All 10 pool slots are claimed (rare under normal workflow)
 - You explicitly want a throwaway clone that auto-cleans up post-finish
 - The work is so short-lived that pool churn isn't worth it (sub-second one-shots — but those usually don't need isolation at all)
 
@@ -134,7 +138,7 @@ git fetch origin
 git reset --hard origin/main
 git submodule update --recursive
 
-# Release the lease (single bead releases both persona + worktree)
+# Release the lease (single bead releases both hat + worktree)
 cd "$(git rev-parse --show-toplevel)"
 km bd update @agent/N --assignee "" --status open
 # Optional: leave a closure note on the integrated bead
@@ -168,7 +172,7 @@ The pool reframe: instead of "every agent makes a new worktree" (high spawn cost
 
 ## Pairs with
 
-- `/beads` — the lease beads + canonical bead workflow
+- `/beads` — the hat lease beads + canonical bead workflow
 - `/max` — spawning concurrent agents (uses pool slots)
 - `/merge` — drain WIP back to origin/main
 - `/refactor` — phased refactors that may use multiple slots

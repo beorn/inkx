@@ -1,18 +1,39 @@
 ---
-description: Claim an @agent/N persona slot. Sets assignee + status=wip via DB-side CAS, reads slot body into session context as <persona> envelope, broadcasts on tribe. Optional trailing bead IDs queue-assign those beads to the slot. Required before /do.
+description: Claim an @agent/N hat. Sets assignee + status=wip via DB-side CAS, optionally queue-assigns beads to the hat, and broadcasts on tribe. Required before /do.
 argument-hint: "@agent/<N> [<bead-id>...]  (e.g. /claim @agent/3, or /claim @agent/1 @km/silvery/test-harness-via-run-not-createrenderer)"
 allowed-tools: Bash, Read, Edit
 ---
 
-# /claim — claim an @agent/N persona slot (optionally queue-assign beads)
+# /claim — claim an @agent/N hat (optionally queue-assign beads)
 
-**Keywords**: claim, agent, persona, slot, assign, lock, queue
+**Keywords**: claim, agent, hat, slot, assign, lock, queue
 
-The agent-dispatch primitive. Each `/claim @agent/N` acquires a persona slot via race-safe DB-side compare-and-swap, then loads the slot's body into session context. Required before `/do` — without a claimed slot, there's no queue to work.
+The agent-dispatch primitive. Each `/claim @agent/N` acquires a hat via
+race-safe DB-side compare-and-swap. Required before `/do` queue mode — without
+a claimed hat, there's no slot queue to work.
 
-Trailing bead-id args **queue-assign** those beads to the claimed slot by writing an `@agent/N` mention into each bead body. The slot's existing materialization rule then auto-picks them into the queue on next sync.
+An `@agent/N` hat is just the claimable pair `@agent/N` + worktree `wtN`. Any
+agent can pick it up, wear it for a session, and release it. The hat file is not
+a persona prompt.
+
+If we want a personified/specialized agent later, create a named hat such as
+`@agent/silvercode-expert` with its own associated worktree. Do not encode that
+persona inside one of the generic numeric hats.
+
+Trailing bead-id args **queue-assign** those beads to the claimed hat by writing an `@agent/N` mention into each bead body. The hat's existing materialization rule then auto-picks them into the queue on next sync.
 
 See `@km/agent/sigil-boards` (epic) for the full design.
+
+Hat files are deliberately lean. Do not add frontmatter, persona descriptions,
+scope hints, or working agreements to `@agent/N.md`. The expected shape is:
+
+```markdown
+# @agent/N km.add:: .
+
+## Queue km.default:: true
+
+![[queued-bead]]
+```
 
 ## Usage
 
@@ -25,15 +46,19 @@ See `@km/agent/sigil-boards` (epic) for the full design.
                                             # claim slot 1 + queue-assign two beads
 ```
 
-You can claim multiple slots in one session if you intend to work multiple personas — `/do` will pick the highest-priority bead across ALL claimed slots.
+You can claim multiple hats in one session if you intend to drain multiple
+queues — `/do` will pick the highest-priority bead across ALL claimed hats.
 
 **Two distinct mechanics, no overlap**:
-- **Slot claim** = lease lock on `@agent/N` (frontmatter `assignee`, TTL'd) — also locks the matching worktree `.claude/worktrees/wtN/` because **one agent = one worktree**
+- **Hat claim** = lease lock on `@agent/N` (assignee/status metadata, TTL'd) — also locks the matching worktree `.claude/worktrees/wtN/` because **one hat = one worktree**
 - **Queue-assign** = persistent mention `@agent/N` in bead body (queue membership)
 
-Don't conflate. `assignee` is the per-bead/per-slot lease; mentions are the queue placement.
+Don't conflate. `assignee` is the per-bead/per-hat lease; mentions are the queue placement.
 
-**One agent = one worktree.** `@agent/N` is the single lease bead for both the persona slot AND the worktree `wtN`. There is no separate `km-wtN` bead — claiming `@agent/N` IS claiming `wtN`. Releasing one releases the other.
+**One hat = one worktree.** `@agent/N` is the single lease bead for both the hat
+AND the worktree `wtN`. There is no separate `km-wtN` bead — claiming
+`@agent/N` IS claiming `wtN`. Releasing one releases the other. Named hats follow
+the same rule with an explicit associated worktree.
 
 ## What it does (up to five steps)
 
@@ -59,22 +84,21 @@ Today's lifecycle planner uses DB-side compare-and-swap (`@km/agent/sigil-boards
 - **Lease semantics**: 20 min for agent-shaped assignees (`claude:*`, `agent-spawn-*`), 24 h for user-shaped assignees. After lease expiry, anyone can re-claim.
 - **Self-reclaim is idempotent** — claiming a slot you already hold is a no-op success (refreshes the lease).
 
-### 2. Read the persona body
+### 2. Verify the slot board is lean
 
 ```bash
-cat @agent/<N>.md
+sed -n '1,80p' @agent/<N>.md
 ```
 
-The `<persona>...</persona>` body becomes session context. It includes:
-- Persona description (engineering style, expertise areas)
-- Working agreement (test-first rules, conventions for the slot)
-- The materialized queue (`![[bead]]` embeds — automatically populated by `rules.add` on sync)
-
-Wrap the body content in `<persona>...</persona>` tags when injecting into your context — this signals to downstream `/do` runs that you're operating under that persona's working agreement.
+It should contain only the H1 rule, the `Queue` default section, and optional
+`![[bead]]` embeds. If it contains frontmatter, persona text, scope hints, or
+working-agreement prose, clean it before proceeding. Do not wrap the hat body
+as a `<persona>` prompt; repository steering and the bead body provide the work
+context.
 
 ### 3. Refresh the matching worktree
 
-The `@agent/N` claim already locks worktree `wtN` (one agent = one worktree). Refresh it per the [worktree skill](../worktree/SKILL.md) so write work starts from a clean rebase:
+The `@agent/N` claim already locks worktree `wtN` (one hat = one worktree). Refresh it per the [worktree skill](../worktree/SKILL.md) so write work starts from a clean rebase:
 
 ```bash
 cd .claude/worktrees/wt<N>
@@ -83,7 +107,7 @@ git rebase origin/main
 git submodule update --recursive
 ```
 
-Subsequent write work happens in `.claude/worktrees/wt<N>/` on branch `wt<N>`. The persona `<scope_fit>` is enforced inside this worktree.
+Subsequent write work happens in `.claude/worktrees/wt<N>/` on branch `wt<N>`.
 
 If the worktree directory is missing (rare — should be persistent), recreate it:
 
@@ -93,7 +117,7 @@ git worktree add .claude/worktrees/wt<N> wt<N>
 
 ### 4. Queue-assign trailing bead args (optional)
 
-If the user passed `<bead-id>...` after `@agent/N`, append the slot mention to each bead's body so the slot's `rules.add` materialization picks them up on next sync.
+If the user passed `<bead-id>...` after `@agent/N`, append the slot mention to each bead's body so the slot's `km.add:: .` materialization picks them up on next sync.
 
 ```bash
 for bead in <bead-id...>; do
@@ -104,7 +128,10 @@ for bead in <bead-id...>; do
 done
 ```
 
-`--notes` appends a paragraph; the bare `@agent/<N>` token is recognized as a sigil mention by the markdown link extractor and lands in the canonical links table as `km:@agent/<N>`. The slot's materialization rule resolves that link and renders the bead as a `![[<bead>]]` embed in the slot body on next `km sync`.
+`--notes` appends a paragraph; the bare `@agent/<N>` token is recognized as a
+sigil mention by the markdown link extractor and lands in the canonical links
+table as `km:@agent/<N>`. The hat's `km.add:: .` rule resolves that link and
+renders the bead as a `![[<bead>]]` embed under `Queue` on next `km sync`.
 
 After queue-assigning beads, verify with the ordinary bd query surface:
 
@@ -115,26 +142,28 @@ km bd query @agent/<N>
 
 The `km bd agent ...` subgroup is for the older persisted-agent model, not `@agent/N` sigil boards. If `@agent/<N>.md` shows duplicate stale embeds or unrelated `![[sigil-boards]]` / `![[@agent]]` entries, treat that as board materialization drift and use `km bd query @agent/<N>` as the authoritative queue check.
 
-**Idempotent** — re-running `/claim @agent/N <bead>` on a bead already in the slot's queue is a no-op.
+**Idempotent** — re-running `/claim @agent/N <bead>` on a bead already in the hat's queue is a no-op.
 
-**Reject mismatched scope** — before writing the mention, check the bead's path against the slot's `scope_fit`. Example: `@agent/1` (silvery-engineer) has `scope_fit: [vendor/silvery, "@km/silvery"]`; assigning `@km/silvercode/foo` should print a warning and require an explicit `--force` (skip the warning if the user passed `--force`). Don't silently mis-place beads.
+There is no `scope_fit` in the hat file. If a queue assignment looks
+surprising, rely on the bead path and user intent; do not synthesize or write
+hat taxonomy into `@agent/N.md`.
 
 ### 5. Tribe broadcast
 
 ```bash
-bun vendor/bearly/tools/tribe-cli.ts send '*' "claimed @agent/<N> — <persona-name> — <session-name>"
+bun vendor/bearly/tools/tribe-cli.ts send '*' "claimed @agent/<N> — <session-name>"
 ```
 
 If beads were also queue-assigned, include them in the broadcast:
 
 ```bash
-bun vendor/bearly/tools/tribe-cli.ts send '*' "claimed @agent/<N> + queued <count> beads (<short-list>) — <persona-name> — <session-name>"
+bun vendor/bearly/tools/tribe-cli.ts send '*' "claimed @agent/<N> + queued <count> beads (<short-list>) — <session-name>"
 ```
 
 Or via the tribe MCP:
 
 ```
-tribe.send(to="*", message="claimed @agent/<N> — <persona-name> — <session>")
+tribe.send(to="*", message="claimed @agent/<N> — <session>")
 ```
 
 Lets the chief and peers see who's on which slot without polling.
@@ -156,13 +185,14 @@ Don't force-release a live session's slot without coordinating on tribe first.
 
 ## Releasing a slot
 
-When you're done with a persona for the session, release the slot — this releases both the persona AND the worktree (one agent = one worktree, one lease):
+When you're done with a hat for the session, release it — this releases both
+the hat AND the worktree (one hat = one worktree, one lease):
 
 ```bash
 # Reset the worktree to origin/main
 cd .claude/worktrees/wt<N> && git fetch origin && git reset --hard origin/main && git submodule update --recursive
 
-# Release the @agent/N lease (this is the single lease for both persona + worktree)
+# Release the @agent/N lease (this is the single lease for both hat + worktree)
 cd "$(git rev-parse --show-toplevel)"
 km bd update @agent/<N> --assignee "" --status open
 ```
@@ -174,7 +204,7 @@ The wrapper `km agent spawn` releases automatically on SIGTERM/exit; `/claim` fr
 ## See also
 
 - `@agent.md` — parent board with all 10 slots listed
-- `@agent/0..9.md` — individual slot definitions (persona + working agreement + queue)
+- `@agent/0..9.md` — lean slot queue boards
 - `/do` — work the highest-priority bead from claimed slots
 - `km agent spawn @agent/<N>` — out-of-process variant: claim + compose brief + exec the agent runtime
 - `@km/agent/sigil-boards` — design + tracking

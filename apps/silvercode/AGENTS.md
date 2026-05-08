@@ -47,14 +47,15 @@ empty or stale.
 Use ordinary bd commands for the slot-board model:
 
 ```bash
-km bd query @agent/3                    # queue membership for slot 3
-km bd list --status wip --assignee me   # claimed beads and persona slots
+km bd query @agent/3                    # queue membership for hat 3
+km bd list --status wip --assignee me   # claimed beads and hats
 ```
 
-`km bd query @agent/N` is the source of truth. A persisted `@agent/N.md` queue
-requires a rule, usually `# @agent/N km.add:: .` on the slot H1 plus
+`@agent/0..9` are hats: any agent can claim `@agent/N`, and that claim also
+owns worktree `wtN`. `km bd query @agent/N` is the source of truth. A persisted `@agent/N.md` queue
+requires a rule, usually `# @agent/N km.add:: .` on the hat H1 plus
 `## Queue km.default:: true` for initial placement; backlinks alone do not write
-embeds into the slot file.
+embeds into the hat file.
 
 The `km bd agent ...` subgroup is older persisted-agent plumbing; don't use it
 to inspect `@agent/N` slot boards.
