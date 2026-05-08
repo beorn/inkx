@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { createLogger } from "loggily"
-import type { AgentSession, MessageEntry, SessionStore } from "@km/agent-harness"
+import type { AgentEvent, AgentSession, SessionStore } from "@km/agent-harness"
 
 const appStartupLog = createLogger("silvercode:startup")
 const appBootT0 = (globalThis as { __SILVERCODE_BOOT_T0?: number }).__SILVERCODE_BOOT_T0 ?? Date.now()
@@ -58,10 +58,12 @@ import {
   type SplitDirection,
   swapLeaves,
 } from "./pane-layout.ts"
+import { normalizeAgentEventsToChatEvents } from "./chat/normalize-agent-event.ts"
+import type { ChatBlock } from "./chat/types.ts"
 
 type Layout = "single" | "grid-2" | "grid-4"
 
-// SessionUpdateList Shift+PageUp / Shift+PageDown step size (rows). 10 rows
+// ChatBlockList Shift+PageUp / Shift+PageDown step size (rows). 10 rows
 // matches roughly half a typical chat-pane viewport — large enough to
 // traverse history quickly, small enough that one PageUp doesn't
 // overshoot the user's reading position. ListView has no exposed
@@ -76,14 +78,26 @@ const SIDE_PANEL_WIDTH = 32
 // overlay, and lg+ opens inline by default.
 const SIDE_PANEL_OVERLAY_MIN_COLS = 90
 
-function hasConversationContent(messages: readonly MessageEntry[]): boolean {
-  return messages.some((m) => {
-    if (m.text.trim().length > 0) return true
-    return m.ops.some((op) => {
-      if (op.kind === "text" || op.kind === "thinking") return op.text.trim().length > 0
-      return true
-    })
+function hasConversationContent(events: readonly AgentEvent[], sessionId: string): boolean {
+  return normalizeAgentEventsToChatEvents(events, { sessionId }).some((event) => {
+    if (event.type !== "message.block.added") return false
+    return chatBlockHasConversationContent(event.payload.block)
   })
+}
+
+function chatBlockHasConversationContent(block: ChatBlock): boolean {
+  switch (block.type) {
+    case "text":
+    case "thought":
+      return block.text.trim().length > 0
+    case "attachment":
+    case "tool-ref":
+      return true
+    default: {
+      const _exhaustive: never = block
+      return _exhaustive
+    }
+  }
 }
 
 // Side panel responsive policy:
@@ -514,7 +528,7 @@ export function App(props: AppProps): React.ReactElement {
   // grid's internal dragRef.
   const paneGridRef = useRef<PaneGridHandle | null>(null)
 
-  // Registry of SessionUpdateList ListView handles, keyed by session id. Each
+  // Registry of ChatBlockList ListView handles, keyed by session id. Each
   // ChatPane registers its forwarded ListViewHandle here on mount via
   // the `onRegisterScrollList` callback threaded through PaneGrid →
   // LeafContainer → ChatPane. App-level Shift+Up/Down/PageUp/Down/
@@ -701,8 +715,8 @@ export function App(props: AppProps): React.ReactElement {
   // only changes when the user actually types a turn.
   // Bead: km-silvery.startup-layout-cascade (L3 trigger).
   const conversationStarted = useSyncExternalStore(
-    (cb) => (focused ? focused.store.state.subscribe(cb) : () => {}),
-    () => (focused ? hasConversationContent(focused.store.state.get().messages) : false),
+    (cb) => (focused ? focused.store.events.subscribe(cb) : () => {}),
+    () => (focused ? hasConversationContent(focused.store.events.get(), focused.id) : false),
   )
   const welcomeIsFocused = !conversationStarted
   const [welcomeSubmittedSessionIds, setWelcomeSubmittedSessionIds] = useState<ReadonlySet<string>>(() => new Set())
@@ -913,7 +927,7 @@ export function App(props: AppProps): React.ReactElement {
       if (lastCtrlDAt.current !== 0 && input.length > 0) {
         lastCtrlDAt.current = 0
       }
-      // ── App-level SessionUpdateList scroll bindings ──────────────────
+      // ── App-level ChatBlockList scroll bindings ──────────────────────
       // SessionPromptComposer owns keyboard focus by default and silvery's TextArea
       // consumes ArrowUp/ArrowDown/PageUp/PageDown — without an app-level
       // intercept the user has no way to scroll the update stream from
@@ -925,7 +939,7 @@ export function App(props: AppProps): React.ReactElement {
       //   Shift+Home                  → scrollToTop
       //   Shift+End                   → scrollToBottom (re-engages follow="end")
       //
-      // The bindings target the FOCUSED session's SessionUpdateList — multi-pane
+      // The bindings target the FOCUSED session's ChatBlockList — multi-pane
       // layouts route the keystroke to the pane the user is looking at.
       // Bead: km-silvercode.no-keyboard-scroll-from-command-box.
       if (key.shift && (key.upArrow || key.downArrow || key.pageUp || key.pageDown || key.home || key.end)) {

@@ -116,7 +116,7 @@ export type PaneGridProps = {
    * minimized its body is hidden — only the header row renders. */
   minimizedPaneIds?: ReadonlySet<string>
   /**
-   * Registration callback for each pane's SessionUpdateList ListViewHandle.
+   * Registration callback for each pane's ChatBlockList ListViewHandle.
    * App.tsx uses this to maintain a `Map<sessionId, ListViewHandle>` so
    * app-level Shift+Up/Down/PageUp/Down scroll bindings can reach the
    * focused pane's list — keyboard focus lives in the SessionPromptComposer by
