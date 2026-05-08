@@ -305,16 +305,17 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   }, [rootId, columnIds, visibleLensValue, storeCollapsedNodes, dispatchBoard])
 
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
-  // deriveCursorIndices walks up parent chain on miss via getNode.
+  // deriveCursorIndices walks up visible parent chain first, then storage parent chain.
   // Derived from the visible lens.
   const nodeIndex = useMemo(() => buildNodeIndexFromTree(visibleLensValue), [visibleLensValue])
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
+  const getVisibleParent = useCallback((id: string) => visibleLensValue.parent(id), [visibleLensValue])
 
   // Derive cursor position from cursor + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index
   const cursorPosition = useMemo(
-    () => deriveCursorIndices({ length: columnIds.length }, cursor, nodeIndex, getNode),
-    [columnIds.length, cursor, nodeIndex, getNode],
+    () => deriveCursorIndices({ length: columnIds.length }, cursor, nodeIndex, getNode, null, getVisibleParent),
+    [columnIds.length, cursor, nodeIndex, getNode, getVisibleParent],
   )
 
   const columnsLayout = useMemo(

@@ -19,4 +19,8 @@ function summaryStory(id: string, variant: string, label: string): Story {
 }
 
 export const chatMessageSummaryRich = summaryStory("rich", "rich", "Grouped activity summary")
-export const chatMessageSummaryActivityRich = summaryStory("activity-rich", "activity-rich", "Expanded activity details")
+export const chatMessageSummaryActivityRich = summaryStory(
+  "activity-rich",
+  "activity-rich",
+  "Expanded activity details",
+)

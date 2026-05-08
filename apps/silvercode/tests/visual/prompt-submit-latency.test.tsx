@@ -68,9 +68,12 @@ function chatWithTurns(sessionId: SessionId, turnCount: number): AgentEvent[] {
   return events
 }
 
-async function measureTypingLatency(
-  script: readonly AgentEvent[],
-): Promise<{ readonly text: string; readonly average: number; readonly worst: number; readonly timings: readonly number[] }> {
+async function measureTypingLatency(script: readonly AgentEvent[]): Promise<{
+  readonly text: string
+  readonly average: number
+  readonly worst: number
+  readonly timings: readonly number[]
+}> {
   const fake = createFakeSession()
   const s = await renderScenario({
     script,

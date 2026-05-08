@@ -542,6 +542,7 @@ export function handleConfirmMove(ctx: OpCtx): void {
  */
 export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
+  let cursorReplacement: string | null = null
 
   const count = forEachSelected(ctx, "Toggle status", (c) => {
     const embedTarget = c.embed_of
@@ -555,6 +556,10 @@ export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): 
       const currentIndex = statusCycle.indexOf(currentStatus)
       const nextIndex = (currentIndex + 1) % statusCycle.length
       nextStatus = statusCycle[nextIndex] ?? "todo"
+    }
+
+    if (ctx.cursor === c.id && statusIsFilteredOut(ctx, nextStatus)) {
+      cursorReplacement = visibleNeighborOrParent(ctx, c.id)
     }
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
@@ -613,7 +618,28 @@ export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): 
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
   // Re-select current node to trigger UI update
-  ctx.setSelection(nodeSelect(ctx.cursor as string))
+  ctx.setSelection(nodeSelect(cursorReplacement ?? (ctx.cursor as string)))
+}
+
+function statusIsFilteredOut(ctx: OpCtx, status: TaskStatus): boolean {
+  const filter = ctx.ui.filterProperties.taskStatus
+  return filter.size > 0 && !filter.has(status)
+}
+
+function visibleNeighborOrParent(ctx: OpCtx, nodeId: string): string | null {
+  const parentId = ctx.tree.parent(nodeId)
+  if (!parentId) return ctx.rootId
+  const siblings = ctx.tree.children(parentId)
+  const idx = siblings.indexOf(nodeId)
+  for (let i = idx - 1; i >= 0; i--) {
+    const sibling = siblings[i]
+    if (sibling && sibling !== nodeId) return sibling
+  }
+  for (let i = idx + 1; i < siblings.length; i++) {
+    const sibling = siblings[i]
+    if (sibling && sibling !== nodeId) return sibling
+  }
+  return parentId
 }
 
 /**

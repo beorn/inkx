@@ -106,4 +106,10 @@ export interface TuiOptions {
    * sub-block. See bead @km/tui/bare-scope-snap-to-root.
    */
   bareScopeArrival?: boolean
+  /**
+   * True when the user supplied an explicit root argument to `km view`.
+   * The saved workspace layout/view/filter state should still restore, but
+   * the focused board pane's root must be replaced with the CLI target.
+   */
+  explicitRootProvided?: boolean
 }

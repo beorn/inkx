@@ -19,5 +19,13 @@ function notificationStory(id: string, variant: string, label: string): Story {
 }
 
 export const notificationEventRowAllSources = notificationStory("all-sources", "all-sources", "One row per source")
-export const notificationEventRowTribeConcise = notificationStory("tribe-concise", "tribe-concise", "Concise Tribe rows")
-export const notificationEventRowInlineSequence = notificationStory("inline-sequence", "inline-sequence", "Inline notification sequence")
+export const notificationEventRowTribeConcise = notificationStory(
+  "tribe-concise",
+  "tribe-concise",
+  "Concise Tribe rows",
+)
+export const notificationEventRowInlineSequence = notificationStory(
+  "inline-sequence",
+  "inline-sequence",
+  "Inline notification sequence",
+)

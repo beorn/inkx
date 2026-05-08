@@ -134,11 +134,11 @@ test("quick check: my scenario", async () => {
 
 ## Related Test Types
 
-| Type       | Location             | When                                                              |
-| ---------- | -------------------- | ----------------------------------------------------------------- |
-| Chaos/fuzz | sync/chaos/*.fuzz.ts | Randomized concurrent edit sequences. Run with bun run test:fuzz. |
-| Benchmarks | *.bench.ts           | Sync pipeline performance. Run with bun run bench.                |
-| E2E        | e2e/                 | Full app lifecycle (slow).                                        |
+| Type       | Location              | When                                                              |
+| ---------- | --------------------- | ----------------------------------------------------------------- |
+| Chaos/fuzz | sync/chaos/\*.fuzz.ts | Randomized concurrent edit sequences. Run with bun run test:fuzz. |
+| Benchmarks | \*.bench.ts           | Sync pipeline performance. Run with bun run bench.                |
+| E2E        | e2e/                  | Full app lifecycle (slow).                                        |
 
 ## See Also
 

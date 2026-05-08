@@ -63,6 +63,32 @@ function emptyColumn(id: string): KNode {
   }
 }
 
+describe("deriveCursorIndices", () => {
+  test("uses visible parent chain before storage parent chain for projected subitems", () => {
+    const nodeIndex = new Map([
+      ["@agent/3", { colIndex: 0, cardIndex: -1 }],
+      ["@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner.md", { colIndex: 0, cardIndex: 0 }],
+    ])
+    const cursor = deriveCursorIndices(
+      { length: 1 },
+      "projected-subitem",
+      nodeIndex,
+      (id) => {
+        if (id === "projected-subitem") return { parent_id: "@km/silvercode/agent-host-l5" }
+        return null
+      },
+      null,
+      (id) => {
+        if (id === "projected-subitem") return "@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner.md"
+        if (id === "@km/silvercode/agent-host-l5/02-runtime-kernel-and-turn-owner.md") return "@agent/3"
+        return null
+      },
+    )
+
+    expect(cursor).toEqual({ colIndex: 0, cardIndex: 0, isAtCardLevel: true })
+  })
+})
+
 describe("Skeleton loading", () => {
   test("board renders normal content when isLoading is false", () => {
     using app = createTestApp(item("board", item("col1", item("Task Alpha")), item("col2", item("Task Beta"))))

@@ -1215,6 +1215,150 @@ describe("cursor-reveals-hidden", () => {
     expect(board.screenshot()).toContain("c4")
   })
 
+  test("cursor_down keeps overflow-hidden siblings visible", () => {
+    const children = Array.from({ length: 20 }, (_, i) => item(`${String(i + 1).padStart(2, "0")}-child`))
+    const { board, store } = createDriverTest(
+      () => item("board", item("col1", item("Epic", item("agent-host-l5", ...children)))),
+      { rows: 12, columns: 80, checkIncremental: false },
+    )
+
+    board.command("block_nav_down") // Epic -> agent-host-l5
+    board.command("cursor_down") // -> 01-child
+    board.command("cursor_down") // -> 02-child
+    board.command("cursor_down") // -> 03-child
+    board.command("cursor_down") // -> 04-child
+    expect(board.screenshot()).toContain("04-child")
+    expect(board.screenshot()).not.toContain("05-child")
+
+    board.command("cursor_down") // -> 05-child, previously hidden behind +N more
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("05-child")
+    board.expect("#05-child[data-cursor]").toExist()
+
+    board.command("cursor_up") // -> 04-child; reverse direction must reveal too
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("04-child")
+    board.expect("#04-child[data-cursor]").toExist()
+  })
+
+  test("cursor_down reveals overflow-hidden children inside embedded cards", () => {
+    const children = Array.from({ length: 20 }, (_, i) => item(`${String(i + 1).padStart(2, "0")}-child`))
+    const nodes = [
+      ...item("board", item("col1", item.link("agent-host-l5", "source-parent"))),
+      ...item("source-root", item("source-col", item("source-parent", ...children))),
+    ]
+    const { board, store } = createDriverTest(() => nodes, { rows: 12, columns: 80, checkIncremental: false })
+
+    board.command("block_nav_down") // embed -> 01-child
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("01-child")
+    board.expect("#01-child[data-cursor]").toExist()
+    expect(board.screenshot()).not.toContain("02-child")
+
+    board.command("cursor_down") // -> 02-child, previously hidden inside the embed source tree
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("02-child")
+    board.expect("#02-child[data-cursor]").toExist()
+
+    board.command("cursor_up") // -> 01-child; reverse direction must reveal too
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("01-child")
+    board.expect("#01-child[data-cursor]").toExist()
+  })
+
+  test("cursor marker is unique when an embedded source also renders as a card", () => {
+    const nodes = item(
+      "board",
+      item("col1", item.link("embed-parent", "source-parent")),
+      item("col2", item("source-parent", item("child", item("grandchild")))),
+    )
+    const { board, store } = createDriverTest(() => nodes, { rows: 20, columns: 80, checkIncremental: false })
+
+    expect(board.q("[data-cursor]").count()).toBe(1)
+
+    board.command("block_nav_down") // embed-parent -> child
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("child")
+    expect(board.q("[data-cursor]").count()).toBe(1)
+    board.expect("#child[data-cursor]").toExist()
+    expect(board.q("#child[data-cursor]").boundingBox()!.x).toBeLessThan(40)
+
+    board.command("block_nav_down") // child -> grandchild
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("grandchild")
+    expect(board.q("[data-cursor]").count()).toBe(1)
+    board.expect("#grandchild[data-cursor]").toExist()
+    expect(board.q("#grandchild[data-cursor]").boundingBox()!.x).toBeLessThan(40)
+  })
+
+  test("block_nav_down reveals filtered embedded-card overflow targets", () => {
+    const children = [
+      item.task("00-done-child", "done"),
+      ...Array.from({ length: 20 }, (_, i) => item.folder(`${String(i + 1).padStart(2, "0")}-child`)),
+    ]
+    const nodes = [
+      ...item("board", item("col1", item.link("agent-host-l5", "source-parent"))),
+      ...item("source-root", item("source-col", item("source-parent", ...children))),
+    ]
+    const { board, store } = createDriverTest(() => nodes, { rows: 12, columns: 80, checkIncremental: false })
+
+    board.setUI({
+      filterProperties: {
+        taskStatus: new Set(["todo", "wip", "blocked"]),
+        priority: new Set(),
+        dueDate: new Set(),
+        assignedTo: new Set(),
+        nodeType: new Set(),
+      },
+    })
+    board.press("")
+
+    expect(board.screenshot()).not.toContain("00-done-child")
+    expect(board.screenshot()).not.toContain("04-child")
+
+    board.command("block_nav_down") // embed -> 01-child
+    board.command("block_nav_down") // -> 02-child
+    board.command("block_nav_down") // -> 03-child
+    board.expect("#03-child[data-cursor]").toExist()
+    expect(board.screenshot()).not.toContain("04-child")
+
+    board.command("block_nav_down") // -> 04-child, previously behind "+N more"
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("04-child")
+    board.expect("#04-child[data-cursor]").toExist()
+
+    board.command("block_nav_up") // reverse direction should keep reveal window coherent
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("03-child")
+    board.expect("#03-child[data-cursor]").toExist()
+  })
+
+  test("cursor_down reveals descendants inside folded embedded rows", () => {
+    const grandchildren = Array.from({ length: 8 }, (_, i) => item(`${String(i + 1).padStart(2, "0")}-grandchild`))
+    const nodes = [
+      ...item("board", item("col1", item.link("agent-host-l5", "source-parent"))),
+      ...item(
+        "source-root",
+        item("source-col", item("source-parent", item("child-file", item("Deliverable", ...grandchildren)))),
+      ),
+    ]
+    const { board, store } = createDriverTest(() => nodes, { rows: 12, columns: 80, checkIncremental: false })
+
+    board.command("block_nav_down") // embed -> child-file
+    board.command("cursor_down") // -> Deliverable
+    board.expect("#Deliverable[data-cursor]").toExist()
+    expect(board.screenshot()).not.toContain("01-grandchild")
+
+    board.command("cursor_down") // -> 01-grandchild, previously hidden under FoldedChildRow
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("01-grandchild")
+    board.expect("#01-grandchild[data-cursor]").toExist()
+
+    board.command("cursor_up") // -> Deliverable
+
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("Deliverable")
+    board.expect("#Deliverable[data-cursor]").toExist()
+  })
+
   test("block_nav_down skips task-status-filtered nodes", () => {
     // Card has children, some with task status "done". When task filter hides done items,
     // block_nav_down should skip them — cursor must not land on a hidden node.
@@ -1295,6 +1439,15 @@ describe("cursor-reveals-hidden", () => {
     board.command("block_nav_down") // task-a → subtask-x (depth 3)
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.sel.node.cursor() as string | null).toBe("subtask-x")
+    expect(board.screenshot()).toContain("subtask-x")
+
+    // Regression guard: if an intermediate ancestor is explicitly folded,
+    // reveal must open the whole path, not only bump the card depth.
+    store.getState().setFoldDepths(new Map([["task-a", 0]]))
+    store.getState().dispatchBoard({ type: "SELECT", nodeId: "task-a" })
+    board.press("")
+    board.command("block_nav_down")
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("subtask-x")
     expect(board.screenshot()).toContain("subtask-x")
   })
 })

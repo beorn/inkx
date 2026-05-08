@@ -22,6 +22,7 @@ import {
   applyOutlineNav,
   applyPageJump,
   createBoardNavState,
+  type ApplyResult,
   type BoardNavState,
 } from "./board-reducer.ts"
 import { runBoardEffects } from "./board-effect-runner.ts"
@@ -35,6 +36,68 @@ function collectTreeDescendants(tree: ViewTreeProjection, rootId: string): strin
     result.push(...collectTreeDescendants(tree, childId))
   }
   return result
+}
+
+function findDescendantPath(tree: ViewTreeProjection, rootId: string, targetId: string): string[] | null {
+  if (rootId === targetId) return []
+  for (const childId of tree.children(rootId)) {
+    const childPath = findDescendantPath(tree, childId, targetId)
+    if (childPath) return [childId, ...childPath]
+  }
+  return null
+}
+
+function cursorOccurrenceForTarget(
+  ctx: OpCtx,
+  targetId: string,
+): {
+  cursorId: string
+  cursorCardNodeId: string | null
+  cursorColumnNodeId: string | null
+} | null {
+  if (ctx.cursorCardNodeId) {
+    const path = findDescendantPath(ctx.tree, ctx.cursorCardNodeId, targetId)
+    if (path) {
+      return {
+        cursorId: targetId,
+        cursorCardNodeId: ctx.cursorCardNodeId,
+        cursorColumnNodeId: ctx.columnId,
+      }
+    }
+  }
+
+  const projected = ctx.tree.track(targetId)
+  if (projected?.viewType() === "card") {
+    return {
+      cursorId: targetId,
+      cursorCardNodeId: targetId,
+      cursorColumnNodeId: ctx.tree.parent(targetId),
+    }
+  }
+
+  return null
+}
+
+function selectCursorTarget(ctx: OpCtx, targetId: string): void {
+  const hint = cursorOccurrenceForTarget(ctx, targetId)
+  if (hint) ctx.setCursorOccurrenceHint(hint)
+  ctx.setSelection(nodeSelect(targetId))
+}
+
+function withCursorOccurrenceHints(ctx: OpCtx, result: ApplyResult): ApplyResult {
+  return {
+    ...result,
+    effects: result.effects.map((effect) => {
+      if (effect.type !== "SELECT") return effect
+      const hint = cursorOccurrenceForTarget(ctx, effect.nodeId)
+      if (!hint) return effect
+      return {
+        ...effect,
+        cardNodeId: hint.cursorCardNodeId,
+        columnNodeId: hint.cursorColumnNodeId,
+      }
+    }),
+  }
 }
 
 /**
@@ -56,7 +119,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
     for (const colId of colIds) {
       const cardIds = ctx.tree.children(colId)
       if (cardIds.length > 0) {
-        ctx.setSelection(nodeSelect(cardIds[0]!))
+        selectCursorTarget(ctx, cardIds[0]!)
         return ok()
       }
     }
@@ -133,12 +196,12 @@ function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefi
 
   if (result.effects.length === 0) return boundary(dir)
 
-  runBoardEffects(ctx, result)
+  runBoardEffects(ctx, withCursorOccurrenceHints(ctx, result))
 
   // Auto-unfold if cursor landed beyond the card's render depth
   const targetId = result.state.cursor
   if (targetId) {
-    ensureCursorVisible(ctx, targetId)
+    ensureCursorVisible(ctx, targetId, ctx.cursorCardNodeId)
   }
 
   return ok()
@@ -163,6 +226,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
 
   // When at leftmost card pressing h, position at column header instead of moving columns
   if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.columnId) {
+    ctx.setCursorOccurrenceHint({ cursorId: ctx.columnId, cursorCardNodeId: null, cursorColumnNodeId: ctx.columnId })
     ctx.setSelection(nodeSelect(ctx.columnId))
     navigator.clearStickyY()
     return ok()
@@ -185,10 +249,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
     const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
 
     if (targetId !== null) {
-      // Pass cursorCardNodeId hint for symlink-aware card classification.
-      // When navigating within a symlink's children, the data model parent
-      // chain leads to the wrong card — the hint ensures the visual card is used.
-      ctx.setSelection(nodeSelect(targetId))
+      selectCursorTarget(ctx, targetId)
       // In cards view, attach deferred resolve for off-screen Y-correction.
       // register() will fire it during silvery's Phase 2.7.
       if (ui.viewMode === "cards") {
@@ -212,7 +273,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
             }
             const child = children[itemIndex]
             if (child) {
-              ctx.setSelection(nodeSelect(child.id))
+              selectCursorTarget(ctx, child.id)
             }
           }
         })
@@ -260,7 +321,7 @@ function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
   const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
   if (targetId === null) return boundary(dir)
 
-  ctx.setSelection(nodeSelect(targetId))
+  selectCursorTarget(ctx, targetId)
   return ok()
 }
 
@@ -298,53 +359,83 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
     return boundary(dir)
   }
 
-  runBoardEffects(ctx, result)
+  runBoardEffects(ctx, withCursorOccurrenceHints(ctx, result))
 
   // Auto-unfold: if cursor landed on a node beyond the card's render depth,
   // increase the card's fold depth so the cursor target becomes visible.
   const targetId = result.state.cursor
   if (targetId) {
-    ensureCursorVisible(ctx, targetId)
+    ensureCursorVisible(ctx, targetId, ctx.cursorCardNodeId)
   }
 
   return ok()
 }
 
 /**
- * Ensure a cursor target is visible by auto-unfolding its containing card.
+ * Ensure a cursor target is visible by auto-unfolding its containing path.
  *
  * When block navigation moves the cursor to a deeply nested node (beyond
- * CARD_REMAINING_DEPTH), the node won't be rendered because its ancestors
- * are displayed as FoldedChildRow. Fix: bump the card's fold depth to
- * reveal the target.
+ * CARD_REMAINING_DEPTH), or below an explicitly folded intermediate ancestor,
+ * the node won't be rendered because an ancestor is displayed as FoldedChildRow.
+ * Fix: bump the card budget and any explicit ancestor budgets on the path.
  */
-function ensureCursorVisible(ctx: OpCtx, targetId: string): void {
+function ensureCursorVisible(ctx: OpCtx, targetId: string, occurrenceCardNodeId: string | null = null): void {
   if (!ctx.tree.node(targetId)) return
 
-  // Walk up via ViewTreeProjection to find the card ancestor and measure depth
-  let depth = 0
-  let currentId: string | null = targetId
   let cardNodeId: string | null = null
-  while (currentId) {
-    const projected = ctx.tree.getProjected(currentId)
-    if (projected?.viewType() === "card") {
-      cardNodeId = currentId
-      break
+  let pathFromTarget: string[] = []
+
+  if (occurrenceCardNodeId) {
+    const pathBelowCard = findDescendantPath(ctx.tree, occurrenceCardNodeId, targetId)
+    if (pathBelowCard && pathBelowCard.length > 0) {
+      cardNodeId = occurrenceCardNodeId
+      pathFromTarget = [...pathBelowCard].reverse()
     }
-    depth++
-    currentId = ctx.tree.parent(currentId)
   }
-  if (!cardNodeId || depth === 0) return
 
-  // Check if the target is beyond the effective render depth for this card
-  const cardFoldOverride = ctx.foldDepths.get(cardNodeId)
-  const effectiveDepth = cardFoldOverride ?? CARD_REMAINING_DEPTH
-  if (depth <= effectiveDepth) return
+  if (!cardNodeId) {
+    // Walk up via ViewTreeProjection to find the card ancestor and collect the
+    // path below it. pathFromTarget excludes the card and includes targetId.
+    let currentId: string | null = targetId
+    while (currentId) {
+      const projected = ctx.tree.track(currentId)
+      if (projected?.viewType() === "card") {
+        cardNodeId = currentId
+        break
+      }
+      pathFromTarget.push(currentId)
+      currentId = ctx.tree.parent(currentId)
+    }
+  }
 
-  // Set fold depth on the card to reveal the target
+  if (!cardNodeId || pathFromTarget.length === 0) return
+
   const newDepths = new Map(ctx.foldDepths)
-  newDepths.set(cardNodeId, depth)
-  ctx.setFoldDepths(newDepths)
+  let changed = false
+
+  const targetDepthFromCard = pathFromTarget.length
+  const cardFoldOverride = newDepths.get(cardNodeId)
+  const effectiveCardDepth = cardFoldOverride ?? CARD_REMAINING_DEPTH
+  if (targetDepthFromCard > effectiveCardDepth) {
+    newDepths.set(cardNodeId, targetDepthFromCard)
+    changed = true
+  }
+
+  // Intermediate explicit folds win over the card budget. Open each explicit
+  // ancestor enough to expose the next step on the cursor path.
+  for (let i = 1; i < pathFromTarget.length; i++) {
+    const ancestorId = pathFromTarget[i]!
+    const remainingDepthToTarget = i
+    const currentDepth = newDepths.get(ancestorId)
+    if (currentDepth !== undefined && currentDepth < remainingDepthToTarget) {
+      newDepths.set(ancestorId, remainingDepthToTarget)
+      changed = true
+    }
+  }
+
+  if (changed) {
+    ctx.setFoldDepths(newDepths)
+  }
 }
 
 /** Default tree navigation (first, last, prev, next). */
@@ -352,7 +443,7 @@ function handleTreeNav(ctx: OpCtx, dir: string): OpResult {
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId && targetId !== ctx.cursor) {
-    ctx.setSelection(nodeSelect(targetId))
+    selectCursorTarget(ctx, targetId)
     return ok()
   }
   return boundary(dir)

@@ -52,6 +52,13 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
   switch (effect.type) {
     // Navigation effects
     case "SELECT":
+      if (effect.cardNodeId !== undefined || effect.columnNodeId !== undefined) {
+        ctx.setCursorOccurrenceHint({
+          cursorId: effect.nodeId,
+          cursorCardNodeId: effect.cardNodeId ?? null,
+          cursorColumnNodeId: effect.columnNodeId ?? null,
+        })
+      }
       ctx.setSelection(nodeSelect(effect.nodeId))
       break
     case "FOLD_SET":

@@ -31,7 +31,7 @@ import { dispatchSelection, NO_SELECTION, nodeSelect, textCaret } from "../state
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { createViewTree, type TreeLens } from "@km/board"
+import { createViewTree, type TreeLens, type ViewTreeProjection } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -39,6 +39,16 @@ import { setLastKey, appendLastKey, setTerminalFocused } from "../diagnostics.ts
 import { getRecentsStore } from "../state/recents-store.ts"
 import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 import { getHelpV3App } from "../plugins/help-overlay.v3.ts"
+
+function findDescendantPath(tree: ViewTreeProjection, rootId: string, targetId: string | null): string[] | null {
+  if (!targetId) return null
+  if (rootId === targetId) return []
+  for (const childId of tree.children(rootId)) {
+    const childPath = findDescendantPath(tree, childId, targetId)
+    if (childPath) return [childId, ...childPath]
+  }
+  return null
+}
 
 /**
  * Create the board app definition. THIS IS THE PUBLIC API — prefer this over
@@ -169,6 +179,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
     const visibleLens = board?.signals?.visibleLens()
+    if (visibleLens) {
+      tree.sync(visibleLens)
+    }
     const cachedNodeIndex = locals.nodeIndexCache
     const nodeIndex = visibleLens
       ? cachedNodeIndex?.lens === visibleLens
@@ -211,13 +224,42 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
         cursor = cc
       } else {
-        cursor = deriveCursorIndices({ length: treeColIds.length }, cursor_, nodeIndex, (id) => s.repo.getNode(id))
+        cursor = deriveCursorIndices(
+          { length: treeColIds.length },
+          cursor_,
+          nodeIndex,
+          (id) => s.repo.getNode(id),
+          null,
+          (id) => tree.parent(id),
+        )
       }
       columnId = treeColIds[cursor.colIndex] ?? null
       const treeCardIds = columnId ? tree.children(columnId) : []
       const cardNodeId = treeCardIds[cursor.cardIndex]
       card = cardNodeId ? (s.repo.getNode(cardNodeId) ?? undefined) : undefined
       selectedNode = card ?? (columnId ? s.repo.getNode(columnId) : null) ?? null
+
+      const hint = board?.cursorOccurrenceHint
+      if (hint && hint.cursorId === cursor_ && hint.cursorCardNodeId) {
+        const hintColumnId = hint.cursorColumnNodeId ?? tree.parent(hint.cursorCardNodeId) ?? null
+        const hintColIndex = hintColumnId ? treeColIds.indexOf(hintColumnId) : -1
+        const hintCardIds = hintColumnId ? tree.children(hintColumnId) : []
+        const hintCardIndex = hintCardIds.indexOf(hint.cursorCardNodeId)
+        if (
+          hintColIndex >= 0 &&
+          hintCardIndex >= 0 &&
+          findDescendantPath(tree, hint.cursorCardNodeId, cursor_) !== null
+        ) {
+          cursor = {
+            colIndex: hintColIndex,
+            cardIndex: hintCardIndex,
+            isAtCardLevel: cursor_ === hint.cursorCardNodeId,
+          }
+          columnId = hintColumnId
+          card = s.repo.getNode(hint.cursorCardNodeId) ?? undefined
+          selectedNode = card ?? selectedNode
+        }
+      }
     }
 
     if (!cc || cc.cursorId !== cursor_ || cc.nodeIndexRef !== nodeIndex) {
@@ -258,6 +300,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       },
       setSelection: (selection) => {
         dispatchSelection({ sel: s.sel }, selection)
+      },
+      setCursorOccurrenceHint: (hint) => {
+        const latest = get()
+        const pane = Workspace.getActiveBoardPane(latest)
+        if (pane && isBoardPane(pane)) {
+          pane.cursorOccurrenceHint = hint
+        }
       },
       rootId,
       rootPath: board?.rootPath ?? null,

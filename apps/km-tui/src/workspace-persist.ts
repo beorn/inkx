@@ -371,6 +371,24 @@ export function loadWorkspace(name: string, vaultPath: string): PersistedWorkspa
 }
 
 /**
+ * Return a copy of a persisted workspace with the focused board pane pointed
+ * at a new root. If focus was on a detail/empty pane, the first board pane is
+ * used, matching restoreWorkspaceFromPersisted's focus fallback.
+ */
+export function withFocusedBoardRoot(workspace: PersistedWorkspace, rootNodePath: string | null): PersistedWorkspace {
+  const focusedPane = workspace.panes.find((pane) => pane.id === workspace.focusedPaneId)
+  const targetPaneId =
+    focusedPane?.viewType === "board" ? focusedPane.id : workspace.panes.find((pane) => pane.viewType === "board")?.id
+
+  if (!targetPaneId) return workspace
+
+  return {
+    ...workspace,
+    panes: workspace.panes.map((pane) => (pane.id === targetPaneId ? { ...pane, rootNodePath } : pane)),
+  }
+}
+
+/**
  * List all saved workspace names.
  * Returns sorted names without the .json extension.
  */

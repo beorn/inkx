@@ -15,13 +15,13 @@
 import { describe, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { createBoardState } from "../src/board/board-types.ts"
-import { createInitialUIState } from "../src/state/ui-reducer.ts"
+import { createEmptyFilterProperties, createInitialUIState } from "../src/state/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { createToastQueue } from "@km/core"
 import { item } from "./helpers/board-test.ts"
 import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
 import { createSignalStore } from "../src/state/signal-store.ts"
-import type { PersistedWorkspace } from "../src/workspace-persist.ts"
+import { withFocusedBoardRoot, type PersistedWorkspace } from "../src/workspace-persist.ts"
 import type { BoardAppStore } from "../src/state/board-app-store.ts"
 
 function buildStoreParams(opts: {
@@ -143,5 +143,65 @@ describe("bare-scope cursor snap-to-root", () => {
     // so columns[0]=N478XNBJ; cards under N478XNBJ are empty; falls back to
     // firstCol.id=N478XNBJ. That's the existing depth-2 behavior preserved.
     expect(focusedPane.sel.node.cursor()).toBe("N478XNBJ")
+  })
+
+  it("explicit CLI root overrides restored pane root but preserves workspace organization", () => {
+    const fixture = item(
+      "vault",
+      item("saved-board", item("Saved", item("saved-task"))),
+      item("cli-board", item("Cli", item("cli-task"))),
+      item("other-board", item("Other", item("other-task"))),
+    )
+    for (const node of fixture) {
+      if (node.id === "saved-board" || node.id === "cli-board" || node.id === "other-board") {
+        node.fs_path = node.id
+      }
+    }
+
+    const savedFilter = createEmptyFilterProperties()
+    savedFilter.taskStatus = new Set(["todo", "wip", "blocked"])
+    const savedWorkspace: PersistedWorkspace = {
+      version: 1,
+      name: "default",
+      savedAt: new Date().toISOString(),
+      layout: {
+        type: "split",
+        direction: "h",
+        ratio: 0.7,
+        left: { type: "leaf", paneId: "main" },
+        right: { type: "leaf", paneId: "side" },
+      },
+      panes: [
+        {
+          id: "main",
+          viewType: "board",
+          rootNodePath: "saved-board",
+          viewMode: "tabs",
+          filterProperties: { taskStatus: ["todo", "wip", "blocked"] },
+        },
+        { id: "side", viewType: "board", rootNodePath: "other-board", viewMode: "columns" },
+      ],
+      focusedPaneId: "main",
+    }
+
+    const params = buildStoreParams({
+      rootId: "cli-board",
+      savedWorkspace: withFocusedBoardRoot(savedWorkspace, "cli-board"),
+      fixture,
+    })
+
+    const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(params))
+    const state = store.getState()
+    const main = state.workspace.panes.get("main")
+    const side = state.workspace.panes.get("side")
+
+    expect(state.workspace.layout).toEqual(savedWorkspace.layout)
+    expect(state.workspace.focusedPaneId).toBe("main")
+    if (main?.viewType !== "board" || side?.viewType !== "board") throw new Error("expected board panes")
+    expect(main.rootId).toBe("cli-board")
+    expect(main.viewMode).toBe("tabs")
+    expect(main.filterProperties.taskStatus).toEqual(savedFilter.taskStatus)
+    expect(main.sel.node.cursor()).toBe("cli-task")
+    expect(side.rootId).toBe("other-board")
   })
 })

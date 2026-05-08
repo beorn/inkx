@@ -126,6 +126,8 @@ export function deriveCursorIndices(
   getNode?: (id: string) => { parent_id: string | null } | null,
   /** Hint from cursor store — for symlinks where parent_id chain leads to wrong card */
   cursorCardNodeId?: string | null,
+  /** Visual parent lookup from the visible projection. May differ from storage parent_id. */
+  getVisibleParent?: (id: string) => string | null,
 ): CursorIndices {
   if (!cursor || columns.length === 0) {
     return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
@@ -137,6 +139,18 @@ export function deriveCursorIndices(
   // On miss: try cursorCardNodeId hint first (symlink-aware), then parent walk
   if (!entry && cursorCardNodeId) {
     entry = nodeIndex.get(cursorCardNodeId)
+  }
+  if (!entry && getVisibleParent) {
+    let currentId: string | null = cursor
+    let depth = 0
+    while (currentId && depth < 100) {
+      const parentId = getVisibleParent(currentId)
+      if (!parentId) break
+      entry = nodeIndex.get(parentId)
+      if (entry) break
+      currentId = parentId
+      depth++
+    }
   }
   if (!entry && getNode) {
     let current = getNode(cursor)

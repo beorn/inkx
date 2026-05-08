@@ -151,6 +151,14 @@ export interface BoardPaneState extends PaneStateBase {
   moveState: MoveState
   curswantX: number | null
   curswantY: number | null
+  /** Visual occurrence hint for duplicated node IDs (embeds/source cards).
+   * Set immediately before cursor selection so NodeStore classification can
+   * keep the rendered cursor on the occurrence the user navigated/clicked. */
+  cursorOccurrenceHint?: {
+    cursorId: string | null
+    cursorCardNodeId: string | null
+    cursorColumnNodeId: string | null
+  }
 
   // Per-pane view config
   viewMode: ViewMode

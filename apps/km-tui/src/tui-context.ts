@@ -56,6 +56,11 @@ export interface OpCtx {
    * See bead km-tui.sel-migration.
    */
   setSelection: (selection: Selection) => void
+  setCursorOccurrenceHint: (hint: {
+    cursorId: string | null
+    cursorCardNodeId: string | null
+    cursorColumnNodeId: string | null
+  }) => void
 
   // === Board navigation (flat fields from store) ===
   rootId: string | null

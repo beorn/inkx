@@ -1311,6 +1311,53 @@ describe("Filter/View Journeys", () => {
     expect(screen).toContain("my-task")
   })
 
+  test("cursor_down skips done cards hidden by task-status filter", () => {
+    const nodes = item("board", item("col1", item("todo-top"), item("done-middle"), item("todo-bottom")))
+    const doneNode = nodes.find((n) => n.id === "done-middle")!
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    app.command("toggle_hide_done")
+    expect(app.text).not.toContain("done-middle")
+    app.expect("#todo-top[data-cursor]").toExist()
+
+    app.command("cursor_down")
+
+    app.expect("#todo-bottom[data-cursor]").toExist()
+    expect(app.text).not.toContain("done-middle")
+  })
+
+  test("toggle_hide_done moves cursor off the card that becomes hidden", () => {
+    const nodes = item("board", item("col1", item("todo-top"), item("done-middle"), item("todo-bottom")))
+    const doneNode = nodes.find((n) => n.id === "done-middle")!
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
+
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    app.command("cursor_down")
+    app.expect("#done-middle[data-cursor]").toExist()
+
+    app.command("toggle_hide_done")
+
+    expect(app.text).not.toContain("done-middle")
+    app.expect("#todo-top[data-cursor], #todo-bottom[data-cursor]").toExist()
+  })
+
+  test("marking the cursor card done while hide-done is active moves to a visible card", () => {
+    const nodes = item("board", item("col1", item("todo-top"), item("todo-middle"), item("todo-bottom")))
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
+
+    app.command("toggle_hide_done")
+    app.command("cursor_down")
+    app.expect("#todo-middle[data-cursor]").toExist()
+
+    app.command("toggle_task_done")
+
+    expect(app.text).not.toContain("todo-middle")
+    app.expect("#todo-top[data-cursor], #todo-bottom[data-cursor]").toExist()
+  })
+
   test("filter then navigate across columns, unfilter preserves column position", async () => {
     const nodes = item(
       "board",

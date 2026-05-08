@@ -78,6 +78,7 @@ import { createInitialUIState } from "./state/ui-reducer.ts"
 import { handleKey } from "./board/board-app.ts"
 import { createUndoableRepo } from "./undo/undoable-repo.ts"
 import { createUndoStack } from "./undo-stack.ts"
+import { checkRenderInvariants, withCheckRenderInvariants } from "./render-invariants.ts"
 
 // =============================================================================
 // Types
@@ -291,7 +292,15 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       : new Map<string, { colIndex: number; cardIndex: number }>()
     const ctxColIds = rootId && board?.signals ? [...board.signals.visibleLens().children(rootId)] : []
     const cursor = (board?.sel.node.cursor() as string | null) ?? null
-    const cursorPos = deriveCursorIndices({ length: ctxColIds.length }, cursor, ni, (id) => s.repo.getNode(id))
+    const visibleLens = board?.signals?.visibleLens()
+    const cursorPos = deriveCursorIndices(
+      { length: ctxColIds.length },
+      cursor,
+      ni,
+      (id) => s.repo.getNode(id),
+      null,
+      visibleLens ? (id) => visibleLens.parent(id) : undefined,
+    )
     const ctxColumnId = ctxColIds[cursorPos.colIndex] ?? null
     const ctxCardIds = ctxColumnId && board?.signals ? board.signals.visibleLens().children(ctxColumnId) : []
     const ctxCardId = ctxCardIds[cursorPos.cardIndex]
@@ -373,7 +382,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     // sync → further useApp subscriptions → re-renders).
     // originalPress sends the raw key through stdin which Board L3 ignores,
     // but the act() boundary inside sendInput flushes pending React work.
-    return originalPress(key)
+    const pressed = await originalPress(key)
+    checkRenderInvariants(baseApp, store, `press("${key}")`, { columns, rows })
+    return pressed
   }
 
   // Build rich getState for AI introspection.
@@ -391,7 +402,15 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       : new Map<string, { colIndex: number; cardIndex: number }>()
     const treeColIds = rootId && board?.signals ? [...board.signals.visibleLens().children(rootId)] : []
     const cursorId = (board?.sel.node.cursor() as string | null) ?? null
-    const cursorPos = deriveCursorIndices({ length: treeColIds.length }, cursorId, ni, (id) => s.repo.getNode(id))
+    const visibleLens = board?.signals?.visibleLens()
+    const cursorPos = deriveCursorIndices(
+      { length: treeColIds.length },
+      cursorId,
+      ni,
+      (id) => s.repo.getNode(id),
+      null,
+      visibleLens ? (id) => visibleLens.parent(id) : undefined,
+    )
     const columnId = treeColIds[cursorPos.colIndex] ?? null
     const treeCardIds = columnId && board?.signals ? board.signals.visibleLens().children(columnId) : []
     const cardNodeId = treeCardIds[cursorPos.cardIndex]
@@ -429,11 +448,15 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // Spread `{ ...appWithCmd }` snapshots getters (text, ansi, lastBuffer) as
   // static values from the initial render. Object.assign mutates the original
   // object, preserving its getters so they return current buffer state.
-  return Object.assign(appWithCmd, {
-    press: driverPress,
-    getState: getDriverState,
-    app: baseApp,
-    navigator,
+  return withCheckRenderInvariants(
+    Object.assign(appWithCmd, {
+      press: driverPress,
+      getState: getDriverState,
+      app: baseApp,
+      navigator,
+      store,
+    }) as BoardDriver,
     store,
-  }) as BoardDriver
+    { columns, rows },
+  )
 }

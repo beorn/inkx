@@ -202,8 +202,9 @@ export function selectTrafficReplaySpan(
     ) {
       return false
     }
-    if (selector.track !== undefined && !frameMatchesTrack(frame, normalizedById, leafById, selector.track))
+    if (selector.track !== undefined && !frameMatchesTrack(frame, normalizedById, leafById, selector.track)) {
       return false
+    }
     if (
       selector.leafType !== undefined &&
       !frame.projectedLeafIds.some((id) => leafById.get(id)?.type === selector.leafType)

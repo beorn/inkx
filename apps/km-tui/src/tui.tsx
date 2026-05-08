@@ -28,7 +28,7 @@ import { createInitialUIState } from "./state/ui-reducer.ts"
 import { terminalFocused, lastKey, startupPhase, setStartupPhase } from "./diagnostics.ts"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { computeInitialCursor } from "./initial-cursor.ts"
-import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
+import { saveWorkspace, loadWorkspace, withFocusedBoardRoot } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 import { loadAutolinksConfig, type AutolinkRule } from "@km/autolinks"
 import { AutolinksProvider } from "./text/AutolinksContext.tsx"
@@ -341,6 +341,10 @@ export async function runBoard(
     {
       using _ = run.span("load-workspace")
       savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
+    }
+    if (savedWorkspace && options.explicitRootProvided && rootId) {
+      const rootNodePath = options.repo.getNode(rootId)?.fs_path ?? rootId
+      savedWorkspace = withFocusedBoardRoot(savedWorkspace, rootNodePath)
     }
 
     if (savedWorkspace) {

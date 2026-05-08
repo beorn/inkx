@@ -79,6 +79,7 @@ import { resetSearchStore } from "../../src/plugins/with-search-dialog.ts"
 import { resetDeleteConfirmStore } from "../../src/plugins/with-delete-confirm.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/state/ui-context.tsx"
 import { ServicesProvider } from "../../src/services-context.tsx"
+import { checkRenderInvariants } from "../../src/render-invariants.ts"
 import {
   createBoardAppStoreState,
   getActiveBoardPane,
@@ -673,6 +674,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
         store.setState((s) => s)
       })
       void originalPress(key)
+      checkRenderInvariants(result, store, 'press("")', { columns, rows })
       return
     }
     const ansi = keyToAnsi(key)
@@ -693,6 +695,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     // pipeline iterations. This breaks the deferred resolve pattern (Phase 2.7
     // cursor Y-correction) which needs React to commit between iterations.
     void originalPress(key)
+    checkRenderInvariants(result, store, `press("${key}")`, { columns, rows })
 
     // Incremental rendering check: compare incremental buffer against fresh render.
     // Catches ghost pixels, stale regions, and unmount rendering bugs.
@@ -721,6 +724,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     })
     // Flush React effects via a no-op press
     void originalPress("") // triggers doRender without actual key processing
+    checkRenderInvariants(result, store, "mouse event", { columns, rows })
   }
 
   // Dispatch DOM-level mouse events through silvery's tree (onMouseDown, onClick, etc.).
@@ -734,6 +738,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
       store.setState((s) => s)
     })
     void originalPress("")
+    checkRenderInvariants(result, store, "tree mouse event", { columns, rows })
   }
 
   // Dispatch a command by name — reverse-looks up the key(s) and calls pressKey().

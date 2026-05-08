@@ -677,11 +677,12 @@ export function createBoardAppStoreState(
       if (!pane.signals) return
       const cursor = pane.sel.node.cursor()
       if (!cursor) return
-      if (undoableRepo.getNode(cursor as string)) return
       const lens = pane.signals.visibleLens()
-      const fallback = lens.walkOrder.find((id) => id !== lens.rootId) ?? null
-      if (fallback) {
-        dispatchSelection({ sel: pane.sel }, nodeSelect(fallback))
+      const replacement = findVisibleCursorReplacement(cursor as string, undoableRepo, lens, pane.foldDepths)
+      if (replacement === cursor) return
+      if (replacement) {
+        pane.selTreeSource.update(lens)
+        dispatchSelection({ sel: pane.sel }, nodeSelect(replacement))
       } else {
         dispatchSelection({ sel: pane.sel }, NO_SELECTION)
       }
@@ -843,6 +844,13 @@ export function createBoardAppStoreState(
           if (focusedPane && isBoardPane(focusedPane)) {
             focusedPane.curswantX = null
             focusedPane.curswantY = null
+            if (action.cardNodeId) {
+              focusedPane.cursorOccurrenceHint = {
+                cursorId: action.nodeId,
+                cursorCardNodeId: action.cardNodeId,
+                cursorColumnNodeId: action.columnNodeId ?? null,
+              }
+            }
           }
           // Update sel store cursor — this is the canonical cursor source
           // for Board.tsx and all components reading sel.node.cursor().
@@ -866,11 +874,7 @@ export function createBoardAppStoreState(
           // Click hint: the click handler always knows the exact visual card. When
           // clicking inside a symlink, the data model parent chain leads to the source
           // card, not the visual card. The click hint overrides unconditionally.
-          if (
-            action.cardNodeId &&
-            action.cardHintSource === "click" &&
-            ancestors.cursorCardNodeId !== action.cardNodeId
-          ) {
+          if (action.cardNodeId && action.cardHintSource && ancestors.cursorCardNodeId !== action.cardNodeId) {
             const hintAncestors = lens
               ? classifyCursorFromLens(lens, action.cardNodeId)
               : getViewNavigation(
@@ -1062,7 +1066,7 @@ export function createBoardAppStoreState(
           // nearest visible ancestor.
           let cursorId = board.sel.node.cursor() as string | null
           if (cursorId) {
-            const rescuedId = findVisibleAncestor(cursorId, lens, board.foldDepths)
+            const rescuedId = findVisibleCursorReplacement(cursorId, s.repo, lens, board.foldDepths)
             if (rescuedId !== cursorId) {
               cursorId = rescuedId
             }
@@ -1171,6 +1175,20 @@ export function createBoardAppStoreState(
               }
             }
           }
+
+          const lensAffectingUpdate =
+            resolvedKeys.has("filterProperties") || resolvedKeys.has("hiddenVersion") || resolvedKeys.has("showHidden")
+          if (lensAffectingUpdate) {
+            const lens = afterPane.signals.visibleLens()
+            const cursorId = afterPane.sel.node.cursor() as string | null
+            if (cursorId) {
+              const replacement = findVisibleCursorReplacement(cursorId, afterS.repo, lens, afterPane.foldDepths)
+              if (replacement && replacement !== cursorId) {
+                afterPane.selTreeSource.update(lens)
+                dispatchSelection({ sel: afterPane.sel }, nodeSelect(replacement))
+              }
+            }
+          }
         }
       },
 
@@ -1195,7 +1213,7 @@ export function createBoardAppStoreState(
           // fold depths, move it to the nearest visible ancestor before applying.
           const boardPaneCursorId = (boardPane.sel.node.cursor() as string | null) ?? null
           if (boardPaneCursorId) {
-            const rescuedId = findVisibleAncestor(boardPaneCursorId, lens, boardPane.foldDepths)
+            const rescuedId = findVisibleCursorReplacement(boardPaneCursorId, s.repo, lens, boardPane.foldDepths)
             if (rescuedId !== null && rescuedId !== boardPaneCursorId) {
               dispatchSelection({ sel: boardPane.sel }, nodeSelect(rescuedId))
             }
@@ -1749,6 +1767,15 @@ export function createBoardAppStoreState(
             writeCursorClassification(cursorId, null, cursorId ? "card" : "board")
           } else if (visibleLens) {
             const ancestors = classifyCursorFromLens(visibleLens, cursorId)
+            const hint = pane.cursorOccurrenceHint
+            if (hint && hint.cursorId === cursorId && hint.cursorCardNodeId) {
+              const hintAncestors = classifyCursorFromLens(visibleLens, hint.cursorCardNodeId)
+              if (hintAncestors.cursorDepth === "card") {
+                ancestors.cursorCardNodeId = hint.cursorCardNodeId
+                ancestors.cursorColumnNodeId = hint.cursorColumnNodeId ?? hintAncestors.cursorColumnNodeId
+                ancestors.cursorDepth = "card"
+              }
+            }
             writeCursorClassification(ancestors.cursorCardNodeId, ancestors.cursorColumnNodeId, ancestors.cursorDepth)
           } else {
             writeCursorClassification(null, null, "board")
@@ -1888,6 +1915,68 @@ function findVisibleAncestor(
   }
 
   return nodeId
+}
+
+function findVisibleCursorReplacement(
+  nodeId: string,
+  repo: Repo,
+  lens: import("@km/board").TreeLens,
+  foldDepths: Map<string, number>,
+): string | null {
+  if (isVisibleInLens(nodeId, lens)) {
+    const visibleAncestor = findVisibleAncestor(nodeId, lens, foldDepths)
+    if (visibleAncestor !== nodeId) return visibleAncestor
+    return nodeId
+  }
+
+  let current = repo.getNode(nodeId)
+  if (!current) return firstVisibleNode(lens)
+
+  let hiddenChildId = nodeId
+  while (current?.parent_id) {
+    const parentId = current.parent_id
+    if (isVisibleInLens(parentId, lens)) {
+      const visibleChildren = new Set(lens.children(parentId))
+      const siblings = repo.getChildren(parentId).map((n) => n.id)
+      const hiddenIdx = siblings.indexOf(hiddenChildId)
+      for (let i = hiddenIdx - 1; i >= 0; i--) {
+        const siblingId = siblings[i]!
+        if (visibleChildren.has(siblingId)) return siblingId
+      }
+      for (let i = hiddenIdx + 1; i < siblings.length; i++) {
+        const siblingId = siblings[i]!
+        if (visibleChildren.has(siblingId)) return siblingId
+      }
+      return parentId
+    }
+    hiddenChildId = parentId
+    current = repo.getNode(parentId)
+  }
+
+  return null
+}
+
+function firstVisibleNode(lens: import("@km/board").TreeLens): string | null {
+  const rootId = lens.rootId
+  if (!rootId) return null
+  const firstColumn = lens.children(rootId)[0]
+  if (!firstColumn) return null
+  return lens.children(firstColumn)[0] ?? firstColumn
+}
+
+function isVisibleInLens(nodeId: string, lens: import("@km/board").TreeLens): boolean {
+  if (nodeId === lens.rootId) return true
+  let current: string | null = nodeId
+  let depth = 0
+  while (current && depth < 100) {
+    const parent = lens.parent(current)
+    if (!parent) return false
+    if (!lens.children(parent).includes(current)) return false
+    if (parent === lens.rootId) return true
+    current = parent
+    depth++
+  }
+  return false
 }
 
 // =============================================================================

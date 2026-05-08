@@ -62,7 +62,12 @@ export interface BoardNavState {
  */
 export type BoardEffect =
   // Navigation effects
-  | { type: "SELECT"; nodeId: string }
+  | {
+      type: "SELECT"
+      nodeId: string
+      cardNodeId?: string | null
+      columnNodeId?: string | null
+    }
   | { type: "FOLD_SET"; depths: Map<string, number> }
   | { type: "SCROLL_ANCHOR_CLEAR" }
   // Edit effects — instruct the runtime to perform repo mutations

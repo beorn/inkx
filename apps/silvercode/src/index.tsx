@@ -394,16 +394,17 @@ async function buildProgram(): Promise<Command> {
         })
         const span = selectTrafficReplaySpan(replay, selector)
         if (opts["exportJsonl"]) process.stdout.write(exportTrafficReplaySpanJsonl(span))
-        else if (opts["json"])
+        else if (opts["json"]) {
           process.stdout.write(
             `${JSON.stringify(span.frames.length === replay.frames.length ? replay : span, null, 2)}\n`,
           )
-        else
+        } else {
           process.stdout.write(
             span.frames.length === replay.frames.length
               ? renderTrafficReplaySummary(replay)
               : renderTrafficReplayInspector(replay, selector),
           )
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         process.stderr.write(`silvercode traffic replay: ${message}\n`)
@@ -426,9 +427,9 @@ async function buildProgram(): Promise<Command> {
             handleTabCycling: false,
           })
           await handle.waitUntilExit()
-        } else if (opts["json"])
+        } else if (opts["json"]) {
           process.stdout.write(`${JSON.stringify(selectTrafficReplaySpan(replay, selector), null, 2)}\n`)
-        else process.stdout.write(renderTrafficReplayInspector(replay, selector))
+        } else process.stdout.write(renderTrafficReplayInspector(replay, selector))
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         process.stderr.write(`silvercode traffic view: ${message}\n`)

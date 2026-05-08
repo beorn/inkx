@@ -433,6 +433,7 @@ export const viewCommand = new Command("view")
         patchedConsole: patchedConsole ?? undefined,
         onReady: enableConsoleDebug,
         bareScopeArrival,
+        explicitRootProvided: typeof root === "string" && root.length > 0,
       })
 
       // Signal background task to stop (don't wait - causes Bun crash on cleanup)

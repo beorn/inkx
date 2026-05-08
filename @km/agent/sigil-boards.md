@@ -44,16 +44,16 @@ turn a numeric hat into a persona document.
 
 Verified in a 2026-05-06 experiment by direct SQL on the `links` table:
 
-| Scenario                                                                       | Status                                                                                                             |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| [[@agent/5]] (wikilink in body) → km:@agent/5 in links table                   | ✅ Works per spec                                                                                                   |
-| Bare @agent/0 (sigil in title) → no entry in links table                       | ❌ Bug — klink.md says it should produce km:@agent/0                                                                |
-| bd list @agent rolls up @agent-mentioning beads                                | ✅ Works (via data.mentions parallel field — being deprecated separately)                                           |
-| bd list @agent/0 rolls up @agent/0-mentioning beads                            | ❌ Doesn't work — depends on the bare-sigil-with-path fix above; persisted board files additionally need `km.add` |
-| @agent/N.md board files have `km.add:: type:task . km.default:: true` on H1   | ✅ Numeric hats now have lean root rule + top-level task embeds                                                   |
-| `km.add` query supports the shape needed (mention:@agent/3 or equivalent)     | ❓ Needs verification                                                                                               |
-| bd update @agent/N --claim is race-safe across sessions                        | ❓ Today's --claim does read-then-write; needs DB-side compare-and-swap (UPDATE ... WHERE assignee IS NULL)         |
-| Board-level claim respects the existing 20-min agent / 24h user lease          | ❓ Verify; document if needed                                                                                       |
+| Scenario                                                                  | Status                                                                                                         |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [[@agent/5]] (wikilink in body) → km:@agent/5 in links table              | ✅ Works per spec                                                                                               |
+| Bare @agent/0 (sigil in title) → no entry in links table                  | ❌ Bug — klink.md says it should produce km:@agent/0                                                            |
+| bd list @agent rolls up @agent-mentioning beads                           | ✅ Works (via data.mentions parallel field — being deprecated separately)                                       |
+| bd list @agent/0 rolls up @agent/0-mentioning beads                       | ❌ Doesn't work — depends on the bare-sigil-with-path fix above; persisted board files additionally need km.add |
+| @agent/N.md board files have km.add:: type:task . km.default:: true on H1 | ✅ Numeric hats now have lean root rule + top-level task embeds                                                 |
+| km.add query supports the shape needed (mention:@agent/3 or equivalent)   | ❓ Needs verification                                                                                           |
+| bd update @agent/N --claim is race-safe across sessions                   | ❓ Today's --claim does read-then-write; needs DB-side compare-and-swap (UPDATE ... WHERE assignee IS NULL)     |
+| Board-level claim respects the existing 20-min agent / 24h user lease     | ❓ Verify; document if needed                                                                                   |
 
 ## Sub-tasks
 
@@ -108,3 +108,4 @@ If observed behavior contradicts these docs, that's an implementation gap (file 
 - `@km/storage/sync-roundtrip-completeness` — the parent doctrine that all mutations converge on `repo.updateNode` and sync handles FS materialization. The board-aggregation behavior is part of that pipeline.
 - `hub/km/design/vision.md:37` — "persona facet (durable agent identity)" plan in the vision doc.
 - Composable with: `/loop` (continuous run), `tribe` (cross-session coordination), `km agent spawn` (runtime instances).
+

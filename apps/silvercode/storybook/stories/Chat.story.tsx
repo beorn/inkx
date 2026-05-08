@@ -25,4 +25,8 @@ export const chatMultiTurn = chatStory("multi-turn", "multi-turn", "Multiple pro
 export const chatTurnActivityRich = chatStory("turn-activity-rich", "turn-activity-rich", "Tool activity leaves")
 export const chatBigToolTurn = chatStory("big-tool-turn", "big-tool-turn", "Large tool output")
 export const chatPlanDrawer = chatStory("plan-drawer", "plan-drawer", "Plan drawer")
-export const chatMetadataNotifications = chatStory("metadata-notifications", "metadata-notifications", "Metadata and notifications")
+export const chatMetadataNotifications = chatStory(
+  "metadata-notifications",
+  "metadata-notifications",
+  "Metadata and notifications",
+)

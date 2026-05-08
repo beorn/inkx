@@ -31,3 +31,4 @@ No global cursor-to-source subscriptions. Components must not decide cursor owne
 ## Related
 
 ![[no-invisible-cursors-render-invariants]]
+

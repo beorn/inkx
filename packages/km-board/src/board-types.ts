@@ -86,7 +86,8 @@ export type BoardReducerOp =
       type: "SELECT"
       nodeId: string | null
       cardNodeId?: string
-      cardHintSource?: "click"
+      columnNodeId?: string | null
+      cardHintSource?: "click" | "navigation"
     }
 
   // Fold/unfold (manipulates foldDepths Map)

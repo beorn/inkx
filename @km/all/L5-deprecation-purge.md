@@ -24,7 +24,7 @@ Reach the L5 quality plateau (per `docs/lessons/quality-plateau-refactoring.md`)
 
 ## Inventory — what's deprecated and how it must die
 
-## Group A — `data.*` parallel index (the user-flagged one)
+### Group A — `data.*` parallel index (the user-flagged one)
 
 Source of truth = `links` table (per `docs/design/model/klink.md`). The JSON sidecars are stale parallel caches.
 
@@ -38,7 +38,7 @@ Source of truth = `links` table (per `docs/design/model/klink.md`). The JSON sid
 
 The Asana import adapter usages at `apps/km-cli/src/import/convert.ts` etc. of `data.projects` are SEPARATE (Asana-source project metadata, not km canonical) — leave alone.
 
-## Group B — `@deprecated` JSDoc-marked code (production)
+### Group B — `@deprecated` JSDoc-marked code (production)
 
 Per refactoring.md §4: **`@deprecated` annotations don't work — LLMs ignore them. Delete the API.**
 
@@ -53,7 +53,7 @@ Per refactoring.md §4: **`@deprecated` annotations don't work — LLMs ignore t
 | apps/km-tui/src/state/ui-reducer.ts FILTER_ROWS                                                | Type alias               | VIEW_DIALOG_ROWS filter inline                                       |                                                    |
 | apps/km-tui/tests/helpers/test-app.ts dispatch, toContainText, notToContainText                | Test escape hatches      | press(), command(), expect(app).toContainText(...)                   | Test-helper migration; non-blocking                |
 
-## Group C — Legacy bd hook (post-2026-04-29 cutover)
+### Group C — Legacy bd hook (post-2026-04-29 cutover)
 
 `.git/hooks/prepare-commit-msg` carries the `--- BEGIN BEADS INTEGRATION v1.0.0 ---` block from the external `bd` (Go) binary. `km bd` is the canonical implementation since 2026-04-29; the legacy hook auto-stages files (filed as `@km/beads/prepare-commit-msg-hook-auto-stages`). Removal:
 
@@ -61,9 +61,9 @@ Per refactoring.md §4: **`@deprecated` annotations don't work — LLMs ignore t
 - Verify `km bd hooks install` (if it exists) doesn't replicate the same auto-stage behavior
 - Document the workaround in `.claude/skills/git/commit.md` regardless (use `git commit -o <file>` for explicit pathspec)
 
-## Phased plan (Update → Absorb → Purge → Remove → Fix)
+### Phased plan (Update → Absorb → Purge → Remove → Fix)
 
-## Phase 1 — Switch query executor to read from `links` table (Group A foundation)
+### Phase 1 — Switch query executor to read from `links` table (Group A foundation)
 
 **Goal**: `buildRefCondition` queries the `links` table instead of `data.*` JSON. This is the unblocker — once consumers don't need `data.*`, the writes can stop.
 
@@ -84,7 +84,7 @@ Per refactoring.md §4: **`@deprecated` annotations don't work — LLMs ignore t
 - [ ] All existing query tests still pass; new tests cover the links-join path
 - [ ] `grep "data\.mentions\b" packages/ apps/ --glob '!*.test.ts'` returns ONLY the writer (km-refs.ts) and stub-comment lines
 
-## Phase 2 — Stop writing `data.*` from the parser (Group A purge)
+### Phase 2 — Stop writing `data.*` from the parser (Group A purge)
 
 **Depends on**: Phase 1 (consumers must be off `data.*` first).
 
@@ -98,7 +98,7 @@ Per refactoring.md §4: **`@deprecated` annotations don't work — LLMs ignore t
 - [ ] `grep "_allMentions\|_allProjects"` returns 0 hits except in DB migration / strip code
 - [ ] Full test suite green (1295+ storage, 757+ markdown, 879 km-cli)
 
-## Phase 3 — Strip `data.*` from existing nodes (one-shot DB migration)
+### Phase 3 — Strip `data.*` from existing nodes (one-shot DB migration)
 
 **Depends on**: Phase 2 (writer is gone — re-parse won't re-add).
 
@@ -124,7 +124,7 @@ WHERE data IS NOT NULL
 - [ ] `SELECT COUNT(*) FROM nodes WHERE json_extract(data, '$.mentions') IS NOT NULL` returns 0
 - [ ] `km sync --from-fs` after migration produces zero new `data.mentions` rows (Phase 2 enforced)
 
-## Phase 4 — Delete dead extractor code (Group A cleanup)
+### Phase 4 — Delete dead extractor code (Group A cleanup)
 
 **Depends on**: Phase 3.
 
@@ -137,7 +137,7 @@ WHERE data IS NOT NULL
 - [ ] `grep "extractMentions\|extractProjects" packages/ apps/` returns 0 hits (or only test files testing the regex itself, which can be inlined)
 - [ ] No re-exports of deleted symbols
 
-## Phase 5 — Group B: `@deprecated` JSDoc cleanup
+### Phase 5 — Group B: `@deprecated` JSDoc cleanup
 
 Each entry in the Group B table above is its own micro-phase (independent file scope, none block the others). Process: delete the deprecated symbol, fix the resulting tsc errors with the listed replacement. Order by blast-radius:
 
@@ -156,7 +156,7 @@ Each entry in the Group B table above is its own micro-phase (independent file s
 - [ ] `grep "<deprecated-symbol>"` returns 0 hits in production code
 - [ ] Tests still green
 
-## Phase 6 — Group C: legacy bd hook removal
+### Phase 6 — Group C: legacy bd hook removal
 
 - Edit `.git/hooks/prepare-commit-msg`: remove the `--- BEGIN/END BEADS INTEGRATION v1.0.0 ---` block
 - Verify the `km bd hooks` install path (if exists) replaces with a non-auto-staging version; if it doesn't exist, the hook stays absent
@@ -170,7 +170,7 @@ Each entry in the Group B table above is its own micro-phase (independent file s
 - [ ] `.claude/skills/git/commit.md` documents the `git commit -o` workaround
 - [ ] `@km/beads/prepare-commit-msg-hook-auto-stages` closed
 
-## Cross-cutting acceptance — when is the L5 plateau reached?
+### Cross-cutting acceptance — when is the L5 plateau reached?
 
 After all 6 phases:
 
@@ -180,21 +180,21 @@ After all 6 phases:
 - [ ] `bun fix && bun run test:all` green
 - [ ] `bun run test:strictest` green (every-action invariants)
 
-## Risk register
+### Risk register
 
 - **Phase 1 perf**: links-table EXISTS query may be slower than `data.mentions LIKE` if indexing is wrong. Verify with bench (`bun run bench query`) before/after; expect parity (`idx_links_href` exists per schema.ts).
 - **Asana import collision** (`data.projects` reads in import-adapter): NOT the same field — adapter uses local Asana metadata. Leave alone; assert no collateral damage via grep audit.
 - **Phase 3 migration on stale dbs**: if a user runs `km` with an older DATA_VERSION, the migration runs once. Test with a real-vault snapshot before shipping.
 - **Phase 5 `KNode.priority` removal**: many callers; needs a sweep. Use `bun vendor/bearly/tools/refactor.ts` for the mechanical part if pattern is consistent enough.
 
-## Tracking
+### Tracking
 
 - This bead = umbrella; close when all 6 phases done
 - Group A subsumes the existing `@km/all/dissolve-data-tags-to-links` (fold in)
 - Group A also subsumes the (already partly shipped) `@km/all/drop-data-tags` (closed; informs Phase 2)
 - Group C subsumes `@km/beads/prepare-commit-msg-hook-auto-stages`
 
-## Why this matters (for future-self / agents reading this cold)
+### Why this matters (for future-self / agents reading this cold)
 
 The L5 plateau is not "no legacy code anywhere" — it's "the live pipeline uses one concept, not two." Today every keypress that triggers a sigil-mention query goes through both `data.mentions` LIKE (the parallel cache) AND the links table (the canonical store) — depending on which consumer you hit. Two paths means two truths. New agents writing code default to whichever they find first. Deletion is the only sustainable fix; `@deprecated` doesn't work (LLMs ignore it; humans tolerate it).
 
