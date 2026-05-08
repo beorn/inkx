@@ -897,7 +897,7 @@ function chatSessionIdFor(event: AgentEvent, options: NormalizeAgentEventOptions
   return assertNeverAgentEvent(event)
 }
 
-function agentEventIdFor(event: AgentEvent): AgentEventId {
+export function agentEventIdFor(event: AgentEvent): AgentEventId {
   const parts: string[] = [event.kind, String(event.ts)]
   if ("sessionId" in event) parts.push(event.sessionId)
   if ("turnId" in event) parts.push(event.turnId)

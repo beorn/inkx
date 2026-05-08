@@ -21,6 +21,8 @@
  */
 
 import { spawn, spawnSync } from "node:child_process"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, test } from "vitest"
 
@@ -120,6 +122,50 @@ describe("silvercode CLI smoke — pre-flight resume validation", () => {
     const overridden = silvercode(["--cwd", "/tmp", "doctor", "connections", "--cwd", "/var", "--json"])
     expect(overridden.status).toBe(0)
     expect(JSON.parse(overridden.stdout)).toMatchObject({ cwd: "/var" })
+  })
+
+  test("traffic replay --json exits before TUI and reports projection provenance", () => {
+    const dir = mkdtempSync(join(tmpdir(), "silvercode-traffic-cli-"))
+    const path = join(dir, "events.jsonl")
+    const sessionId = "traffic-cli-session"
+    const turnId = "turn-1"
+    const lines = [
+      {
+        kind: "session-init",
+        sessionId,
+        cwd: "/repo",
+        model: "claude-sonnet",
+        mode: "auto",
+        tools: [],
+        mcp_servers: [],
+        slashCommands: [],
+        skills: [],
+        plugins: [],
+        claudeCodeVersion: "2.1.119",
+        apiKeySource: "OAuth",
+        ts: 1,
+      },
+      { kind: "turn-start", sessionId, turnId, role: "assistant", ts: 2 },
+      { kind: "text-delta", sessionId, turnId, blockIndex: 0, text: "hello", ts: 3 },
+      { kind: "turn-end", sessionId, turnId, stopReason: "end_turn", ts: 4 },
+    ]
+    writeFileSync(path, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`)
+
+    const r = silvercode(["traffic", "replay", path, "--json"])
+    expect(r.status).toBe(0)
+    expect(r.stdout).not.toContain("\x1b[?1049h")
+    const parsed = JSON.parse(r.stdout) as {
+      rawEvents: unknown[]
+      normalizedEvents: Array<{ type: string }>
+      projectedLeaves: Array<{ type: string; props: unknown }>
+      frames: Array<{ normalizedEventIds: string[]; projectedLeafIds: string[] }>
+    }
+    expect(parsed.rawEvents).toHaveLength(4)
+    expect(parsed.normalizedEvents.map((event) => event.type)).toContain("message.block.added")
+    expect(parsed.projectedLeaves.some((leaf) => leaf.type === "message")).toBe(true)
+    expect(parsed.frames.some((frame) => frame.normalizedEventIds.length > 0 && frame.projectedLeafIds.length > 0)).toBe(
+      true,
+    )
   })
 })
 

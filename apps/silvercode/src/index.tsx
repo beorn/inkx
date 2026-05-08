@@ -26,6 +26,7 @@ import { renderReport } from "./doctor/render.ts"
 import { resolveConnection } from "./resolve-connection.ts"
 import { validateResumeId } from "./resume.ts"
 import { parseSid } from "./sid-prefix.ts"
+import { renderTrafficReplaySummary, replayTrafficLogFile } from "./traffic-log.ts"
 
 /**
  * Two-phase argv parse: scan `process.argv` for `--config <path>` /
@@ -319,6 +320,26 @@ async function buildProgram(): Promise<Command> {
       if (opts["json"]) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
       else process.stdout.write(renderReport(report))
       process.exitCode = severityToExitCode(report.severity)
+    })
+
+  const traffic = program.command("traffic").description("inspect and replay raw agent traffic logs")
+  traffic
+    .command("replay <path>")
+    .description("replay an AgentEvent JSONL ledger through normalization and projection")
+    .option("--session-id <id>", "override projected session id")
+    .option("--json", "emit raw/normalized/projected provenance as JSON")
+    .action((path: string, opts: Record<string, unknown>) => {
+      try {
+        const replay = replayTrafficLogFile(expandHomePath(path), {
+          sessionId: typeof opts["sessionId"] === "string" ? opts["sessionId"] : undefined,
+        })
+        if (opts["json"]) process.stdout.write(`${JSON.stringify(replay, null, 2)}\n`)
+        else process.stdout.write(renderTrafficReplaySummary(replay))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        process.stderr.write(`silvercode traffic replay: ${message}\n`)
+        process.exitCode = 2
+      }
     })
 
   return program
