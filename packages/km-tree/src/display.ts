@@ -29,6 +29,13 @@ export function stripForDisplay(text: string): string {
       })
       // Strip ^block-id at end of text (alphanumeric/dash block IDs)
       .replace(/\s*\^[\w-]+$/, "")
+      // Strip priority hashtags #P0..#P4 — priority is rendered as a dedicated
+      // badge in card/tree views, so the hashtag in the title is redundant.
+      // Type hashtags (#task, #bug, #feature, #epic, #docs) are NOT stripped
+      // here — they convey type but the type-suffix renderer shows them as a
+      // collapsed-type chip; stripping them broke titles in past sweeps
+      // (km-tui.strip-known-mentions-overreach), so keep this narrow.
+      .replace(/(?:^|\s)#P[0-4]\b/gi, "")
       // Collapse runs of whitespace to single space
       .replace(/ {2,}/g, " ")
       .trim()

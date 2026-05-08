@@ -822,6 +822,37 @@ describe("stripForDisplay", () => {
     expect(stripForDisplay("x^2 + y^2 equals r^2 total")).toBe("x^2 + y^2 equals r^2 total")
   })
 
+  it("strips priority hashtag #P0 (priority badge renders separately)", () => {
+    expect(stripForDisplay("Folder-note model: refine merge semantics #task #P0")).toBe(
+      "Folder-note model: refine merge semantics #task",
+    )
+  })
+
+  it("strips #P1..#P4 priority hashtags", () => {
+    expect(stripForDisplay("Title #P1")).toBe("Title")
+    expect(stripForDisplay("Title #P2")).toBe("Title")
+    expect(stripForDisplay("Title #P3")).toBe("Title")
+    expect(stripForDisplay("Title #P4")).toBe("Title")
+  })
+
+  it("strips #P0 at start of title", () => {
+    expect(stripForDisplay("#P0 Title")).toBe("Title")
+  })
+
+  it("preserves type hashtags (#task, #bug, #feature, #epic, #docs)", () => {
+    // Type tags convey kind; the badge layer renders them separately,
+    // but stripping them broke past sweeps — keep the strip narrow to #P[0-4].
+    expect(stripForDisplay("Title #task")).toBe("Title #task")
+    expect(stripForDisplay("Title #bug")).toBe("Title #bug")
+    expect(stripForDisplay("Title #feature")).toBe("Title #feature")
+  })
+
+  it("preserves non-priority hashtags that look similar (#P5, #Px, #Padding)", () => {
+    // Only #P0..#P4 are priority canonicals
+    expect(stripForDisplay("Title #P5")).toBe("Title #P5")
+    expect(stripForDisplay("Title #Padding")).toBe("Title #Padding")
+  })
+
   it("handles text with only a ^numeric-id", () => {
     expect(stripForDisplay("^1202466275397380")).toBe("")
   })
