@@ -695,6 +695,31 @@ describe("Round-trip: Wiki Link Embeddings", () => {
     expect(para!.embed_of).toBeFalsy()
   })
 
+  test("should split consecutive standalone embeds into distinct nodes", () => {
+    const nodes = parse(`# @agent/3
+
+![[one]]
+![[two]]
+`)
+
+    const embeds = nodes.filter((n) => n.type === "p")
+    expect(embeds).toHaveLength(2)
+    expect(embeds.map((n) => n.content)).toEqual(["![[one]]", "![[two]]"])
+    expect(embeds.map((n) => n.data?.embeddingTarget)).toEqual(["one", "two"])
+  })
+
+  test("should keep relative child slot embeds grouped for index files", () => {
+    const nodes = parse(`# Project
+
+![[./alpha]]
+![[./beta]]
+`)
+
+    const embeds = nodes.filter((n) => n.type === "p")
+    expect(embeds).toHaveLength(1)
+    expect(embeds[0]?.content).toBe("![[./alpha]]\n![[./beta]]")
+  })
+
   test("should preserve mixed-content paragraph with embedding", () => {
     const para = parse(`Some text before ![[Target]] and after.`).find((n) => n.type === "p")
     expect(para).toBeDefined()

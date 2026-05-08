@@ -61,19 +61,18 @@ Queries and backlinks are automatic. They do not modify `@agent/3.md`.
 
 A hat board becomes a persisted queue only when the file declares
 materialization with `km.add`. Put the rule on the slot identity H1 and use
-`km.default` for the initial landing section:
+`km.default` on the same H1 to keep initial embeds top-level:
 
 ```markdown
-# @agent/3 km.add:: .
-
-## Queue km.default:: true
+# @agent/3 km.add:: . km.default:: true
 ```
 
 `.` expands to the rule owner's path-form, so the example matches `@agent/3`
-without duplicating the path in the rule. `km.default` wins anywhere below the
-owner. If there is no default section, generated embeds land in the first
-non-collapsed, non-removed child section; if there is no child section, they
-land under the H1.
+without duplicating the path in the rule. `km.default` on the owner means
+"place generated embeds directly under this node." If the owner is not marked
+default, `km.default` wins anywhere below the owner. If there is no default
+target, generated embeds land in the first non-collapsed, non-removed child
+section; if there is no child section, they land under the H1.
 
 `km.add` materializes matching item nodes by default (`KNode.isItem()`), not body
 blocks. A paragraph that mentions `@agent/3` remains a normal backlink source,

@@ -62,15 +62,13 @@ not receive embeds just because items link to `@agent/3`; its H1 or a child
 section must carry a rule. The preferred slot-board shape is:
 
 ```markdown
-# @agent/3 km.add:: .
-
-## Queue km.default:: true
+# @agent/3 km.add:: . km.default:: true
 ```
 
-`.` is a self alias for the rule owner's path-form. `km.default:: true` selects
-where generated embeds initially land and wins anywhere below the owner;
-without it, the first non-collapsed, non-removed child section is used, then
-the owner itself.
+`.` is a self alias for the rule owner's path-form. `km.default:: true` on the
+owner means generated embeds land directly under that owner. If the owner is not
+default, `km.default:: true` wins anywhere below the owner; without it, the
+first non-collapsed, non-removed child section is used, then the owner itself.
 
 `km.add` materializes item nodes by default (`KNode.isItem()`); body blocks may
 still contribute links and backlinks, but they do not become queue/card embeds.

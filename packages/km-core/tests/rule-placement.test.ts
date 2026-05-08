@@ -6,6 +6,17 @@ function childrenByParent(nodes: RulePlacementNode[]): (parentId: string) => Rul
 }
 
 describe("findDefaultAddSection", () => {
+  test("uses owner km.default before child sections", () => {
+    const owner: RulePlacementNode = { id: "board", type: "h", fstype: "mdfile", item: {}, rules: { default: true } }
+    const nodes: RulePlacementNode[] = [
+      { id: "queue", type: "h", fstype: "mdsection", item: {}, data: { parentId: "board" } },
+    ]
+
+    expect(findDefaultAddSection("board", childrenByParent(nodes), (id) => (id === "board" ? owner : null))?.id).toBe(
+      "board",
+    )
+  })
+
   test("uses km.default before first eligible fallback", () => {
     const nodes: RulePlacementNode[] = [
       { id: "doing", type: "h", fstype: "mdsection", item: {}, data: { parentId: "board" } },

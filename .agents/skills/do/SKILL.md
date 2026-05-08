@@ -21,9 +21,7 @@ and do not add frontmatter, descriptions, scope hints, or working agreements to
 hat files. A hat board should contain only:
 
 ```markdown
-# @agent/N km.add:: .
-
-## Queue km.default:: true
+# @agent/N km.add:: . km.default:: true
 
 ![[queued-bead]]
 ```

@@ -28,9 +28,7 @@ Hat files are deliberately lean. Do not add frontmatter, persona descriptions,
 scope hints, or working agreements to `@agent/N.md`. The expected shape is:
 
 ```markdown
-# @agent/N km.add:: .
-
-## Queue km.default:: true
+# @agent/N km.add:: . km.default:: true
 
 ![[queued-bead]]
 ```
@@ -90,11 +88,11 @@ Today's lifecycle planner uses DB-side compare-and-swap (`@km/agent/sigil-boards
 sed -n '1,80p' @agent/<N>.md
 ```
 
-It should contain only the H1 rule, the `Queue` default section, and optional
-`![[bead]]` embeds. If it contains frontmatter, persona text, scope hints, or
-working-agreement prose, clean it before proceeding. Do not wrap the hat body
-as a `<persona>` prompt; repository steering and the bead body provide the work
-context.
+It should contain only the H1 rule and optional top-level `![[bead]]` embeds.
+If it contains frontmatter, persona text, scope hints, child queue scaffolding,
+or working-agreement prose, clean it before proceeding. Do not wrap the hat
+body as a `<persona>` prompt; repository steering and the bead body provide the
+work context.
 
 ### 3. Refresh the matching worktree
 
@@ -131,7 +129,8 @@ done
 `--notes` appends a paragraph; the bare `@agent/<N>` token is recognized as a
 sigil mention by the markdown link extractor and lands in the canonical links
 table as `km:@agent/<N>`. The hat's `km.add:: .` rule resolves that link and
-renders the bead as a `![[<bead>]]` embed under `Queue` on next `km sync`.
+renders the bead as a top-level `![[<bead>]]` embed under the hat H1 on next
+`km sync`.
 
 After queue-assigning beads, verify with the ordinary bd query surface:
 

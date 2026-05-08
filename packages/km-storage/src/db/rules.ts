@@ -211,7 +211,11 @@ function resolveRuleSelfTarget(db: Database, sectionId: string, ctx: RuleContext
 }
 
 function resolveMaterializationTarget(db: Database, ownerSectionId: string): string {
-  const defaultTarget = findDefaultAddSection(ownerSectionId, (parentId) => getChildren(db, parentId))
+  const defaultTarget = findDefaultAddSection(
+    ownerSectionId,
+    (parentId) => getChildren(db, parentId),
+    (id) => getNode(db, id),
+  )
   return defaultTarget?.id ?? ownerSectionId
 }
 

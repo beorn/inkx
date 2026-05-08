@@ -322,6 +322,85 @@ Persona text.
         },
       ))
 
+    test("H1 km.default keeps km.add materialization directly under the file root", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(join(repoDir, "@agent", "3.md"), `# @agent/3 km.add:: . km.default:: true\n`)
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          expect(board?.rules?.add).toBe(".")
+          expect(board?.rules?.default).toBe(true)
+
+          const embeds = getChildren(store.getDatabase(), board!.id).filter((c) => KNode.isEmbed(c))
+          expect(embeds).toHaveLength(1)
+
+          const target = allNodes.find((n) => n.id === embeds[0]!.embed_of)
+          expect(target?.fs_path).toBe("@km/silvercode/work.md")
+        },
+      ))
+
+    test("H1 km.default does not duplicate an existing top-level embed", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(
+            join(repoDir, "@agent", "3.md"),
+            `# @agent/3 km.add:: . km.default:: true
+
+![[work]]
+`,
+          )
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const embeds = getChildren(store.getDatabase(), board!.id).filter((c) => KNode.isEmbed(c))
+          expect(embeds).toHaveLength(1)
+
+          const target = allNodes.find((n) => n.id === embeds[0]!.embed_of)
+          expect(target?.fs_path).toBe("@km/silvercode/work.md")
+        },
+      ))
+
+    test("H1 km.default dedupes only within the target file root", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "@agent"), { recursive: true })
+          mkdirSync(join(repoDir, "@km", "silvercode"), { recursive: true })
+          writeFileSync(join(repoDir, "@agent", "3.md"), `# @agent/3 km.add:: . km.default:: true\n`)
+          writeFileSync(join(repoDir, "other.md"), `# Other\n\n![[work]]\n`)
+          writeFileSync(join(repoDir, "@km", "silvercode", "work.md"), `# Work item #task #P0 @agent/3\n`)
+        },
+        ({ store }) => {
+          for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
+            /* exhaust generator */
+          }
+
+          const allNodes = store.getAllNodes()
+          const board = allNodes.find((n) => n.fs_path === "@agent/3.md")
+          const embeds = getChildren(store.getDatabase(), board!.id).filter((c) => KNode.isEmbed(c))
+          expect(embeds).toHaveLength(1)
+
+          const target = allNodes.find((n) => n.id === embeds[0]!.embed_of)
+          expect(target?.fs_path).toBe("@km/silvercode/work.md")
+        },
+      ))
+
     test("H1 km.add falls back to the first non-collapsed, non-removed child section", () =>
       withMemoryStore(
         (repoDir) => {

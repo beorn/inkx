@@ -306,17 +306,17 @@ interface NodeRules {
 rule should match the owner node's path-form:
 
 ```markdown
-# @agent/3 km.add:: .
-
-## Queue km.default:: true
+# @agent/3 km.add:: . km.default:: true
 ```
 
-Generated children are embed nodes. `km.default:: true` below the rule owner
-selects the initial landing section for generated additions; without it, storage
-uses the first non-collapsed, non-removed child section, then the rule owner.
+Generated children are embed nodes. `km.default:: true` on the rule owner keeps
+generated additions directly under that owner. If the owner is not default,
+`km.default:: true` below the rule owner selects the initial landing target;
+without it, storage uses the first non-collapsed, non-removed child section,
+then the rule owner.
 Once a card exists, normal outline moves may place it in workflow sections such
 as Doing, Archive, or Done. Rule materialization should not drag an existing
-card back to the default section.
+card back to the default target.
 
 Matching is href-based: `@agent/3` and `[[@agent/3]]` both match the same query.
 The default materialization target set is item-only (`KNode.isItem()`); body

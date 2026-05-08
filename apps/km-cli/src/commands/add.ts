@@ -182,12 +182,17 @@ export const addCommand = new Command("add")
       process.exit(0)
     }
 
-    // Find the default section: km.default:: true wins, otherwise first
+    // Find the default target: km.default:: true on the target keeps additions
+    // at the target; otherwise a child km.default section wins, then the first
     // non-collapsed, non-removed section.
     // If no sections exist, items are added directly to the target node.
     t0 = Date.now()
     let actualTarget = targetNode
-    const defaultColumn = findDefaultAddSection(targetNode.id, (parentId) => repo.getChildren(parentId))
+    const defaultColumn = findDefaultAddSection(
+      targetNode.id,
+      (parentId) => repo.getChildren(parentId),
+      (id) => repo.getNode(id),
+    )
     if (defaultColumn) {
       actualTarget = defaultColumn
     }

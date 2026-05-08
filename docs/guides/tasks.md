@@ -147,7 +147,7 @@ Columns can have rules that control task membership:
 
 **`km.add:: query`** — Declares that a heading should materialize matching
 items. The query can match tasks, headings, files, or sigil-linked items;
-generated children are embed cards under the heading's default section. Links and
+generated children are embed cards under the heading's default target. Links and
 backlinks alone are read-only and do not write embeds into the target file.
 `km.add` materializes `KNode.isItem()` matches by default, so body paragraphs can
 host links without becoming cards.
@@ -157,9 +157,7 @@ host links without becoming cards.
 
 ## inbox km.add:: ./inbox/**(.) # Files in inbox/ folder
 
-# @agent/3 km.add:: .
-
-## Queue km.default:: true
+# @agent/3 km.add:: . km.default:: true
 ```
 
 **`km.sync:: field:value`** — Bidirectional synchronization:

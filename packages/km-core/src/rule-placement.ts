@@ -13,6 +13,7 @@ export interface RulePlacementNode {
 /**
  * Find the section where generated additions should initially land.
  *
+ * `km.default:: true` on the owner means "use the owner itself." Otherwise,
  * `km.default:: true` wins anywhere below the owner. Without it, use the first
  * non-collapsed, non-removed child section in outline order. Callers keep the
  * final fallback to the owner node.
@@ -20,7 +21,10 @@ export interface RulePlacementNode {
 export function findDefaultAddSection<T extends RulePlacementNode>(
   parentId: string,
   getChildren: (parentId: string) => readonly T[],
+  getNode?: (id: string) => T | null | undefined,
 ): T | null {
+  const owner = getNode?.(parentId)
+  if (owner && placementRules(owner)?.default) return owner
   return findExplicitDefaultSection(parentId, getChildren) ?? findFirstEligibleSection(parentId, getChildren)
 }
 

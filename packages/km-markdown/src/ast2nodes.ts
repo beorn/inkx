@@ -518,10 +518,9 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: strin
     }
 
     // Handle other block types
-    const blockNode = convertBlock(child, currentParent, sortOrder++, body)
-    if (blockNode) {
-      nodes.push(blockNode)
-    }
+    const blockNodes = convertBlockNodes(child, currentParent, sortOrder, body)
+    nodes.push(...blockNodes)
+    sortOrder += blockNodes.length
   }
 
   return nodes
@@ -747,8 +746,9 @@ function convertListItem(
         continue
       }
       // Extra paragraphs in multi-paragraph list items
-      const blockNode = convertBlock(child, node, childSort++, body)
-      if (blockNode) nodes.push(blockNode)
+      const blockNodes = convertBlockNodes(child, node, childSort, body)
+      nodes.push(...blockNodes)
+      childSort += blockNodes.length
     } else if (
       child.type === "blockquote" ||
       child.type === "code" ||
@@ -756,8 +756,9 @@ function convertListItem(
       child.type === "html" ||
       child.type === "thematicBreak"
     ) {
-      const blockNode = convertBlock(child, node, childSort++, body)
-      if (blockNode) nodes.push(blockNode)
+      const blockNodes = convertBlockNodes(child, node, childSort, body)
+      nodes.push(...blockNodes)
+      childSort += blockNodes.length
     }
   }
 
@@ -773,6 +774,63 @@ function getEmbeddingText(text: string): string | null {
   // Check if text is purely an embedding: ![[...]] with nothing outside
   if (/^!\[\[[^\]]+\]\]$/.test(trimmed)) return trimmed
   return null
+}
+
+function getStandaloneEmbeddingLines(text: string): string[] | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (lines.length <= 1) return null
+  if (!lines.every((line) => getEmbeddingText(line))) return null
+  if (lines.some((line) => /^!\[\[\.\/[^\]]+\]\]$/.test(line))) return null
+  return lines
+}
+
+function embeddingData(content: string): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    _mdSource: content,
+    _mdSourceContent: content,
+  }
+  const links = parseWikiLinks(content)
+  const link = links[0]
+  if (links.length === 1 && link?.embedded) {
+    const target = link.blockId ? `^${link.blockId}` : link.target
+    if (target) data.embeddingTarget = target
+    if (link.alias) data.embeddingAlias = link.alias
+  }
+  return data
+}
+
+function createParagraphNode(parent: KNode, parentIdx: number, content: string, mdPos?: number): KNode {
+  const now = Date.now()
+  return {
+    id: ulid(),
+    type: "p",
+    parent_id: parent.id,
+    parent_idx: parentIdx,
+    md_pos: mdPos,
+    content,
+    content_hash: undefined,
+    data: embeddingData(content),
+    created_at: now,
+    updated_at: now,
+    version: "",
+  }
+}
+
+function convertBlockNodes(block: RootContent, parent: KNode, sortOrder: number, body: string = ""): KNode[] {
+  if (block.type === "paragraph") {
+    const standaloneEmbeds = getStandaloneEmbeddingLines(nodeToText(block))
+    if (standaloneEmbeds) {
+      return standaloneEmbeds.map((line, index) =>
+        createParagraphNode(parent, sortOrder + index, line, block.position?.start.offset),
+      )
+    }
+  }
+
+  const node = convertBlock(block, parent, sortOrder, body)
+  return node ? [node] : []
 }
 
 /**
@@ -802,15 +860,7 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number, body
       }
       // Detect embedding syntax ![[...]] and store target for reconciliation
       if (getEmbeddingText(content)) {
-        const links = parseWikiLinks(content)
-        const link = links[0]
-        if (links.length === 1 && link?.embedded) {
-          const target = link.blockId ? `^${link.blockId}` : link.target
-          if (target) {
-            data.embeddingTarget = target
-            if (link.alias) data.embeddingAlias = link.alias
-          }
-        }
+        Object.assign(data, embeddingData(content))
       }
       break
     }
