@@ -229,7 +229,10 @@ interface KNode {
   assigned_to?: string // User/agent assigned to task
   due_date?: string // YYYY-MM-DD format
   scheduled_date?: string // YYYY-MM-DD format
-  priority?: number // 0-4 (P0=urgent, P4=backlog)
+  // priority — NOT a column. The `#P[0-4]` hashtag in `content` is the
+  // canonical encoding (per docs/future/beads.md "Priority Tags"). Read it
+  // via `getNodePriority(node)` from @km/core. The `nodes.priority` column
+  // was dropped at SCHEMA_VERSION=11.
   rrule?: string // iCal RRULE format (e.g., "FREQ=DAILY;FROM=DUE")
   recur_prev?: string // Previous recurrence instance ID
 
@@ -272,7 +275,7 @@ interface KNode {
 | assigned_to    | string         | Assignee (user or agent ID)                                                           |
 | due_date       | string         | Due date in YYYY-MM-DD format                                                         |
 | scheduled_date | string         | Scheduled date in YYYY-MM-DD format                                                   |
-| priority       | number         | Priority 0-4 (P0=urgent, P4=backlog)                                                  |
+| ~~priority~~   | ~~number~~     | Removed at SCHEMA_VERSION=11. Priority lives as the `#P[0-4]` hashtag in `content`; read via `getNodePriority(node)`. |
 | rrule          | string         | iCal RRULE (e.g., FREQ=WEEKLY;BYDAY=MO;FROM=DUE)                                      |
 | recur_prev     | string         | Links to previous recurrence instance                                                 |
 | content        | string         | Node text content                                                                     |
@@ -385,7 +388,7 @@ interface KNode {
 **Key rules:**
 
 1. **Embeds are positional references** — they exist in the tree but point elsewhere
-2. **Content operations apply to target** — status, priority changes affect the embed target
+2. **Content operations apply to target** — status changes (and content-encoded markers like `#P[0-4]`) affect the embed target
 3. **Positional operations apply to the embed node** — moving within a board moves the embed occurrence
 4. **Display reads from target** — embeds render the target's content
 5. **Delete removes the embed only** — deleting an embed does not delete the target
@@ -437,7 +440,8 @@ CREATE TABLE nodes (
   assigned_to TEXT,              -- Assignee
   due_date TEXT,                 -- YYYY-MM-DD
   scheduled_date TEXT,           -- YYYY-MM-DD
-  priority INTEGER,              -- 0-4 (P0=urgent, P4=backlog)
+  -- priority — column dropped at SCHEMA_VERSION=11. Encoded as `#P[0-4]`
+  -- hashtag in `content`; read via `getNodePriority(node)`.
 
   -- Content
   content TEXT,                  -- Inline text
@@ -802,9 +806,11 @@ interface NodeStore {
 ### Names, Paths, and IDs
 
 **Vocabulary**: in km's data model, every node has *props* — some are
-first-class fields (id, name, status, priority, …), others live in
-`node.data` JSON. *Frontmatter* is one way props get serialized in
-`.md` files (YAML between `---` fences); other materializations
+first-class fields (id, name, status, …), others live in `node.data`
+JSON, and a few are encoded inside `content` itself (notably the
+`#P[0-4]` priority hashtag, which is the canonical priority and has
+no separate column). *Frontmatter* is one way props get serialized
+in `.md` files (YAML between `---` fences); other materializations
 render the same props differently. Use "props" in the data layer; use
 "frontmatter" only when discussing markdown serialization specifically.
 
