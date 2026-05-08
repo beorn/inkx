@@ -11,7 +11,7 @@ benefits-from: [pm, sop]
 
 One job: drive every reducible work surface back to `origin/main`-consistent state. After `/merge` succeeds with no `--leave` flags, `git status` is clean, every worktree branch tip equals `origin/main`, every submodule pointer is fetchable from its origin, and zero un-integrated commits exist anywhere on this machine.
 
-Pairs with the worktree-pool standing rule (AGENTS.md "Branches and worktrees"): branches are dead, worktrees-and-merge-back is the lifecycle. `/merge` is the merge-back primitive.
+Pairs with the worktree-pool standing rule (CLAUDE.md "Branches and worktrees"): branches are dead, worktrees-and-merge-back is the lifecycle. `/merge` is the merge-back primitive.
 
 ## Modes
 
@@ -34,7 +34,7 @@ git stash list
 km bd list --status wip --assignee "$USER"  # claimed-but-stale check
 git submodule foreach 'git rev-parse HEAD'          # vs each submodule's origin/main
 git status --porcelain                              # main repo dirty?
-ps -ef | grep -E 'Codex.*loop|Codex.*routine' | grep -v grep
+ps -ef | grep -E 'claude.*loop|claude.*routine' | grep -v grep
 ```
 
 Build one table:
@@ -44,8 +44,8 @@ WIP: 7
   surface             tip-sha   ahead/behind   linked bead          state
   ────────────────────────────────────────────────────────────────────────
   wt3                 abc1234   3/0            km-foo.bar           commits to push+integrate
-  wt7                 (clean)   0/0            km-wt7 (idle)        slot already released
-  km-recall-iter3     0654d0d   2/0            km-tribe.recall      named worktree, push+integrate
+  wt7                 (clean)   0/0            @agent/7 (idle)      slot already released
+  km-recall-iter3     0654d0d   2/0            @km/tribe/recall      named worktree, push+integrate
   feat/legacy         old111    1/57           (none)               likely stale, ask
   stash@{0}           — — —     —              —                    review or drop
   vendor/bearly       53fc57a   ahead          —                    push submodule pointer
@@ -75,7 +75,7 @@ git push origin main
 cd .claude/worktrees/wtN
 git reset --hard origin/main
 git submodule update --recursive
-km bd close km-wtN --reason "shipped <SHA>"
+km bd update @agent/N --assignee "" --status open   # release single lease for persona + worktree
 ```
 
 ### Pool worktree wtN with uncommitted changes

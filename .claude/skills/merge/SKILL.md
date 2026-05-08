@@ -44,7 +44,7 @@ WIP: 7
   surface             tip-sha   ahead/behind   linked bead          state
   ────────────────────────────────────────────────────────────────────────
   wt3                 abc1234   3/0            km-foo.bar           commits to push+integrate
-  wt7                 (clean)   0/0            km-wt7 (idle)        slot already released
+  wt7                 (clean)   0/0            @agent/7 (idle)      slot already released
   km-recall-iter3     0654d0d   2/0            @km/tribe/recall      named worktree, push+integrate
   feat/legacy         old111    1/57           (none)               likely stale, ask
   stash@{0}           — — —     —              —                    review or drop
@@ -75,7 +75,7 @@ git push origin main
 cd .claude/worktrees/wtN
 git reset --hard origin/main
 git submodule update --recursive
-km bd close km-wtN --reason "shipped <SHA>"
+km bd update @agent/N --assignee "" --status open   # release single lease for persona + worktree
 ```
 
 ### Pool worktree wtN with uncommitted changes

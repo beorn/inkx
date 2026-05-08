@@ -9,7 +9,7 @@ benefits-from: [worktree, commit]
 
 **Keywords**: bead, beads, km bd, issue, ticket, claim, close, ready, in_progress, P0, P1, P2, P3, P4, scope epic, sub-bead, parent, label
 
-The single source of truth for bead operations. `/pm` is a thin alias that routes here for bead workflow; the deeper docs in `.agents/skills/pm/` are referenced for specific recipes (creation forms, label hygiene, retrospectives).
+The single source of truth for bead operations. `/pm` is a thin alias that routes here for bead workflow; the deeper docs in `.claude/skills/pm/` are referenced for specific recipes (creation forms, label hygiene, retrospectives).
 
 ## Storage model — markdown files in the vault
 
@@ -75,7 +75,7 @@ States: `open` (todo), `wip` (in_progress), `blocked`, `done`, `dropped`.
 
 Reason: bead state is per-worktree markdown files. From-main avoids the commit-push-pull propagation dance — when you `km bd update km-foo --claim` from `.claude/worktrees/wt3`, the change lands in wt3's working tree only, won't appear in main until pushed-merged-pulled.
 
-The exception: `km bd close km-wtN` (slot-bead self-close) IS run from inside `.claude/worktrees/wtN` because the slot's own lifecycle is local.
+The exception: releasing the slot lease `km bd update @agent/N --assignee "" --status open` IS run from inside `.claude/worktrees/wtN` because the slot's own lifecycle is local. (Persona slot AND worktree share one lease bead — one agent = one worktree.)
 
 ```bash
 # Right
@@ -97,7 +97,7 @@ git push                          # everyone else's bead view is stale until the
 | Scope epic | `@km/<scope>` (path-form) / `km-<scope>` (bd-form) — e.g. `@km/silvercode` / `km-silvercode` |
 | Sub-bead | `@km/<scope>/<slug>` / `km-<scope>.<slug>` — e.g. `@km/beads/cutover` / `km-beads.cutover` |
 | Auto-id (no `--id`) | `km-<5-char-hash>` — e.g. `km-q5hji` (used when scope/name not pre-decided) |
-| Slot bead | `km-wt1`..`km-wt9` (lease beads for the worktree pool) |
+| Slot bead | `@agent/1`..`@agent/9` (single lease for persona AND worktree — one agent = one worktree) |
 
 Scope epics are permanent backlogs (per-package); they don't close. Project epics close when shipped.
 
@@ -143,14 +143,14 @@ Example: `shipped: cfe7642fb (count-and-warn) — apps/km-cli/tests/doctor-rebui
 
 ## Numeric criteria — measure, don't estimate
 
-If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS errors): **run the grep/wc/tsc and paste the actual count** into the close reason. "Mostly done" is not done. The session that closed `km-tui.tree.v4 Phase 9` claiming "21 useEffects → still 21" is the canonical anti-pattern.
+If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS errors): **run the grep/wc/tsc and paste the actual count** into the close reason. "Mostly done" is not done. The session that closed `@km/tui/tree/v4 Phase 9` claiming "21 useEffects → still 21" is the canonical anti-pattern.
 
 ## Pairs with
 
-- `/worktree` — slot beads `km-wt1`..`km-wt9` are the pool's locks
+- `/worktree` — slot beads `@agent/1`..`@agent/9` are the pool's locks (one agent = one worktree)
 - `/commit` — git transport for bead markdown files
 - `/complete` — completeness audit verifies bead-acceptance grep against origin/main
-- `/pm` — alias and deeper recipe docs (`.agents/skills/pm/{create,verify,beads-ids,labels,workflows}.md`)
+- `/pm` — alias and deeper recipe docs (`.claude/skills/pm/{create,verify,beads-ids,labels,workflows}.md`)
 
 ## Anti-patterns
 
@@ -169,11 +169,11 @@ If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS e
 
 For workflow specifics that don't belong in this canonical surface:
 
-- `.agents/skills/pm/create.md` — bd create recipes (epic, sub-bead, with parent)
-- `.agents/skills/pm/labels.md` — label conventions (`@person`, `#tag`, `+project`)
-- `.agents/skills/pm/verify.md` — closure verification protocol
-- `.agents/skills/pm/beads-ids.md` — id-form deep dive
-- `.agents/skills/pm/workflows/retrospective.md` — epic-close retrospectives
-- `.agents/skills/pm/workflows/rebase.md` — bead state during rebase
-- `.agents/skills/pm/workflows/upstream.md` — filing issues on external repos
-- `.agents/skills/pm/workflows/bugs.md` — bug-specific closure protocol
+- `.claude/skills/pm/create.md` — bd create recipes (epic, sub-bead, with parent)
+- `.claude/skills/pm/labels.md` — label conventions (`@person`, `#tag`, `+project`)
+- `.claude/skills/pm/verify.md` — closure verification protocol
+- `.claude/skills/pm/beads-ids.md` — id-form deep dive
+- `.claude/skills/pm/workflows/retrospective.md` — epic-close retrospectives
+- `.claude/skills/pm/workflows/rebase.md` — bead state during rebase
+- `.claude/skills/pm/workflows/upstream.md` — filing issues on external repos
+- `.claude/skills/pm/workflows/bugs.md` — bug-specific closure protocol

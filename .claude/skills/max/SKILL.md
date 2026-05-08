@@ -130,7 +130,7 @@ For type restructurings, field renames, or interface changes touching 50+ files:
 
 **Use the worktree pool. Don't spawn `Agent({isolation: "worktree"})` for write work.**
 
-The repo has a persistent pool: `.claude/worktrees/wt1`..`wt9`, each on a stable branch `wtN`. Lease beads `km-wt1`..`km-wt9` (parented under `km-wt`) are the locks. Slots are recycled in place — never destroyed, never per-task.
+The repo has a persistent pool: `.claude/worktrees/wt1`..`wt9`, each on a stable branch `wtN`. Lease beads `@agent/1`..`@agent/9` (parented under `@agent`) are the single locks for both the persona slot AND the worktree — **one agent = one worktree**. Slots are recycled in place — never destroyed, never per-task.
 
 Per CLAUDE.md "Branches and worktrees — the standing rule": ephemeral per-task branches caused branch-namespace pollution and silent HEAD-hops in the main repo. Pool slots use stable named branches (`wtN`) and bounded concurrency.
 
@@ -140,14 +140,14 @@ For each independent unit of write work:
 
 1. **Claim a pool slot:**
    ```bash
-   km bd update km-wtN --claim   # pick the lowest-numbered open slot
+   km bd update @agent/N --claim   # pick the lowest-numbered open slot
    ```
 2. **Refresh the slot:**
    ```bash
    cd .claude/worktrees/wtN && git fetch origin && git rebase origin/main && git submodule update --recursive
    ```
 3. **Spawn the agent into the slot.** Pass the slot path in the prompt; do NOT pass `isolation: "worktree"`. The agent works in the existing pool slot, commits to branch `wtN`.
-4. **On agent finish:** lead cherry-picks `wtN` tip onto `main`, pushes, resets `wtN` back to `origin/main`, runs `git submodule update --recursive`, then `km bd close km-wtN`. The slot is now free for the next claim.
+4. **On agent finish:** lead cherry-picks `wtN` tip onto `main`, pushes, resets `wtN` back to `origin/main`, runs `git submodule update --recursive`, then `km bd update @agent/N --assignee "" --status open` to release the lease. The slot is now free for the next claim.
 
 ### When to use `isolation: "worktree"` (rare)
 
@@ -178,7 +178,7 @@ When the lead spawns an agent into a pool slot, include this in the prompt:
 > - Commit incrementally to branch `wtN` with conventional commits. **Do NOT** create a new feature branch — that's exactly what the pool model replaces.
 > - **Do NOT push to origin** — the local branch is the deliverable; the lead session integrates via cherry-pick.
 > - When you finish, send a final message with: `wtN`, the worktree path, local SHA from `git rev-parse HEAD`, files changed (absolute paths), tests added/updated (paths + counts), and self-verify output (actual `tsc --noEmit | grep "error TS" | wc -l` count, vitest pass/skip/fail breakdown — not assertions).
-> - Do NOT close the bead `km-wtN` yourself — that's the lead's job after integration.
+> - Do NOT release `@agent/N` yourself — that's the lead's job after integration.
 
 **Integration is the lead's job.** After the agent reports done:
 ```bash
@@ -186,7 +186,8 @@ cd /Users/beorn/Code/pim/km   # main repo
 git cherry-pick <wtN-tip-sha>   # or git merge --ff-only wtN
 git push origin main
 cd .claude/worktrees/wtN && git fetch origin && git reset --hard origin/main && git submodule update --recursive
-km bd close km-wtN --reason "shipped <main-tip-sha>"
+cd "$(git rev-parse --show-toplevel)"
+km bd update @agent/N --assignee "" --status open   # release single lease for persona + worktree
 ```
 
 **If pool fallback is needed** (`Agent({isolation: "worktree"})` because pool is full): the auto-clone uses APFS `cp -c -R` (~20-25s). Verify with `ls .claude/worktrees/` after spawn. Fallback agents commit to `wip/<bead-id>` branches; lead integrates via `git fetch <worktree-path> wip/<bead-id>:wip/<bead-id>` then cherry-pick. Branch gets garbage-collected when the clone is removed.

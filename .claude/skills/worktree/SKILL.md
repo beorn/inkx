@@ -15,27 +15,28 @@ The single source of truth for worktree/branch/concurrency rules in this repo. O
 
 - **Main repo's working directory stays on `main`. Always.** No `git checkout <feature>` in the main repo.
 - **Conflict-prone work goes in a pool slot.** 9 persistent slots: `.claude/worktrees/wt1`..`wt9`, each on stable branch `wtN`.
-- **Lease bead `km-wtN` is the lock.** Claim → work → push → release. Bounded concurrency, visible contention via `km bd list`.
+- **One agent = one worktree.** Lease bead `@agent/N` is the single lock for both the persona slot AND worktree `wtN`. Claim → work → push → release. Bounded concurrency, visible contention via `km bd list`.
 - **Localized changes in main are fine** for multiple agents on different files — no per-task branches needed.
 - **Read-only / search / diagnosis agents always belong in main.**
 
 ## The pool
 
 ```
-.claude/worktrees/wt1/    on branch wt1   ← lease bead km-wt1
-.claude/worktrees/wt2/    on branch wt2   ← lease bead km-wt2
+.claude/worktrees/wt1/    on branch wt1   ← lease bead @agent/1
+.claude/worktrees/wt2/    on branch wt2   ← lease bead @agent/2
 ...
-.claude/worktrees/wt9/    on branch wt9   ← lease bead km-wt9
+.claude/worktrees/wt9/    on branch wt9   ← lease bead @agent/9
 ```
 
-Slots are **persistent** — never created/destroyed per task, always checked out, always present. Agents *move in*, do their work, *move out*; the slot persists for the next claim. The 9 slot beads are children of the `km-wt` epic.
+Slots are **persistent** — never created/destroyed per task, always checked out, always present. Agents *move in*, do their work, *move out*; the slot persists for the next claim. The 9 slot beads are children of the `@agent` parent board.
 
 ## Claim → work → release protocol
 
 ```bash
-# 1. Claim a free slot (try lowest open id)
-km bd update km-wtN --claim
-# (if assigned_to already set, slot is busy — pick another)
+# 1. Claim a free slot via /claim @agent/N (try lowest open id)
+#    This claims the persona AND the matching worktree wtN — one lease bead, both locks.
+km bd update @agent/N --claim
+# (if assignee already set + lease unexpired, slot is busy — pick another)
 
 # 2. Move in
 cd .claude/worktrees/wtN
@@ -60,7 +61,7 @@ git fetch origin
 git reset --hard origin/main
 git submodule update --recursive
 cd $(git rev-parse --show-toplevel)   # back to main repo
-km bd close km-wtN --reason "shipped <main-tip-sha>"
+km bd update @agent/N --assignee "" --status open   # release single lease for persona + worktree
 ```
 
 The slot is now free for the next claim. Don't delete the directory or branch — recycle in place.
@@ -109,12 +110,12 @@ The fallback uses APFS `cp -c -R` (~20-25s) and creates `.claude/worktrees/agent
 
 When the lead spawns a write-agent in /max, the prompt must include:
 
-> CRITICAL: You are in pool slot `.claude/worktrees/wtN/` on branch `wtN`. The slot was rebased on `origin/main` before you started.
+> CRITICAL: You are in pool slot `.claude/worktrees/wtN/` on branch `wtN`, holding lease `@agent/N`. The slot was rebased on `origin/main` before you started.
 > - Always `cd "$(git rev-parse --show-toplevel)"` — never hardcode paths.
 > - Commit incrementally to branch `wtN` with conventional commits. **Do NOT** create a new feature branch.
 > - **Do NOT push to origin** — the local branch is the deliverable; the lead session integrates via cherry-pick.
-> - Final message MUST include: slot `wtN`, the worktree path, local SHA, files changed (absolute paths), tests added (paths + counts), self-verify output (actual `tsc --noEmit | grep "error TS" | wc -l` count, vitest pass/skip/fail breakdown — not assertions).
-> - Do NOT close `km-wtN` yourself — that's the lead's job after integration.
+> - Final message MUST include: slot `wtN` / lease `@agent/N`, the worktree path, local SHA, files changed (absolute paths), tests added (paths + counts), self-verify output (actual `tsc --noEmit | grep "error TS" | wc -l` count, vitest pass/skip/fail breakdown — not assertions).
+> - Do NOT release `@agent/N` yourself — that's the lead's job after integration.
 
 ## Integration is the lead's job
 
@@ -133,9 +134,11 @@ git fetch origin
 git reset --hard origin/main
 git submodule update --recursive
 
-# Release the lease
+# Release the lease (single bead releases both persona + worktree)
 cd "$(git rev-parse --show-toplevel)"
-km bd close km-wtN --reason "shipped <main-tip-sha>"
+km bd update @agent/N --assignee "" --status open
+# Optional: leave a closure note on the integrated bead
+# km bd update <work-bead> --notes "shipped <main-tip-sha> via @agent/N"
 ```
 
 ## Recovery — what to do if HEAD hops

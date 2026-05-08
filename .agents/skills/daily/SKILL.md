@@ -11,7 +11,7 @@ benefits-from: [sop, pm, recall]
 
 The cadence runner. Runs at least once a day. Different from `/merge` (which reduces WIP) — this runs the **scheduled** maintenance: daily-cadence things every time, plus any weekly / monthly / quarterly routines whose stamp has lapsed.
 
-State lives in `.agents/skills/sop/state.json` (`lastRun.<domain>`); `tools/sop.ts` honors cadence windows.
+State lives in `.claude/skills/sop/state.json` (`lastRun.<domain>`); `tools/sop.ts` honors cadence windows.
 
 ## Modes
 
@@ -86,7 +86,7 @@ One sentence with bead id + slug + first concrete command. Priority:
 4. Clean P1 ready → claim and start
 5. Else → `/discuss` to plan
 
-Example: `Next: km-foo.bar (P0 broken CI) — cd .claude/worktrees/wt3 && git fetch origin && bun km bd update km-wt3 --claim`
+Example: `Next: km-foo.bar (P0 broken CI) — cd .claude/worktrees/wt3 && git fetch origin && bun km bd update @agent/3 --claim`
 
 ## Step 6 — close
 
