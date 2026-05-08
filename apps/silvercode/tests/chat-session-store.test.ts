@@ -317,7 +317,11 @@ describe("ChatSession projection store", () => {
 
     chat.setTrackVisible("debug", true)
 
-    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["session-status"])
+    expect(chat.visibleLeaves().map((leaf) => leaf.type)).toEqual(["session-status", "session-status"])
+    expect(chat.visibleLeaves().at(-1)).toMatchObject({
+      type: "session-status",
+      props: { label: "Permission mode", value: "auto" },
+    })
 
     chat.dispose()
   })

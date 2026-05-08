@@ -5,10 +5,15 @@ import { Box, PopoverProvider } from "silvery"
 import { Chat } from "../src/components/Chat.tsx"
 import { filterVisibleNotificationEntries } from "../src/chat/notification-visibility.ts"
 import { NotificationBlock } from "../src/components/NotificationBlock.tsx"
-import { chatActivityCountsFromMessages, chatActivitySnapshotFromMessages } from "../src/chat/activity-snapshot.ts"
+import {
+  chatActivityCountsFromMessages,
+  chatActivitySnapshotFromChatEvents,
+  chatActivitySnapshotFromMessages,
+} from "../src/chat/activity-snapshot.ts"
 import type { ChannelNotification } from "../src/notification-stream.ts"
 import type { BackgroundJob } from "../src/controller.ts"
 import type { MessageEntry } from "@km/agent-harness"
+import type { ChatEvent, ChatEventType } from "../src/chat/types.ts"
 
 const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
 
@@ -59,6 +64,18 @@ function userMessage(id: string, text: string, ts: number): MessageEntry {
     toolCalls: [],
     toolResults: [],
   } as unknown as MessageEntry
+}
+
+function chatEvent(type: ChatEventType, ts: number, payload: unknown): ChatEvent {
+  return {
+    id: `event-${ts}`,
+    type,
+    track: "activity",
+    ts,
+    sessionId: "s1",
+    payload,
+    rawRefs: [],
+  } as unknown as ChatEvent
 }
 
 function notificationEntry(opts: {
@@ -129,6 +146,37 @@ describe("NotificationBlock", () => {
     expect(chatActivitySnapshotFromMessages(messages, []).agents.map((agent) => `${agent.id}:${agent.status}`)).toEqual(
       ["task-1:running", "agent-1:running", "done-task:done"],
     )
+  })
+
+  test("counts current-turn shell activity from canonical chat events", () => {
+    const events = [
+      chatEvent("message.started", 1_000, { messageId: "u-live", role: "user" }),
+      chatEvent("tool.started", 1_100, {
+        toolId: "bash-live",
+        name: "Bash",
+        input: { command: "bun vitest run apps/silvercode/tests/chat-block-list.test.tsx", run_in_background: true },
+      }),
+      chatEvent("tool.started", 1_200, {
+        toolId: "bash-done",
+        name: "Bash",
+        input: { command: "done", run_in_background: true },
+      }),
+      chatEvent("tool.completed", 1_300, { toolId: "bash-done", status: "done" }),
+      chatEvent("tool.started", 1_400, { toolId: "task-1", name: "Agent" }),
+    ]
+
+    const snapshot = chatActivitySnapshotFromChatEvents(events, [runningJob()], {
+      agents: [{ id: "agent-1", label: "Agent 1", status: "running" }],
+    })
+
+    expect(snapshot.counts).toEqual({
+      agentsRunning: 1,
+      backgroundJobsRunning: 1,
+      shellsRunning: 1,
+    })
+    expect(snapshot.shells.map((shell) => shell.label)).toEqual([
+      "bun vitest run apps/silvercode/tests/chat-block-list.test.tsx",
+    ])
   })
 
   test("agents drawer snapshot keeps completed current-turn subagents visible", () => {

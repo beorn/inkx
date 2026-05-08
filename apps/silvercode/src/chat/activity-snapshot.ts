@@ -1,6 +1,7 @@
 import type { MessageEntry } from "@km/agent-harness"
 import type { BackgroundJob } from "../controller.ts"
 import type { ChannelNotification } from "../notification-stream.ts"
+import type { ChatEvent, ChatToolId } from "./types.ts"
 import {
   projectCurrentSubagentActivitiesFromMessages,
   subagentActivityRowsFromActivities,
@@ -82,6 +83,43 @@ export function chatActivitySnapshotFromMessages(
   }
 }
 
+export function chatActivitySnapshotFromChatEvents(
+  events: readonly ChatEvent[],
+  backgroundJobs: readonly BackgroundJob[],
+  options: ChatActivitySnapshotOptions = {},
+): ChatActivitySnapshot {
+  const shells: BackgroundShellActivity[] = []
+  const agents = options.agents ?? []
+  const currentEvents = eventsSinceLastUserMessage(events)
+  const completedToolIds = new Set<ChatToolId>()
+  for (const event of currentEvents) {
+    if (event.type === "tool.completed") completedToolIds.add(event.payload.toolId)
+  }
+  for (const event of currentEvents) {
+    if (event.type !== "tool.started") continue
+    const { toolId, name, input } = event.payload
+    if (name === "Task" || name === "Agent") continue
+    if (completedToolIds.has(toolId)) continue
+    if (name === "Bash" && isBackgroundShellInput(input)) {
+      shells.push(
+        backgroundShellActivityFromTool(toolId, "Bash", input, {
+          messageId: event.id,
+          messageTs: event.ts,
+        }),
+      )
+    }
+  }
+  return {
+    counts: {
+      agentsRunning: agents.filter((agent) => agent.status !== "done").length,
+      backgroundJobsRunning: backgroundJobs.filter((job) => job.status === "running").length,
+      shellsRunning: shells.length,
+    },
+    agents,
+    shells,
+  }
+}
+
 export function chatActivityCountsFromMessages(
   messages: readonly MessageEntry[],
   backgroundJobs: readonly BackgroundJob[],
@@ -97,6 +135,23 @@ function findLastMessageIndex(
     const m = messages[i]
     if (m === undefined) continue
     if (predicate(m)) return i
+  }
+  return -1
+}
+
+function eventsSinceLastUserMessage(events: readonly ChatEvent[]): readonly ChatEvent[] {
+  const lastUserIndex = findLastEventIndex(
+    events,
+    (event) => event.type === "message.started" && event.payload.role === "user",
+  )
+  return lastUserIndex >= 0 ? events.slice(lastUserIndex + 1) : events
+}
+
+function findLastEventIndex(events: readonly ChatEvent[], predicate: (event: ChatEvent) => boolean): number {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i]
+    if (event === undefined) continue
+    if (predicate(event)) return i
   }
   return -1
 }

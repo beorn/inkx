@@ -119,6 +119,13 @@ function mutedText(text: string): React.ReactElement {
   )
 }
 
+function notificationSourceLabel(source: string): string {
+  return source.replace(/(^|[-_\s]+)([a-z])/g, (_match, separator: string, letter: string) => {
+    const normalizedSeparator = separator.trim().length > 0 ? " " : ""
+    return `${normalizedSeparator}${letter.toUpperCase()}`
+  })
+}
+
 function renderToolSummary(leaf: Extract<ChatLeaf, { type: "tool" }>): string {
   const status = leaf.status ? ` ${leaf.status}` : ""
   return `${leaf.props.name}${status}`
@@ -189,8 +196,8 @@ function renderChatLeaf(leaf: ChatLeaf): React.ReactNode {
             <Box flexDirection="column" minWidth={0}>
               {mutedText(
                 leaf.props.title
-                  ? `${leaf.props.source}: ${leaf.props.title}`
-                  : `${leaf.props.source}: ${leaf.props.body}`,
+                  ? `${notificationSourceLabel(leaf.props.source)}: ${leaf.props.title}`
+                  : `${notificationSourceLabel(leaf.props.source)}: ${leaf.props.body}`,
               )}
               {leaf.props.title ? mutedText(leaf.props.body) : null}
             </Box>

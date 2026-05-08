@@ -22,11 +22,15 @@ Measured 2026-05-08:
 
 ## Refactor Phases
 
-1. Production cutover: render `ChatPane` from `ChatTree` / `ChatBlockList`; delete the `SessionUpdateList` import, `legacyMessages`, and the debug comparison path.
+1. [x] Production cutover: render `ChatPane` from `ChatTree` / `ChatBlockList`; delete the `SessionUpdateList` import, `legacyMessages`, and the debug comparison path.
 2. Move app logic off `MessageEntry`: clipboard, activity snapshots, notifications, subagent activity, and App scroll bindings consume canonical `ChatSession` / `ChatLeaf` data.
 3. Delete legacy renderer/projection source: remove `SessionUpdateList.tsx`, `chat/session-update-projection.ts`, and `chat-model.ts` after their last live consumers are migrated.
 4. Rewrite tests and stories to construct `ChatEvent` / `ChatTree` fixtures instead of `MessageEntry[]`.
 5. Remove app-scope `ContentBlock` literals from live paths or quarantine them as raw/provider-boundary inspector terms.
+
+## Progress Notes
+
+- 2026-05-08: Phase 1 landed in the app path. `ChatPane` renders projected `ChatBlockList` leaves in production, with projected event activity snapshots, notification timeline merge, replay-only transcript display, debug permission-mode leaves, and a no-event-log `MessageEntry` compatibility fallback in `ChatSessionProjectionStore`. Evidence: `bun run test:silvercode:l5` (35 files, 260 passed, 1 skipped), `npx tsc --noEmit`, and focused ChatPane/projection suites passed.
 
 ## Complete Criteria
 

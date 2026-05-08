@@ -370,12 +370,13 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
         })
         break
       case "session.updated":
-        if (event.track === "status") {
+        if (event.track === "status" || (event.track === "debug" && event.payload.mode !== undefined)) {
           pushLeaf({
             ...leafBase(event),
             type: "session-status",
             props: {
-              label: "Session updated",
+              label:
+                event.track === "debug" && event.payload.mode !== undefined ? "Permission mode" : "Session updated",
               value: event.payload.title ?? event.payload.model ?? event.payload.mode ?? event.payload.cwd,
             },
           })
