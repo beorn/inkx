@@ -16,7 +16,7 @@ Centralize all summarization and presentation defaults in `projectChatTranscript
 - Own these rules in projection, not scattered render components: ChatNode/ChatLeaf classification, prompt/assistant/work/debug interleaving, work grouping and summaries, default disclosure, width, detail affordance, and chronological placement.
 - Produce summaries such as `Read N files`, `Edited N files`, and `Ran N commands` from projection output.
 - Preserve order when expanded. Group only when collapsed summary saves space.
-- Never group Debug by default; Debug leaves are chronological and filterable by channel.
+- Never group Debug by default; Debug leaves are chronological and filterable by track.
 - Add snapshot-like tests for representative transcript trees.
 
 ## Acceptance
@@ -30,4 +30,3 @@ Centralize all summarization and presentation defaults in `projectChatTranscript
 - `bun vitest run apps/silvercode/tests/chat-transcript-projection.test.ts apps/silvercode/tests/chat-block-list.test.tsx`
 
 blocks:: [[@km/silvercode/parity-claude]]
-

@@ -24,9 +24,16 @@ Make the naming rules boring and stable:
 
 ## Target Vocabulary
 
+- `Thread` is the user-facing conversation/workstream.
+- `SessionBinding` is a provider session/process/server attachment to a Thread.
+- `Turn` is the runtime lifecycle around submitted work.
+- `Message` is user or assistant prose.
+- `Block` is a typed content unit.
+- `Thought` is model thought/reasoning content in Silvercode UI/domain vocabulary.
+- `Track` is the transcript projection/filter lane.
 - `ChatBlock` replaces `ChatMessagePart`.
 - `ChatPlanStep` replaces plan entry/task names in the chat domain.
-- `ChannelNotification` names side-channel input before normalization.
+- `AgentSignal` names provider/runtime side input before normalization.
 - `ProtocolNotification` names protocol/transport notifications when the mechanism matters.
 - `ChatNotification` names normalized notification facts admitted into chat-domain state.
 - `AgentBackend` names selectable/runnable agent sources.
@@ -56,27 +63,33 @@ export const Chat = { Pane, Header, Session, Composer } as const
 
 - `ChatMessagePart` -> `ChatBlock`
 - `ChatMessagePartId` -> `ChatBlockId`
+- `ChatChannelId` -> `ChatTrackId`
+- `ChatChannelState` -> `ChatTrackState`
+- `ChatLeaf.channel` / `event.channel` -> `ChatLeaf.track` / `event.track` after protocol normalization.
+- `assistant-text` / `user-text` -> `Message` with `role`.
+- UI/domain `reasoning` -> `Thought`. Provider raw/config names may stay `reasoning` only at provider boundaries.
+- `Chat.Narration` -> `Chat.Message`; thought/reasoning content renders as `Chat.Thought`.
 - `AgentPlanEntry` / `ChatPlanEntry` / `ChatPlanTask` -> `ChatPlanStep`
 - `AgentPlanEntryId` / `ChatPlanTaskId` -> `ChatPlanStepId`
-- `NotificationStreamEntry` -> `ChannelNotification` before normalization, `ChatNotification` after admission.
+- `NotificationStreamEntry` -> `AgentSignal` before normalization, `ChatNotification` after admission.
 - `Provider*` -> `Agent*`
 - selectable/runnable `*Adapter` names -> `*Backend`
 - translation-only `*Adapter` names -> `*Parser` or `*Normalizer`
 - `Chat.Transcript` -> `Chat.Session`
-- `Chat.Turn.*` -> rendered concept names: `Chat.Message`, `Chat.Block`, `Chat.Tool`, `Chat.Activity`, `Chat.Summary`.
+- `Chat.Turn.*` -> rendered concept names: `Chat.Message`, `Chat.Block`, `Chat.Thought`, `Chat.Tool`, `Chat.Activity`, `Chat.Summary`. `Turn` remains a runtime/domain lifecycle concept.
 - `Exchange*` -> message/span/summary/activity names by actual scope.
 
 ## Definition of Done
 
 - [x] Evergreen docs describe the target model in present tense with vocabulary-first naming.
 - [x] The quality plateau bead lists Phase 0 before implementation phases.
-- [x] L5 child beads reference the vocabulary baseline and use `ChatBlock`, `ChatPlanStep`, `ChannelNotification`, `ProtocolNotification`, and `Chat.Pane/Header/Session/Composer`.
+- [x] L5 child beads reference the vocabulary baseline and use `ChatBlock`, `ChatPlanStep`, `AgentSignal`, `ProtocolNotification`, and `Chat.Pane/Header/Session/Composer`.
 - [x] Replacement-map references are explicit `old -> new` work items; current-code caveats stay out of evergreen docs.
 
 ## Complete Criteria
 
-- `rg -n "NotificationStreamEntry|ChatMessagePart|ChatPlan(Task|Entry)|Chat\\.Transcript|Chat\\.Turn|Provider\\*" apps/silvercode/docs @km/silvercode/chat-domain-quality-plateau --glob '*.md'` returns hits only in replacement-map or compatibility sections.
-- `rg -n "Chat\\.Pane|Chat\\.Header|Chat\\.Session|Chat\\.Composer|ChatBlock|ChatPlanStep|ChannelNotification|ProtocolNotification" apps/silvercode/docs @km/silvercode/chat-domain-quality-plateau --glob '*.md'` shows the target vocabulary in the evergreen docs and plateau bead.
+- `rg -n "NotificationStreamEntry|ChatMessagePart|ChatPlan(Task|Entry)|Chat\\.Transcript|Chat\\.Turn|ChatChannel|assistant-text|user-text|Chat\\.Narration|\\breasoning\\b|Provider\\*" apps/silvercode/docs @km/silvercode/agent-host-l5 --glob '*.md'` returns hits only in replacement-map, provider-boundary, or historical sections.
+- `rg -n "Thread|SessionBinding|Turn|Message|Block|Thought|Track|Chat\\.Pane|Chat\\.Header|Chat\\.Session|Chat\\.Composer|ChatBlock|ChatPlanStep|AgentSignal|ProtocolNotification" apps/silvercode/docs @km/silvercode/agent-host-l5 --glob '*.md'` shows the target vocabulary in the evergreen docs and L5 plan.
 
 ## Notes
 

@@ -12,7 +12,7 @@ Make `ChatPane` render projected `ChatLeaf`/ChatBlock UI from `ChatSession.tree`
 
 ## Work
 
-- Bring mature legacy rendering into the projected path: user text, assistant text, reasoning, recap, read/search, patch/edit/diff, command, generic tool, permission, plan, queue, notifications, session/status/usage, file snapshot, hook/MCP/debug, error, unknown Debug payload.
+- Bring mature legacy rendering into the projected path: user messages, assistant messages, thoughts, recap, read/search, patch/edit/diff, command, generic tool, permission, plan, queue, notifications, session/status/usage, file snapshot, hook/MCP/debug, error, unknown Debug payload.
 - Preserve Markdown/table wrapping fixes.
 - Preserve raw/detail affordances on every nontrivial block.
 - Preserve scroll/follow behavior, composer overlay insets, activity summaries, and pending permission UX.
@@ -20,7 +20,7 @@ Make `ChatPane` render projected `ChatLeaf`/ChatBlock UI from `ChatSession.tree`
 
 ## Acceptance
 
-- `SessionUpdateList` no longer owns primary event classification/channel filtering/summary semantics.
+- `SessionUpdateList` no longer owns primary event classification, track filtering, or summary semantics.
 - Render tests cover every core ChatLeaf type.
 - Visual replay shows same-or-better scanability than Claude Code screenshots.
 - Normal mode does not show raw/control noise; Debug mode can inspect it.
@@ -31,4 +31,3 @@ Make `ChatPane` render projected `ChatLeaf`/ChatBlock UI from `ChatSession.tree`
 - visual replay/termless suite added by this bead.
 
 blocks:: [[@km/silvercode/parity-claude]]
-

@@ -4,8 +4,8 @@ aliases:
   - km-silvercode-chat-lifecycle-projection-l5
 created_at: 2026-05-07T20:06:42.805Z
 dependencies:
-  - issue_id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/chat-domain-quality-plateau/chat-lifecycle-projection-l5"
-    depends_on_id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/chat-domain-quality-plateau/vocabulary-first"
+  - issue_id: "@km/silvercode/agent-host-l5/04-chat-thread-projection/chat-lifecycle-projection-l5"
+    depends_on_id: "@km/silvercode/agent-host-l5/01-domain-vocabulary-and-state-machines/vocabulary-first"
     type: blocked-by
     created_at: 2026-05-07T20:11:16Z
     created_by: codex
@@ -13,12 +13,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: "@km/silvercode/agent-host-l5/04-chat-thread-projection/chat-domain-quality-plateau/vocabulary-first"
+    target: "@km/silvercode/agent-host-l5/01-domain-vocabulary-and-state-machines/vocabulary-first"
 ---
 
-# L5: make Silvercode chat lifecycle/projection bugs impossible #P0
+# [/] L5: make Silvercode chat lifecycle/projection bugs impossible #P0
 
-Get Silvercode chat lifecycle/projection to L5 for the recurring stuck-thinking, leaked prompt echo, missing subagent, duplicate activity summary, notification duplication, and lifecycle-marker ordering bug class. Vocabulary changes happen first, then code migration follows the stable target terms. The target design is one ownership path: `AgentEvent` / `ChannelNotification` / `ProtocolNotification` -> `ChatEvent` -> `ChatSession` -> `ChatTree` -> `Chat.Pane`. Agent/source quirks end at normalization; render components do not infer source, session, activity, notification, or lifecycle semantics from compatibility transcript entries, status fields, channel notifications, protocol notifications, or raw agent events.
+Get Silvercode chat lifecycle/projection to L5 for the recurring stuck-thinking, leaked prompt echo, missing subagent, duplicate activity summary, notification duplication, and lifecycle-marker ordering bug class. Vocabulary changes happen first, then code migration follows the stable target terms. The target design is one ownership path: provider/runtime input -> `ChatEvent` -> `ChatSession` -> `ChatTree` -> `Chat.Pane`. Agent/source quirks end at normalization; render components do not infer source, session, activity, notification, or lifecycle semantics from compatibility transcript entries, status fields, side inputs, protocol notifications, or raw agent events.
 
 Seeded from 2026-05-07 /big after fixes 14b1668ca and 13e5e351b. Current state is roughly L3 with L2/L3 guards; target is L5: old workaround paths deleted, invariant/property/replay tests cover the class.
 
@@ -39,22 +39,22 @@ This is why the same class keeps reappearing as different symptoms: stuck thinki
 One ownership path:
 
 ```text
-AgentEvent / ChannelNotification / ProtocolNotification
+AgentEvent / AgentSignal / ProtocolNotification
   -> ChatEvent
   -> ChatSession
   -> ChatTree
   -> Chat.Pane
 ```
 
-Agent/source quirks end at normalization. `ChatSession` owns durable state. `ChatTree` owns visible projection, grouping, lifecycle placement, channels, and summaries. Components render `ChatTree` and do not infer source/session/activity semantics from compatibility transcript entries, status fields, `ChannelNotification`, `ProtocolNotification`, or `AgentEvent`.
+Agent/source quirks end at normalization. `ChatSession` owns durable state. `ChatTree` owns visible projection, grouping, lifecycle placement, tracks, and summaries. Components render `ChatTree` and do not infer source/session/activity semantics from compatibility transcript entries, status fields, provider side inputs, protocol notifications, or raw agent events.
 
 ## Vocabulary Baseline
 
-This bead depends on the vocabulary-first phase in `@km/silvercode/agent-host-l5/04-chat-thread-projection/chat-domain-quality-plateau/vocabulary-first`.
+This bead depends on the vocabulary-first phase in `@km/silvercode/agent-host-l5/01-domain-vocabulary-and-state-machines/vocabulary-first`.
 
 - `ChatBlock` is the typed content unit. Do not add new `ChatMessagePart` surfaces.
 - `ChatPlanStep` is one ordered item in a `ChatPlan`. Do not add `ChatPlanEntry` or `ChatPlanTask`.
-- `ChannelNotification` is pre-normalization side-channel input. `ChatNotification` is the normalized chat-domain fact.
+- `AgentSignal` is pre-normalization side input. `ChatNotification` is the normalized chat-domain fact.
 - `ProtocolNotification` is protocol/transport mechanics. Use `Acp*`, `Claude*`, or `Codex*` only for exact source shapes.
 - `AgentBackend` is a selectable/runnable agent source. `AgentConnection` is one live session. Translation pieces are parsers or normalizers, not domain adapters.
 - `Chat.Pane` is the visible UI frame. It contains `Chat.Header`, `Chat.Session`, and `Chat.Composer`.
@@ -97,7 +97,7 @@ This bead depends on the vocabulary-first phase in `@km/silvercode/agent-host-l5
    - Delete `session-update-projection.ts` paths that duplicate `ChatTree` responsibilities.
 
 3. Centralize notification admission.
-   - Normalize `ChannelNotification` into `ChatEvent` or debug-only diagnostics before UI rendering.
+   - Normalize provider side inputs into `ChatEvent` or debug-only diagnostics before UI rendering.
    - Remove render-time notification/subagent filtering that re-implements merge rules.
 
 4. Make subagent activity a chat-domain derived model only.
@@ -117,7 +117,7 @@ This bead depends on the vocabulary-first phase in `@km/silvercode/agent-host-l5
    - OpenCode/Kilo: session/message/update streams normalize into the same contract.
 
 7. Delete old workaround paths.
-   - No component should read `AgentEvent`, `ProtocolNotification`, or `ChannelNotification` for visible chat semantics.
+   - No component should read raw provider events, protocol notifications, or provider side inputs for visible chat semantics.
    - No component should synthesize activity summaries from `status + inFlightTool`.
    - No separate subagent drawer projection from compatibility transcript entries once `ChatTree` owns it.
 

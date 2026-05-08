@@ -10,7 +10,7 @@ closeReason: "Verified complete in working tree: debug side-panel label is
   passed."
 ---
 
-# [x] L5: Debug notification channel toggle controls projected Debug leaves #feature #P0
+# [x] L5: Debug track toggle controls projected Debug leaves #feature #P0
 
 blocks:: [[@km/silvercode/parity-claude]]
 
@@ -21,8 +21,8 @@ Show `debug` as a real channel under Notifications in the side panel, with a tog
 ## Work
 
 - Add `debug` to the Notifications/channel list, not as `Debug channel`.
-- Toggle updates `ChatChannelState.debug.visible/muted`.
-- Normal transcript hides `event.channel === "debug"`.
+- Toggle updates Debug track visibility/muting.
+- Normal transcript hides `event.track === "debug"`.
 - Debug on shows chronological Debug leaves in transcript context, each inspectable by expand or cmd-hover.
 - Keep notification source muting separate from chat channel visibility, or explicitly bridge them through the projected model.
 

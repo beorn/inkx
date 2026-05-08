@@ -20,7 +20,7 @@ Make `ChatSession` the live projected state for transcript rendering, not a type
 - Add/finish a single owner for canonical ChatEvents and accumulated ChatSession state.
 - Accumulate messages, parts, tools, plan, queue, permissions, session metadata, status, and debug/history state.
 - Preserve `ChatTreeState` disclosure/selection/raw-inspector state keyed by `ChatNodeId`.
-- Ensure Debug/channel toggles re-filter projected leaves without reparsing provider records.
+- Ensure Debug/track toggles re-filter projected leaves without reparsing provider records.
 - Decide whether the public mutation entry point is `applyChatEvent(event)` or a projection-store subscription; avoid parallel mutation paths.
 
 ## Acceptance
@@ -35,4 +35,3 @@ Make `ChatSession` the live projected state for transcript rendering, not a type
 - `bun vitest run apps/silvercode/tests/chat-session-store.test.ts apps/silvercode/tests/chat-transcript-projection.test.ts`
 
 blocks:: [[@km/silvercode/parity-claude]]
-
