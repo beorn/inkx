@@ -30,6 +30,7 @@
 import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { createScope } from "@silvery/scope"
 import type { AgentEvent, AgentSession, PermissionRequestId, SessionId, TurnId } from "./events.ts"
 
 // ---------------------------------------------------------------------------
@@ -120,7 +121,8 @@ export function createFakeAcpSession(opts: FakeOpts): AgentSession | ManualFakeS
   const subscribers = new Set<(event: AgentEvent) => void>()
   const pending: ScriptStep[] = [...script]
   let closed = false
-  const timers = new Set<ReturnType<typeof setTimeout>>()
+  const timerScope = createScope("fake-acp-session")
+  const timers = new Set<() => void>()
 
   function emit(event: AgentEvent): void {
     if (closed) return
@@ -164,19 +166,19 @@ export function createFakeAcpSession(opts: FakeOpts): AgentSession | ManualFakeS
     const step = pending[0]
     if (!step) return
     const delay = step.delayMs ?? 0
-    const timer = setTimeout(() => {
-      timers.delete(timer)
+    const cancel = timerScope.timeout(() => {
+      timers.delete(cancel)
       // Re-check the head — `close()` may have run while the timer was queued.
       if (closed) return
       pending.shift()
       emit(step.event)
       scheduleAsync()
     }, delay)
-    timers.add(timer)
+    timers.add(cancel)
   }
 
   function clearAllTimers(): void {
-    for (const t of timers) clearTimeout(t)
+    for (const cancel of timers) cancel()
     timers.clear()
   }
 
@@ -216,6 +218,7 @@ export function createFakeAcpSession(opts: FakeOpts): AgentSession | ManualFakeS
       if (closed) return Promise.resolve()
       closed = true
       clearAllTimers()
+      void timerScope[Symbol.asyncDispose]()
       pending.length = 0
       // Mirror the real spawn surface: emit nothing here. Tests asserting
       // session-end should script it explicitly.

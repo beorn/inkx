@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from "react"
+import { createScope } from "@silvery/scope"
 import {
   type AccountSummary,
   type AllAccountsFactory,
@@ -24,16 +25,17 @@ export function useAllAccounts(factory?: AllAccountsFactory): AccountSummary[] {
   )
 
   useEffect(() => {
+    const scope = createScope("all-accounts")
     let cancelled = false
     async function refresh(): Promise<void> {
       const next = factory ? await factory.probe() : await probeAllAccounts()
       if (!cancelled) setState(next)
     }
     void refresh()
-    const id = setInterval(() => void refresh(), REFRESH_MS)
+    scope.interval(() => void refresh(), REFRESH_MS)
     return () => {
       cancelled = true
-      clearInterval(id)
+      void scope[Symbol.asyncDispose]()
     }
   }, [factory])
 

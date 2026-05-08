@@ -259,7 +259,8 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
       let sessionId: string
       try {
         sessionId = await new Promise<string>((resolve, reject) => {
-          const timer = setTimeout(() => {
+          let cancelTimer = (): void => {}
+          cancelTimer = sessionScope.timeout(() => {
             unsubscribe()
             // Build an informative error. If claude already emitted
             // error/session-end/session-lifecycle events while we were
@@ -278,7 +279,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
           const unsubscribe = agentSession.subscribe((event) => {
             // session-init: success path.
             if (event.kind === "session-init") {
-              clearTimeout(timer)
+              cancelTimer()
               unsubscribe()
               resolve(event.sessionId)
               return
@@ -288,7 +289,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
             // the user sees auth / subprocess errors instead of a 30s
             // generic timeout.
             if (event.kind === "error") {
-              clearTimeout(timer)
+              cancelTimer()
               unsubscribe()
               reject(
                 new acp.RequestError(
@@ -303,7 +304,7 @@ export async function runClaudeAcpServer(opts: RunClaudeAcpServerOpts = {}): Pro
                 event.kind === "session-end" || (event.kind === "session-lifecycle" && event.state === "ended")
               if (!ended) return
               const reason = event.kind === "session-end" && event.stopReason ? event.stopReason : "subprocess exited"
-              clearTimeout(timer)
+              cancelTimer()
               unsubscribe()
               reject(
                 new acp.RequestError(

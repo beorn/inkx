@@ -29,6 +29,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Breakpoint, useResponsiveValue } from "silvery"
+import { createScope } from "@silvery/scope"
 
 /**
  * Bucket the resolved breakpoint into a `Breakpoint | "default"` tag we can
@@ -91,26 +92,28 @@ export function useResponsiveDisclosure(opts: UseResponsiveDisclosureOptions): R
   // this, so transient SIGWINCH-burst zone flips don't drive the panel
   // open/closed mid-cascade.
   const [stableZone, setStableZone] = useState<Zone>(zone)
-  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingTimer = useRef<(() => void) | null>(null)
   useEffect(() => {
     if (zone === stableZone) {
       // No transition — clear any pending settle.
       if (pendingTimer.current !== null) {
-        clearTimeout(pendingTimer.current)
+        pendingTimer.current()
         pendingTimer.current = null
       }
       return
     }
-    if (pendingTimer.current !== null) clearTimeout(pendingTimer.current)
-    pendingTimer.current = setTimeout(() => {
+    const scope = createScope("responsive-disclosure")
+    pendingTimer.current?.()
+    pendingTimer.current = scope.timeout(() => {
       pendingTimer.current = null
       setStableZone(zone)
     }, ZONE_HYSTERESIS_MS)
     return () => {
       if (pendingTimer.current !== null) {
-        clearTimeout(pendingTimer.current)
+        pendingTimer.current()
         pendingTimer.current = null
       }
+      void scope[Symbol.asyncDispose]()
     }
   }, [zone, stableZone])
 

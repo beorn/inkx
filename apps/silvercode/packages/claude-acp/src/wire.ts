@@ -25,6 +25,7 @@
 import type * as acp from "@agentclientprotocol/sdk"
 import type { AgentEvent, AgentSession } from "@km/agent-harness"
 import { silvercodeToAcp } from "@km/agent-harness/acp-boundary"
+import { createScope } from "@silvery/scope"
 import type {
   ContentBlock as ScContentBlock,
   Plan as ScPlan,
@@ -180,13 +181,16 @@ export function attachWire(
       return
     }
 
-    let timer: ReturnType<typeof setTimeout> | null = null
+    const drainScope = createScope("claude-acp-write-drain")
     const timeout = new Promise<"timeout">((resolve) => {
-      timer = setTimeout(() => resolve("timeout"), writeDrainTimeoutMs)
-      ;(timer as unknown as { unref?: () => void }).unref?.()
+      drainScope.timeout(() => resolve("timeout"), writeDrainTimeoutMs, { unref: true })
     })
-    const result = await Promise.race([drain, timeout])
-    if (timer) clearTimeout(timer)
+    let result: "drained" | "timeout"
+    try {
+      result = await Promise.race([drain, timeout])
+    } finally {
+      await drainScope[Symbol.asyncDispose]()
+    }
     if (result === "timeout") {
       for (const write of writes) pendingWrites.delete(write)
       const err = new AcpWireWriteDrainTimeoutError({

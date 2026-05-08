@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState } from "react"
+import { createScope } from "@silvery/scope"
 import {
   type AccountFactory,
   type AccountProbe,
@@ -42,16 +43,17 @@ export function useClaudeAccount(accountFactory?: AccountFactory): AccountProbe 
   )
 
   useEffect(() => {
+    const scope = createScope("claude-account")
     let cancelled = false
     async function refresh(): Promise<void> {
       const next = accountFactory ? await accountFactory.probe() : await probeActiveAccount()
       if (!cancelled) setState(next)
     }
     void refresh()
-    const id = setInterval(() => void refresh(), REFRESH_MS)
+    scope.interval(() => void refresh(), REFRESH_MS)
     return () => {
       cancelled = true
-      clearInterval(id)
+      void scope[Symbol.asyncDispose]()
     }
   }, [accountFactory])
 

@@ -37,6 +37,7 @@
 
 import { statSync, watch, type FSWatcher } from "node:fs"
 import createDebug from "debug"
+import { createScope, type Scope } from "@silvery/scope"
 import type { AutolinkPreviewKind } from "./config.ts"
 import { parseResolvesTo } from "./uri.ts"
 import { resolveURI } from "./handlers/index.ts"
@@ -92,12 +93,13 @@ type CacheEntry = {
 type WatcherEntry = {
   readonly watcher: FSWatcher
   /** Active debounce timer; cleared on eviction. */
-  debounce: ReturnType<typeof setTimeout> | null
+  debounce: (() => void) | null
 }
 
 type PreviewRuntimeState = {
   readonly cache: Map<string, CacheEntry>
   readonly watchers: Map<string, WatcherEntry>
+  scope: Scope
 }
 
 export type PreviewResolveArgs = {
@@ -133,6 +135,7 @@ function createPreviewRuntimeState(): PreviewRuntimeState {
   return {
     cache: new Map<string, CacheEntry>(),
     watchers: new Map<string, WatcherEntry>(),
+    scope: createScope("autolink-preview-runtime"),
   }
 }
 
@@ -184,7 +187,7 @@ export function disposeAllWatchers(): void {
 
 function disposeAllWatchersForState(state: PreviewRuntimeState): void {
   for (const [, entry] of state.watchers) {
-    if (entry.debounce !== null) clearTimeout(entry.debounce)
+    entry.debounce?.()
     try {
       entry.watcher.close()
     } catch (err) {
@@ -192,13 +195,15 @@ function disposeAllWatchersForState(state: PreviewRuntimeState): void {
     }
   }
   state.watchers.clear()
+  void state.scope[Symbol.asyncDispose]()
+  state.scope = createScope("autolink-preview-runtime")
 }
 
 /** Tear down the watcher for a single cache key, if any. Idempotent. */
 function disposeWatcher(state: PreviewRuntimeState, key: string): void {
   const entry = state.watchers.get(key)
   if (!entry) return
-  if (entry.debounce !== null) clearTimeout(entry.debounce)
+  entry.debounce?.()
   try {
     entry.watcher.close()
   } catch (err) {
@@ -221,8 +226,9 @@ function registerWatcher(state: PreviewRuntimeState, key: string, path: string):
     watcher = watch(path, () => {
       const entry = state.watchers.get(key)
       if (!entry) return
-      if (entry.debounce !== null) clearTimeout(entry.debounce)
-      entry.debounce = setTimeout(() => {
+      entry.debounce?.()
+      entry.debounce = state.scope.timeout(() => {
+        entry.debounce = null
         log("evicting %s after fs.watch change on %s", key, path)
         state.cache.delete(key)
         disposeWatcher(state, key)

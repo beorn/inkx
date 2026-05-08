@@ -294,7 +294,7 @@ export function registerCiNotificationAdapter(opts: CiAdapterOptions): () => voi
   const gitState = opts.gitState ?? defaultGitState
   const emit = createDebouncedEmit(opts)
   let prev: { sha: string; runs: readonly CheckRun[] } | null = null
-  let timer: ReturnType<typeof setTimeout> | null = null
+  let cancelTimer: (() => void) | null = null
   let disposed = false
 
   async function tick(): Promise<void> {
@@ -319,7 +319,7 @@ export function registerCiNotificationAdapter(opts: CiAdapterOptions): () => voi
     } catch (err) {
       dCi("tick error: %s", err)
     }
-    if (!disposed) timer = setTimeout(runTick, pollMs)
+    if (!disposed) cancelTimer = opts.scope.timeout(runTick, pollMs)
   }
 
   // setTimeout expects a void-returning fn; wrap so we don't leak the
@@ -330,13 +330,13 @@ export function registerCiNotificationAdapter(opts: CiAdapterOptions): () => voi
 
   // Kick off the first tick on the next event-loop turn — keeps the
   // register call non-blocking. Production paths don't await this.
-  timer = setTimeout(runTick, 0)
+  cancelTimer = opts.scope.timeout(runTick, 0)
 
   const dispose = (): void => {
     if (disposed) return
     disposed = true
-    if (timer) clearTimeout(timer)
-    timer = null
+    cancelTimer?.()
+    cancelTimer = null
   }
   opts.scope.defer(dispose)
   return dispose

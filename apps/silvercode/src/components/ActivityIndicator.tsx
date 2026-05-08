@@ -1,5 +1,6 @@
 import React from "react"
 import { Box, Text } from "silvery"
+import { createScope } from "@silvery/scope"
 import { SessionEntry } from "./SessionEntry.tsx"
 import { StatusGlyph } from "./StatusGlyph.tsx"
 
@@ -79,12 +80,13 @@ export function ActivityIndicator({
   const [now, setNow] = React.useState(() => Date.now())
   React.useEffect(() => {
     if (!isActive) return
+    const scope = createScope("activity-indicator")
     setNow(Date.now())
-    const id = setInterval(() => {
+    scope.interval(() => {
       setNow(Date.now())
     }, ELAPSED_TICK_MS)
     return () => {
-      clearInterval(id)
+      void scope[Symbol.asyncDispose]()
     }
   }, [isActive, turnStartedAt])
 

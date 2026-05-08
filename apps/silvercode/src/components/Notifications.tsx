@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { Box, Text } from "silvery"
+import { createScope } from "@silvery/scope"
 import type { SessionHandle } from "../controller.ts"
 
 /**
@@ -39,19 +40,18 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
   const [toasts, setToasts] = useState<Toast[]>([])
 
   useEffect(() => {
-    // Track setTimeout handles per-toast so we can refresh the timer
-    // on a dedup hit (re-arm the dismissal) and so unmount clears
-    // pending dismissals — otherwise a toast's setState fires on an
-    // unmounted component.
-    const timers = new Map<number, ReturnType<typeof setTimeout>>()
+    // Track dismiss cancelers per-toast so we can refresh the timer on a
+    // dedup hit and unmount clears pending dismissals.
+    const scope = createScope("notifications")
+    const timers = new Map<number, () => void>()
     const scheduleDismiss = (id: number, ms: number): void => {
       const existing = timers.get(id)
-      if (existing) clearTimeout(existing)
-      const h = setTimeout(() => {
+      existing?.()
+      const cancel = scope.timeout(() => {
         timers.delete(id)
         setToasts((t) => t.filter((x) => x.id !== id))
       }, ms)
-      timers.set(id, h)
+      timers.set(id, cancel)
     }
     const unsubs = sessions.map((s) =>
       s.session.subscribe((e) => {
@@ -91,7 +91,7 @@ export function Notifications({ sessions }: { sessions: SessionHandle[] }): Reac
     )
     return () => {
       for (const u of unsubs) u()
-      for (const h of timers.values()) clearTimeout(h)
+      void scope[Symbol.asyncDispose]()
     }
   }, [sessions])
 

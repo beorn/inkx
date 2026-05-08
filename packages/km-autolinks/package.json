@@ -15,6 +15,7 @@
     "./handlers": "./src/handlers/index.ts"
   },
   "dependencies": {
+    "@silvery/scope": "workspace:*",
     "debug": "^4.4.3"
   }
 }

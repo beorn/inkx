@@ -31,6 +31,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import createDebug from "debug"
+import { createScope } from "@silvery/scope"
 import type { AgentEvent, AgentInput, AgentSession, PermissionRequestId, SessionId } from "./events.ts"
 import { runInjectors, type Injector } from "./injectors.ts"
 import { createLineSplitter, createStreamJsonParser } from "./parse.ts"
@@ -77,7 +78,8 @@ export function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallba
   // Schedule SIGKILL fallback. .unref() so this timer doesn't keep the
   // event loop alive on its own; the proc 'exit' listener is the real
   // wait.
-  const sigkillTimer = setTimeout(() => {
+  const fallbackScope = createScope("agent-harness-graceful-kill")
+  fallbackScope.timeout(() => {
     if (proc.exitCode !== null || proc.signalCode !== null) return
     try {
       process.kill(-pid, "SIGKILL")
@@ -88,12 +90,13 @@ export function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallba
         /* already dead */
       }
     }
-  }, opts.fallbackAfterMs) as unknown as NodeJS.Timeout
-  sigkillTimer.unref?.()
+  }, opts.fallbackAfterMs, { unref: true })
 
   // Cancel the SIGKILL timer if the child exits cleanly first. Production
   // ChildProcess has `.once`; ACP test seams sometimes expose only `.on`.
-  const clearOnExit = () => clearTimeout(sigkillTimer)
+  const clearOnExit = () => {
+    void fallbackScope[Symbol.asyncDispose]()
+  }
   if (typeof proc.once === "function") {
     proc.once("exit", clearOnExit)
   } else {

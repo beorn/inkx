@@ -493,7 +493,7 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
   let currentTurnId: TurnId | null = null
   let lastMessageTurnId: TurnId | null = null
   let lastActivityTs = 0
-  let watchdogTimer: ReturnType<typeof setTimeout> | null = null
+  let cancelWatchdog: (() => void) | null = null
   function turnIdForUpdate(): TurnId {
     // During a turn (prompt() in flight): use the active turnId. Between
     // turns: glue late stragglers onto the most recent turn instead of
@@ -551,14 +551,12 @@ export async function connectAcp(scope: Scope, opts: AcpConnectOpts): Promise<Ac
     lastMessageTurnId = null
   }
   function clearWatchdog(): void {
-    if (watchdogTimer !== null) {
-      clearTimeout(watchdogTimer)
-      watchdogTimer = null
-    }
+    cancelWatchdog?.()
+    cancelWatchdog = null
   }
   function armWatchdog(turnId: TurnId): void {
     clearWatchdog()
-    watchdogTimer = setTimeout(() => {
+    cancelWatchdog = scope.timeout(() => {
       // Only fire if THIS turn is still the active one. A turn that
       // resolved cleanly already cleared currentTurnId.
       if (currentTurnId === turnId) {

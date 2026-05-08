@@ -17,6 +17,7 @@ import {
   Text,
   useExit,
   usePanic,
+  useScope,
   useScopeEffect,
   useTerm,
 } from "silvery"
@@ -328,6 +329,7 @@ export function App(props: AppProps): React.ReactElement {
   // through Silvery's panic path so terminal cleanup happens before the message
   // is printed, making it visible and copyable on the regular screen.
   const silveryPanic = usePanic()
+  const appScope = useScope()
   const [spawnError, setSpawnErrorState] = useState<string | null>(() => controller.lastSpawnError())
   useEffect(() => controller.onSpawnError((msg) => setSpawnErrorState(msg)), [controller])
   const panickedSpawnErrorRef = useRef<string | null>(null)
@@ -464,12 +466,11 @@ export function App(props: AppProps): React.ReactElement {
   }, [])
   useEffect(() => {
     if (!chord) return
-    const handle = setTimeout(() => {
+    return appScope.timeout(() => {
       preChordInputRef.current = null
       setChordBoth(null)
     }, 1500)
-    return () => clearTimeout(handle)
-  }, [chord, setChordBoth])
+  }, [appScope, chord, setChordBoth])
   const [zoomedPaneId, setZoomedPaneId] = useState<string | null>(null)
   // If the zoomed pane disappears (close), drop zoom so the grid re-renders
   // the remaining panes.
@@ -795,7 +796,7 @@ export function App(props: AppProps): React.ReactElement {
     // Let the cleared composer paint before optimistic chat updates or
     // backend stdin writes do heavier synchronous work.
     const dispatchAfterComposerPaint = (dispatch: () => void): void => {
-      setTimeout(() => {
+      appScope.timeout(() => {
         dispatch()
       }, 0)
     }
@@ -1045,7 +1046,7 @@ export function App(props: AppProps): React.ReactElement {
         setChordBoth(null)
         // Restore the input value snapshot taken when Ctrl+G fired, so
         // the chord follow-up letter (which TextArea also inserts) is
-        // wiped. We schedule the restore via setTimeout(0) — by then,
+        // wiped. We schedule the restore through the app scope — by then,
         // TextArea's onChange has fully propagated through React, and
         // our restore is the last write to win. Microtask is too early
         // (TextArea's setInputValue runs after our handler returns).
@@ -1053,7 +1054,7 @@ export function App(props: AppProps): React.ReactElement {
         preChordInputRef.current = null
         if (snapshot !== null) {
           const restore = snapshot
-          setTimeout(() => setInputValue(restore), 0)
+          appScope.timeout(() => setInputValue(restore), 0)
         }
         if (input === "v") {
           // Vertical split — focused leaf becomes a row-split with the

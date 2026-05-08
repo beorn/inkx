@@ -1,29 +1,28 @@
 import React from "react"
 import { Text } from "silvery"
+import { createScope, type Scope } from "@silvery/scope"
 
 const DEFAULT_PERIOD_MS = 1800
 const PULSE_TICK_MS = 100
 
 const pulseSubscribers = new Set<() => void>()
-let pulseTimer: ReturnType<typeof setInterval> | null = null
+let pulseScope: Scope | null = null
 let pulseEpoch: number | null = null
 
 function subscribePulse(listener: () => void): () => void {
   pulseSubscribers.add(listener)
   pulseEpoch ??= Date.now()
-  if (pulseTimer === null) {
-    const timer = setInterval(() => {
+  if (pulseScope === null) {
+    pulseScope = createScope("status-glyph-pulse")
+    pulseScope.interval(() => {
       for (const subscriber of pulseSubscribers) subscriber()
-    }, PULSE_TICK_MS)
-    const maybeUnref = timer as { unref?: () => void }
-    maybeUnref.unref?.()
-    pulseTimer = timer
+    }, PULSE_TICK_MS, { unref: true })
   }
   return () => {
     pulseSubscribers.delete(listener)
-    if (pulseSubscribers.size === 0 && pulseTimer !== null) {
-      clearInterval(pulseTimer)
-      pulseTimer = null
+    if (pulseSubscribers.size === 0 && pulseScope !== null) {
+      void pulseScope[Symbol.asyncDispose]()
+      pulseScope = null
       pulseEpoch = null
     }
   }
