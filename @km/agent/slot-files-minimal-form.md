@@ -7,8 +7,8 @@ created_at: 2026-05-08T19:27:26.929Z
 
 # @agent/N slot files: minimal queue-only form (drop frontmatter + persona + working agreement) #P2
 
-The @agent/0..9.md slot files should be **queue-only**: the H1 line and any
-materialized `![[<bead>]]` queue embeds, nothing else. The current state
+The @agent/0..9.md slot files should be **queue-only**: the H1 rule and any
+materialized top-level `![[<bead>]]` queue embeds, nothing else. The current state
 (rich Persona / Working agreement / scope_fit / model / harness frontmatter)
 reflects an earlier philosophy where the slot was a contract; the user
 clarified during groom 2026-05-08 that slots are ad-hoc — the claiming agent
@@ -20,8 +20,9 @@ For each `@agent/N.md` (N = 0..9):
 
 - [ ] Frontmatter: deleted (path-form is canonical id; no other fields are
       load-bearing for queue-only slots)
-- [ ] Body: `# @agent/N` (with `[/]` checkbox marker if currently wip),
-      followed by materialized `![[<bead>]]` embeds only
+- [ ] Body: `# @agent/N km.add:: . km.default:: true` (with `[/]`
+      checkbox marker if currently wip), followed by materialized
+      top-level `![[<bead>]]` embeds only
 - [ ] No `## Persona`, no `## Working agreement`, no `## Queue` heading
       (the embeds are self-explanatory)
 - [ ] No HTML comments, no descriptive prose, no `(open slot)` placeholders
