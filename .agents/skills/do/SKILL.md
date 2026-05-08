@@ -36,27 +36,51 @@ If you want the bead to also live permanently in the slot's queue, use `/claim @
 
 ## Algorithm — queue mode (no args)
 
-### 1. Determine claimed slots
+### 0. Anchor at the vault root
 
-Find all `@agent/N` boards where you (this session) are the assignee:
+Run queue-mode bead operations from the main repo root, not an app subdirectory:
 
 ```bash
-km bd query "id:@agent/* assignee:$(km whoami 2>/dev/null || echo claude:$KM_SESSION_ID) status:wip" --json
+cd "$(git rev-parse --show-toplevel)"
+km bd info --paths
 ```
 
-(`KM_SESSION_ID` is set by the tribe daemon; `km whoami` resolves to the actor pattern used by `--claim`.)
+The reported `repo:` must be the monorepo root that contains `@agent.md` and `@agent/`. If it points at `apps/silvercode` or another package, stop and re-run from the root. Otherwise `km bd` and `km sync` will see a partial vault and `/do` will miss the slot queues.
+
+### 1. Determine claimed slots
+
+Use ordinary `km bd` commands. Do not use the legacy `km bd agent ...` subgroup for `@agent/N` sigil boards.
+
+If the runtime set `KM_AGENT_SLOT`, start there:
+
+```bash
+echo "$KM_AGENT_SLOT"
+km bd show @agent/<N>
+```
+
+If `KM_AGENT_SLOT` is unset, list your claimed work and look for the `@agent/` entries:
+
+```bash
+km bd list --status wip --assignee me --limit 200
+km bd list --status wip --assignee me --json --limit 500 \
+  | jq -r '.[] | select(.fs_path | test("^@agent/[0-9]+\\.md$")) | .data.id'
+```
+
+There is no stable `km whoami` command in the current CLI. Do not invent one in scripts. If ownership is ambiguous, stop and ask rather than draining another session's queue.
 
 If zero slots are claimed: **stop**. Tell the user "no slots claimed — run `/claim @agent/<N>` first." Don't guess a slot.
 
 ### 2. Read each slot's queue
 
-The board body contains the `rules.add`-materialized embeds:
+The canonical queue read is a normal bd query for beads that mention the slot:
 
 ```bash
-cat @agent/<N>.md
+km bd query @agent/<N>
 ```
 
-Look for the `## Queue` section (or just any `![[<bead>]]` embeds in the body). Each `![[<id>]]` is a candidate.
+Exclude the slot bead itself from work candidates. If the query returns only `@agent/<N> — ...`, the queue is empty.
+
+The markdown board body is a debug view, not the source you should parse first. If `cat @agent/<N>.md` shows repeated non-work embeds such as `![[sigil-boards]]` or `![[@agent]]`, treat that as broken materialization state and report it; do not fall back to global `km bd ready`.
 
 ### 3. Rank candidates
 

@@ -117,6 +117,18 @@ function getNodeSegmentName(node: KNode): string | null {
   return null
 }
 
+function normalizeFsPathScope(value: string): string {
+  return value.replace(/\/+$/g, "").replace(/\.md$/i, "")
+}
+
+function fsPathMatchesScope(fsPath: string | undefined, filter: string): boolean {
+  if (!fsPath) return false
+  const scope = normalizeFsPathScope(filter)
+  if (!scope) return false
+  const path = normalizeFsPathScope(fsPath)
+  return path === scope || path.startsWith(`${scope}/`)
+}
+
 /**
  * Check if a task's path matches the filter
  *
@@ -125,6 +137,16 @@ function getNodeSegmentName(node: KNode): string | null {
  * - "*projects*"  -> matches path segments that CONTAIN "projects" (explicit contains)
  */
 export function taskPathMatches(repo: Repo, task: KNode, filter: string): boolean {
+  if (fsPathMatchesScope(task.fs_path, filter)) {
+    return true
+  }
+
+  for (const ancestor of repo.getAncestors(task.id)) {
+    if (fsPathMatchesScope(ancestor.fs_path, filter)) {
+      return true
+    }
+  }
+
   // Determine matching mode based on filter syntax
   let mode: "prefix" | "contains" = "prefix"
   let cleanFilter = filter
@@ -162,6 +184,9 @@ export function taskPathMatches(repo: Repo, task: KNode, filter: string): boolea
  * Query indicators: starts with @, #, +, -, contains :, or is a known date shortcut
  */
 export function looksLikeQuery(str: string): boolean {
+  // Sigil-rooted paths such as `@km/foo` and `@agent/` are paths,
+  // not mention queries. Bare `@alice` remains a query.
+  if (/^@[^/]+\/.*$/.test(str)) return false
   // Reference filters
   if (/^[@#+-]/.test(str)) return true
   // Field:value filters

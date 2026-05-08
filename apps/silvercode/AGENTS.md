@@ -30,3 +30,26 @@ This is an always-on rule for silvercode UI work.
 
 If an existing primitive is close but not quite right, prefer extending or
 composing it over duplicating its layout math in silvercode.
+
+## Bead ops and slot boards
+
+This file is usually read while the shell is inside `apps/silvercode`. Before
+running `km bd`, `km sync`, `$claim`, or `$do`, switch to the monorepo root:
+
+```bash
+cd "$(git rev-parse --show-toplevel)"
+```
+
+The root is where `@km/`, `@agent.md`, and `@agent/` live. Running those commands
+from `apps/silvercode` gives a partial vault view and can make slot queues look
+empty or stale.
+
+Use ordinary bd commands for the slot-board model:
+
+```bash
+km bd query @agent/3                    # queue membership for slot 3
+km bd list --status wip --assignee me   # claimed beads and persona slots
+```
+
+The `km bd agent ...` subgroup is older persisted-agent plumbing; don't use it
+to inspect `@agent/N` slot boards.

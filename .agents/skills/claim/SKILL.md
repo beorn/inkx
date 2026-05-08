@@ -37,6 +37,17 @@ Don't conflate. `assignee` is the per-bead/per-slot lease; mentions are the queu
 
 ## What it does (up to five steps)
 
+### 0. Anchor at the vault root
+
+Run slot claims from the main repo root:
+
+```bash
+cd "$(git rev-parse --show-toplevel)"
+km bd info --paths
+```
+
+The reported `repo:` must be the monorepo root that contains `@agent.md` and `@agent/`. Running from an app directory creates a partial view of the vault and makes later `/do` queue discovery unreliable.
+
 ### 1. Atomic CAS
 
 ```bash
@@ -94,6 +105,15 @@ done
 ```
 
 `--notes` appends a paragraph; the bare `@agent/<N>` token is recognized as a sigil mention by the markdown link extractor and lands in the canonical links table as `km:@agent/<N>`. The slot's materialization rule resolves that link and renders the bead as a `![[<bead>]]` embed in the slot body on next `km sync`.
+
+After queue-assigning beads, verify with the ordinary bd query surface:
+
+```bash
+km sync
+km bd query @agent/<N>
+```
+
+The `km bd agent ...` subgroup is for the older persisted-agent model, not `@agent/N` sigil boards. If `@agent/<N>.md` shows duplicate stale embeds or unrelated `![[sigil-boards]]` / `![[@agent]]` entries, treat that as board materialization drift and use `km bd query @agent/<N>` as the authoritative queue check.
 
 **Idempotent** — re-running `/claim @agent/N <bead>` on a bead already in the slot's queue is a no-op.
 

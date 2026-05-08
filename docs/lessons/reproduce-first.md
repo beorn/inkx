@@ -41,6 +41,10 @@ Real markdown vaults have nested headings, sub-items under sub-items, and mixed 
 
 If the screen shows a card, the keyboard should be able to reach it. Navigation should read from the ViewTree (or whatever drives rendering), not recompute visibility independently. Two sources of truth for "what's visible" will inevitably diverge.
 
+### 5. Regression tests should target the real failing path
+
+Do not add broad, low-signal smoke tests such as "every barrel export imports" just because an import failed once. Those tests become noisy quickly and encourage copy-paste coverage across modules. First reproduce the actual failing command or user path. If the bug is a stale public export, a targeted import smoke command is enough for diagnosis; codify it only in an existing public-API test file when that exported symbol is part of an intentional compatibility contract.
+
 ---
 
 ## See Also
@@ -48,4 +52,3 @@ If the screen shows a card, the keyboard should be able to reach it. Navigation 
 - [Refactoring Lessons](refactoring.md) — related case studies on migration and deletion discipline
 - [TDD Skill](../../.claude/skills/tdd/SKILL.md) — reproduction tool picker and escalation ladder
 - [Bug Workflow](../../.claude/skills/pm/workflows/bugs.md) — bead lifecycle for bug fixes
-

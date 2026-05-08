@@ -47,6 +47,8 @@ function addTask(
     status?: "todo" | "wip" | "done" | "blocked" | "dropped"
     assigned?: string
     priority?: string
+    fsPath?: string
+    fstype?: "mdfile" | "folder" | "mdsection"
   } = {},
 ): string {
   const status = opts.status ?? "todo"
@@ -58,6 +60,8 @@ function addTask(
     item: { list: "-", task: { marker, status } },
     content,
     data,
+    ...(opts.fsPath ? { fs_path: opts.fsPath } : {}),
+    ...(opts.fstype ? { fstype: opts.fstype } : {}),
     ...(opts.assigned ? { assigned_to: opts.assigned } : {}),
   })
 }
@@ -276,6 +280,23 @@ describe("planList — query mode", () => {
 })
 
 describe("planList — path-or-id mode", () => {
+  test("sigil root with trailing slash scopes by fs_path prefix", () => {
+    const { repo } = freshRepo()
+    addTask(repo, null, "agent work", { fsPath: "@agent/3.md", fstype: "mdfile" })
+    addTask(repo, null, "km work", { fsPath: "@km/default-work.md", fstype: "mdfile" })
+
+    const plan = planList(repo, {
+      pathOrId: "@agent/",
+      status: "todo",
+      unblocked: true,
+      fstype: "bead",
+    })
+    if (plan.kind !== "list") throw new Error("expected list plan")
+    expect(plan.tasks.map((t) => t.content)).toEqual(["agent work"])
+    expect(plan.pathFilter).toBe("@agent/")
+    expect(plan.rootNode).toBeNull()
+  })
+
   test("non-existent positional becomes a path filter", () => {
     const { repo } = freshRepo()
     addTask(repo, null, "alpha")

@@ -15,6 +15,7 @@ import { describe, test, expect } from "vitest"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
 import { spawn } from "child_process"
+import { Database } from "bun:sqlite"
 import { runGenerator } from "@km/core"
 import { createRepo } from "@km/storage"
 import { Bead } from "@km/beads"
@@ -47,6 +48,44 @@ function seedRepoWithBeads(count: number): string {
     })
     const id = repo.addNode(null, node)
     for (const child of children) repo.addNode(id, child)
+  }
+  return dir
+}
+
+function seedRepoWithReadyScopeRows(): string {
+  const dir = mkdtempSync(join(tmpdir(), "kmtest-bd-ready-agent-"))
+  mkdirSync(join(dir, ".km"), { recursive: true })
+  mkdirSync(join(dir, "@agent"), { recursive: true })
+  mkdirSync(join(dir, "@km"), { recursive: true })
+  writeFileSync(join(dir, ".km", "config.yaml"), `beads:\n  prefix: km\n  roots:\n    - "@km"\n    - "@agent"\n`)
+  writeFileSync(join(dir, "inbox.md"), "# Inbox\n\n")
+  writeFileSync(
+    join(dir, "@agent", "3.md"),
+    `---\nid: "@agent/3"\ncreated_at: 2026-01-01T00:00:00.000Z\n---\n\n# [ ] Agent slot work #P1 @issue\n`,
+  )
+  writeFileSync(
+    join(dir, "@km", "default-work.md"),
+    `---\nid: "@km/default-work"\ncreated_at: 2026-01-01T00:00:00.000Z\n---\n\n# [ ] Default km work #P1 @issue\n`,
+  )
+
+  using repo = runGenerator(createRepo(dir, { loadFiles: true }))
+  void repo
+
+  using db = new Database(join(dir, ".km", "state.db"))
+  for (const row of [
+    { content: "Agent slot work", fsPath: "@agent/3.md" },
+    { content: "Default km work", fsPath: "@km/default-work.md" },
+  ]) {
+    db.run(
+      `UPDATE nodes
+       SET item = 1,
+           list_marker = '-',
+           task_marker = '[ ]',
+           task_status = 'todo',
+           content = ?
+       WHERE fs_path = ?`,
+      [row.content, row.fsPath],
+    )
   }
   return dir
 }
@@ -141,6 +180,29 @@ describe("bd empty-default hint", () => {
     expect(res.exitCode).toBe(0)
     expect(res.stdout).toContain("No ready issues found")
     expect(res.stdout).not.toContain("No issues in default board")
+  }, 60_000)
+
+  test("bd ready @agent/ scopes to the agent board prefix", async () => {
+    const dir = seedRepoWithReadyScopeRows()
+    using db = new Database(join(dir, ".km", "state.db"), { readonly: true })
+    const rows = db
+      .query<{ fs_path: string; task_status: string | null; content: string }, []>(
+        `SELECT fs_path, task_status, content
+         FROM nodes
+         WHERE fs_path IN ('@agent/3.md', '@km/default-work.md')
+         ORDER BY fs_path`,
+      )
+      .all()
+    expect(rows).toEqual([
+      { fs_path: "@agent/3.md", task_status: "todo", content: "Agent slot work" },
+      { fs_path: "@km/default-work.md", task_status: "todo", content: "Default km work" },
+    ])
+
+    const res = await runKm(dir, ["bd", "ready", "@agent/"])
+    expect(res.exitCode).toBe(0)
+    expect(res.stdout).toContain("Agent slot work")
+    expect(res.stdout).not.toContain("@km/default-work")
+    expect(res.stdout).not.toContain("Default km work")
   }, 60_000)
 
   test("bd query with unknown attribute prints helpful error, not SQLiteError", async () => {
