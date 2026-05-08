@@ -24,11 +24,35 @@ This pass keeps the existing deferred-provider shape, with two important fixes:
 
 - Cache-miss probes now use the active silvery `term.input` owner instead of
   starting a standalone stdin probe from inside the TUI.
-- The theme cache schema is versioned at `3`, so old entries that may have
+- The theme cache schema is versioned at `5`, so old entries that may have
   conflated terminal background, selected background, ANSI blue, or a
   fallback-only failed probe are ignored.
+- `KM_FORCE_THEME_PROBE=1` bypasses the initial cache paint as well as the
+  effect-time cache-hit probe skip, so debugging cannot accidentally render a
+  stale cached theme before the forced probe resolves.
+- Cache writes require a probed OSC 11 background. Partial probes without a
+  background are allowed to improve the current frame, but they do not become
+  future cache hits.
 - Fallback-equivalent probe results are not cached. If OSC probing fails, the
   next run should try again instead of pinning the fallback `#2e3440` background.
+- Pure fallback no longer paints Silvery's Nord/default-dark canvas. km keeps
+  ANSI16-derived text/accent tokens, but clears the base canvas aliases
+  (`bg`, `bg-default`, `bg-surface-default`, `surfacebg`) so the terminal's
+  own default background shows through.
+- Partial OSC probes are still useful: if OSC 10/11 return foreground/background
+  but OSC 4 palette slots do not, km uses the real fg/bg and derives the
+  remaining roles from fallback ANSI slots.
+- Partial OSC probes are not allowed to own the canvas unless OSC 11 returned
+  the background. This prevents "fg or ANSI palette probed, background fell
+  back to `default-dark`" from repainting the app blue a second after startup.
+- Even successful OSC 11 probes do not paint the root canvas. Silvery uses the
+  probed foreground/background/ANSI palette to derive the Sterling theme first;
+  km then clears only the paint-facing canvas aliases (`bg`, `bg-default`,
+  `bg-surface-default`, `surfacebg`) so Ghostty's default/background effects
+  remain visible. There is no hidden km canvas-background token.
+- When OSC does not report selection colors, Silvery synthesizes selection
+  tokens from the probed foreground/background pair instead of carrying the
+  fallback scheme's selected background into the detected theme.
 
 The probe still starts from `DeferredThemeProvider` after first render. It does
 not yet overlap with pre-render board loading.
@@ -45,8 +69,13 @@ tail -f /tmp/km-theme.log
 Useful log lines:
 
 - `theme: loaded cached theme ... — skipping probe` means the cache was used.
-- `theme: probe resolved → ...` means OSC probing completed and saved/applied a
-  detected theme.
+- `theme: probe resolved → ... source=probed bg=probed fg=probed ansi=N/16`
+  means OSC probing completed. `bg=probed` is the important bit for matching
+  the terminal canvas. The same line also prints `canvas=... surface=...
+selected=...`; `canvas=terminal-default surface=terminal-default` means km
+  is intentionally letting the terminal own the base background.
+- `theme: probe resolved → ... source=fallback ...` or `source=bg-mode ...`
+  means km stayed on the terminal-default canvas fallback and did not cache it.
 - `theme: probe failed — ...` means the fallback theme remained active.
 
 To bypass the cache for one run:

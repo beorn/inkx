@@ -1160,6 +1160,7 @@ export const Column = React.memo(function Column({
           getKey={getKey}
           renderItem={renderItem}
           overflowIndicator
+          maintainVisibleContentPosition={false}
           scrollAnchor={columnScrollAnchor}
           listFooter={
             hiddenCount > 0 ? (

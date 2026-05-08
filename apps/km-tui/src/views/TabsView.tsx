@@ -155,6 +155,7 @@ export function TabsView({ columnIds, width, height, columnFilters }: TabsViewPr
               scrollTo={cursorCardNodeId ? currentCardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined}
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}
+              maintainVisibleContentPosition={false}
               getKey={(card) => card.id}
               renderItem={(card: KNode, actualCardIndex: number) => {
                 const isCardSelected = cursorDepth === "card" && card.id === cursorCardNodeId

@@ -29,6 +29,7 @@ describe("autolink previews", () => {
   })
 
   afterEach(() => {
+    clearPreviewCache()
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -87,12 +88,11 @@ describe("autolink previews", () => {
     expect(result.body).toBe("The paragraph.")
   })
 
-  test("cache: file-backed entries serve cached value until watcher evicts (no TTL)", () => {
+  test("cache: file-backed entries refresh on stat mismatch before watcher debounce", () => {
     // File-backed previews (`readme`, `first-paragraph`) cache without
-    // TTL — invalidation is fs.watch-driven. Synchronous re-reads
-    // within the same tick (before the debounce timer fires) keep
-    // serving the cached body. See the "watcher" tests below for
-    // change-driven invalidation.
+    // TTL. They primarily invalidate through fs.watch, but cache hits
+    // also compare mtime/size so a write that races watcher delivery
+    // cannot serve stale preview content.
     writeFileSync(join(dir, "README.md"), "# v1\n")
     let now = 1_000_000
     const result1 = resolvePreview({
@@ -103,8 +103,8 @@ describe("autolink previews", () => {
     })
     expect(result1.kind).toBe("ok")
 
-    // Mutate file but read again synchronously — debounce hasn't
-    // fired yet, so the cached v1 is still served.
+    // Mutate file and read again synchronously. Even if fs.watch has not
+    // delivered yet, the stat fallback detects the changed backing file.
     writeFileSync(join(dir, "README.md"), "# v2\n")
     now += PREVIEW_CACHE_TTL_MS - 1
     const result2 = resolvePreview({
@@ -115,11 +115,11 @@ describe("autolink previews", () => {
     })
     expect(result2.kind).toBe("ok")
     if (result2.kind !== "ok") return
-    expect(result2.body).toContain("v1")
-    expect(result2.body).not.toContain("v2")
+    expect(result2.body).toContain("v2")
+    expect(result2.body).not.toContain("v1")
 
-    // Even past the (no-longer-applicable) TTL, a synchronous re-read
-    // still hits the cache for file-backed entries.
+    // Once the fresh value is cached, TTL still does not evict file-backed
+    // entries by itself.
     now += 2
     const result3 = resolvePreview({
       preview: "readme",
@@ -129,7 +129,7 @@ describe("autolink previews", () => {
     })
     expect(result3.kind).toBe("ok")
     if (result3.kind !== "ok") return
-    expect(result3.body).toContain("v1")
+    expect(result3.body).toContain("v2")
   })
 
   test("cache: per-key isolation — different cache keys don't pollute each other", () => {

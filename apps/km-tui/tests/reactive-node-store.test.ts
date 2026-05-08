@@ -21,12 +21,16 @@ describe("reactive node store cursor locality", () => {
     store.setCursor("leaf")
 
     expect(store.cursorChild("branch")()).toBe(true)
+    expect(store.cursorPathChildId("branch")()).toBe("leaf")
+    expect(store.cursorPathChildId("parent")()).toBe("branch")
     expect(store.cursorChild("parent")()).toBe(false)
     expect(store.cursorDescendant("parent")()).toBe(true)
 
     store.setCursor("sibling")
 
     expect(store.cursorChild("branch")()).toBe(false)
+    expect(store.cursorPathChildId("branch")()).toBeNull()
+    expect(store.cursorPathChildId("parent")()).toBe("sibling")
     expect(store.cursorChild("parent")()).toBe(true)
   })
 

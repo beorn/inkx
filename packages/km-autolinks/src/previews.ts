@@ -28,13 +28,14 @@
  * that scheme is used verbatim and the preview kind is ignored. This is the
  * path plain URLs in messages take — see `match.ts` for virtual detections.
  *
- * Caching: per-cache-key in-memory. File-backed previews invalidate on
- * `fs.watch` `change` events with a 200ms debounce, so the next
- * `resolvePreview()` reads fresh content. Shell-out / subprocess previews
- * have no file backing and fall back to a 30-second TTL.
+ * Caching: per-cache-key in-memory. File-backed previews primarily
+ * invalidate on `fs.watch` `change` events with a 200ms debounce, and cache
+ * hits also validate the backing file's mtime/size so missed or delayed watch
+ * events cannot serve stale content. Shell-out / subprocess previews have no
+ * file backing and fall back to a 30-second TTL.
  */
 
-import { watch, type FSWatcher } from "node:fs"
+import { statSync, watch, type FSWatcher } from "node:fs"
 import createDebug from "debug"
 import type { AutolinkPreviewKind } from "./config.ts"
 import { parseResolvesTo } from "./uri.ts"
@@ -76,10 +77,21 @@ export type PreviewResult = PreviewSuccess | PreviewError
  * resolves_to under different preview kinds doesn't collide.
  *
  * Exposed via `clearPreviewCache()` for tests. Production code never
- * resets it manually — file-backed entries evict on fs.watch change
- * events, shell-out entries expire on TTL.
+ * resets it manually — file-backed entries evict on fs.watch change events or
+ * backing-file stamp mismatch; shell-out entries expire on TTL.
  */
-const cache = new Map<string, PreviewResult>()
+type FileStamp = {
+  readonly path: string
+  readonly mtimeMs: number
+  readonly size: number
+}
+
+type CacheEntry = {
+  readonly result: PreviewResult
+  readonly file?: FileStamp
+}
+
+const cache = new Map<string, CacheEntry>()
 
 /**
  * Per-cache-key fs.watch handles. When a file-backed preview is cached,
@@ -98,6 +110,19 @@ const watchers = new Map<string, WatcherEntry>()
 export function clearPreviewCache(): void {
   cache.clear()
   disposeAllWatchers()
+}
+
+function stampFile(path: string): FileStamp | null {
+  try {
+    const stat = statSync(path)
+    return { path, mtimeMs: stat.mtimeMs, size: stat.size }
+  } catch {
+    return null
+  }
+}
+
+function sameFileStamp(a: FileStamp, b: FileStamp | null): boolean {
+  return b !== null && a.path === b.path && a.mtimeMs === b.mtimeMs && a.size === b.size
 }
 
 /** Tear down every active fs.watch handle. Used by `clearPreviewCache()` and exposed for callers (e.g., `AutolinksProvider`) that want to dispose on unmount. */
@@ -201,11 +226,15 @@ export function resolvePreview(args: {
 
   const hit = cache.get(key)
   if (hit) {
-    // File-backed entries stay valid until the watcher evicts them.
-    // Shell-out entries expire on TTL.
+    // File-backed entries stay valid while their backing-file stamp matches;
+    // fs.watch eviction handles the common asynchronous path. Shell-out
+    // entries expire on TTL.
     const isFileBacked = watchers.has(key)
-    if (isFileBacked) return hit
-    if (t - hit.resolvedAt < PREVIEW_CACHE_TTL_MS) return hit
+    if (isFileBacked && hit.file && sameFileStamp(hit.file, stampFile(hit.file.path))) return hit.result
+    if (isFileBacked) {
+      cache.delete(key)
+      disposeWatcher(key)
+    } else if (t - hit.result.resolvedAt < PREVIEW_CACHE_TTL_MS) return hit.result
   }
 
   let outcomeResult: PreviewResult
@@ -233,7 +262,8 @@ export function resolvePreview(args: {
     log(`preview %s for %s threw: %s`, args.preview, args.resolvesTo, String(err))
     outcomeResult = { kind: "error", message: `preview failed: ${String(err)}`, resolvedAt: t }
   }
-  cache.set(key, outcomeResult)
+  const fileStamp = watchedPath !== null ? stampFile(watchedPath) : null
+  cache.set(key, fileStamp ? { result: outcomeResult, file: fileStamp } : { result: outcomeResult })
   if (watchedPath !== null) {
     registerWatcher(key, watchedPath)
   } else {

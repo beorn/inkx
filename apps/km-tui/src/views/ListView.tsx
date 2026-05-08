@@ -237,6 +237,7 @@ export function ListView({ columnIds, width, height, columnFilters }: ListViewPr
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}
+        maintainVisibleContentPosition={false}
         getKey={(item) =>
           item.type === "header"
             ? `header-${item.colId}`

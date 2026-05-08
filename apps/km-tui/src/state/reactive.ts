@@ -59,6 +59,7 @@ function createReducedStore(traversal: Traversal) {
       editing: signal(false),
       isDone: signal(false),
       hovered: signal(false),
+      cursorPathChildId: signal(null as string | null),
       foldOverride: signal(undefined as number | undefined),
       edit: signal(null as NodeEditState | null),
       sticky: signal(null as "folded" | "unfolded" | null),
@@ -138,6 +139,11 @@ export function createNodeStore() {
     return reduced.get(nodeId).cursorChild as () => boolean
   }
 
+  /** Get the immediate child id on the active cursor path for this node. */
+  function cursorPathChildId(nodeId: string): () => string | null {
+    return reduced.get(nodeId).cursorPathChildId as () => string | null
+  }
+
   function selectedAncestor(nodeId: string): () => boolean {
     return reduced.get(nodeId).selectedAncestor as () => boolean
   }
@@ -214,6 +220,7 @@ export function createNodeStore() {
   // ── Internal prev-tracking state for store write API ─────────────────
   let prevCursorId: string | null = null
   let prevCursorParentId: string | null = null
+  let prevCursorPathChildren = new Map<string, string>()
   let getParentId: (nodeId: string) => string | null = () => null
   let prevExpandedSelection = new Set<string>()
   let prevEditNodeId: string | null = null
@@ -230,6 +237,30 @@ export function createNodeStore() {
     prevCursorParentId = nextParentId
   }
 
+  function syncCursorPathMarkers(nodeId: string | null): void {
+    const next = new Map<string, string>()
+    let childId = nodeId
+    let parentId = childId ? getParentId(childId) : null
+
+    while (childId && parentId) {
+      next.set(parentId, childId)
+      childId = parentId
+      parentId = getParentId(childId)
+    }
+
+    for (const [parentId, prevChildId] of prevCursorPathChildren) {
+      if (next.get(parentId) !== prevChildId) {
+        reduced.get(parentId).cursorPathChildId(null)
+      }
+    }
+    for (const [parentId, nextChildId] of next) {
+      if (prevCursorPathChildren.get(parentId) !== nextChildId) {
+        reduced.get(parentId).cursorPathChildId(nextChildId)
+      }
+    }
+    prevCursorPathChildren = next
+  }
+
   /** Set cursor — clears old per-node cursor boolean, sets new one.
    * Also writes the store-level cursor signal. */
   function setCursor(nodeId: string | null): void {
@@ -238,11 +269,13 @@ export function createNodeStore() {
     if (hasCursor() !== active) hasCursor(active)
     if (prev === nodeId) {
       syncCursorParentMarker(nodeId)
+      syncCursorPathMarkers(nodeId)
       return
     }
     if (prev) reduced.get(prev).cursor(false)
     if (nodeId) reduced.get(nodeId).cursor(true)
     syncCursorParentMarker(nodeId)
+    syncCursorPathMarkers(nodeId)
     cursor(nodeId)
     prevCursorId = nodeId
   }
@@ -333,6 +366,7 @@ export function createNodeStore() {
     if (!rootId) {
       getParentId = () => null
       syncCursorParentMarker(prevCursorId)
+      syncCursorPathMarkers(prevCursorId)
       return
     }
 
@@ -343,6 +377,7 @@ export function createNodeStore() {
       children: (id) => repo.getChildren(id).map((n) => n.id),
     })
     syncCursorParentMarker(prevCursorId)
+    syncCursorPathMarkers(prevCursorId)
 
     // Hydrate fold depths
     for (const [id, depth] of foldDepths) {
@@ -391,6 +426,7 @@ export function createNodeStore() {
     cursorDescendant,
     cursorAncestor,
     cursorChild,
+    cursorPathChildId,
     selectedAncestor,
     editingDescendant,
     doneAncestor,

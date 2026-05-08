@@ -27,7 +27,7 @@ export interface ThemeCacheKey {
 }
 
 interface CacheFile {
-  version: 3
+  version: 5
   entries: Record<string, Theme>
 }
 
@@ -42,7 +42,7 @@ function cacheKey(key: ThemeCacheKey): string {
 
 let memoCache: CacheFile | null = null
 let loaded = false
-const CACHE_VERSION = 3
+const CACHE_VERSION = 5
 
 function readCache(): CacheFile {
   if (loaded && memoCache) return memoCache

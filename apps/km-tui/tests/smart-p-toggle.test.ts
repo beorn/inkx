@@ -53,9 +53,11 @@ describe("Detail pane toggle", () => {
     app.withStore((s) => {
       expect(s.workspace.panes.has("main-detail")).toBe(true)
     })
-    // Buffer must show cursor on card2 (not card1)
-    app.expect("#card2[data-cursor]").toExist()
-    app.expect("#card1[data-cursor]").not.toExist()
+    // Semantic cursor moved on the board; detail-pane mirrors may also carry
+    // cursor attrs for the current preview, so assert the board cursor via
+    // node handles rather than raw global selector counts.
+    expect(app.card("card2").isCursor).toBe(true)
+    expect(app.card("card1").isCursor).toBe(false)
 
     // k moves cursor back up
     app.command("cursor_up")
@@ -63,9 +65,8 @@ describe("Detail pane toggle", () => {
     app.withStore((s) => {
       expect(s.workspace.panes.has("main-detail")).toBe(true)
     })
-    // Buffer must show cursor on card1 (not card2)
-    app.expect("#card1[data-cursor]").toExist()
-    app.expect("#card2[data-cursor]").not.toExist()
+    expect(app.card("card1").isCursor).toBe(true)
+    expect(app.card("card2").isCursor).toBe(false)
   })
 
   test("cursor movement with detail pane - incremental rendering", () => {
@@ -79,24 +80,24 @@ describe("Detail pane toggle", () => {
       expect(s.workspace.panes.has("main-detail")).toBe(true)
     })
     app.command("cursor_left") // return to board
-    app.expect("#card1[data-cursor]").toExist()
+    expect(app.card("card1").isCursor).toBe(true)
 
     // j moves cursor down — incremental render must reflect change
     app.command("cursor_down")
     expect(app.state.cursor).toBe("card2")
-    app.expect("#card2[data-cursor]").toExist()
-    app.expect("#card1[data-cursor]").not.toExist()
+    expect(app.card("card2").isCursor).toBe(true)
+    expect(app.card("card1").isCursor).toBe(false)
 
     // k moves cursor back up
     app.command("cursor_up")
     expect(app.state.cursor).toBe("card1")
-    app.expect("#card1[data-cursor]").toExist()
+    expect(app.card("card1").isCursor).toBe(true)
 
     // l moves to a different column (if visible)
     app.command("cursor_down") // back to card2
     app.command("cursor_down") // to card3
     expect(app.state.cursor).toBe("card3")
-    app.expect("#card3[data-cursor]").toExist()
+    expect(app.card("card3").isCursor).toBe(true)
   })
 
   test("Escape unfocuses then closes detail pane", () => {

@@ -294,6 +294,7 @@ function TreeNodeImpl({
   const nodeStore = useNodeStore()
   const n = useTreeNode(node.id)
   const cursorOnThis = useSignal(n.cursor)
+  const cursorPathChildId = useSignal(n.cursorPathChildId)
   const isNodeSelected = useSignal(n.selected)
   const editState = useSignal(n.edit)
   const foldOverride = useSignal(n.foldOverride)
@@ -522,7 +523,7 @@ function TreeNodeImpl({
   // Passing this set to NodeChildren means each child's isBody flag is determined
   // by data only, not by which slice happens to be visible.
   //
-  // Without this, NodeChildren would call extractBody(visibleChildren), and slicing
+  // Without this, NodeChildren would call extractBody(renderedChildren), and slicing
   // can include/exclude outline items, flipping body classification on cursor move
   // (e.g. cursor expansion grows the slice from 3 to 20 and suddenly an outline
   // sibling appears, reclassifying earlier tasks as body).
@@ -751,18 +752,19 @@ function TreeNodeImpl({
       ? maxContentLines
       : VARIANT_CONFIG.oneliner.maxChildren
 
-  // Combined filter + slice with early exit: stop after collecting maxChildren matches.
-  // For a card with 2,628 children and maxChildren=3, this scans ~3-10 items (not 2,628).
-  // "+1 more" takes the same space as showing the item — so show it instead.
-  const effectiveMax = children.length === maxChildren + 1 ? maxChildren + 1 : maxChildren
-  const { visibleChildren, hiddenCount } = useMemo(() => {
+  // In preview mode this still returns a small child prefix. In expanded mode,
+  // pass the full filtered list to a bounded Silvery scroll viewport and reveal
+  // the cursor child by index.
+  const { renderedChildren, hiddenCount, childViewportRows } = useMemo(() => {
     if (taskStatusFilter.size === 0) {
+      const effectiveMax = children.length === maxChildren + 1 ? maxChildren + 1 : maxChildren
       return {
-        visibleChildren: children.length <= effectiveMax ? children : children.slice(0, effectiveMax),
+        renderedChildren: shouldExpand ? children : children.slice(0, effectiveMax),
         hiddenCount: Math.max(0, children.length - effectiveMax),
+        childViewportRows: effectiveMax,
       }
     }
-    const visible: typeof children = []
+    const passing: typeof children = []
     let totalPassing = 0
     for (const child of children) {
       // For symlinked children, resolve to source node to get task_status
@@ -770,11 +772,16 @@ function TreeNodeImpl({
       const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
       if (!status || taskStatusFilter.has(status)) {
         totalPassing++
-        if (visible.length < effectiveMax) visible.push(child)
+        passing.push(child)
       }
     }
-    return { visibleChildren: visible, hiddenCount: totalPassing - visible.length }
-  }, [children, taskStatusFilter, effectiveMax, repo])
+    const effectiveMax = totalPassing === maxChildren + 1 ? maxChildren + 1 : maxChildren
+    return {
+      renderedChildren: shouldExpand ? passing : passing.slice(0, effectiveMax),
+      hiddenCount: Math.max(0, totalPassing - effectiveMax),
+      childViewportRows: effectiveMax,
+    }
+  }, [children, shouldExpand, taskStatusFilter, maxChildren, repo])
 
   // Children are hidden when individually folded
   const childrenVisible = hasChildren && !isFolded
@@ -1021,7 +1028,7 @@ function TreeNodeImpl({
           onError={handleNodeChildrenError}
         >
           <NodeChildren
-            children={isInlineEditing ? structuralChildren : visibleChildren}
+            children={isInlineEditing ? structuralChildren : renderedChildren}
             colIndex={colIndex}
             cardIndex={cardIndex}
             depth={depth}
@@ -1036,6 +1043,8 @@ function TreeNodeImpl({
             remainingDepth={resolvedDepth - 1}
             bodyIdSet={stableBodyIdSet}
             suppressCursorHighlight={isInlineEditing || editingDescendant}
+            maxVisibleRows={isInlineEditing || !shouldExpand ? undefined : childViewportRows}
+            revealChildId={isInlineEditing || !shouldExpand ? null : cursorPathChildId}
           />
         </ErrorBoundary>
       )}
@@ -1379,6 +1388,15 @@ interface NodeChildrenProps {
    * Set by the parent TreeNode when it or a descendant is being edited —
    * the bold border-focus is sufficient, row-level inverse is redundant. */
   suppressCursorHighlight?: boolean
+  /** Bounded row viewport used for expanded child lists. */
+  maxVisibleRows?: number
+  /** Child id to reveal inside the bounded list. */
+  revealChildId?: string | null
+}
+
+type OrderedChild = {
+  node: KNode
+  isBody: boolean
 }
 
 function NodeChildren({
@@ -1397,6 +1415,8 @@ function NodeChildren({
   remainingDepth,
   bodyIdSet,
   suppressCursorHighlight = false,
+  maxVisibleRows,
+  revealChildId = null,
 }: NodeChildrenProps): React.ReactElement {
   // Classify each child as body or structural using the STABLE body ID set
   // computed from the parent's full children array (cursor-independent).
@@ -1478,34 +1498,67 @@ function NodeChildren({
     )
   }
 
+  const renderChild = (item: OrderedChild, key?: React.Key): React.ReactElement => (
+    <TreeNode
+      key={key}
+      node={item.node}
+      depth={depth + 1}
+      isSelected={false}
+      colIndex={colIndex}
+      cardIndex={cardIndex}
+      dim={parentDim}
+      dimInactiveChildren={dimInactiveChildren}
+      getChildren={getChildren}
+      getParentContext={getParentContext}
+      getBoardPills={getBoardPills}
+      extraExcludedSigils={extraExcludedSigils}
+      remainingDepth={remainingDepth}
+      isBody={item.isBody}
+      suppressCursorHighlight={suppressCursorHighlight}
+    />
+  )
+
+  const renderScrollableChild = (item: OrderedChild, key: React.Key): React.ReactElement => (
+    <Box key={key} flexShrink={0}>
+      {renderChild(item)}
+    </Box>
+  )
+
+  const overflowIndicator =
+    hiddenCount > 0 && showOverflowIndicator ? (
+      <Box paddingLeft={Math.max(0, depth) + 2}>
+        <Text color="$fg-muted" wrap="truncate">
+          +{hiddenCount} more
+        </Text>
+      </Box>
+    ) : null
+
+  const useRevealList = maxVisibleRows !== undefined && maxVisibleRows > 0 && orderedChildren.length > maxVisibleRows
+  if (useRevealList) {
+    const revealIndex = revealChildId
+      ? orderedChildren.findIndex((item) => item.node.id === revealChildId)
+      : -1
+
+    return (
+      <Box flexDirection="column">
+        <Box
+          flexDirection="column"
+          height={maxVisibleRows}
+          overflow="scroll"
+          scrollTo={revealIndex >= 0 ? revealIndex : undefined}
+          overflowIndicator={false}
+        >
+          {orderedChildren.map((item, i) => renderScrollableChild(item, `${item.node.id}-${i}`))}
+        </Box>
+        {overflowIndicator}
+      </Box>
+    )
+  }
+
   return (
     <Box flexDirection="column">
-      {orderedChildren.map((item, i) => (
-        <TreeNode
-          key={`${item.node.id}-${i}`}
-          node={item.node}
-          depth={depth + 1}
-          isSelected={false}
-          colIndex={colIndex}
-          cardIndex={cardIndex}
-          dim={parentDim}
-          dimInactiveChildren={dimInactiveChildren}
-          getChildren={getChildren}
-          getParentContext={getParentContext}
-          getBoardPills={getBoardPills}
-          extraExcludedSigils={extraExcludedSigils}
-          remainingDepth={remainingDepth}
-          isBody={item.isBody}
-          suppressCursorHighlight={suppressCursorHighlight}
-        />
-      ))}
-      {hiddenCount > 0 && showOverflowIndicator && (
-        <Box paddingLeft={Math.max(0, depth) + 2}>
-          <Text color="$fg-muted" wrap="truncate">
-            +{hiddenCount} more
-          </Text>
-        </Box>
-      )}
+      {orderedChildren.map((item, i) => renderChild(item, `${item.node.id}-${i}`))}
+      {overflowIndicator}
     </Box>
   )
 }

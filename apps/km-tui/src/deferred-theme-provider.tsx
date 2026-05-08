@@ -19,14 +19,14 @@
  * the stdin raw-mode toggle for that window — pure waste when we already
  * have a theme that matches the pair. The probe only runs on first-ever
  * launch or when the cache misses. Set `KM_FORCE_THEME_PROBE=1` in the env
- * to force a re-probe (e.g. debugging palette drift after a terminal-side
- * theme change — next run will backfill the cache).
+ * to bypass the cache and force a re-probe (e.g. debugging palette drift
+ * after a terminal-side theme change — next run will backfill the cache).
  */
 
 import React, { useEffect, useRef, useState } from "react"
-import { ThemeProvider, ansi16DarkTheme, ansi16LightTheme, TermContext, type Theme } from "@silvery/ag-react"
+import { ThemeProvider, TermContext, type Theme } from "@silvery/ag-react"
 import type { ColorLevel } from "@silvery/ansi"
-import { detectTheme } from "./theme.ts"
+import { detectKmTheme, fallbackKmTheme } from "./theme.ts"
 import { loadCachedTheme, saveCachedTheme, type ThemeCacheKey } from "./theme-cache.ts"
 import { createLogger } from "@km/core"
 
@@ -50,21 +50,17 @@ interface DeferredThemeProviderProps {
 /**
  * Pick a synchronous fallback theme based on the probed capabilities.
  *
- * - `colorLevel === "mono" | "ansi16"` → the ANSI 16 theme (matches what
- *   `detectTheme` would have returned synchronously anyway).
- * - Otherwise → ANSI 16 dark/light depending on `caps.maybeDarkBackground`.
- *   ANSI 16 themes use hex values but only 16 colors, which paint on any
- *   terminal without looking wrong; truecolor terminals still render them
- *   literally. The real palette swap happens when the probe completes.
+ * Starts with ANSI 16 dark/light text/accent tokens, but clears the base
+ * canvas background so the terminal's own default background shows through
+ * until a real OSC probe result arrives.
  */
 function pickFallbackTheme(caps: DeferredThemeProviderProps["caps"]): Theme {
-  const isDark = caps.maybeDarkBackground ?? true
-  return isDark ? ansi16DarkTheme : ansi16LightTheme
+  return fallbackKmTheme({ darkBackground: caps.maybeDarkBackground })
 }
 
-function isFallbackEquivalentTheme(theme: Theme, caps: DeferredThemeProviderProps["caps"]): boolean {
-  const fallback = pickFallbackTheme(caps)
-  return theme.name === fallback.name && theme.bg === fallback.bg && theme.fg === fallback.fg
+function themeString(theme: Theme, key: string): string {
+  const value = (theme as unknown as Record<string, unknown>)[key]
+  return typeof value === "string" && value.length > 0 ? value : "terminal-default"
 }
 
 export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThemeProviderProps): React.ReactElement {
@@ -81,7 +77,8 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
   // (not state) keeps the useEffect dep list at [] so the effect runs once.
   const cacheHit = useRef<boolean>(false)
   const [theme, setTheme] = useState<Theme>(() => {
-    if (cacheKey) {
+    const forceProbe = process.env.KM_FORCE_THEME_PROBE === "1"
+    if (cacheKey && !forceProbe) {
       const cached = loadCachedTheme(cacheKey)
       if (cached) {
         cacheHit.current = true
@@ -90,6 +87,10 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
         )
         return cached
       }
+    } else if (cacheKey && forceProbe) {
+      log.debug?.(
+        `theme: force probe — cache ignored for first frame for ${cacheKey.program}/${cacheKey.dark ? "dark" : "light"}`,
+      )
     }
     return pickFallbackTheme(caps)
   })
@@ -108,22 +109,24 @@ export function DeferredThemeProvider({ caps, cacheKey, children }: DeferredThem
       return
     }
     let cancelled = false
-    // detectTheme accepts a structural `{ colorLevel?, darkBackground? }`.
+    // detectKmTheme accepts a structural `{ colorLevel?, darkBackground? }`.
     // The heuristic lives on caps as `maybeDarkBackground` post
     // km-silvery.plateau-naming-polish; we adapt field names here.
-    detectTheme({
+    detectKmTheme({
       caps: { colorLevel: caps.colorLevel, darkBackground: caps.maybeDarkBackground },
       input: term?.input,
     })
       .then((detected) => {
         if (cancelled) return
-        setTheme(detected)
-        if (cacheKey && !isFallbackEquivalentTheme(detected, caps)) {
-          saveCachedTheme(cacheKey, detected)
+        setTheme(detected.theme)
+        if (cacheKey && detected.source !== "fallback" && detected.source !== "bg-mode" && detected.probed.bg) {
+          saveCachedTheme(cacheKey, detected.theme)
         } else if (cacheKey) {
-          log.debug?.(`theme: probe resolved to fallback ${detected.name} — cache not saved`)
+          log.debug?.(`theme: probe resolved to ${detected.source} ${detected.theme.name} — cache not saved`)
         }
-        log.debug?.(`theme: probe resolved → ${detected.name}`)
+        log.debug?.(
+          `theme: probe resolved → ${detected.theme.name} source=${detected.source} bg=${detected.probed.bg ? "probed" : "fallback"} fg=${detected.probed.fg ? "probed" : "fallback"} ansi=${detected.probed.ansiCount}/16 canvas=${themeString(detected.theme, "bg")} surface=${themeString(detected.theme, "bg-surface-default")} selected=${themeString(detected.theme, "bg-selected")}`,
+        )
         return
       })
       .catch((err: unknown) => {

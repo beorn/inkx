@@ -32,6 +32,89 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
     }
   })
 
+  test("card-level cursor stays inside the screen while moving through tall cards", () => {
+    const tallCard = (i: number) =>
+      item(
+        `card${i}`,
+        item(`child${i}_0`),
+        item(`child${i}_1`),
+        item(`child${i}_2`),
+        item(`child${i}_3`),
+        item(`child${i}_4`),
+        item(`child${i}_5`),
+      )
+
+    using app = createTestApp(item("board", item("col1", ...Array.from({ length: 20 }, (_, i) => tallCard(i)))), {
+      rows: 15,
+      cols: 80,
+      incremental: true,
+    })
+
+    for (let i = 1; i <= 8; i++) {
+      app.command("cursor_down")
+
+      const box = app.screen.nodeBox(`card${i}`)
+      expect(box, `card${i} should have a rendered screen box`).not.toBeNull()
+      expect(box!.y, `card${i} cursor should not scroll below the terminal`).toBeLessThan(app.screen.height)
+      expect(box!.y, `card${i} cursor should not scroll above the terminal`).toBeGreaterThanOrEqual(0)
+      app.expect(`#card${i}[data-cursor]`).toExist()
+    }
+  })
+
+  test("tabs view card-level cursor stays inside the screen while moving through tall cards", () => {
+    const tallCard = (i: number) =>
+      item(
+        `tabcard${i}`,
+        item(`tabchild${i}_0`),
+        item(`tabchild${i}_1`),
+        item(`tabchild${i}_2`),
+        item(`tabchild${i}_3`),
+        item(`tabchild${i}_4`),
+        item(`tabchild${i}_5`),
+      )
+
+    using app = createTestApp(
+      item("board", item("col1", ...Array.from({ length: 20 }, (_, i) => tallCard(i)))),
+      {
+        rows: 15,
+        cols: 80,
+        incremental: true,
+        viewMode: "tabs",
+      },
+    )
+
+    for (let i = 1; i <= 8; i++) {
+      app.command("cursor_down")
+
+      const box = app.screen.nodeBox(`tabcard${i}`)
+      expect(box, `tabcard${i} should have a rendered screen box`).not.toBeNull()
+      expect(box!.y, `tabcard${i} cursor should not scroll below the terminal`).toBeLessThan(app.screen.height)
+      expect(box!.y, `tabcard${i} cursor should not scroll above the terminal`).toBeGreaterThanOrEqual(0)
+      app.expect(`#tabcard${i}[data-cursor]`).toExist()
+    }
+  })
+
+  test("list view card-level cursor stays inside the screen while moving through cards", () => {
+    const cards = Array.from({ length: 30 }, (_, i) => item(`listcard${i}`))
+
+    using app = createTestApp(item("board", item("col1", ...cards)), {
+      rows: 12,
+      cols: 80,
+      incremental: true,
+      viewMode: "list",
+    })
+
+    for (let i = 1; i <= 16; i++) {
+      app.command("cursor_down")
+
+      const box = app.screen.nodeBox(`listcard${i}`)
+      expect(box, `listcard${i} should have a rendered screen box`).not.toBeNull()
+      expect(box!.y, `listcard${i} cursor should not scroll below the terminal`).toBeLessThan(app.screen.height)
+      expect(box!.y, `listcard${i} cursor should not scroll above the terminal`).toBeGreaterThanOrEqual(0)
+      app.expect(`#listcard${i}[data-cursor]`).toExist()
+    }
+  })
+
   test("cursor visible after G (jump to last)", () => {
     const cards = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
 
@@ -69,6 +152,25 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
     // card16 should be visible (20-1-3 = 16)
     expect(app.text).toContain("card16")
     app.expect("#card16[data-cursor]").toExist()
+  })
+
+  test("cursor remains visible inside a tall focused card while moving through children", () => {
+    const children = Array.from({ length: 30 }, (_, i) => item(`child${i}`))
+
+    using app = createTestApp(item("board", item("col1", item("parent", ...children))), {
+      rows: 15,
+      cols: 80,
+      incremental: true,
+    })
+
+    app.command("block_nav_down")
+    app.expect("#child0[data-cursor]").toExist()
+
+    for (let i = 1; i <= 12; i++) {
+      app.command("cursor_down")
+      app.expect(`#child${i}[data-cursor]`).toExist()
+      expect(app.text, `child${i} should be visible after cursor_down inside parent card`).toContain(`child${i}`)
+    }
   })
 })
 
