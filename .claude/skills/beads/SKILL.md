@@ -36,7 +36,9 @@ The default for a new bead is **no frontmatter at all** — the H1 line carries 
 
 ### Queue-only slot beads (`@agent/0..9.md`)
 
-`@agent/N.md` slot beads are **queue-only**: H1 rule (`# @agent/N km.add:: . km.default:: true`, with `[/]` checkbox if wip) plus top-level materialized `![[<bead>]]` queue embeds, nothing else. No `## Persona`, no `## Working agreement`, no `scope_fit:`, no rich body. The claiming agent brings its own working context; the slot is a parking spot for beads.
+`@agent/N.md` slot beads are **queue-only**: H1 rule (`# @agent/N km.add:: . km.default:: true`, with `[/]` checkbox if wip) plus `![[<bead>]]` queue embeds. No `## Persona`, no `## Working agreement`, no `scope_fit:`, no frontmatter, no system-prompt/persona prose. The claiming agent brings its own working context; the slot is a parking spot for beads.
+
+Plain organizational H2 groupings around the embeds are fine when the slot owner deliberately curated phases (e.g. `## 04 Chat Thread Projection`) — those help readability without reintroducing persona-as-contract.
 
 This is a deliberate departure from the older "slot = pre-defined persona" model retired 2026-05-08. See `@km/agent/slot-files-minimal-form` for the cleanup contract and `.claude/skills/claim/SKILL.md` for the (queue-only) claim flow.
 
