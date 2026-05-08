@@ -25,3 +25,5 @@ This phase owns proof and debug tooling:
 - One command runs the fast L5 conformance suite for fakes, replay, projection, queue/cancel, permission, background/subagent, and chunk normalization.
 - Traffic log viewer can load a captured ledger, inspect raw and normalized events, scrub/replay turns, and export a minimal regression fixture.
 - Test migration preserves semantics: pipeline-correctness assertions stay pipeline assertions; user-facing assertions do not over-specify layout.
+
+Progress 2026-05-08: shipped 63b3719ea with `bun run test:silvercode:l5`, backed by `apps/silvercode/scripts/l5-suite.ts` and `apps/silvercode/tests/l5-suite.test.ts`. Evidence: `bun run test:silvercode:l5` passed 33 files, 251 tests, 1 skipped; `npx tsc --noEmit` passed; `git diff --check` passed. Remaining: full TUI traffic viewer acceptance and broader captured-ledger fixture matrix.
