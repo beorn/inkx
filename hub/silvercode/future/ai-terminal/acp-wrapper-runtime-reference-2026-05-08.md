@@ -1236,6 +1236,21 @@ Legend:
 - **No**: absent or not relevant.
 - **Need**: silvercode must implement this above or beside the candidate.
 
+### Prior-art decision summary
+
+| Reference | Silvercode decision | Reason |
+| --- | --- | --- |
+| ACPX | **Adopt** the session-owner, turn-handle, raw-ledger, queue-owner, cancel/drain, and conformance-test invariants. **Adapt** behind a silvercode-owned runtime facade. | Best protocol/runtime spine, but alpha APIs and compact events are too narrow for TUI product semantics. |
+| Zed ACP host | **Adopt** Thread/Session/Turn/Mention vocabulary and typed prompt-composition semantics. **Reject** direct GPUI/crease implementation details. | Best interactive client-host model; implementation substrate does not transfer to Silvery/TUI. |
+| Agent Shell | **Adopt** traffic log/replay and block-preserving ACP rendering discipline. **Adapt** editor mention handling into silvercode's composer model. | Small, clear ACP host reference for debugging and projection. |
+| acp-plugin | **Adapt** the minimal host adapter and visible queue affordances. **Reject** queue correctness living in the input component. | Useful minimum host, but queue authority belongs to the runtime actor. |
+| Claude Agent ACP / Claude wrappers | **Adapt** UUID handoff, stdout hygiene, TodoWrite-to-plan, Bash terminal metadata, and Task/Subagent mapping. | Best Claude-specific wrapper reference; semantics must remain driver capability, not global runtime law. |
+| Codex ACP / Codex wrapper | **Adopt** actor-style thread loop, prompt-local state, plan/tool/permission mapping, and stream-vs-final dedupe. | Strong focused wrapper model and first ACPX spike backend. |
+| OpenClaw | **Adapt** durable background task registry, child sessions, lanes, completion delivery, lost/timed-out states, and cancellation cascade. | Best background/subagent/task orchestration reference, but broader gateway runtime than silvercode needs. |
+| OpenACP | **Adapt** session portability, backend switch/context carry, middleware, and gateway operational lessons. **Reject** optimizing silvercode around chat-platform bridge semantics. | Good product/gateway prior art, not the local editor host architecture. |
+| OpenCode / Kilo | **Adapt** as provider-conformance targets and multi-agent UX references. | Useful parity targets; not the canonical runtime architecture. |
+| Fake providers | **Adopt** as first-class test backends for ACP, Claude stream-json, Codex events, background jobs, and subagents. | L5 needs deterministic conformance and replay before live-provider smoke tests. |
+
 ### Reference/runtime matrix
 
 | Feature | silvercode current | ACPX | Zed ACP host | Agent Shell | acp-plugin | OpenClaw/OpenACP | L5 owner |
@@ -1280,7 +1295,7 @@ Legend:
 | Official `claude-agent-acp` | Standard ACP package; likely works in Zed/ACPX | Blocks Claude.ai Pro/Max subscription path; less useful for silvercode users | Compatibility/testing only |
 | `@zed-industries/codex-acp` | Standard Codex ACP path; ACPX built-in; good for conformance | Feature parity with native Codex CLI may lag; plan/mode quirks need testing | First ACPX spike backend |
 | Gemini CLI ACP | Native ACP mode; good ecosystem test | stdout noise/trust quirks observed in hosts; capabilities vary | Secondary conformance backend |
-| OpenCode ACP | Useful open agent backend; native-ish ACP support | Needs provider-specific behavior audit | Additional matrix backend |
+| OpenCode / Kilo ACP-compatible agents | Useful open-agent and multi-agent parity targets; native-ish ACP support where available | Needs provider-specific behavior audit; Kilo may be product-parity rather than protocol-parity depending on available backend | Additional matrix backend and UX parity target |
 | ACPX custom agent command | Lets us route local/private wrappers through ACPX | Requires registry/config UX and robust command resolution | Mechanism for `@km/claude-acp` and experiments |
 
 ### Feature-by-feature implementation map
