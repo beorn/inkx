@@ -1,33 +1,27 @@
 ---
-mentions:
-  - agent
-id: "@agent"
 type: epic
-created_at: 2026-05-06T23:10:00.000Z
 ---
 
-# @agent — agent persona slots
+# @agent — agent slots / hats
 
-Parent board for the 10 numeric persona slots (`@agent/0..9`). Self-aggregates every bead that mentions any `@agent/N` so the unified queue is visible here.
+Parent board for the 10 numeric slots (`@agent/0..9`), aka hats. Self-aggregates every bead that mentions any `@agent/N` so the unified queue is visible here.
 
-Each slot is a markdown file with:
+Each slot is a **lean queue board** — H1 with the `km.add:: . km.default:: true` rule plus materialized `![[<bead>]]` embeds, nothing else. No frontmatter, no persona, no scope hints, no working agreement. Slots are parking spots: whichever agent claims a slot brings its own working context (repo steering, bead body, conversation). One slot = one worktree (`wtN`). See `.claude/skills/claim/SKILL.md` for the lifecycle.
 
-- **Frontmatter** — `model` (default agent runtime), `harness` (silvercode/claude/pi), `scope_fit` (paths/tags this persona is best on)
-- **Body** — system-prompt content injected as session context when claimed (`<persona>...</persona>`)
-- **`rules.add`** — sigil-mention query that materializes embeds from beads tagged with `@agent/N`
+If we need a personified/specialized agent later, create a named slot such as `@agent/silvercode-expert` with its own associated worktree — do not encode persona inside one of the generic numeric slots.
 
 ## Slots
 
-- [[@agent/0]] — generalist
-- [[@agent/1]] — silvery-engineer
-- [[@agent/2]] — silvercode-engineer
-- [[@agent/3]] — bd / cli-engineer
-- [[@agent/4]] — (open)
-- [[@agent/5]] — (open)
-- [[@agent/6]] — (open)
-- [[@agent/7]] — (open)
-- [[@agent/8]] — (open)
-- [[@agent/9]] — (open)
+- [[@agent/0]]
+- [[@agent/1]]
+- [[@agent/2]]
+- [[@agent/3]]
+- [[@agent/4]]
+- [[@agent/5]]
+- [[@agent/6]]
+- [[@agent/7]]
+- [[@agent/8]]
+- [[@agent/9]]
 
 ## Operations
 
