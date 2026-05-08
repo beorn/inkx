@@ -18,10 +18,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.test-system
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system"
 ---
 
-# [ ] Silvercode test system v2 — width-matrix scenarios @km/silvercode #feature #P3
+# [/] Silvercode test system v2 — width-matrix scenarios @km/silvercode #feature #P3
+
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system]]
 
 blocks:: [[@km/silvercode/test-system]]
 

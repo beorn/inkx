@@ -34,12 +34,12 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.test-system
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system"
 ---
 
 # [x] Visual tests: fake accountly / git / version probe / fs reads @km/silvercode #feature #P2 @claude:0940ca20
 
-blocks:: [[@km/silvercode/test-system]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system]]
 
 ## Goal
 
@@ -76,4 +76,6 @@ All factories default to real implementations in production. Test harness inject
 ## Relationship to parent
 
 Child of `km-silvercode.test-system` epic. Required before `km-silvercode.test-live-mode` (contract-test toggle) makes sense — fakes must be complete before 'real vs fake' contract tests become meaningful.
+
+blocks:: [[@km/silvercode/test-system]]
 

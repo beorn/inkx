@@ -13,12 +13,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.backend-fakes
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-\
+      fakes"
 ---
 
-# Claude fake backend profile #task #P1
+# [/] Claude fake backend profile #task #P1
 
-blocks:: [[@km/silvercode/backend-fakes]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-fakes]]
 
 Add a Claude/Claude Code profile for the shared fake backend and cover both the Silvercode ACP wrapper path and the legacy Claude surfaces that remain in production.
 
@@ -35,4 +36,6 @@ Add a Claude/Claude Code profile for the shared fake backend and cover both the 
 - Fake Claude ACP profile exercises real `connectAcpRegistry(..., "claude")`.
 - Tests distinguish Claude ACP wrapper behavior from SDK and legacy spawn behavior.
 - Live-mode contract can compare init, prompt, permission, and close behavior against installed Claude backend.
+
+blocks:: [[@km/silvercode/backend-fakes]]
 

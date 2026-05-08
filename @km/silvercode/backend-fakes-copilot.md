@@ -13,12 +13,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.backend-fakes
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-\
+      fakes"
 ---
 
 # GitHub Copilot fake backend profile #task #P2
 
-blocks:: [[@km/silvercode/backend-fakes]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-fakes]]
 
 Add a GitHub Copilot ACP profile for the shared fake backend.
 
@@ -33,4 +34,6 @@ Add a GitHub Copilot ACP profile for the shared fake backend.
 - Fake Copilot profile supports the same spec runner as other ACP backends.
 - Live-mode contract can run when `copilot` is installed and credentials are available.
 - Silvercode does not show stale Claude/Codex controls for Copilot when the fake reports no such config.
+
+blocks:: [[@km/silvercode/backend-fakes]]
 

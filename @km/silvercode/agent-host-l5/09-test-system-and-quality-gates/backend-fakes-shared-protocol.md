@@ -13,12 +13,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.backend-fakes
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-\
+      fakes"
 ---
 
 # [/] Shared fake ACP backend and spec runner #task #P1
 
-blocks:: [[@km/silvercode/backend-fakes]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-fakes]]
 
 Create the shared fake backend core that speaks ACP over stdio and can be configured with backend profiles. This is the low-level fake equivalent of Cloudi's Gmail API mock: the real adapter talks to it through the same boundary it uses for real backends.
 
@@ -82,6 +83,10 @@ Verification: `fake-acp-server.test.ts` includes permission and filesystem callb
 - Replaced the old runner with provider-injected `AgentBackends`, `withChat({ backends })`, and `withAgentBackends({ backends })`.
 - Added fake backend providers for every ACP registry id and spec-level prompt/config/comprehensive-session-update tests.
 - Added docs in `docs/dev/silvercode-backend-fakes.md` and `docs/dev/test-fakes.md`.
+
+Verification: `apps/silvercode/packages/agent-harness/tests/`, `apps/silvercode/tests/backend-contracts`, and `apps/silvercode/tests/turn-activity-summary.test.tsx` pass.
+
+blocks:: [[@km/silvercode/backend-fakes]]
 
 Verification: `apps/silvercode/packages/agent-harness/tests/`, `apps/silvercode/tests/backend-contracts`, and `apps/silvercode/tests/chat-message-summary.test.tsx` pass.
 

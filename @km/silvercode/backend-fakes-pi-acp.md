@@ -13,12 +13,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.backend-fakes
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-\
+      fakes"
 ---
 
 # pi-acp fake backend profile #task #P3
 
-blocks:: [[@km/silvercode/backend-fakes]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-fakes]]
 
 Add a pi-acp profile for the shared fake backend so the registry entry remains covered even when pi-acp is not installed locally.
 
@@ -31,4 +32,6 @@ Add a pi-acp profile for the shared fake backend so the registry entry remains c
 
 - Fake pi-acp profile can run the shared backend contract suite.
 - Live-mode contract is skipped unless pi-acp is installed, but uses the same assertions when enabled.
+
+blocks:: [[@km/silvercode/backend-fakes]]
 

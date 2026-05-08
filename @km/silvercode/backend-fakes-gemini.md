@@ -13,12 +13,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.backend-fakes
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-\
+      fakes"
 ---
 
-# Gemini fake backend profile #task #P2
+# [/] Gemini fake backend profile #task #P2
 
-blocks:: [[@km/silvercode/backend-fakes]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-fakes]]
 
 Add a Gemini ACP profile for the shared fake backend.
 
@@ -33,4 +34,6 @@ Add a Gemini ACP profile for the shared fake backend.
 
 - Fake Gemini profile catches stdout pollution before JSON without using the real Gemini CLI.
 - Live-mode contract can compare the fake profile against an installed Gemini CLI in ACP mode.
+
+blocks:: [[@km/silvercode/backend-fakes]]
 

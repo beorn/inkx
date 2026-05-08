@@ -43,12 +43,13 @@ props:
       - type: link
         target: km-silvercode.test-api-fakes
       - type: link
-        target: km-silvercode.test-system
+        target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-sys\
+          tem"
 ---
 
 # [x] Visual tests: opt-out real-mode flag (SILVERCODE_REAL=1) for contract tests @km/silvercode #feature #P2 @claude:0940ca20
 
-blocks:: [[@km/silvercode/test-api-fakes]], [[@km/silvercode/test-system]]
+blocks:: [[@km/silvercode/test-api-fakes]], [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/test-system]]
 
 ## Goal
 
@@ -77,4 +78,6 @@ This is the standard 'contract tests' pattern — same scenarios, two boundary i
 ## Dependency
 
 Requires `km-silvercode.test-api-fakes` to land first — without the fakes being complete, 'fake vs real' is just 'partial-fake vs real' which isn't a meaningful contract.
+
+blocks:: [[@km/silvercode/test-api-fakes]], [[@km/silvercode/test-system]]
 

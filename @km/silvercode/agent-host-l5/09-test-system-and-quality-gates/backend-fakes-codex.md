@@ -13,12 +13,13 @@ dependencies:
 props:
   blocked-by:
     type: link
-    target: km-silvercode.backend-fakes
+    target: "@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-\
+      fakes"
 ---
 
-# Codex fake backend profile #task #P1
+# [/] Codex fake backend profile #task #P1
 
-blocks:: [[@km/silvercode/backend-fakes]]
+blocks:: [[@km/silvercode/agent-host-l5/09-test-system-and-quality-gates/backend-fakes]]
 
 Add a Codex profile for the shared fake backend and use it to test Codex-specific config options and turn behavior.
 
@@ -36,4 +37,6 @@ Add a Codex profile for the shared fake backend and use it to test Codex-specifi
 - `Option+.` and `Option+,` tests run against the Codex fake and assert `session/set_config_option` is called.
 - Contract test verifies Codex reasoning values match fake profile and live backend when live mode is enabled.
 - Rejected reasoning value returns a protocol error that Silvercode surfaces cleanly.
+
+blocks:: [[@km/silvercode/backend-fakes]]
 

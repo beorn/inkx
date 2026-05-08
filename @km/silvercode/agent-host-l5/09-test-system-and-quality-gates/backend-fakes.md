@@ -16,7 +16,7 @@ props:
     target: km-silvercode
 ---
 
-# Complete fake agent backends for Silvercode #feature #P1
+# [/] Complete fake agent backends for Silvercode #feature #P1
 
 blocks:: [[@km/silvercode]]
 
