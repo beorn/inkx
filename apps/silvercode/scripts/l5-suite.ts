@@ -37,6 +37,7 @@ export const L5_SUITE: readonly L5SuiteGroup[] = [
       "apps/silvercode/tests/backend-contracts/comprehensive-session-updates.contract.test.ts",
       "apps/silvercode/tests/backend-contracts/config-options.contract.test.ts",
       "apps/silvercode/tests/backend-contracts/prompt.contract.test.ts",
+      "apps/silvercode/tests/provider-conformance-matrix.test.ts",
     ],
   },
   {

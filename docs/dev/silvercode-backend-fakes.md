@@ -246,7 +246,13 @@ The fake should be usable in two forms:
 
 ## Contract Matrix
 
-The shared spec runner should keep a visible matrix of which backends support which scenarios. Unsupported features are explicit expectations, not silent skips.
+The executable source of truth is
+`apps/silvercode/src/provider-conformance.ts`, covered by
+`apps/silvercode/tests/provider-conformance-matrix.test.ts` and included in
+`bun run test:silvercode:l5`. Unsupported features are explicit expectations,
+not silent skips.
+
+The shared spec runner should keep a visible matrix of which backends support which scenarios.
 
 | Scenario         | Codex        | Claude ACP      | Gemini              | Copilot         | pi-acp          | Legacy Claude   | Legacy Codex       | SDK                             |
 | ---------------- | ------------ | --------------- | ------------------- | --------------- | --------------- | --------------- | ------------------ | ------------------------------- |
