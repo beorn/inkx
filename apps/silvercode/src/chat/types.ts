@@ -226,6 +226,17 @@ type ChatElementBase<Type extends ChatElementType> = {
   summary?: string
 }
 
+/**
+ * A `"turn"` element's `children` legitimately holds 1..N text/thought/tool leaves —
+ * multiple assistant text emissions per turn is normal, not a degenerate case.
+ * Claude Code's `focus` toggle ("show only your prompt, a tool summary, and the
+ * final response") is a render-layer projection that collapses earlier narrations
+ * under "N messages hidden"; the underlying ChatTree still carries every leaf.
+ * Renderers that mirror Claude Code's focus view must compress to
+ * `[prompt] -> [tool summary] -> [final narration]` at projection time, not by
+ * dropping nodes from the tree. See `@km/silvercode/agent-host-l5/08-provider-
+ * conformance/parity-claude.md` "focus mode" gap.
+ */
 export type ChatElement =
   | ChatElementBase<"root">
   | ChatElementBase<"turn">
