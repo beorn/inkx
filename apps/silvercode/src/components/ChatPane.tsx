@@ -274,6 +274,7 @@ export function ChatPane({
   }, [chatProjection, showDebug])
   const projectedEvents = useSignal(chatProjection.events) ?? chatProjection.events()
   const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()
+  const projectedSession = useSignal(chatProjection.session) ?? chatProjection.session()
   const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
   const sessionStates = useAllSessionStates(sessionHandles)
   const backgroundJobs = useBackgroundJobs(controller, handle.id)
@@ -576,7 +577,7 @@ export function ChatPane({
                         selfSessionId={handle.id}
                         subagents={notificationBlock.agents}
                       />
-                      <Chat.PlanDrawer plan={state.plan} />
+                      <Chat.PlanDrawer plan={projectedSession.plan} />
                       <NotificationBlock
                         counts={notificationBlockCounts}
                         agents={[]}

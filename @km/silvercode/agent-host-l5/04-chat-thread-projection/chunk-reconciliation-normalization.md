@@ -3,9 +3,24 @@ aliases:
   - km-silvercode.agent-host-l5.04-chat-thread-projection.chunk-reconciliation-normalization
   - km-silvercode-agent-host-l5-04-chat-thread-projection-chunk-reconciliation-normalization
 created_at: 2026-05-08T08:00:00.000Z
+closed_at: 2026-05-08T14:55:31.529Z
+closeReason: "Shipped 6c249d02a plus prior normalization/replay commits. Focused
+  tests: bun vitest run
+  apps/silvercode/tests/chat-agent-event-normalization.test.ts
+  apps/silvercode/tests/chat-message-summary.test.tsx
+  apps/silvercode/tests/chat-transcript-projection.test.ts
+  apps/silvercode/tests/chat-session-store.test.ts
+  apps/silvercode/tests/backend-contracts/comprehensive-session-updates.contrac\
+  t.test.ts apps/silvercode/tests/provider-conformance-matrix.test.ts
+  apps/silvercode/tests/traffic-log.test.ts
+  apps/silvercode/tests/traffic-replay-viewer.test.tsx passed 8 files / 87
+  tests. Required rg has 0 live projection hits for chunk.*SessionUpdateList,
+  ContentBlock.*chunk, and assistant-text; remaining reasoning hits are
+  provider/config terminology. stream-chunk-boundary-marshalling is already
+  closed."
 ---
 
-# [/] Canonical chunk reconciliation and stream normalization #feature #P0 @agent/3
+# [x] Canonical chunk reconciliation and stream normalization #feature #P0 @agent/3
 
 blocks:: [[@km/silvercode/agent-host-l5/04-chat-thread-projection]]
 

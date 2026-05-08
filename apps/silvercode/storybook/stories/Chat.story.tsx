@@ -1,10 +1,11 @@
 import React from "react"
 import { Box, Screen, Text } from "silvery"
-import type { AgentPlan, ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
+import type { ToolCall as ToolCallType, ToolCallId } from "@km/agent-harness"
 import { Chat } from "../../src/components/Chat.tsx"
 import type { SessionInfo } from "../../src/cross-agent-state.ts"
 import { SessionUpdateList } from "../../src/components/SessionUpdateList.tsx"
 import type { ChatMessageSummaryItem } from "../../src/components/ChatMessageSummary.tsx"
+import type { ChatEventId, ChatPlan, ChatPlanStepId } from "../../src/chat/types.ts"
 import { withActivityRun } from "../support/chat-message-summary.ts"
 import {
   BIG_TOOL_TURN,
@@ -16,6 +17,8 @@ import {
 import type { Story } from "../types.ts"
 
 const id = (s: string) => s as ToolCallId
+const planEventId = (s: string) => s as ChatEventId
+const planStepId = (s: string) => s as ChatPlanStepId
 
 function tc(partial: Partial<ToolCallType> & Pick<ToolCallType, "toolCallId" | "title">): ToolCallType {
   return partial
@@ -58,24 +61,16 @@ const denseActivityItems: ChatMessageSummaryItem[] = Array.from({ length: 9 }, (
   ),
 )
 
-const activePlan: AgentPlan = {
-  id: "story-plan",
-  sessionId: "story-chat-plan" as AgentPlan["sessionId"],
-  scope: { sessionId: "story-chat-plan" as AgentPlan["sessionId"], toolCallId: "todo-1" },
-  source: "claude-todowrite",
-  version: 1,
-  status: "active",
-  updatedAt: Date.now(),
-  entries: [
-    { id: "plan-1", content: "Audit chat model", status: "completed", order: 0 },
+const activePlan: ChatPlan = {
+  eventIds: [planEventId("story-plan")],
+  steps: [
+    { id: planStepId("plan-1"), content: "Audit chat model", status: "completed" },
     {
-      id: "plan-2",
-      content: "Implement session-scoped plan drawer",
-      activeForm: "Implementing plan drawer",
+      id: planStepId("plan-2"),
+      content: "Implementing plan drawer",
       status: "in_progress",
-      order: 1,
     },
-    { id: "plan-3", content: "Update architecture docs", status: "pending", order: 2 },
+    { id: planStepId("plan-3"), content: "Update architecture docs", status: "pending" },
   ],
 }
 
@@ -265,19 +260,17 @@ export const chatPlanDrawer: Story = {
   variant: "plan-drawer",
   description: "Session-scoped plan drawer states above the composer.",
   render() {
-    const completedPlan: AgentPlan = {
+    const completedPlan: ChatPlan = {
       ...activePlan,
-      id: "story-plan-completed",
-      status: "completed",
-      entries: activePlan.entries.map((entry) => ({ ...entry, status: "completed" })),
+      eventIds: [planEventId("story-plan-completed")],
+      steps: activePlan.steps.map((entry) => ({ ...entry, status: "completed" })),
     }
-    const cancelledPlan: AgentPlan = {
+    const cancelledPlan: ChatPlan = {
       ...activePlan,
-      id: "story-plan-cancelled",
-      status: "abandoned",
-      entries: [
-        { id: "plan-cancel-1", content: "Cancelled migration", status: "cancelled", order: 0 },
-        { id: "plan-cancel-2", content: "Follow-up cleanup", status: "pending", order: 1 },
+      eventIds: [planEventId("story-plan-cancelled")],
+      steps: [
+        { id: planStepId("plan-cancel-1"), content: "Cancelled migration", status: "cancelled" },
+        { id: planStepId("plan-cancel-2"), content: "Follow-up cleanup", status: "pending" },
       ],
     }
     return (

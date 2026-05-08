@@ -20,10 +20,11 @@ This phase owns deletion and only deletion:
 
 ## Known Cleanup Beads
 
-- `delete-output-gate-and-queue-shims`
-- `delete-sessionupdatelist-messageentry-routing`
-- `delete-chat-channel-and-reasoning-names`
-- `delete-legacy-plan-todo-compat`
+- `delete-output-gate-and-queue-shims` — closed.
+- `delete-chat-channel-and-reasoning-names` — closed.
+- `chunk-reconciliation-normalization` — closed under phase 04; leaves no live chunk-stitching blockers.
+- `delete-sessionupdatelist-messageentry-routing` — open; measured 47 files / 300 app-scope hits, with production `ChatPane` still on `SessionUpdateList`.
+- `delete-legacy-plan-todo-compat` — open; app drawer is on projected `ChatPlan`, but public `@km/agent-harness` `AgentPlan*` / `SessionState.todos` deletion requires `/arch`.
 
 ## Complete Criteria
 

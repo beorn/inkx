@@ -1,7 +1,7 @@
 import React from "react"
 import { Box, Prose, Text, useHover } from "silvery"
-import type { AgentPlan, AgentPlanEntry } from "@km/agent-harness"
 import type { SessionInfo } from "../cross-agent-state.ts"
+import type { ChatPlan, ChatPlanStep } from "../chat/types.ts"
 import { buildTextAnalysis, shrinkwrapWidth } from "@silvery/ag-term/pipeline/pretext"
 import { Content, useContentLayout } from "./Content.tsx"
 import { MarkdownView } from "./MarkdownView.tsx"
@@ -45,16 +45,16 @@ function Composer({ children }: { children: React.ReactNode }): React.ReactEleme
   )
 }
 
-function planEntryLabel(entry: AgentPlanEntry): string {
-  return entry.status === "in_progress" ? (entry.activeForm ?? entry.content) : entry.content
+function planEntryLabel(entry: ChatPlanStep): string {
+  return entry.content
 }
 
-function planCounts(plan: AgentPlan): { pending: number; active: number; completed: number; cancelled: number } {
+function planCounts(plan: ChatPlan): { pending: number; active: number; completed: number; cancelled: number } {
   let pending = 0
   let active = 0
   let completed = 0
   let cancelled = 0
-  for (const entry of plan.entries) {
+  for (const entry of plan.steps) {
     if (entry.status === "completed") completed++
     else if (entry.status === "cancelled") cancelled++
     else if (entry.status === "in_progress") active++
@@ -63,41 +63,41 @@ function planCounts(plan: AgentPlan): { pending: number; active: number; complet
   return { pending, active, completed, cancelled }
 }
 
-function planEntryMarker(entry: AgentPlanEntry): { glyph: string; color?: string; active: boolean } {
+function planEntryMarker(entry: ChatPlanStep): { glyph: string; color?: string; active: boolean } {
   if (entry.status === "completed") return { glyph: "✓", color: "$muted", active: false }
   if (entry.status === "cancelled") return { glyph: "×", color: "$muted", active: false }
   if (entry.status === "in_progress") return { glyph: "□", color: "$warning", active: true }
   return { glyph: "□", color: undefined, active: false }
 }
 
-function planHasOpenEntries(plan: AgentPlan): boolean {
-  return plan.entries.some((entry) => entry.status === "in_progress" || entry.status === "pending")
+function planHasOpenEntries(plan: ChatPlan): boolean {
+  return plan.steps.some((entry) => entry.status === "in_progress" || entry.status === "pending")
 }
 
-function orderedPlanEntries(plan: AgentPlan): AgentPlanEntry[] {
-  const order = (entry: AgentPlanEntry): number => {
+function orderedPlanEntries(plan: ChatPlan): ChatPlanStep[] {
+  const order = (entry: ChatPlanStep): number => {
     if (entry.status === "in_progress") return 0
     if (entry.status === "pending") return 1
     if (entry.status === "completed") return 2
     return 3
   }
-  return [...plan.entries].sort((a, b) => order(a) - order(b) || a.order - b.order)
+  return [...plan.steps].sort((a, b) => order(a) - order(b))
 }
 
 function PlanDrawer({
   plan,
   defaultExpanded = true,
 }: {
-  plan: AgentPlan | null | undefined
+  plan: ChatPlan | null | undefined
   defaultExpanded?: boolean
 }): React.ReactElement | null {
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const hover = useHover()
-  if (!plan || plan.entries.length === 0) return null
+  if (!plan || plan.steps.length === 0) return null
   if (!planHasOpenEntries(plan)) return null
-  const active = plan.entries.find((entry) => entry.status === "in_progress")
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return above guarantees entries.length > 0
-  const next = active ?? plan.entries.find((entry) => entry.status === "pending") ?? plan.entries[0]!
+  const active = plan.steps.find((entry) => entry.status === "in_progress")
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- early return above guarantees steps.length > 0
+  const next = active ?? plan.steps.find((entry) => entry.status === "pending") ?? plan.steps[0]!
   const counts = planCounts(plan)
   const headerMarker = planEntryMarker(next)
   const orderedEntries = orderedPlanEntries(plan)

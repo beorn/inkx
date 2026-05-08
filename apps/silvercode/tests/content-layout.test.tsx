@@ -5,7 +5,7 @@ import { run } from "silvery/runtime"
 import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/ag-react"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { Box, PopoverProvider, Text } from "silvery"
-import type { AgentPlan, MessageEntry, MessageOp, ToolUseId } from "@km/agent-harness"
+import type { MessageEntry, MessageOp, ToolUseId } from "@km/agent-harness"
 import { MarkdownView } from "../src/components/MarkdownView.tsx"
 import { SessionUpdateList } from "../src/components/SessionUpdateList.tsx"
 import { ChatPane } from "../src/components/ChatPane.tsx"
@@ -14,12 +14,21 @@ import { Chat } from "../src/components/Chat.tsx"
 import { Content } from "../src/components/Content.tsx"
 import { createSessionStore, messageTextFromOps } from "@km/agent-harness"
 import { SessionPromptComposer } from "../src/components/SessionPromptComposer.tsx"
+import type { ChatEventId, ChatPlan, ChatPlanStepId } from "../src/chat/types.ts"
 
 beforeAll(() => {
   if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexilyZeroEngine())
 })
 
 const LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
+
+function chatEventId(value: string): ChatEventId {
+  return value as ChatEventId
+}
+
+function chatPlanStepId(value: string): ChatPlanStepId {
+  return value as ChatPlanStepId
+}
 
 function makeEntry(opts: { id: string; role: "assistant" | "user"; ops: MessageOp[]; ts: number }): MessageEntry {
   const out: Record<string, unknown> = {
@@ -2062,31 +2071,22 @@ describe("content layout", () => {
     const cols = 132
     const measure = 56
     const proseLeft = Math.floor((cols - measure) / 2)
-    const plan: AgentPlan = {
-      id: "plan-test",
-      sessionId: "session" as AgentPlan["sessionId"],
-      scope: { sessionId: "session" as AgentPlan["sessionId"] },
-      source: "codex-plan",
-      version: 1,
-      status: "active",
-      updatedAt: 0,
-      entries: [
-        { id: "done-1", content: "Inspect", status: "completed", order: 0 },
-        { id: "done-2", content: "Reproduce", status: "completed", order: 1 },
-        { id: "done-3", content: "Patch", status: "completed", order: 2 },
-        { id: "done-4", content: "Smoke test", status: "completed", order: 3 },
+    const plan: ChatPlan = {
+      eventIds: [chatEventId("plan-test")],
+      steps: [
+        { id: chatPlanStepId("done-1"), content: "Inspect", status: "completed" },
+        { id: chatPlanStepId("done-2"), content: "Reproduce", status: "completed" },
+        { id: chatPlanStepId("done-3"), content: "Patch", status: "completed" },
+        { id: chatPlanStepId("done-4"), content: "Smoke test", status: "completed" },
         {
-          id: "active",
-          content: "Implement plan lane",
-          activeForm: "Implementing plan lane",
+          id: chatPlanStepId("active"),
+          content: "Implementing plan lane",
           status: "in_progress",
-          order: 4,
         },
         {
-          id: "next",
+          id: chatPlanStepId("next"),
           content: "Verify targeted tests and report remaining risks or broader test gaps with enough detail to wrap",
           status: "pending",
-          order: 5,
         },
       ],
     }
@@ -2121,23 +2121,15 @@ describe("content layout", () => {
   })
 
   test("plan drawer pulses the active checkbox marker", async () => {
-    const plan: AgentPlan = {
-      id: "plan-active-pulse",
-      sessionId: "session" as AgentPlan["sessionId"],
-      scope: { sessionId: "session" as AgentPlan["sessionId"] },
-      source: "codex-plan",
-      version: 1,
-      status: "active",
-      updatedAt: 0,
-      entries: [
+    const plan: ChatPlan = {
+      eventIds: [chatEventId("plan-active-pulse")],
+      steps: [
         {
-          id: "active",
-          content: "Implement plan lane",
-          activeForm: "Implementing plan lane",
+          id: chatPlanStepId("active"),
+          content: "Implementing plan lane",
           status: "in_progress",
-          order: 0,
         },
-        { id: "next", content: "Verify targeted tests", status: "pending", order: 1 },
+        { id: chatPlanStepId("next"), content: "Verify targeted tests", status: "pending" },
       ],
     }
     using term = createTermless({ cols: 100, rows: 8 })
@@ -2204,17 +2196,11 @@ describe("content layout", () => {
   })
 
   test("completed plans do not render in the bottom drawer", () => {
-    const plan: AgentPlan = {
-      id: "plan-complete",
-      sessionId: "session" as AgentPlan["sessionId"],
-      scope: { sessionId: "session" as AgentPlan["sessionId"] },
-      source: "codex-plan",
-      version: 1,
-      status: "completed",
-      updatedAt: 0,
-      entries: [
-        { id: "done-1", content: "Inspect", status: "completed", order: 0 },
-        { id: "done-2", content: "Verify", status: "completed", order: 1 },
+    const plan: ChatPlan = {
+      eventIds: [chatEventId("plan-complete")],
+      steps: [
+        { id: chatPlanStepId("done-1"), content: "Inspect", status: "completed" },
+        { id: chatPlanStepId("done-2"), content: "Verify", status: "completed" },
       ],
     }
     const renderer = createRenderer({ cols: 80, rows: 8 })
