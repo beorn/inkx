@@ -3,9 +3,20 @@ aliases:
   - km-storage.fs-writer-stale-hash-revert
   - km-storage-fs-writer-stale-hash-revert
 created_at: 2026-05-08T19:26:56.236Z
+closed_at: 2026-05-08T20:44:39.596Z
+closeReason: "shipped a78ade265 (fix BulkSync.toFs writeback) + bd8ea1af9
+  (failing test pin) on origin/main — root cause was BulkSync.toFs projecting
+  every file unconditionally, including unparsed stubs (rendered '_stub: true'
+  literal overwriting real content) and no-op writes (asymmetric vs fromFs).
+  Tests: packages/km-storage/tests/fs-writer-stale-hash-revert.test.ts (4/4 — T4
+  fails on prior main, passes after fix; T1-T3 confirm withFsWriter path is
+  structurally safe). Vitest: 1333/1333 km-storage + 420/420 km-fs-mount. Note:
+  original bead hypothesized the bd-update path; actual offender was km sync
+  --to-fs / withSync writeback. Slot wt5 has minor untracked drift
+  (apps/silvercode/ formatting + bun.lock) flagged by agent — not blocking."
 ---
 
-# km bd fs-writer reverts unrelated file edits — stale hash + missing scope check #bug #P0
+# [x] km bd fs-writer reverts unrelated file edits — stale hash + missing scope check #bug #P0
 
 The km bd fs-writer reverts unrelated file edits during `km bd update / create`
 because the in-memory hash doesn't refresh when the file changes between
@@ -45,6 +56,7 @@ holds an in-memory hash of the last-known file content. When `km bd update`
 runs, it reads the DB state and writes a "materialized" version of every
 affected file. The hash check is supposed to detect concurrent external edits
 and skip overwriting them — but the logic appears to:
+
 - Either use a stale hash (computed at session start, not just before write)
 - Or treat unaffected files as candidates for re-materialization
 - Or be missing the "this file wasn't part of the update — leave alone"
@@ -67,3 +79,4 @@ that interleaves file edits with bd commands in the same session.
   km-cli/storage layer bug
 - `/plat` skill `worked-example` section identifies this as agent-dispatch
   lens P0
+
