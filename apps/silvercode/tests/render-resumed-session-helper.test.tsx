@@ -15,8 +15,8 @@ describe("renderResumedSession", () => {
 
     const text = stripAnsi(session.text)
     expect(session.messages.length).toBeGreaterThan(0)
-    expect(text).toContain("list the file directory 3 levels deep")
-    expect(text).toContain("$ npx tsc --noEmit")
+    expect(text).toContain("see screenshot - the command box should have")
+    expect(text).toContain("$ rg -n")
     expect(text).not.toContain("I’m rerunning it.\n\n                                    Ran 1 command")
     expect(session.metadata.transcriptPath).toContain("019ddfc8-0749-7da1-b892-b2e1c6bc389f")
     session.dispose()
@@ -61,8 +61,8 @@ describe("renderResumedSession", () => {
 
     const text = stripAnsi(session.text)
     expect(session.messages.length).toBeGreaterThan(0)
-    expect(text).toContain("make a plan of 4 todos, and then do them")
-    expect(text).toContain("Ran 5 commands · Updated 4 todos")
+    expect(text).toContain("Created and completed 3 todos")
+    expect(text).toContain("see screenshots - create P0 bead")
     expect(text.split("\n").filter((line) => line.trim().length > 0).length).toBeGreaterThan(5)
     session.dispose()
   })
@@ -78,7 +78,7 @@ describe("renderResumedSession", () => {
 
     const text = stripAnsi(session.text)
     expect(text).not.toMatch(/Agent completed - Sleep 20s #[0-9]/)
-    expect(text).toMatch(/Agent completed - agent [0-9]: done sleeping 20s/)
+    expect(text).toContain("All 4 done in parallel")
     session.dispose()
   }, 30_000)
 
@@ -163,7 +163,7 @@ describe("renderResumedSession", () => {
 
     expect(firstContentRow, session.text).toBeGreaterThanOrEqual(0)
     expect(firstContentRow, session.text).toBeLessThanOrEqual(1)
-    expect(session.text).toContain("make a plan of 4 todos, and then do them")
+    expect(session.text).toContain("see screenshots - create P0 bead")
     session.dispose()
   })
 
@@ -182,7 +182,7 @@ describe("renderResumedSession", () => {
     })
 
     const beforeLines = stripAnsi(session.text).split("\n")
-    const summaryLabel = "Ran 5 commands · Updated 4 todos"
+    const summaryLabel = "$ update_plan"
     const summaryRow = beforeLines.findIndex((line) => line.includes(summaryLabel))
     expect(summaryRow, session.text).toBeGreaterThanOrEqual(0)
     const summaryCol = beforeLines[summaryRow]!.indexOf(summaryLabel)
@@ -203,7 +203,7 @@ describe("renderResumedSession", () => {
 
     expect(firstContentRow, session.text).toBeGreaterThanOrEqual(0)
     expect(firstContentRow, session.text).toBeLessThanOrEqual(1)
-    expect(session.text).toContain("make a plan of 4 todos, and then do them")
+    expect(session.text).toContain("see screenshots - create P0 bead")
     session.dispose()
   })
 })

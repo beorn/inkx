@@ -54,4 +54,14 @@ describe("ChatBlockList", () => {
     expect(app.text).toContain("RECAP · previous work")
     expect(app.text).toContain("File history snapshot: 1 files")
   })
+
+  test("renders useful command and completion summaries for tool leaves", () => {
+    const app = render([
+      leaf("tool", { name: "exec_command", input: { cmd: "npx tsc --noEmit" } }, { id: id("tool-command") }),
+      leaf("tool", { name: "Agent", output: "agent 2: done sleeping 20s" }, { id: id("tool-agent"), status: "done" }),
+    ])
+
+    expect(app.text).toContain("$ npx tsc --noEmit")
+    expect(app.text).toContain("$ Agent done - agent 2: done sleeping 20s")
+  })
 })

@@ -126,9 +126,44 @@ function notificationSourceLabel(source: string): string {
   })
 }
 
+function recordField(value: unknown, key: string): unknown {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>)[key] : undefined
+}
+
+function textField(value: unknown, key: string): string | undefined {
+  const field = recordField(value, key)
+  return typeof field === "string" && field.trim().length > 0 ? field.trim() : undefined
+}
+
+function toolCommand(input: unknown): string | undefined {
+  return textField(input, "cmd") ?? textField(input, "command")
+}
+
+function compactOutput(value: unknown): string | undefined {
+  if (typeof value === "string") return value.replace(/\s+/g, " ").trim() || undefined
+  if (Array.isArray(value)) {
+    const text = value
+      .map((item) => textField(item, "text") ?? textField(item, "content"))
+      .filter((part): part is string => part !== undefined)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim()
+    if (text.length > 0) return text
+  }
+  const content = textField(value, "content") ?? textField(value, "text") ?? textField(value, "output")
+  if (content) return content.replace(/\s+/g, " ").trim()
+  return undefined
+}
+
+function truncateSummary(value: string, max = 140): string {
+  return value.length <= max ? value : `${value.slice(0, max - 3).trimEnd()}...`
+}
+
 function renderToolSummary(leaf: Extract<ChatLeaf, { type: "tool" }>): string {
+  const label = toolCommand(leaf.props.input) ?? leaf.props.name
   const status = leaf.status ? ` ${leaf.status}` : ""
-  return `${leaf.props.name}${status}`
+  const output = leaf.status ? compactOutput(leaf.props.output) : undefined
+  return output ? `${label}${status} - ${truncateSummary(output)}` : `${label}${status}`
 }
 
 function renderChatLeaf(leaf: ChatLeaf): React.ReactNode {

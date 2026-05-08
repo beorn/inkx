@@ -2,11 +2,13 @@ import React from "react"
 import { bufferToText, createRenderer, type App as RendererApp } from "@silvery/test"
 import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { Box } from "silvery"
-import { createSessionStore, type MessageEntry, type SessionStore } from "@km/agent-harness"
+import { createSessionStore, type SessionStore } from "@km/agent-harness"
 import { findCodexTranscript, replayCodexSessionFromDisk } from "../codex-resume.ts"
 import { replaySessionFromDisk, sessionJsonlPath } from "../resume.ts"
 import { Content } from "../components/Content.tsx"
-import { SessionUpdateList } from "../components/SessionUpdateList.tsx"
+import { ChatBlockList } from "../components/ChatBlockList.tsx"
+import { createChatSessionProjectionStore } from "../chat/store.ts"
+import type { ChatMessage, ChatSession } from "../chat/types.ts"
 import type { SessionHistoryMetadata } from "../session-metadata.ts"
 
 export type RenderResumedSessionOptions = {
@@ -30,7 +32,7 @@ export type RenderedResumedSession = {
   readonly rows: number
   readonly app: RendererApp
   readonly store: SessionStore
-  readonly messages: readonly MessageEntry[]
+  readonly messages: readonly ChatMessage[]
   readonly metadata: SessionHistoryMetadata
   rerender(next?: { cols?: number; rows?: number }): void
   dispose(): void
@@ -47,7 +49,8 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
   const parsed = parseResumeSpec(opts.resume, opts.agent)
   const store = createSessionStore()
   const metadata = replayIntoStore(store, parsed.agent, parsed.sessionId, cwd, opts.includeMetadata !== false)
-  const state = store.state.get()
+  const projection = createChatSessionProjectionStore(store, { sessionId: `${parsed.agent}:${parsed.sessionId}` })
+  hydrateReplayMetadata(metadata, projection.session())
   const renderer = createRenderer({
     cols,
     rows,
@@ -59,22 +62,7 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
   const element = () => (
     <Box width={cols} height={rows} flexDirection="column">
       <Content.Layout>
-        <SessionUpdateList
-          messages={state.messages}
-          status={state.status}
-          turnStartedAt={null}
-          inputTokens={state.cost.inputTokens}
-          outputTokens={state.cost.outputTokens}
-          pendingPermissions={state.permissions.length}
-          inFlightTool={null}
-          sessionId={state.sessionId ?? parsed.sessionId}
-          onApprove={() => {}}
-          onDeny={() => {}}
-          follow={opts.follow ?? false}
-          sessionMetadata={opts.includeMetadata === false ? undefined : metadata}
-          agentLabel={parsed.agent}
-          agentVersion={state.claudeCodeVersion || null}
-        />
+        <ChatBlockList leaves={projection.visibleLeaves()} follow={opts.follow ?? false} />
       </Content.Layout>
     </Box>
   )
@@ -95,7 +83,7 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
     app,
     store,
     get messages() {
-      return store.state.get().messages
+      return Object.values(projection.session().messages)
     },
     metadata,
     rerender(next) {
@@ -107,9 +95,18 @@ export function renderResumedSession(opts: RenderResumedSessionOptions): Rendere
       app.rerender(element())
     },
     dispose() {
+      projection.dispose()
       app.unmount()
     },
   }
+}
+
+function hydrateReplayMetadata(metadata: SessionHistoryMetadata, session: ChatSession): void {
+  const messages = Object.values(session.messages)
+  metadata.sessionId = metadata.sessionId ?? session.id
+  metadata.model = metadata.model ?? session.model
+  metadata.replayMessageCount = messages.length
+  metadata.replayBoundaryMessageId = messages.at(-1)?.id
 }
 
 function parseResumeSpec(resume: string, agent: string | undefined): { agent: string; sessionId: string } {
@@ -145,7 +142,5 @@ function replayIntoStore(
   const state = store.state.get()
   metadata.sessionId = state.sessionId ?? sessionId
   metadata.model = state.model || undefined
-  metadata.replayMessageCount = state.messages.length
-  metadata.replayBoundaryMessageId = state.messages.at(-1)?.id
   return includeMetadata ? metadata : { ...metadata, replayStartedAt: undefined, replayCompletedAt: undefined }
 }

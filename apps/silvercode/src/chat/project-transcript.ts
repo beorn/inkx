@@ -44,6 +44,8 @@ type MessageProjectionState = {
 
 type ToolProjectionState = {
   completed: boolean
+  name?: string
+  input?: unknown
 }
 
 type PermissionProjectionState = {
@@ -270,7 +272,8 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
             props: { attachment: block.attachment },
           })
         } else {
-          if (!tools.has(block.toolId)) {
+          const tool = tools.get(block.toolId)
+          if (!tool) {
             throw new Error(`message.block.added ${event.id} references unknown tool ${block.toolId}`)
           }
           pushLeaf({
@@ -279,7 +282,7 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
             messageIds: [event.payload.messageId],
             blockIds: [event.payload.blockId],
             toolIds: [block.toolId],
-            props: { name: "tool-ref" },
+            props: { name: tool.name ?? "tool-ref", input: tool.input },
           })
         }
         break
@@ -298,7 +301,7 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
         if (tools.has(event.payload.toolId)) {
           throw new Error(`tool.started ${event.id} duplicates tool ${event.payload.toolId}`)
         }
-        tools.set(event.payload.toolId, { completed: false })
+        tools.set(event.payload.toolId, { completed: false, name: event.payload.name, input: event.payload.input })
         pushLeaf({
           ...leafBase(event),
           type: "tool",
@@ -319,13 +322,14 @@ export function projectChatTree({ sessionId, events }: ProjectArgs): ChatTree {
         }
         break
       case "tool.completed":
-        requireToolState(tools, event).completed = true
+        const tool = requireToolState(tools, event)
+        tool.completed = true
         pushLeaf({
           ...leafBase(event),
           type: "tool",
           toolIds: [event.payload.toolId],
           status: event.payload.status,
-          props: { name: "tool", output: event.payload.output },
+          props: { name: tool.name ?? "tool", input: tool.input, output: event.payload.output },
         })
         break
       case "permission.requested":

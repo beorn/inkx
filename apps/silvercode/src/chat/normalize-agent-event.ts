@@ -223,20 +223,58 @@ export function normalizeAgentEventsToChatEvents(
   function withUniqueEventId(chatEvent: ChatEvent): ChatEvent {
     const eventId = uniqueChatEventId(chatEvent.id)
     if (eventId === chatEvent.id) return chatEvent
-    if (chatEvent.type === "message.block.added") {
-      return {
-        ...chatEvent,
-        id: eventId,
-        payload: {
-          ...chatEvent.payload,
-          block: {
-            ...chatEvent.payload.block,
-            eventIds: chatEvent.payload.block.eventIds.map((id) => (id === chatEvent.id ? eventId : id)),
+    switch (chatEvent.type) {
+      case "message.block.added":
+        return {
+          ...chatEvent,
+          id: eventId,
+          payload: {
+            ...chatEvent.payload,
+            block: {
+              ...chatEvent.payload.block,
+              eventIds: replaceEventId(chatEvent.payload.block.eventIds, chatEvent.id, eventId),
+            },
           },
-        },
-      }
+        }
+      case "plan.updated":
+        return {
+          ...chatEvent,
+          id: eventId,
+          payload: {
+            ...chatEvent.payload,
+            plan: {
+              ...chatEvent.payload.plan,
+              eventIds: replaceEventId(chatEvent.payload.plan.eventIds, chatEvent.id, eventId),
+            },
+          },
+        }
+      case "queue.updated":
+        return {
+          ...chatEvent,
+          id: eventId,
+          payload: {
+            ...chatEvent.payload,
+            promptQueue: {
+              ...chatEvent.payload.promptQueue,
+              eventIds: replaceEventId(chatEvent.payload.promptQueue.eventIds, chatEvent.id, eventId),
+              prompts: chatEvent.payload.promptQueue.prompts.map((prompt) => ({
+                ...prompt,
+                eventIds: replaceEventId(prompt.eventIds, chatEvent.id, eventId),
+              })),
+            },
+          },
+        }
+      default:
+        return { ...chatEvent, id: eventId }
     }
-    return { ...chatEvent, id: eventId }
+  }
+
+  function replaceEventId(
+    eventIds: readonly ChatEventId[],
+    previous: ChatEventId,
+    next: ChatEventId,
+  ): readonly ChatEventId[] {
+    return eventIds.map((id) => (id === previous ? next : id))
   }
 
   function uniqueChatEventId(base: string): ChatEventId {
