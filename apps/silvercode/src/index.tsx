@@ -34,6 +34,7 @@ import {
   selectTrafficReplaySpan,
   type TrafficReplaySelector,
 } from "./traffic-log.ts"
+import { TrafficReplayViewer } from "./components/TrafficReplayViewer.tsx"
 
 /**
  * Two-phase argv parse: scan `process.argv` for `--config <path>` /
@@ -412,13 +413,20 @@ async function buildProgram(): Promise<Command> {
 
   addTrafficScrubOptions(traffic.command("view <path>").description("inspect a replay ledger with scrub filters"))
     .option("--json", "emit the selected span as JSON")
-    .action((path: string, opts: Record<string, unknown>) => {
+    .option("--tui", "open an interactive terminal viewer")
+    .action(async (path: string, opts: Record<string, unknown>) => {
       try {
         const selector = trafficSelectorFromOptions(opts)
         const replay = replayTrafficLogFile(expandHomePath(path), {
           sessionId: typeof opts["sessionId"] === "string" ? opts["sessionId"] : undefined,
         })
-        if (opts["json"])
+        if (opts["tui"]) {
+          const handle = await run(<TrafficReplayViewer replay={replay} selector={selector} />, {
+            mode: "fullscreen",
+            handleTabCycling: false,
+          })
+          await handle.waitUntilExit()
+        } else if (opts["json"])
           process.stdout.write(`${JSON.stringify(selectTrafficReplaySpan(replay, selector), null, 2)}\n`)
         else process.stdout.write(renderTrafficReplayInspector(replay, selector))
       } catch (err) {

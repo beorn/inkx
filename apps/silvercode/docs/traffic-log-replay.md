@@ -10,7 +10,8 @@ AgentEvent JSONL -> ChatEvent normalization -> ChatTree projection -> visible le
 ```
 
 Use `traffic replay <path> --json` when a test or script needs the full replay
-object. Use `traffic view <path>` when a human needs a scrubbed provenance view.
+object. Use `traffic view <path>` when a human needs a scrubbed provenance view,
+or `traffic view <path> --tui` for the interactive terminal viewer.
 
 Both commands accept the same selectors:
 

@@ -42,7 +42,11 @@ export const L5_SUITE: readonly L5SuiteGroup[] = [
   },
   {
     category: "replay",
-    files: ["apps/silvercode/tests/traffic-log.test.ts", "apps/silvercode/tests/cli-smoke.test.ts"],
+    files: [
+      "apps/silvercode/tests/traffic-log.test.ts",
+      "apps/silvercode/tests/traffic-replay-viewer.test.tsx",
+      "apps/silvercode/tests/cli-smoke.test.ts",
+    ],
   },
   {
     category: "projection",
