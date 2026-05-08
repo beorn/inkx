@@ -34,6 +34,7 @@ import { ScopeProvider } from "@silvery/ag-react"
 import { createScope } from "@silvery/scope"
 import { App } from "../App.tsx"
 import type { Controller } from "../controller.ts"
+import { type AccountScenario, installFakes, type InstalledFakes } from "./fake-boundaries.ts"
 import { createFakeSession, type ScriptedFakeSession } from "./fake-session.ts"
 
 /**
@@ -54,7 +55,24 @@ async function settle(): Promise<void> {
   })
   for (let i = 0; i < 5; i++) await Promise.resolve()
 }
-import { type AccountScenario, installFakes, type InstalledFakes } from "./fake-boundaries.ts"
+
+async function settleInitialSessions(
+  app: RendererApp,
+  tree: React.ReactElement,
+  controllerRef: () => Controller | null,
+  expectedSessions: number,
+): Promise<void> {
+  for (let i = 0; i < 10; i++) {
+    await settle()
+    app.rerender(tree)
+    const controller = controllerRef()
+    if (controller && controller.snapshot().length >= expectedSessions) {
+      await settle()
+      app.rerender(tree)
+      return
+    }
+  }
+}
 
 export type RenderedScenario = {
   /** Normalized frame text (ANSI stripped, blank lines preserved — they ARE layout). */
@@ -181,6 +199,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   const layout = opts.layout ?? "single"
   const bare = opts.bare ?? true
   const model = opts.model ?? "claude-sonnet-4-6"
+  const expectedInitialSessions = layout === "grid-4" ? 4 : layout === "grid-2" ? 2 : 1
 
   const live = opts.live === true
   // Install third-party-boundary fakes (accountly, git branch, version,
@@ -268,10 +287,15 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
   activeScenarioDisposers.add(dispose)
 
   // Settle the controller's initial `void spawnSession()` so the SessionHandle
-  // is in the controller's list before the test asserts. Production renders
-  // wait on the same microtask cascade naturally via the event loop; tests
-  // need an explicit settle.
-  await settle()
+  // is in the controller's list and App's session subscriptions are installed
+  // before tests emit manual events. Production renders wait on the same
+  // microtask cascade naturally via the event loop; tests need an explicit
+  // bounded settle.
+  if (live) {
+    await settle()
+  } else {
+    await settleInitialSessions(app, tree, () => controller, expectedInitialSessions)
+  }
 
   if (opts.autoEmit !== false && !live) {
     for (const event of opts.script) fake.emit(event)
