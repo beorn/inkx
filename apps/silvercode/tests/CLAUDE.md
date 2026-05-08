@@ -13,7 +13,9 @@ L4 end-to-end    — ANSI snapshot via termless, 1-5 s  (Welcome, queue, overflo
 L5 live smoke    — manual checklist                  (smoke-checklist.md)
 ```
 
-Layer 5 lives outside vitest. Everything else runs under `bun vitest run apps/silvercode/tests/`.
+The historical L5 live-smoke checklist still lives outside vitest. The
+agent-host L5 architecture gate is executable and runs through
+`bun run test:silvercode:l5`.
 
 ## Picking a layer when adding a test
 
@@ -104,6 +106,13 @@ bun vitest apps/silvercode/tests/<file>.test.tsx
 
 # Just the agent-harness package tests (lower-layer pieces)
 bun vitest run apps/silvercode/packages/agent-harness/tests/
+
+# Agent-host L5 gate: fakes, provider contracts, replay, projection,
+# queue/cancel, permissions, background/subagents, chunk normalization
+bun run test:silvercode:l5
+
+# Inspect the files in that gate without running them
+bun run test:silvercode:l5 -- --list
 ```
 
 Never run `bun test` (it bypasses vitest's project config).
