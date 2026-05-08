@@ -1,289 +1,237 @@
-# Silvercode Chat State Machines
+# Silvercode Agent Host State Machines
 
-Silvercode models chat as canonical events applied to session state and projected into a render tree.
-
-```text
-AgentEvent / ChannelNotification / ProtocolNotification
-  -> ChatEvent
-  -> ChatSession
-
-ChatSession -> ChatShell
-ChatSession -> ChatTree
-
-ChatSession + ChatShell + ChatTree
-  -> Chat.Pane
-```
-
-This page defines the durable state machines inside that model. Prompt queueing, job control, interruption, subagent activity, and notifications are chat-domain state, not separate UI systems.
-
-## Terminology
-
-Use `block` for a typed content unit inside a prompt, message, or tool output.
-
-Use `activity` for a time-bounded unit of work inside a chat job or chat span.
-
-Use `job` for user-controllable agent work that can attach to the foreground, move to the background, complete, fail, cancel, or be abandoned.
-
-Use `task` only when naming an agent/tool concept that is literally called Task, such as a Task tool that launches a subagent. A backgrounded agent turn is a background job, not a task in the chat-domain model.
-
-Use `Agent*` names for cross-backend runtime surfaces. Use protocol-specific prefixes such as `Acp*`, `Claude*`, or `Codex*` only for exact source shapes. Use `Chat*` names for Silvercode-owned chat-domain state, control, and projection. Agent ids can appear inside `Chat*` records only as provenance.
-
-## Shell
+Silvercode state changes are closed transitions over the domain model in
+`chat-session-model.md`. Runtime code should not derive lifecycle from scattered
+booleans, output gates, or UI rows. Every important transition has one owner and
+one illegal-transition policy.
 
 ```text
-no-jobs
-  -> foreground-attached
-  -> no-jobs
-
-foreground-attached
-  -> background-only
-  -> no-jobs
-
-foreground-attached
-  -> foreground-and-background
-
-foreground-and-background
-  -> background-only
-  -> no-jobs
-
-background-only
-  -> no-jobs
+Provider event
+  -> parser
+  -> normalizer
+  -> ThreadEvent
+  -> transition owner
+  -> ThreadState
+  -> ChatTree + ChatTrack projection
 ```
 
-A chat shell (`ChatShell`) is the continuous interactive surface for one chat session. It owns the composer, prompt queue controls, foreground attachment slot, background job table, active selection, and job-control commands.
+## Rules
 
-The shell does not start and end for each prompt. It has a foreground slot:
+- The transition owner validates every state change.
+- Unknown provider events become TrafficLog/debug evidence before they affect
+  user-visible state.
+- Late events are routed by Thread, SessionBinding, Turn, and provider
+  provenance. They do not reopen completed work unless a transition explicitly
+  allows it.
+- Projection is pure: it reads ThreadState and emits ChatTree/ChatTrack data.
+- UI components render projection data; they do not infer agent lifecycle from
+  raw provider events.
 
-```text
-foregroundJobId: ChatJobId | null
-backgroundJobIds: ChatJobId[]
-```
+## Connection
 
-When `foregroundJobId` is `null`, the shell itself owns the foreground like an idle terminal prompt. When `foregroundJobId` points to a running job, that job is attached to the foreground and owns the main conversation flow.
+An AgentConnection owns a live transport/process/server attachment.
 
-## Session
+| From           | Event                       | To             | Notes                                  |
+| -------------- | --------------------------- | -------------- | -------------------------------------- |
+| `created`      | start requested             | `starting`     | Spawn/connect begins.                  |
+| `starting`     | handshake ok                | `ready`        | Capabilities become available.         |
+| `starting`     | handshake failed            | `failed`       | SessionBinding records failure.        |
+| `ready`        | transient disconnect        | `reconnecting` | Only if backend supports recovery.     |
+| `reconnecting` | handshake ok                | `ready`        | Same binding resumes.                  |
+| `reconnecting` | retry exhausted             | `failed`       | Binding becomes failed/lost.           |
+| `ready`        | close requested             | `closing`      | Stop accepting new Turns.              |
+| `closing`      | process exited              | `closed`       | Terminal.                              |
+| `ready`        | process exited unexpectedly | `failed`       | Terminal unless recovery starts first. |
 
-```text
-starting
-  -> active
-  -> ending
-  -> ended
+Terminal states are `closed` and `failed`.
 
-active
-  -> failed
-  -> ended
-```
+## SessionBinding
 
-A chat session owns messages, blocks, tools, plan state, prompt queue, permissions, notifications, activity records, channels, and projection state. Session lifecycle facts enter as `ChatEvent`s and project only when they help the user understand ordering or control state.
+A SessionBinding attaches a provider session to a Thread.
 
-## Span
+| From       | Event                     | To         | Notes                                                                            |
+| ---------- | ------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| `unbound`  | bind requested            | `starting` | Creates or resumes provider session.                                             |
+| `starting` | provider session id known | `bound`    | Binding can accept Turns if Connection is ready.                                 |
+| `starting` | provider failed           | `failed`   | Terminal for this binding attempt.                                               |
+| `bound`    | drain requested           | `draining` | Existing Turn may finish; new foreground Turns are rejected or queued elsewhere. |
+| `draining` | all Turns settled         | `ended`    | Terminal normal end.                                                             |
+| `bound`    | provider ended            | `ended`    | Terminal normal end.                                                             |
+| `bound`    | provider lost             | `lost`     | Recoverable only by creating a new binding or explicit recovery edge.            |
+| `lost`     | recovery requested        | `starting` | New handshake for same logical binding when backend supports it.                 |
+| `lost`     | abandoned                 | `failed`   | Terminal.                                                                        |
 
-```text
-idle
-  -> open
-  -> settling
-  -> idle
-```
+Terminal states are `ended` and `failed`.
 
-A chat span is a foreground idle-delimited activity group. It opens when user or agent foreground activity starts while the foreground shell is idle, remains open while foreground work is active, and closes when the foreground shell is idle again.
+## Turn
 
-A span can contain multiple prompts, assistant messages, foreground jobs, tool calls, permission waits, subagent activity, notifications, and plan changes. It is not a prompt/response pair and it is not an agent turn. Background jobs do not keep a foreground span open; they project as job lifecycle/activity output.
+A Turn is the lifecycle boundary for submitted agent work.
 
-Spans do not nest. If nested work needs hierarchy, the span contains activities and those activities contain child activities.
+| From         | Event                      | To           | Notes                                                                             |
+| ------------ | -------------------------- | ------------ | --------------------------------------------------------------------------------- |
+| `accepted`   | enqueue policy says wait   | `queued`     | Owned locally; visible and cancellable.                                           |
+| `accepted`   | can start now              | `starting`   | Submission begins immediately.                                                    |
+| `queued`     | selected by owner          | `starting`   | Queue owner is the only writer.                                                   |
+| `queued`     | user cancels before submit | `cancelled`  | Terminal; no transcript Message is created.                                       |
+| `starting`   | provider ack               | `active`     | Provider has accepted or started work.                                            |
+| `starting`   | local send failed          | `failed`     | Terminal unless retry creates a new Turn attempt.                                 |
+| `active`     | provider says complete     | `draining`   | Enter late-event drain window.                                                    |
+| `draining`   | idle window elapsed        | `completed`  | Terminal success.                                                                 |
+| `active`     | cancel requested           | `cancelling` | Stop accepting normal output as foreground-owned after policy cutoff.             |
+| `cancelling` | provider confirms cancel   | `cancelled`  | Terminal.                                                                         |
+| `cancelling` | provider cannot confirm    | `lost`       | Terminal from control perspective; later output becomes debug/abandoned evidence. |
+| `active`     | provider failed            | `failed`     | Terminal.                                                                         |
+| `active`     | binding lost               | `lost`       | Terminal unless recovery explicitly reattaches.                                   |
 
-## Prompt
+Terminal states are `completed`, `cancelled`, `failed`, and `lost`.
 
-```text
-draft
-  -> queued
-  -> submitting
-  -> agent-queued
-  -> committed
-
-queued
-  -> cancelled
-  -> failed
-
-submitting
-  -> failed
-  -> committed
-```
-
-A prompt draft is ephemeral composer text. A `ChatPrompt` begins when Silvercode owns a user-authored prompt that has not yet become transcript history. A prompt leaves `ChatPromptQueue` when it becomes a user `ChatMessage`, is cancelled, or fails permanently.
-
-Agent-owned queued prompts use `agent-queued` only when the agent exposes queue identity and capabilities. stdin buffering, prompt RPC waiters, and transcript attachments are provenance, not sufficient queue ownership.
+`draining` is deliberate. It copies ACPX's robustness pattern: a provider may
+send final content just after the nominal completion notification.
 
 ## Message
 
-```text
-started
-  -> streaming
-  -> completed
+A Message is transcript history, not the Turn lifecycle itself.
 
-started
-  -> cancelled
+| From        | Event              | To          | Notes                                |
+| ----------- | ------------------ | ----------- | ------------------------------------ |
+| `created`   | first block starts | `streaming` | User Messages may skip to completed. |
+| `streaming` | block appended     | `streaming` | Reconciliation updates owned Blocks. |
+| `streaming` | message closed     | `completed` | Terminal for this Message.           |
+| `created`   | message closed     | `completed` | Static Message.                      |
+| `created`   | owner cancelled    | `cancelled` | Terminal.                            |
+| `streaming` | owner failed       | `failed`    | Terminal.                            |
 
-started
-  -> failed
-```
-
-A `ChatMessage` is transcript history. It owns role, block ids, and source event ids. Once a prompt commits as a user message, editing is transcript editing rather than prompt queue editing.
-
-Message content is typed as `ChatBlock`: text, reasoning, image, audio, resource, resource link, diff, terminal, or tool reference. Tool output belongs to `ChatTool` and projects near a message only through the chat tree.
+Terminal states are `completed`, `cancelled`, and `failed`.
 
 ## Block
 
-```text
-created
-  -> appended
-  -> completed
+A Block is typed content inside a Message, prompt, or ToolCall output.
 
-created
-  -> failed
-```
+| From        | Event        | To          | Notes                                      |
+| ----------- | ------------ | ----------- | ------------------------------------------ |
+| `created`   | append chunk | `streaming` | TextBlock and ThoughtBlock usually stream. |
+| `streaming` | append chunk | `streaming` | Chunk reconciliation owns merge rules.     |
+| `created`   | close        | `completed` | Static blocks.                             |
+| `streaming` | close        | `completed` | Terminal.                                  |
+| `created`   | owner failed | `failed`    | Terminal.                                  |
+| `streaming` | owner failed | `failed`    | Terminal.                                  |
 
-A `ChatBlock` is a typed content unit. Streaming text and reasoning blocks may append content before completion. Static blocks such as image, resource link, diff, terminal, or tool reference are usually created complete.
+Terminal states are `completed` and `failed`.
 
-Blocks are content, not lifecycle owners. Tool lifecycle belongs to `ChatTool`; job lifecycle belongs to `ChatJob`; span lifecycle belongs to `ChatSpan`.
+## ToolCall
 
-## Tool
+ToolCall owns provider tool lifecycle and output.
 
-```text
-requested
-  -> running
-  -> completed
+| From                 | Event             | To                   | Notes                                                                   |
+| -------------------- | ----------------- | -------------------- | ----------------------------------------------------------------------- |
+| `announced`          | start             | `running`            | Tool args are known enough to display.                                  |
+| `running`            | permission needed | `waiting_permission` | PermissionRequest owns the decision.                                    |
+| `waiting_permission` | approved          | `running`            | Tool resumes.                                                           |
+| `waiting_permission` | denied            | `cancelled`          | Terminal unless provider keeps running, then output is abandoned/debug. |
+| `running`            | output chunk      | `running`            | Output Blocks reconcile under the ToolCall.                             |
+| `running`            | result            | `completed`          | Terminal success.                                                       |
+| `running`            | failure           | `failed`             | Terminal.                                                               |
+| `running`            | owner cancelled   | `cancelled`          | Terminal.                                                               |
 
-running
-  -> waiting-permission
-  -> running
+Terminal states are `completed`, `cancelled`, and `failed`.
 
-running
-  -> cancelled
+## PermissionRequest
 
-running
-  -> failed
-```
+PermissionRequest owns user authorization.
 
-A `ChatTool` is the chat-domain lifecycle record for a tool call. Agent ids, protocol ids, and CLI ids stay in `rawRefs` or source-specific metadata. Tool lifecycle state can project as transcript detail, activity summary, notification, or Debug leaf depending on channel and usefulness.
+| From        | Event         | To          | Notes                                                     |
+| ----------- | ------------- | ----------- | --------------------------------------------------------- |
+| `requested` | user approves | `approved`  | Unblocks owner.                                           |
+| `requested` | user denies   | `denied`    | Owner transitions according to policy.                    |
+| `requested` | owner cancels | `cancelled` | Terminal.                                                 |
+| `requested` | timeout       | `expired`   | Terminal unless policy reopens by creating a new request. |
+
+Terminal states are `approved`, `denied`, `cancelled`, and `expired`.
+
+## PlanStep
+
+PlanStep status is provider-normalized. Snapshot providers reconcile by stable
+step identity plus order; delta providers update individual steps.
+
+| From          | Event                   | To            | Notes                                                              |
+| ------------- | ----------------------- | ------------- | ------------------------------------------------------------------ |
+| `pending`     | starts                  | `in_progress` | Only one in-progress step is required when provider guarantees it. |
+| `pending`     | skipped                 | `skipped`     | Terminal.                                                          |
+| `pending`     | completed without start | `completed`   | Terminal; some providers emit snapshots only.                      |
+| `in_progress` | completed               | `completed`   | Terminal.                                                          |
+| `in_progress` | failed                  | `failed`      | Terminal.                                                          |
+| `in_progress` | cancelled               | `cancelled`   | Terminal.                                                          |
+| `pending`     | removed by snapshot     | `cancelled`   | Unless source says omission means unknown.                         |
+
+Terminal states are `completed`, `failed`, `cancelled`, and `skipped`.
 
 ## Job
 
+Job is the user-control handle for work. Execution and attachment are separate
+axes.
+
 Execution state:
 
-```text
-queued
-  -> running
-  -> completed
+| From         | Event                      | To           | Notes                                |
+| ------------ | -------------------------- | ------------ | ------------------------------------ |
+| `queued`     | start                      | `running`    | Work begins.                         |
+| `running`    | blocked on permission/tool | `waiting`    | Owner remains active.                |
+| `waiting`    | unblocked                  | `running`    | Work resumes.                        |
+| `running`    | complete                   | `completed`  | Terminal.                            |
+| `running`    | cancel requested           | `cancelling` | Await confirmation or policy cutoff. |
+| `cancelling` | confirmed                  | `cancelled`  | Terminal.                            |
+| `cancelling` | cannot confirm             | `lost`       | Terminal from control perspective.   |
+| `running`    | failed                     | `failed`     | Terminal.                            |
 
-running
-  -> waiting
-  -> running
+Attachment state:
 
-running
-  -> cancelling
-  -> cancelled
+| From         | Event                | To           | Notes                                                        |
+| ------------ | -------------------- | ------------ | ------------------------------------------------------------ |
+| `foreground` | background requested | `background` | Work continues; foreground accepts other input.              |
+| `foreground` | interrupt requested  | `detaching`  | Cancel or abandon according to backend capability.           |
+| `detaching`  | control released     | `abandoned`  | Later output is TrafficLog/debug unless explicitly surfaced. |
+| `background` | user opens details   | `inspecting` | Does not reattach as foreground ownership.                   |
+| `inspecting` | close details        | `background` | Work continues or remains terminal.                          |
 
-running
-  -> failed
-```
+Execution terminal states are `completed`, `cancelled`, `failed`, and `lost`.
+Attachment terminal state is `abandoned`.
 
-Shell attachment transitions:
+## SubagentRun
 
-```text
-ChatShell.foregroundJobId = job
-  -> ChatShell.backgroundJobIds includes job
-  -> job completes/cancels/fails in background
+SubagentRun is child-agent work with parent provenance.
 
-ChatShell.foregroundJobId = job
-  -> interrupt-requested
-  -> job.output = abandoned
-```
+| From                 | Event                         | To                   | Notes                                               |
+| -------------------- | ----------------------------- | -------------------- | --------------------------------------------------- |
+| `requested`          | provider/tool accepts         | `starting`           | Parent ToolCall or Turn records provenance.         |
+| `starting`           | child session known           | `running`            | Child SessionBinding may be created.                |
+| `starting`           | provider only exposes tool id | `running`            | Transcript discovery can remain pending.            |
+| `running`            | child emits progress          | `running`            | Progress belongs to child state, not parent prose.  |
+| `running`            | child asks permission         | `waiting_permission` | Permission may route through parent UI.             |
+| `waiting_permission` | resolved                      | `running`            | Child resumes or cancels by policy.                 |
+| `running`            | delivery ready                | `delivering`         | Completion payload is normalized.                   |
+| `delivering`         | parent accepts delivery       | `completed`          | Terminal.                                           |
+| `running`            | cancel requested              | `cancelling`         | Cascade policy applies.                             |
+| `cancelling`         | confirmed                     | `cancelled`          | Terminal.                                           |
+| `running`            | failed                        | `failed`             | Terminal.                                           |
+| `running`            | child session lost            | `lost`               | Terminal unless recovery creates a new run/binding. |
 
-A chat job (`ChatJob`) is user-controllable agent work. It starts when a prompt submission, restored live run, or agent-originated event creates a controllable unit of work. It ends when the work completes, fails, or is cancelled. Silvercode marks the job output as abandoned when an interrupted job cannot be cancelled precisely and late events should not become normal transcript output.
+Terminal states are `completed`, `cancelled`, `failed`, and `lost`.
 
-Execution state answers whether the agent is still doing work. Shell attachment answers whether that work owns the foreground. The two axes are separate: a job can be `running` while the shell lists it as either foreground or background.
+## Track Projection
 
-`bg` detaches the foreground job from the shell without stopping it. Background jobs can be surfaced for inspection, but they do not reattach to the shell foreground. `Esc` interrupts the foreground job; it does not background it.
+Tracks are projection state, not durable lifecycle owners.
 
-A job contains activity. Activity describes nested work inside the job, while the job describes the user's control handle for that work.
+| Input                                          | Track          |
+| ---------------------------------------------- | -------------- |
+| User and assistant Messages                    | `conversation` |
+| ThoughtBlocks                                  | `thought`      |
+| ToolCall lifecycle and output                  | `tool`         |
+| Plan and PlanStep changes                      | `plan`         |
+| PermissionRequest lifecycle                    | `permission`   |
+| Side signals admitted into the domain          | `notification` |
+| Raw frames, unknown events, invariant warnings | `debug`        |
+| Detached Job/SubagentRun progress              | `background`   |
 
-## Activity
-
-```text
-observed
-  -> running
-  -> completed
-
-running
-  -> cancelled
-
-running
-  -> failed
-```
-
-Activity is one time-bounded work unit inside a job or span: reasoning, tool execution, shell command, permission wait, or subagent work. Activities are not transcript messages and are not generic grouping nodes.
-
-Activities may contain child activities when nested work needs hierarchy. Background jobs, spans, and messages do not become activities just because they contain activity.
-
-Subagent activity is activity for Task/Agent-style local agents spawned under the session. A background job is not a subagent unless the job itself contains subagent work.
-
-Interrupting is not the same thing as backgrounding and not proof that the underlying process stopped. Backgrounding says "keep running, but stop blocking my foreground." Interrupting says "this foreground job is no longer the conversation I am controlling; cancel it if possible, otherwise abandon its later output."
-
-Agent turn ids are provenance for correlating late events; they are not canonical span keys. Late events for interrupted agent work are Debug/provenance unless the source confirms they belong to still-owned chat-domain state.
-
-## Permission
-
-```text
-requested
-  -> approved
-
-requested
-  -> rejected
-
-requested
-  -> cancelled
-```
-
-Permission state belongs to the chat session. Permission requests can block a tool or activity, but the permission object has its own lifecycle and channel. Resolution updates owner state first; transcript rows are projection choices.
-
-## Notification
-
-```text
-received
-  -> admitted
-  -> projected
-
-received
-  -> duplicate
-
-received
-  -> debug-only
-```
-
-A channel notification is side-channel input before chat normalization. A chat notification (`ChatNotification`) is the normalized fact admitted into the chat domain. Same-session notifications that duplicate transcript-owned tool or subagent facts merge into the owner state instead of rendering as parallel rows. Debug-only notifications remain inspectable without becoming normal transcript content.
-
-## Plan
-
-```text
-empty
-  -> active
-  -> completed
-
-active
-  -> abandoned
-```
-
-A chat plan (`ChatPlan`) owns ordered chat plan steps (`ChatPlanStep`). Plan updates replace or reconcile steps according to source provenance, but the chat domain exposes steps rather than source-specific entries or tasks.
-
-## Projection
-
-```text
-ChatSession
-  -> projectChatTree(...)
-  -> ChatTree
-  -> Chat.Pane
-```
-
-Projection decides grouping, ordering, disclosure, channel filtering, lifecycle placement, summaries, and widths. UI components render `ChatTree`; they do not infer agent semantics directly from raw events.
-
-The invariant is one ownership path: every visible chat fact has an owner in event normalization, chat session state, projection, or rendering. If a screenshot looks wrong, the owner should be obvious.
+Projection decides grouping, disclosure, visibility, lifecycle placement,
+summaries, and widths. If a screenshot looks wrong, the owner should be obvious:
+normalization, transition owner, projection, or component rendering.
