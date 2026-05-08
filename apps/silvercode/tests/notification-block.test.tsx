@@ -3,7 +3,10 @@ import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, PopoverProvider } from "silvery"
 import { Chat } from "../src/components/Chat.tsx"
-import { filterVisibleNotificationEntries } from "../src/chat/notification-visibility.ts"
+import {
+  filterVisibleNotificationEntries,
+  filterVisibleNotificationEntriesFromChatEvents,
+} from "../src/chat/notification-visibility.ts"
 import { NotificationBlock } from "../src/components/NotificationBlock.tsx"
 import {
   chatActivityCountsFromMessages,
@@ -82,6 +85,7 @@ function notificationEntry(opts: {
   id: string
   source?: string
   content: string
+  ts?: number
   fromSessionId?: string
   status?: string
   toolUseId?: string
@@ -90,8 +94,8 @@ function notificationEntry(opts: {
     kind: "notification",
     id: opts.id,
     source: opts.source ?? "subagent",
-    ts: 1,
-    timestamp: 1,
+    ts: opts.ts ?? 1,
+    timestamp: opts.ts ?? 1,
     content: opts.content,
     meta: {
       kind: "subagent-status",
@@ -577,6 +581,7 @@ describe("NotificationBlock", () => {
       notificationEntry({
         id: "own-completed",
         content: "[subagent Agent] completed: Sleep 16s #2 — agent 2: done sleeping 16s",
+        ts: 1_250,
         fromSessionId: "s1",
         status: "completed",
         toolUseId: "toolu_2",
@@ -584,6 +589,7 @@ describe("NotificationBlock", () => {
       notificationEntry({
         id: "own-other",
         content: "[subagent Agent] completed: Sleep 16s #3 — agent 3: done sleeping 16s",
+        ts: 1_260,
         fromSessionId: "s1",
         status: "completed",
         toolUseId: "toolu_3",
@@ -593,6 +599,44 @@ describe("NotificationBlock", () => {
     expect(filterVisibleNotificationEntries(entries, false, "s1", messages).map((entry) => entry.id)).toEqual([
       "own-other",
     ])
+  })
+
+  test("same-session subagent completion notifications are hidden from canonical chat events", () => {
+    const events = [
+      chatEvent("message.started", 1_000, { messageId: "u-live", role: "user" }),
+      chatEvent("tool.started", 1_100, {
+        toolId: "toolu_2",
+        name: "Agent",
+        input: { description: "Sleep 16s #2" },
+      }),
+      chatEvent("tool.completed", 1_200, {
+        toolId: "toolu_2",
+        status: "done",
+        output: "agent 2: done sleeping 16s",
+      }),
+    ]
+    const entries = [
+      notificationEntry({
+        id: "own-completed",
+        content: "[subagent Agent] completed: Sleep 16s #2 — agent 2: done sleeping 16s",
+        ts: 1_250,
+        fromSessionId: "s1",
+        status: "completed",
+        toolUseId: "toolu_2",
+      }),
+      notificationEntry({
+        id: "own-other",
+        content: "[subagent Agent] completed: Sleep 16s #3 — agent 3: done sleeping 16s",
+        ts: 1_260,
+        fromSessionId: "s1",
+        status: "completed",
+        toolUseId: "toolu_3",
+      }),
+    ]
+
+    expect(
+      filterVisibleNotificationEntriesFromChatEvents(entries, false, "s1", events).map((entry) => entry.id),
+    ).toEqual(["own-other"])
   })
 
   test("same-session Claude sidechain completions are hidden when their Agent row is already in history", () => {

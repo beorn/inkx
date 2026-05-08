@@ -31,6 +31,7 @@ Measured 2026-05-08:
 ## Progress Notes
 
 - 2026-05-08: Phase 1 landed in the app path. `ChatPane` renders projected `ChatBlockList` leaves in production, with projected event activity snapshots, notification timeline merge, replay-only transcript display, debug permission-mode leaves, and a no-event-log `MessageEntry` compatibility fallback in `ChatSessionProjectionStore`. Evidence: `bun run test:silvercode:l5` (35 files, 260 passed, 1 skipped), `npx tsc --noEmit`, and focused ChatPane/projection suites passed.
+- 2026-05-08: Phase 2a removed `ChatPane`'s direct `state.messages` reads for notification suppression and replay-only detection. Subagent notification hiding now has a `ChatEvent` path, and `ChatPane` uses projected message counts for replay display gating. Evidence: `bun run test:silvercode:l5` (35 files, 260 passed, 1 skipped), `npx tsc --noEmit`, notification/subagent tests, and ChatPane-heavy suites passed.
 
 ## Complete Criteria
 

@@ -1,6 +1,10 @@
 import type { MessageEntry } from "@km/agent-harness"
 import type { ChannelNotification } from "../notification-stream.ts"
-import { representedSubagentNotificationIdsFromMessages } from "./subagent-activities.ts"
+import type { ChatEvent } from "./types.ts"
+import {
+  representedSubagentNotificationIdsFromChatEvents,
+  representedSubagentNotificationIdsFromMessages,
+} from "./subagent-activities.ts"
 
 export function filterVisibleNotificationEntries(
   entries: readonly ChannelNotification[],
@@ -10,6 +14,17 @@ export function filterVisibleNotificationEntries(
 ): readonly ChannelNotification[] {
   if (showDebug) return entries
   const representedIds = representedSubagentNotificationIdsFromMessages(messages, entries, { sessionId: selfSessionId })
+  return entries.filter((entry) => !isHiddenSubagentNotification(entry, selfSessionId, representedIds))
+}
+
+export function filterVisibleNotificationEntriesFromChatEvents(
+  entries: readonly ChannelNotification[],
+  showDebug: boolean,
+  selfSessionId: string,
+  events: readonly ChatEvent[] = [],
+): readonly ChannelNotification[] {
+  if (showDebug) return entries
+  const representedIds = representedSubagentNotificationIdsFromChatEvents(events, entries, { sessionId: selfSessionId })
   return entries.filter((entry) => !isHiddenSubagentNotification(entry, selfSessionId, representedIds))
 }
 

@@ -15,7 +15,7 @@ import {
   projectCurrentSubagentActivitiesFromChatEvents,
   subagentActivityRowsFromActivities,
 } from "../chat/subagent-activities.ts"
-import { filterVisibleNotificationEntries } from "../chat/notification-visibility.ts"
+import { filterVisibleNotificationEntriesFromChatEvents } from "../chat/notification-visibility.ts"
 import { NotificationBlock } from "./NotificationBlock.tsx"
 import type { ChannelNotification } from "../notification-stream.ts"
 import { useBackgroundJobs } from "../hooks/use-background-jobs.ts"
@@ -300,6 +300,10 @@ export function ChatPane({
   const projectedEvents = useSignal(chatProjection.events) ?? chatProjection.events()
   const projectedLeaves = useSignal(chatProjection.visibleLeaves) ?? chatProjection.visibleLeaves()
   const projectedSession = useSignal(chatProjection.session) ?? chatProjection.session()
+  const projectedMessageCount = React.useMemo(
+    () => Object.keys(projectedSession.messages).length,
+    [projectedSession.messages],
+  )
   const activeAgents = useSignal(controller?.crossAgentState.activeSessions ?? null) ?? []
   const sessionStates = useAllSessionStates(sessionHandles)
   const backgroundJobs = useBackgroundJobs(controller, handle.id)
@@ -327,7 +331,7 @@ export function ChatPane({
     handle.metadata?.resumeId !== undefined &&
     handle.metadata.replayCompletedAt !== undefined &&
     handle.metadata.liveStartedAt === undefined &&
-    (handle.metadata.replayMessageCount === undefined || state.messages.length <= handle.metadata.replayMessageCount)
+    (handle.metadata.replayMessageCount === undefined || projectedMessageCount <= handle.metadata.replayMessageCount)
   const currentProjectedLeaves = React.useMemo(
     () => leavesForEvents(projectedLeaves, currentProjectedEvents),
     [currentProjectedEvents, projectedLeaves],
@@ -423,8 +427,14 @@ export function ChatPane({
     [activeAgents, sessionHandles, sessionStates],
   )
   const notificationEntries = React.useMemo(
-    () => filterVisibleNotificationEntries(mutedNotificationEntries, showDebug, handle.id, state.messages),
-    [handle.id, mutedNotificationEntries, showDebug, state.messages],
+    () =>
+      filterVisibleNotificationEntriesFromChatEvents(
+        mutedNotificationEntries,
+        showDebug,
+        handle.id,
+        currentProjectedEvents,
+      ),
+    [currentProjectedEvents, handle.id, mutedNotificationEntries, showDebug],
   )
   const notificationLeaves = React.useMemo(
     () => notificationEntries.map((entry) => notificationLeafFromEntry(entry)),

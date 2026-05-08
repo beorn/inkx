@@ -159,6 +159,35 @@ export function representedSubagentNotificationIdsFromMessages(
   return hidden
 }
 
+export function representedSubagentNotificationIdsFromChatEvents(
+  events: readonly ChatEvent[],
+  entries: readonly ChannelNotification[],
+  options: { readonly sessionId?: string } = {},
+): ReadonlySet<string> {
+  const builder = new SubagentRunLedger()
+  const scopedEvents = options.sessionId ? events.filter((event) => event.sessionId === options.sessionId) : [...events]
+  const orderedEvents = orderWithIndex(scopedEvents)
+  const currentStartedAt = latestUserMessageStartedAt(orderedEvents)
+  for (const activity of projectSubagentActivitiesFromChatEvents(events, {
+    currentOnly: true,
+    sessionId: options.sessionId,
+  })) {
+    builder.upsert(activity)
+  }
+
+  const hidden = new Set<string>()
+  for (const entry of entries) {
+    const activity = subagentActivityFromNotification(entry, {
+      currentStartedAt,
+      sessionId: options.sessionId,
+    })
+    if (!activity) continue
+    if (activity.status === "running") continue
+    if (builder.hasTerminalMatch(activity)) hidden.add(entry.id)
+  }
+  return hidden
+}
+
 export function subagentActivityRowsFromActivities(
   activities: readonly SubagentActivity[],
 ): readonly SubagentActivityRow[] {
