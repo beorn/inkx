@@ -3,9 +3,19 @@ aliases:
   - km-silvercode.stream-chunk-boundary-marshalling
   - km-silvercode-stream-chunk-boundary-marshalling
 created_at: 2026-05-08T04:05:31.356Z
+closed_at: 2026-05-08T08:03:45.168Z
+closeReason: "Shipped 15ec2bec6. ChatEvent normalization now coalesces adjacent
+  provider text/thought deltas by message, block type, provider kind, and
+  blockIndex; preserves rawRefs/eventIds; docs record the stream-normalization
+  contract. Evidence: bun vitest run
+  apps/silvercode/tests/chat-agent-event-normalization.test.ts
+  apps/silvercode/tests/chat-message-summary.test.tsx --testNamePattern
+  'Markdown links split across text ops' passed (1 focused regression, 57
+  skipped by pattern); earlier focused chat normalization suite passed 5 files,
+  35 pass, 1 skipped; npx tsc --noEmit passed."
 ---
 
-# [/] Silvercode stream chunk boundaries corrupt Markdown links and chat blocks #bug #P1 @agent/3
+# [x] Silvercode stream chunk boundaries corrupt Markdown links and chat blocks #bug #P1 @agent/3
 
 ## Problem
 
