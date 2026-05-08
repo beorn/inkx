@@ -14,9 +14,13 @@ function subscribePulse(listener: () => void): () => void {
   pulseEpoch ??= Date.now()
   if (pulseScope === null) {
     pulseScope = createScope("status-glyph-pulse")
-    pulseScope.interval(() => {
-      for (const subscriber of pulseSubscribers) subscriber()
-    }, PULSE_TICK_MS, { unref: true })
+    pulseScope.interval(
+      () => {
+        for (const subscriber of pulseSubscribers) subscriber()
+      },
+      PULSE_TICK_MS,
+      { unref: true },
+    )
   }
   return () => {
     pulseSubscribers.delete(listener)

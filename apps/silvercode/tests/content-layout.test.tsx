@@ -242,8 +242,7 @@ function colorKey(value: unknown): string {
 
 function termCellStyleKey(term: ReturnType<typeof createTermless>, row: number, col: number): string {
   const cell = term.cell(row, col)
-  const attrs = (cell as { attrs?: { inverse?: boolean } }).attrs
-  return `${colorKey(cell.fg)}|${colorKey(cell.bg)}|${attrs?.inverse ? "inverse" : ""}`
+  return `${colorKey(cell.fg)}|${colorKey(cell.bg)}|${cell.inverse ? "inverse" : ""}`
 }
 
 function backgroundRunWidth(app: ReturnType<typeof renderList>, row: number, col: number): number {
@@ -1179,7 +1178,7 @@ describe("content layout", () => {
         </Content.Layout>
       </Box>,
       term,
-      { mouse: true },
+      { mouse: true, selection: true },
     )
     await new Promise((r) => setTimeout(r, 100))
 
@@ -1276,7 +1275,7 @@ describe("content layout", () => {
         </Content.Layout>
       </Box>,
       term,
-      { mouse: true },
+      { mouse: true, selection: true },
     )
     await new Promise((r) => setTimeout(r, 100))
 

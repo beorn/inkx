@@ -30,11 +30,11 @@ EXIT=0
 # Files allowed to use raw lifecycle calls. Anchor with file path
 # fragments — grep matches anywhere in the path.
 #
-#   tests/, *.test.*, *.spec.*  — test code can do whatever
+#   tests/, src/test/, *.test.*, *.spec.*  — test code can do whatever
 #   /dist/, /node_modules/      — built artifacts
 #   vendor/*                    — third-party packages have their own lints
 #   /scripts/, /tools/, packages/km-infra/  — build & infra tooling
-ALLOWLIST_PATTERN='\(/tests/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|vendor/silvery/\|vendor/loggily/\|vendor/bearly/\|vendor/termless/\|vendor/flexily/\|vendor/ansi/\|vendor/mdtest/\|vendor/mdspec/\|vendor/vt100\|vendor/vterm\|vendor/lambda\|vendor/loggy\|vendor/accountly\|vendor/tap\|vendor/watcher-chaos\|vendor/vimonkey\|vendor/terminfo\|vendor/lambda-tape\|/scripts/\|packages/km-infra/\|tools/\)'
+ALLOWLIST_PATTERN='\(/tests/\|/src/test/\|\.test\.\|\.spec\.\|/dist/\|/node_modules/\|vendor/silvery/\|vendor/loggily/\|vendor/bearly/\|vendor/termless/\|vendor/flexily/\|vendor/ansi/\|vendor/mdtest/\|vendor/mdspec/\|vendor/vt100\|vendor/vterm\|vendor/lambda\|vendor/loggy\|vendor/accountly\|vendor/tap\|vendor/watcher-chaos\|vendor/vimonkey\|vendor/terminfo\|vendor/lambda-tape\|/scripts/\|packages/km-infra/\|tools/\)'
 
 SEARCH_ROOTS='apps packages'
 
@@ -47,14 +47,14 @@ SEARCH_ROOTS='apps packages'
 #   scope.defer(() => clearTimeout(id))
 #
 # Or via useScopeEffect from @silvery/ag-react in React code.
-BASELINE_SETTIMEOUT=46           # setTimeout( call sites — Phase 3.2
-BASELINE_SETINTERVAL=9           # setInterval( call sites — Phase 3.2
+BASELINE_SETTIMEOUT=43           # setTimeout( call sites — Phase 3.2
+BASELINE_SETINTERVAL=6           # setInterval( call sites — Phase 3.2
 BASELINE_FS_WATCH=0              # fs.watch( — must stay zero (use scope.use(disposable(watcher, w => w.close())))
 BASELINE_SPAWN=0                 # child_process.spawn|fork| — must stay zero (Phase 3.4)
 BASELINE_ABORT_CONTROLLER=0      # new AbortController( — must stay zero (use scope.signal)
-BASELINE_PROCESS_SIGINT=7        # process.on("SIGINT"|"SIGTERM"|"exit"|"beforeExit") — Phase 3.5
+BASELINE_PROCESS_SIGINT=6        # process.on("SIGINT"|"SIGTERM"|"exit"|"beforeExit") — Phase 3.5
 BASELINE_PROCESS_SIGTERM=5       # split per signal name for finer-grained migration tracking
-BASELINE_PROCESS_EXIT=7          # process.on("exit"|"beforeExit") — 3 double-quoted + 4 single-quoted
+BASELINE_PROCESS_EXIT=3          # process.on("exit"|"beforeExit") — remaining raw exit/beforeExit handlers
 # =========================================================================
 
 # Sum hits across one or more fixed-string patterns.

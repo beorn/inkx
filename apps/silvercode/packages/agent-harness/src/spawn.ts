@@ -79,18 +79,22 @@ export function gracefulKillTree(pid: number, proc: ChildProcess, opts: { fallba
   // event loop alive on its own; the proc 'exit' listener is the real
   // wait.
   const fallbackScope = createScope("agent-harness-graceful-kill")
-  fallbackScope.timeout(() => {
-    if (proc.exitCode !== null || proc.signalCode !== null) return
-    try {
-      process.kill(-pid, "SIGKILL")
-    } catch {
+  fallbackScope.timeout(
+    () => {
+      if (proc.exitCode !== null || proc.signalCode !== null) return
       try {
-        proc.kill("SIGKILL")
+        process.kill(-pid, "SIGKILL")
       } catch {
-        /* already dead */
+        try {
+          proc.kill("SIGKILL")
+        } catch {
+          /* already dead */
+        }
       }
-    }
-  }, opts.fallbackAfterMs, { unref: true })
+    },
+    opts.fallbackAfterMs,
+    { unref: true },
+  )
 
   // Cancel the SIGKILL timer if the child exits cleanly first. Production
   // ChildProcess has `.once`; ACP test seams sometimes expose only `.on`.

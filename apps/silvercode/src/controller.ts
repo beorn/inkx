@@ -1183,19 +1183,18 @@ export function createSilvercodeController(opts: ControllerOptions): Controller 
     list[idx] = completed
     notifyBackground(sessionId)
 
-    // Schedule GC. The handle is a NodeJS.Timeout in node + bun (not the
-    // browser DOM `number`); .unref() lets the process exit even when the
-    // timer is still pending.
-    const gcHandle: unknown = setTimeout(() => {
-      const cur = jobsBySession.get(sessionId)
-      if (!cur) return
-      const filtered = cur.filter((t) => t.id !== completed.id)
-      jobsBySession.set(sessionId, filtered)
-      notifyBackground(sessionId)
-    }, BACKGROUND_JOB_TTL_MS)
-    if (gcHandle && typeof gcHandle === "object" && "unref" in gcHandle) {
-      ;(gcHandle as { unref: () => void }).unref()
-    }
+    // Schedule GC on the controller scope so teardown clears pending jobs.
+    controllerScope.timeout(
+      () => {
+        const cur = jobsBySession.get(sessionId)
+        if (!cur) return
+        const filtered = cur.filter((t) => t.id !== completed.id)
+        jobsBySession.set(sessionId, filtered)
+        notifyBackground(sessionId)
+      },
+      BACKGROUND_JOB_TTL_MS,
+      { unref: true },
+    )
 
     // Surface as a system message in the conversation. We send the text
     // through the regular user-message apply path with a `bg-` prefixed

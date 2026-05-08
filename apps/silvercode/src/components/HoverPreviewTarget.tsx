@@ -10,6 +10,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react"
+import { createScope } from "@silvery/scope"
 import {
   HOVER_SHOW_DELAY_MS,
   type ModifierState,
@@ -104,7 +105,8 @@ export function HoverPreviewTarget({
   const [hovered, setHovered] = useState(false)
   const [uncontrolledExpanded, setUncontrolledExpanded] = useState(defaultExpanded)
   const anchorRef = useRef<PopoverAnchor | null>(null)
-  const pendingShowRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scope = useMemo(() => createScope("hover-preview-target"), [])
+  const pendingShowRef = useRef<(() => void) | null>(null)
   const popover = usePopover()
   const subscribeToModifiers = hovered && (trigger === "cmd-hover" || modifiers !== undefined)
   const modifierState = useModifierKeys({ enabled: subscribeToModifiers })
@@ -128,7 +130,7 @@ export function HoverPreviewTarget({
 
   const clearPending = useCallback(() => {
     if (!pendingShowRef.current) return
-    clearTimeout(pendingShowRef.current)
+    pendingShowRef.current()
     pendingShowRef.current = null
   }, [])
 
@@ -146,7 +148,7 @@ export function HoverPreviewTarget({
     const anchor = anchorRef.current
     if (!anchor) return
     clearPending()
-    pendingShowRef.current = setTimeout(() => {
+    pendingShowRef.current = scope.timeout(() => {
       pendingShowRef.current = null
       if (!anchorRef.current || !popoverContent) return
       popover.show(popoverContent, anchor)
@@ -166,8 +168,9 @@ export function HoverPreviewTarget({
     return () => {
       clearPending()
       clearActive(id)
+      void scope[Symbol.asyncDispose]()
     }
-  }, [clearActive, clearPending, id])
+  }, [clearActive, clearPending, id, scope])
 
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {

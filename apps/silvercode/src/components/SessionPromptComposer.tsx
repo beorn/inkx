@@ -167,7 +167,7 @@ export function SessionPromptComposer({
                 value={displayQueueText}
                 onChange={(text) => onQueueChange(displayToWire(text))}
                 isActive={queueIsFocused}
-                cursorShape="block"
+                cursorStyle="block"
                 showInactiveCursor={false}
                 // Auto-grow with the content, capped at 12 rows (per
                 // design — scrolls beyond that via TextArea's built-in
@@ -215,7 +215,7 @@ export function SessionPromptComposer({
             value={inputValue}
             onChange={onInputChange}
             isActive={commandIsFocused && !inputDisabled}
-            cursorShape="block"
+            cursorStyle="block"
             showInactiveCursor={false}
             // Defaults give chat-input behavior (fieldSizing=content,
             // minRows=1, maxRows=8). Empty input is 1 row; multi-line

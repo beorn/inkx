@@ -46,17 +46,17 @@ export function AutolinksProvider({
   // App re-renders. Rules are loaded once at startup; their identity is
   // stable across the session.
   const previewRuntime = useMemo(() => createPreviewRuntime(), [])
-  const value = useMemo<AutolinksContextValue>(
-    () => ({ rules, previewRuntime }),
-    [rules, previewRuntime],
-  )
+  const value = useMemo<AutolinksContextValue>(() => ({ rules, previewRuntime }), [rules, previewRuntime])
 
   // Tear down preview fs.watch handles and debounce timers when the
   // provider unmounts (or when the surrounding scope is disposed by
   // SIGINT/SIGTERM). Empty deps for the runtime lifetime.
-  useScopeEffect((scope) => {
-    scope.defer(() => previewRuntime.dispose())
-  }, [previewRuntime])
+  useScopeEffect(
+    (scope) => {
+      scope.defer(() => previewRuntime.dispose())
+    },
+    [previewRuntime],
+  )
 
   return <AutolinksCtx.Provider value={value}>{children}</AutolinksCtx.Provider>
 }

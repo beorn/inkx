@@ -33,6 +33,7 @@
 
 import { execSync, spawn } from "node:child_process"
 import { createLogger } from "loggily"
+import { createScope } from "@silvery/scope"
 
 const log = createLogger("silvercode:bd-prime")
 
@@ -198,32 +199,38 @@ function parseActive(raw: string): BdActiveState {
  */
 function runShell(cwd: string, cmd: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
+    const scope = createScope("bd-prime-shell")
     const child = spawn("sh", ["-c", cmd], {
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
     })
     let out = ""
     let settled = false
-    const timer = setTimeout(() => {
-      if (settled) return
-      settled = true
-      child.kill("SIGKILL")
-      reject(new Error(`timeout after ${timeoutMs}ms`))
-    }, timeoutMs)
-    ;(timer as unknown as { unref?: () => void }).unref?.()
+    const cancelTimer = scope.timeout(
+      () => {
+        if (settled) return
+        settled = true
+        child.kill("SIGKILL")
+        reject(new Error(`timeout after ${timeoutMs}ms`))
+      },
+      timeoutMs,
+      { unref: true },
+    )
     child.stdout?.on("data", (chunk: Buffer) => {
       out += chunk.toString("utf8")
     })
     child.on("error", (err) => {
       if (settled) return
       settled = true
-      clearTimeout(timer)
+      cancelTimer()
+      void scope[Symbol.asyncDispose]()
       reject(err)
     })
     child.on("close", () => {
       if (settled) return
       settled = true
-      clearTimeout(timer)
+      cancelTimer()
+      void scope[Symbol.asyncDispose]()
       resolve(out)
     })
   })

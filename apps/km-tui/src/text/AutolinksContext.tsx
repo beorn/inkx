@@ -41,10 +41,7 @@ export function AutolinksProvider({
   // the App re-renders. Rules are loaded once at startup; their identity
   // is stable across the session.
   const previewRuntime = useMemo(() => createPreviewRuntime(), [])
-  const value = useMemo<AutolinksContextValue>(
-    () => ({ rules, previewRuntime }),
-    [rules, previewRuntime],
-  )
+  const value = useMemo<AutolinksContextValue>(() => ({ rules, previewRuntime }), [rules, previewRuntime])
   useEffect(() => () => previewRuntime.dispose(), [previewRuntime])
 
   return <AutolinksCtx.Provider value={value}>{children}</AutolinksCtx.Provider>

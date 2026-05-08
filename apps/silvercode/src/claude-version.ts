@@ -29,6 +29,7 @@
 
 import { spawn } from "node:child_process"
 import { createLogger } from "loggily"
+import { createScope } from "@silvery/scope"
 
 const log = createLogger("silvercode:claude-version")
 
@@ -86,29 +87,35 @@ async function probeAsync(): Promise<string | null> {
 
 function runClaudeVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
+    const scope = createScope("claude-version")
     const child = spawn("claude", ["--version"], { stdio: ["ignore", "pipe", "ignore"] })
     let out = ""
     let settled = false
-    const timer = setTimeout(() => {
-      if (settled) return
-      settled = true
-      child.kill("SIGKILL")
-      reject(new Error("timeout"))
-    }, 2000)
-    ;(timer as unknown as { unref?: () => void }).unref?.()
+    const cancelTimer = scope.timeout(
+      () => {
+        if (settled) return
+        settled = true
+        child.kill("SIGKILL")
+        reject(new Error("timeout"))
+      },
+      2000,
+      { unref: true },
+    )
     child.stdout?.on("data", (chunk: Buffer) => {
       out += chunk.toString("utf8")
     })
     child.on("error", (err) => {
       if (settled) return
       settled = true
-      clearTimeout(timer)
+      cancelTimer()
+      void scope[Symbol.asyncDispose]()
       reject(err)
     })
     child.on("close", (code) => {
       if (settled) return
       settled = true
-      clearTimeout(timer)
+      cancelTimer()
+      void scope[Symbol.asyncDispose]()
       if (code !== 0) reject(new Error(`exit ${code}`))
       else resolve(out.trim())
     })

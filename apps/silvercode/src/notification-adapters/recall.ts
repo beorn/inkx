@@ -39,6 +39,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import createDebug from "debug"
 import { containsRejectedSignal, hasSalience, LONG_PROMPT_BYPASS_LENGTH } from "@bearly/recall"
+import type { Scope } from "@silvery/scope"
 import type { NotificationAdapterCtx } from "./types.ts"
 import { createDebouncedEmit, makeNotificationEventId } from "./types.ts"
 
@@ -133,7 +134,7 @@ export function registerRecallNotificationAdapter(opts: RecallAdapterOptions): (
  */
 export function registerRecallNotificationAdapterHandle(opts: RecallAdapterOptions): RecallHandle {
   const emit = createDebouncedEmit(opts)
-  const query = opts.query ?? defaultRecallQuery(opts.repoRoot)
+  const query = opts.query ?? defaultRecallQuery(opts.scope, opts.repoRoot)
   const now = opts.now ?? ((): number => Date.now())
   const rateLimitMs = opts.minQueryIntervalMs ?? MIN_RECALL_INTERVAL_MS
   let disposed = false
@@ -248,14 +249,14 @@ function shortSession(id: string): string {
  * Returns an empty array on any failure — recall is a best-effort
  * signal, never blocks the conversation.
  */
-function defaultRecallQuery(repoRootHint?: string): RecallQueryFn {
+function defaultRecallQuery(scope: Scope, repoRootHint?: string): RecallQueryFn {
   return async (query: string): Promise<readonly RecallHit[]> => {
     const root = repoRootHint ?? findRepoRoot(process.cwd())
     if (!root) {
       dRecall("no repo root found — recall unavailable")
       return []
     }
-    return runRecallCli(query, root)
+    return runRecallCli(scope, query, root)
   }
 }
 
@@ -280,7 +281,7 @@ function findRepoRoot(start: string): string | null {
  * banner to stderr (`Searching: "..." last 30d`) and the JSON object
  * to stdout. We tolerate stderr noise and a missing `results` key.
  */
-async function runRecallCli(query: string, cwd: string): Promise<readonly RecallHit[]> {
+async function runRecallCli(scope: Scope, query: string, cwd: string): Promise<readonly RecallHit[]> {
   return new Promise((resolve) => {
     const args = [
       "vendor/bearly/tools/recall.ts",
@@ -299,11 +300,13 @@ async function runRecallCli(query: string, cwd: string): Promise<readonly Recall
     })
     // We don't care about stderr — the CLI uses it for logs.
     child.stderr?.on("data", () => undefined)
+    let cancelKillTimer = (): void => {}
     child.on("error", (err) => {
+      cancelKillTimer()
       dRecall("spawn error: %s", err.message)
       resolve([])
     })
-    const killTimer = setTimeout(() => {
+    cancelKillTimer = scope.timeout(() => {
       try {
         child.kill()
       } catch {
@@ -311,7 +314,7 @@ async function runRecallCli(query: string, cwd: string): Promise<readonly Recall
       }
     }, RECALL_QUERY_TIMEOUT_MS + 2_000)
     child.on("close", () => {
-      clearTimeout(killTimer)
+      cancelKillTimer()
       resolve(parseRecallStdout(stdout))
     })
   })
