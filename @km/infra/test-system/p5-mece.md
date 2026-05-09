@@ -1,9 +1,17 @@
 ---
 mentions:
   - km
+closed_at: 2026-05-09T01:47:06.772Z
+closeReason: deferred — parent epic @km/infra/test-system abandoned
+  (2026-05-09). 130→55-60 consolidation goal is obsolete given main's
+  post-sigil-board / archive-moves / lint-sweep layout shift; any future MECE
+  pass starts from current main.
+tags:
+  - P2
+  - task
 ---
 
-# [ ] Phase 5: MECE reorg — consolidate tests from ~130 to ~55-60 files @km/all #task #P2
+# [x] Phase 5: MECE reorg — consolidate tests from ~130 to ~55-60 files @km/all #task #P2
 
 blocks:: [[@km/infra/test-system]]
 

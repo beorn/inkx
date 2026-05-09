@@ -1,9 +1,16 @@
 ---
 mentions:
   - km
+closed_at: 2026-05-09T01:45:55.934Z
+closeReason: deferred — parent epic @km/infra/test-system abandoned
+  (2026-05-09). Content stability invariant + border integrity invariant are
+  still good ideas; re-file standalone if priority emerges.
+tags:
+  - P2
+  - task
 ---
 
-# [ ] Phase 4 continued: Content stability invariant + property-based tier @km/all #task #P2
+# [x] Phase 4 continued: Content stability invariant + property-based tier @km/all #task #P2
 
 blocks:: [[@km/infra/test-system]]
 

@@ -11,9 +11,28 @@ created_by: Bjørn Stabell
 created_at: 2026-04-09T05:28:36Z
 owner: bjorn@stabell.org
 assignee: Bjørn Stabell
+closed_at: 2026-05-09T01:48:32.190Z
+closeReason: "Abandon (no rebase, no cherry-picks). feat/test-system is 29 ahead
+  / 2157 behind main. Audit: plateau gate, getAllNodes, Sterling rename,
+  expectScreen→toContainText, edge-scroll fix, TEA Phase 6 omnibox, no-non-null
+  lint sweep, EntryDisclosure rename, sigil-board / @agent dispatch — all on
+  main via independent paths. Unique residue (omnibox SigilSpec, termless async
+  dual backend, tree-snapshot API, locator strictness, default createTestApp)
+  all touch files heavily refactored on main; cherry-pick conflict surface ≈
+  rebase conflict surface. Consolidations were against 2026-04 file layout;
+  current main has different boundaries. Re-curating .spec.ts flagship tier from
+  current main is faster than porting old curation forward. Branch
+  origin/feat/test-system @ ae63da93b retained as historical reference.
+  Sub-beads (p4-invariants, p5-mece) closed as deferred.
+  @km/all/test-pro-findings (P1 separate epic) carries forward unaffected.
+  Disposition section appended to bead body. Verified at SHA
+  53976f5ec64fd587cf640c42882dc3a741c86053."
+tags:
+  - P1
+  - epic
 ---
 
-# [/] Strictest — km's testing system @km/all #epic @Bjørn Stabell #P1 ^test-system
+# [x] Strictest — km's testing system @km/all #epic @Bjørn Stabell #P1 ^test-system
 
 ## Strictest — km's Testing System
 
@@ -174,4 +193,39 @@ For audit context, recent main commits that touched test surface (informational,
 - `a5d5fd600` fix(silvercode): complete ChatEntryDisclosure→EntryDisclosure rename
 
 The lint sweep alone touched 88 .ts/.tsx files and the bead schema migration probably touched 100s more. Conflict surface against the squash is much wider than the 2026-04-28 table suggests.
+
+## Update 2026-05-09 — disposition: abandon (agent4)
+
+Audit ran. Main absorbed the substance via other paths; no remaining rebase target.
+
+### Equivalence audit results
+
+- `feat/test-system` branch: 29 ahead, 2157 behind origin/main (widened from 2035 in the 2026-05-07 update).
+- Plateau enforcement (`packages/km-infra/scripts/check-test-patterns.sh`): on main.
+- `getAllNodes` on Repo interface: on main at `packages/km-storage/src/data-store.ts:58`.
+- Sterling token rename, expectScreen→toContainText, edge-based scroll, TEA Phase 6 omnibox, no-non-null lint sweep, ChatEntryDisclosure→EntryDisclosure rename, sigil-board / @agent dispatch model: all on main and would conflict with the squash.
+- Unique residue on the branch (potentially worth cherry-picking): omnibox SigilSpec registry (`20ada24b3`), termless async dual sync/async backend (`d297cf244`), structured UI-tree snapshot API (`df3bf7446`), default `createTestApp()` minimal board (`c9d2b6d5d`), locator strictness + test.extend fixture (`2cab18fd1`).
+- Each unique residue commit touches files heavily refactored on main (TestApp surface, omnibox controllers, termless harness). Cherry-pick conflict surface ≈ rebase conflict surface; the win is illusory.
+
+### Verdict: abandon the branch. No cherry-picks.
+
+The branch's value was the consolidation narrative + the curated `.spec.ts` flagship tier. Both are obsolete:
+
+- Consolidations were against a 2026-04 file layout. Main's current layout (post sigil-board / archive moves / lint sweep) has different file boundaries; reapplying the consolidations would be net-new work, not a port.
+- Flagship tier was anchored on `.spec.ts` files that have been edited / renamed / moved on main. Re-curating from current main is faster than porting old curation forward.
+- Plateau gate is the highest-value piece and it's already on main.
+
+### Sub-beads disposition
+
+- `@km/infra/test-system/p4-invariants` (P2 OPEN): close as deferred. Content stability invariant + border integrity invariant are still good ideas; re-file standalone if priority emerges. Cost estimates (~2ms/action, ~5ms/check) carry over.
+- `@km/infra/test-system/p5-mece` (P2 OPEN): close as deferred. The 130→55-60 file consolidation goal is obsolete; main's file count and layout have shifted. Any future MECE pass starts from current main.
+
+### Branch fate
+
+- `origin/feat/test-system @ ae63da93b` — leave as historical reference; do not delete (cheap to retain, useful for archaeology).
+- Local worktree `/Users/beorn/Code/pim/km-test-system-rebase` (if still present) — safe to `git worktree remove` and delete local `feat/test-system` ref.
+
+### Closing the epic
+
+Closing this epic. `@km/all/test-pro-findings` (P1, separate epic) carries forward the 17-item Pro review scoreboard; that work is independent of feat/test-system integration and is not affected by this disposition.
 
