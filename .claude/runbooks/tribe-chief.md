@@ -216,21 +216,43 @@ Concrete examples from this session:
 
 If agent says "this fix is hard at the root, easier to suppress here" — that's the moment when fixing the root is the cheapest it'll ever be (context is hot exactly once). Push back. Same logic as anti-defer.
 
-### 13. Detect + escalate user-blocked work (chief's most important job)
+### 13. Detect + escalate + RESOLVE blocked work (chief's most important job)
 
-Chief's primary value is keeping work moving. Agents waiting silently on user verdicts is the #1 blocker — the user often doesn't notice the question, and the agent doesn't push.
+Chief's primary value is keeping work moving. ALL blocked work — not just user-blocked — is chief's responsibility to detect and unblock.
+
+Block sources:
+- **Blocked on user** — agent asked a question, user didn't see it
+- **Blocked on chief** — agent asked chief a verdict, chief didn't respond
+- **Blocked on another agent** — A waiting on B's deliverable / cherry-pick / merge resolution
+- **Blocked on integration** — agent finished bead, sent SHA, waiting for chief cherry-pick
+- **Blocked on infra** — git index.lock contention, CI failure, daemon stalling, slot corruption
+- **Blocked on external** — npm registry, GitHub rate limit, third-party API
+- **Self-blocked** — agent stuck mid-investigation but not asking for help
 
 Protocol:
-- **After every chief loop**, scan tribe history for agents whose last message was a question/query to chief or user, with no verdict yet.
-- **If an agent has been waiting >5 min on user input**, escalate IN THE USER'S CHAT (this conversation). Don't assume they saw the channel message.
-- **Push format**: "🔔 BLOCKED ON YOU: <agent> has been waiting <X>min on <one-line question>. Recommend: <chief's recommendation> OR <alternative>." Brief, scannable.
-- **Keep pushing** until the user answers — re-surface every ~5 min if no response. The user explicitly said "you can keep bugging me about it here in this chat" (2026-05-08).
-- **If chief can answer** without user input (within scope of codified discipline), do so and tell the user after the fact. Default to acting if the answer is "follow §11 no-workaround / §4 anti-defer / §12 vendor-is-the-project / etc."
-- **Track blocked-on-user as a top-of-mind list** between turns. Don't forget about an agent waiting just because new things came up.
+- **After every chief loop**, scan: tribe history (last 30 min), bd list --status wip + last activity, integration queue (pending cherry-picks), worktree audit findings.
+- **For each blocked agent**: identify which source above + apply unblock action below.
+- **Default: chief resolves it** without bouncing back to user. Use the codified discipline (§1-12) as the default policy bank — most "decisions" are already covered. Bounce to user ONLY when the question is genuinely a product/design call outside the discipline.
 
-Concrete example from 2026-05-08: agent5 sat idle ~15 min after sending a "path-A surgical vs path-B refactor" question. User didn't see it. Chief noticed only after the user asked "agent5 didn't do anything for a long time" — that should have been chief's spontaneous escalation, not the user's prompt. Chief subsequently recommended path-B (per §11) and agent5 unblocked immediately.
+Unblock actions by source:
+- **User-blocked**: escalate IN THE USER'S CHAT (this conversation, not just tribe). Push format: "🔔 BLOCKED ON YOU: <agent> has been waiting <X>min on <one-line question>. My recommendation: <X>." Brief, scannable. Keep re-surfacing every ~5 min until answered. The user explicitly said "you can keep bugging me about it here" (2026-05-08).
+- **Chief-blocked**: ANSWER IT. The agent asked you specifically; the question is owed to them. If you don't have the answer immediately, say "noted, will respond in <N>min" and follow through.
+- **Inter-agent**: relay. Send the waiting agent a status update on the dependency; if the dependency-holder is silent, ping them too.
+- **Integration**: cherry-pick + push immediately. Don't accumulate. (Per §3.)
+- **Infra**: investigate (sleep + retry on locks; release force on stuck rebases per §9; restart daemon on stalls). Document the incident if recurring.
+- **External**: communicate the wait estimate to the agent + try alternatives (different mirror, alternate auth, manual repro).
+- **Self-blocked**: spawn a /pro / /deep query, send unstuck-question to user, OR reassign to another agent with fresh eyes. Don't let an agent grind alone past 20 min without an intervention.
 
-Anti-pattern: "noted, holding for verdict" without re-surfacing the question. Silence ≠ acknowledgement.
+Concrete example from 2026-05-08: agent5 sat idle ~15 min after sending a "path-A surgical vs path-B refactor" question. User didn't see it. Chief noticed only after the user asked "agent5 didn't do anything for a long time" — that should have been chief's spontaneous escalation. After user prompted, chief recommended path-B (per §11) and agent5 unblocked immediately. Chief should have escalated AND given the recommendation 10 min earlier.
+
+Tracking: maintain a top-of-mind blocked-list between turns. Mental check at the START of every chief response: "any agent waiting?" If yes, address before new work.
+
+Anti-patterns:
+- "Noted, holding for verdict" without re-surfacing.
+- Bouncing every micro-decision back to user when codified discipline already covers it.
+- Letting an integration cherry-pick wait while chief picks up new work.
+- Forgetting an agent who's been silent for 20+ min — silence ≠ progress.
+- Treating "blocked on me" as a problem someone else will fix.
 
 ### 12. Vendor IS the project (silvery, flexily, termless, bearly, ansi, loggily, etc.)
 
