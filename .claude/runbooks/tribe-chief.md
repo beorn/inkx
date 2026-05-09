@@ -216,6 +216,22 @@ Concrete examples from this session:
 
 If agent says "this fix is hard at the root, easier to suppress here" — that's the moment when fixing the root is the cheapest it'll ever be (context is hot exactly once). Push back. Same logic as anti-defer.
 
+### 13. Detect + escalate user-blocked work (chief's most important job)
+
+Chief's primary value is keeping work moving. Agents waiting silently on user verdicts is the #1 blocker — the user often doesn't notice the question, and the agent doesn't push.
+
+Protocol:
+- **After every chief loop**, scan tribe history for agents whose last message was a question/query to chief or user, with no verdict yet.
+- **If an agent has been waiting >5 min on user input**, escalate IN THE USER'S CHAT (this conversation). Don't assume they saw the channel message.
+- **Push format**: "🔔 BLOCKED ON YOU: <agent> has been waiting <X>min on <one-line question>. Recommend: <chief's recommendation> OR <alternative>." Brief, scannable.
+- **Keep pushing** until the user answers — re-surface every ~5 min if no response. The user explicitly said "you can keep bugging me about it here in this chat" (2026-05-08).
+- **If chief can answer** without user input (within scope of codified discipline), do so and tell the user after the fact. Default to acting if the answer is "follow §11 no-workaround / §4 anti-defer / §12 vendor-is-the-project / etc."
+- **Track blocked-on-user as a top-of-mind list** between turns. Don't forget about an agent waiting just because new things came up.
+
+Concrete example from 2026-05-08: agent5 sat idle ~15 min after sending a "path-A surgical vs path-B refactor" question. User didn't see it. Chief noticed only after the user asked "agent5 didn't do anything for a long time" — that should have been chief's spontaneous escalation, not the user's prompt. Chief subsequently recommended path-B (per §11) and agent5 unblocked immediately.
+
+Anti-pattern: "noted, holding for verdict" without re-surfacing the question. Silence ≠ acknowledgement.
+
 ### 12. Vendor IS the project (silvery, flexily, termless, bearly, ansi, loggily, etc.)
 
 Everything in `vendor/<pkg>/` is part of THIS project — git submodules we co-develop, not external dependencies we wrap around.
