@@ -55,6 +55,7 @@ interface SerializeContext {
   nodeMap: Map<string, KNode>
   assignBlockId?: (nodeId: string, blockId: string) => void
   existingBlockIds: Set<string>
+  tagsByHostId?: Map<string, string[]>
 }
 
 /**
@@ -128,6 +129,16 @@ function getUneditedInlineSource(node: KNode): string | undefined {
 export interface NodeLookup {
   nodeMap: Map<string, KNode>
   existingBlockIds: Set<string>
+  /**
+   * Optional: per-host outgoing tag slugs (sorted). When provided, the
+   * serializer reconstructs YAML `tags:` from this map before emitting
+   * frontmatter. Required for round-trip fidelity of authored YAML
+   * `tags:` because `collectSigilLinks` deletes `data.tags` at parse
+   * time — without this map, sigil-shaped frontmatter is silently lost
+   * after one round-trip. See
+   * `@km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss`.
+   */
+  tagsByHostId?: Map<string, string[]>
 }
 
 /**
@@ -162,13 +173,14 @@ export function nodesToMarkdown(
   const tree = buildNodeTree(nodes)
   const lookup =
     lookupNodes != null && !Array.isArray(lookupNodes) ? lookupNodes : buildNodeLookup(lookupNodes ?? nodes)
-  const { nodeMap, existingBlockIds } = lookup
+  const { nodeMap, existingBlockIds, tagsByHostId } = lookup
 
   const ctx: SerializeContext = {
     tree,
     nodeMap,
     assignBlockId,
     existingBlockIds,
+    tagsByHostId,
   }
 
   // Find root node (file node: outline item with fstype mdfile, txtfile, or file)
@@ -233,8 +245,14 @@ function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2):
 function serializeFile(node: KNode, ctx: SerializeContext): string {
   let md = ""
 
-  // Frontmatter - exclude internal/computed fields
-  // Original frontmatter values (tags, mentions, projects, title) are preserved
+  // Frontmatter — exclude internal/computed fields. Sigil-shaped keys
+  // (`tags:` today; `mentions:` / `projects:` would join if their parsing
+  // is moved through collectSigilLinks) are NOT on `node.data` after
+  // parse — `collectSigilLinks` (km-markdown/src/ast2nodes.ts) deletes
+  // them after extracting to the canonical links table. The serializer
+  // reconstructs them from `ctx.tagsByHostId` (built by the caller from
+  // `getOutgoingLinks`) so authored YAML `tags:` survive round-trips.
+  // See @km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss.
   const frontmatterData = { ...node.data }
   delete frontmatterData.rules // Internal: heading rules
   delete frontmatterData._h1Title // Internal: H1 heading title (distinct from frontmatter title)
@@ -244,6 +262,14 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   delete frontmatterData._mdSource // Internal: verbatim inline source (km-markdown.inline-format-loss)
   delete frontmatterData._mdSourceContent // Internal: content baseline for edit detection
   delete frontmatterData._mdBullet // Internal: original list bullet char
+
+  // Reconstruct YAML `tags:` from outgoing km:#* link rows. Without this,
+  // collectSigilLinks's `delete fileData.tags` at parse time silently
+  // drops authored YAML tags after one round-trip.
+  const reconstructedTags = ctx.tagsByHostId?.get(node.id)
+  if (reconstructedTags && reconstructedTags.length > 0) {
+    frontmatterData.tags = reconstructedTags
+  }
 
   // If raw frontmatter was preserved due to malformed YAML, emit it verbatim
   const rawFrontmatter = frontmatterData._rawFrontmatter as string | undefined

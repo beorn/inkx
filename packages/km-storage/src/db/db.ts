@@ -59,6 +59,7 @@ export {
   addLinks,
   removeLinksFromSource,
   getOutgoingLinks,
+  getTagsByHostId,
   getBacklinksByHref,
   getBacklinksForNode,
   computeHrefsForNode,

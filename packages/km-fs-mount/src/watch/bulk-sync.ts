@@ -24,6 +24,7 @@ import {
   createLinkResolver,
   getAllNodes,
   getSubtree,
+  getTagsByHostId,
   nodesToMarkdown,
   buildNodeLookup,
   evaluateAllRules,
@@ -382,6 +383,10 @@ export const BulkSync = {
       // a 740k-entry Map on every file write — for 38 files that's 28M
       // wasted Map insertions plus a fresh `existingBlockIds` Set scan.
       const writebackLookup = buildNodeLookup(allNodesForWriteback)
+      // Reconstruct YAML `tags:` from outgoing km:%23* link rows on
+      // serialize. collectSigilLinks deletes `data.tags` after extraction;
+      // without this, authored YAML tags drop after one round-trip.
+      writebackLookup.tagsByHostId = getTagsByHostId(db)
 
       let written = 0
       let skippedIdentical = 0
@@ -467,6 +472,12 @@ export const BulkSync = {
 
     log.debug?.(`toFs: considering ${fileNodes.length} files`)
 
+    // Pre-build lookup with tagsByHostId so the serializer can reconstruct
+    // YAML `tags:` from outgoing km:%23* link rows. See nodes2md.ts +
+    // @km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss.
+    const lookup = buildNodeLookup(nodes)
+    lookup.tagsByHostId = getTagsByHostId(db)
+
     let written = 0
     let skippedStub = 0
     let skippedIdentical = 0
@@ -482,7 +493,7 @@ export const BulkSync = {
       const anchors = createAnchorAssigner("sync-to-fs")
       const absPath = toAbsoluteFsPath(repoPath, fileNode.fs_path)
       const subtree = getSubtree(db, fileNode.id)
-      const content = nodesToMarkdown(subtree, nodes, anchors.assign)
+      const content = nodesToMarkdown(subtree, lookup, anchors.assign)
 
       // (2) CAS-skip — symmetric with the fromFs writeback path
       // (see line ~410 of this file). When the rendered content's hash

@@ -13,10 +13,12 @@ import { ulid } from "ulid"
 import { type Change, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
 import {
   type Emitter,
+  buildNodeLookup,
   getAllNodes,
   getChildren,
   getNode,
   getSubtree,
+  getTagsByHostId,
   nodesToMarkdown,
   getNodeContentHash,
   getFolderIndexConfig,
@@ -186,6 +188,11 @@ export class ChangeHandlers {
         // file that had ANY anchor minted, even when nothing in that file actually
         // changed. (km-beads.doctor-rebuild-corruption)
         const writeChangeId = changeId ?? this.currentChangeId
+        // Pre-build lookup once per cascade so the serializer can reconstruct
+        // YAML `tags:` from the links table for every file we re-emit.
+        const allNodes = getAllNodes(this.db)
+        const lookup = buildNodeLookup(allNodes)
+        lookup.tagsByHostId = getTagsByHostId(this.db)
         for (const fileId of fileIds) {
           const file = getNode(this.db, fileId)
           if (!file?.fs_path) {
@@ -194,7 +201,7 @@ export class ChangeHandlers {
           }
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
-          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+          const content = nodesToMarkdown(subtreeNodes, lookup)
           const newHash = hashContent(content)
           if (file.content_hash === newHash) continue
           void this.fsTarget.writeFile(absPath, content, writeChangeId)
@@ -229,7 +236,12 @@ export class ChangeHandlers {
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     let subtreeNodes = getSubtree(this.db, fileNode.id)
     subtreeNodes = this.mergeExternalDrift(fileNode, absPath, subtreeNodes)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), anchors.assign)
+    // Reconstruct YAML `tags:` from the links table so authored frontmatter
+    // tags survive the round-trip (collectSigilLinks deletes data.tags at
+    // parse time). See @km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss.
+    const lookup = buildNodeLookup(getAllNodes(this.db))
+    lookup.tagsByHostId = getTagsByHostId(this.db)
+    const content = nodesToMarkdown(subtreeNodes, lookup, anchors.assign)
     const newHash = hashContent(content)
 
     // Content-equality gate. If the serialized form matches the baseline

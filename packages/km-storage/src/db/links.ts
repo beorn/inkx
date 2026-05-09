@@ -96,6 +96,41 @@ export function getOutgoingLinks(db: Database, hostId: string): KLink[] {
 }
 
 /**
+ * Build a `host_id → sorted [tag, …]` map covering every km:%23<tag> link
+ * in the database. The serializer (`nodesToMarkdown`) uses this to
+ * reconstruct YAML `tags:` for file nodes, since `collectSigilLinks`
+ * deletes `data.tags` after extraction; without reconstruction, authored
+ * YAML tags are silently dropped after one round-trip. See
+ * `@km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss`.
+ *
+ * Single query, sorted on construction so callers can compare directly.
+ */
+export function getTagsByHostId(db: Database): Map<string, string[]> {
+  // Hashes URL-encode to `%23`. Filter via SQL prefix on the encoded form
+  // (escaping `%` with `\` so the literal % is matched as data, not the
+  // SQL LIKE wildcard).
+  const rows = db
+    .query<{ host_id: string; href: string }, []>(
+      "SELECT host_id, href FROM links WHERE rel = 'link' AND href LIKE 'km:\\%23%' ESCAPE '\\' ORDER BY host_id, href",
+    )
+    .all()
+  const map = new Map<string, string[]>()
+  for (const row of rows) {
+    const decoded = decodeURIComponent(row.href)
+    if (!decoded.startsWith("km:#")) continue
+    const tag = decoded.slice("km:#".length)
+    if (tag.length === 0) continue
+    let bucket = map.get(row.host_id)
+    if (!bucket) {
+      bucket = []
+      map.set(row.host_id, bucket)
+    }
+    bucket.push(tag)
+  }
+  return map
+}
+
+/**
  * Get backlinks by canonical href.
  *
  * With runtime resolution, backlinks are found by matching the canonical

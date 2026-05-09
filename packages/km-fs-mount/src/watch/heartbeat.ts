@@ -13,7 +13,7 @@ import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:heartbeat")
 
-import { getAllNodes, getSubtree, nodesToMarkdown, type ParsePoolService } from "@km/storage"
+import { buildNodeLookup, getAllNodes, getSubtree, getTagsByHostId, nodesToMarkdown, type ParsePoolService } from "@km/storage"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import type { ReconciliationEngine } from "./reconciliation-engine.ts"
 import type { OwnershipTracker } from "./ownership-tracker.ts"
@@ -62,9 +62,14 @@ export function createHeartbeat(config: HeartbeatConfig, deps: HeartbeatDeps) {
     if (dirtyPaths.length === 0) return
 
     log.debug?.(`re-projecting ${dirtyPaths.length} dirty paths`)
+    // Cache one NodeLookup per heartbeat tick so the serializer can
+    // reconstruct YAML `tags:` from the links table (see nodes2md.ts).
+    const allNodes = getAllNodes(deps.db)
+    const lookup = buildNodeLookup(allNodes)
+    lookup.tagsByHostId = getTagsByHostId(deps.db)
     for (const fsPath of dirtyPaths) {
       try {
-        const fileNode = getAllNodes(deps.db).find((n) => n.fs_path === fsPath)
+        const fileNode = allNodes.find((n) => n.fs_path === fsPath)
         if (!fileNode) {
           // Node no longer exists -- clear the dirty flag
           deps.tracker.clearDirty(fsPath)
@@ -72,7 +77,7 @@ export function createHeartbeat(config: HeartbeatConfig, deps: HeartbeatDeps) {
         }
         const absPath = toAbsoluteFsPath(deps.repoPath, fsPath)
         const subtree = getSubtree(deps.db, fileNode.id)
-        const content = nodesToMarkdown(subtree, getAllNodes(deps.db))
+        const content = nodesToMarkdown(subtree, lookup)
         deps.writeQueue.queue({
           path: absPath,
           content,

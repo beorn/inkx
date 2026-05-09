@@ -622,6 +622,9 @@ title: My Document
 tags:
   - project
   - work
+projects:
+  - foo
+  - bar
 type: daily
 ---
 
@@ -651,15 +654,20 @@ type: daily
       expect(fileNode).toBeDefined()
       expect(fileNode!.data?.title).toBe("My Document")
 
-      // Hrefs are URL-encoded per normalizeLinkHref ("#" → "%23"); decode
-      // before substring tests so the assertion reads in canonical sigil form.
-      const tagsFromLinks = (nodeId: string): string[] =>
+      // Hrefs are URL-encoded per normalizeLinkHref ("#" → "%23", "+" → "%2B");
+      // decode before substring tests so the assertion reads in canonical sigil form.
+      const sigilLinksFromHost = (nodeId: string, sigil: string): string[] =>
         getOutgoingLinks(db, nodeId)
           .map((l) => ({ ...l, decoded: decodeURIComponent(l.href) }))
-          .filter((l) => l.rel === "link" && l.decoded.startsWith("km:#"))
-          .map((l) => l.decoded.slice("km:#".length))
+          .filter((l) => l.rel === "link" && l.decoded.startsWith(`km:${sigil}`))
+          .map((l) => l.decoded.slice(`km:${sigil}`.length))
           .sort()
-      expect(tagsFromLinks(fileNode!.id)).toEqual(["project", "work"])
+      expect(sigilLinksFromHost(fileNode!.id, "#")).toEqual(["project", "work"])
+      // YAML `projects:` is currently NOT routed through the links table by
+      // collectSigilLinks (only `tags:` is). The field stays on data.projects
+      // and round-trips through stringifyYaml. If a future refactor moves
+      // projects: through links too, mirror the tags: reconstruction logic.
+      expect(fileNode!.data?.projects).toEqual(["foo", "bar"])
 
       // Toggle a task
       const task = getAllNodes(db).find((n) => n.item?.task?.status != null)
@@ -667,26 +675,25 @@ type: daily
       repo.updateNode(task!.id, { item: { task: { status: "done", marker: "[x]" } } })
       await Bun.sleep(100)
 
-      // Verify frontmatter in FS — non-sigil fields round-trip through
-      // YAML. The sigil-shaped keys (`tags:`, `mentions:`, `projects:`)
-      // currently DO NOT round-trip: collectSigilLinks
-      // (km-markdown/src/ast2nodes.ts:1241) extracts them into the links
-      // table and `delete fileData.tags` strips the YAML field; serializer
-      // (km-markdown/src/nodes2md.ts:237 — comment is stale) emits whatever
-      // is left on `node.data`, so YAML tags are silently dropped after one
-      // round-trip. Tracked separately as
-      // @km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss (#P1
-      // #bug). When that bead lands, re-add `expect(content).toContain("- project")`
-      // and `expect(content).toContain("- work")` here.
+      // Verify frontmatter in FS — sigil-shaped keys must round-trip via the
+      // links table. Source of truth post-L5 is the link rows (km:%23<tag>,
+      // km:%2B<project>); the serializer reconstructs YAML `tags:` and
+      // `projects:` from outgoing links on the file node before emitting
+      // frontmatter. Tracked under @km/all/dissolve-data-tags-to-links.
       const content = readFileSync(join(repoDir, "frontmatter.md"), "utf-8")
       expect(content).toContain("title: My Document")
+      expect(content).toContain("- project")
+      expect(content).toContain("- work")
+      expect(content).toContain("- foo")
+      expect(content).toContain("- bar")
       expect(content).toContain("type: daily")
 
       // Re-parse and verify frontmatter in DB
       await syncManager.syncFromFs()
       const updatedFile = getAllNodes(db).find((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
       expect(updatedFile!.data?.title).toBe("My Document")
-      expect(tagsFromLinks(updatedFile!.id)).toEqual(["project", "work"])
+      expect(sigilLinksFromHost(updatedFile!.id, "#")).toEqual(["project", "work"])
+      expect(updatedFile!.data?.projects).toEqual(["foo", "bar"])
     }))
 
   test("FS content matches DB state after round-trip (golden invariant)", () =>
