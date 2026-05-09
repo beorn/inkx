@@ -3,6 +3,9 @@ aliases:
   - km-storage.cold-start-bd-mutate-corrupts-mdfile
   - km-storage-cold-start-bd-mutate-corrupts-mdfile
 created_at: 2026-05-09T01:22:11.537Z
+tags:
+  - P0
+  - bug
 ---
 
 # cold-start `bd close|drop|claim` corrupts .md (lost H1, _stub:true, no marker) #bug #P0
@@ -94,3 +97,4 @@ Body text for a.
 Collapse-parse stub feature `e2f3eee33 feat(km-storage): collapse-parse rule — opaque mdfile stubs for designated paths` plus the partial fix in `a78ade265 fix(fs-mount): scope BulkSync.toFs writeback — skip stubs and no-op writes`. The writeback skip-stub gate doesn't catch the cold-start path that lazy-loads via the stub parser, then mutates and writes back: the on-disk file gets re-serialized in stub form (frontmatter only, no H1, no body).
 
 Diagnosed during chief's `test:fast` triage assignment; diagnosis only, no fix attempted in this bead.
+
