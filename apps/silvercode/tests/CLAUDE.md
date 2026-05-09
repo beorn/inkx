@@ -92,6 +92,44 @@ regression" technique — it applies fault patches and asserts each
 invariant catches its target class. Read it before writing a new
 visual test, especially before relaxing or skipping an invariant.
 
+### UI driver (keystrokes + fake clock + scroll)
+
+`apps/silvercode/src/test/ui-driver.ts` exposes `createUiDriver(scenario)`
+on top of `renderScenario`. Use it for any L4 test that needs:
+
+- **Scroll**: `driver.scroll("up" | "down" | "pageUp" | "pageDown" | "home" | "end", lines?)`.
+  Sends the App-level Shift+Arrow / Shift+PageUp/Down / Shift+Home/End
+  scroll bindings — the same intercept that
+  `tests/keyboard-scroll.test.tsx` exercises end-to-end via raw ANSI.
+- **Fake clock**: `driver.advanceTime(ms)` wraps
+  `vi.advanceTimersByTimeAsync` + a microtask drain + `app.rerender`.
+  Caller invokes `vi.useFakeTimers()` AFTER `renderScenario` settles —
+  the harness's initial settle uses real-timer `setTimeout` and would
+  deadlock under fake timers. Restore with `vi.useRealTimers()` in
+  `afterEach`.
+- **Settle**: `driver.settle()` re-exports the harness's bounded settle
+  (one task tick + 5 microtask drains) so tests can wait for state
+  triggered by `emit()` or other async paths without re-deriving the
+  cap. The settle adapts to fake timers when active.
+
+Keystrokes (`app.press`, `app.type`), mouse events (`app.click`,
+`app.hover`, `app.wheel`), resize (`app.resize`), and locators
+(`app.locator`, `app.cell`) are direct silvery primitives — call them on
+`driver.app` (or via `scenario.app`); the driver does NOT wrap them. See
+`vendor/silvery/packages/test/src/index.tsx` for the canonical surface.
+
+When to adopt the driver:
+
+- Starting a new L4 test → use `createUiDriver` from day one.
+- Touching an L4 test that already hand-rolls scroll bytes / settle
+  loops / `vi.advanceTimersByTime` chains → migrate to the driver in
+  the same change. Don't leave hand-rolled patterns sitting next to
+  driver-aware tests.
+- Lower-layer tests (L1-L3) stay on `createRenderer` /
+  `createFakeSession` directly; the driver is L4 only.
+
+Bead: `@km/silvercode/test-ui-driver`.
+
 ## Test commands
 
 ```bash
