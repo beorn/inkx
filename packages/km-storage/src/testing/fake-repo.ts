@@ -15,7 +15,7 @@ import type { KLink } from "../db/db.ts"
 import type { StepYield } from "../repo/loader.ts"
 import type { Emitter, ChangeHub } from "../emitter.ts"
 import { registerRepoEmitter } from "../repo/repo-emitters.ts"
-import { ulid } from "ulid"
+import { getIdFactory } from "../id-factory.ts"
 
 /**
  * Options for createFakeRepo
@@ -130,7 +130,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   function applyToNodes(event: Change): void {
     switch (event.type) {
       case "node_created": {
-        const id = (event.data?.id as string) ?? event.target ?? ulid()
+        const id = (event.data?.id as string) ?? event.target ?? getIdFactory()()
         const parent_id = (event.data?.parent_id as string) ?? null
         nodes.set(id, {
           id,
@@ -180,12 +180,12 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const fakeEmitter: Emitter = {
     kmDir: "/fake/.km",
     apply(event) {
-      const full = { id: ulid(), ts: Date.now(), ...event } as Change
+      const full = { id: getIdFactory()(), ts: Date.now(), ...event } as Change
       applyToNodes(full)
       return full
     },
     commit(event) {
-      const full = { id: ulid(), ts: Date.now(), ...event } as Change
+      const full = { id: getIdFactory()(), ts: Date.now(), ...event } as Change
       applyToNodes(full)
       return full
     },

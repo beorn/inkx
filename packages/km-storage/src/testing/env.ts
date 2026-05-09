@@ -26,7 +26,7 @@
 import { Database } from "bun:sqlite"
 import { existsSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
-import { ulid } from "ulid"
+import { getIdFactory } from "../id-factory.ts"
 import type { KNode } from "@km/core"
 import { SCHEMA } from "../db/schema.ts"
 import type { Emitter } from "../emitter.ts"
@@ -185,7 +185,7 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T, options?: { mode?: T
  */
 function setupTestEnv(options?: { mode?: TestMode }): TestEnv {
   const mode = options?.mode ?? getTestMode()
-  const testId = ulid()
+  const testId = getIdFactory()()
   const testDir = join("/tmp", `kmtest-${testId}`)
   const repoDir = join(testDir, "repo")
   const kmDir = join(repoDir, ".km")

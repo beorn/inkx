@@ -1,5 +1,4 @@
-import { ulid } from "ulid"
-import { resolveRef, type Repo } from "@km/storage"
+import { getIdFactory, resolveRef, type Repo } from "@km/storage"
 
 import { bdIdToPathForm } from "./migrate.ts"
 import { resolveBeadsRoots } from "./paths.ts"
@@ -26,7 +25,7 @@ const AUTO_LENGTH = 4
  * visible at the type level.
  */
 export function mintBeadName(prefix: string): string {
-  const id = ulid()
+  const id = getIdFactory()()
   const suffix = id.slice(-AUTO_LENGTH).toLowerCase()
   return `${prefix}${SEPARATOR}${suffix}`
 }

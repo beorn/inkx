@@ -4,7 +4,7 @@
  * Create, update, and close issues.
  */
 
-import { ulid } from "ulid"
+import { getIdFactory } from "@km/storage"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
@@ -24,7 +24,7 @@ export function createBeadNode(
   options: BeadCreateOptions,
 ): { node: KNode; shortId: string; children: KNode[] } {
   const now = Date.now()
-  const id = ulid()
+  const id = getIdFactory()()
 
   // Generate short ID — prefix MUST come from repo config
   // (.km/config.yaml `beads.prefix`). No default: a missing prefix would
@@ -112,7 +112,7 @@ export function createBeadNode(
   const children: KNode[] = []
   if (options.description) {
     children.push({
-      id: ulid(),
+      id: getIdFactory()(),
       type: "p",
       parent_id: id,
       parent_idx: 0,
@@ -125,7 +125,7 @@ export function createBeadNode(
   }
   if (options.notes) {
     children.push({
-      id: ulid(),
+      id: getIdFactory()(),
       type: "p",
       parent_id: id,
       parent_idx: children.length,

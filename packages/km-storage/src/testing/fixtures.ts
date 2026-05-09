@@ -20,7 +20,7 @@
  */
 
 import type { KNode, NodeType, ItemData } from "@km/core"
-import { ulid } from "ulid"
+import { getIdFactory } from "../id-factory.ts"
 
 // =============================================================================
 // Builder Types
@@ -52,7 +52,7 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
   const now = Date.now()
 
   // Create root file node
-  const rootId = ulid()
+  const rootId = getIdFactory()()
   nodes.push(
     makeNode({
       id: rootId,
@@ -127,7 +127,7 @@ export function paragraph(content: string): NodeBuilder {
 // =============================================================================
 
 function buildNode(builder: NodeBuilder, parentId: string, idx: number, nodes: KNode[], now: number): string {
-  const id = ulid()
+  const id = getIdFactory()()
 
   const node = makeNode({
     id,
