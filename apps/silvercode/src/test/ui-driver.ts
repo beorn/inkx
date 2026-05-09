@@ -53,13 +53,10 @@ const SCROLL_KEY: Record<ScrollDirection, string> = {
  * byte 9 (super=8 + 1 implicit press); event-type `:1` = press, `:3` =
  * release.
  *
- * Held-modifier-during-dwell scenarios (the Cmd-hover popover that opens
- * after a 650 ms dwell) need these raw bytes — dwell is driven by
- * `useModifierKeys` reading the input store, not the mouse-event
- * modifier flags. For immediate-event modifier scenarios (Shift-hover,
- * Ctrl-wheel, single-event Cmd-hover assertions) prefer
- * `app.hover(x, y, { shift: true })` etc. — silvery 65282cd3 added the
- * modifier-options bag to hover/wheel for parity with click/doubleClick.
+ * @deprecated Prefer `app.keyDown("Super")` / `app.keyUp("Super")` on
+ * the silvery test App (silvery a066c2bc and later). Kept here for
+ * historical reference and for tests that need to drive non-Super
+ * modifier sequences not yet wrapped by the high-level helpers.
  */
 export const KITTY_LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
 export const KITTY_LEFT_SUPER_RELEASE = "\x1b[57444;9:3u"
@@ -95,12 +92,13 @@ export type UiDriver = RenderedScenarioWithDispose & {
 
   /**
    * Cmd-hover at terminal coords (x, y) with held-modifier dwell — the
-   * popover-opening recipe. Sends the Kitty Left-Super press sequence
-   * via `app.stdin.write` (so `useModifierKeys` updates), hovers,
-   * optionally waits for the popover delay, then settles. Caller must
-   * have rendered with `kittyMode: true` — without Kitty encoding the
-   * modifier press is a no-op (legacy ANSI cannot represent Cmd alone)
-   * and the popover will never open.
+   * popover-opening recipe. Calls `app.keyDown("Super")` (silvery
+   * a066c2bc and later) so the input-store modifier tracker
+   * (`useModifierKeys`) sees Cmd as held, then hovers, optionally waits
+   * for the popover delay, then settles. Caller must have rendered with
+   * `kittyMode: true` — without Kitty encoding the modifier press is a
+   * no-op (legacy ANSI cannot represent Cmd alone) and the popover
+   * will never open.
    *
    * Cmd state remains held after `cmdHover` returns. Call `cmdRelease()`
    * before any subsequent plain hover, or before disposing the scenario
@@ -123,9 +121,9 @@ export type UiDriver = RenderedScenarioWithDispose & {
   cmdHover(x: number, y: number, opts?: { delayMs?: number }): Promise<void>
 
   /**
-   * Drop Cmd state by sending the Kitty Left-Super release sequence,
-   * then settle. Use after a `cmdHover` assertion when the test continues
-   * to drive plain hover/click events that should not be Cmd-modified.
+   * Drop Cmd state via `app.keyUp("Super")`, then settle. Use after a
+   * `cmdHover` assertion when the test continues to drive plain
+   * hover/click events that should not be Cmd-modified.
    */
   cmdRelease(): Promise<void>
 }
@@ -170,7 +168,7 @@ export function createUiDriver(scenario: RenderedScenarioWithDispose): UiDriver 
 
     async cmdHover(x: number, y: number, opts?: { delayMs?: number }): Promise<void> {
       const delayMs = opts?.delayMs ?? 650
-      scenario.app.stdin.write(KITTY_LEFT_SUPER_PRESS)
+      await scenario.app.keyDown("Super")
       await scenario.app.hover(x, y)
       if (vi.isFakeTimers()) {
         await vi.advanceTimersByTimeAsync(delayMs)
@@ -184,7 +182,7 @@ export function createUiDriver(scenario: RenderedScenarioWithDispose): UiDriver 
     },
 
     async cmdRelease(): Promise<void> {
-      scenario.app.stdin.write(KITTY_LEFT_SUPER_RELEASE)
+      await scenario.app.keyUp("Super")
       await settle()
     },
   }
