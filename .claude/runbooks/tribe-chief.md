@@ -117,3 +117,93 @@ Before ending chief session:
 2. Verify all assigned work has beads
 3. `git push` — push any uncommitted changes
 4. Note any in-progress items for next chief session
+
+## Codified Discipline (anti-sprawl, anti-defer)
+
+These are LOAD-BEARING rules established 2026-05-08. Chief enforces; agents follow.
+
+### 1. Three-way identity alignment: `tribe = hat = slot`
+
+A worker session's three identities point at the same `N`:
+
+- Tribe name: `@agent/N` (or `agentN` until name-policy bead lands; allow daemon to validate `@agent/N` strings — see `@km/tribe/name-policy`)
+- Hat lease: `@agent/N` (`km bd update @agent/N --claim`)
+- Slot: `wtN` (canonical sibling path `<repoParent>/<repoBasename>-wtN`, plain branch `wtN`)
+
+Chief is exempt — has free-form name `chief`, no hat, no slot. The user's interactive session is also exempt.
+
+### 2. Worktree convention
+
+- Slot location: `../<repo>-wtN` (sibling to repo). NOT `.claude/worktrees/wtN` (legacy, flagged by `bun worktree audit`).
+- Branch: plain `wtN` (script auto-detects `wt\d+` names; other names get `feat/` prefix).
+- Slots are RECYCLED in place, never deleted. Recovery primitive is `git fetch origin && git reset --hard origin/main && git submodule update --recursive`. NOT `bun worktree remove`.
+
+### 3. Integrate after every bead
+
+The agent → chief → main pipeline:
+
+```
+agent: bead closed in slot, send chief: SHA + branch + files + tests + tsc + vitest
+chief: cherry-pick SHA → push origin main → confirm to agent
+agent: cd ../<repo>-wtN && git fetch origin && git reset --hard origin/main && git submodule update --recursive
+agent: pick next bead
+```
+
+DO NOT accumulate. Every bead is one round-trip. Discipline beats discovery — drift like the 426-behind wt3 incident from this session is what happens when you skip integration.
+
+### 4. No defer / no lazy out-of-scope
+
+Default answer to "should I file a follow-up bead?" is NO. Fold the discovery inline.
+
+Acceptable exceptions:
+- (a) Discovery requires explicit user judgment.
+- (b) Discovery is a different package, different lifecycle, different domain — TRULY orthogonal.
+- (c) Discovery would expand bead by >2× and creates merge-conflict risk for other agents.
+
+Lazy out-of-scope examples that are NOT acceptable:
+- "this fix touches 3 more files than the bead title implies" — that IS the scope, do it
+- "the parent caller has the same bug" — fix the parent caller
+- "the migration sub-bead I just filed is mechanical and could be done by anyone" — do it now while context is hot
+- "pre-existing flake, leaving for someone else" — keep it in your queue
+
+WHY: context is HOT exactly once per bead. Cold-context re-pickup is 3-10× the work. "Save minutes now, pay hours later" is the universal anti-pattern. Scope-debris created when context is hot becomes sprawl when context is cold — and may rot in the queue forever.
+
+Concrete cost example from 2026-05-08: agent3's km-fs-mount-migration "follow-up" was 4 files / 7 mechanical ulid() call sites — should have been part of the parent IdFactory bead in the same context-load. Cost of splitting: separate body, separate commit, separate cherry-pick, separate close protocol, plus a SECOND deferred sub-bead (km-beads-migration) waiting cold for some future agent.
+
+### 5. TDD-first per agent4's bar
+
+Every bug bead: write the failing test BEFORE the fix. Bar set by agent4's zoom-out hang fix (b3341b2ba): 14-test repro suite, extracted shared helper, cycle coverage including self-cycle/deep/cross-call isolation. Match that quality.
+
+### 6. Bead bodies stay in the slot
+
+When working in `km-wtN`, write bead bodies INSIDE that worktree only. NEVER write a bead .md file to main's working tree from inside a slot session. Leads to stranded-vs-stale collisions on cherry-pick (re-learned 3× in this session with agent3's beads).
+
+### 7. Chief tribe-send hygiene
+
+When DM'ing agents:
+- Open with: "Work assignment from chief (session 'chief', id <id>, holds chief lease — task-routing, not leadership claim)." Avoids agents misinterpreting "chief:" as a leadership-role check and rejecting the message.
+- Be explicit about slot, branch, integration policy, ack-required.
+- Don't DM rename or chief-role status updates as work assignments.
+
+### 8. Bead frontmatter minimalism
+
+Default for new bead = NO frontmatter. Title/type/priority ride the H1 hashtags (`# Title #bug #P0`). Don't hand-author `tags:`, `mentions:`, `id:`. The path-form id is canonical.
+
+If sync re-materializes adds `tags:` etc. with duplicates — that's the bug `@km/storage/bead-frontmatter-tags-duplicate` (P1), assigned to the storage agent. Strip-on-write is wrong; the right fix is don't-write.
+
+### 9. Reset-don't-delete for stuck slots
+
+If a slot has unmerged conflicts, mid-rebase, or other corruption: `git rebase --abort` / `git merge --abort`, then reset to `origin/main`. NEVER `git worktree remove --force` followed by recreate — that's the wrong primitive (re-learned this session when chief nuked 5 slots that should have been reset).
+
+### 10. Daily cadence: `bun worktree audit`
+
+Run from main repo. Flags: stuck rebase, duplicate-of-main commits (cherry `-` only), formatter-noise siblings (sha256 across slots), branches >100 behind main, mid-merge state, slot-location drift, slot-location-legacy. Wire into `/sop infra weekly`.
+
+## Anti-patterns (what NOT to do as chief)
+
+- Mass-assigning all open P1s across all idle agents — thrashes context, breaks integration discipline.
+- Filing follow-up beads for discoveries that should be inline (scope-debris).
+- Deleting worktree slots when agents have unmerged work — they ARE persistent resources.
+- Approving an agent's "out of scope, fresh agent later" pitch when it's actually the same context.
+- Re-assigning beads to the wrong-domain agent for "load balancing" — wastes context loading.
+- Letting the chief lease drift — if `tribe.members()` shows two chiefs, resolve in minutes not hours.

@@ -179,18 +179,55 @@ If a bead description has numeric targets (≤12 useEffects, ≤1000 LOC, 0 TS e
 - `/complete` — completeness audit verifies bead-acceptance grep against origin/main
 - `/pm` — alias and deeper recipe docs (`.claude/skills/pm/{create,verify,beads-ids,labels,workflows}.md`)
 
+## Anti-defer / anti-out-of-scope discipline (load-bearing — codified 2026-05-08)
+
+**Default answer to "should I file a follow-up bead?" is NO.** Fold the discovery inline. Context is HOT exactly once per bead — splitting work at that moment throws away the most valuable resource (loaded context). Cold-context re-pickup is 3-10× the work.
+
+Acceptable exceptions to inline-fold (only):
+
+- (a) Discovery requires explicit user judgment (true product/architecture decision).
+- (b) Discovery is a different package, different lifecycle, different domain — TRULY orthogonal.
+- (c) Discovery would expand bead by >2× AND creates merge-conflict risk for other agents.
+
+NOT acceptable as "out of scope" (these are scope, do them inline):
+
+- "this fix touches 3 more files than the bead title implies"
+- "the parent caller has the same bug"
+- "the migration sub-bead I just filed is mechanical and could be done by anyone"
+- "pre-existing flake — leaving for someone else"
+- "the test gate I'd add asserts on a different module"
+
+**WHY**: scope-debris created when context is hot becomes sprawl when context is cold — and may rot in the queue forever. The user pays either way. Concrete cost example (2026-05-08): agent3's `km-fs-mount-migration` "follow-up" was 4 files / 7 mechanical `ulid()` call sites — should have been part of the parent IdFactory bead in the same context-load. Cost of splitting: separate bead body, separate commit, separate cherry-pick handoff, separate close protocol, plus a SECOND deferred sub-bead waiting cold for some future agent.
+
+If you're unsure whether something is real-OOS or lazy-OOS: ask chief BEFORE splitting. Default: keep it under one bead, finish it.
+
 ## Anti-patterns
 
+- **"File a follow-up bead for the related bug" mid-flight** — see anti-defer discipline above. Default to inline-fold.
+- **"Out of scope, leaving for fresh agent"** — usually lazy. Real out-of-scope = different package + different lifecycle. Otherwise it's scope.
 - Running `bd dolt push` — Dolt is gone, git is the only transport
 - Running `bd` (no `km` prefix) — Go binary retired
-- Running `km bd` from a slot worktree (`.claude/worktrees/wtN`) for non-slot beads — landed in slot, not visible from main
+- Running `km bd` from a slot worktree (`../<repo>-wtN`) for non-slot beads — landed in slot, not visible from main
 - Closing a bead without grep evidence in `--reason`
 - Closing a bead because "the agent said done" — agents close aspirationally; verify with `km bd show <id>` and run the acceptance commands
 - Adding `id:` frontmatter to normal path-form beads — the path is the id. Use `aliases:` for old names.
+- Adding `tags:` to bead frontmatter — sigil tags belong in the H1 (`# Title #bug #P0`), not duplicated in frontmatter. Tracked: `@km/storage/bead-frontmatter-tags-duplicate`.
+- Writing a bead body to MAIN's working tree from inside a slot session — write inside the slot only; cherry-pick lands it in main. Stranded-vs-stale collisions otherwise.
 - Moving a parent bead body into its child directory as `@km/<scope>/<slug>/<slug>.md` — bead children use sibling layout: `@km/<scope>/<slug>.md` plus `@km/<scope>/<slug>/`.
 - Using `--parent km-silvery --id better-scroll-defaults` for a scoped bead — use `--id @km/silvery/better-scroll-defaults`
 - Using `--id wt.1` expecting it to auto-scope to `@km/wt/1` — auto-scope-derive was removed (4734b3bb1); use `--id @km/wt/1`
 - Re-creating a bead someone else already filed — search `km bd list --status open` first
+
+## Integration discipline — every bead is one round-trip
+
+After closing a bead in your slot:
+
+1. Send chief: `SHA + branch + files + tests added/updated + tsc count + vitest pass count`.
+2. Chief cherry-picks SHA → push origin main → confirms.
+3. Reset the slot: `cd ../<repo>-wtN && git fetch origin && git reset --hard origin/main && git submodule update --recursive`.
+4. Pick next bead from queue.
+
+DO NOT batch multiple beads onto the slot before integration. The 426-behind wt3 incident from 2026-05-08 is what happens when integration drifts. Discipline beats discovery.
 
 ## Deeper references
 
