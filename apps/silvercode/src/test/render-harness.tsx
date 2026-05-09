@@ -159,6 +159,15 @@ export type RenderScenarioOptions = {
   live?: boolean
   /** Override max layout-pass iterations per render. Default: MAX_CONVERGENCE_PASSES (2). */
   maxLayoutPasses?: number
+  /**
+   * Enable Kitty keyboard protocol encoding in the test renderer. Required
+   * for tests that assert on Cmd-hover popovers / Cmd-click links — the
+   * Super (Cmd) modifier cannot be expressed in legacy ANSI; only Kitty's
+   * CSI u format encodes it. Default: false (legacy ANSI). See
+   * `apps/silvercode/src/test/ui-driver.ts` `cmdHover` for the popover
+   * test recipe.
+   */
+  kittyMode?: boolean
 }
 
 /** Returned by `renderScenario` so tests can clean up if they hold on. */
@@ -246,6 +255,7 @@ export async function renderScenario(opts: RenderScenarioOptions): Promise<Rende
     rows,
     maxLayoutPasses: opts.maxLayoutPasses ?? 5,
     autoRender: true,
+    kittyMode: opts.kittyMode === true,
   })
   // In live mode, omit spawnFactory so the App uses its default
   // spawnClaude / spawnSdk / spawnCodex path. The script (if any) is

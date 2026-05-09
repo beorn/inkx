@@ -47,6 +47,28 @@ const SCROLL_KEY: Record<ScrollDirection, string> = {
   end: "Shift+End",
 }
 
+/**
+ * Kitty keyboard protocol "Left Super (Cmd) press" sequence. CSI u format
+ * with codepoint 57444 (left super) and modifier byte 9 (super=8 + 1
+ * implicit press), event-type 1 (press). Sent BEFORE `app.hover` to put
+ * the App into Cmd-held state, which is what triggers Cmd-hover popovers
+ * (see `vendor/silvery/packages/ag-react/src/hooks/useModifierKeys.ts`
+ * and silvercode's `ToolCall` Cmd-hover image preview).
+ *
+ * Hardcoded because @silvery/test does not yet expose modifier-aware
+ * `hover()` — `app.click(x, y, { cmd: true })` works, but `app.hover()`
+ * has no options bag. Replace this constant with the silvery API once
+ * that gap is closed.
+ */
+export const KITTY_LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
+
+/**
+ * Kitty release counterpart to `KITTY_LEFT_SUPER_PRESS`. Event-type 3 =
+ * release. Send AFTER the popover assertion to drop Cmd state so a
+ * subsequent hover is a plain hover, not a Cmd-hover.
+ */
+export const KITTY_LEFT_SUPER_RELEASE = "\x1b[57444;9:3u"
+
 export type UiDriver = RenderedScenarioWithDispose & {
   /**
    * Send a Shift+Arrow / Shift+PageUp/Down / Shift+Home/End scroll. Repeats
@@ -75,6 +97,32 @@ export type UiDriver = RenderedScenarioWithDispose & {
    * 5 microtask drains. Higher counts mask real bugs behind extra slack.
    */
   settle(): Promise<void>
+
+  /**
+   * Cmd-hover at terminal coords (x, y). Sends the Kitty Left-Super press
+   * sequence, hovers, optionally waits for the popover delay, then
+   * settles. Caller must have rendered with `kittyMode: true` — without
+   * Kitty encoding the modifier press is a no-op (legacy ANSI cannot
+   * represent Cmd alone) and the popover will never open.
+   *
+   * Cmd state remains held after `cmdHover` returns. Call `cmdRelease()`
+   * before any subsequent plain hover, or before disposing the scenario
+   * if the test asserts on hover-out behavior.
+   *
+   * The default `delayMs: 650` matches silvercode's
+   * `HOVER_POPOVER_OPEN_DELAY_MS` — the threshold ToolCall waits before
+   * opening the image-preview popover. Tests asserting popover content
+   * should keep this default; tests asserting hover-but-no-popover (e.g.
+   * partial wait) can pass a smaller value.
+   */
+  cmdHover(x: number, y: number, opts?: { delayMs?: number }): Promise<void>
+
+  /**
+   * Drop Cmd state by sending the Kitty Left-Super release sequence,
+   * then settle. Use after a `cmdHover` assertion when the test continues
+   * to drive plain hover/click events that should not be Cmd-modified.
+   */
+  cmdRelease(): Promise<void>
 }
 
 /**
@@ -114,5 +162,25 @@ export function createUiDriver(scenario: RenderedScenarioWithDispose): UiDriver 
     },
 
     settle,
+
+    async cmdHover(x: number, y: number, opts?: { delayMs?: number }): Promise<void> {
+      const delayMs = opts?.delayMs ?? 650
+      scenario.app.stdin.write(KITTY_LEFT_SUPER_PRESS)
+      await scenario.app.hover(x, y)
+      if (vi.isFakeTimers()) {
+        await vi.advanceTimersByTimeAsync(delayMs)
+      } else {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, delayMs)
+        })
+      }
+      for (let i = 0; i < 5; i++) await Promise.resolve()
+      scenario.resample()
+    },
+
+    async cmdRelease(): Promise<void> {
+      scenario.app.stdin.write(KITTY_LEFT_SUPER_RELEASE)
+      await settle()
+    },
   }
 }

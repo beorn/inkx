@@ -89,4 +89,21 @@ describe("createUiDriver", () => {
 
     driver.dispose()
   })
+
+  test("cmdHover/cmdRelease wire stdin modifier sequences without throwing", async () => {
+    // Verifies the Cmd-hover popover recipe end-to-end: kittyMode opt-in
+    // → super-press via stdin → hover → settle past popover delay →
+    // super-release → settle. No assertion on popover content (welcome
+    // scenario has no Cmd-hover targets); this is a wiring smoke. The
+    // canonical popover-content assertion lives in
+    // tests/visual/hover-popover.test.tsx.
+    const scenario = await renderScenario({ script: welcome, kittyMode: true })
+    const driver = createUiDriver(scenario)
+
+    await driver.cmdHover(10, 0, { delayMs: 50 })
+    expect(driver.text.length).toBeGreaterThan(0)
+    await driver.cmdRelease()
+
+    driver.dispose()
+  })
 })

@@ -158,6 +158,51 @@ regressions hide trivially when only 120 is exercised.
 
 Bead: `@km/silvercode/test-resize-matrix`.
 
+### Hover popovers + Cmd-modifier mouse
+
+Cmd-hover popovers (the ToolCall image preview, reference link cards,
+etc.) need two pieces of wiring beyond plain `app.hover(x, y)`:
+
+1. **Kitty keyboard protocol enabled** at the renderer. Pass
+   `kittyMode: true` to `renderScenario` — without it the Super (Cmd)
+   modifier press is unrepresentable in legacy ANSI and the popover
+   never opens. The harness threads this option through to
+   `createRenderer`.
+
+2. **Modifier-press sequence sent before the hover.** The driver
+   exposes `cmdHover(x, y, opts?)` which sends the Kitty Left-Super
+   press, hovers, waits the popover delay (default 650 ms — matches
+   silvercode's `HOVER_POPOVER_OPEN_DELAY_MS`), and settles. Cmd state
+   stays held until the test calls `driver.cmdRelease()`.
+
+```ts
+const scenario = await renderScenario({ script: ..., kittyMode: true })
+const driver = createUiDriver(scenario)
+
+// Position is in terminal cell coordinates — find it via
+// driver.text.indexOf("/path/to/image.png") then derive (col, row).
+await driver.cmdHover(col, row)
+expect(driver.text).toContain("[image preview]")
+
+// Drop Cmd before any subsequent plain hover/click.
+await driver.cmdRelease()
+```
+
+The `KITTY_LEFT_SUPER_PRESS` / `KITTY_LEFT_SUPER_RELEASE` byte
+constants are exported from `ui-driver.ts` for tests that need to
+drive arbitrary modifier sequences (e.g. shift-hover, ctrl-hover) that
+the driver does not yet wrap. When @silvery/test grows a
+modifier-aware `hover()` API the driver will retire these constants in
+favor of it.
+
+Mouse-event APIs (click, doubleClick, hover, wheel) come straight from
+silvery's `app` and `term.mouse.*` — see `tests/notification-event-row`
+and `tests/tool-call-rendering-v2` for canonical termless-side click
+assertions, and `tests/tool-call.test.tsx` for the createRenderer-side
+pattern that this driver formalizes.
+
+Bead: `@km/silvercode/test-hover-popovers`.
+
 ## Test commands
 
 ```bash
