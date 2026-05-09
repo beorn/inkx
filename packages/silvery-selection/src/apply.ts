@@ -9,7 +9,19 @@
  * Drag previews are baseline-based: previewReplace/previewToggle compute against startState, not iteratively.
  */
 
-import type { ID, SelectionSnapshot, SubSelectionBase, TextSelection } from "./types.ts"
+import type { ID, OccurrencePath, SelectionSnapshot, SubSelectionBase, TextSelection } from "./types.ts"
+
+/**
+ * Phase 1.1 of @km/tui/cursor-is-path-no-global-subscriptions:
+ * derive a single-segment occurrence path from a leaf id. Hosts that
+ * have richer occurrence info (km's visible-tree path) will replace
+ * this with authored multi-segment paths in phase 2 via a new
+ * path-shaped apply API. For now every apply* writer in this package
+ * keeps cursorPath in sync with cursor as a best-effort 1-segment path.
+ */
+function pathFor(cursor: ID | null): OccurrencePath | null {
+  return cursor !== null ? [cursor] : null
+}
 
 // --- Helpers ---
 
@@ -22,6 +34,7 @@ export const ACCEPT_ALL: ContainsFn = () => true
 /** The empty state. Reused singleton. */
 export const EMPTY_STATE: SelectionSnapshot<never> = Object.freeze({
   cursor: null,
+  cursorPath: null,
   anchor: null,
   ids: Object.freeze([]) as readonly ID[],
   sub: null,
@@ -116,6 +129,7 @@ export function applySelect<Sub>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: normalized,
     sub: null, // node op clears sub
@@ -194,6 +208,7 @@ function applyToggle<Sub>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: normalized,
     sub: null,
@@ -219,6 +234,7 @@ export function applyExtend<Sub>(
 
   return {
     cursor,
+    cursorPath: pathFor(cursor),
     anchor,
     ids: range,
     sub: null,
@@ -239,6 +255,7 @@ export function applyCollapse<Sub>(state: SelectionSnapshot<Sub>): SelectionSnap
 
   return {
     cursor: state.cursor,
+    cursorPath: pathFor(state.cursor),
     anchor: state.cursor,
     ids: [state.cursor],
     sub: null,
@@ -291,6 +308,7 @@ export function applyRemove<Sub>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: remaining,
     sub: null,
@@ -312,6 +330,7 @@ export function applyDeselect<Sub>(state?: SelectionSnapshot<Sub>): SelectionSna
 
   return {
     cursor: null,
+    cursorPath: null,
     anchor: null,
     ids: [],
     sub: null,
@@ -355,6 +374,7 @@ export function applySelectAll<Sub>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: [...children],
     sub: null, // node op clears sub
@@ -381,6 +401,7 @@ export function applyTextEdit<Sub>(state: SelectionSnapshot<Sub>, nodeId: ID, of
 
   return {
     cursor: state.cursor,
+    cursorPath: state.cursorPath ?? pathFor(state.cursor),
     anchor: state.anchor,
     ids: state.ids,
     sub: newSub as unknown as Sub,
@@ -409,6 +430,7 @@ export function applyTextSelect<Sub>(
 
   return {
     cursor: state.cursor,
+    cursorPath: state.cursorPath ?? pathFor(state.cursor),
     anchor: state.anchor,
     ids: state.ids,
     sub: {
@@ -429,6 +451,7 @@ export function applyExitSub<Sub>(state: SelectionSnapshot<Sub>): SelectionSnaps
 
   return {
     cursor: state.cursor,
+    cursorPath: state.cursorPath ?? pathFor(state.cursor),
     anchor: state.anchor,
     ids: state.ids,
     sub: null,
@@ -463,6 +486,7 @@ export function applyReconcile<Sub extends SubSelectionBase>(
     if (state.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
     return {
       cursor: null,
+      cursorPath: null,
       anchor: null,
       ids: [],
       sub: null,
@@ -523,6 +547,7 @@ export function applyReconcile<Sub extends SubSelectionBase>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: remaining,
     sub: newSub,
@@ -538,6 +563,7 @@ export function applySetRoot<Sub>(state: SelectionSnapshot<Sub>, id: ID | null):
 
   return {
     cursor: state.cursor,
+    cursorPath: state.cursorPath ?? pathFor(state.cursor),
     anchor: state.anchor,
     ids: state.ids,
     sub: state.sub,
@@ -559,6 +585,7 @@ export function applyRootUp<Sub>(
 
   return {
     cursor: state.cursor,
+    cursorPath: state.cursorPath ?? pathFor(state.cursor),
     anchor: state.anchor,
     ids: state.ids,
     sub: state.sub,
@@ -586,7 +613,7 @@ export class SelectionInvariantError extends Error {
  * - sub.nodeId is a valid ID when sub is non-null
  */
 export function assertInvariants<Sub extends SubSelectionBase>(state: SelectionSnapshot<Sub>): void {
-  const { cursor, anchor, ids, sub } = state
+  const { cursor, cursorPath, anchor, ids, sub } = state
 
   // cursor is in ids
   if (cursor !== null && ids.indexOf(cursor) === -1) {
@@ -612,6 +639,19 @@ export function assertInvariants<Sub extends SubSelectionBase>(state: SelectionS
   if (sub !== null) {
     if (!sub.nodeId) {
       throw new SelectionInvariantError(`sub-selection (kind="${sub.kind}") has no nodeId`)
+    }
+  }
+
+  // cursorPath leaf must equal cursor (when both are set).
+  // Phase 1.1 of @km/tui/cursor-is-path-no-global-subscriptions: every
+  // apply* writer keeps cursor in lockstep with the path leaf so render
+  // and id-shaped reads stay coherent.
+  if (cursorPath !== undefined && cursorPath !== null) {
+    const leaf = cursorPath.length > 0 ? cursorPath[cursorPath.length - 1]! : null
+    if (leaf !== cursor) {
+      throw new SelectionInvariantError(
+        `cursorPath leaf "${leaf}" !== cursor "${cursor}" (cursor must be path leaf)`,
+      )
     }
   }
 }

@@ -8,8 +8,13 @@
  * "nearest surviving node" repair and identity-preserving moves.
  */
 
-import type { DefaultSubSelection, ID, SelectionSnapshot, SubSelectionBase } from "./types.ts"
+import type { DefaultSubSelection, ID, OccurrencePath, SelectionSnapshot, SubSelectionBase } from "./types.ts"
 import { arraysEqual, EMPTY_STATE } from "./apply.ts"
+
+/** Mirror of apply.ts's pathFor — local copy avoids a cross-module export. */
+function pathFor(cursor: ID | null): OccurrencePath | null {
+  return cursor !== null ? [cursor] : null
+}
 
 // --- Tree op types ---
 
@@ -119,6 +124,7 @@ function transformDelete<Sub extends SubSelectionBase>(
     if (sel.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
     return {
       cursor: null,
+      cursorPath: null,
       anchor: null,
       ids: [],
       sub: null,
@@ -156,6 +162,7 @@ function transformDelete<Sub extends SubSelectionBase>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: ordered,
     sub: newSub,
@@ -188,6 +195,7 @@ function transformMove<Sub extends SubSelectionBase>(
 
     return {
       cursor: sel.cursor,
+      cursorPath: sel.cursorPath ?? pathFor(sel.cursor),
       anchor: sel.anchor,
       ids: reordered,
       sub: sel.sub,
@@ -202,6 +210,7 @@ function transformMove<Sub extends SubSelectionBase>(
     if (sel.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
     return {
       cursor: null,
+      cursorPath: null,
       anchor: null,
       ids: [],
       sub: subAffected ? null : sel.sub,
@@ -240,6 +249,7 @@ function transformMove<Sub extends SubSelectionBase>(
 
   return {
     cursor: newCursor,
+    cursorPath: pathFor(newCursor),
     anchor: newAnchor,
     ids: ordered,
     sub: newSub,
