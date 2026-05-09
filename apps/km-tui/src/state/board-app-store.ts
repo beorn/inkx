@@ -851,6 +851,26 @@ export function createBoardAppStoreState(
                 cursorColumnNodeId: action.columnNodeId ?? null,
               }
             }
+            // Phase 2 of @km/tui/cursor-is-path-no-global-subscriptions:
+            // author the visible-tree occurrence path from the SELECT effect's
+            // (column, card, leaf) triple. Render-side consumers (phase 3 in
+            // ViewTree.sync) read this instead of the global cursor signal.
+            if (action.nodeId) {
+              const segments: string[] = []
+              if (action.columnNodeId) segments.push(action.columnNodeId)
+              if (action.cardNodeId && action.cardNodeId !== action.columnNodeId) {
+                segments.push(action.cardNodeId)
+              }
+              if (
+                action.nodeId !== action.cardNodeId &&
+                action.nodeId !== action.columnNodeId
+              ) {
+                segments.push(action.nodeId)
+              }
+              focusedPane.cursorPath = segments
+            } else {
+              focusedPane.cursorPath = null
+            }
           }
           // Update sel store cursor — this is the canonical cursor source
           // for Board.tsx and all components reading sel.node.cursor().

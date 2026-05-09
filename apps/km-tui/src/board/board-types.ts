@@ -157,14 +157,26 @@ export interface BoardPaneState extends PaneStateBase {
    *
    * **Deprecated** — phase 2 of @km/tui/cursor-is-path-no-global-subscriptions.
    * The half-step `cursorId + cardNodeId + columnNodeId` triple is being
-   * superseded by `cursorPath: readonly ID[]` on the SelectionSnapshot, which
-   * carries the full visible-tree occurrence. This field is still populated
-   * for back-compat through phase 3 and will be removed in phase 4. */
+   * superseded by `cursorPath` below, which carries the full visible-tree
+   * occurrence. This field is still populated for back-compat through phase
+   * 3 and will be removed in phase 4. */
   cursorOccurrenceHint?: {
     cursorId: string | null
     cursorCardNodeId: string | null
     cursorColumnNodeId: string | null
   }
+  /**
+   * Visible-tree occurrence path for the cursor — root → column → card →
+   * descendant leaf. The leaf id always equals `pane.sel.node.cursor()`.
+   *
+   * Authored by `dispatchBoard("SELECT")` from the action's column/card/leaf
+   * triple. Read by `ViewTree.sync` to set per-node `cursorMatch` (phase 3),
+   * and by render selectors that need to know "is the cursor inside this
+   * subtree?" without subscribing to the global cursor signal.
+   *
+   * Empty array means "cursor is at the visible-tree root". Null means "no
+   * cursor". Phase 2 of @km/tui/cursor-is-path-no-global-subscriptions. */
+  cursorPath?: readonly string[] | null
 
   // Per-pane view config
   viewMode: ViewMode
