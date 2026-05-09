@@ -199,6 +199,39 @@ If a slot has unmerged conflicts, mid-rebase, or other corruption: `git rebase -
 
 Run from main repo. Flags: stuck rebase, duplicate-of-main commits (cherry `-` only), formatter-noise siblings (sha256 across slots), branches >100 behind main, mid-merge state, slot-location drift, slot-location-legacy. Wire into `/sop infra weekly`.
 
+### 11. No workarounds — fix at the root
+
+Pairs with anti-defer. When a bug surfaces, the question is "why does this happen", not "how do I make the symptom stop". Concrete forbidden patterns:
+
+- **Don't change a test to match buggy production code** — change the production code to match the asserted behavior.
+- **Don't `.skip` / `xfail` / raise threshold** to make a failing test pass — fix the failure.
+- **Don't suppress a warning / log / invariant violation** — root-cause it.
+- **Don't catch-and-ignore an exception** the framework was raising for a reason.
+- **Don't work around a vendor bug** — `vendor/<pkg>/` is part of THIS project (silvery, flexily, termless, bearly, ansi, loggily, alien-*, vimonkey). Fix the bug in the submodule directly. See "Vendor IS the project" below.
+
+Concrete examples from this session:
+- **Root fix**: 21fefe351 (km-view hang) — removed the buggy `tree.sync` from the getter. Not "raise the heartbeat threshold."
+- **Root fix**: b3341b2ba (zoom-out hang) — added cycle protection to recursive DFS. Not "catch infinite loop and abort."
+- **Symptom band-aid (acceptable short-term, but root tracked separately)**: e88900336 (`tags: [P0, P0, bug, bug]` → dedup) — the root cause `@km/storage/bead-frontmatter-tags-duplicate` (P1) is owned by agent3 to remove the writeback path entirely.
+
+If agent says "this fix is hard at the root, easier to suppress here" — that's the moment when fixing the root is the cheapest it'll ever be (context is hot exactly once). Push back. Same logic as anti-defer.
+
+### 12. Vendor IS the project (silvery, flexily, termless, bearly, ansi, loggily, etc.)
+
+Everything in `vendor/<pkg>/` is part of THIS project — git submodules we co-develop, not external dependencies we wrap around.
+
+Frame:
+- **We are building infrastructure (silvery, flexily, termless, bearly) as much as we are building apps (km, silvercode)**.
+- **Apps showcase the infrastructure**. km is silvery's lead showcase; silvercode showcases agent-host primitives.
+- **Infrastructure must be ergonomic for many consumers**, not just our current app needs. Design APIs for hypothetical second/third users.
+
+Implications for chief and agents:
+- A "km tui rendering bug" may need to be fixed in `vendor/silvery/`, not in `apps/km-tui/`. Don't reflexively pin the fix to the app.
+- Don't reimplement primitives silvery already has (SelectList, TextInput, focusScope, etc.). Read `vendor/silvery/CLAUDE.md` first.
+- When designing a new API/component, explicitly think about the second consumer. If the design only fits km, it's wrong.
+- When fixing a vendor package, the fix lands in the vendor submodule + the km root pointer-bumps to that SHA. Two commits, two pushes.
+- The vendor boundary rule (`vendor/CLAUDE.md`) still applies — vendor source must not reference `vendor/...` paths internally; vendor packages must work as standalone clones. But that's about packaging hygiene, not "vendor is external."
+
 ## Anti-patterns (what NOT to do as chief)
 
 - Mass-assigning all open P1s across all idle agents — thrashes context, breaks integration discipline.
