@@ -171,6 +171,54 @@ describe("E2E Round-Trip Features", () => {
         expect(fileNode?.data?.tags).toBeUndefined()
         expect(fileNode?.data?.author).toBe("test")
       }))
+
+    test("bead with H1 inline hashtags does NOT gain redundant frontmatter tags: (P1 #bug bead-frontmatter-tags-duplicate)", () =>
+      withTestEnv(async ({ repoDir, data }) => {
+        // Bead-shape: `# Title #bug #P0` in H1, no YAML frontmatter tags.
+        // The hashtags in the H1 are extracted to the links table by
+        // collectSigilLinks. The serializer must NOT also emit them as
+        // `tags:` in frontmatter — that creates a redundant denormalization
+        // and stale link rows accumulate as `tags: [bug, bug, P0, P0]`
+        // across round-trips. The H1 inline form is the canonical source.
+        const { fileContent } = await roundTrip(
+          data.database,
+          repoDir,
+          "bead.md",
+          "# Cold-start bd mutate corrupts mdfile #bug #P0\n\nBody text.\n",
+        )
+
+        // Inline hashtags in H1 must round-trip.
+        expect(fileContent).toContain("#bug")
+        expect(fileContent).toContain("#P0")
+
+        // CRUCIAL: no `tags:` in frontmatter — H1 inline is the canonical source.
+        expect(fileContent).not.toContain("tags:")
+
+        // Should not even have a frontmatter block at all (no fields → no `---`).
+        expect(fileContent).not.toMatch(/^---\n/)
+      }))
+
+    test("doc with BOTH H1 inline hashtag AND YAML tags: redundancy stripped from YAML", () =>
+      withTestEnv(async ({ repoDir, data }) => {
+        // Mixed-source: H1 inline `#bug` + YAML `tags: [bug, project]`.
+        // Per the no-redundancy rule, the inline form wins — YAML emits
+        // ONLY the tags that aren't already inline. `bug` is in H1 so
+        // it's dropped from YAML; `project` stays in YAML (no inline
+        // counterpart).
+        const { fileContent } = await roundTrip(
+          data.database,
+          repoDir,
+          "mixed.md",
+          "---\ntags:\n  - bug\n  - project\n---\n# Title #bug\n\nBody.\n",
+        )
+
+        // YAML keeps the non-redundant tag.
+        expect(fileContent).toContain("- project")
+        // YAML drops `bug` because it's already inline.
+        expect(fileContent).not.toContain("- bug")
+        // Inline hashtag survives.
+        expect(fileContent).toContain("#bug")
+      }))
   })
 
   describe("content types", () => {

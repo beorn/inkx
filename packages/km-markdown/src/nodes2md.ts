@@ -48,6 +48,65 @@ function anchorLiteralFor(node: KNode): string | undefined {
 const log = createLogger("km:markdown:nodes2md")
 
 /**
+ * Dedupe a tag list while preserving first-seen order. Stale link rows
+ * can accumulate before a reconciler re-extract pass (see
+ * `@km/storage/sync-architecture/chaos-matrix-reconciler-stale-state-on-rewrite`),
+ * yielding duplicates like `[bug, bug, P0, P0]`. Defense in depth.
+ */
+function dedupTags(tags: readonly string[] | undefined): string[] {
+  if (!tags || tags.length === 0) return []
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const t of tags) {
+    if (!seen.has(t)) {
+      seen.add(t)
+      out.push(t)
+    }
+  }
+  return out
+}
+
+const INLINE_HASHTAG_RE = /(?:^|[^A-Za-z0-9_])#([A-Za-z0-9][A-Za-z0-9_-]*)/g
+
+/** Pull every inline `#tag` occurrence out of a content string. */
+function extractInlineHashtags(content: string | undefined | null, into: Set<string>): void {
+  if (!content) return
+  INLINE_HASHTAG_RE.lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = INLINE_HASHTAG_RE.exec(content)) !== null) {
+    if (match[1]) into.add(match[1])
+  }
+}
+
+/**
+ * Collect every `#tag` that appears inline in the file's H1 title or
+ * descendant content. Used to suppress redundant frontmatter `tags:`
+ * emission when a tag is already expressed inline (the bead-shape
+ * `# Title #bug #P0` case).
+ */
+function collectInlineTagsForFile(fileNode: KNode, ctx: SerializeContext): Set<string> {
+  const tags = new Set<string>()
+  // H1 title text + verbatim source carry inline `#tags` from the heading.
+  extractInlineHashtags(fileNode.title, tags)
+  extractInlineHashtags(fileNode.content, tags)
+  const mdSource = (fileNode.data as Record<string, unknown> | undefined)?._mdSource
+  if (typeof mdSource === "string") extractInlineHashtags(mdSource, tags)
+  // Walk descendants — children's content may also carry inline `#tags`.
+  const stack: KNode[] = [...(ctx.tree.get(fileNode.id) ?? [])]
+  while (stack.length > 0) {
+    const node = stack.pop()
+    if (!node) continue
+    extractInlineHashtags(node.content, tags)
+    extractInlineHashtags(node.title, tags)
+    const childMd = (node.data as Record<string, unknown> | undefined)?._mdSource
+    if (typeof childMd === "string") extractInlineHashtags(childMd, tags)
+    const children = ctx.tree.get(node.id)
+    if (children) stack.push(...children)
+  }
+  return tags
+}
+
+/**
  * Context for serialization - includes node lookup for embedding reconstruction
  */
 interface SerializeContext {
@@ -266,9 +325,17 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   // Reconstruct YAML `tags:` from outgoing km:#* link rows. Without this,
   // collectSigilLinks's `delete fileData.tags` at parse time silently
   // drops authored YAML tags after one round-trip.
-  const reconstructedTags = ctx.tagsByHostId?.get(node.id)
-  if (reconstructedTags && reconstructedTags.length > 0) {
-    frontmatterData.tags = reconstructedTags
+  //
+  // CRITICAL: filter out tags that already appear inline as `#tag` in the
+  // rendered content. Beads use `# Title #bug #P0` syntax — the H1
+  // hashtags ARE the canonical source. Emitting a redundant `tags:` block
+  // creates dual-source-of-truth + duplicate accumulation
+  // (@km/storage/bead-frontmatter-tags-duplicate).
+  const linksTags = dedupTags(ctx.tagsByHostId?.get(node.id))
+  if (linksTags.length > 0) {
+    const inlineTags = collectInlineTagsForFile(node, ctx)
+    const yamlOnly = linksTags.filter((t) => !inlineTags.has(t))
+    if (yamlOnly.length > 0) frontmatterData.tags = yamlOnly
   }
 
   // If raw frontmatter was preserved due to malformed YAML, emit it verbatim
