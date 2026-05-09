@@ -335,10 +335,19 @@ function TreeNodeImpl({
   const nodeStore = useNodeStore()
   const n = useTreeNode(node.id)
   const cursorOnThis = useSignal(n.cursor)
-  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
   const cursorPathChildId = useSignal(n.cursorPathChildId)
-  const cursorId = useSignal(sel.node.cursor)
   const isNodeSelected = useSignal(n.selected)
+  // Phase 3 of @km/tui/cursor-is-path-no-global-subscriptions:
+  // For "is the cursor in my owner card?" we used to subscribe to the
+  // global `nodeStore.cursorCardNodeId` and compare ids — that woke
+  // every TreeNode on every cursor move (74 re-renders per j press).
+  // Now we ask the owner card's per-node `cursor`/`cursorDescendant`
+  // signal, which only flips when the cursor enters/leaves *that*
+  // card's subtree. Non-card depth-0 nodes use a sentinel.
+  const ownerCardForOccurrence = ownerCardId ?? (depth === 0 ? node.id : null)
+  const ownerCardTreeNode = useTreeNode(ownerCardForOccurrence ?? "__noowner__")
+  const ownerCardHasCursorDirect = useSignal(ownerCardTreeNode.cursor)
+  const ownerCardHasCursorDescendant = useSignal(ownerCardTreeNode.cursorDescendant) as boolean
   const editState = useSignal(n.edit)
   const foldOverride = useSignal(n.foldOverride)
   // Sticky-fold state — drives the inverse fold-marker visual for pinned nodes.
@@ -348,9 +357,9 @@ function TreeNodeImpl({
   const isFolded = resolvedDepth <= 0
   const editBlockIndex = editState?.blockIndex ?? null
   const isInlineEditing = editBlockIndex !== null
-  const effectiveOwnerCardId = ownerCardId ?? (depth === 0 ? node.id : null)
+  const effectiveOwnerCardId = ownerCardForOccurrence
   const isCursorInThisOccurrence =
-    depth === 0 || effectiveOwnerCardId == null || effectiveOwnerCardId === cursorCardNodeId
+    depth === 0 || effectiveOwnerCardId == null || ownerCardHasCursorDirect || ownerCardHasCursorDescendant
   const isSelected =
     !suppressCursorHighlight && !isInlineEditing && (isSelectedProp || (cursorOnThis && isCursorInThisOccurrence))
   const editingTitle = editBlockIndex === 0
@@ -386,11 +395,18 @@ function TreeNodeImpl({
         isBrokenEmbed: viewNode.isBrokenEmbed,
       }
     : resolveEmbed(repo, node)
-  const embeddedCursorChildId = useMemo(
-    () => (isEmbedded && resolvedNode ? directChildOnPath(repo, cursorId as string | null, resolvedNode.id) : null),
-    [isEmbedded, resolvedNode?.id, repo, cursorId],
-  )
-  const effectiveCursorPathChildId = cursorRevealChildId ?? cursorPathChildId ?? embeddedCursorChildId
+  // Phase 3 of @km/tui/cursor-is-path-no-global-subscriptions:
+  // For embedded nodes, the embed source's per-node `cursorPathChildId`
+  // signal carries which of its direct children is on the cursor path.
+  // This replaces the previous `useSignal(sel.node.cursor)` global
+  // subscription that re-rendered every TreeNode on every cursor move.
+  // Non-embedded nodes skip the subscription entirely (sentinel id).
+  const embeddedSourceTreeNode = useTreeNode(isEmbedded && resolvedNode ? resolvedNode.id : "__noembed__")
+  const embeddedCursorChildId = useSignal(embeddedSourceTreeNode.cursorPathChildId) as string | null
+  const effectiveCursorPathChildId =
+    cursorRevealChildId ??
+    cursorPathChildId ??
+    (isEmbedded && resolvedNode ? embeddedCursorChildId : null)
 
   // Children: use ViewTree childIds when available (already fold/hidden/embed resolved).
   // Fallback to manual fetch for contexts without ViewTree (storybook, tests).

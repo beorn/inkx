@@ -1773,7 +1773,10 @@ export function createBoardAppStoreState(
           const cursorId = pane.sel.node.cursor() as string | null
           const visibleLens = pane.signals?.visibleLens()
           const viewMode = pane.signals?.viewMode() ?? pane.viewMode
-          nodeStore.setCursor(cursorId)
+          // Phase 3 of @km/tui/cursor-is-path-no-global-subscriptions:
+          // pass the visible-tree occurrence path so per-node
+          // `cursorPathChildId` markers track embed-aware cursor moves.
+          nodeStore.setCursor(cursorId, pane.cursorPath ?? null)
           const writeCursorClassification = (
             cursorCardNodeId: string | null,
             cursorColumnNodeId: string | null,

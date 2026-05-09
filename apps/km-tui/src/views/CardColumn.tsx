@@ -343,13 +343,15 @@ const Card = React.memo(
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
     // Also accounts for title wrap lines (long titles that wrap to 2 lines).
     const repo = useRepo()
-    const sel = useSel()
-    const cursorId = useSignal(sel.node.cursor) as string | null
-    const cursorRevealChildId = useMemo(
-      () => (card.embed_of ? directChildOnPath(repo, cursorId, card.embed_of) : null),
-      [repo, cursorId, card.embed_of],
-    )
-    const cursorInCardDescendant = cursorInDescendant || cursorRevealChildId !== null
+    // Phase 3 of @km/tui/cursor-is-path-no-global-subscriptions:
+    // For embedded cards, the embed source's per-node `cursorPathChildId`
+    // signal tells us which of its direct children is on the cursor path.
+    // This replaces the previous `useSignal(sel.node.cursor)` global
+    // subscription that re-rendered every card on every cursor move.
+    // Non-embed cards skip the subscription entirely (sentinel id).
+    const embedSourceTreeNode = useTreeNode(card.embed_of ?? "__noembed__")
+    const cursorRevealChildId = useSignal(embedSourceTreeNode.cursorPathChildId) as string | null
+    const cursorInCardDescendant = cursorInDescendant || (card.embed_of != null && cursorRevealChildId !== null)
     const isSelected = isCursorOnThis || cursorInCardDescendant
 
     // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)

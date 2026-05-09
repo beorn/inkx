@@ -237,15 +237,44 @@ export function createNodeStore() {
     prevCursorParentId = nextParentId
   }
 
-  function syncCursorPathMarkers(nodeId: string | null): void {
+  /**
+   * Update each parent's `cursorPathChildId` signal so it points at the
+   * immediate child on the active cursor path.
+   *
+   * When a `visiblePath` is supplied (phase 3 of
+   * @km/tui/cursor-is-path-no-global-subscriptions), it walks that
+   * occurrence path — root, column, card, sub-item, ... leaf — and
+   * marks each segment's `cursorPathChildId` with the next segment.
+   * This is the only correct walk for embedded-card cursors: the
+   * storage parent chain leaves the embed source card's
+   * `cursorPathChildId` unset because the source isn't a storage parent
+   * of the embedded leaf, so any per-node renderer that looks up
+   * "which of my children is on the cursor path?" finds nothing.
+   *
+   * When no `visiblePath` is supplied, falls back to the storage
+   * parent walk (legacy behavior — still correct for non-embedded
+   * cursor moves).
+   */
+  function syncCursorPathMarkers(nodeId: string | null, visiblePath?: readonly string[] | null): void {
     const next = new Map<string, string>()
-    let childId = nodeId
-    let parentId = childId ? getParentId(childId) : null
 
-    while (childId && parentId) {
-      next.set(parentId, childId)
-      childId = parentId
-      parentId = getParentId(childId)
+    if (visiblePath && visiblePath.length > 0) {
+      // Path-based: each path[i] marks path[i+1] as its cursor child.
+      // The leaf has no child to mark; that's the cursor itself.
+      for (let i = 0; i < visiblePath.length - 1; i++) {
+        const parent = visiblePath[i]
+        const child = visiblePath[i + 1]
+        if (parent && child) next.set(parent, child)
+      }
+    } else {
+      // Legacy: storage parent walk.
+      let childId = nodeId
+      let parentId = childId ? getParentId(childId) : null
+      while (childId && parentId) {
+        next.set(parentId, childId)
+        childId = parentId
+        parentId = getParentId(childId)
+      }
     }
 
     for (const [parentId, prevChildId] of prevCursorPathChildren) {
@@ -262,20 +291,25 @@ export function createNodeStore() {
   }
 
   /** Set cursor — clears old per-node cursor boolean, sets new one.
-   * Also writes the store-level cursor signal. */
-  function setCursor(nodeId: string | null): void {
+   * Also writes the store-level cursor signal.
+   *
+   * `visiblePath` (phase 3 of cursor-is-path-no-global-subscriptions):
+   * the visible-tree occurrence path that owns the cursor. Required
+   * for correct cursor-path-child marking under embedded cards;
+   * optional for back-compat. The leaf must equal `nodeId`. */
+  function setCursor(nodeId: string | null, visiblePath?: readonly string[] | null): void {
     const prev = prevCursorId
     const active = nodeId != null
     if (hasCursor() !== active) hasCursor(active)
     if (prev === nodeId) {
       syncCursorParentMarker(nodeId)
-      syncCursorPathMarkers(nodeId)
+      syncCursorPathMarkers(nodeId, visiblePath)
       return
     }
     if (prev) reduced.get(prev).cursor(false)
     if (nodeId) reduced.get(nodeId).cursor(true)
     syncCursorParentMarker(nodeId)
-    syncCursorPathMarkers(nodeId)
+    syncCursorPathMarkers(nodeId, visiblePath)
     cursor(nodeId)
     prevCursorId = nodeId
   }
