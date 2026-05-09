@@ -154,11 +154,11 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("---")
         expect(fileContent).toContain("author: test")
 
-        // `tags:` was dissolved into the `links` table
-        // (@km/all/dissolve-data-tags-to-links). Post
-        // @km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss the
-        // serializer reconstructs `tags:` from outgoing km:#* link rows,
-        // so the field DOES round-trip now (sourced from links, not data).
+        // `tags:` is dissolved into the `links` table on read
+        // (@km/all/dissolve-data-tags-to-links) but reconstructed from the
+        // links table on serialize (3bb171efa) so it round-trips back to the
+        // file content. `data.tags` stays undefined because the links table
+        // is the source of truth.
         expect(fileContent).toContain("tags:")
         expect(fileContent).toContain("- project")
         expect(fileContent).toContain("- active")
