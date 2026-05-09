@@ -48,25 +48,20 @@ const SCROLL_KEY: Record<ScrollDirection, string> = {
 }
 
 /**
- * Kitty keyboard protocol "Left Super (Cmd) press" sequence. CSI u format
- * with codepoint 57444 (left super) and modifier byte 9 (super=8 + 1
- * implicit press), event-type 1 (press). Sent BEFORE `app.hover` to put
- * the App into Cmd-held state, which is what triggers Cmd-hover popovers
- * (see `vendor/silvery/packages/ag-react/src/hooks/useModifierKeys.ts`
- * and silvercode's `ToolCall` Cmd-hover image preview).
+ * Kitty keyboard protocol "Left Super (Cmd) press" / "release" byte
+ * sequences. CSI u format with codepoint 57444 (left super) and modifier
+ * byte 9 (super=8 + 1 implicit press); event-type `:1` = press, `:3` =
+ * release.
  *
- * Hardcoded because @silvery/test does not yet expose modifier-aware
- * `hover()` — `app.click(x, y, { cmd: true })` works, but `app.hover()`
- * has no options bag. Replace this constant with the silvery API once
- * that gap is closed.
+ * Held-modifier-during-dwell scenarios (the Cmd-hover popover that opens
+ * after a 650 ms dwell) need these raw bytes — dwell is driven by
+ * `useModifierKeys` reading the input store, not the mouse-event
+ * modifier flags. For immediate-event modifier scenarios (Shift-hover,
+ * Ctrl-wheel, single-event Cmd-hover assertions) prefer
+ * `app.hover(x, y, { shift: true })` etc. — silvery 65282cd3 added the
+ * modifier-options bag to hover/wheel for parity with click/doubleClick.
  */
 export const KITTY_LEFT_SUPER_PRESS = "\x1b[57444;9:1u"
-
-/**
- * Kitty release counterpart to `KITTY_LEFT_SUPER_PRESS`. Event-type 3 =
- * release. Send AFTER the popover assertion to drop Cmd state so a
- * subsequent hover is a plain hover, not a Cmd-hover.
- */
 export const KITTY_LEFT_SUPER_RELEASE = "\x1b[57444;9:3u"
 
 export type UiDriver = RenderedScenarioWithDispose & {
@@ -99,11 +94,13 @@ export type UiDriver = RenderedScenarioWithDispose & {
   settle(): Promise<void>
 
   /**
-   * Cmd-hover at terminal coords (x, y). Sends the Kitty Left-Super press
-   * sequence, hovers, optionally waits for the popover delay, then
-   * settles. Caller must have rendered with `kittyMode: true` — without
-   * Kitty encoding the modifier press is a no-op (legacy ANSI cannot
-   * represent Cmd alone) and the popover will never open.
+   * Cmd-hover at terminal coords (x, y) with held-modifier dwell — the
+   * popover-opening recipe. Sends the Kitty Left-Super press sequence
+   * via `app.stdin.write` (so `useModifierKeys` updates), hovers,
+   * optionally waits for the popover delay, then settles. Caller must
+   * have rendered with `kittyMode: true` — without Kitty encoding the
+   * modifier press is a no-op (legacy ANSI cannot represent Cmd alone)
+   * and the popover will never open.
    *
    * Cmd state remains held after `cmdHover` returns. Call `cmdRelease()`
    * before any subsequent plain hover, or before disposing the scenario
@@ -114,6 +111,14 @@ export type UiDriver = RenderedScenarioWithDispose & {
    * opening the image-preview popover. Tests asserting popover content
    * should keep this default; tests asserting hover-but-no-popover (e.g.
    * partial wait) can pass a smaller value.
+   *
+   * For IMMEDIATE-event Cmd-hover assertions (no dwell, no
+   * `useModifierKeys` involved — only `MouseEvent.metaKey` at hover
+   * time) prefer `driver.app.hover(x, y, { cmd: true })` directly —
+   * silvery 65282cd3 added the modifier-options bag to hover/wheel for
+   * parity with click. The held-state path here exists specifically
+   * because dwell-based popovers read the input store, not the
+   * mouseState bag.
    */
   cmdHover(x: number, y: number, opts?: { delayMs?: number }): Promise<void>
 
