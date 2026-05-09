@@ -216,6 +216,38 @@ Concrete examples from this session:
 
 If agent says "this fix is hard at the root, easier to suppress here" — that's the moment when fixing the root is the cheapest it'll ever be (context is hot exactly once). Push back. Same logic as anti-defer.
 
+### 14. Assignment goes through the sigil-board (not just tribe.send)
+
+**Primary assignment vector**: add `@agent/N` to the bead's title (or via `km bd update <bead> --assignee @agent/N`). The `@agent/N.md` sigil-board automatically materializes the bead via the `km.add:: . km.default:: true` rule on its H1. This is the durable, queryable record.
+
+**tribe.send is supplementary** — for urgency, context-loading, or special instructions. NOT the source of truth for "what is N's queue?" That's `km bd query @agent/N` or reading `@agent/N.md`.
+
+**Agents should mostly PULL** from their sigil-board queue (`km bd query @agent/N`), not wait for chief to push. The chief's job is to fill the board, not hand-deliver each item.
+
+Workflow:
+- Chief or anyone files a bead with `@agent/N` in the title (or sets `--assignee @agent/N`).
+- Bead auto-materializes into `@agent/N.md` via sigil-board rule.
+- Agent reads `@agent/N.md`, picks top item, claims via `km bd update --claim`, works it.
+- Chief uses `tribe.send` only when: priority changes, context is non-obvious, integration handoff, blocker discussion. NOT for "here's your next bead."
+
+Why: tribe.send is ephemeral (lost across compaction); the sigil-board is the persistent record. If chief disappears, agents still have their queue. If a bead is "assigned via tribe.send only" without bd.assignee, it's invisible to anyone else.
+
+This was inconsistently applied 2026-05-08 — many assignments went via `tribe.send` only. Codifying so the primary path is bd.assignee + sigil-board materialization.
+
+### 15. Load-balance intelligently (context cost matters)
+
+When one agent is idle AND another has deep queue, **reassign** — but only if the work doesn't require deep prior context the receiver lacks.
+
+Reassignment heuristics:
+- **Domain match required**: storage→storage agent, km-tui→km-tui agent. Don't move silvercode L5 work to a fresh agent — they'd pay weeks of context-load.
+- **Mechanical work moves freely**: test-fast triage, bead filing, doc updates, formatter cleanups. Any agent can do these.
+- **In-flight work doesn't move**: an agent mid-bead is NOT reassignable until that bead closes. Reassign queued work, not active work.
+- **Cold-context cost > queue-depth cost**: if the receiver has to read 5+ files to understand the bead, just leave it on the original agent unless they're truly overloaded (>10 deep queue).
+
+Concrete example: agent3 has nominal queue depth ~24 (silvercode L5 P0s) but they're the program owner — splitting to agent0 would cost more context than agent3's slower drain saves. Vs. agent3's km-fs-mount-migration earlier — mechanical, could have moved to anyone.
+
+Anti-pattern: thrashing assignments for "load balance" when each move costs more in context-load than the original imbalance.
+
 ### 13. Detect + escalate + RESOLVE blocked work (chief's most important job)
 
 Chief's primary value is keeping work moving. ALL blocked work — not just user-blocked — is chief's responsibility to detect and unblock.
