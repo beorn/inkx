@@ -31,7 +31,7 @@ import { dispatchSelection, NO_SELECTION, nodeSelect, textCaret } from "../state
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { createViewTree, type TreeLens, type ViewTreeProjection } from "@km/board"
+import { createViewTree, type TreeLens } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -39,16 +39,7 @@ import { setLastKey, appendLastKey, setTerminalFocused } from "../diagnostics.ts
 import { getRecentsStore } from "../state/recents-store.ts"
 import { isTeaDeleteConfirmEnabled, getDeleteConfirmStore } from "../plugins/with-delete-confirm.ts"
 import { getHelpV3App } from "../plugins/help-overlay.v3.ts"
-
-function findDescendantPath(tree: ViewTreeProjection, rootId: string, targetId: string | null): string[] | null {
-  if (!targetId) return null
-  if (rootId === targetId) return []
-  for (const childId of tree.children(rootId)) {
-    const childPath = findDescendantPath(tree, childId, targetId)
-    if (childPath) return [childId, ...childPath]
-  }
-  return null
-}
+import { findDescendantPath } from "./board-tree-walk.ts"
 
 /**
  * Create the board app definition. THIS IS THE PUBLIC API — prefer this over

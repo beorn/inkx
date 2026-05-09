@@ -26,26 +26,8 @@ import {
   type BoardNavState,
 } from "./board-reducer.ts"
 import { runBoardEffects } from "./board-effect-runner.ts"
-import type { ViewTreeProjection } from "@km/board"
 import { nodeSelect } from "../state/selection.ts"
-
-/** Collect all visible descendant IDs from ViewTree (lens handles fold + status filter). */
-function collectTreeDescendants(tree: ViewTreeProjection, rootId: string): string[] {
-  const result: string[] = [rootId]
-  for (const childId of tree.children(rootId)) {
-    result.push(...collectTreeDescendants(tree, childId))
-  }
-  return result
-}
-
-function findDescendantPath(tree: ViewTreeProjection, rootId: string, targetId: string): string[] | null {
-  if (rootId === targetId) return []
-  for (const childId of tree.children(rootId)) {
-    const childPath = findDescendantPath(tree, childId, targetId)
-    if (childPath) return [childId, ...childPath]
-  }
-  return null
-}
+import { collectTreeDescendants, findDescendantPath } from "./board-tree-walk.ts"
 
 function cursorOccurrenceForTarget(
   ctx: OpCtx,
