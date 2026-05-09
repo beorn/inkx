@@ -130,6 +130,34 @@ When to adopt the driver:
 
 Bead: `@km/silvercode/test-ui-driver`.
 
+### Width-matrix runner
+
+`apps/silvercode/src/test/width-matrix.ts` exposes
+`runWidthMatrix(baseOpts, body, opts?)` which renders the same scenario
+across a curated set of widths
+(`DEFAULT_WIDTH_MATRIX = [40, 60, 90, 120, 160, 220]`) and yields a
+`{ cols, rows, scenario, driver }` cell per width. Cells run sequentially
+because `renderScenario` stubs `process.stdout.columns/rows` per call.
+
+Pair with `expectWidthMatrixInvariants(text, cols, opts?)` for the
+shared invariants:
+
+- `noBlankFrame` (default `true`) — fails the cell when the frame is
+  entirely whitespace.
+- `noReplacementChar` (default `true`) — fails when U+FFFD is present
+  (UTF-8 truncation mid-codepoint; see
+  `@km/tui/separator-utf8-truncation`).
+- `custom(text, cols)` — returns a reason string to fail.
+
+Failures inside the body are wrapped with `[width-matrix cols=N]` so
+the failing breakpoint is named in the test output. Use this any time
+a test would otherwise pin a single "default desktop" width — width
+regressions hide trivially when only 120 is exercised.
+
+`tests/visual/width-matrix.test.tsx` is the canonical example.
+
+Bead: `@km/silvercode/test-resize-matrix`.
+
 ## Test commands
 
 ```bash
