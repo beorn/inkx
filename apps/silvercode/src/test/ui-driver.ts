@@ -168,8 +168,7 @@ export function createUiDriver(scenario: RenderedScenarioWithDispose): UiDriver 
 
     async cmdHover(x: number, y: number, opts?: { delayMs?: number }): Promise<void> {
       const delayMs = opts?.delayMs ?? 650
-      await scenario.app.keyDown("Super")
-      await scenario.app.hover(x, y)
+      await scenario.app.keyDown("Super").hover(x, y)
       if (vi.isFakeTimers()) {
         await vi.advanceTimersByTimeAsync(delayMs)
       } else {
