@@ -179,9 +179,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
     const visibleLens = board?.signals?.visibleLens()
-    if (visibleLens) {
-      tree.sync(visibleLens)
-    }
+    // NOTE: do NOT call `tree.sync(visibleLens)` here. This getter is invoked
+    // many times per frame from selectors, and `tree.sync` walks every tracked
+    // ViewNode signal — making per-frame work scale as O(tracked_nodes ×
+    // state_reads). The proper sync is wired as an alien-signals effect at
+    // apps/km-tui/src/state/board-app-store.ts:631-634 that fires only when
+    // `visibleLens` actually changes. See @km/all/km-view-tree-sync-in-getter-hang.
     const cachedNodeIndex = locals.nodeIndexCache
     const nodeIndex = visibleLens
       ? cachedNodeIndex?.lens === visibleLens
