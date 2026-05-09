@@ -130,6 +130,17 @@ export {
 
 export type { KLink, KLinkRel, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db/db.ts"
 
+// Node ID factory — injection seam for deterministic IDs in tests.
+export {
+  defaultIdFactory,
+  createDeterministicIdFactory,
+  getIdFactory,
+  setIdFactory,
+  resetIdFactory,
+  withDeterministicIds,
+} from "./id-factory.ts"
+export type { IdFactory } from "./id-factory.ts"
+
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 export { MemoryStore, createStoreFromRepo } from "./store/store.ts"

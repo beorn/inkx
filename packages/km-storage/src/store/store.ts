@@ -16,7 +16,7 @@ import type { KNode, Change } from "@km/core"
 import type { CommitMeta, CommitResult, ChangeEnvelope } from "./commit-types.ts"
 import { mergeDeltas } from "./commit-types.ts"
 import type { Repo } from "../repo/repo.ts"
-import { ulid } from "ulid"
+import { getIdFactory } from "../id-factory.ts"
 
 /**
  * Minimal store interface — what every store backend must provide.
@@ -82,7 +82,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
     // Repo was mutated directly (e.g., repo.moveNode/addNode/updateNode).
     // Fire a broad onCommit so reactive signals can refresh.
     const broadResult: CommitResult = {
-      meta: { commitId: ulid(), source: "repo-direct" },
+      meta: { commitId: getIdFactory()(), source: "repo-direct" },
       changes: [],
       delta: { nodeIds: [], parentIds: ["__all__"], deletedNodeIds: [] },
     }
@@ -117,7 +117,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
         }
 
         const delta = mergeDeltas(appliedChanges)
-        const commitId = meta?.commitId ?? ulid()
+        const commitId = meta?.commitId ?? getIdFactory()()
         const commitResult: CommitResult = {
           meta: {
             ...meta,
@@ -158,7 +158,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
     applyChanges(envelopes) {
       if (envelopes.length === 0) {
         return {
-          meta: { commitId: ulid(), source: "remote" },
+          meta: { commitId: getIdFactory()(), source: "remote" },
           changes: [],
           delta: { nodeIds: [], parentIds: [], deletedNodeIds: [] },
         }
@@ -175,7 +175,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
 
         const delta = mergeDeltas(allChanges)
         const source = envelopes[0]?.source ?? "remote"
-        const commitId = ulid()
+        const commitId = getIdFactory()()
         const commitResult: CommitResult = {
           meta: { commitId, source },
           changes: allChanges,

@@ -9,7 +9,7 @@
 
 import type { Database } from "bun:sqlite"
 import { createLogger } from "loggily"
-import { ulid } from "ulid"
+import { getIdFactory } from "../id-factory.ts"
 
 const log = createLogger("km:storage:db:ops")
 import type { KNode } from "@km/core"
@@ -340,7 +340,7 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
 }
 
 function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>, emitter?: Emitter): string {
-  const nodeId = node.id ?? ulid()
+  const nodeId = node.id ?? getIdFactory()()
   log.debug?.(
     `addNode: ${nodeId} type=${node.type ?? "p"} item=${String(node.item)} parent=${parentId} emitter=${!!emitter}`,
   )

@@ -16,7 +16,7 @@
  */
 
 import { createLogger } from "loggily"
-import { ulid } from "ulid"
+import { getIdFactory } from "./id-factory.ts"
 import type { Change } from "@km/core"
 import type { Database } from "bun:sqlite"
 import type { CommitSource } from "./store/commit-types.ts"
@@ -116,7 +116,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
    */
   function commitInternal(partialChange: Omit<Change, "id" | "ts">, commitOptions: EmitOptions = {}): Change {
     const change: Change = {
-      id: ulid(),
+      id: getIdFactory()(),
       ts: Date.now(),
       ...partialChange,
     }

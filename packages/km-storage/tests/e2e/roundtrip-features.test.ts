@@ -141,7 +141,7 @@ describe("E2E Round-Trip Features", () => {
   })
 
   describe("frontmatter", () => {
-    test("YAML frontmatter survives round-trip (sans dissolved fields)", () =>
+    test("YAML frontmatter survives round-trip (tags reconstructed from links table)", () =>
       withTestEnv(async ({ repoDir, data }) => {
         const { nodes, fileContent } = await roundTrip(
           data.database,
@@ -155,10 +155,16 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("author: test")
 
         // `tags:` was dissolved into the `links` table
-        // (@km/all/dissolve-data-tags-to-links) — it doesn't round-trip.
-        expect(fileContent).not.toContain("tags:")
+        // (@km/all/dissolve-data-tags-to-links). Post
+        // @km/all/dissolve-data-tags-to-links/yaml-tags-round-trip-loss the
+        // serializer reconstructs `tags:` from outgoing km:#* link rows,
+        // so the field DOES round-trip now (sourced from links, not data).
+        expect(fileContent).toContain("tags:")
+        expect(fileContent).toContain("- project")
+        expect(fileContent).toContain("- active")
 
-        // File node should have non-dissolved frontmatter data.
+        // File node has non-dissolved frontmatter data; `data.tags` is
+        // still stripped post-parse (canonical source = links table).
         const fileNode = nodes.find(
           (n) => n.type === "h" && n.item != null && (n.fstype === "file" || n.fstype === "mdfile"),
         )

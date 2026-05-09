@@ -14,7 +14,7 @@
 
 import { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
-import { ulid } from "ulid"
+import { getIdFactory } from "./id-factory.ts"
 import { SCHEMA } from "./db/schema.ts"
 import {
   getNode as dbGetNode,
@@ -207,7 +207,7 @@ export function createMapDataStore(): MapDataStore {
 
     addNode(parentId, nodeData) {
       const now = Date.now()
-      const id = nodeData.id ?? ulid()
+      const id = nodeData.id ?? getIdFactory()()
 
       const node: KNode = {
         ...nodeData,
