@@ -11,6 +11,7 @@ export type {
   DragState,
   ID,
   Modifiers,
+  OccurrencePath,
   PointerEvent,
   PointerHelpers,
   PointerOrigin,
@@ -24,6 +25,9 @@ export type {
   SubSelectionBase,
   TextSelection,
 } from "./types.ts"
+
+// Occurrence-path helpers
+export { pathsEqual, isPathPrefix, pathLeaf, pathChildAfter, pathAppend } from "./path.ts"
 
 // OrderedSet
 export { createOrderedSet, EMPTY_ORDERED_SET } from "./ordered-set.ts"

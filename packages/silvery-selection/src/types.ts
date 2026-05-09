@@ -7,10 +7,51 @@
 // Branded string for type-safe node IDs
 export type ID = string & { readonly __brand: "ID" }
 
+/**
+ * An occurrence path through a host's visible tree.
+ *
+ * **Why path identity is required.** A single source node id can be rendered
+ * in multiple visual occurrences when the host's tree includes embeds /
+ * symlinks / portals / virtualized lists with sticky duplicates. `id`-shaped
+ * cursor identity cannot disambiguate which occurrence the cursor lives in,
+ * so render and navigation matching must compare the full path from the
+ * visible-tree root down to the leaf.
+ *
+ * The selection store treats the path as opaque: each element is just an
+ * `ID`, and the host defines what the sequence means (board → column →
+ * card → sub-item, detail-pane → section → item, virtual-list → row →
+ * column, etc.). The leaf id (`path.at(-1)`) is the cursor target node;
+ * upstream consumers that only need an id can read `cursor` directly.
+ *
+ * Empty array means "root visible-tree itself"; null means "no cursor".
+ *
+ * See @km/tui/cursor-is-path-no-global-subscriptions (P0 #bug).
+ */
+export type OccurrencePath = readonly ID[]
+
 // --- Selection state ---
 
 export type SelectionSnapshot<Sub = DefaultSubSelection> = {
+  /**
+   * Leaf id of the cursor occurrence — derived from `cursorPath.at(-1)`.
+   * Kept on the snapshot for cheap id-shaped reads (storage lookups,
+   * serialization, log output). NEVER write this directly; write a path
+   * via the selection apply* functions and let `cursor` be re-derived.
+   */
   readonly cursor: ID | null
+  /**
+   * The visible-tree occurrence path that owns the cursor. This will become
+   * the authoritative cursor identity — `cursor` is `cursorPath.at(-1)`.
+   *
+   * Currently optional during the additive migration (phase 1 of
+   * @km/tui/cursor-is-path-no-global-subscriptions). When unset, callers
+   * should treat it as "host hasn't migrated yet" and fall back to `cursor`.
+   * Phase 2 will tighten this to required (`OccurrencePath | null`) once
+   * every writer in this package supplies a path.
+   *
+   * See OccurrencePath for why path identity (not bare id) is required.
+   */
+  readonly cursorPath?: OccurrencePath | null
   readonly anchor: ID | null
   readonly ids: readonly ID[] // plain array (serializable). OrderedSet is a computed view.
   readonly sub: Sub | null
