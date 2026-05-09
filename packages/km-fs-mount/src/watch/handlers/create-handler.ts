@@ -8,7 +8,7 @@
 
 import { basename, dirname } from "path"
 import { createLogger } from "loggily"
-import { ulid } from "ulid"
+import { getIdFactory } from "@km/storage"
 import type { Database } from "bun:sqlite"
 import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import { generatePathBasedId } from "../../fs/id-utils.ts"
@@ -149,7 +149,7 @@ export function handleCreate(options: CreateHandlerOptions): void {
   } else if (stat) {
     // Non-parseable file - create simple file node
     emitNodeCreated(emitter, "fs-watch", {
-      id: ulid(),
+      id: getIdFactory()(),
       type: "h",
       item: {},
       fstype: "file",
@@ -354,7 +354,7 @@ function getFolderNodeId(db: Database, repoRoot: string, absPath: string, relPat
   const existing = db.prepare("SELECT fs_path FROM nodes WHERE id = ?").get(pathId) as { fs_path: string } | null
   if (existing && existing.fs_path !== relPath) {
     // ID collision: old folder was renamed away, use ULID for new folder
-    return ulid()
+    return getIdFactory()()
   }
   return pathId
 }

@@ -39,7 +39,7 @@ import { wrapEmitterForReconcile, BulkSync } from "../watch/bulk-sync.ts"
 import type { BulkSyncDeps, SyncFromFsResult } from "../watch/bulk-sync.ts"
 import { FileSystemWatcher } from "../watch/watcher.ts"
 import { createIgnoreMatcher, type PatternMatcher } from "../fs/ignore.ts"
-import { ulid } from "ulid"
+import { getIdFactory } from "@km/storage"
 
 const log = createLogger("km:storage:fs-store")
 
@@ -213,7 +213,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
         }
       }
       const commitResult: CommitResult = {
-        meta: { commitId: ulid(), source: "fs-import" },
+        meta: { commitId: getIdFactory()(), source: "fs-import" },
         changes: [], // FS reconciliation doesn't produce discrete events
         delta,
       }
@@ -262,7 +262,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
       }
 
       const delta = mergeDeltas(applied)
-      const commitId = meta?.commitId ?? ulid()
+      const commitId = meta?.commitId ?? getIdFactory()()
       const commitResult: CommitResult = {
         meta: {
           ...meta,

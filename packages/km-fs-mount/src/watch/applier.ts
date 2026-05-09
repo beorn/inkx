@@ -7,7 +7,7 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { ulid } from "ulid"
+import { getIdFactory } from "@km/storage"
 import {
   type Emitter,
   getNode,
@@ -269,7 +269,7 @@ async function parseMarkdownFiles(ops: ReconcileOp[], parsePool: ParsePoolServic
     if (op.path.endsWith(".md")) {
       if (op.type === "create") {
         // Generate ID upfront for creates
-        parseJobs.push({ op, nodeId: ulid(), isCreate: true })
+        parseJobs.push({ op, nodeId: getIdFactory()(), isCreate: true })
       } else if (op.type === "update" && op.nodeId) {
         parseJobs.push({ op, nodeId: op.nodeId, isCreate: false })
       }

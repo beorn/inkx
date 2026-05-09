@@ -9,13 +9,13 @@ import { createLogger } from "loggily"
 import { existsSync, readFileSync, readdirSync } from "fs"
 import { basename, dirname, join, relative } from "path"
 import type { Database } from "bun:sqlite"
-import { ulid } from "ulid"
 import { type Change, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
 import {
   type Emitter,
   buildNodeLookup,
   getAllNodes,
   getChildren,
+  getIdFactory,
   getNode,
   getSubtree,
   getTagsByHostId,
@@ -957,7 +957,7 @@ function appendUnmatchedDiskChildren(
     if (isDiskChildMatched(disk, dbNames, dbContentKeys)) continue
     appended.push({
       ...disk,
-      id: ulid(),
+      id: getIdFactory()(),
       parent_id: fileNode.id,
       parent_idx: nextIdx++,
     })
