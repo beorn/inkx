@@ -1,8 +1,12 @@
-# `km view` crashes on zoom out #bug #P0
+# `km view` hangs on zoom out (Ctrl-C dead) #bug #P0
 
 ## Symptom
 
-User-reported 2026-05-08 (chief) after 21fefe351 (km-view-tree-sync-in-getter-hang fix landed): `bun km view <vault>` still crashes when invoking zoom-out (`Z` keybinding by default).
+User-reported 2026-05-08, two reports:
+1. After 21fefe351 (km-view-tree-sync-in-getter-hang fix landed): `bun km view <vault>` "still crashes when zoom out" (paraphrased).
+2. Clarified: it's not a crash — it's a HANG. After pressing `Z` (zoom-out), the process freezes. **Ctrl-C is ineffective** — confirms the JS event loop is fully blocked by synchronous work, NOT a crash with a stack trace.
+
+Reassigned to @agent/4 (verified the prior hang fix; has TTY repro infrastructure).
 
 ## What we know
 
@@ -26,9 +30,13 @@ DEBUG=km:*,silvery:* DEBUG_LOG=/tmp/km-zoom-crash.log bun km view <vault> 2>&1 |
 
 ## Suspect surfaces (TDD: reproduce first)
 
-- `checkRenderInvariants` in `apps/km-tui/src/render-invariants.ts` — fires after every `press()`. The new invariants are: exactly-one-cursor + cursor-has-bbox + cursor-x-y-in-viewport. Zoom-out changes the viewport and visible tree simultaneously; the cursor may briefly be invalid mid-transition.
-- `findVisibleCursorReplacement` in `state/board-app-store.ts:1917` — runs on lens changes, walks `repo.getNode().parent_id` chain. Zoom-out changes the lens shape; if the previous cursor's ancestor chain doesn't include the new root, the replacement may return null → cursor=null → downstream assumes non-null.
-- `cursorOccurrenceHint` cleanup — the hint isn't cleared on zoom-out. A stale hint pointing at a node outside the new zoom-root could trip the `findDescendantPath` walk in `getStateBoard`.
+The Ctrl-C-dead nature points to a synchronous infinite loop. Three top suspects in the cursor-occurrence-path WIP:
+
+1. **`findDescendantPath` in `apps/km-tui/src/board/board-app.ts:43`** (HOTTEST suspect — chief verified by inspection during triage). Recursive DFS over `tree.children(id)` with **NO cycle detection and NO depth bound**. After zoom-out, the visible lens may include embedded children that resolve back to an ancestor (e.g. `![[parent]]` inside a child renders as a child whose tree.children(...) returns the ancestor's children — cycle). Each recursion call loops the same subtree forever. Quick fix candidate: thread a `visited: Set<string>` through the inner recursion. Verify FIRST that this is actually the source by reproducing with a vault that contains the cycle pattern.
+2. **`findVisibleCursorReplacement` in `state/board-app-store.ts:1936`** — `while (current?.parent_id)` walk. Latent risk if any node's `parent_id` chain forms a cycle (rare but possible after malformed sync state). Already-bounded versions exist in adjacent walks (`findVisibleAncestor` and `isVisibleInLens` use `depth < 100` guard); this one doesn't.
+3. **`checkRenderInvariants` in `apps/km-tui/src/render-invariants.ts`** — fires after every `press()`. If post-zoom-out the cursor briefly violates an invariant AND the recovery code re-presses, infinite retry. Less likely (the invariant function throws cleanly on violation), but worth ruling out.
+
+Prior in-flight code that landed in this session (`21fefe351`) ruled out the `tree.sync` getter call as the recurring source. This is a separate hang in the same WIP feature surface.
 
 ## Acceptance
 
@@ -39,4 +47,4 @@ DEBUG=km:*,silvery:* DEBUG_LOG=/tmp/km-zoom-crash.log bun km view <vault> 2>&1 |
 
 ## Provenance
 
-Reported by user, 2026-05-08, after `git pull origin main` brought 21fefe351. Filed by chief, assigned to agent1 in @agent/2 slot.
+Reported by user, 2026-05-08, after `git pull origin main` brought 21fefe351. Filed by chief. Initially assigned to agent1 (@agent/2) — reassigned to **agent4 (@agent/4)** at user request after the Ctrl-C-dead clarification. agent4 owns the verification infrastructure that confirmed the prior 21fefe351 fix; right person for this one.
