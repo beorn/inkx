@@ -8,10 +8,10 @@ aliases:
   - km-silvercode-acp-http-binding
 created_at: 2026-05-07T12:15:00.000Z
 type: feature
-priority: P1
+priority: P3
 ---
 
-# [ ] ACP-over-HTTP binding — propose + ship the cloud/multi-client extension to ACP @km/silvercode #P1 #feature ^acp-http-binding
+# [ ] ACP-over-HTTP binding — propose + ship the cloud/multi-client extension to ACP @km/silvercode #P3 #feature ^acp-http-binding
 
 Propose and reference-implement an HTTP/WebSocket transport binding for ACP, plus the additive features needed for cloud and multi-client deployment: multi-observer sessions, session enumeration, protocol-level auth, schema discovery, resource listing, heartbeat. Submit as RFC to `agentclientprotocol/agent-client-protocol`. Ship reference impl in silvercode. Then layer opencode-serve compat as a thin translator (see `@km/silvercode/parity-kilo/opencode-server-compat`).
 

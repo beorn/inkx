@@ -7,10 +7,10 @@ aliases:
   - km-silvercode-opencode-server-compat
 created_at: 2026-05-07T11:50:00.000Z
 type: feature
-priority: P1
+priority: P3
 ---
 
-# [ ] opencode-server HTTP API compat — silvercode as a drop-in opencode backend @km/silvercode #feature #P1 @agent/3
+# [ ] opencode-server HTTP API compat — silvercode as a drop-in opencode backend @km/silvercode #feature #P3 @agent/3
 
 Implement the `opencode serve` HTTP/SSE API in silvercode so any opencode-server client (Kilo VS Code extension, Kilo CLI, opencode TUI, opencode web UI, Railway templates, JetBrains opencode-web-ui plugin, `hosenur/portal`, `chris-tse/opencode-web`) can point at silvercode by setting `OPENCODE_SERVER_URL=https://...` and just work.
 
