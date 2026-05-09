@@ -153,7 +153,13 @@ export interface BoardPaneState extends PaneStateBase {
   curswantY: number | null
   /** Visual occurrence hint for duplicated node IDs (embeds/source cards).
    * Set immediately before cursor selection so NodeStore classification can
-   * keep the rendered cursor on the occurrence the user navigated/clicked. */
+   * keep the rendered cursor on the occurrence the user navigated/clicked.
+   *
+   * **Deprecated** — phase 2 of @km/tui/cursor-is-path-no-global-subscriptions.
+   * The half-step `cursorId + cardNodeId + columnNodeId` triple is being
+   * superseded by `cursorPath: readonly ID[]` on the SelectionSnapshot, which
+   * carries the full visible-tree occurrence. This field is still populated
+   * for back-compat through phase 3 and will be removed in phase 4. */
   cursorOccurrenceHint?: {
     cursorId: string | null
     cursorCardNodeId: string | null
