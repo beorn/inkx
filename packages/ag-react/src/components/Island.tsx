@@ -43,7 +43,7 @@ import type {
 } from "@silvery/ag/island-types"
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
 import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
-import type { AgNode } from "@silvery/ag/types"
+import type { AgNode, UserSelect } from "@silvery/ag/types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
 import type { IslandLayoutProps } from "../reconciler/nodes"
 import { useScopeEffect } from "../hooks/useScopeEffect"
@@ -88,6 +88,11 @@ export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
   rows: number
   /** Whether the island can receive focus. Default: `false`. */
   focusable?: boolean
+  /**
+   * CSS user-select equivalent for the guest cell grid. Defaults to inherited
+   * selectability; islands always clamp an active host selection to their rect.
+   */
+  userSelect?: UserSelect
   /**
    * Host-designated cursor activation, INDEPENDENT of input focus
    * (@km/silvery/19426). When true the host renders this island's guest cursor
@@ -156,6 +161,7 @@ export const Island = forwardRef(function Island(
     cols,
     rows,
     focusable = false,
+    userSelect,
     cursorActive = false,
     palettePolicy,
     hydrate = "load",
@@ -436,6 +442,7 @@ export const Island = forwardRef(function Island(
       cols={cols}
       rows={rows}
       focusable={focusable}
+      userSelect={userSelect}
       width={width}
       height={height}
       flexGrow={flexGrow}

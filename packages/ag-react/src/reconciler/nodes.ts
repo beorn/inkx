@@ -13,6 +13,7 @@ import {
   type AgNode,
   type AgNodeType,
   type TextProps,
+  type UserSelect,
   rectEqual,
 } from "@silvery/ag/types"
 import type { ViewportProps } from "@silvery/ag/viewport-types"
@@ -544,6 +545,8 @@ export interface IslandLayoutProps {
   rows?: number
   /** Whether this island participates in tree focus navigation. */
   focusable?: boolean
+  /** CSS user-select equivalent for the island's guest cell grid. */
+  userSelect?: UserSelect
   /** Explicit layout slot width (cells or "N%"). Overrides `cols` for layout. */
   width?: number | string
   /** Explicit layout slot height. Overrides `rows` for layout. */

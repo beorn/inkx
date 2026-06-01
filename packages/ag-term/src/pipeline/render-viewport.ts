@@ -124,6 +124,7 @@ export function renderIsland(
   layout: Rect,
   scrollOffset: number,
   inheritedBg: Color = null,
+  selectableMode = false,
 ): void {
   const state = node.islandState
   if (!state) return
@@ -154,7 +155,7 @@ export function renderIsland(
       const dstX = baseX + c
       if (dstX < 0 || dstX >= buffer.width) continue
       const cell = src.getCell(c, r)
-      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell, inheritedBg))
+      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell, inheritedBg), selectableMode)
     }
   }
 }

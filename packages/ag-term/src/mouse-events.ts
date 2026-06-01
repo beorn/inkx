@@ -549,6 +549,10 @@ function selectionHitTestInner(
     return pointHitsRenderedTextRow(node, y) ? node : null
   }
 
+  if (node.type === "silvery-island") {
+    return node
+  }
+
   return allowRowFallback ? findTextNodeOnRow(node, y) : null
 }
 
@@ -678,7 +682,11 @@ export function findSelectionBoundaries(node: AgNode): SelectionBoundary[] {
       const scope = nodeSelectionScope(current)
       if (scope) {
         const props = current.props as { userSelect?: UserSelect }
-        boundaries.push({ node: current, scope, hardContain: props.userSelect === "contain" })
+        boundaries.push({
+          node: current,
+          scope,
+          hardContain: props.userSelect === "contain" || current.type === "silvery-island",
+        })
       }
     }
     current = current.parent

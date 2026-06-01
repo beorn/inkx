@@ -1171,7 +1171,15 @@ function renderOwnContent(
     // contract (PTY, snapshot, replay, embedded silvery sub-instance, etc.).
     // Bails cleanly when the guest hasn't initialised yet (`handle === null`).
     // See bead @km/silvery/15646-islands.
-    renderIsland(node, buffer, sink, layout, nodeState.scrollOffset, nodeState.inheritedBg.color)
+    renderIsland(
+      node,
+      buffer,
+      sink,
+      layout,
+      nodeState.scrollOffset,
+      nodeState.inheritedBg.color,
+      nodeState.selectableMode,
+    )
   } else if (node.type === "silvery-text") {
     if (instrumentEnabled) stats.textNodes++
     // O(1) inherited bg/fg — threaded top-down through nodeState.

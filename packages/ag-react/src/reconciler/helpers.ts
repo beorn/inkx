@@ -103,6 +103,7 @@ const STYLE_PROPS = new Set([
   "outlineBottom",
   "outlineLeft",
   "outlineRight",
+  "userSelect",
   "theme",
 ])
 
