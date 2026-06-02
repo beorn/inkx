@@ -21,6 +21,7 @@ import type { AgNode, TextProps } from "@silvery/ag/types"
 import {
   type StyledSegment,
   ensureEmojiPresentation,
+  fixOsc8AcrossWrappedLines,
   graphemeWidth,
   hasAnsi,
   parseAnsiText,
@@ -831,7 +832,16 @@ export function formatTextLines(
   if (wrap === "even") {
     const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
     const analysis = buildTextAnalysis(normalizedText, gWidthFn)
-    return optimalWrap(normalizedText, analysis, width)
+    const evenLines = optimalWrap(normalizedText, analysis, width)
+    // optimalWrap preserves ANSI tokens but, unlike the greedy wrapText path,
+    // does not make each line's OSC 8 hyperlink state self-contained. A break
+    // mid-link leaves a continuation line carrying only the CLOSE — which
+    // parseAnsiText then leaks as literal `]8;;\` cells. Re-open/close per line,
+    // identical to wrapTextWithMeasurer. See @km/code/v0.2/19654-osc-link-leak.
+    if (normalizedText.includes("\x1b]8;;")) {
+      fixOsc8AcrossWrappedLines(evenLines)
+    }
+    return evenLines
   }
 
   // Balanced wrapping: disabled — the heuristic (totalWidth / lineCount) doesn't

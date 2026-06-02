@@ -1384,8 +1384,15 @@ export function wrapTextWithMeasurer(
  * When wrapping splits text containing OSC 8 sequences across lines, the open/close sequences
  * may end up on different lines. This closes unclosed hyperlinks at line ends and re-opens
  * them on continuation lines. Mutates the array in place.
+ *
+ * The greedy `wrapText` path calls this inline; the Knuth-Plass `optimalWrap`
+ * path (`wrap="even"`) lives in a sibling module (`pipeline/pretext.ts`) and
+ * applies it via `formatTextLines`. Both must run it: a continuation line that
+ * carries only an OSC 8 CLOSE (no matching OPEN) makes `parseAnsiText` fall back
+ * to un-stripped source text and leak `]8;;\` as literal cells.
+ * See `@km/code/v0.2/19654-osc-link-leak`.
  */
-function fixOsc8AcrossWrappedLines(lines: string[]): void {
+export function fixOsc8AcrossWrappedLines(lines: string[]): void {
   let activeHref: string | null = null
 
   for (let i = 0; i < lines.length; i++) {
