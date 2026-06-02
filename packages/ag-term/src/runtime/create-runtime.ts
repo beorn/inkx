@@ -142,6 +142,21 @@ function createEventChannel(signal: AbortSignal): EventChannel {
   }
 }
 
+/**
+ * Auto-wrap fullscreen frames at or above this many output bytes in DEC 2026
+ * synchronized-output markers, so the terminal composites the whole repaint
+ * atomically (no visible tear/flicker). See km bead 19633-output-flicker.
+ *
+ * Why a byte threshold (not always-on): older Ghostty builds corrupt
+ * *incremental cursor-positioned* updates inside a sync region. Those are the
+ * tiny diffs — dogfood captures show p50 ≈ 66 B, p90 ≈ 636 B — which stay
+ * unwrapped here and avoid the caveat. The frames that visibly flicker are the
+ * large ones: streaming/scroll diffs that repaint most of a pane (~7k changed
+ * cells ≈ 20 KB) and full-screen first renders. 2 KB sits well above the
+ * incremental-diff range and clearly inside "large repaint" territory.
+ */
+const LARGE_FULLSCREEN_SYNC_BYTES = 2048
+
 // =============================================================================
 // Runtime Factory
 // =============================================================================
@@ -378,11 +393,17 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         } catch {}
       }
 
-      // Write to target. DEC 2026 sync markers are opt-in because older
-      // Ghostty builds have corrupted incremental cursor-positioned updates
-      // inside sync regions. When enabled, wrap the exact patch we would have
-      // written so diagnostics and terminal output stay in one frame.
-      target.write(syncUpdate ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch)
+      // Write to target, wrapped in DEC 2026 synchronized-output markers when:
+      //   - syncUpdate is forced (SILVERY_SYNC_UPDATE=1), or
+      //   - this is a LARGE fullscreen frame (>= LARGE_FULLSCREEN_SYNC_BYTES).
+      // Large streaming/scroll diffs and full-screen repaints tear visibly when
+      // written un-synchronized; wrapping makes the terminal swap them in one
+      // frame. Small incremental cursor-positioned diffs stay unwrapped to avoid
+      // the older-Ghostty corruption caveat. See km bead 19633-output-flicker.
+      const wrapSync =
+        syncUpdate ||
+        (mode === "fullscreen" && Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES)
+      target.write(wrapSync ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch)
       lastCursorSuffix = cursorSuffix
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
       renderedOnce = true
