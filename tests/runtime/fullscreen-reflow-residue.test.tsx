@@ -244,4 +244,33 @@ describe("fullscreen reflow residue", () => {
       handle.unmount()
     }
   })
+
+  test("focus-out damage repair is one-shot while live output continues", async () => {
+    using term = createTermless({ cols: 40, rows: 8, reflowResidue: true })
+    const handle = await run(<TickingFullscreenApp />, term)
+
+    try {
+      expect(term.screen).toContainText("live transcript row")
+
+      ;(term as unknown as { sendInput(data: string): void }).sendInput("\x1b[O")
+      await settle()
+
+      term.out.clear()
+      term.reflowResidue!.arm()
+      await settle(650)
+
+      const firstRepair = term.out.getText()
+      expect(firstRepair).toContain("\x1b[2J")
+      expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+
+      term.out.clear()
+      await settle(650)
+
+      const continuedOutput = term.out.getText()
+      expect(continuedOutput).not.toContain("\x1b[2J")
+      expect(continuedOutput.length).toBeGreaterThan(0)
+    } finally {
+      handle.unmount()
+    }
+  })
 })

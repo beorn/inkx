@@ -2019,9 +2019,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let searchState = createSearchState()
   // A focus-out means the terminal/compositor may reflow or drop visible
   // alt-screen pixels while Silvery's shadow buffer stays internally correct.
-  // Keep periodically forcing fullscreen clears until a confirmed focus-in;
-  // some multiplexers deliver focus-out but miss focus-in on workspace return.
+  // Arm one repair clear on the next live paint. Focus-in and same-size resize
+  // still force their own clears; repeated clears while a visible sibling pane
+  // keeps streaming output are perceived as flicker.
   let fullscreenDamageRiskFromBlur = false
+  let fullscreenDamageRepairRequested = false
   let fullscreenDamageLastRepaintMs = -Infinity
 
   // Focus manager (tree-based focus system) with event dispatch wiring
@@ -3324,10 +3326,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // `selectionEnabled` / `runtime` are by-reference, evaluated at call time.
   function paintFrame(): void {
     if (!currentBuffer) return
+    let fullscreenDamageRepairThisFrame = false
     if (fullscreenDamageRiskFromBlur && alternateScreen) {
       const now = performance.now()
-      if (now - fullscreenDamageLastRepaintMs >= FOCUS_DAMAGE_REPAINT_INTERVAL_MS) {
+      if (
+        !fullscreenDamageRepairRequested &&
+        now - fullscreenDamageLastRepaintMs >= FOCUS_DAMAGE_REPAINT_INTERVAL_MS
+      ) {
         fullscreenDamageLastRepaintMs = now
+        fullscreenDamageRepairRequested = true
+        fullscreenDamageRepairThisFrame = true
         runtime.invalidate({ clearScreen: true })
       }
     }
@@ -3376,6 +3384,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       runtime.render(currentBuffer)
     }
     flushPostPaintWrites()
+    if (fullscreenDamageRepairThisFrame) {
+      fullscreenDamageRiskFromBlur = false
+      fullscreenDamageRepairRequested = false
+    }
   }
   const pushToScrollback = (): void =>
     pushToScrollbackFn({ scrollback, currentBuffer: currentBuffer ?? null })
@@ -4016,10 +4028,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           if (focused) {
             runtime.invalidate({ clearScreen: true })
             fullscreenDamageRiskFromBlur = false
+            fullscreenDamageRepairRequested = false
             fullscreenDamageLastRepaintMs = -Infinity
           } else {
             fullscreenDamageRiskFromBlur = true
-            fullscreenDamageLastRepaintMs = -Infinity
+            fullscreenDamageRepairRequested = false
+            fullscreenDamageLastRepaintMs = performance.now()
           }
         }
         // withTerminalChain is an observer — fan out to the chain
