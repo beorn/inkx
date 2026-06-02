@@ -105,11 +105,11 @@ export type RenderOutputFrameDiagnostics = Partial<OutputPhaseDiagnostics> & {
    * Where these bytes came from. Omitted for the ordinary render-frame path
    * to preserve existing trace shape; terminal side-channel writes set this.
    */
-  source?: "terminal-artifact" | "post-paint-write"
+  source?: "terminal-artifact" | "post-paint-write" | "terminal-protocol"
   /** Protocol/component owner for terminal artifacts, e.g. image:kitty:transmit. */
   owner?: string
   /** Flush phase for terminal artifacts. */
-  phase?: "pre-paint" | "post-paint"
+  phase?: "setup" | "runtime" | "cleanup" | "pre-paint" | "post-paint"
   /** Artifact discriminator from the runtime queue. */
   artifactKind?: string
   /** UTF-16 string length written before terminal-output wrapping. */

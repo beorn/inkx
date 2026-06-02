@@ -56,9 +56,9 @@ interface FrameEntry {
 }
 
 export interface BytesOutFrameDiagnostics {
-  source?: "terminal-artifact" | "post-paint-write"
+  source?: "terminal-artifact" | "post-paint-write" | "terminal-protocol"
   owner?: string
-  phase?: "pre-paint" | "post-paint"
+  phase?: "setup" | "runtime" | "cleanup" | "pre-paint" | "post-paint"
   artifactKind?: string
   reason?: string
   mode?: "fullscreen" | "inline"

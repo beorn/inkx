@@ -29,6 +29,7 @@ import "@termless/test/matchers"
 import { addWriter, setSuppressConsole, type Event as LoggilyEvent } from "loggily"
 import { Box, Image, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
+import { createApp } from "../../packages/ag-term/src/runtime/create-app"
 import {
   emitRenderDispatched,
   isRenderTraceEnabled,
@@ -372,6 +373,57 @@ const TINY_PNG = Buffer.from(
   "base64",
 )
 
+function createMockStdout(cols = 80, rows = 24): NodeJS.WriteStream {
+  const writable = {
+    write() {
+      return true
+    },
+    isTTY: true,
+    columns: cols,
+    rows,
+    fd: 1,
+    on: () => writable,
+    off: () => writable,
+    once: () => writable,
+    emit: () => true,
+    removeListener: () => writable,
+    addListener: () => writable,
+  } as unknown as NodeJS.WriteStream
+  return writable
+}
+
+function createMockStdin(): NodeJS.ReadStream {
+  const stdin = {
+    isTTY: true,
+    isRaw: false,
+    fd: 0,
+    setRawMode(_raw: boolean) {
+      return stdin
+    },
+    resume() {
+      return stdin
+    },
+    pause() {
+      return stdin
+    },
+    setEncoding() {
+      return stdin
+    },
+    read() {
+      return null
+    },
+    on: () => stdin,
+    off: () => stdin,
+    once: () => stdin,
+    removeListener: () => stdin,
+    removeAllListeners: () => stdin,
+    addListener: () => stdin,
+    listenerCount: () => 0,
+    listeners: () => [],
+  } as unknown as NodeJS.ReadStream
+  return stdin
+}
+
 describe("render-trace: end-to-end via run()", () => {
   test("a real app emits RENDER_DISPATCHED events at render-pass boundaries", async () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
@@ -407,6 +459,7 @@ describe("render-trace: end-to-end via run()", () => {
       expect(ev.outputFrame).toBeGreaterThan(0)
       expect(ev.bytes).toBeGreaterThanOrEqual(0)
       expect(ev.diagnostics.outputChars).toBeGreaterThanOrEqual(0)
+      if (ev.diagnostics.source) continue
       expect(ev.diagnostics.changedCells).toBeGreaterThanOrEqual(0)
       expect(ev.diagnostics.dirtyRows).toBeGreaterThanOrEqual(0)
       expect(ev.diagnostics.width).toBeGreaterThan(0)
@@ -448,6 +501,63 @@ describe("render-trace: end-to-end via run()", () => {
     )
     expect(artifactEvents.some((ev) => ev.diagnostics.owner === "image:kitty:transmit")).toBe(true)
     expect(artifactEvents.some((ev) => ev.diagnostics.owner === "image:kitty:place")).toBe(true)
+
+    handle.unmount?.()
+  })
+
+  test("startup terminal protocol writes are traced by owner", async () => {
+    process.env.SILVERY_TRACE_FRAMES = traceDir
+    const app = createApp(() => () => ({}))
+    const handle = await app.run(<Text>protocol setup</Text>, {
+      alternateScreen: true,
+      cols: 40,
+      rows: 6,
+      stdout: createMockStdout(),
+      stdin: createMockStdin(),
+      guardOutput: false,
+      textSizing: false,
+      widthDetection: false,
+      kitty: false,
+      mouse: false,
+      focusReporting: false,
+    })
+
+    await new Promise((r) => setTimeout(r, 30))
+
+    const protocolEvents = readOutputSidecar(traceDir).filter(
+      (ev) => ev.diagnostics.source === "terminal-protocol",
+    )
+    expect(protocolEvents.map((ev) => ev.diagnostics.owner)).toEqual(
+      expect.arrayContaining(["mode:alt-screen", "startup:clear-screen", "startup:cursor-hide"]),
+    )
+    expect(protocolEvents.every((ev) => ev.diagnostics.phase === "setup")).toBe(true)
+    expect(protocolEvents.every((ev) => ev.diagnostics.artifactKind === "terminal-sequence")).toBe(
+      true,
+    )
+
+    handle.unmount?.()
+  })
+
+  test("initial zero terminal dimensions fall back before first render", async () => {
+    process.env.SILVERY_TRACE_FRAMES = traceDir
+    const app = createApp(() => () => ({}))
+    const handle = await app.run(<Text>dimension fallback</Text>, {
+      alternateScreen: true,
+      stdout: createMockStdout(0, 0),
+      stdin: createMockStdin(),
+      guardOutput: false,
+      textSizing: false,
+      widthDetection: false,
+      kitty: false,
+      mouse: false,
+      focusReporting: false,
+    })
+
+    await new Promise((r) => setTimeout(r, 30))
+
+    const renderFrame = readOutputSidecar(traceDir).find((ev) => !ev.diagnostics.source)
+    expect(renderFrame?.diagnostics.width).toBeGreaterThan(0)
+    expect(renderFrame?.diagnostics.height).toBeGreaterThan(0)
 
     handle.unmount?.()
   })

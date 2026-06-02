@@ -140,7 +140,6 @@ import {
   enterAlternateScreen,
   leaveAlternateScreen,
 } from "../output"
-import { enableFocusReporting } from "../focus-reporting"
 import { detectKittyFromStdio } from "../kitty-detect"
 import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
 import type { Buffer, Dims, Provider, RenderTarget } from "./types"
@@ -999,8 +998,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const stdout = explicitStdout ?? process.stdout
   const headless =
     (explicitCols != null && explicitRows != null && !explicitStdout) || explicitWritable != null
-  const cols = explicitCols ?? stdout.columns ?? 80
-  const rows = explicitRows ?? stdout.rows ?? 24
+  const resolveTerminalDimension = (
+    explicitValue: number | undefined,
+    detectedValue: number | undefined,
+    fallback: number,
+  ): number => {
+    const value = explicitValue ?? detectedValue
+    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback
+  }
+  const cols = resolveTerminalDimension(explicitCols, stdout.columns, 80)
+  const rows = resolveTerminalDimension(explicitRows, stdout.rows, 24)
 
   // If the caller passed `term` (from run()'s Term path), its `modes` sub-owner
   // is the single authority for protocol mode toggles — raw, alt-screen, paste,
@@ -1253,8 +1260,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     } else {
       const onStdoutResize = () => {
         currentDims = {
-          cols: stdout.columns || 80,
-          rows: stdout.rows || 24,
+          cols: resolveTerminalDimension(undefined, stdout.columns, 80),
+          rows: resolveTerminalDimension(undefined, stdout.rows, 24),
         }
         for (const listener of mockTermSubscribers) listener(currentDims)
       }
@@ -1410,6 +1417,26 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   }
 
+  type TerminalProtocolPhase = NonNullable<RenderOutputFrameDiagnostics["phase"]>
+  const terminalProtocolDiagnostics = (
+    owner: string,
+    phase: TerminalProtocolPhase,
+  ): RenderOutputFrameDiagnostics => ({
+    source: "terminal-protocol",
+    owner,
+    phase,
+    artifactKind: "terminal-sequence",
+  })
+
+  const recordTerminalProtocolWrite = (
+    data: string,
+    owner: string,
+    phase: TerminalProtocolPhase,
+  ): void => {
+    if (data.length === 0) return
+    recordOutputFrame(data, terminalProtocolDiagnostics(owner, phase))
+  }
+
   // Create render target
   const target: RenderTarget = headless
     ? {
@@ -1468,8 +1495,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           }
           const onResize = () => {
             currentDims = {
-              cols: stdout.columns || 80,
-              rows: stdout.rows || 24,
+              cols: resolveTerminalDimension(undefined, stdout.columns, 80),
+              rows: resolveTerminalDimension(undefined, stdout.rows, 24),
             }
             handler(currentDims)
           }
@@ -1836,27 +1863,65 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let focusReportingEnabled = false
   let inputPumpStarted = false
 
-  function setAltScreenMode(enabled: boolean): void {
+  function setAltScreenMode(enabled: boolean, phase: TerminalProtocolPhase = "runtime"): void {
+    const changed = modes.altScreen() !== enabled
     modes.altScreen(enabled)
+    if (changed)
+      recordTerminalProtocolWrite(enabled ? "\x1b[?1049h" : "\x1b[?1049l", "mode:alt-screen", phase)
   }
 
-  function setBracketedPasteMode(enabled: boolean): void {
+  function setBracketedPasteMode(enabled: boolean, phase: TerminalProtocolPhase = "runtime"): void {
+    const changed = modes.bracketedPaste() !== enabled
     modes.bracketedPaste(enabled)
+    if (changed) {
+      recordTerminalProtocolWrite(
+        enabled ? "\x1b[?2004h" : "\x1b[?2004l",
+        "mode:bracketed-paste",
+        phase,
+      )
+    }
   }
 
-  function setKittyKeyboardMode(flags: number | false): void {
+  function setKittyKeyboardMode(
+    flags: number | false,
+    phase: TerminalProtocolPhase = "runtime",
+  ): void {
+    const changed = modes.kittyKeyboard() !== flags
     modes.kittyKeyboard(flags)
+    if (changed) {
+      recordTerminalProtocolWrite(
+        flags === false ? disableKittyKeyboard() : enableKittyKeyboard(flags),
+        "mode:kitty-keyboard",
+        phase,
+      )
+    }
     kittyEnabled = flags !== false
     if (flags !== false) kittyFlags = flags
   }
 
-  function setMouseMode(mode: MouseTrackingMode): void {
+  function setMouseMode(mode: MouseTrackingMode, phase: TerminalProtocolPhase = "runtime"): void {
+    const changed = modes.mouse() !== mode
     modes.mouse(mode)
+    if (changed) {
+      recordTerminalProtocolWrite(
+        mode ? enableMouse({ pixels: mode === "pixel" }) : disableMouse(),
+        "mode:mouse",
+        phase,
+      )
+    }
     mouseEnabled = mode !== false
   }
 
-  function setFocusReportingMode(enabled: boolean): void {
+  function setFocusReportingMode(enabled: boolean, phase: TerminalProtocolPhase = "runtime"): void {
+    const changed = modes.focusReporting() !== enabled
     modes.focusReporting(enabled)
+    if (changed) {
+      recordTerminalProtocolWrite(
+        enabled ? "\x1b[?1004h" : "\x1b[?1004l",
+        "mode:focus-reporting",
+        phase,
+      )
+    }
     focusReportingEnabled = enabled
   }
   // Selection follows mouse: when mouse tracking is enabled, drag-to-select +
@@ -2975,9 +3040,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // active (so the suppress sink doesn't eat it), else through the raw
   // stdout. Used by the alt-screen entry block below for sequences that
   // don't naturally go through `target.write` or the modes owner.
-  const writeOwned = (data: string): void => {
+  const writeOwned = (data: string, diagnostics?: RenderOutputFrameDiagnostics): void => {
     if (output) output.write(data)
     else stdout.write(data)
+    if (diagnostics) recordOutputFrame(data, diagnostics)
   }
 
   // Enter alternate screen if requested, then clear and hide cursor —
@@ -2992,10 +3058,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // not mode toggles. Use the owned writer so the (now-active) Output
       // sink doesn't suppress them.
       legacyAltScreenEnabled = true
-      setAltScreenMode(true)
-      writeOwned("\x1b[2J\x1b[H")
+      setAltScreenMode(true, "setup")
+      writeOwned("\x1b[2J\x1b[H", terminalProtocolDiagnostics("startup:clear-screen", "setup"))
     }
-    writeOwned("\x1b[?25l")
+    writeOwned("\x1b[?25l", terminalProtocolDiagnostics("startup:cursor-hide", "setup"))
   }
 
   // Initial render — must run AFTER alt-screen entry so reconciler effects
@@ -3028,30 +3094,30 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           // adds value when caps weren't provided.
           if (capsOption?.kittyKeyboard) {
             legacyKittyFlags = defaultKittyFlags
-            setKittyKeyboardMode(defaultKittyFlags)
+            setKittyKeyboardMode(defaultKittyFlags, "setup")
           } else {
             const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
             if (result.supported) {
               legacyKittyFlags = defaultKittyFlags
-              setKittyKeyboardMode(defaultKittyFlags)
+              setKittyKeyboardMode(defaultKittyFlags, "setup")
             }
           }
         } else {
           // Explicit flags — enable directly without detection
           legacyKittyFlags = kittyOption as number
-          setKittyKeyboardMode(kittyOption as number)
+          setKittyKeyboardMode(kittyOption as number, "setup")
         }
       } else if (hostOwnsStdin && kittyOption == null) {
         // No option specified: legacy behavior — always enable Kitty with full fidelity
         legacyKittyFlags = defaultKittyFlags
-        setKittyKeyboardMode(defaultKittyFlags)
+        setKittyKeyboardMode(defaultKittyFlags, "setup")
       }
 
       // Legacy app-level mouse tracking. Focused islands are OR'd in by the
       // aggregator path below; `input: false` suppresses only the legacy app
       // request, not focused-island requests.
       if (legacyMouseMode !== false) {
-        setMouseMode(legacyMouseMode)
+        setMouseMode(legacyMouseMode, "setup")
       }
 
       // Focus reporting is deferred to after the event loop starts (see below).
