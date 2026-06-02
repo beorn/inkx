@@ -358,7 +358,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       patch += cursorSuffix
 
       if (clearFullscreen) {
-        patch = ANSI.SYNC_BEGIN + "\x1b[2J\x1b[H" + patch + ANSI.SYNC_END
+        patch = "\x1b[2J\x1b[H" + patch
       }
 
       if (patch.length === 0) {
