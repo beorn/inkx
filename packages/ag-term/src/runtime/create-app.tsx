@@ -81,6 +81,8 @@ import {
 } from "../text-sizing"
 import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
 import { isStrictEnabled } from "../strict-mode.js"
+import { createBytesOutMonitor } from "../bytes-out-monitor"
+import { createMemMonitor } from "../mem-monitor"
 import { _sharedResizeRefcount } from "./devices/size"
 import {
   createContainer,
@@ -1360,12 +1362,25 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // createApp().run() (km, etc.) get parity with run() consumers.
   const _captureFile = process.env.SILVERY_CAPTURE_OUTPUT
   let _captureFrame = 0
+  let _strictOutputFrame = 0
+
+  const bytesOutMonitor = isStrictEnabled("bytes_out", 1) ? createBytesOutMonitor() : null
+  const memMonitor = isStrictEnabled("mem", 1) ? createMemMonitor() : null
+
+  function recordOutputFrame(frame: string): void {
+    if (!bytesOutMonitor) return
+    _strictOutputFrame += 1
+    bytesOutMonitor.recordWrite(_strictOutputFrame, Buffer.byteLength(frame))
+  }
 
   // Create render target
   const target: RenderTarget = headless
     ? {
         write(frame: string) {
-          if (explicitWritable) explicitWritable.write(frame)
+          if (explicitWritable) {
+            explicitWritable.write(frame)
+            recordOutputFrame(frame)
+          }
         },
         getDims: () => currentDims,
       }
@@ -1395,6 +1410,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             } else {
               stdout.write(frame)
             }
+            recordOutputFrame(frame)
           }
         },
         getDims(): Dims {
@@ -2201,6 +2217,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       if (process.env.SILVERY_INSTRUMENT_PRINT === "1") printPassHistogram()
       resetPassHistogram()
     }
+
+    bytesOutMonitor?.dispose()
+    memMonitor?.dispose()
 
     // Unmount React tree first — this runs effect cleanups (clears intervals,
     // cancels subscriptions) before we tear down the infrastructure.
