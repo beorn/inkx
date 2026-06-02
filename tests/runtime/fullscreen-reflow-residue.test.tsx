@@ -352,4 +352,43 @@ describe("auto sync-wrap for large fullscreen frames (km bead 19633)", () => {
     expect(frame.includes(SYNC_BEGIN), "small frame should not open a sync region").toBe(false)
     expect(frame.includes(SYNC_END)).toBe(false)
   })
+
+  test("a large clearFullscreen repaint is NOT auto-wrapped (km bead 19604 — Ghostty clear-in-sync caveat)", () => {
+    const dims: Dims = { cols: 120, rows: 40 }
+    let onResize: ((dims: Dims) => void) | undefined
+    const writes: string[] = []
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      outputPhaseFn: createOutputPhase({}),
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize(handler) {
+          onResize = handler
+          return () => {
+            onResize = undefined
+          }
+        },
+      },
+    })
+
+    runtime.render(denseBuffer(dims.cols, dims.rows, 1))
+    writes.length = 0
+    // A focus-in / resize forces a clearFullscreen repaint (2J + full repaint).
+    // Even though it is large, it must NOT be sync-wrapped: a clear performed
+    // inside a DEC 2026 region corrupts on older Ghostty and blanks the pane
+    // after a workspace focus switch (km bead 19604-focus-blank).
+    onResize?.(dims)
+    runtime.render(denseBuffer(dims.cols, dims.rows, 2))
+
+    const frame = writes.at(-1) ?? ""
+    expect(frame, "frame should be a clear repaint").toContain("\x1b[2J\x1b[H")
+    expect(Buffer.byteLength(frame), "clear repaint should be large").toBeGreaterThan(2048)
+    expect(frame.includes(SYNC_BEGIN), "large clear repaint must not open a sync region").toBe(false)
+    expect(frame.includes(SYNC_END)).toBe(false)
+  })
 })
