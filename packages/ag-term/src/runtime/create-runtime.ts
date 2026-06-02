@@ -395,14 +395,22 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
       // Write to target, wrapped in DEC 2026 synchronized-output markers when:
       //   - syncUpdate is forced (SILVERY_SYNC_UPDATE=1), or
-      //   - this is a LARGE fullscreen frame (>= LARGE_FULLSCREEN_SYNC_BYTES).
-      // Large streaming/scroll diffs and full-screen repaints tear visibly when
-      // written un-synchronized; wrapping makes the terminal swap them in one
-      // frame. Small incremental cursor-positioned diffs stay unwrapped to avoid
-      // the older-Ghostty corruption caveat. See km bead 19633-output-flicker.
+      //   - this is a LARGE, non-clear fullscreen frame (>= LARGE_FULLSCREEN_SYNC_BYTES).
+      // Large streaming/scroll diffs tear visibly when written un-synchronized;
+      // wrapping makes the terminal swap them in one frame. Small incremental
+      // cursor-positioned diffs stay unwrapped to avoid the older-Ghostty
+      // corruption caveat (see km bead 19633-output-flicker).
+      //
+      // clearFullscreen repaints (2J + full repaint on focus-in / resize) are
+      // EXCLUDED from auto-wrap: older Ghostty corrupts a clear performed inside
+      // a sync region, which blanks the pane after a workspace focus switch
+      // (km bead 19604-focus-blank). The explicit SILVERY_SYNC_UPDATE opt-in
+      // still wraps them — that caller has accepted the tradeoff.
       const wrapSync =
         syncUpdate ||
-        (mode === "fullscreen" && Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES)
+        (mode === "fullscreen" &&
+          !clearFullscreen &&
+          Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES)
       target.write(wrapSync ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch)
       lastCursorSuffix = cursorSuffix
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
