@@ -26,6 +26,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
+import { addWriter, setSuppressConsole, type Event as LoggilyEvent } from "loggily"
 import { Box, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
 import {
@@ -42,15 +43,19 @@ import {
 
 let traceDir: string
 const SAVED_ENV = process.env.SILVERY_TRACE_FRAMES
+const SAVED_DEBUG = process.env.DEBUG
 
 beforeEach(() => {
   traceDir = mkdtempSync(join(tmpdir(), "silvery-render-trace-"))
+  delete process.env.DEBUG
   __resetRenderTraceForTests()
 })
 
 afterEach(() => {
   if (SAVED_ENV === undefined) delete process.env.SILVERY_TRACE_FRAMES
   else process.env.SILVERY_TRACE_FRAMES = SAVED_ENV
+  if (SAVED_DEBUG === undefined) delete process.env.DEBUG
+  else process.env.DEBUG = SAVED_DEBUG
   __resetRenderTraceForTests()
   if (traceDir && existsSync(traceDir)) rmSync(traceDir, { recursive: true, force: true })
 })
@@ -102,6 +107,14 @@ describe("render-trace: gate", () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
     expect(isRenderTraceEnabled()).toBe(true)
     expect(renderTraceDir()).toBe(traceDir)
+  })
+
+  test("enabled by DEBUG=silvery:render without a sidecar dir", () => {
+    delete process.env.SILVERY_TRACE_FRAMES
+    process.env.DEBUG = "silvery:render"
+
+    expect(isRenderTraceEnabled()).toBe(true)
+    expect(renderTraceDir()).toBeNull()
   })
 })
 
@@ -265,6 +278,65 @@ describe("render-trace: emit", () => {
     expect(recentRenderOutputEvents()).toEqual([ev])
     expect(readSidecar(traceDir)).toHaveLength(0)
   })
+
+  test("emits render and output events through loggily when DEBUG enables the namespace", () => {
+    delete process.env.SILVERY_TRACE_FRAMES
+    process.env.DEBUG = "silvery:render:*"
+    const logged: LoggilyEvent[] = []
+    setSuppressConsole(true)
+    const unsubscribe = addWriter(
+      { ns: "silvery:render:*", level: "debug" },
+      (_formatted, _level, _namespace, event) => {
+        logged.push(event)
+      },
+    )
+
+    try {
+      emitRenderDispatched({
+        renderCount: 5,
+        dirtyReasons: ["content"],
+        dimsChanged: false,
+        bufferHeight: 1,
+        isRowDirty: () => true,
+        signalDelta: { nodesVisited: 3, nodesRendered: 1, nodesSkipped: 2, incremental: true },
+        rootNodeCount: 8,
+        rootDirtyEpoch: 13,
+      })
+      emitRenderOutputFrame({
+        renderCount: 5,
+        outputFrame: 6,
+        bytes: 42,
+        diagnostics: { reason: "diff", changedCells: 2, dirtyRows: 1 },
+      })
+    } finally {
+      unsubscribe()
+      setSuppressConsole(false)
+    }
+
+    expect(readSidecar(traceDir)).toHaveLength(0)
+    expect(readOutputSidecar(traceDir)).toHaveLength(0)
+    expect(recentRenderEvents()).toHaveLength(1)
+    expect(recentRenderOutputEvents()).toHaveLength(1)
+    expect(
+      logged.some(
+        (event) =>
+          event.kind === "log" &&
+          event.namespace === "silvery:render" &&
+          event.message === "render dispatched" &&
+          event.props?.type === "RENDER_DISPATCHED",
+      ),
+    ).toBe(true)
+    expect(
+      logged.some(
+        (event) =>
+          event.kind === "log" &&
+          event.namespace === "silvery:render:output" &&
+          event.message === "render output" &&
+          event.props?.type === "RENDER_OUTPUT" &&
+          event.props.bytes === 42,
+      ),
+    ).toBe(true)
+  })
 })
 
 // ============================================================================
@@ -330,6 +402,6 @@ describe("render-trace: end-to-end via run()", () => {
     }
     expect(recentRenderOutputEvents().length).toBe(outputEvents.length)
 
-    await handle.unmount?.()
+    handle.unmount?.()
   })
 })

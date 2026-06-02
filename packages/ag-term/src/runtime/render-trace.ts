@@ -43,7 +43,11 @@
 
 import { appendFileSync, existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
+import { createLogger } from "loggily"
 import type { OutputPhaseDiagnostics } from "../pipeline/output-phase"
+
+const renderLog = createLogger("silvery:render")
+const outputLog = createLogger("silvery:render:output")
 
 /**
  * A render-boundary event. Emitted once per `doRender()` flush when render
@@ -154,12 +158,9 @@ export interface RenderTraceInput {
 
 // ── Env gate ────────────────────────────────────────────────────────────────
 //
-// `SILVERY_TRACE_FRAMES` names the trace directory; when unset, every export
-// below is a no-op. The env var is read lazily (not folded at module load)
-// so the gate is testable — render tracing is an opt-in diagnostic, never on
-// the production hot path, so a per-render env read costs nothing that
-// matters. (Contrast `pass-cause.ts`, which folds its gate at load because
-// it sits inside the convergence loop.)
+// `SILVERY_TRACE_FRAMES` names the trace directory. `DEBUG=silvery:render*`
+// enables the same in-process/loggily trace without a sidecar. Both gates
+// are read lazily so the trace surface is testable and opt-in.
 
 let sidecarFile: string | null = null
 let sidecarReady = false
@@ -171,9 +172,9 @@ export function renderTraceDir(): string | null {
   return process.env.SILVERY_TRACE_FRAMES?.trim() || null
 }
 
-/** True when `SILVERY_TRACE_FRAMES` is set — render tracing is active. */
+/** True when sidecar or loggily render tracing is active. */
 export function isRenderTraceEnabled(): boolean {
-  return renderTraceDir() !== null
+  return renderTraceDir() !== null || renderLog.debug !== undefined || outputLog.debug !== undefined
 }
 
 // ── In-process event bus ────────────────────────────────────────────────────
@@ -250,7 +251,8 @@ function dirtyRegionsFromBuffer(
  */
 export function emitRenderDispatched(input: RenderTraceInput): void {
   const traceDir = renderTraceDir()
-  if (traceDir === null) return
+  const logEnabled = renderLog.debug !== undefined
+  if (traceDir === null && !logEnabled) return
   try {
     const reasonParts: string[] = [...input.dirtyReasons]
     if (input.dimsChanged) reasonParts.push("dims-changed")
@@ -271,16 +273,18 @@ export function emitRenderDispatched(input: RenderTraceInput): void {
       b.events.splice(0, b.events.length - MAX_BUFFERED_EVENTS)
     }
 
+    renderLog.debug?.("render dispatched", { ...event })
+
     // Sidecar JSONL — lazily created on first emit so a disabled trace dir
     // never gets touched.
-    if (!sidecarReady) {
+    if (traceDir !== null && !sidecarReady) {
       if (!existsSync(traceDir)) mkdirSync(traceDir, { recursive: true })
       sidecarFile = join(traceDir, "render-events.jsonl")
       // Truncate any prior sidecar for this dir.
       appendFileSync(sidecarFile, "", { flag: "w" })
       sidecarReady = true
     }
-    if (sidecarFile) {
+    if (traceDir !== null && sidecarFile) {
       appendFileSync(sidecarFile, JSON.stringify(event) + "\n")
     }
   } catch {
@@ -306,7 +310,8 @@ export interface RenderOutputFrameInput {
  */
 export function emitRenderOutputFrame(input: RenderOutputFrameInput): void {
   const traceDir = renderTraceDir()
-  if (traceDir === null) return
+  const logEnabled = renderLog.debug !== undefined || outputLog.debug !== undefined
+  if (traceDir === null && !logEnabled) return
   try {
     const event: RenderOutputFrameEvent = {
       type: "RENDER_OUTPUT",
@@ -323,13 +328,15 @@ export function emitRenderOutputFrame(input: RenderOutputFrameInput): void {
       b.outputEvents.splice(0, b.outputEvents.length - MAX_BUFFERED_EVENTS)
     }
 
-    if (!outputSidecarReady) {
+    outputLog.debug?.("render output", { ...event })
+
+    if (traceDir !== null && !outputSidecarReady) {
       if (!existsSync(traceDir)) mkdirSync(traceDir, { recursive: true })
       outputSidecarFile = join(traceDir, "render-output-events.jsonl")
       appendFileSync(outputSidecarFile, "", { flag: "w" })
       outputSidecarReady = true
     }
-    if (outputSidecarFile) {
+    if (traceDir !== null && outputSidecarFile) {
       appendFileSync(outputSidecarFile, JSON.stringify(event) + "\n")
     }
   } catch {
