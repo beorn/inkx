@@ -52,6 +52,22 @@ interface FrameEntry {
   frameNum: number
   ts: number
   bytes: number
+  diagnostics?: BytesOutFrameDiagnostics
+}
+
+export interface BytesOutFrameDiagnostics {
+  reason?: string
+  mode?: "fullscreen" | "inline"
+  width?: number
+  height?: number
+  prevWidth?: number
+  prevHeight?: number
+  changedCells?: number
+  rawChangedCells?: number
+  dirtyRows?: number
+  outputChars?: number
+  cursorChars?: number
+  syncWrapped?: boolean
 }
 
 /**
@@ -92,7 +108,7 @@ export interface BytesOutTrip {
 }
 
 export interface BytesOutMonitor {
-  recordWrite(frameNum: number, bytes: number): void
+  recordWrite(frameNum: number, bytes: number, diagnostics?: BytesOutFrameDiagnostics): void
   /** Most recent trip event (across both warn + panic) — primarily for tests. */
   readonly lastTrip: BytesOutTrip | null
   /** Last 100 frame entries — primarily for tests. */
@@ -139,9 +155,31 @@ export function createBytesOutMonitor(options: BytesOutMonitorOptions = {}): Byt
   function dumpFrameSummaries(filePath: string): boolean {
     try {
       const tail = frames.slice(-FRAME_HISTORY)
-      const header = "# frameNum\tts\tbytes\n"
+      const header =
+        "# frameNum\tts\tbytes\treason\tmode\twidth\theight\tprevWidth\tprevHeight\tchangedCells\trawChangedCells\tdirtyRows\toutputChars\tcursorChars\tsyncWrapped\n"
       const body = tail
-        .map((f) => `${f.frameNum}\t${new Date(f.ts).toISOString()}\t${f.bytes}`)
+        .map((f) => {
+          const d = f.diagnostics
+          return [
+            f.frameNum,
+            new Date(f.ts).toISOString(),
+            f.bytes,
+            d?.reason,
+            d?.mode,
+            d?.width,
+            d?.height,
+            d?.prevWidth,
+            d?.prevHeight,
+            d?.changedCells,
+            d?.rawChangedCells,
+            d?.dirtyRows,
+            d?.outputChars,
+            d?.cursorChars,
+            d?.syncWrapped,
+          ]
+            .map(formatSummaryField)
+            .join("\t")
+        })
         .join("\n")
       writeFile(filePath, header + body + "\n")
       return true
@@ -200,11 +238,15 @@ export function createBytesOutMonitor(options: BytesOutMonitorOptions = {}): Byt
     return true
   }
 
-  function recordWrite(frameNum: number, bytes: number): void {
+  function recordWrite(
+    frameNum: number,
+    bytes: number,
+    diagnostics?: BytesOutFrameDiagnostics,
+  ): void {
     if (disposed) return
     const t = now()
     evictOld(t - EVICT_OLDER_THAN_MS)
-    frames.push({ frameNum, ts: t, bytes })
+    frames.push({ frameNum, ts: t, bytes, diagnostics })
     // PANIC supersedes WARN in the same record — they have separate cooldowns.
     if (maybePanic(t)) return
     maybeWarn(t)
@@ -227,6 +269,11 @@ export function createBytesOutMonitor(options: BytesOutMonitorOptions = {}): Byt
     snapshotFrames,
     dispose,
   }
+}
+
+function formatSummaryField(value: unknown): string {
+  if (value === undefined || value === null) return ""
+  return String(value)
 }
 
 function defaultWriteHeapSnapshot(path: string): string | void {

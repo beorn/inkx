@@ -68,6 +68,41 @@ function isHybridOutputEnabled(): boolean {
 let _debugFrameCount = 0
 let _captureRawFrameCount = 0
 
+export interface OutputPhaseDiagnostics {
+  reason:
+    | "first-render"
+    | "inline-first-render"
+    | "inline-resize-incremental"
+    | "inline-incremental"
+    | "forced-full-render"
+    | "dimension-mismatch"
+    | "zero-diff"
+    | "diff"
+    | "native-scroll-diff"
+  mode: "fullscreen" | "inline"
+  width: number
+  height: number
+  prevWidth: number
+  prevHeight: number
+  changedCells?: number
+  rawChangedCells?: number
+  dirtyRows?: number
+}
+
+let lastOutputPhaseDiagnostics: OutputPhaseDiagnostics | null = null
+
+export function getLastOutputPhaseDiagnostics(): OutputPhaseDiagnostics | null {
+  return lastOutputPhaseDiagnostics ? { ...lastOutputPhaseDiagnostics } : null
+}
+
+export function clearLastOutputPhaseDiagnostics(): void {
+  lastOutputPhaseDiagnostics = null
+}
+
+function setLastOutputPhaseDiagnostics(diagnostics: OutputPhaseDiagnostics): void {
+  lastOutputPhaseDiagnostics = diagnostics
+}
+
 // Re-export verification types only. `replayAnsiWithStyles` is internal —
 // tests that need it import from `./output-verify` directly. Bead:
 // km-silvery.unexport-replay-ansi-with-styles.
@@ -215,6 +250,24 @@ interface NativeScrollPlan {
 
 const nativeScrollPrevCell = createMutableCell()
 const nativeScrollNextCell = createMutableCell()
+
+function renderedCellCount(buffer: TerminalBuffer, termRows?: number): number {
+  const rows = termRows == null ? buffer.height : Math.min(buffer.height, termRows)
+  return buffer.width * Math.max(0, rows)
+}
+
+function changedRowCount(pool: readonly CellChange[], count: number): number {
+  if (count <= 0) return 0
+  let rows: Set<number> | null = null
+  let firstRow = pool[0]?.y ?? -1
+  for (let i = 1; i < count; i++) {
+    const y = pool[i]!.y
+    if (y === firstRow) continue
+    if (!rows) rows = new Set([firstRow])
+    rows.add(y)
+  }
+  return rows ? rows.size : 1
+}
 
 function rowsEqualWithOffset(
   prev: TerminalBuffer,
@@ -987,6 +1040,14 @@ export function outputPhase(
       if (stored.width === next.width && stored.height === next.height) {
         // Dimensions match — use incremental rendering (skip clear entirely)
         inlineState.prevBuffer = next
+        setLastOutputPhaseDiagnostics({
+          reason: "inline-resize-incremental",
+          mode,
+          width: next.width,
+          height: next.height,
+          prevWidth: stored.width,
+          prevHeight: stored.height,
+        })
         return inlineIncrementalRender(
           inlineState,
           stored,
@@ -1061,6 +1122,17 @@ export function outputPhase(
 
       inlineState.prevBuffer = next
       updateInlineCursorRow(inlineState, cursorPos, firstMaxOutput, firstStartLine)
+      setLastOutputPhaseDiagnostics({
+        reason: "inline-first-render",
+        mode,
+        width: next.width,
+        height: next.height,
+        prevWidth: 0,
+        prevHeight: 0,
+        changedCells: renderedCellCount(next, termRows),
+        rawChangedCells: renderedCellCount(next, termRows),
+        dirtyRows: Math.min(next.height, termRows ?? next.height),
+      })
       return prefix + firstOutput + inlineCursorSuffix(cursorPos ?? null, next, ctx)
     }
     if (isStrictAccumulate()) {
@@ -1090,12 +1162,31 @@ export function outputPhase(
         )
       } catch {}
     }
+    setLastOutputPhaseDiagnostics({
+      reason: "first-render",
+      mode,
+      width: next.width,
+      height: next.height,
+      prevWidth: 0,
+      prevHeight: 0,
+      changedCells: renderedCellCount(next, termRows),
+      rawChangedCells: renderedCellCount(next, termRows),
+      dirtyRows: Math.min(next.height, termRows ?? next.height),
+    })
     return firstOutput
   }
 
   // Inline mode: use incremental rendering when safe, fall back to full render.
   if (mode === "inline") {
     inlineState.prevBuffer = next
+    setLastOutputPhaseDiagnostics({
+      reason: "inline-incremental",
+      mode,
+      width: next.width,
+      height: next.height,
+      prevWidth: prev.width,
+      prevHeight: prev.height,
+    })
     return inlineIncrementalRender(
       inlineState,
       prev,
@@ -1112,6 +1203,17 @@ export function outputPhase(
   // Use to diagnose garbled rendering — if FULL_RENDER fixes it, the bug
   // is in changesToAnsi (diff → ANSI serialization).
   if (FULL_RENDER) {
+    setLastOutputPhaseDiagnostics({
+      reason: "forced-full-render",
+      mode,
+      width: next.width,
+      height: next.height,
+      prevWidth: prev.width,
+      prevHeight: prev.height,
+      changedCells: renderedCellCount(next, termRows),
+      rawChangedCells: renderedCellCount(next, termRows),
+      dirtyRows: Math.min(next.height, termRows ?? next.height),
+    })
     return bufferToAnsi(next, ctx, termRows)
   }
 
@@ -1123,6 +1225,17 @@ export function outputPhase(
   // valid row/column, causing stale cells from the diff's shrink-region clears
   // to overwrite valid content at the terminal edge.
   if (prev.width !== next.width || prev.height !== next.height) {
+    setLastOutputPhaseDiagnostics({
+      reason: "dimension-mismatch",
+      mode,
+      width: next.width,
+      height: next.height,
+      prevWidth: prev.width,
+      prevHeight: prev.height,
+      changedCells: renderedCellCount(next, termRows),
+      rawChangedCells: renderedCellCount(next, termRows),
+      dirtyRows: Math.min(next.height, termRows ?? next.height),
+    })
     return bufferToAnsi(next, ctx, termRows)
   }
 
@@ -1165,6 +1278,17 @@ export function outputPhase(
       acc.diffMs += tDiff1 - tDiff0
       acc.calls += 1
     }
+    setLastOutputPhaseDiagnostics({
+      reason: "zero-diff",
+      mode,
+      width: next.width,
+      height: next.height,
+      prevWidth: prev.width,
+      prevHeight: prev.height,
+      changedCells: 0,
+      rawChangedCells: rawCount,
+      dirtyRows: 0,
+    })
     return "" // No changes
   }
 
@@ -1176,6 +1300,10 @@ export function outputPhase(
   const tAnsi0 = performance.now()
   const nativeScrollPlan = ctx.mode === "fullscreen" ? detectNativeScrollPlan(prev, next) : null
   let incrOutput: string
+  let diagnosticReason: OutputPhaseDiagnostics["reason"] = "diff"
+  let diagnosticChangedCells = count
+  let diagnosticRawChangedCells = rawCount
+  let diagnosticDirtyRows = changedRowCount(pool, count)
   if (nativeScrollPlan) {
     const { pool: nativePool, count: nativeCount } = diffBuffers(nativeScrollPlan.afterScroll, next)
     let filteredNativeCount = nativeCount
@@ -1193,6 +1321,10 @@ export function outputPhase(
       (filteredNativeCount === 0
         ? ""
         : changesToAnsi(nativePool, filteredNativeCount, ctx, next, 0, Infinity, prev).output)
+    diagnosticReason = "native-scroll-diff"
+    diagnosticChangedCells = filteredNativeCount
+    diagnosticRawChangedCells = nativeCount
+    diagnosticDirtyRows = changedRowCount(nativePool, filteredNativeCount)
   } else {
     incrOutput = changesToAnsi(pool, count, ctx, next, 0, Infinity, prev).output
   }
@@ -1344,6 +1476,17 @@ export function outputPhase(
     } catch {}
   }
 
+  setLastOutputPhaseDiagnostics({
+    reason: diagnosticReason,
+    mode,
+    width: next.width,
+    height: next.height,
+    prevWidth: prev.width,
+    prevHeight: prev.height,
+    changedCells: diagnosticChangedCells,
+    rawChangedCells: diagnosticRawChangedCells,
+    dirtyRows: diagnosticDirtyRows,
+  })
   return incrOutput
 }
 

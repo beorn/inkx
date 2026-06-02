@@ -83,6 +83,10 @@ import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
 import { isStrictEnabled } from "../strict-mode.js"
 import { createBytesOutMonitor } from "../bytes-out-monitor"
 import { createMemMonitor } from "../mem-monitor"
+import {
+  clearLastOutputPhaseDiagnostics,
+  getLastOutputPhaseDiagnostics,
+} from "../pipeline/output-phase"
 import { _sharedResizeRefcount } from "./devices/size"
 import {
   createContainer,
@@ -1370,7 +1374,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   function recordOutputFrame(frame: string): void {
     if (!bytesOutMonitor) return
     _strictOutputFrame += 1
-    bytesOutMonitor.recordWrite(_strictOutputFrame, Buffer.byteLength(frame))
+    const outputDiagnostics = getLastOutputPhaseDiagnostics()
+    bytesOutMonitor.recordWrite(_strictOutputFrame, Buffer.byteLength(frame), {
+      ...outputDiagnostics,
+      outputChars: frame.length,
+    })
   }
 
   // Create render target
@@ -3343,8 +3351,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       if (hasSearchBar) {
         applySearchBarToPaintBufferFn({ searchState, paintBuffer: paintBuf })
       }
+      clearLastOutputPhaseDiagnostics()
       runtime.render(paintBuf)
     } else {
+      clearLastOutputPhaseDiagnostics()
       runtime.render(currentBuffer)
     }
     flushPostPaintWrites()

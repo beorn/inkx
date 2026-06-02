@@ -230,7 +230,46 @@ describe("createBytesOutMonitor", () => {
     const lines = summary.contents.trim().split("\n")
     // Header + at most FRAME_HISTORY (100) data lines.
     expect(lines.length).toBeLessThanOrEqual(1 + 100)
-    expect(lines[0]).toMatch(/^# frameNum\tts\tbytes$/)
+    expect(lines[0]).toMatch(/^# frameNum\tts\tbytes/)
+
+    m.dispose()
+  })
+
+  test("frame summaries include optional output diagnostics", () => {
+    const h = makeHarness()
+    const m = createBytesOutMonitor({
+      warnMbPerSec: 1,
+      panicMbPerSec: 100,
+      snapshotDir: "/tmp/test",
+      logger: h.logger,
+      now: () => h.now(),
+      writeFile: h.writeFile,
+      writeHeapSnapshot: h.writeHeapSnapshot,
+    })
+
+    for (let i = 0; i < 50; i++) {
+      m.recordWrite(i, 200_000, {
+        reason: "diff",
+        mode: "fullscreen",
+        width: 120,
+        height: 40,
+        prevWidth: 120,
+        prevHeight: 40,
+        changedCells: 12,
+        dirtyRows: 2,
+        outputChars: 180_000,
+        cursorChars: 12,
+        syncWrapped: false,
+      })
+      h.advance(200)
+    }
+
+    const summary = h.files.find((f) => f.path.includes("bytes-out-warn"))!
+    const lines = summary.contents.trim().split("\n")
+    expect(lines[0]).toBe(
+      "# frameNum\tts\tbytes\treason\tmode\twidth\theight\tprevWidth\tprevHeight\tchangedCells\trawChangedCells\tdirtyRows\toutputChars\tcursorChars\tsyncWrapped",
+    )
+    expect(lines[1]).toContain("\tdiff\tfullscreen\t120\t40\t120\t40\t12\t\t2\t180000\t12\tfalse")
 
     m.dispose()
   })

@@ -90,6 +90,15 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
     expect(monitorState.bytesOut[0]!.recordWrite).toHaveBeenCalled()
     expect(monitorState.bytesOut[0]!.recordWrite.mock.calls[0]![0]).toBe(1)
     expect(monitorState.bytesOut[0]!.recordWrite.mock.calls[0]![1]).toBeGreaterThan(0)
+    expect(monitorState.bytesOut[0]!.recordWrite.mock.calls[0]![2]).toMatchObject({
+      reason: "first-render",
+      mode: "fullscreen",
+      width: expect.any(Number),
+      height: expect.any(Number),
+      prevWidth: 0,
+      prevHeight: 0,
+      outputChars: expect.any(Number),
+    })
     expect(sink.output.length).toBeGreaterThan(0)
 
     handle.unmount()

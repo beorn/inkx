@@ -36,7 +36,11 @@ import { findActiveCursorNode, resolveCaretStyle } from "./caret-style"
 import { createOsc52Backend } from "./clipboard"
 import { ANSI, notify as notifyTerminal, setCursorStyle, resetCursorStyle } from "./output"
 import type { PipelineConfig } from "./pipeline"
-import { outputPhase } from "./pipeline/output-phase"
+import {
+  clearLastOutputPhaseDiagnostics,
+  getLastOutputPhaseDiagnostics,
+  outputPhase,
+} from "./pipeline/output-phase"
 import { createAg, createRenderPostState, type RenderPostState } from "./ag"
 import { runWithMeasurer } from "./unicode"
 import type { RenderPhaseStats } from "./pipeline/types"
@@ -660,6 +664,7 @@ export class RenderScheduler {
         const outputFn = this.pipelineConfig?.outputPhaseFn ?? outputPhase
         let ansiOutput: string
         try {
+          clearLastOutputPhaseDiagnostics()
           ansiOutput = outputFn(
             this.prevBuffer,
             buffer,
@@ -771,7 +776,13 @@ export class RenderScheduler {
         // bytes_out instrumentation — record AFTER write so the monitor
         // accounts for what actually left the process. Fixed thresholds
         // (1 MB/s WARN × 10s, 100 MB/s PANIC × 2s) in `bytes-out-monitor.ts`.
-        this.bytesOutMonitor?.recordWrite(this.stats.renderCount, Buffer.byteLength(fullOutput))
+        const outputDiagnostics = getLastOutputPhaseDiagnostics()
+        this.bytesOutMonitor?.recordWrite(this.stats.renderCount, Buffer.byteLength(fullOutput), {
+          ...outputDiagnostics,
+          outputChars: transformedOutput.length,
+          cursorChars: cursorSuffix.length,
+          syncWrapped: this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED,
+        })
       }
 
       // Save buffer for next diff
