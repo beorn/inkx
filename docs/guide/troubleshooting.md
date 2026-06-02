@@ -34,8 +34,8 @@
 
 ### Flickering in tmux / Zellij
 
-- Silvery uses Synchronized Update Mode (DEC 2026) by default, which prevents flicker. Verify your multiplexer version supports it (tmux 3.2+).
-- To disable sync updates for debugging: `SILVERY_SYNC_UPDATE=0`.
+- Silvery supports Synchronized Update Mode (DEC 2026), which can prevent flicker. Verify your multiplexer version supports it (tmux 3.2+).
+- To enable sync updates for debugging/verification: `SILVERY_SYNC_UPDATE=1`.
 
 ### Colors not appearing
 

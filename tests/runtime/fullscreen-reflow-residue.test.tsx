@@ -134,6 +134,42 @@ describe("fullscreen reflow residue", () => {
     expect(frame).not.toContain("\x1b[?2026l")
   })
 
+  test("runtime syncUpdate option wraps fullscreen repaint in DEC 2026 markers", () => {
+    let dims: Dims = { cols: 24, rows: 6 }
+    let onResize: ((dims: Dims) => void) | undefined
+    const writes: string[] = []
+
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      syncUpdate: true,
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize(handler) {
+          onResize = handler
+          return () => {
+            onResize = undefined
+          }
+        },
+      },
+    })
+
+    runtime.render(buffer(dims.cols, dims.rows, "before"))
+    writes.length = 0
+
+    onResize?.(dims)
+    runtime.render(buffer(dims.cols, dims.rows, "after"))
+
+    const frame = writes.at(-1) ?? ""
+    expect(frame).toContain("\x1b[2J\x1b[H")
+    expect(frame.startsWith("\x1b[?2026h")).toBe(true)
+    expect(frame.endsWith("\x1b[?2026l")).toBe(true)
+  })
+
   test("termless resize-residue backend is cleared by the next fullscreen paint", async () => {
     using term = createTermless({ cols: 40, rows: 8, reflowResidue: true })
     const handle = await run(<StableFullscreenApp />, term)

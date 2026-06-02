@@ -336,7 +336,7 @@ term.dispose()
 
 ## Synchronized Update Mode (DEC 2026)
 
-Silvery automatically wraps all terminal output with **[Synchronized Update Mode](https://terminfo.dev/modes/decset-2026-synchronized-output)** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
+Silvery can wrap terminal output with **[Synchronized Update Mode](https://terminfo.dev/modes/decset-2026-synchronized-output)** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
 
 ### How It Works
 
@@ -367,10 +367,10 @@ Terminals that don't support it **safely ignore** the sequences — they pass th
 
 ### Configuration
 
-Sync update is enabled by default. To disable:
+Sync update is currently disabled by default because some Ghostty builds have corrupted incremental cursor-positioned updates inside sync regions. To enable it:
 
 ```bash
-SILVERY_SYNC_UPDATE=0 bun run app
+SILVERY_SYNC_UPDATE=1 bun run app
 ```
 
 Only applies in TTY mode. Non-TTY modes (line-by-line, static, plain) skip sync wrapping.
@@ -386,7 +386,7 @@ Response: CSI ? 2026 ; <value> $ y
 
 Where `value` is: 0=unknown, 1=set, 2=reset, 3=permanent set, 4=permanent reset.
 
-Silvery does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
+Silvery does not currently query support before the opt-in wrapper. Unsupported terminals should ignore the sequences harmlessly, but the default remains off until the incremental-update compatibility story is re-verified.
 
 ## Kitty Keyboard Protocol
 

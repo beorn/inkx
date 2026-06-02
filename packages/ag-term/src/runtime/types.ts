@@ -89,6 +89,14 @@ export interface RuntimeOptions {
   signal?: AbortSignal
   /** Render mode: fullscreen (alt screen) or inline (scrollback-compatible) */
   mode?: "fullscreen" | "inline"
+  /**
+   * Wrap fullscreen frame writes in DEC synchronized-output markers.
+   *
+   * Disabled by default because some terminals have had corruption bugs with
+   * incremental cursor-positioned updates inside sync regions. Host apps can
+   * enable it with `SILVERY_SYNC_UPDATE=1` after choosing that tradeoff.
+   */
+  syncUpdate?: boolean
   /** Scoped output phase function (from createOutputPhase/createPipeline). When provided,
    *  runtime.render() uses this instead of the raw outputPhase — ensures measurer/caps are threaded. */
   outputPhaseFn?: (

@@ -126,6 +126,7 @@ import { createClsMonitor } from "./cls-monitor"
 import type { ParseMouseOptions } from "../mouse"
 import { setArmed } from "@silvery/ag/interactive-signals"
 import {
+  ANSI,
   enableKittyKeyboard,
   disableKittyKeyboard,
   KittyFlags,
@@ -1371,6 +1372,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   const bytesOutMonitor = isStrictEnabled("bytes_out", 1) ? createBytesOutMonitor() : null
   const memMonitor = isStrictEnabled("mem", 1) ? createMemMonitor() : null
+  const syncUpdateEnabled =
+    process.env.SILVERY_SYNC_UPDATE === "1" || process.env.SILVERY_SYNC_UPDATE === "true"
 
   function recordOutputFrame(frame: string): void {
     const traceOutputEnabled = RENDER_TRACE_ON || isRenderTraceEnabled()
@@ -1378,9 +1381,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     _outputFrame += 1
     const outputDiagnostics = getLastOutputPhaseDiagnostics()
     const bytes = Buffer.byteLength(frame)
+    const syncWrapped = frame.startsWith(ANSI.SYNC_BEGIN) && frame.endsWith(ANSI.SYNC_END)
     const diagnostics = {
       ...outputDiagnostics,
       outputChars: frame.length,
+      syncWrapped,
     }
     bytesOutMonitor?.recordWrite(_outputFrame, bytes, diagnostics)
     if (traceOutputEnabled) {
@@ -1585,6 +1590,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     target,
     signal,
     mode: alternateScreen ? "fullscreen" : "inline",
+    syncUpdate: syncUpdateEnabled,
     outputPhaseFn: pipelineConfig?.outputPhaseFn,
   })
 

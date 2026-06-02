@@ -154,6 +154,7 @@ function createEventChannel(signal: AbortSignal): EventChannel {
  */
 export function createRuntime(options: RuntimeOptions): Runtime {
   const { target, signal: externalSignal, mode = "fullscreen" } = options
+  const syncUpdate = mode === "fullscreen" && options.syncUpdate === true
 
   // Inline mode needs persistent cursor tracking across frames.
   // If no outputPhaseFn provided, create one so prevCursorRow/prevOutputLines
@@ -377,8 +378,11 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         } catch {}
       }
 
-      // Write to target
-      target.write(patch)
+      // Write to target. DEC 2026 sync markers are opt-in because older
+      // Ghostty builds have corrupted incremental cursor-positioned updates
+      // inside sync regions. When enabled, wrap the exact patch we would have
+      // written so diagnostics and terminal output stay in one frame.
+      target.write(syncUpdate ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch)
       lastCursorSuffix = cursorSuffix
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
       renderedOnce = true

@@ -44,10 +44,12 @@ import {
 let traceDir: string
 const SAVED_ENV = process.env.SILVERY_TRACE_FRAMES
 const SAVED_DEBUG = process.env.DEBUG
+const SAVED_SYNC_UPDATE = process.env.SILVERY_SYNC_UPDATE
 
 beforeEach(() => {
   traceDir = mkdtempSync(join(tmpdir(), "silvery-render-trace-"))
   delete process.env.DEBUG
+  delete process.env.SILVERY_SYNC_UPDATE
   __resetRenderTraceForTests()
 })
 
@@ -56,6 +58,8 @@ afterEach(() => {
   else process.env.SILVERY_TRACE_FRAMES = SAVED_ENV
   if (SAVED_DEBUG === undefined) delete process.env.DEBUG
   else process.env.DEBUG = SAVED_DEBUG
+  if (SAVED_SYNC_UPDATE === undefined) delete process.env.SILVERY_SYNC_UPDATE
+  else process.env.SILVERY_SYNC_UPDATE = SAVED_SYNC_UPDATE
   __resetRenderTraceForTests()
   if (traceDir && existsSync(traceDir)) rmSync(traceDir, { recursive: true, force: true })
 })
@@ -401,6 +405,23 @@ describe("render-trace: end-to-end via run()", () => {
       expect(ev.diagnostics.height).toBeGreaterThan(0)
     }
     expect(recentRenderOutputEvents().length).toBe(outputEvents.length)
+
+    handle.unmount?.()
+  })
+
+  test("SILVERY_SYNC_UPDATE=1 marks output frames as sync-wrapped", async () => {
+    process.env.SILVERY_TRACE_FRAMES = traceDir
+    process.env.SILVERY_SYNC_UPDATE = "1"
+    using term = createTermless({ cols: 30, rows: 6 })
+    const handle = await run(<CounterApp />, term)
+
+    await new Promise((r) => setTimeout(r, 30))
+
+    const outputEvents = readOutputSidecar(traceDir)
+    expect(outputEvents.length).toBeGreaterThanOrEqual(1)
+    expect(outputEvents.some((ev) => ev.diagnostics.syncWrapped === true)).toBe(true)
+    expect(term.out.getText()).toContain("\x1b[?2026h")
+    expect(term.out.getText()).toContain("\x1b[?2026l")
 
     handle.unmount?.()
   })
