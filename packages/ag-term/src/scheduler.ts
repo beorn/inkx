@@ -823,9 +823,7 @@ export class RenderScheduler {
       commitLayoutSnapshot(this.root)
 
       // SILVERY_STRICT: compare incremental render against fresh render
-      const strictEnv = process.env.SILVERY_STRICT
-      const strictMode = strictEnv && strictEnv !== "0" && strictEnv !== "false"
-      if (strictMode && this.stats.renderCount > 0) {
+      if (isStrictEnabled("incremental", 1) && this.stats.renderCount > 0) {
         const renderNum = this.stats.renderCount + 1
         const doFreshRender = () => {
           const freshAg = createAg(this.root, { measurer })

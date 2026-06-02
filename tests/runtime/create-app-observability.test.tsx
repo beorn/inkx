@@ -6,7 +6,7 @@
  * exist there too or live dogfood sessions silently miss the tier-1 probes.
  */
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 const monitorState = vi.hoisted(() => ({
@@ -19,6 +19,12 @@ const monitorState = vi.hoisted(() => ({
     dispose: ReturnType<typeof vi.fn>
   }>,
 }))
+
+const savedEnv = vi.hoisted(() => {
+  const DEBUG = process.env.DEBUG
+  delete process.env.DEBUG
+  return { DEBUG }
+})
 
 vi.mock("../../packages/ag-term/src/bytes-out-monitor.ts", () => ({
   createBytesOutMonitor: () => {
@@ -42,7 +48,7 @@ vi.mock("../../packages/ag-term/src/mem-monitor.ts", () => ({
   },
 }))
 
-import { Text } from "../../src/index.js"
+import { Box, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
 import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
 
@@ -60,10 +66,27 @@ function makeWritable() {
   }
 }
 
+const settle = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms))
+
+function UpdatingTraceFixture() {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    const t = setTimeout(() => setN(1), 0)
+    return () => clearTimeout(t)
+  }, [])
+
+  return (
+    <Box id="trace-root" flexDirection="column">
+      <Text id="trace-line">frame {n}</Text>
+    </Box>
+  )
+}
+
 describe("createApp/run SILVERY_STRICT observability monitors", () => {
   const originalStrict = process.env.SILVERY_STRICT
 
   beforeEach(() => {
+    delete process.env.DEBUG
     monitorState.bytesOut.length = 0
     monitorState.mem.length = 0
     resetStrictCache()
@@ -72,6 +95,8 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
   afterEach(() => {
     if (originalStrict === undefined) delete process.env.SILVERY_STRICT
     else process.env.SILVERY_STRICT = originalStrict
+    if (savedEnv.DEBUG === undefined) delete process.env.DEBUG
+    else process.env.DEBUG = savedEnv.DEBUG
     resetStrictCache()
   })
 
@@ -134,6 +159,42 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
 
     expect(monitorState.bytesOut).toHaveLength(0)
     expect(monitorState.mem).toHaveLength(0)
+    handle.unmount()
+  })
+
+  test("explicit bytes_out,mem slugs do not retain render-phase node traces", async () => {
+    process.env.SILVERY_STRICT = "bytes_out,mem"
+    delete process.env.DEBUG
+    delete process.env.SILVERY_TRACE_FRAMES
+    delete process.env.SILVERY_INSTRUMENT
+    delete process.env.SILVERY_CELL_DEBUG
+    resetStrictCache()
+    vi.resetModules()
+
+    const g = globalThis as {
+      __silvery_node_trace?: unknown
+      __silvery_content_all?: unknown
+      __silvery_content_detail?: unknown
+    }
+    delete g.__silvery_node_trace
+    delete g.__silvery_content_all
+    delete g.__silvery_content_detail
+
+    const runtime = await import("../../packages/ag-term/src/runtime/run")
+    const sink = makeWritable()
+    const handle = await runtime.run(<UpdatingTraceFixture />, {
+      writable: sink.writable,
+      cols: 40,
+      rows: 6,
+    })
+
+    await settle()
+
+    expect(monitorState.bytesOut).toHaveLength(1)
+    expect(monitorState.mem).toHaveLength(1)
+    expect(g.__silvery_node_trace).toBeUndefined()
+    expect(g.__silvery_content_all).toBeUndefined()
+
     handle.unmount()
   })
 })

@@ -367,8 +367,7 @@ export function _resetPanicCircuitBreaker(): void {
   _processPanicCircuitBroken = false
 }
 const STRICT_MODE = (() => {
-  const v = ENV?.SILVERY_STRICT
-  return !!v && v !== "0" && v !== "false"
+  return isStrictEnabled("incremental", 1)
 })()
 const CELL_DEBUG = (() => {
   const v = ENV?.SILVERY_CELL_DEBUG

@@ -66,6 +66,7 @@ import {
   readReactiveCascade,
   assertReactiveMatchesOracle,
 } from "./reactive-node"
+import { isStrictEnabled } from "../strict-mode"
 
 const contentLog = createLogger("silvery:content")
 const traceLog = createLogger("silvery:content:trace")
@@ -254,10 +255,10 @@ function envTruthy(val: string | undefined): boolean {
   return !!val && val !== "0" && val !== "false"
 }
 
-/** Instrumentation enabled when SILVERY_STRICT or SILVERY_INSTRUMENT is set */
+/** Instrumentation enabled when render diagnostics need render-phase stats. */
 const _instrumentEnabled =
   typeof process !== "undefined" &&
-  (envTruthy(process.env?.SILVERY_STRICT) || envTruthy(process.env?.SILVERY_INSTRUMENT))
+  (isStrictEnabled("incremental", 1) || envTruthy(process.env?.SILVERY_INSTRUMENT))
 
 /** Mutable stats counters — reset after each renderPhase call */
 const _renderPhaseStats: RenderPhaseStats = {
@@ -298,7 +299,7 @@ let _renderPhaseCallCount = 0
 
 /** Module-level node trace (fallback when ctx.nodeTrace is not provided) */
 const _nodeTrace: NodeTraceEntry[] = []
-const _nodeTraceEnabled = typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
+const _nodeTraceEnabled = typeof process !== "undefined" && isStrictEnabled("incremental", 1)
 
 /**
  * Reactive cascade: alien-signals computeds drive rendering (production path).
@@ -307,13 +308,13 @@ const _nodeTraceEnabled = typeof process !== "undefined" && envTruthy(process.en
  */
 let _reactiveEnabled = typeof process === "undefined" || process.env?.SILVERY_REACTIVE !== "0"
 let _reactiveVerifyEnabled =
-  _reactiveEnabled && typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
+  _reactiveEnabled && typeof process !== "undefined" && isStrictEnabled("incremental", 1)
 
 /** Toggle reactive cascade mode at runtime (for three-way bench). */
 export function setReactiveEnabled(enabled: boolean): void {
   _reactiveEnabled = enabled
   _reactiveVerifyEnabled =
-    enabled && typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
+    enabled && typeof process !== "undefined" && isStrictEnabled("incremental", 1)
 }
 
 // ============================================================================
