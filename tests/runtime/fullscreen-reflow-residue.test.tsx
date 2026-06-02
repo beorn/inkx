@@ -388,7 +388,9 @@ describe("auto sync-wrap for large fullscreen frames (km bead 19633)", () => {
     const frame = writes.at(-1) ?? ""
     expect(frame, "frame should be a clear repaint").toContain("\x1b[2J\x1b[H")
     expect(Buffer.byteLength(frame), "clear repaint should be large").toBeGreaterThan(2048)
-    expect(frame.includes(SYNC_BEGIN), "large clear repaint must not open a sync region").toBe(false)
+    expect(frame.includes(SYNC_BEGIN), "large clear repaint must not open a sync region").toBe(
+      false,
+    )
     expect(frame.includes(SYNC_END)).toBe(false)
   })
 })
