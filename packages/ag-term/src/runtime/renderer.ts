@@ -289,6 +289,15 @@ export function createRenderer(opts: RendererOptions): Renderer {
       ;(globalThis as any).__silvery_write_trap = null
       ;(globalThis as any).__silvery_strict_incremental_trap = strictTrap
     }
+    const incrementalRenderPhaseDetail = opts.instrumented
+      ? ({
+          ...(
+            globalThis as {
+              __silvery_content_detail?: Record<string, number | string | undefined>
+            }
+          ).__silvery_content_detail,
+        } as Record<string, number | string | undefined>)
+      : undefined
     const { buffer: termBuffer, prevBuffer: agPrevBuffer } = agResult
     const overlay = agResult.overlay
     _lastTermBuffer = termBuffer
@@ -481,6 +490,15 @@ export function createRenderer(opts: RendererOptions): Renderer {
           `SILVERY_STRICT (createApp): render #${_renderCount} OK\n`,
         )
       }
+    }
+
+    // STRICT fresh-render comparison reuses the render pipeline and therefore
+    // overwrites __silvery_content_detail. Restore the real incremental pass
+    // before perf logging and render-trace emission sample it.
+    if (incrementalRenderPhaseDetail) {
+      ;(
+        globalThis as { __silvery_content_detail?: typeof incrementalRenderPhaseDetail }
+      ).__silvery_content_detail = incrementalRenderPhaseDetail
     }
 
     const buf = createBuffer(termBuffer, rootNode, overlay)

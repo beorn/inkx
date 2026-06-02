@@ -1761,6 +1761,7 @@ function renderScrollContainerChildren(
 
     // Phase 4: dirty set pre-check — skip clean subtrees without function call overhead.
     if (canSkipChildSubtree(child, thisChildHasPrev, childAncestorLayoutChanged)) {
+      if (instr.enabled) instr.stats.nodesSkipped++
       continue
     }
 
@@ -2087,7 +2088,10 @@ function renderNormalChildren(
 
   // First pass: render normal-flow children in DOM order.
   for (let i = 0; i < firstPassChildren.length; i++) {
-    if (!willRender[i]) continue
+    if (!willRender[i]) {
+      if (instr.enabled) instr.stats.nodesSkipped++
+      continue
+    }
     const child = firstPassChildren[i]!
 
     // For overlap-forced children (clean by their own flags but overlapped
