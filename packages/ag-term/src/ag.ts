@@ -108,9 +108,8 @@ export interface CreateAgOptionsInternal {
    * fade alongside surrounding text. Required because SGR 2 "dim" is a
    * no-op on bitmap emoji in most terminals (Ghostty confirmed).
    *
-   * When undefined, `ag.ts` falls back to an env heuristic (Kitty/Ghostty/
-   * WezTerm, not inside tmux, `SILVERY_KITTY_GRAPHICS` env not "0"). Pass
-   * `false` to force-disable (tests, fallback terminals).
+   * When undefined, backdrop graphics are off. Pass `true` or set
+   * `SILVERY_KITTY_GRAPHICS=1` to enable them explicitly.
    */
   kittyGraphics?: boolean
 }
@@ -216,8 +215,8 @@ export interface CreateAgOptions {
   colorLevel?: ColorLevel
   /**
    * Whether the backdrop-fade pass may emit Kitty graphics placements for
-   * emoji scrim. Defaults to an env heuristic (see `isKittyGraphicsEnabled`).
-   * Pass `false` to force-disable (tests, explicit opt-out).
+   * emoji scrim. Defaults to false; pass true or set `SILVERY_KITTY_GRAPHICS=1`
+   * to enable the graphics side channel explicitly.
    */
   kittyGraphics?: boolean
 }
@@ -257,46 +256,21 @@ function findRootThemeBg(root: AgNode): string | null {
 }
 
 /**
- * Env heuristic: should the backdrop-fade pass emit Kitty graphics overlays?
+ * Explicit env override for backdrop Kitty graphics overlays.
  *
- * This is the MVP gate — a lightweight capability detector used when the
- * caller doesn't pass `kittyGraphics` explicitly. Matches the Option C design
- * intent: emit only on modern terminals where Kitty graphics are known to
- * work (Kitty, Ghostty, WezTerm), NOT inside tmux (DCS passthrough is
- * unreliable), with an explicit `SILVERY_KITTY_GRAPHICS` override.
- *
- * - `SILVERY_KITTY_GRAPHICS=0` → always off
- * - `SILVERY_KITTY_GRAPHICS=1` → always on (bypasses tmux + term checks)
- * - `TMUX` env var present → off (unless forced on above)
- * - `TERM_PROGRAM` in {Ghostty, WezTerm} → on
- * - `TERM` contains "kitty" → on
- * - `KITTY_WINDOW_ID` set → on
- * - otherwise → off
- *
- * The long-term plan is to promote this to a `TerminalCaps.kittyGraphics`
- * consumer. That field exists (see `@silvery/ansi` detectTerminalCaps) but
- * isn't threaded into the render pipeline yet — tracked as a follow-up.
+ * Terminal capability bits still report Kitty graphics support for image
+ * components and caller-owned graphics. The backdrop pass is different: it is
+ * an automatic per-frame side channel, so defaulting it on for a terminal
+ * family can allocate compositor/GPU resources during ordinary first render.
+ * Keep it opt-in until the renderer can attribute and budget the side channel
+ * independently from text frames.
  */
-function isKittyGraphicsEnabledFromEnv(): boolean {
+function isKittyGraphicsForcedFromEnv(): boolean {
   const env =
     typeof process !== "undefined" ? process.env : ({} as Record<string, string | undefined>)
 
   const override = env.SILVERY_KITTY_GRAPHICS
-  if (override === "0" || override === "false") return false
   if (override === "1" || override === "true") return true
-
-  // tmux's DCS passthrough for Kitty graphics is flaky — off by default.
-  // User can override via SILVERY_KITTY_GRAPHICS=1 if their tmux config
-  // (allow-passthrough + extended keys) actually works.
-  if (env.TMUX) return false
-
-  const program = env.TERM_PROGRAM ?? ""
-  if (program === "ghostty" || program === "Ghostty" || program === "WezTerm") return true
-
-  const term = env.TERM ?? ""
-  if (term.includes("kitty")) return true
-
-  if (env.KITTY_WINDOW_ID) return true
 
   return false
 }
@@ -308,12 +282,11 @@ function isKittyGraphicsEnabledFromEnv(): boolean {
 export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
   const measurer = options?.measurer
   const colorLevel: ColorLevel = options?.colorLevel ?? "truecolor"
-  // Kitty graphics: explicit option wins. Otherwise fall back to env heuristic
-  // so the default behavior matches the terminal running the app without
-  // callers needing to thread TerminalCaps through every site. Tests that
-  // want to pin determinism pass `kittyGraphics: false`.
+  // Kitty graphics: explicit option wins. Otherwise only the env opt-in may
+  // enable this automatic backdrop side channel; ordinary first render stays
+  // text-only even on terminals that support Kitty graphics.
   const kittyGraphics =
-    options?.kittyGraphics !== undefined ? options.kittyGraphics : isKittyGraphicsEnabledFromEnv()
+    options?.kittyGraphics !== undefined ? options.kittyGraphics : isKittyGraphicsForcedFromEnv()
   const ctx: PipelineContext | undefined = measurer ? { measurer } : undefined
   let _prevBuffer: TerminalBuffer | null = null
   // Cross-frame post-state (outline snapshots, etc.). Phase 2 Step 5 of

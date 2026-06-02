@@ -49,14 +49,30 @@ const APC_CLOSE = "\x1b\\"
 // construction time. Toggling it between tests lets us exercise both branches
 // without coupling to the terminal the test runner started in.
 let originalEnv: string | undefined
+let originalTermProgram: string | undefined
+let originalTerm: string | undefined
+let originalTmux: string | undefined
+let originalKittyWindowId: string | undefined
 
 beforeEach(() => {
   originalEnv = process.env.SILVERY_KITTY_GRAPHICS
+  originalTermProgram = process.env.TERM_PROGRAM
+  originalTerm = process.env.TERM
+  originalTmux = process.env.TMUX
+  originalKittyWindowId = process.env.KITTY_WINDOW_ID
 })
 
 afterEach(() => {
   if (originalEnv === undefined) delete process.env.SILVERY_KITTY_GRAPHICS
   else process.env.SILVERY_KITTY_GRAPHICS = originalEnv
+  if (originalTermProgram === undefined) delete process.env.TERM_PROGRAM
+  else process.env.TERM_PROGRAM = originalTermProgram
+  if (originalTerm === undefined) delete process.env.TERM
+  else process.env.TERM = originalTerm
+  if (originalTmux === undefined) delete process.env.TMUX
+  else process.env.TMUX = originalTmux
+  if (originalKittyWindowId === undefined) delete process.env.KITTY_WINDOW_ID
+  else process.env.KITTY_WINDOW_ID = originalKittyWindowId
 })
 
 describe("backdrop Kitty overlay: capability enabled", () => {
@@ -160,6 +176,35 @@ describe("backdrop Kitty overlay: capability enabled", () => {
 })
 
 describe("backdrop Kitty overlay: capability disabled", () => {
+  test("Ghostty-looking env does not auto-enable APC graphics escapes", () => {
+    delete process.env.SILVERY_KITTY_GRAPHICS
+    process.env.TERM_PROGRAM = "ghostty"
+    process.env.TERM = "xterm-256color"
+    delete process.env.TMUX
+    delete process.env.KITTY_WINDOW_ID
+
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Box flexDirection="column" padding={1}>
+            <Text>Status: 🎉 Ready!</Text>
+            <Text>More text below</Text>
+            <ModalDialog title="Info" fade={0.4}>
+              <Text>Dialog body</Text>
+            </ModalDialog>
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App />)
+    for (const frame of app.frames) {
+      expect(frame).not.toContain(APC_OPEN)
+    }
+  })
+
   test("no APC graphics escapes when SILVERY_KITTY_GRAPHICS=0", () => {
     // Force off — even on a terminal where auto-detection would say yes.
     process.env.SILVERY_KITTY_GRAPHICS = "0"
