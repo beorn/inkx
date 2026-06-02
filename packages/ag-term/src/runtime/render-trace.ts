@@ -32,7 +32,9 @@
  * reads + joins on `ts`. This is the simplest robust channel for
  * `bun km view <vault>` — silvery and termless run in one process but are
  * separate packages with no shared module; a filesystem sidecar needs no
- * cross-package wiring and survives process boundaries too.
+ * cross-package wiring and survives process boundaries too. Terminal-output
+ * events are written to `<dir>/render-output-events.jsonl` with bytes,
+ * changed-cell counts, dirty-row counts, and output-phase reason.
  *
  * A process-global in-memory ring buffer (`globalThis.__silvery_render_events`)
  * is also maintained so a same-process consumer can read events without
@@ -41,6 +43,7 @@
 
 import { appendFileSync, existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
+import type { OutputPhaseDiagnostics } from "../pipeline/output-phase"
 
 /**
  * A render-boundary event. Emitted once per `doRender()` flush when render
@@ -88,6 +91,45 @@ export interface RenderDispatchedEvent {
 }
 
 /**
+ * Output-phase diagnostics attached to an emitted terminal frame. This is
+ * deliberately a compact clone of the bytes_out monitor's frame summary:
+ * render traces need the same changed-cell explanation without waiting for
+ * bytes_out thresholds to trip.
+ */
+export type RenderOutputFrameDiagnostics = Partial<OutputPhaseDiagnostics> & {
+  /** UTF-16 string length written before terminal-output wrapping. */
+  outputChars?: number
+  /** Extra hardware-cursor suffix length appended outside outputPhase(). */
+  cursorChars?: number
+  /** True when the frame was wrapped in DEC synchronized-output markers. */
+  syncWrapped?: boolean
+}
+
+/**
+ * Output-frame event. Emitted once per terminal write when render tracing is
+ * enabled. Stored in a dedicated sidecar so existing `render-events.jsonl`
+ * consumers keep seeing only RENDER_DISPATCHED events.
+ */
+export interface RenderOutputFrameEvent {
+  /** Event type discriminator. */
+  type: "RENDER_OUTPUT"
+  /** Wall-clock ms epoch — the join key for frame-trace consumers. */
+  ts: number
+  /**
+   * Render counter from the current renderer/scheduler at write time. In
+   * createApp this counter is local to the current event batch; use
+   * outputFrame for monotonic ordering.
+   */
+  renderCount: number
+  /** Monotonic output-write counter, 1-based for this process/app handle. */
+  outputFrame: number
+  /** Bytes actually written for this frame. */
+  bytes: number
+  /** Output-phase reason, dimensions, changed-cell counts, and write shape. */
+  diagnostics: RenderOutputFrameDiagnostics
+}
+
+/**
  * Source values the renderer hands to `emitRenderDispatched`. The renderer
  * already has all of these in scope at the flush boundary; this module just
  * shapes them into the event.
@@ -121,6 +163,8 @@ export interface RenderTraceInput {
 
 let sidecarFile: string | null = null
 let sidecarReady = false
+let outputSidecarFile: string | null = null
+let outputSidecarReady = false
 
 /** The configured trace directory, or `null` when `SILVERY_TRACE_FRAMES` is unset. */
 export function renderTraceDir(): string | null {
@@ -142,12 +186,15 @@ const MAX_BUFFERED_EVENTS = 4096
 
 interface RenderEventBus {
   events: RenderDispatchedEvent[]
+  outputEvents: RenderOutputFrameEvent[]
 }
 
 function bus(): RenderEventBus {
   const g = globalThis as { __silvery_render_events?: RenderEventBus }
   if (!g.__silvery_render_events) {
-    g.__silvery_render_events = { events: [] }
+    g.__silvery_render_events = { events: [], outputEvents: [] }
+  } else if (!g.__silvery_render_events.outputEvents) {
+    g.__silvery_render_events.outputEvents = []
   }
   return g.__silvery_render_events
 }
@@ -159,6 +206,14 @@ function bus(): RenderEventBus {
  */
 export function recentRenderEvents(): readonly RenderDispatchedEvent[] {
   return bus().events
+}
+
+/**
+ * Recent output-frame events from the in-process bus. Same-process consumers
+ * can join these with `recentRenderEvents()` by timestamp and frame order.
+ */
+export function recentRenderOutputEvents(): readonly RenderOutputFrameEvent[] {
+  return bus().outputEvents
 }
 
 // ── Emit ────────────────────────────────────────────────────────────────────
@@ -235,12 +290,62 @@ export function emitRenderDispatched(input: RenderTraceInput): void {
   }
 }
 
+export interface RenderOutputFrameInput {
+  renderCount: number
+  outputFrame: number
+  bytes: number
+  diagnostics?: RenderOutputFrameDiagnostics | null
+}
+
+/**
+ * Emit a `RENDER_OUTPUT` event for bytes actually written to the terminal.
+ *
+ * No-op when `SILVERY_TRACE_FRAMES` is unset. This is intentionally separate
+ * from `emitRenderDispatched`: the render pipeline produces dirty regions,
+ * while the output phase later decides which cells/bytes were emitted.
+ */
+export function emitRenderOutputFrame(input: RenderOutputFrameInput): void {
+  const traceDir = renderTraceDir()
+  if (traceDir === null) return
+  try {
+    const event: RenderOutputFrameEvent = {
+      type: "RENDER_OUTPUT",
+      ts: Date.now(),
+      renderCount: input.renderCount,
+      outputFrame: input.outputFrame,
+      bytes: input.bytes,
+      diagnostics: input.diagnostics ? { ...input.diagnostics } : {},
+    }
+
+    const b = bus()
+    b.outputEvents.push(event)
+    if (b.outputEvents.length > MAX_BUFFERED_EVENTS) {
+      b.outputEvents.splice(0, b.outputEvents.length - MAX_BUFFERED_EVENTS)
+    }
+
+    if (!outputSidecarReady) {
+      if (!existsSync(traceDir)) mkdirSync(traceDir, { recursive: true })
+      outputSidecarFile = join(traceDir, "render-output-events.jsonl")
+      appendFileSync(outputSidecarFile, "", { flag: "w" })
+      outputSidecarReady = true
+    }
+    if (outputSidecarFile) {
+      appendFileSync(outputSidecarFile, JSON.stringify(event) + "\n")
+    }
+  } catch {
+    // Tracing must never destabilise rendering. Swallow sink errors.
+  }
+}
+
 /**
  * Test-only: reset module state (in-process bus + sidecar latch). Lets a
  * test exercise the enabled and disabled paths without a fresh process.
  */
 export function __resetRenderTraceForTests(): void {
   bus().events.length = 0
+  bus().outputEvents.length = 0
   sidecarReady = false
   sidecarFile = null
+  outputSidecarReady = false
+  outputSidecarFile = null
 }

@@ -41,6 +41,7 @@ import {
   getLastOutputPhaseDiagnostics,
   outputPhase,
 } from "./pipeline/output-phase"
+import { emitRenderOutputFrame, isRenderTraceEnabled } from "./runtime/render-trace"
 import { createAg, createRenderPostState, type RenderPostState } from "./ag"
 import { runWithMeasurer } from "./unicode"
 import type { RenderPhaseStats } from "./pipeline/types"
@@ -217,6 +218,12 @@ export class RenderScheduler {
   /** Line count of previous render (for non-TTY modes) */
   private prevLineCount = 0
 
+  /** Monotonic terminal-output frame counter for render traces. */
+  private outputFrameCount = 0
+
+  /** Cached trace gate so disabled output frames do not read env per render. */
+  private renderTraceEnabled = false
+
   /** Accumulated output for static mode */
   private staticOutput = ""
 
@@ -307,6 +314,7 @@ export class RenderScheduler {
     if (isStrictEnabled("mem", 1)) {
       this.memMonitor = createMemMonitor()
     }
+    this.renderTraceEnabled = isRenderTraceEnabled()
     this.log = createLogger("silvery:scheduler") as unknown as Logger
 
     // Resolve non-TTY mode based on environment
@@ -776,13 +784,28 @@ export class RenderScheduler {
         // bytes_out instrumentation — record AFTER write so the monitor
         // accounts for what actually left the process. Fixed thresholds
         // (1 MB/s WARN × 10s, 100 MB/s PANIC × 2s) in `bytes-out-monitor.ts`.
-        const outputDiagnostics = getLastOutputPhaseDiagnostics()
-        this.bytesOutMonitor?.recordWrite(this.stats.renderCount, Buffer.byteLength(fullOutput), {
-          ...outputDiagnostics,
-          outputChars: transformedOutput.length,
-          cursorChars: cursorSuffix.length,
-          syncWrapped: this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED,
-        })
+        const traceOutputEnabled = this.renderTraceEnabled || isRenderTraceEnabled()
+        if (this.bytesOutMonitor || traceOutputEnabled) {
+          const outputDiagnostics = getLastOutputPhaseDiagnostics()
+          const bytes = Buffer.byteLength(fullOutput)
+          const diagnostics = {
+            ...outputDiagnostics,
+            outputChars: transformedOutput.length,
+            cursorChars: cursorSuffix.length,
+            syncWrapped: this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED,
+          }
+          const renderNumber = this.stats.renderCount + 1
+          this.bytesOutMonitor?.recordWrite(renderNumber, bytes, diagnostics)
+          if (traceOutputEnabled) {
+            this.outputFrameCount += 1
+            emitRenderOutputFrame({
+              renderCount: renderNumber,
+              outputFrame: this.outputFrameCount,
+              bytes,
+              diagnostics,
+            })
+          }
+        }
       }
 
       // Save buffer for next diff

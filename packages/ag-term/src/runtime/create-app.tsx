@@ -87,6 +87,7 @@ import {
   clearLastOutputPhaseDiagnostics,
   getLastOutputPhaseDiagnostics,
 } from "../pipeline/output-phase"
+import { emitRenderOutputFrame, isRenderTraceEnabled } from "./render-trace"
 import { _sharedResizeRefcount } from "./devices/size"
 import {
   createContainer,
@@ -1366,19 +1367,30 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // createApp().run() (km, etc.) get parity with run() consumers.
   const _captureFile = process.env.SILVERY_CAPTURE_OUTPUT
   let _captureFrame = 0
-  let _strictOutputFrame = 0
+  let _outputFrame = 0
 
   const bytesOutMonitor = isStrictEnabled("bytes_out", 1) ? createBytesOutMonitor() : null
   const memMonitor = isStrictEnabled("mem", 1) ? createMemMonitor() : null
 
   function recordOutputFrame(frame: string): void {
-    if (!bytesOutMonitor) return
-    _strictOutputFrame += 1
+    const traceOutputEnabled = RENDER_TRACE_ON || isRenderTraceEnabled()
+    if (!bytesOutMonitor && !traceOutputEnabled) return
+    _outputFrame += 1
     const outputDiagnostics = getLastOutputPhaseDiagnostics()
-    bytesOutMonitor.recordWrite(_strictOutputFrame, Buffer.byteLength(frame), {
+    const bytes = Buffer.byteLength(frame)
+    const diagnostics = {
       ...outputDiagnostics,
       outputChars: frame.length,
-    })
+    }
+    bytesOutMonitor?.recordWrite(_outputFrame, bytes, diagnostics)
+    if (traceOutputEnabled) {
+      emitRenderOutputFrame({
+        renderCount: renderer.renderCount(),
+        outputFrame: _outputFrame,
+        bytes,
+        diagnostics,
+      })
+    }
   }
 
   // Create render target

@@ -8,7 +8,10 @@
  *      JSONL with { ts, reason, dirtyRegions, signalDelta, fiberHash }.
  *   3. The dirty-region derivation collapses a per-row predicate into
  *      contiguous ranges.
- *   4. End-to-end: a real app rendered via `run()` with SILVERY_TRACE_FRAMES
+ *   4. Output-frame events carry bytes + changed-cell diagnostics so a
+ *      frame trace can explain blank/flicker frames without waiting for
+ *      SILVERY_STRICT=bytes_out to trip.
+ *   5. End-to-end: a real app rendered via `run()` with SILVERY_TRACE_FRAMES
  *      set produces render events whose timestamps line up with frames.
  *
  * Runs under SILVERY_STRICT=1 (the default for `bun run test:fast`) — the
@@ -30,8 +33,11 @@ import {
   isRenderTraceEnabled,
   renderTraceDir,
   recentRenderEvents,
+  recentRenderOutputEvents,
   __resetRenderTraceForTests,
+  emitRenderOutputFrame,
   type RenderDispatchedEvent,
+  type RenderOutputFrameEvent,
 } from "../../packages/ag-term/src/runtime/render-trace"
 
 let traceDir: string
@@ -58,6 +64,17 @@ function readSidecar(dir: string): RenderDispatchedEvent[] {
     .split("\n")
     .filter((l) => l.length > 0)
     .map((l) => JSON.parse(l) as RenderDispatchedEvent)
+}
+
+/** Read + parse the render-output sidecar JSONL for the trace dir. */
+function readOutputSidecar(dir: string): RenderOutputFrameEvent[] {
+  const file = join(dir, "render-output-events.jsonl")
+  if (!existsSync(file)) return []
+  return readFileSync(file, "utf-8")
+    .trim()
+    .split("\n")
+    .filter((l) => l.length > 0)
+    .map((l) => JSON.parse(l) as RenderOutputFrameEvent)
 }
 
 describe("render-trace: gate", () => {
@@ -196,6 +213,58 @@ describe("render-trace: emit", () => {
     expect(bus.map((e) => e.renderCount)).toEqual([1, 2, 3])
     expect(readSidecar(traceDir).map((e) => e.fiberHash)).toEqual(["1:1", "1:2", "1:3"])
   })
+
+  test("writes output-frame diagnostics to a dedicated sidecar + bus", () => {
+    process.env.SILVERY_TRACE_FRAMES = traceDir
+    const before = Date.now()
+    emitRenderOutputFrame({
+      renderCount: 3,
+      outputFrame: 11,
+      bytes: 27,
+      diagnostics: {
+        reason: "diff",
+        mode: "fullscreen",
+        width: 20,
+        height: 4,
+        prevWidth: 20,
+        prevHeight: 4,
+        changedCells: 2,
+        rawChangedCells: 3,
+        dirtyRows: 1,
+        outputChars: 24,
+        cursorChars: 3,
+        syncWrapped: true,
+      },
+    })
+    const after = Date.now()
+
+    const events = readOutputSidecar(traceDir)
+    expect(events).toHaveLength(1)
+    const ev = events[0]!
+    expect(ev.type).toBe("RENDER_OUTPUT")
+    expect(ev.renderCount).toBe(3)
+    expect(ev.outputFrame).toBe(11)
+    expect(ev.bytes).toBe(27)
+    expect(ev.ts).toBeGreaterThanOrEqual(before)
+    expect(ev.ts).toBeLessThanOrEqual(after)
+    expect(ev.diagnostics).toEqual({
+      reason: "diff",
+      mode: "fullscreen",
+      width: 20,
+      height: 4,
+      prevWidth: 20,
+      prevHeight: 4,
+      changedCells: 2,
+      rawChangedCells: 3,
+      dirtyRows: 1,
+      outputChars: 24,
+      cursorChars: 3,
+      syncWrapped: true,
+    })
+
+    expect(recentRenderOutputEvents()).toEqual([ev])
+    expect(readSidecar(traceDir)).toHaveLength(0)
+  })
 })
 
 // ============================================================================
@@ -229,6 +298,7 @@ describe("render-trace: end-to-end via run()", () => {
     await new Promise((r) => setTimeout(r, 60))
 
     const events = readSidecar(traceDir)
+    const outputEvents = readOutputSidecar(traceDir)
     // At least the initial render plus the two effect-driven re-renders.
     expect(events.length).toBeGreaterThanOrEqual(1)
     for (const ev of events) {
@@ -247,6 +317,18 @@ describe("render-trace: end-to-end via run()", () => {
     for (let i = 1; i < counts.length; i++) {
       expect(counts[i]!).toBeGreaterThan(counts[i - 1]!)
     }
+    expect(outputEvents.length).toBeGreaterThanOrEqual(1)
+    for (const ev of outputEvents) {
+      expect(ev.type).toBe("RENDER_OUTPUT")
+      expect(ev.outputFrame).toBeGreaterThan(0)
+      expect(ev.bytes).toBeGreaterThanOrEqual(0)
+      expect(ev.diagnostics.outputChars).toBeGreaterThanOrEqual(0)
+      expect(ev.diagnostics.changedCells).toBeGreaterThanOrEqual(0)
+      expect(ev.diagnostics.dirtyRows).toBeGreaterThanOrEqual(0)
+      expect(ev.diagnostics.width).toBeGreaterThan(0)
+      expect(ev.diagnostics.height).toBeGreaterThan(0)
+    }
+    expect(recentRenderOutputEvents().length).toBe(outputEvents.length)
 
     await handle.unmount?.()
   })

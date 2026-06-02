@@ -161,7 +161,10 @@ export {
   isRenderTraceEnabled,
   renderTraceDir,
   recentRenderEvents,
+  recentRenderOutputEvents,
   type RenderDispatchedEvent,
+  type RenderOutputFrameDiagnostics,
+  type RenderOutputFrameEvent,
 } from "./render-trace"
 
 // Stream helpers (re-export from streams module)
