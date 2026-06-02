@@ -101,6 +101,17 @@ export interface RenderDispatchedEvent {
  * bytes_out thresholds to trip.
  */
 export type RenderOutputFrameDiagnostics = Partial<OutputPhaseDiagnostics> & {
+  /**
+   * Where these bytes came from. Omitted for the ordinary render-frame path
+   * to preserve existing trace shape; terminal side-channel writes set this.
+   */
+  source?: "terminal-artifact" | "post-paint-write"
+  /** Protocol/component owner for terminal artifacts, e.g. image:kitty:transmit. */
+  owner?: string
+  /** Flush phase for terminal artifacts. */
+  phase?: "pre-paint" | "post-paint"
+  /** Artifact discriminator from the runtime queue. */
+  artifactKind?: string
   /** UTF-16 string length written before terminal-output wrapping. */
   outputChars?: number
   /** Extra hardware-cursor suffix length appended outside outputPhase(). */

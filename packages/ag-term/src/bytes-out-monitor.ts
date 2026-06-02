@@ -56,6 +56,10 @@ interface FrameEntry {
 }
 
 export interface BytesOutFrameDiagnostics {
+  source?: "terminal-artifact" | "post-paint-write"
+  owner?: string
+  phase?: "pre-paint" | "post-paint"
+  artifactKind?: string
   reason?: string
   mode?: "fullscreen" | "inline"
   width?: number
@@ -156,7 +160,7 @@ export function createBytesOutMonitor(options: BytesOutMonitorOptions = {}): Byt
     try {
       const tail = frames.slice(-FRAME_HISTORY)
       const header =
-        "# frameNum\tts\tbytes\treason\tmode\twidth\theight\tprevWidth\tprevHeight\tchangedCells\trawChangedCells\tdirtyRows\toutputChars\tcursorChars\tsyncWrapped\n"
+        "# frameNum\tts\tbytes\tsource\towner\tphase\tartifactKind\treason\tmode\twidth\theight\tprevWidth\tprevHeight\tchangedCells\trawChangedCells\tdirtyRows\toutputChars\tcursorChars\tsyncWrapped\n"
       const body = tail
         .map((f) => {
           const d = f.diagnostics
@@ -164,6 +168,10 @@ export function createBytesOutMonitor(options: BytesOutMonitorOptions = {}): Byt
             f.frameNum,
             new Date(f.ts).toISOString(),
             f.bytes,
+            d?.source,
+            d?.owner,
+            d?.phase,
+            d?.artifactKind,
             d?.reason,
             d?.mode,
             d?.width,

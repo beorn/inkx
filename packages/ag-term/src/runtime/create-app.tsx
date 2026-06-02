@@ -87,7 +87,11 @@ import {
   clearLastOutputPhaseDiagnostics,
   getLastOutputPhaseDiagnostics,
 } from "../pipeline/output-phase"
-import { emitRenderOutputFrame, isRenderTraceEnabled } from "./render-trace"
+import {
+  emitRenderOutputFrame,
+  isRenderTraceEnabled,
+  type RenderOutputFrameDiagnostics,
+} from "./render-trace"
 import { _sharedResizeRefcount } from "./devices/size"
 import {
   createContainer,
@@ -1374,18 +1378,27 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const syncUpdateEnabled =
     process.env.SILVERY_SYNC_UPDATE === "1" || process.env.SILVERY_SYNC_UPDATE === "true"
 
-  function recordOutputFrame(frame: string): void {
+  function recordOutputFrame(
+    frame: string,
+    sideChannelDiagnostics?: RenderOutputFrameDiagnostics,
+  ): void {
     const traceOutputEnabled = RENDER_TRACE_ON || isRenderTraceEnabled()
     if (!bytesOutMonitor && !traceOutputEnabled) return
     _outputFrame += 1
-    const outputDiagnostics = getLastOutputPhaseDiagnostics()
     const bytes = Buffer.byteLength(frame)
     const syncWrapped = frame.startsWith(ANSI.SYNC_BEGIN) && frame.endsWith(ANSI.SYNC_END)
-    const diagnostics = {
-      ...outputDiagnostics,
-      outputChars: frame.length,
-      syncWrapped,
-    }
+    const diagnostics =
+      sideChannelDiagnostics !== undefined
+        ? {
+            ...sideChannelDiagnostics,
+            outputChars: frame.length,
+            syncWrapped,
+          }
+        : {
+            ...getLastOutputPhaseDiagnostics(),
+            outputChars: frame.length,
+            syncWrapped,
+          }
     bytesOutMonitor?.recordWrite(_outputFrame, bytes, diagnostics)
     if (traceOutputEnabled) {
       emitRenderOutputFrame({
@@ -1467,13 +1480,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   const postPaintWrites: string[] = []
   const frameArtifacts: TerminalFrameArtifact[] = []
-  const writeOutOfBand = (data: string): void => {
+  const writeOutOfBand = (data: string, diagnostics?: RenderOutputFrameDiagnostics): void => {
     if (headless) return
     if (output) {
       output.write(data)
     } else {
       stdout.write(data)
     }
+    if (diagnostics) recordOutputFrame(data, diagnostics)
   }
   const queuePostPaintWrite = (data: string): void => {
     if (headless) return
@@ -1509,7 +1523,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       for (const artifact of artifacts) {
         switch (artifact.kind) {
           case "terminal-sequence":
-            writeOutOfBand(artifact.sequence)
+            writeOutOfBand(artifact.sequence, {
+              source: "terminal-artifact",
+              owner: artifact.owner,
+              phase,
+              artifactKind: artifact.kind,
+            })
             flushed = true
             break
         }
@@ -1522,7 +1541,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (flushedPostPaintArtifacts) restoreFrameCursor()
     if (postPaintWrites.length === 0) return
     const writes = postPaintWrites.splice(0)
-    for (const data of writes) writeOutOfBand(data)
+    for (const data of writes) {
+      writeOutOfBand(data, { source: "post-paint-write", phase: "post-paint" })
+    }
   }
 
   // Resolve textSizing from caps + option

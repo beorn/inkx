@@ -27,7 +27,7 @@ import { join } from "node:path"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { addWriter, setSuppressConsole, type Event as LoggilyEvent } from "loggily"
-import { Box, Text } from "../../src/index.js"
+import { Box, Image, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
 import {
   emitRenderDispatched,
@@ -45,6 +45,7 @@ let traceDir: string
 const SAVED_ENV = process.env.SILVERY_TRACE_FRAMES
 const SAVED_DEBUG = process.env.DEBUG
 const SAVED_SYNC_UPDATE = process.env.SILVERY_SYNC_UPDATE
+const SAVED_KITTY_GRAPHICS = process.env.SILVERY_KITTY_GRAPHICS
 
 beforeEach(() => {
   traceDir = mkdtempSync(join(tmpdir(), "silvery-render-trace-"))
@@ -60,6 +61,8 @@ afterEach(() => {
   else process.env.DEBUG = SAVED_DEBUG
   if (SAVED_SYNC_UPDATE === undefined) delete process.env.SILVERY_SYNC_UPDATE
   else process.env.SILVERY_SYNC_UPDATE = SAVED_SYNC_UPDATE
+  if (SAVED_KITTY_GRAPHICS === undefined) delete process.env.SILVERY_KITTY_GRAPHICS
+  else process.env.SILVERY_KITTY_GRAPHICS = SAVED_KITTY_GRAPHICS
   __resetRenderTraceForTests()
   if (traceDir && existsSync(traceDir)) rmSync(traceDir, { recursive: true, force: true })
 })
@@ -364,6 +367,11 @@ function CounterApp() {
   )
 }
 
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGIAAQAABQABDQottAAAAABJRU5ErkJggg==",
+  "base64",
+)
+
 describe("render-trace: end-to-end via run()", () => {
   test("a real app emits RENDER_DISPATCHED events at render-pass boundaries", async () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
@@ -422,6 +430,24 @@ describe("render-trace: end-to-end via run()", () => {
     expect(outputEvents.some((ev) => ev.diagnostics.syncWrapped === true)).toBe(true)
     expect(term.out.getText()).toContain("\x1b[?2026h")
     expect(term.out.getText()).toContain("\x1b[?2026l")
+
+    handle.unmount?.()
+  })
+
+  test("terminal image artifacts are traced by owner", async () => {
+    process.env.SILVERY_TRACE_FRAMES = traceDir
+    process.env.SILVERY_KITTY_GRAPHICS = "1"
+    using term = createTermless({ cols: 30, rows: 8 })
+    const handle = await run(<Image src={TINY_PNG} width={4} height={2} protocol="kitty" />, term)
+
+    await new Promise((r) => setTimeout(r, 30))
+
+    const outputEvents = readOutputSidecar(traceDir)
+    const artifactEvents = outputEvents.filter(
+      (ev) => ev.diagnostics.source === "terminal-artifact",
+    )
+    expect(artifactEvents.some((ev) => ev.diagnostics.owner === "image:kitty:transmit")).toBe(true)
+    expect(artifactEvents.some((ev) => ev.diagnostics.owner === "image:kitty:place")).toBe(true)
 
     handle.unmount?.()
   })

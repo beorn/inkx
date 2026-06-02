@@ -267,9 +267,11 @@ describe("createBytesOutMonitor", () => {
     const summary = h.files.find((f) => f.path.includes("bytes-out-warn"))!
     const lines = summary.contents.trim().split("\n")
     expect(lines[0]).toBe(
-      "# frameNum\tts\tbytes\treason\tmode\twidth\theight\tprevWidth\tprevHeight\tchangedCells\trawChangedCells\tdirtyRows\toutputChars\tcursorChars\tsyncWrapped",
+      "# frameNum\tts\tbytes\tsource\towner\tphase\tartifactKind\treason\tmode\twidth\theight\tprevWidth\tprevHeight\tchangedCells\trawChangedCells\tdirtyRows\toutputChars\tcursorChars\tsyncWrapped",
     )
-    expect(lines[1]).toContain("\tdiff\tfullscreen\t120\t40\t120\t40\t12\t\t2\t180000\t12\tfalse")
+    expect(lines[1]).toContain(
+      "\t\t\t\t\tdiff\tfullscreen\t120\t40\t120\t40\t12\t\t2\t180000\t12\tfalse",
+    )
 
     m.dispose()
   })
