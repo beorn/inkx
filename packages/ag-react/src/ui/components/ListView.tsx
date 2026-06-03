@@ -2393,13 +2393,13 @@ function ListViewInner<T>(
           ? physics.getScrollFloat()
           : followEndPinRef.current.kind === "end"
             ? Math.max(0, Math.min(maxRow, visualTopRowRef.current))
-          : (() => {
-              const cursorIdx = activeCursorRef.current
-              const lastIdx = itemCountRef.current - 1
-              if (cursorIdx >= lastIdx && lastIdx >= 0) return maxRow
-              if (cursorIdx <= 0) return 0
-              return Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
-            })()
+            : (() => {
+                const cursorIdx = activeCursorRef.current
+                const lastIdx = itemCountRef.current - 1
+                if (cursorIdx >= lastIdx && lastIdx >= 0) return maxRow
+                if (cursorIdx <= 0) return 0
+                return Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
+              })()
         const next = Math.max(0, Math.min(maxRow, seed + rows))
         if (next === seed) return
         scrollAnchoring.suppressOnce()
