@@ -830,6 +830,10 @@ export function formatTextLines(
   // Optimal wrapping (Knuth-Plass): minimize total raggedness across all lines.
   // Uses dynamic programming over breakpoints for globally optimal line breaks.
   if (wrap === "even") {
+    // The optimal wrapper operates on visible text analysis and is not safe for
+    // control sequences. Fall back to the ANSI-aware greedy wrapper so OSC 8
+    // hyperlinks stay atomic and never leak a partial close token as text.
+    if (hasAnsi(normalizedText)) return wrapText(normalizedText, width, true, trim)
     const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
     const analysis = buildTextAnalysis(normalizedText, gWidthFn)
     const evenLines = optimalWrap(normalizedText, analysis, width)
