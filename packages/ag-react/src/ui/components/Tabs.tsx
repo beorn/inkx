@@ -26,7 +26,7 @@
  */
 import React, { createContext, useCallback, useContext, useState } from "react"
 import { useInput } from "../../hooks/useInput"
-import { Box } from "../../components/Box"
+import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 
 // =============================================================================
@@ -49,6 +49,8 @@ export interface TabsProps {
 export interface TabListProps {
   /** Tab children */
   children: React.ReactNode
+  /** Horizontal alignment of the tab labels inside the list. */
+  justifyContent?: BoxProps["justifyContent"]
 }
 
 export interface TabProps {
@@ -159,9 +161,16 @@ export function Tabs({
  *
  * Renders Tab children in a compact segmented row.
  */
-export function TabList({ children }: TabListProps): React.ReactElement {
+export function TabList({ children, justifyContent }: TabListProps): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={0} borderBottom borderColor="$border-default">
+    <Box
+      flexDirection="row"
+      gap={0}
+      width="100%"
+      borderBottom
+      borderColor="$border-default"
+      justifyContent={justifyContent}
+    >
       {children}
     </Box>
   )
@@ -193,7 +202,7 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
       onMouseDown={() => setActiveValue(value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      paddingX={1}
+      paddingRight={2}
     >
       <Text color={color} bold>
         {children}

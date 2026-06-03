@@ -180,3 +180,30 @@ describe("Tabs hover state: active tab has no hover bg override", () => {
     expect(inactiveCell.bg).toBeNull()
   })
 })
+
+describe("Tabs layout", () => {
+  test("TabList can center tab labels across the available width", () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(
+      <Box flexDirection="column" width={40}>
+        <Tabs defaultValue="one">
+          <TabList justifyContent="center">
+            <Tab value="one">One</Tab>
+            <Tab value="two">Two</Tab>
+          </TabList>
+          <TabPanel value="one">
+            <Text>Panel content</Text>
+          </TabPanel>
+          <TabPanel value="two">
+            <Text>Other panel</Text>
+          </TabPanel>
+        </Tabs>
+      </Box>,
+    )
+
+    const firstLine = app.text.split("\n")[0] ?? ""
+    const oneCol = firstLine.indexOf("One")
+    expect(oneCol, firstLine).toBeGreaterThan(8)
+    expect(firstLine.indexOf("Two"), firstLine).toBeGreaterThan(oneCol)
+  })
+})
