@@ -19,6 +19,7 @@ import {
   styleEquals,
 } from "../buffer"
 import { fgColorCode, bgColorCode } from "../ansi/sgr-codes"
+import { resetCursorStyle, setCursorStyle } from "../output"
 import type { CursorState } from "@silvery/ag-react/hooks/useCursor"
 import { IncrementalRenderMismatchError } from "../errors"
 import { textSized } from "../text-sizing"
@@ -1578,7 +1579,10 @@ function inlineCursorSuffix(
   if (cursorPos.x > 0) {
     suffix += `\x1b[${cursorPos.x}C`
   }
-  // Show cursor
+  // Show cursor with the requested shape. Fullscreen mode emits the same
+  // DECSCUSR sequence in scheduler/runtime; inline mode needs to do it here
+  // because inline cursor positioning is owned by output-phase.
+  suffix += cursorPos.shape ? setCursorStyle(cursorPos.shape) : resetCursorStyle()
   suffix += "\x1b[?25h"
   return suffix
 }

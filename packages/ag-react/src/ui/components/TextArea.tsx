@@ -126,7 +126,7 @@ export interface TextAreaProps {
    * @default 8
    */
   maxRows?: number
-  /** Cursor style: 'block' (inverse) or 'underline' */
+  /** Cursor style for both the active hardware cursor and inactive fake cursor. */
   cursorStyle?: "block" | "underline"
   /**
    * When the TextArea is inactive (`isActive === false`), render an
@@ -418,6 +418,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     col: ta.cursorCol,
     row: ta.visibleCursorRow,
     visible: isActive && !disabled && !ta.selection,
+    shape: cursorStyle,
   }
 
   if (showPlaceholder) {

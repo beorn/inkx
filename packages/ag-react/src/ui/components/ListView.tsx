@@ -2391,6 +2391,8 @@ function ListViewInner<T>(
         // increments would collapse to a single-row scroll.
         const seed = isWheelDrivenRef.current
           ? physics.getScrollFloat()
+          : followEndPinRef.current.kind === "end"
+            ? Math.max(0, Math.min(maxRow, visualTopRowRef.current))
           : (() => {
               const cursorIdx = activeCursorRef.current
               const lastIdx = itemCountRef.current - 1

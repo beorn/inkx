@@ -41,6 +41,23 @@ describe("TextArea cursor position", () => {
     expect(cursor!.y).toBe(0)
   })
 
+  test("cursorStyle controls the active hardware cursor shape", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <Box>
+          <TextArea defaultValue="X" fieldSizing="fixed" rows={1} cursorStyle="underline" />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.shape).toBe("underline")
+  })
+
   test("cursor is after last character when borderStyle is set (uncontrolled)", () => {
     const r = createRenderer({ cols: 40, rows: 10 })
 

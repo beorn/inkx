@@ -59,7 +59,7 @@ In content mode the widget expands as the user types, capped at `maxRows`. Beyon
 | `rows`             | `number`                                  | `1`              | Visible row count in `"fixed"` mode (mirrors HTML `<textarea rows>`)       |
 | `minRows`          | `number`                                  | `1`              | Minimum visible rows in `"content"` mode                                   |
 | `maxRows`          | `number`                                  | `8`              | Maximum visible rows in `"content"` mode (scrolls beyond)                  |
-| `cursorStyle`      | `"block" \| "underline"`                  | `"block"`        | Visual cursor style when unfocused                                         |
+| `cursorStyle`      | `"block" \| "underline"`                  | `"block"`        | Active hardware and inactive visual cursor style                           |
 | `scrollMargin`     | `number`                                  | `1`              | Context lines above/below cursor when scrolling                            |
 | `disabled`         | `boolean`                                 | —                | Ignore input and dim text                                                  |
 | `maxLength`        | `number`                                  | —                | Maximum characters allowed                                                 |

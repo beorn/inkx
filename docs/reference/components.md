@@ -364,7 +364,7 @@ const [value, setValue] = useState("")
 | `placeholder`  | `string`                                  | `""`           | Placeholder text when empty                       |
 | `isActive`     | `boolean`                                 | -              | Whether input is focused (overrides focus system) |
 | `height`       | `number`                                  | -              | Visible height in rows (required)                 |
-| `cursorStyle`  | `"block" \| "underline"`                  | `"block"`      | Cursor style when unfocused                       |
+| `cursorStyle`  | `"block" \| "underline"`                  | `"block"`      | Active hardware and inactive visual cursor style  |
 | `scrollMargin` | `number`                                  | `1`            | Context lines above/below cursor when scrolling   |
 | `disabled`     | `boolean`                                 | `false`        | When true, ignore all input and dim text          |
 | `maxLength`    | `number`                                  | -              | Maximum number of characters allowed              |
