@@ -157,11 +157,11 @@ export function Tabs({
 /**
  * Horizontal tab bar container.
  *
- * Renders Tab children in a horizontal row with gap spacing.
+ * Renders Tab children in a compact segmented row.
  */
 export function TabList({ children }: TabListProps): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} borderBottom borderColor="$border-default">
+    <Box flexDirection="row" gap={0} borderBottom borderColor="$border-default">
       {children}
     </Box>
   )
@@ -170,12 +170,11 @@ export function TabList({ children }: TabListProps): React.ReactElement {
 /**
  * Individual tab trigger.
  *
- * Renders the tab label with active/inactive styling. Active tab is bold
- * with `$fg-accent` color; inactive tabs use `$fg-muted`.
+ * Renders the tab label with active/inactive styling. Tabs do not use a
+ * filled background; the active tab is the selected text color.
  *
- * Hover: a non-active hovered tab gets a subtle `$bg-muted` background to
- * signal interactivity. The active tab is already visually prominent — no
- * extra hover styling is applied to avoid double-styling.
+ * Hover: a non-active hovered tab gets the same selected text color to
+ * signal interactivity without adding a second surface treatment.
  */
 export function Tab({ value, children }: TabProps): React.ReactElement {
   const { activeValue, setActiveValue, registerTab } = useTabsContext()
@@ -187,18 +186,16 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
     registerTab(value)
   }, [value, registerTab])
 
-  // Hover background: only for inactive tabs. Active tab already has $fg-accent
-  // fg + bold — adding a bg on top creates visual conflict.
-  const hoverBg = !isActive && isHovered ? "$bg-muted" : undefined
+  const color = isActive || isHovered ? "$fg-warning" : "$fg"
 
   return (
     <Box
       onMouseDown={() => setActiveValue(value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      backgroundColor={hoverBg}
+      paddingX={1}
     >
-      <Text color={isActive ? "$fg-accent" : "$fg-muted"} bold={isActive} underline={isActive}>
+      <Text color={color} bold>
         {children}
       </Text>
     </Box>
