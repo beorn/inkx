@@ -88,6 +88,14 @@ export interface TextAreaProps {
   onChange?: (value: string) => void
   /** Called on submit (Ctrl+Enter by default, or Enter if submitKey="enter") */
   onSubmit?: (value: string) => void
+  /**
+   * Called when Ctrl+D is pressed on an empty active buffer.
+   *
+   * Ctrl+D keeps its normal readline delete-forward behavior when text exists.
+   * This callback only models terminal EOF for hosts that want to bind an empty
+   * compose field to exit, close, or send-end-of-input behavior.
+   */
+  onEof?: () => void
   /** Key to trigger submit: "ctrl+enter" (default), "enter", or "meta+enter" */
   submitKey?: "ctrl+enter" | "enter" | "meta+enter"
   /** Placeholder text when empty */
@@ -237,6 +245,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     defaultValue = "",
     onChange,
     onSubmit,
+    onEof,
     submitKey = "ctrl+enter",
     placeholder = "",
     isActive: isActiveProp,
@@ -321,6 +330,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     defaultValue,
     onChange,
     onSubmit,
+    onEof,
     submitKey,
     isActive,
     height: upperBoundRows,

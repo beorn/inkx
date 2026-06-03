@@ -80,6 +80,8 @@ export interface UseTextAreaOptions {
   onChange?: (value: string) => void
   /** Called on submit (Ctrl+Enter by default, or Enter if submitKey="enter") */
   onSubmit?: (value: string) => void
+  /** Called when Ctrl+D is pressed on an empty buffer. */
+  onEof?: () => void
   /** Key to trigger submit: "ctrl+enter" (default), "enter", or "meta+enter" */
   submitKey?: "ctrl+enter" | "enter" | "meta+enter"
   /** Whether input is active (receives keystrokes) */
@@ -170,6 +172,7 @@ export function useTextArea({
   defaultValue = "",
   onChange,
   onSubmit,
+  onEof,
   submitKey = "ctrl+enter",
   isActive = true,
   height,
@@ -190,6 +193,8 @@ export function useTextArea({
   // Stable ref to onEdge so handlers see the latest version without re-binding.
   const onEdgeRef = useRef(onEdge)
   onEdgeRef.current = onEdge
+  const onEofRef = useRef(onEof)
+  onEofRef.current = onEof
 
   // Selection: anchor is where the selection started, cursor is the moving end.
   // When anchor is non-null, the selected range is [min(anchor, cursor), max(anchor, cursor)).
@@ -663,6 +668,17 @@ export function useTextArea({
         }
         yankStateRef.current = null
         return
+      }
+
+      // Ctrl+D on an empty active buffer is the terminal EOF gesture.
+      // Preserve readline delete-forward for non-empty buffers below.
+      if (key.ctrl && input === "d" && value.length === 0 && cursor === 0 && !hasSelection) {
+        if (onEofRef.current) {
+          stickyXRef.current = null
+          yankStateRef.current = null
+          onEofRef.current()
+          return
+        }
       }
 
       // =================================================================
