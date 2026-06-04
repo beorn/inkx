@@ -94,6 +94,9 @@ export type { CursorLineProps } from "./components/CursorLine"
 export { ModalDialog, formatTitleWithHotkey } from "./components/ModalDialog"
 export type { ModalDialogProps } from "./components/ModalDialog"
 
+export { ModalOverlay } from "./components/ModalOverlay"
+export type { ModalOverlayProps } from "./components/ModalOverlay"
+
 export { Backdrop } from "./components/Backdrop"
 export type { BackdropProps } from "./components/Backdrop"
 

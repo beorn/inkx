@@ -222,6 +222,9 @@ export type { CursorLineProps } from "./ui/components"
 export { ModalDialog, formatTitleWithHotkey } from "./ui/components"
 export type { ModalDialogProps } from "./ui/components"
 
+export { ModalOverlay } from "./ui/components"
+export type { ModalOverlayProps } from "./ui/components"
+
 export { Backdrop } from "./ui/components"
 export type { BackdropProps } from "./ui/components"
 
