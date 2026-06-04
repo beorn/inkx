@@ -284,9 +284,26 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
     const rawRows = stdout.rows
     const liveCols = validDimension(rawCols, prev.cols)
     const liveRows = validDimension(rawRows, prev.rows)
-    const validResize = isValidDimension(rawCols) && isValidDimension(rawRows)
-    logSize(`flush: stdout=${liveCols}x${liveRows} prev=${prev.cols}x${prev.rows}`)
-    publish(liveCols, liveRows, { force: validResize })
+    const degenerate = !(isValidDimension(rawCols) && isValidDimension(rawRows))
+    logSize(
+      `flush: stdout=${liveCols}x${liveRows} prev=${prev.cols}x${prev.rows} degenerate=${degenerate}`,
+    )
+    // Always force the heal republish on a coalesced flush. A resize
+    // notification — the only thing that schedules this flush — means the
+    // terminal may have been corrupted: a real resize, a same-size cmux/focus
+    // restore (the documented heal at the top of this file), OR a degenerate
+    // (0×0) hidden-pane frame delivered during a workspace switch. In every
+    // case the fullscreen runtime is owed a repaint over whatever the
+    // multiplexer left on screen. Degenerate reads are already floored to
+    // last-good dims by `validDimension` above, so the renderer never sees 0×0;
+    // forcing the publish only restores the heal that the prior `force:
+    // validResize` SWALLOWED whenever the flush-time read was degenerate — the
+    // swallowed heal is the @km/code/v0.2/19604-focus-blank zero-cell blank
+    // (live cmux read-screen nonspace=0 on an otherwise-live pane). The
+    // trailing-edge debounce still collapses the burst to one publish, so this
+    // adds no repaints beyond the one same-size heal a valid restore already
+    // delivers.
+    publish(liveCols, liveRows, { force: true })
   }
 
   const onResize = () => {
@@ -409,7 +426,12 @@ export function createFixedSize(initial: SizeSnapshot): Size & {
       // real-size resize. createSize never publishes <=0; createFixedSize must
       // not either. @km/code/v0.2/19604-focus-blank.
       const prev = _snapshot()
-      _snapshot(Object.freeze({ cols: validDimension(nextCols, prev.cols), rows: validDimension(nextRows, prev.rows) }))
+      _snapshot(
+        Object.freeze({
+          cols: validDimension(nextCols, prev.cols),
+          rows: validDimension(nextRows, prev.rows),
+        }),
+      )
     },
     [Symbol.dispose]() {
       if (disposed) return
