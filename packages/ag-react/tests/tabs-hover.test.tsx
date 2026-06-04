@@ -206,4 +206,46 @@ describe("Tabs layout", () => {
     expect(oneCol, firstLine).toBeGreaterThan(8)
     expect(firstLine.indexOf("Two"), firstLine).toBeGreaterThan(oneCol)
   })
+
+  function WrapTabs({ flexWrap }: { flexWrap?: "nowrap" | "wrap" | "wrap-reverse" }) {
+    return (
+      <Box flexDirection="column" width={20}>
+        <Tabs defaultValue="one">
+          <TabList flexWrap={flexWrap}>
+            <Tab value="one">Alpha</Tab>
+            <Tab value="two">Bravo</Tab>
+            <Tab value="three">Charlie</Tab>
+            <Tab value="four">Delta</Tab>
+          </TabList>
+          <TabPanel value="one">
+            <Text>Panel</Text>
+          </TabPanel>
+        </Tabs>
+      </Box>
+    )
+  }
+
+  test("TabList flexWrap='wrap' flows overflowing tabs onto a second row instead of clipping", () => {
+    // 4 padded tabs (~33 cols) cannot fit one 20-col row; with wrap they must
+    // all stay reachable across multiple rows.
+    const render = createRenderer({ cols: 20, rows: 6 })
+    const app = render(<WrapTabs flexWrap="wrap" />)
+    for (const label of ["Alpha", "Bravo", "Charlie", "Delta"]) {
+      expect(app.text, `tab "${label}" must survive the wrap`).toContain(label)
+    }
+    const firstLine = app.text.split("\n")[0] ?? ""
+    // The bar genuinely wrapped — the trailing tab is not on the first row.
+    expect(firstLine.includes("Delta"), firstLine).toBe(false)
+    const deltaRow = app.text.split("\n").findIndex((line) => line.includes("Delta"))
+    expect(deltaRow, app.text).toBeGreaterThan(0)
+  })
+
+  test("TabList default (no flexWrap) keeps the single-row layout", () => {
+    // Omitting the prop must not introduce wrapping — the first row still leads
+    // with the first tab and the bar stays a single flex row.
+    const render = createRenderer({ cols: 20, rows: 6 })
+    const app = render(<WrapTabs />)
+    const firstLine = app.text.split("\n")[0] ?? ""
+    expect(firstLine.includes("Alpha"), firstLine).toBe(true)
+  })
 })
