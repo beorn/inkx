@@ -200,6 +200,16 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   let lastRenderDims: Dims | null = null
   let lastCursorSuffix = ""
   let clearNextFullscreenRender = false
+  // Resize-repaint latch (fullscreen only). Set on every resize notification,
+  // cleared ONLY after a render() actually writes bytes. Distinct from
+  // `clearNextFullscreenRender` (a one-frame clear request that any render —
+  // including a no-output early-return — resets): this latch survives
+  // intermediate no-output frames so the eventual content render is guaranteed
+  // to clear+repaint. A same-size terminal/emulator reflow can blank or
+  // scramble the visible cells while silvery's shadow `prevBuffer` still holds
+  // the prior frame, which made the zero-diff fast path emit nothing and leave
+  // the screen blank. Bead: @km/code/v0.2/19604-focus-blank.
+  let resizePaintPending = false
 
   // Scrollback offset tracking (inline mode only)
   let scrollbackOffset = 0
@@ -216,6 +226,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     unsubscribeResize = target.onResize((dims) => {
       if (mode === "fullscreen") {
         clearNextFullscreenRender = true
+        // Latch a guaranteed clear+repaint that survives any intermediate
+        // no-output frame until a real paint lands. See `resizePaintPending`.
+        resizePaintPending = true
       }
       eventChannel.push({ type: "resize", cols: dims.cols, rows: dims.rows })
     })
@@ -307,8 +320,17 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       const targetDimsChanged =
         lastRenderDims !== null &&
         (lastRenderDims.cols !== targetDims.cols || lastRenderDims.rows !== targetDims.rows)
+      // `resizePaintPending` forces a clear+repaint that the zero-diff
+      // early-return below cannot swallow: a resize notification may have
+      // reflowed/cleared the visible cells even when our tracked dims and the
+      // shadow buffer are unchanged (same-size reflow), so emitting nothing
+      // would leave the screen blank. The latch is cleared only after a real
+      // write lands (see the write site below), so an intermediate no-output
+      // frame can't consume it. Bead: @km/code/v0.2/19604-focus-blank.
       const clearFullscreen =
-        mode === "fullscreen" && renderedOnce && (clearNextFullscreenRender || targetDimsChanged)
+        mode === "fullscreen" &&
+        renderedOnce &&
+        (clearNextFullscreenRender || targetDimsChanged || resizePaintPending)
       const overlayChanged = !!buffer.overlay && buffer.overlay.length > 0
       let cursorSuffix = ""
       if (mode === "fullscreen") {
@@ -341,14 +363,23 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       }
 
       // Use scoped output phase if provided (threads measurer/caps correctly),
-      // otherwise fall back to raw diff() for backwards compatibility
+      // otherwise fall back to raw diff() for backwards compatibility.
+      //
+      // When `clearFullscreen` is set we emit a destructive `2J` prefix below,
+      // so the repaint BODY must be a FULL render of `next` — diffing against
+      // the (now-erased) prevBuffer would emit only the cells that differ from
+      // a screen that no longer exists. The critical case is a same-size
+      // terminal/emulator reflow where the shadow `prevBuffer` is byte-identical
+      // to `next`: a diff would be empty, so `2J` alone would clear the screen
+      // and leave it blank. Passing `null` as prev forces the output phase's
+      // first-render path (full `bufferToAnsi`). Bead: @km/code/v0.2/19604-focus-blank.
+      const diffPrev = clearFullscreen ? null : (prevBuffer?._buffer ?? null)
       let patch: string
       if (outputPhaseFn) {
-        const prevBuf = prevBuffer?._buffer ?? null
         const nextBuf = buffer._buffer
-        patch = outputPhaseFn(prevBuf, nextBuf, mode, offset, termRows)
+        patch = outputPhaseFn(diffPrev, nextBuf, mode, offset, termRows)
       } else {
-        patch = diff(prevBuffer, buffer, mode, offset, termRows)
+        patch = diff(clearFullscreen ? null : prevBuffer, buffer, mode, offset, termRows)
       }
       prevBuffer = buffer
 
@@ -426,6 +457,13 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
       renderedOnce = true
       clearNextFullscreenRender = false
+      // Cleared only here — at the actual write. The two early-returns above
+      // (zero-diff, empty-patch) deliberately leave the latch set: when
+      // `resizePaintPending` is true `clearFullscreen` is true, so neither
+      // early-return is taken and control always reaches this write. Clearing
+      // post-write is what makes the latch survive intermediate no-output
+      // frames. Bead: @km/code/v0.2/19604-focus-blank.
+      resizePaintPending = false
     },
 
     addScrollbackLines(lines: number): void {
@@ -438,6 +476,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       if (options?.clearScreen && mode === "fullscreen") {
         clearNextFullscreenRender = true
       }
+    },
+
+    isResizePending(): boolean {
+      return resizePaintPending
     },
 
     setOutputPhaseFn(fn: RuntimeOptions["outputPhaseFn"]): void {

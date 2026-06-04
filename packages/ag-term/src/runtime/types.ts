@@ -127,6 +127,22 @@ export interface Runtime {
   /** Reset diff state so next render outputs a full frame */
   invalidate(options?: { clearScreen?: boolean }): void
 
+  /**
+   * True while a resize notification has fired but no live paint has cleared
+   * it yet (introspection/diagnostic accessor — the latch drives `render()`
+   * internally; this getter exposes it for tests and host instrumentation).
+   *
+   * A same-size terminal/emulator reflow can clear or scramble the visible
+   * cells while silvery's shadow `prevBuffer` still believes the prior frame
+   * is on screen — the latch guarantees the next live `render()` clears and
+   * fully repaints rather than emitting an empty diff. Set on every `onResize`
+   * (alongside `clearNextFullscreenRender`) and cleared only after a `render()`
+   * actually writes bytes, so an intermediate no-output frame (early-return /
+   * zero-diff) cannot silently consume the pending repaint. Fullscreen mode
+   * only; always `false` in inline mode. Bead: @km/code/v0.2/19604-focus-blank.
+   */
+  isResizePending(): boolean
+
   /** Update the output phase function (e.g., after text sizing probe changes measurer) */
   setOutputPhaseFn(fn: RuntimeOptions["outputPhaseFn"]): void
 

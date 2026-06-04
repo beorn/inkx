@@ -399,7 +399,17 @@ export function createFixedSize(initial: SizeSnapshot): Size & {
     snapshot,
     update(nextCols: number, nextRows: number) {
       if (disposed) return
-      _snapshot(Object.freeze({ cols: nextCols, rows: nextRows }))
+      // Floor degenerate (<=0 / non-finite) dimensions to the last known good
+      // value, matching createSize's validDimension contract. A 0×0 (or
+      // negative) frame — e.g. a hidden pane's GUI frame delivered by a tiling
+      // multiplexer, or a test-harness resize — must never reach the renderer
+      // as a real layout dimension: the degenerate frame corrupts the
+      // renderer's dimension bookkeeping (_lastLayoutDims) and consumes the
+      // clearNextFullscreenRender flag, leaving the pane blank after the next
+      // real-size resize. createSize never publishes <=0; createFixedSize must
+      // not either. @km/code/v0.2/19604-focus-blank.
+      const prev = _snapshot()
+      _snapshot(Object.freeze({ cols: validDimension(nextCols, prev.cols), rows: validDimension(nextRows, prev.rows) }))
     },
     [Symbol.dispose]() {
       if (disposed) return

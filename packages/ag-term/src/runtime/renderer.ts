@@ -192,6 +192,15 @@ export function createRenderer(opts: RendererOptions): Renderer {
     // incrementally by the output phase. Invalidating on height causes the runtime's
     // prevBuffer to be null, which triggers the first-render clear path with \x1b[J
     // — wiping the entire visible screen including shell prompt content above the app.
+    //
+    // A same-size terminal/emulator reflow (no dimension change) is handled
+    // entirely on the runtime side: `createRuntime.render()` forces a
+    // clear+full-repaint of the buffer it is handed (see `resizePaintPending`
+    // there). The renderer does NOT drop its incremental baseline for that
+    // case — doing so desyncs the Ag's `prevBuffer` from the runtime's, which
+    // re-introduces incremental-skip flakiness on the following frame. The
+    // runtime repaints what the renderer already produced. Bead:
+    // @km/code/v0.2/19604-focus-blank.
     if (_ag) {
       const lastDims = _lastLayoutDims
       if (lastDims) {
