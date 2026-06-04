@@ -99,6 +99,87 @@ describe("fullscreen reflow residue", () => {
     expect(frame).toContain("\x1b[2J\x1b[H")
   })
 
+  // The shadow⇄terminal desync at the heart of 19604: a same-size reflow
+  // delivers an IDENTICAL buffer (the React tree didn't change), so a diff
+  // against the shadow prevBuffer is empty. Pre-fix the runtime emitted the 2J
+  // clear with no repaint body → blank screen. The clear must carry a FULL
+  // repaint of the (unchanged) content. Bead: @km/code/v0.2/19604-focus-blank.
+  test("same-size resize with an IDENTICAL buffer still clears AND repaints content (no blank)", () => {
+    let dims: Dims = { cols: 24, rows: 6 }
+    let onResize: ((dims: Dims) => void) | undefined
+    const writes: string[] = []
+
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize(handler) {
+          onResize = handler
+          return () => {
+            onResize = undefined
+          }
+        },
+      },
+    })
+
+    runtime.render(buffer(dims.cols, dims.rows, "STABLE"))
+    writes.length = 0
+
+    // Same dims, same content — the desync case. Without the fix the diff is
+    // empty and only 2J is emitted.
+    onResize?.(dims)
+    runtime.render(buffer(dims.cols, dims.rows, "STABLE"))
+
+    const frame = writes.at(-1) ?? ""
+    expect(frame, "must clear").toContain("\x1b[2J\x1b[H")
+    expect(frame, "must repaint the content, not just clear").toContain("STABLE")
+  })
+
+  // The latch must survive an intermediate no-output frame. After a resize, a
+  // render() of a byte-identical buffer (pre-fix: zero-diff early-return that
+  // consumed clearNextFullscreenRender) must NOT swallow the pending clear —
+  // the resize repaint stays armed until a paint actually writes.
+  test("resize-paint latch survives an intermediate identical-buffer frame", () => {
+    let dims: Dims = { cols: 24, rows: 6 }
+    let onResize: ((dims: Dims) => void) | undefined
+    const writes: string[] = []
+
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize(handler) {
+          onResize = handler
+          return () => {
+            onResize = undefined
+          }
+        },
+      },
+    })
+
+    const stable = buffer(dims.cols, dims.rows, "ROW")
+    runtime.render(stable)
+    writes.length = 0
+
+    onResize?.(dims)
+    expect(runtime.isResizePending(), "latch armed after resize").toBe(true)
+
+    // First post-resize render writes the clear+repaint and disarms the latch.
+    runtime.render(buffer(dims.cols, dims.rows, "ROW"))
+    expect(writes.at(-1) ?? "", "clear+repaint emitted").toContain("\x1b[2J\x1b[H")
+    expect(runtime.isResizePending(), "latch cleared only after a real write").toBe(false)
+  })
+
   test("runtime clear-screen repaint does not use DEC 2026 sync markers", () => {
     let dims: Dims = { cols: 24, rows: 6 }
     let onResize: ((dims: Dims) => void) | undefined
