@@ -270,6 +270,14 @@ describe("fullscreen reflow residue", () => {
     const outputAfterResize = term.out.getText()
     expect(outputAfterResize).toContain("\x1b[2J")
     expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+    // (c) Content-present — the assertion the 19604 cluster was missing. A
+    // clear-WITHOUT-repaint passes the 2J + marker-gone checks above yet leaves
+    // the screen blank (the bug). Assert the transcript content is actually on
+    // the emulator after the reflow. @km/code/v0.2/19604-focus-blank.
+    expect(term.screen, "content must survive the reflow, not just clear").toContainText(
+      "stable top",
+    )
+    expect(term.screen).toContainText("stable bottom")
 
     handle.unmount()
   })
@@ -287,6 +295,11 @@ describe("fullscreen reflow residue", () => {
 
     const outputAfterResize = term.out.getText()
     expect(outputAfterResize).toContain("\x1b[2J")
+    // (c) Content-present after the same-size heal — see note above.
+    expect(term.screen, "content must survive the same-size resize heal").toContainText(
+      "stable top",
+    )
+    expect(term.screen).toContainText("stable bottom")
 
     handle.unmount()
   })
@@ -305,6 +318,9 @@ describe("fullscreen reflow residue", () => {
     const outputAfterFocus = term.out.getText()
     expect(outputAfterFocus).toContain("\x1b[2J")
     expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+    // (c) Content-present after the focus-in restore — see note above.
+    expect(term.screen, "content must survive the focus-in restore").toContainText("stable top")
+    expect(term.screen).toContainText("stable bottom")
 
     handle.unmount()
   })
@@ -326,6 +342,11 @@ describe("fullscreen reflow residue", () => {
       const outputAfterTick = term.out.getText()
       expect(outputAfterTick).toContain("\x1b[2J")
       expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+      // (c) Content-present after the focus-out damage repair — the live
+      // transcript must remain on the emulator, not just the clear fired.
+      expect(term.screen, "live content must survive the damage repair").toContainText(
+        "live transcript row",
+      )
     } finally {
       handle.unmount()
     }
