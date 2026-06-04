@@ -51,6 +51,13 @@ export interface TabListProps {
   children: React.ReactNode
   /** Horizontal alignment of the tab labels inside the list. */
   justifyContent?: BoxProps["justifyContent"]
+  /**
+   * Wrap behavior when the tab labels exceed the list width. Defaults to
+   * `"nowrap"` (single row; overflowing tabs clip). Pass `"wrap"` so a tab bar
+   * that is too wide for a narrow container flows onto additional rows instead
+   * of clipping the trailing tabs off-screen.
+   */
+  flexWrap?: BoxProps["flexWrap"]
 }
 
 export interface TabProps {
@@ -161,10 +168,11 @@ export function Tabs({
  *
  * Renders Tab children in a compact segmented row.
  */
-export function TabList({ children, justifyContent }: TabListProps): React.ReactElement {
+export function TabList({ children, justifyContent, flexWrap }: TabListProps): React.ReactElement {
   return (
     <Box
       flexDirection="row"
+      flexWrap={flexWrap}
       gap={0}
       width="100%"
       borderBottom
