@@ -812,6 +812,17 @@ export function formatTextLines(
       }
       out.push(remaining)
     }
+    // Char-level slicing splits a styled run mid-token across slices, so each
+    // output line must be made self-contained for inline ANSI — same as the
+    // greedy `wrapTextWithMeasurer` path. Without this, a continuation slice
+    // carries only the CLOSE (OSC 8 leak) or none of the OPEN (SGR colour/attr
+    // dropped). See @km/code/v0.2/19654-osc-link-leak + 19690-status-tuple-wrap-color.
+    if (out.length > 1 && normalizedText.includes("\x1b]8;;")) {
+      fixOsc8AcrossWrappedLines(out)
+    }
+    if (out.length > 1 && normalizedText.includes("\x1b[")) {
+      fixSgrAcrossWrappedLines(out)
+    }
     return out
   }
 

@@ -97,6 +97,36 @@ describe("formatTextLines wrap='even' (optimalWrap, user-role prompts)", () => {
   })
 })
 
+describe("formatTextLines wrap='hard' (character-level, Fill component)", () => {
+  // Hard wrap slices by display width with no word-boundary respect, so a
+  // styled run is split mid-token across slices — same self-containment need.
+  test("char-wrapped styled run keeps fg on every slice", () => {
+    const word = "abcdefghijklmnopqrstuvwxyz"
+    const text = `${FG_OPEN}${word}${FG_CLOSE}`
+    const lines = formatTextLines(text, 6, "hard")
+    expect(lines.length).toBeGreaterThan(1)
+    for (const line of lines) {
+      for (const seg of parseAnsiText(line)) {
+        if (seg.text.replace(/\s/g, "").length === 0) continue
+        expect(seg.fg != null, `hard-wrap slice ${JSON.stringify(seg.text)} lost its fg`).toBe(true)
+      }
+    }
+  })
+
+  test("hard wrap with surrounding prose colours only the styled run", () => {
+    const text = `aa ${FG_OPEN}bbbbbbbbbbbb${FG_CLOSE} cc`
+    const lines = formatTextLines(text, 5, "hard")
+    const joined = lines.join("\n")
+    expect(joined).toContain("bbbb")
+    for (const line of lines) {
+      for (const seg of parseAnsiText(line)) {
+        if (!seg.text.includes("b")) continue
+        expect(seg.fg != null, `styled 'b' run lost fg on a hard slice: ${JSON.stringify(line)}`).toBe(true)
+      }
+    }
+  })
+})
+
 describe("rendered: nested colored Text keeps color across soft-wrap", () => {
   function coloredCellsForWord(
     app: { lines: string[]; cell: (x: number, y: number) => { fg: unknown; char: string } },
