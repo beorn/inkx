@@ -171,7 +171,8 @@ export interface PlanRect {
  *   prod falls back to first).
  * - `scrim` is either a normalized `#rrggbb` hex (with a known theme bg or
  *   an explicit `scrimColor`) or `null` (legacy fallback where the buffer
- *   realizer mixes fg toward cell.bg without a scrim).
+ *   realizer mixes fg toward cell.bg AND darkens cell.bg toward a per-cell
+ *   polarity target — no single theme scrim to mix toward).
  * - `defaultBg` / `defaultFg` are resolved for stage-2 passes.
  * - `scrimTowardLight` records whether the scrim is on the light side of
  *   the luminance threshold. Null-scrim plans default to `false`.
@@ -188,8 +189,9 @@ export interface CorePlan {
    */
   readonly amount: number
   /**
-   * Resolved scrim hex, or null when no theme bg is available. The
-   * buffer-realizer falls back to a legacy single-channel mix when null.
+   * Resolved scrim hex, or null when no theme bg is available. When null the
+   * buffer-realizer runs the legacy two-channel mix: fg toward cell.bg, and
+   * cell.bg toward a per-cell polarity target (dark→black, light→white).
    */
   readonly scrim: HexColor | null
   /** Default background hex for resolving null/default `cell.bg`. */
@@ -443,8 +445,8 @@ function assertSingleAmount(
 /**
  * Derive the auto scrim color from a normalized bg hex. Dark themes scrim
  * toward `DARK_SCRIM`; light themes scrim toward `LIGHT_SCRIM`. Returns
- * `null` when `bg` is absent or unparseable — signals legacy single-
- * channel fallback in `fadeCell`.
+ * `null` when `bg` is absent or unparseable — signals the legacy
+ * per-cell-polarity two-channel fallback in `fadeCell`.
  */
 function deriveAutoScrimColor(bg: HexColor | null): HexColor | null {
   if (!bg) return null

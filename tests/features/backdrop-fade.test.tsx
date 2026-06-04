@@ -473,9 +473,15 @@ describe("standalone Backdrop: defaultBg from ThemeProvider", () => {
     expect(bg.b).toBe(0)
   })
 
-  test("Backdrop without ThemeProvider falls back to legacy fg-toward-bg path", () => {
+  test("Backdrop without ThemeProvider uses the legacy two-channel path (fg→bg, bg→polarity target)", () => {
     // Without ThemeProvider, findRootThemeBg returns null → scrim = null →
-    // legacy path: cell.fg = mixSrgb(fg, cell.bg, amount), cell.bg unchanged.
+    // legacy path. It is two-channel:
+    //   cell.fg = mixSrgb(fg, cell.bg, amount)          // fg recedes toward its bg
+    //   cell.bg = mixSrgb(bg, polarityTarget, amount)   // bg darkens/lightens
+    // The polarity target is per-cell: red #ff0000 (luminance ≈0.21 < the
+    // 0.5 surface midpoint) recedes toward #000000. This is the @km 19665
+    // fix — opaque bg blocks must recede under the backdrop even with no
+    // theme prop, instead of staying full-brightness ("popping").
     const render = createRenderer({ cols: 20, rows: 5 })
 
     function App() {
@@ -497,18 +503,22 @@ describe("standalone Backdrop: defaultBg from ThemeProvider", () => {
     const cell = app.cell(0, 0)
     expect(cell.char).toBe("H")
 
-    // fg is mixed toward cell.bg (#ff0000) at α=0.7 in sRGB:
+    // fg is mixed toward the ORIGINAL cell.bg (#ff0000) at α=0.7 in sRGB:
     //   (255, 255, 255) * 0.3 + (255, 0, 0) * 0.7 = (255, 77, 77)
+    // (unchanged from the historical legacy behavior — fg targets the bg as
+    // it was BEFORE darkening).
     expect(cell.fg).not.toBeNull()
     const fg = cell.fg as { r: number; g: number; b: number }
     expect(fg.r).toBe(255)
     expect(fg.g).toBe(77)
     expect(fg.b).toBe(77)
 
-    // bg is UNCHANGED in legacy path (only fg is mixed).
+    // bg now DARKENS toward the polarity target (#000000 for this dark-ish
+    // saturated red) at α=0.7: (255, 0, 0) * 0.3 = (77, 0, 0). Hue preserved
+    // (achromatic target scales every channel uniformly), brightness reduced.
     expect(cell.bg).not.toBeNull()
     const bg = cell.bg as { r: number; g: number; b: number }
-    expect(bg.r).toBe(255)
+    expect(bg.r).toBe(77)
     expect(bg.g).toBe(0)
     expect(bg.b).toBe(0)
   })
@@ -1148,5 +1158,162 @@ describe("backdrop fade: real-app regressions (b2dafd70)", () => {
     } finally {
       restore()
     }
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Regression (@km 19665): opaque background blocks must DARKEN under the
+// backdrop fade even when scrim === null (no node-theme prop mounted).
+//
+// Defect: an app rendered with NO ThemeProvider / node `theme=` prop (common
+// when the terminal theme isn't detected — e.g. inside a headless/cmux host)
+// makes `findRootThemeBg` return null → `defaultBg` undefined → auto-scrim
+// can't derive → `scrim === null`. The OLD legacy path only mixed fg toward
+// cell.bg and dim-stamped empty cells; it never touched the bg. So opaque
+// background regions (a status bar painted with an explicit hex bg) stayed
+// full-brightness and "popped" bright OUTSIDE the modal overlay.
+//
+// Fix: the legacy (scrim === null) path is now two-channel — it ALSO darkens
+// cell.bg toward a per-cell polarity target (dark surfaces → black, light
+// surfaces → white). These tests use a realistic-scale fixture (50+ nodes,
+// per the pipeline CLAUDE.md) modeled on the real silvercode scene: a dense
+// Nord-colored layout with an opaque status bar, NO ThemeProvider, and a modal
+// that opens. SILVERY_STRICT=1 (vitest/setup.ts) auto-verifies
+// incremental === fresh on every rerender.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop fade: opaque bg darkens under null scrim (@km 19665)", () => {
+  // Nord Polar Night — silvercode's status-bar bg. Luminance ≈ 0.034 (dark) →
+  // recedes toward #000000 under the legacy per-cell polarity target.
+  const NORD_STATUS_BG = "#2e3440"
+
+  // A dense scene: 20 rows × (1 label + 5 cells) = 120 leaf Text nodes, plus a
+  // full-width opaque status bar — comfortably > 50 nodes. NO ThemeProvider /
+  // node theme prop anywhere, so findRootThemeBg returns null and the backdrop
+  // pass runs the legacy scrim === null path.
+  function DenseScene({ open }: { open: boolean }) {
+    return (
+      <Box flexDirection="column" width={60} height={24}>
+        {/* Opaque status bar with an explicit hex bg — the cell class the bug
+            left un-faded. Rendered first so it sits at row 0. */}
+        <Box backgroundColor={NORD_STATUS_BG} width={60}>
+          <Text color="#d8dee9">normal » auto » status bar tail xxxxxxxxxxxx</Text>
+        </Box>
+        {Array.from({ length: 20 }, (_, i) => (
+          <Box key={i} flexDirection="row" gap={1}>
+            <Text color="#FFFFFF">{`row-${i.toString().padStart(2, "0")}`}</Text>
+            {Array.from({ length: 5 }, (_, j) => (
+              <Text key={j} color="#FFFFFF">{`c${j}`}</Text>
+            ))}
+          </Box>
+        ))}
+        {open && (
+          <Box position="absolute" marginLeft={20} marginTop={8}>
+            <ModalDialog width={24} title="Settings" fade={0.25}>
+              <Text color="#FFFFFF">Runtime</Text>
+            </ModalDialog>
+          </Box>
+        )}
+      </Box>
+    )
+  }
+
+  test("opaque status-bar bg (explicit hex, no ThemeProvider) darkens when the modal opens", () => {
+    const render = createRenderer({ cols: 60, rows: 24 })
+
+    // Frame 1 — modal closed. The status bar bg is full-brightness Nord.
+    const app = render(<DenseScene open={false} />)
+    const pre = app.cell(0, 0)
+    expect(pre.bg).not.toBeNull()
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    // Confirm we measured the opaque status-bar bg (Nord 46,52,64).
+    expect(preBg.r).toBe(46)
+    expect(preBg.g).toBe(52)
+    expect(preBg.b).toBe(64)
+    const preSum = preBg.r + preBg.g + preBg.b
+
+    // Frame 2 — modal open. scrim === null (no theme), so the legacy path runs.
+    // The opaque bg must now DARKEN (recede toward #000000) instead of popping.
+    app.rerender(<DenseScene open={true} />)
+    expect(app.text).toContain("Runtime")
+    const post = app.cell(0, 0)
+    expect(post.bg).not.toBeNull()
+    const postBg = post.bg as { r: number; g: number; b: number }
+    const postSum = postBg.r + postBg.g + postBg.b
+
+    // Every channel strictly darker — the load-bearing assertion. At α=0.25
+    // toward #000000: (46,52,64) → (35, 39, 48). Hue preserved (uniform scale).
+    expect(postBg.r).toBeLessThan(preBg.r)
+    expect(postBg.g).toBeLessThan(preBg.g)
+    expect(postBg.b).toBeLessThan(preBg.b)
+    expect(postSum).toBeLessThan(preSum)
+    // Exact source-over values pin the math.
+    expect(postBg.r).toBe(35)
+    expect(postBg.g).toBe(39)
+    expect(postBg.b).toBe(48)
+  })
+
+  test("empty cells with explicit opaque bg also darken under null scrim", () => {
+    // The status-bar text ends well before col 59; cells past it are empty
+    // (char === " ", fg === null) but still carry the explicit Nord bg. These
+    // exercise the `!fgHex && bgHex` branch of the legacy path — previously
+    // dim-stamped only, now bg-darkened.
+    const render = createRenderer({ cols: 60, rows: 24 })
+
+    const app = render(<DenseScene open={false} />)
+    const pre = app.cell(58, 0)
+    expect(pre.char).toBe(" ")
+    expect(pre.fg).toBeNull()
+    expect(pre.bg).not.toBeNull()
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    expect(preBg.r).toBe(46)
+
+    app.rerender(<DenseScene open={true} />)
+    const post = app.cell(58, 0)
+    expect(post.char).toBe(" ")
+    expect(post.bg).not.toBeNull()
+    const postBg = post.bg as { r: number; g: number; b: number }
+    // Empty-cell bg darkens too (no longer left bright).
+    expect(postBg.r).toBeLessThan(preBg.r)
+    expect(postBg.g).toBeLessThan(preBg.g)
+    expect(postBg.b).toBeLessThan(preBg.b)
+  })
+
+  test("non-null-scrim path is UNCHANGED — same scene WITH ThemeProvider still uses the theme scrim", () => {
+    // Anti-regression: wrap the IDENTICAL dense scene in a ThemeProvider so
+    // findRootThemeBg resolves darkTheme.bg (#1e1e2e) → scrim = #000000
+    // (non-null). The two-channel scrim path must produce its established
+    // values — the fix must NOT perturb this path.
+    const render = createRenderer({ cols: 60, rows: 24 })
+
+    function Themed({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <DenseScene open={open} />
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<Themed open={false} />)
+    const pre = app.cell(0, 0)
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    expect(preBg.r).toBe(46)
+    expect(preBg.g).toBe(52)
+    expect(preBg.b).toBe(64)
+
+    app.rerender(<Themed open={true} />)
+    expect(app.text).toContain("Runtime")
+    const post = app.cell(0, 0)
+    const postBg = post.bg as { r: number; g: number; b: number }
+
+    // scrim path mixes cell.bg toward the theme scrim (#000000) at α=0.25 —
+    // (46,52,64) → (35, 39, 48). Byte-identical to the legacy result here only
+    // because Nord is dark and the legacy polarity target is also #000000; the
+    // point is that the NON-NULL-scrim branch was exercised (theme resolved)
+    // and still darkens correctly. This pins both branches to the same
+    // industry-standard source-over result for a dark opaque surface.
+    expect(postBg.r).toBe(35)
+    expect(postBg.g).toBe(39)
+    expect(postBg.b).toBe(48)
   })
 })
