@@ -22,6 +22,7 @@ import {
   type StyledSegment,
   ensureEmojiPresentation,
   fixOsc8AcrossWrappedLines,
+  fixSgrAcrossWrappedLines,
   graphemeWidth,
   hasAnsi,
   parseAnsiText,
@@ -844,6 +845,13 @@ export function formatTextLines(
     // identical to wrapTextWithMeasurer. See @km/code/v0.2/19654-osc-link-leak.
     if (normalizedText.includes("\x1b]8;;")) {
       fixOsc8AcrossWrappedLines(evenLines)
+    }
+    // Same self-containment requirement for SGR fg/attrs: optimalWrap preserves
+    // ANSI tokens but doesn't re-open a style split across a break, so a
+    // continuation line loses its colour/attr. Sibling of the OSC 8 fix above.
+    // See @km/code/v0.2/19690-status-tuple-wrap-color.
+    if (evenLines.length > 1 && normalizedText.includes("\x1b[")) {
+      fixSgrAcrossWrappedLines(evenLines)
     }
     return evenLines
   }
