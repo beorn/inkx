@@ -171,8 +171,9 @@ export interface PlanRect {
  *   prod falls back to first).
  * - `scrim` is either a normalized `#rrggbb` hex (with a known theme bg or
  *   an explicit `scrimColor`) or `null` (legacy fallback where the buffer
- *   realizer mixes fg toward cell.bg AND darkens cell.bg toward a per-cell
- *   polarity target — no single theme scrim to mix toward).
+ *   realizer mixes fg toward cell.bg AND recedes cell.bg toward a SCENE-LEVEL
+ *   polarity target sampled from the faded region — no single theme scrim to
+ *   mix toward; see `realize-buffer.ts` `sampleRegionScrimTarget`).
  * - `defaultBg` / `defaultFg` are resolved for stage-2 passes.
  * - `scrimTowardLight` records whether the scrim is on the light side of
  *   the luminance threshold. Null-scrim plans default to `false`.
@@ -191,7 +192,9 @@ export interface CorePlan {
   /**
    * Resolved scrim hex, or null when no theme bg is available. When null the
    * buffer-realizer runs the legacy two-channel mix: fg toward cell.bg, and
-   * cell.bg toward a per-cell polarity target (dark→black, light→white).
+   * cell.bg toward a SCENE-LEVEL polarity target sampled from the faded region
+   * (predominantly-dark scene → black, predominantly-light → white). Falls
+   * back to a per-cell target only when the region has no resolvable bg sample.
    */
   readonly scrim: HexColor | null
   /** Default background hex for resolving null/default `cell.bg`. */
