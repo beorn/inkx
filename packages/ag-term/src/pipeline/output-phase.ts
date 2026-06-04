@@ -25,6 +25,7 @@ import { IncrementalRenderMismatchError } from "../errors"
 import { textSized } from "../text-sizing"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode"
 import type { CellChange } from "./types"
+import { checkRenderEmulatorDivergence, countNonSpaceInText } from "../strict-divergence"
 import { createLogger } from "loggily"
 import {
   replayAnsiWithStyles,
@@ -1452,6 +1453,29 @@ export function outputPhase(
   if (tvState.backends.length > 0 && (tvState.terminal || tvState.ghosttyTerminal)) {
     tvState.frameCount++
     _verifyTerminalEquivalence(tvState, incrOutput, next, ctx, bufferToAnsi)
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Render/emulator divergence canary  (SILVERY_STRICT slug: "divergence")
+    // ───────────────────────────────────────────────────────────────────────
+    //
+    // The frame's cumulative ANSI has now been fed into the in-process
+    // emulator (above). Read it back: if silvery painted a real content
+    // frame (`next.countPaintedCells()`) but the emulator screen is
+    // all-spaces, that's the 19604 blank-screen signature — a full frame
+    // emitted to a blank screen. Tier 2 throws; tier 1 logs. NO-OP for
+    // live TTYs (they never enter this in-process-emulator block).
+    // Bead: @km/code/v0.2/19604-focus-blank.
+    const divergenceTerm = tvState.terminal ?? tvState.ghosttyTerminal
+    if (divergenceTerm) {
+      checkRenderEmulatorDivergence(
+        next,
+        {
+          nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+          backendName: tvState.terminal ? "xterm" : "ghostty",
+        },
+        tvState.frameCount,
+      )
+    }
   }
 
   if (CAPTURE_RAW) {
@@ -1787,6 +1811,21 @@ function inlineIncrementalRender(
     if (tvState && tvState.backends.length > 0 && (tvState.terminal || tvState.ghosttyTerminal)) {
       tvState.frameCount++
       _verifyTerminalEquivalence(tvState, fsIncrOutput, next, ctx, bufferToAnsi)
+
+      // Render/emulator divergence canary (inline path) — same 19604
+      // class-killer as the fullscreen path. See the matching block in
+      // outputPhase(). NO-OP for live TTYs. Bead: @km/code/v0.2/19604-focus-blank.
+      const divergenceTerm = tvState.terminal ?? tvState.ghosttyTerminal
+      if (divergenceTerm) {
+        checkRenderEmulatorDivergence(
+          next,
+          {
+            nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+            backendName: tvState.terminal ? "xterm" : "ghostty",
+          },
+          tvState.frameCount,
+        )
+      }
     }
     ctx.mode = savedMode
   }
