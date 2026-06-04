@@ -22,6 +22,7 @@ import {
   type StyledSegment,
   ensureEmojiPresentation,
   fixOsc8AcrossWrappedLines,
+  fixSgrAcrossWrappedLines,
   graphemeWidth,
   hasAnsi,
   parseAnsiText,
@@ -834,6 +835,14 @@ export function formatTextLines(
     // control sequences. Fall back to the ANSI-aware greedy wrapper so OSC 8
     // hyperlinks stay atomic and never leak a partial close token as text.
     if (hasAnsi(normalizedText)) return wrapText(normalizedText, width, true, trim)
+    // NB (defense-in-depth): the early-return above sends EVERY ansi-bearing
+    // string through greedy `wrapText` — which already self-contains both OSC 8
+    // and SGR per line — so `optimalWrap` only reaches here for ansi-free text
+    // and the two `fix*AcrossWrappedLines` guards below never fire today. They
+    // are kept symmetric with `wrapTextWithMeasurer` so that, if the early
+    // return is ever narrowed (e.g. to let optimalWrap handle SGR-only runs),
+    // per-line self-containment still holds here. Drop both together if the
+    // early-return is ever proven permanent.
     const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
     const analysis = buildTextAnalysis(normalizedText, gWidthFn)
     const evenLines = optimalWrap(normalizedText, analysis, width)
@@ -844,6 +853,13 @@ export function formatTextLines(
     // identical to wrapTextWithMeasurer. See @km/code/v0.2/19654-osc-link-leak.
     if (normalizedText.includes("\x1b]8;;")) {
       fixOsc8AcrossWrappedLines(evenLines)
+    }
+    // Same self-containment requirement for SGR fg/attrs: optimalWrap preserves
+    // ANSI tokens but doesn't re-open a style split across a break, so a
+    // continuation line loses its colour/attr. Sibling of the OSC 8 fix above.
+    // See @km/code/v0.2/19690-status-tuple-wrap-color.
+    if (evenLines.length > 1 && normalizedText.includes("\x1b[")) {
+      fixSgrAcrossWrappedLines(evenLines)
     }
     return evenLines
   }

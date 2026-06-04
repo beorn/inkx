@@ -20,6 +20,8 @@ import {
   type TerminalBuffer,
   type UnderlineStyle,
   createMutableCell,
+  styleToAnsiCodes,
+  styleResetCodes,
 } from "./buffer"
 import { isPrivateUseArea } from "./text-sizing"
 
@@ -1376,6 +1378,14 @@ export function wrapTextWithMeasurer(
     fixOsc8AcrossWrappedLines(lines)
   }
 
+  // Fix SGR fg/attr state across wrapped lines — a nested <Text color/bold/…>
+  // emits inline push/pop ANSI; without this the colour/attr is lost on every
+  // continuation line. Sibling of the OSC 8 fix above.
+  // See @km/code/v0.2/19690-status-tuple-wrap-color.
+  if (lines.length > 1 && text.includes("\x1b[")) {
+    fixSgrAcrossWrappedLines(lines)
+  }
+
   return lines
 }
 
@@ -1417,6 +1427,84 @@ export function fixOsc8AcrossWrappedLines(lines: string[]): void {
 
     lines[i] = line
     activeHref = lineHref
+  }
+}
+
+/**
+ * Reconstruct the active SGR style (fg + attributes, never bg) carried by a
+ * parsed segment, or null when nothing visual is active.
+ *
+ * Background is intentionally excluded: nested-`<Text>` backgrounds are tracked
+ * as `BgSegment`s and painted at the buffer level (see `collectTextWithBg`),
+ * never embedded in the inline ANSI stream this operates on. Re-emitting a bg
+ * here would double-paint and bleed.
+ */
+function activeSgrStyle(seg: StyledSegment): Style | null {
+  const fg = seg.fg ?? null
+  const underlineColor = seg.underlineColor ?? null
+  const attrs = {
+    bold: seg.bold,
+    dim: seg.dim,
+    italic: seg.italic,
+    underline: seg.underline,
+    underlineStyle: seg.underlineStyle,
+    inverse: seg.inverse,
+    strikethrough: seg.strikethrough,
+    overline: seg.overline,
+  }
+  const hasAttr =
+    Boolean(attrs.bold) ||
+    Boolean(attrs.dim) ||
+    Boolean(attrs.italic) ||
+    Boolean(attrs.underline) ||
+    Boolean(attrs.underlineStyle) ||
+    Boolean(attrs.inverse) ||
+    Boolean(attrs.strikethrough) ||
+    Boolean(attrs.overline)
+  if (fg === null && underlineColor === null && !hasAttr) return null
+  return { fg, bg: null, attrs, underlineColor }
+}
+
+/**
+ * The active SGR style at the END of a line — after every code, including a
+ * trailing close that has no text after it (`…epsilon\x1b[39m`). `parseAnsiText`
+ * only emits segments for text runs, so a sentinel space is appended to force a
+ * final segment that captures the true end-of-line state.
+ */
+function endOfLineSgrStyle(line: string): Style | null {
+  const segs = parseAnsiText(line + " ")
+  const last = segs.length > 0 ? segs[segs.length - 1] : undefined
+  return last ? activeSgrStyle(last) : null
+}
+
+/**
+ * Post-process wrapped lines so each is self-contained for SGR foreground +
+ * attributes — the sibling of {@link fixOsc8AcrossWrappedLines}.
+ *
+ * A nested `<Text color>` / `<Text bold>` emits its style as inline push/pop
+ * ANSI inside the parent's collected text (render-text.ts `applyTextStyleAnsi`).
+ * When the styled run soft-wraps, the OPEN SGR sits on the first line and every
+ * continuation line is rendered independently from `baseStyle` — so the color /
+ * attribute is silently lost on all lines after the first (the live symptom in
+ * `@km/code/v0.2/19690-status-tuple-wrap-color`: an inline-code status tuple
+ * renders coloured on `M` but default on the wrapped `@km/…` path).
+ *
+ * This re-opens the active style at the start of each continuation line and
+ * closes it at line end, so every line stands alone. Background is excluded by
+ * construction (see {@link activeSgrStyle}). Mutates `lines` in place.
+ *
+ * A single (non-nested) coloured `<Text>` never hit this bug: its colour is a
+ * node-level `style.color` applied to every cell, independent of inline ANSI.
+ */
+export function fixSgrAcrossWrappedLines(lines: string[]): void {
+  let carry: Style | null = null
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]!
+    if (carry !== null) line = styleToAnsiCodes(carry) + line
+    const end = endOfLineSgrStyle(line)
+    if (end !== null) line += styleResetCodes(end)
+    lines[i] = line
+    carry = end
   }
 }
 

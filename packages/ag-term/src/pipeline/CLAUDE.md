@@ -355,7 +355,7 @@ const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? in
 
 **stickyForceRefresh** exists because sticky headers overwrite first-pass content in a second pass, and the cloned buffer has stale content from previous frames' sticky positions. Tier 3 incremental renders need all first-pass items to re-render (with a pre-clear to null bg) to ensure the buffer matches fresh render state before the sticky pass.
 
-Nested Text `backgroundColor` is handled separately via `BgSegment` tracking (not ANSI codes) to prevent bg bleed across wrapped text lines.
+Nested Text `backgroundColor` is handled separately via `BgSegment` tracking (not ANSI codes) to prevent bg bleed across wrapped text lines. Its siblings — nested OSC 8 hyperlinks and nested SGR fg/attrs, which DO live as inline ANSI — stay self-contained per wrapped line via `fixOsc8AcrossWrappedLines` / `fixSgrAcrossWrappedLines` (unicode.ts). See [LESSONS.md](LESSONS.md) "Per-Line ANSI Self-Containment" for the full bg/OSC 8/SGR triangle.
 
 ## Normal Container Three-Pass Rendering
 

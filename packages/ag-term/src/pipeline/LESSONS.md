@@ -60,6 +60,20 @@ ANSI-embedded backgrounds (`chalk.bgBlack("text")`) inside a Box with `backgroun
 
 Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content and tracks bg ranges separately. Each line's bg is applied independently. The `bgOverride` utility from ansi allows intentional bg override where needed.
 
+## Per-Line ANSI Self-Containment — the bg / OSC 8 / SGR triangle
+
+A nested `<Text>` (e.g. `<Text color>`, `<Text bold>`, `<Link>`) inside a wrapping `<Text wrap>` has its style/href encoded as ANSI inside the parent's collected text. When the styled run soft-wraps, the OPEN sits on the first line and each continuation line is rendered **independently from `baseStyle`** — so any state that lived as inline ANSI is silently dropped on every line after the first. A single (non-nested) `<Text color>` never hits this: its colour is a node-level `style.color` applied to every cell.
+
+Three flavours of this same bug, three fixes — keep them in lockstep:
+
+| State | Symptom on wrap | Fix |
+| --- | --- | --- |
+| **Background** | bg bleeds across wrapped lines | `BgSegment` tracking (buffer-level, NOT inline ANSI) — see above |
+| **OSC 8 hyperlink** | continuation line carries only the CLOSE → `parseAnsiText` leaks `]8;;\` as literal cells | `fixOsc8AcrossWrappedLines` (unicode.ts) — re-open + close per line. Bead `19654-osc-link-leak` |
+| **SGR fg / attrs** | continuation line loses colour / bold / italic / underline | `fixSgrAcrossWrappedLines` (unicode.ts) — re-open active style + close per line. Bead `19690-status-tuple-wrap-color` |
+
+The OSC 8 and SGR fixes are **siblings** (post-process the wrapped line array so each line stands alone); bg is the odd one out (it dodges inline ANSI entirely via buffer-level segments). Both string-level fixes run inside `wrapTextWithMeasurer` (greedy `wrap`/`even`). When adding a 4th inline-ANSI flavour (e.g. underline-colour SGR 58), wire a matching `fix*AcrossWrappedLines` here — do NOT rely on the unwrapped push/pop balancing, it does not survive the wrap.
+
 ## Descendant Overflow Clearing (2026-03-12)
 
 `IncrementalRenderMismatchError` in AI chat status bar: a TextInput node's content shrank from width=91 to width=2, where the old layout overflowed its parent (a `flexGrow` box) and its grandparent (a bordered input box). `clearExcessArea` on the TextInput clipped to the immediate parent's content area, leaving stale pixels in the grandparent's border and padding area.
