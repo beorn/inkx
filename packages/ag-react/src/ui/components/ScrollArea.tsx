@@ -60,7 +60,12 @@ export function ScrollArea({
 }: ScrollAreaProps): JSX.Element {
   const controller = useScrollController()
   const handleWheel = React.useCallback(
-    (event: { deltaY: number; timeStamp?: number; preventDefault?: () => void; stopPropagation?: () => void }) => {
+    (event: {
+      deltaY: number
+      timeStamp?: number
+      preventDefault?: () => void
+      stopPropagation?: () => void
+    }) => {
       if (controller.maxScroll <= 0) return
       event.preventDefault?.()
       event.stopPropagation?.()

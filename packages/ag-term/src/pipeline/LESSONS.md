@@ -66,11 +66,11 @@ A nested `<Text>` (e.g. `<Text color>`, `<Text bold>`, `<Link>`) inside a wrappi
 
 Three flavours of this same bug, three fixes — keep them in lockstep:
 
-| State | Symptom on wrap | Fix |
-| --- | --- | --- |
-| **Background** | bg bleeds across wrapped lines | `BgSegment` tracking (buffer-level, NOT inline ANSI) — see above |
-| **OSC 8 hyperlink** | continuation line carries only the CLOSE → `parseAnsiText` leaks `]8;;\` as literal cells | `fixOsc8AcrossWrappedLines` (unicode.ts) — re-open + close per line. Bead `19654-osc-link-leak` |
-| **SGR fg / attrs** | continuation line loses colour / bold / italic / underline | `fixSgrAcrossWrappedLines` (unicode.ts) — re-open active style + close per line. Bead `19690-status-tuple-wrap-color` |
+| State               | Symptom on wrap                                                                           | Fix                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Background**      | bg bleeds across wrapped lines                                                            | `BgSegment` tracking (buffer-level, NOT inline ANSI) — see above                                                      |
+| **OSC 8 hyperlink** | continuation line carries only the CLOSE → `parseAnsiText` leaks `]8;;\` as literal cells | `fixOsc8AcrossWrappedLines` (unicode.ts) — re-open + close per line. Bead `19654-osc-link-leak`                       |
+| **SGR fg / attrs**  | continuation line loses colour / bold / italic / underline                                | `fixSgrAcrossWrappedLines` (unicode.ts) — re-open active style + close per line. Bead `19690-status-tuple-wrap-color` |
 
 The OSC 8 and SGR fixes are **siblings** (post-process the wrapped line array so each line stands alone); bg is the odd one out (it dodges inline ANSI entirely via buffer-level segments). Both string-level fixes run inside `wrapTextWithMeasurer` (greedy `wrap`/`even`). When adding a 4th inline-ANSI flavour (e.g. underline-colour SGR 58), wire a matching `fix*AcrossWrappedLines` here — do NOT rely on the unwrapped push/pop balancing, it does not survive the wrap.
 
