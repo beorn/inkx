@@ -458,9 +458,12 @@ export function renderToXterm(
     // legacy cursor store — see Phase 2 of `km-silvery.view-as-layout-output`.
     const layoutCursor = findActiveCursorRect(root)
     const cursor = layoutCursor ?? cursorStore.accessors.getCursorState()
-    if (cursor?.visible) {
-      // Move cursor to absolute position and show it
-      terminal.write(`\x1b[${cursor.y + 1};${cursor.x + 1}H\x1b[?25h`)
+    if (cursor) {
+      // Move cursor to absolute position before show/hide. Hidden cursor rects
+      // still own placement so visibility-blind terminals/backends do not
+      // display a stale cursor in unrelated content.
+      const move = `\x1b[${cursor.y + 1};${cursor.x + 1}H`
+      terminal.write(cursor.visible ? `${move}\x1b[?25h` : `${move}\x1b[?25l`)
     } else {
       terminal.write("\x1b[?25l") // hide cursor
     }

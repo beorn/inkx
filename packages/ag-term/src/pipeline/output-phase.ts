@@ -1566,7 +1566,7 @@ function inlineCursorSuffix(
   ctx: OutputContext,
 ): string {
   const { termRows } = ctx
-  if (!cursorPos?.visible) {
+  if (!cursorPos) {
     // No active cursor — hide it
     return "\x1b[?25l"
   }
@@ -1602,6 +1602,10 @@ function inlineCursorSuffix(
   suffix += "\r"
   if (cursorPos.x > 0) {
     suffix += `\x1b[${cursorPos.x}C`
+  }
+  if (!cursorPos.visible) {
+    suffix += "\x1b[?25l"
+    return suffix
   }
   // Show cursor with the requested shape. Fullscreen mode emits the same
   // DECSCUSR sequence in scheduler/runtime; inline mode needs to do it here

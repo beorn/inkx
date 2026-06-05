@@ -714,9 +714,13 @@ export interface BoxProps
    * across conditional mounts (see `km-silvercode.cursor-startup-position`).
    *
    * **Precedence across nodes** (locked by `km-silvery.cursor-invariants` #1):
-   * 1. Focused-editable wins — a Box that is `focused` AND has visible
-   *    `cursorOffset` always beats a non-focused declarer.
-   * 2. Otherwise deepest-in-paint-order (post-order tree walk) wins.
+   * 1. Focused cursor owner wins — a Box that has `cursorOffset` and either
+   *    `focused === true` or focus-manager `interactiveState.focused === true`
+   *    always beats a non-focused declarer, even when
+   *    `cursorOffset.visible === false`. Hidden focused owners still carry a
+   *    position so terminal renderers can move there before hiding the
+   *    hardware cursor.
+   * 2. Otherwise deepest visible in paint order (post-order tree walk) wins.
    * 3. Otherwise null.
    *
    * **Clipping** (invariant #4): if the caret falls outside the nearest

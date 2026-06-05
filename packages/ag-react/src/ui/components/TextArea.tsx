@@ -430,11 +430,13 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     visible: isActive && !disabled && !ta.selection,
     shape: cursorStyle,
   }
+  const focusedCursorOwner = isActive && !cursorOffset.visible
 
   if (showPlaceholder) {
     return (
       <Box
         focusable
+        focused={focusedCursorOwner}
         testID={testID}
         flexDirection="column"
         width="100%"
@@ -456,6 +458,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   return (
     <Box
       focusable
+      focused={focusedCursorOwner}
       testID={testID}
       key={ta.scrollOffset}
       flexDirection="column"

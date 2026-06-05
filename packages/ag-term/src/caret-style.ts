@@ -80,6 +80,7 @@ export function resolveCaretStyle(
  */
 export function findActiveCursorNode(root: AgNode): AgNode | null {
   let focusedNode: AgNode | null = null
+  let focusedSuppressesFallback = false
   let fallbackNode: AgNode | null = null
 
   function walk(node: AgNode): void {
@@ -87,13 +88,16 @@ export function findActiveCursorNode(root: AgNode): AgNode | null {
     const props = node.props as BoxProps | undefined
     if (!props?.cursorOffset) return
     const offset = props.cursorOffset
-    if (offset.visible === false) return
-    fallbackNode = node
-    if (node.interactiveState?.focused) {
+    if (props.focused === true || node.interactiveState?.focused) {
+      focusedSuppressesFallback = true
       focusedNode = node
+      return
+    }
+    if (offset.visible !== false) {
+      fallbackNode = node
     }
   }
 
   walk(root)
-  return focusedNode ?? fallbackNode
+  return focusedNode ?? (focusedSuppressesFallback ? null : fallbackNode)
 }

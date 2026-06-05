@@ -58,6 +58,25 @@ describe("TextArea cursor position", () => {
     expect(cursor!.shape).toBe("underline")
   })
 
+  test("active disabled TextArea owns a hidden cursor position", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <Box padding={1}>
+          <TextArea defaultValue="blocked" fieldSizing="fixed" rows={1} isActive disabled />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.visible).toBe(false)
+    expect(cursor!.x).toBe(1 + "blocked".length)
+    expect(cursor!.y).toBe(1)
+  })
+
   test("cursor is after last character when borderStyle is set (uncontrolled)", () => {
     const r = createRenderer({ cols: 40, rows: 10 })
 

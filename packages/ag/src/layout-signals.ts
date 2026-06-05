@@ -1237,19 +1237,20 @@ export function commitLayoutSnapshot(root: AgNode): void {
 /**
  * Walk the tree and find the active caret rect — the caret to render this
  * frame, applying the precedence + clipping rules locked by bead
- * `km-silvery.cursor-invariants`. Returns null when no caret should be
- * shown.
+ * `km-silvery.cursor-invariants`. Returns null when no cursor owner is
+ * present; focused hidden owners return a rect with `visible: false`.
  *
  * **Precedence (invariant 1)**:
- *   1. **Focused-editable wins**: a Box with `cursorOffset.visible !== false`
- *      AND `interactiveState.focused === true`. If multiple focused-editables
- *      exist (rare — typically one input is focused at a time), the deepest
- *      one in paint order wins.
- *   2. **Otherwise deepest-in-paint-order**: if no node is focused-editable,
- *      fall back to the deepest visible declarer (post-order tree walk).
- *      This covers Ink-compat consumers and `useCursor` callers that don't
- *      participate in the focus tree.
- *   3. **Otherwise null**: no visible caret declared anywhere.
+ *   1. **Focused cursor owner wins**: a Box with `cursorOffset` AND either
+ *      `focused === true` or `interactiveState.focused === true` wins even
+ *      when `cursorOffset.visible === false`. If the rect is visible,
+ *      renderers show it; if it is hidden, renderers move there and hide the
+ *      hardware cursor. Either way it suppresses non-focused fallback cursors.
+ *   2. **Otherwise deepest visible in paint order**: if no node is a focused
+ *      cursor owner, fall back to the deepest visible declarer (post-order
+ *      tree walk). This covers Ink-compat consumers and `useCursor` callers
+ *      that don't participate in the focus tree.
+ *   3. **Otherwise null**: no visible cursor owner is present.
  *
  * **Clipping (invariant 4)**: at each scroll/clip ancestor (a Box with
  * `overflow="scroll"` / `"hidden"` / `overflowY="hidden"`), the caret's
@@ -1259,15 +1260,17 @@ export function commitLayoutSnapshot(root: AgNode): void {
  * caret rect at the exact clip edge is treated as visible.
  *
  * Visited in tree order (depth-first, post-order). Per-node cost is one
- * `props.cursorOffset` check + one signal lookup; trees without any caret
+ * `props.cursorOffset` check + one signal lookup; trees without any cursor
  * declarer return null after a single traversal.
  */
 export function findActiveCursorRect(root: AgNode): CursorRect | null {
-  // Two parallel tracks — focused-editable wins outright (invariant 1.1).
+  // Two parallel tracks — focused cursor owner wins outright (invariant 1.1),
+  // including hidden cursor owners such as a disabled-but-focused TextArea.
   // Falling back to deepest-visible covers Ink-compat / useCursor consumers
   // (invariant 1.2). We track both during the walk and pick at the end so a
   // shallow focused declarer always wins over a deeper non-focused one.
   let focusedResult: CursorRect | null = null
+  let focusedSuppressesFallback = false
   let fallbackResult: CursorRect | null = null
 
   // Stack of clip rects (innermost last). A null entry represents "no clip
@@ -1318,12 +1321,26 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
     if (props?.cursorOffset) {
       const s = signalMap.get(node)
       const rect = s ? s.cursorRect() : computeCursorRect(node)
-      if (rect && rect.visible && !isClipped(rect)) {
-        // Last-write-wins (deeper post-order entries overwrite shallower).
-        fallbackResult = rect
-        if (node.interactiveState?.focused) {
-          focusedResult = rect
+      const isFocusedCursorOwner = props.focused === true || node.interactiveState?.focused === true
+      if (rect) {
+        const clipped = isClipped(rect)
+        if (isFocusedCursorOwner) {
+          focusedSuppressesFallback = true
+          if (!clipped) {
+            // Hidden focused cursor owners still win. Terminal renderers move
+            // there and hide so ignored/late DECTCEM does not leave a visible
+            // hardware cursor stranded in unrelated transcript content.
+            focusedResult = rect
+          }
         }
+        if (!clipped) {
+          if (rect.visible) {
+            // Last-write-wins (deeper post-order entries overwrite shallower).
+            fallbackResult = rect
+          }
+        }
+      } else if (isFocusedCursorOwner) {
+        focusedSuppressesFallback = true
       }
     }
 
@@ -1344,7 +1361,7 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
           visible: true,
           shape: cur.style,
         }
-        if (!isClipped(rect)) {
+        if (!focusedSuppressesFallback && !isClipped(rect)) {
           fallbackResult = rect
         }
       }
@@ -1356,7 +1373,7 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
   }
 
   walk(root)
-  return focusedResult ?? fallbackResult
+  return focusedResult ?? (focusedSuppressesFallback ? null : fallbackResult)
 }
 
 // ============================================================================

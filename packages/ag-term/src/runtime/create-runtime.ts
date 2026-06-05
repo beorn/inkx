@@ -335,13 +335,20 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       let cursorSuffix = ""
       if (mode === "fullscreen") {
         const cursor = findActiveCursorRect(buffer.nodes)
-        if (cursor && cursor.visible) {
+        if (cursor) {
           // Caret shape is target-specific — derive at the terminal layer
           // (invariant 6 of `km-silvery.cursor-invariants`).
-          const activeNode = findActiveCursorNode(buffer.nodes)
-          const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
-          const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
-          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+          if (cursor.visible) {
+            const activeNode = findActiveCursorNode(buffer.nodes)
+            const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
+            const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
+            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+          } else {
+            // Move before hiding so ignored/late DECTCEM, unfocused-terminal
+            // hollow cursors, and visibility-blind emulators do not leave the
+            // hardware cursor at the last transcript write position.
+            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
+          }
         } else {
           cursorSuffix = ANSI.CURSOR_HIDE
         }
