@@ -2763,7 +2763,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   //
   // We still override `.size.cols()` / `.rows()` / `.snapshot()` to read
   // `currentDims` so resizes propagate through the same subscriber fanout.
-  const baseMockTerm = createTerm({ cols: currentDims.cols, rows: currentDims.rows })
+  // TermContext needs app-controlled dimensions, but consumers also read the
+  // runtime profile caps (e.g. Kitty graphics). Preserve those caps when
+  // creating the dimension-controlled context term.
+  const termContextCaps = effectiveCaps ?? effectiveTerm?.caps
+  const baseMockTerm = createTerm({
+    cols: currentDims.cols,
+    rows: currentDims.rows,
+    ...(termContextCaps ? { caps: termContextCaps } : {}),
+  })
   const mockTermSubscribers = new Set<(state: { cols: number; rows: number }) => void>()
   // Bridge resize notifications into the baseMockTerm.size signal, so any
   // `useTerm(t => t.size.cols())` consumer re-renders on resize. The headless
