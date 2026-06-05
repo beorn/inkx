@@ -59,6 +59,15 @@ export function ScrollArea({
   userSelect,
 }: ScrollAreaProps): JSX.Element {
   const controller = useScrollController()
+  const handleWheel = React.useCallback(
+    (event: { deltaY: number; timeStamp?: number; preventDefault?: () => void; stopPropagation?: () => void }) => {
+      if (controller.maxScroll <= 0) return
+      event.preventDefault?.()
+      event.stopPropagation?.()
+      controller.onWheel(event)
+    },
+    [controller],
+  )
 
   return (
     <Box
@@ -78,7 +87,7 @@ export function ScrollArea({
         minHeight={0}
         overflow="scroll"
         scrollOffset={controller.scrollOffset}
-        onWheel={controller.onWheel}
+        onWheel={handleWheel}
         onLayout={(rect) => controller.setViewportHeight(rect.height)}
       >
         <Box

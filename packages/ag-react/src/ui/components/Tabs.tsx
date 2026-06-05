@@ -156,7 +156,7 @@ export function Tabs({
 
   return (
     <TabsContext.Provider value={{ activeValue, setActiveValue, tabValues, registerTab }}>
-      <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1} minHeight={0}>
         {children}
       </Box>
     </TabsContext.Provider>
@@ -230,7 +230,7 @@ export function TabPanel({ value, children }: TabPanelProps): React.ReactElement
   if (activeValue !== value) return null
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
+    <Box flexDirection="column" flexGrow={1} minHeight={0}>
       {children}
     </Box>
   )
