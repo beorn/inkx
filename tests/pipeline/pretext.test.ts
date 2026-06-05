@@ -427,9 +427,12 @@ describe("optimalWrap", () => {
         const ons = (all.match(/\x1b\[34m/g) ?? []).length
         const offs = (all.match(/\x1b\[39m/g) ?? []).length
         expect(ons, `width=${w} lost ANSI-on tokens (had ${sourceOns}, got ${ons})`).toBe(sourceOns)
-        expect(offs, `width=${w} lost ANSI-off tokens (had ${sourceOffs}, got ${offs})`).toBe(
-          sourceOffs,
-        )
+        // Extra off/reset tokens are harmless and sometimes required at wrap
+        // boundaries; losing one is what causes terminal color bleed.
+        expect(
+          offs,
+          `width=${w} lost ANSI-off tokens (had at least ${sourceOffs}, got ${offs})`,
+        ).toBeGreaterThanOrEqual(sourceOffs)
       }
     })
 

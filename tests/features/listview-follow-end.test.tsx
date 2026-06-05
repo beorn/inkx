@@ -22,6 +22,7 @@
 
 import React from "react"
 import { describe, test, expect } from "vitest"
+import "@termless/test/matchers"
 import { createRenderer, createTermless } from "@silvery/test"
 import { Box, Text, ListView } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"

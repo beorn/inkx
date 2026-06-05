@@ -1,6 +1,7 @@
 import React from "react"
 import { useEffect, useState } from "react"
 import { describe, expect, test } from "vitest"
+import "@termless/test/matchers"
 import { createTermless } from "@silvery/test"
 import { Box, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"

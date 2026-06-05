@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
+import "@termless/test/matchers"
 import { createTermless } from "@silvery/test"
 import { createTerm } from "@silvery/ag-term"
 import { createVtermBackend } from "@termless/vterm"
