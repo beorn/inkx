@@ -620,14 +620,13 @@ export function useTextArea({
       }
 
       // =================================================================
-      // Multi-line: Ctrl+K/U (kill to end/beginning of wrapped line)
+      // Multi-line: Ctrl+K/U (kill to end/beginning of logical line)
       // =================================================================
       if (key.ctrl && input === "k") {
         stickyXRef.current = null
         clearSelection()
-        const currentLine = lines[cRow]
-        if (!currentLine) return
-        const lineEnd = currentLine.startOffset + currentLine.line.length
+        const nextNewline = value.indexOf("\n", cursor)
+        const lineEnd = nextNewline === -1 ? value.length : nextNewline
         if (cursor < lineEnd) {
           addToKillRing(value.slice(cursor, lineEnd))
           updateValue(value.slice(0, cursor) + value.slice(lineEnd), cursor)
@@ -641,9 +640,7 @@ export function useTextArea({
       if (key.ctrl && input === "u") {
         stickyXRef.current = null
         clearSelection()
-        const currentLine = lines[cRow]
-        if (!currentLine) return
-        const lineStart = currentLine.startOffset
+        const lineStart = value.lastIndexOf("\n", Math.max(0, cursor - 1)) + 1
         if (cursor > lineStart) {
           addToKillRing(value.slice(lineStart, cursor))
           updateValue(value.slice(0, lineStart) + value.slice(cursor), lineStart)
