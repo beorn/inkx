@@ -128,6 +128,8 @@ export interface UseTextAreaResult {
   selectionAnchor: number | null
   /** Clear the input */
   clear: () => void
+  /** Get the live editor value, including updates from the current input batch */
+  getValue: () => string
   /** Set value programmatically (cursor moves to end) */
   setValue: (value: string) => void
   /** Get the current selection range, or null if no selection */
@@ -759,6 +761,8 @@ export function useTextArea({
     setSelectionAnchor(null)
   }, [updateValue])
 
+  const getValue = useCallback(() => stateRef.current.value, [])
+
   const setValue = useCallback(
     (v: string) => {
       updateValue(v, v.length)
@@ -789,6 +793,7 @@ export function useTextArea({
     selection,
     selectionAnchor,
     clear,
+    getValue,
     setValue,
     getSelection: getSelectionRange,
     setCursor: setCursorFn,

@@ -359,7 +359,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // Imperative handle
   useImperativeHandle(ref, () => ({
     clear: ta.clear,
-    getValue: () => ta.value,
+    getValue: ta.getValue,
     setValue: ta.setValue,
     setCursor: ta.setCursor,
     getSelection: ta.getSelection,
