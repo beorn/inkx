@@ -2097,6 +2097,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           runtime.invalidate()
         }
       },
+      copy: () => {
+        // Keyboard copy-mode yank: extract the current selection and write it
+        // via OSC 52 — the same path mouse drag-copy uses (semantic by default;
+        // copy-mode has no Shift raw-rectangle mode). km-silvery 19761.
+        if (!copyOnSelectEnabled || !selectionState.range || !currentBuffer) return
+        const text = extractText(currentBuffer._buffer, selectionState.range, {
+          scope: selectionState.scope,
+          rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
+        })
+        if (text.length > 0) {
+          const base64 = globalThis.Buffer.from(text).toString("base64")
+          target.write(`\x1b]52;c;${base64}\x07`)
+        }
+      },
     })
     capabilityRegistry.register(SELECTION_CAPABILITY, selectionBridge)
   }

@@ -189,6 +189,10 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
           const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
           ;(bridge ?? fallbackSelection).clear()
         },
+        copySelection() {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          ;(bridge ?? fallbackSelection).copySelection()
+        },
         dispose() {
           fallbackSelection.dispose()
         },
