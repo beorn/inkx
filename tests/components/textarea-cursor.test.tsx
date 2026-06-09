@@ -12,7 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, TextArea } from "silvery"
+import { Box, Text, TextArea } from "silvery"
 
 describe("TextArea cursor position", () => {
   test("cursor is after last character without border (uncontrolled)", () => {
@@ -74,6 +74,30 @@ describe("TextArea cursor position", () => {
     expect(cursor).not.toBeNull()
     expect(cursor!.visible).toBe(false)
     expect(cursor!.x).toBe(1 + "blocked".length)
+    expect(cursor!.y).toBe(1)
+  })
+
+  test("active visible TextArea owns cursor precedence over deeper fallbacks", () => {
+    const r = createRenderer({ cols: 60, rows: 10 })
+
+    function App() {
+      return (
+        <Box flexDirection="column" padding={1}>
+          <TextArea defaultValue="compose" fieldSizing="fixed" rows={1} isActive />
+          <Box flexDirection="column" padding={1}>
+            <Box cursorOffset={{ col: 5, row: 0, visible: true }}>
+              <Text>deeper fallback</Text>
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.visible).toBe(true)
+    expect(cursor!.x).toBe(1 + "compose".length)
     expect(cursor!.y).toBe(1)
   })
 

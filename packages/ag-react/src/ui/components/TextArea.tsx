@@ -430,7 +430,11 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     visible: isActive && !disabled && !ta.selection,
     shape: cursorStyle,
   }
-  const focusedCursorOwner = isActive && !cursorOffset.visible
+  // Active text inputs own cursor placement whether the hardware cursor is
+  // visible or intentionally hidden (disabled/selection). Otherwise an active
+  // composer cursor becomes only a fallback candidate and a deeper visible
+  // cursor can win in composite layouts.
+  const focusedCursorOwner = isActive
 
   if (showPlaceholder) {
     return (
