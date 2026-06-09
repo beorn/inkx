@@ -24,13 +24,15 @@ import { createBuffer, type TerminalBuffer } from "../../packages/ag-term/src/bu
 /** Create a buffer with plain text content for selection tests. */
 function createTestBuffer(): TerminalBuffer {
   const buffer = createBuffer(40, 10)
+  // Flag content cells selectable — copy is semantic by default, mirroring a
+  // real render where text-origin cells carry SELECTABLE_FLAG.
   const text = "Hello World"
   for (let i = 0; i < text.length; i++) {
-    buffer.setCell(i, 0, { char: text[i]! })
+    buffer.setCell(i, 0, { char: text[i]!, selectable: true })
   }
   const text2 = "Second Line"
   for (let i = 0; i < text2.length; i++) {
-    buffer.setCell(i, 1, { char: text2[i]! })
+    buffer.setCell(i, 1, { char: text2[i]!, selectable: true })
   }
   return buffer
 }
@@ -46,13 +48,14 @@ function createStyledBuffer(): TerminalBuffer {
       char: hello[i]!,
       fg: { r: 255, g: 0, b: 0 },
       attrs: { bold: true },
+      selectable: true,
     })
   }
 
   // " World" in default styling
   const world = " World"
   for (let i = 0; i < world.length; i++) {
-    buffer.setCell(hello.length + i, 0, { char: world[i]! })
+    buffer.setCell(hello.length + i, 0, { char: world[i]!, selectable: true })
   }
 
   return buffer
@@ -200,8 +203,10 @@ describe("extractHtml", () => {
   test("escapes HTML special characters", () => {
     const buffer = createBuffer(40, 5)
     const text = "<b>bold&amp</b>"
+    // Flag selectable — rich copy is semantic by default (skips non-selectable
+    // cells), mirroring a real render where text-origin cells carry the flag.
     for (let i = 0; i < text.length; i++) {
-      buffer.setCell(i, 0, { char: text[i]! })
+      buffer.setCell(i, 0, { char: text[i]!, selectable: true })
     }
 
     const range = {
@@ -213,6 +218,51 @@ describe("extractHtml", () => {
     expect(html).toContain("&lt;b&gt;")
     expect(html).toContain("&amp;amp")
     expect(html).not.toContain("<b>bold")
+  })
+
+  test("skips non-selectable gutter cells by default (semantic rich copy)", () => {
+    // Mirror a gutter/margin render: a 2-cell non-selectable left gutter
+    // followed by selectable content. The plain-text path filters these via
+    // respectSelectableFlag; extractHtml must do the same so rich paste
+    // (Slack/email/docs) doesn't leak the padded screen rectangle.
+    const buffer = createBuffer(40, 1)
+    buffer.setCell(0, 0, { char: "X", selectable: false }) // gutter
+    buffer.setCell(1, 0, { char: "Y", selectable: false }) // gutter
+    const content = "Hello"
+    for (let i = 0; i < content.length; i++) {
+      buffer.setCell(2 + i, 0, { char: content[i]!, selectable: true })
+    }
+
+    const range = {
+      anchor: { col: 0, row: 0 },
+      head: { col: 2 + content.length - 1, row: 0 },
+    }
+
+    const html = extractHtml(buffer, range)
+    // Gutter chars must NOT appear; selectable content must.
+    expect(html).not.toContain("X")
+    expect(html).not.toContain("Y")
+    expect(html).toContain("Hello")
+    expect(html).toMatch(/<pre[^>]*>Hello<\/pre>/)
+  })
+
+  test("respectSelectableFlag:false includes non-selectable cells (raw rectangle)", () => {
+    // Raw screen-rectangle extraction (Shift+drag) opts out — the verbatim
+    // escape hatch must still copy the gutter cells.
+    const buffer = createBuffer(40, 1)
+    buffer.setCell(0, 0, { char: "X", selectable: false }) // gutter
+    const content = "Hi"
+    for (let i = 0; i < content.length; i++) {
+      buffer.setCell(1 + i, 0, { char: content[i]!, selectable: true })
+    }
+
+    const range = {
+      anchor: { col: 0, row: 0 },
+      head: { col: 1 + content.length - 1, row: 0 },
+    }
+
+    const html = extractHtml(buffer, range, { respectSelectableFlag: false })
+    expect(html).toContain("XHi")
   })
 
   test("plain text cells produce no span styling", () => {

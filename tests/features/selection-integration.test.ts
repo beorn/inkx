@@ -27,15 +27,17 @@ import { createBuffer, type TerminalBuffer } from "../../packages/ag-term/src/bu
 /** Create a buffer with text content for selection tests. */
 function createTestBuffer(): TerminalBuffer {
   const buffer = createBuffer(40, 10)
+  // Text cells in a real render carry SELECTABLE_FLAG; copy is semantic by
+  // default, so flag content cells to mirror production.
   // Write "Hello World" on row 0
   const text = "Hello World"
   for (let i = 0; i < text.length; i++) {
-    buffer.setCell(i, 0, { char: text[i]! })
+    buffer.setCell(i, 0, { char: text[i]!, selectable: true })
   }
   // Write "Second Line" on row 1
   const text2 = "Second Line"
   for (let i = 0; i < text2.length; i++) {
-    buffer.setCell(i, 1, { char: text2[i]! })
+    buffer.setCell(i, 1, { char: text2[i]!, selectable: true })
   }
   return buffer
 }

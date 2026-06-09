@@ -202,7 +202,10 @@ export interface RenderSink {
   /**
    * Row metadata (soft-wrap, last content col). Lives in `postStateOps`.
    */
-  setRowMeta(row: number, meta: { softWrapped?: boolean; lastContentCol?: number }): void
+  setRowMeta(
+    row: number,
+    meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
+  ): void
 
   /**
    * Outline snapshots — cross-frame state captured during the decoration
@@ -319,7 +322,10 @@ export class BufferSink implements RenderSink {
     this.buffer.mergeAttrsInRect(x, y, width, height, attrs, underlineColor)
   }
 
-  setRowMeta(row: number, meta: { softWrapped?: boolean; lastContentCol?: number }): void {
+  setRowMeta(
+    row: number,
+    meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
+  ): void {
     this.buffer.setRowMeta(row, meta)
   }
 
@@ -440,7 +446,10 @@ export class TeeSink implements RenderSink {
     this.secondary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
   }
 
-  setRowMeta(row: number, meta: { softWrapped?: boolean; lastContentCol?: number }): void {
+  setRowMeta(
+    row: number,
+    meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
+  ): void {
     this.primary.setRowMeta(row, meta)
     this.secondary.setRowMeta(row, meta)
   }
@@ -638,7 +647,10 @@ export class PlanSink implements RenderSink {
     })
   }
 
-  setRowMeta(row: number, meta: { softWrapped?: boolean; lastContentCol?: number }): void {
+  setRowMeta(
+    row: number,
+    meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
+  ): void {
     this.postStateOps.push({ kind: "setRowMeta", row, ...meta })
   }
 

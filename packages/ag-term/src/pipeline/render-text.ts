@@ -750,6 +750,100 @@ function findLineStart(normalized: string, plainLine: string, fromOffset: number
   return fromOffset
 }
 
+/**
+ * Classification of the boundary between formatted line[i] and line[i+1] in
+ * terms of what the ORIGINAL (normalized) text had between them. Drives the
+ * per-row `softWrapped` / `wrapJoinSpace` metadata that copy-selection reads
+ * to rejoin soft-wrapped visual rows into their logical line.
+ *
+ * - "soft-space": the rows are the same logical line, split by word wrap that
+ *   consumed whitespace (the gap was only spaces). Rejoin with a single space.
+ *   → { softWrapped: true, wrapJoinSpace: true }
+ * - "soft-break": the rows are the same logical line, split mid-token with NO
+ *   whitespace consumed (a token longer than the width, or `wrap="hard"`).
+ *   Rejoin with nothing. → { softWrapped: true, wrapJoinSpace: false }
+ * - "hard": the gap contained an explicit `\n` — a real line break. Keep the
+ *   newline. → { softWrapped: false }
+ * - "end": the last (or only) line — no following row. → { softWrapped: false }
+ */
+export type LineBreakKind = "soft-space" | "soft-break" | "hard" | "end"
+
+/**
+ * Classify each formatted line's break to the next, by walking the normalized
+ * original text alongside the formatted `lines` (mirroring
+ * `mapLinesToCharOffsets` / `findLineStart`'s "skip whitespace/newlines
+ * consumed by wrapping" logic).
+ *
+ * For each line, find where it starts in the normalized text and where it
+ * ends; the GAP to the next line's start is the text consumed at the break:
+ *   - contains "\n"            → "hard"
+ *   - non-empty (only spaces)  → "soft-space"
+ *   - empty (adjacent)         → "soft-break"
+ * The final line is "end".
+ *
+ * PURE: depends only on (text, lines). Computed once per (node, width, wrap,
+ * trim) and replayed from the format cache, so STRICT incremental≡fresh holds.
+ *
+ * Returns one entry per formatted line (same length as `formattedLines`).
+ */
+function classifyLineBreaks(originalText: string, formattedLines: string[]): LineBreakKind[] {
+  const result: LineBreakKind[] = []
+  const lineCount = formattedLines.length
+  if (lineCount === 0) return result
+
+  // Mirror mapLinesToCharOffsets: strip ANSI, normalize tabs, then match each
+  // formatted line back into the normalized text by UTF-16 offset.
+  const plainOriginal = hasAnsi(originalText) ? stripAnsiForBg(originalText) : originalText
+  const normalized = plainOriginal.replace(/\t/g, "    ")
+
+  let charOffset = 0
+  // lineStart/lineEnd of the CURRENT line in `normalized` (UTF-16 offsets).
+  let curStart = -1
+  let curEnd = -1
+
+  for (let i = 0; i < lineCount; i++) {
+    const line = formattedLines[i]!
+    const plainLine = hasAnsi(line) ? stripAnsiForBg(line) : line
+
+    if (i === 0) {
+      curStart = findLineStart(normalized, plainLine, charOffset)
+      const lineLen = Math.min(plainLine.length, normalized.length - curStart)
+      curEnd = curStart + lineLen
+    }
+
+    if (i === lineCount - 1) {
+      // No following row.
+      result.push("end")
+      break
+    }
+
+    // Locate the NEXT line's start to measure the gap consumed at this break.
+    const nextLine = formattedLines[i + 1]!
+    const plainNext = hasAnsi(nextLine) ? stripAnsiForBg(nextLine) : nextLine
+    const nextStart = findLineStart(normalized, plainNext, curEnd)
+    const gap = normalized.slice(curEnd, nextStart)
+
+    if (gap.includes("\n")) {
+      result.push("hard")
+    } else if (gap.length > 0) {
+      // Word wrap consumed whitespace (trim-mode stripped it from both rows).
+      result.push("soft-space")
+    } else {
+      // Adjacent in the original — a forced mid-token break (long token or
+      // wrap="hard"). No separator to reinsert.
+      result.push("soft-break")
+    }
+
+    // Advance to the next line for the following iteration.
+    const nextLen = Math.min(plainNext.length, normalized.length - nextStart)
+    curStart = nextStart
+    curEnd = nextStart + nextLen
+    charOffset = curEnd
+  }
+
+  return result
+}
+
 // ============================================================================
 // Text Formatting
 // ============================================================================
@@ -1649,12 +1743,18 @@ export function renderText(
 
   let lines: string[]
   let lineOffsets: Array<{ start: number; end: number }>
+  // Per-line break classification (soft-space | soft-break | hard | end) used
+  // to produce row metadata for copy-selection soft-wrap rejoining. Computed
+  // once per (node, width, wrap, trim) and replayed from the format cache so
+  // STRICT incremental≡fresh holds (rowMeta must be identical every render).
+  let lineBreaks: LineBreakKind[]
 
   // Skip format cache when internal_transform is present (may depend on external state)
   const cachedFmt = !internalTransform ? getCachedFormat(node, width, props.wrap, trim) : null
   if (cachedFmt) {
     lines = cachedFmt.lines
     lineOffsets = cachedFmt.hasLineOffsets ? cachedFmt.lineOffsets : []
+    lineBreaks = cachedFmt.lineBreaks as LineBreakKind[]
   } else {
     lines = formatTextLines(text, width, props.wrap, ctx, trim)
     if (internalTransform) {
@@ -1662,8 +1762,24 @@ export function renderText(
     }
     const needLineOffsets = bgSegments.length > 0 || childSpans.length > 0
     lineOffsets = needLineOffsets ? mapLinesToCharOffsets(text, lines, ctx) : []
+    // internal_transform can produce lines that don't exist in the original
+    // text (e.g. injected markers), so break classification by matching back
+    // into `text` is meaningless there — every line falls through to the
+    // last-line "end" / non-match path. Skip it; those nodes get the default
+    // not-soft-wrapped metadata, which is correct (transforms are single-line
+    // chrome, not wrapped prose).
+    lineBreaks = internalTransform ? [] : classifyLineBreaks(text, lines)
     if (!internalTransform) {
-      setCachedFormat(node, width, props.wrap, trim, lines, lineOffsets, needLineOffsets)
+      setCachedFormat(
+        node,
+        width,
+        props.wrap,
+        trim,
+        lines,
+        lineOffsets,
+        needLineOffsets,
+        lineBreaks,
+      )
     }
   }
 
@@ -1696,7 +1812,8 @@ export function renderText(
         ? clipBounds.left
         : undefined
     const lineTextForSelection = hasAnsi(line) ? stripAnsiForBg(line) : line
-    const lineSelectable = nodeState.selectableMode && /\S/.test(lineTextForSelection)
+    const lineHasContent = /\S/.test(lineTextForSelection)
+    const lineSelectable = nodeState.selectableMode && lineHasContent
     const endCol = renderTextLineReturn(
       buffer,
       x,
@@ -1710,6 +1827,26 @@ export function renderText(
       lineSelectable,
       props.bgConflict,
     )
+
+    // Row metadata for copy-selection: soft-wrap rejoining + trailing-space
+    // trimming. ALWAYS write so stale metadata from a prior frame (the cloned
+    // buffer carries it forward) is overwritten on every render.
+    //   - lastContentCol: rightmost content column. endCol is the col AFTER the
+    //     last written char; subtract 1. An empty line wrote nothing (endCol ==
+    //     x), so report -1 ("no content") to match the buffer default and the
+    //     consumer's trailing-trim contract — never x-1, which would claim
+    //     phantom content.
+    //   - softWrapped / wrapJoinSpace: from the precomputed break classification
+    //     (soft-space → join with a space; soft-break → join with nothing;
+    //     hard/end → not soft-wrapped, keep the newline).
+    const lastContentCol = lineHasContent ? endCol - 1 : -1
+    const breakKind = lineBreaks[lineIdx]
+    const softWrapped = breakKind === "soft-space" || breakKind === "soft-break"
+    sink.setRowMeta(lineY, {
+      softWrapped,
+      lastContentCol,
+      wrapJoinSpace: breakKind === "soft-space",
+    })
 
     // Clear remaining cells after text to end of layout width (clipped).
     // When text content shrinks (e.g., breadcrumb changes from long to short path),

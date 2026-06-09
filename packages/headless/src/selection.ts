@@ -337,7 +337,20 @@ export function normalizeRange(range: SelectionRange): {
 // ============================================================================
 
 export interface ExtractTextOptions {
-  /** When true, skip cells that don't have SELECTABLE_FLAG set */
+  /**
+   * Whether to skip cells without the SELECTABLE_FLAG (margins, gutters,
+   * padding, borders, chrome). **Default: `true`** — copy is *semantic* by
+   * contract (see docs/guide/text-selection.md: "Copy uses this semantic
+   * metadata"), matching the highlight, which filters the same way
+   * (`composeSelectionCells(..., respectSelectableFlag=true)`). Pass `false`
+   * ONLY for raw screen-rectangle extraction — i.e. Shift+drag buffer
+   * selection, which deliberately copies exactly what is on screen.
+   *
+   * The default was `false`, which silently let every copy path leak the
+   * padded screen rectangle until each remembered to opt in — the
+   * defaults-contract bug class. The default now matches the documented
+   * contract; raw extraction opts out.
+   */
   respectSelectableFlag?: boolean
   /** Row metadata for soft-wrap handling and precise trailing space trimming */
   rowMetadata?: readonly RowMetadata[]
@@ -353,7 +366,9 @@ export interface ExtractTextOptions {
  * Extract text from a buffer within a selection range.
  *
  * Handles:
- * - Soft-wrap joining (via RowMetadata.softWrapped)
+ * - Soft-wrap joining (via RowMetadata.softWrapped) — rejoins wrapped visual
+ *   rows into their logical line, reinserting the word-wrap break space
+ *   (RowMetadata.wrapJoinSpace) that trim-mode rendering stripped
  * - Trailing space trimming (via RowMetadata.lastContentCol or content scan)
  * - Blank line preservation within selection
  * - Wide-char continuation cell skipping
@@ -366,7 +381,9 @@ export function extractText(
   options?: ExtractTextOptions,
 ): string {
   const { startRow, startCol, endRow, endCol } = normalizeRange(range)
-  const respectSelectable = options?.respectSelectableFlag ?? false
+  // Semantic-by-default: copy matches the highlight (which filters by
+  // SELECTABLE_FLAG). Raw screen-rectangle extraction (Shift+drag) opts out.
+  const respectSelectable = options?.respectSelectableFlag ?? true
   const rowMeta = options?.rowMetadata
   const scope = options?.scope
 
@@ -419,10 +436,14 @@ export function extractText(
       line = line.replace(/\s+$/, "")
     }
 
-    // Preserve blank lines within selection (don't drop them)
-    // but join soft-wrapped lines without a newline
+    // Preserve blank lines within selection (don't drop them).
+    // Soft-wrapped rows rejoin into their logical line with NO newline; a
+    // word-wrap break consumed a space (trimmed from both rows) so reinsert a
+    // single separator space, while a forced mid-word break (`wrapJoinSpace`
+    // false/undefined) rejoins with nothing. Hard breaks keep their newline.
     if (meta?.softWrapped && row < endRow) {
       parts.push(line)
+      if (meta.wrapJoinSpace) parts.push(" ")
     } else {
       parts.push(line)
       // Add newline separator unless this is the last row
