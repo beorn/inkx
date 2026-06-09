@@ -165,7 +165,13 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
       // Extract text and copy to clipboard on mouse up
       const copyEffects = [...effects]
       if (newState.range && clipboard && buffer) {
-        const text = extractText(buffer, newState.range)
+        // Semantic copy is the default (skips non-selectable margins/gutters/
+        // padding, matching the highlight). This fallback path has no Shift+drag
+        // raw-buffer mode, so it never opts out. rowMetadata joins soft-wrapped
+        // rows into their logical line + precise trailing-space trimming.
+        const text = extractText(buffer, newState.range, {
+          rowMetadata: buffer.getRowMetadataArray(),
+        })
         if (text.length > 0) {
           copyEffects.push({ type: "copy", text })
         }

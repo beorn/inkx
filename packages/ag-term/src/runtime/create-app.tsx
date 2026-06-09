@@ -1991,6 +1991,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     row: number
     scope: SelectionScope | null
     clickCount: 2 | 3
+    /** Raw-buffer (Shift) selection — copy verbatim, skip SELECTABLE_FLAG. */
+    forceBufferSelection: boolean
   } | null = null
   let activeSelectionBoundaries: SelectionBoundary[] = []
   let activeForceBufferSelection = false
@@ -3809,6 +3811,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           if (selectionState.selecting) {
             // dragging → idle. Finish selection, copy via OSC 52, and
             // CONSUME the event so onClick/onSelect does NOT fire (Bug 2).
+            // Capture the raw-buffer (Shift+drag) flag BEFORE it is reset
+            // below — the copy extraction uses it to choose semantic vs raw.
+            const forceBufferSelection = activeForceBufferSelection
             const [next] = terminalSelectionUpdate({ type: "finish" }, selectionState)
             selectionState = next
             pendingSelectionDown = null
@@ -3818,7 +3823,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
             // Copy selected text via OSC 52 — gated on copyOnSelect.
             if (copyOnSelectEnabled && next.range && currentBuffer) {
-              const text = extractText(currentBuffer._buffer, next.range, { scope: next.scope })
+              const text = extractText(currentBuffer._buffer, next.range, {
+                scope: next.scope,
+                // Semantic copy: skip non-selectable margins/gutters/padding so
+                // the clipboard matches the highlight, which already filters by
+                // SELECTABLE_FLAG (renderer.ts). Shift+drag raw-buffer selection
+                // opts out and copies the screen rectangle verbatim.
+                respectSelectableFlag: !forceBufferSelection,
+                // Join soft-wrapped rows into their logical line + precise
+                // trailing-space trimming via per-row metadata.
+                rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
+              })
               if (text.length > 0) {
                 const base64 = globalThis.Buffer.from(text).toString("base64")
                 target.write(`\x1b]52;c;${base64}\x07`)
@@ -3879,6 +3894,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                   anchor.forceBufferSelection,
                 ),
                 clickCount: anchor.clickCount,
+                forceBufferSelection: anchor.forceBufferSelection,
               }
             }
             // Don't consume — let the click event reach the component
@@ -3955,6 +3971,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         if (copyOnSelectEnabled && finished.range) {
           const text = extractText(currentBuffer._buffer, finished.range, {
             scope: finished.scope,
+            // Semantic copy (skip non-selectable margins/gutters/padding) unless
+            // this is a Shift raw-buffer selection. Mirrors the drag-finish path.
+            respectSelectableFlag: !anchor.forceBufferSelection,
+            rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
           })
           if (text.length > 0) {
             const base64 = globalThis.Buffer.from(text).toString("base64")

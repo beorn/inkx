@@ -42,6 +42,15 @@ export interface FormatEntry {
   lines: string[]
   lineOffsets: Array<{ start: number; end: number }>
   hasLineOffsets: boolean
+  /**
+   * Per-line break classification (soft-space | soft-break | hard | end),
+   * one entry per formatted line. Drives the `softWrapped` / `wrapJoinSpace`
+   * row metadata that copy-selection reads to rejoin soft-wrapped rows. Cached
+   * alongside `lines` so it is replayed identically on cache hits — STRICT
+   * incremental≡fresh requires the rowMeta be produced the same way every
+   * render. Stored as opaque strings to avoid a cross-module type import.
+   */
+  lineBreaks: string[]
 }
 
 /** Minimal shape of collected text result. Structurally matches TextWithBg. */
@@ -250,6 +259,7 @@ export function setCachedFormat(
   lines: string[],
   lineOffsets: Array<{ start: number; end: number }>,
   hasLineOffsets: boolean,
+  lineBreaks: string[],
 ): void {
   const entry = getOrCreate(node)
 
@@ -257,7 +267,7 @@ export function setCachedFormat(
   for (let i = 0; i < entry.formats.length; i++) {
     const f = entry.formats[i]!
     if (f.width === width && f.wrap === wrap && f.trim === trim) {
-      entry.formats[i] = { width, wrap, trim, lines, lineOffsets, hasLineOffsets }
+      entry.formats[i] = { width, wrap, trim, lines, lineOffsets, hasLineOffsets, lineBreaks }
       return
     }
   }
@@ -266,7 +276,7 @@ export function setCachedFormat(
   if (entry.formats.length >= MAX_FORMAT_ENTRIES) {
     entry.formats.shift()
   }
-  entry.formats.push({ width, wrap, trim, lines, lineOffsets, hasLineOffsets })
+  entry.formats.push({ width, wrap, trim, lines, lineOffsets, hasLineOffsets, lineBreaks })
 }
 
 // ============================================================================

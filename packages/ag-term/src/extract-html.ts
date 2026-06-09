@@ -156,6 +156,23 @@ function normalizeRange(range: SelectionRange): {
 // Public API
 // ============================================================================
 
+export interface ExtractHtmlOptions {
+  /**
+   * Whether to skip cells without the SELECTABLE_FLAG (margins, gutters,
+   * padding, borders, chrome). **Default: `true`** — rich copy is *semantic*
+   * by contract, exactly like the plain-text path (see
+   * `extractText`'s `respectSelectableFlag` and docs/guide/text-selection.md).
+   * The highlight filters the same way, so the HTML representation must too,
+   * or paste-into-Slack/email/docs leaks the padded screen rectangle the
+   * plain-text path no longer does.
+   *
+   * Pass `false` ONLY for raw screen-rectangle extraction (Shift+drag
+   * buffer selection). The sole current caller (`SelectionFeature.copyRich`)
+   * is always the semantic path, so the default needs no opt-in.
+   */
+  respectSelectableFlag?: boolean
+}
+
 /**
  * Extract HTML from a terminal buffer within a selection range.
  *
@@ -163,12 +180,24 @@ function normalizeRange(range: SelectionRange): {
  * attributes. Adjacent cells with the same style are merged into
  * a single `<span>` to keep the output compact.
  *
+ * Non-selectable cells (margins, gutters, padding, chrome) are skipped by
+ * default so the rich-clipboard HTML matches the highlight and the plain-text
+ * copy — see {@link ExtractHtmlOptions.respectSelectableFlag}.
+ *
  * @param buffer - Terminal buffer to extract from
  * @param range - Selection range (anchor/head coordinates)
+ * @param options - Extraction options (selectable-flag filtering)
  * @returns HTML string wrapped in `<pre>` tags
  */
-export function extractHtml(buffer: TerminalBuffer, range: SelectionRange): string {
+export function extractHtml(
+  buffer: TerminalBuffer,
+  range: SelectionRange,
+  options?: ExtractHtmlOptions,
+): string {
   const { startRow, startCol, endRow, endCol } = normalizeRange(range)
+  // Semantic-by-default: rich copy matches the highlight + the plain-text path
+  // (both filter by SELECTABLE_FLAG). Raw screen-rectangle extraction opts out.
+  const respectSelectable = options?.respectSelectableFlag ?? true
 
   const lines: string[] = []
 
@@ -183,6 +212,10 @@ export function extractHtml(buffer: TerminalBuffer, range: SelectionRange): stri
     for (let col = colStart; col <= colEnd; col++) {
       // Skip wide-char continuation cells
       if (buffer.isCellContinuation(col, row)) continue
+
+      // Skip non-selectable cells (margins/gutters/padding/chrome) so the
+      // rich HTML matches the plain-text path's semantic filtering.
+      if (respectSelectable && !buffer.isCellSelectable(col, row)) continue
 
       const cell = buffer.getCell(col, row)
       const state = cellToSpanState(cell)
