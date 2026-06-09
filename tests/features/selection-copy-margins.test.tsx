@@ -142,4 +142,34 @@ describe("copy-selection: semantic extraction (no margins/gutters/wrap padding)"
 
     handle.unmount()
   })
+
+  test("Shift+drag opts out to the raw screen rectangle — gutters INCLUDED", async () => {
+    // The documented escape hatch (docs/guide/text-selection.md): holding Shift
+    // while dragging forces raw buffer-wide selection so users copy exactly what
+    // they see on screen — the OPPOSITE of the semantic default. This pins the
+    // opt-out so the default flip can't silently swallow the raw path.
+    using term = createTermless({ cols: 24, rows: 8 })
+
+    const handle = await run(<GutteredColumn />, term, {
+      selection: true,
+      mouse: true,
+    } as { selection: true; mouse: true })
+    await settle()
+    term.clipboard.clear()
+
+    // Drag from the very left (col 0 — into the 4-cell gutter) down to THIRD's
+    // row, with Shift held on every event so the anchor forces buffer selection.
+    await term.mouse.drag({ from: [0, 0], to: [20, 2], options: { shift: true } })
+    await settle(200)
+
+    const clipboard = term.clipboard.last
+    expect(clipboard).not.toBeNull()
+    // Raw rectangle: the gutter cells the semantic default drops are copied
+    // verbatim here (4 leading spaces on each content row).
+    expect(clipboard).toContain("    FIRST")
+    expect(clipboard).toContain("    SECOND")
+    expect(clipboard).toContain("    THIRD")
+
+    handle.unmount()
+  })
 })
