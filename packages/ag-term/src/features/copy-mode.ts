@@ -115,8 +115,11 @@ export function createCopyModeFeature(options: CopyModeFeatureOptions): CopyMode
           })
           break
         case "copy":
-          // Copy effect — the caller (withFocus) handles clipboard integration
-          // For now, we just clear the selection after copy
+          // Write the yanked selection to the clipboard via the SAME path as
+          // mouse/drag copy (SelectionFeature.copySelection → extract + clipboard
+          // / OSC 52), then clear. Previously this only cleared, so keyboard
+          // yank silently copied nothing (km-silvery 19761).
+          selection.copySelection()
           selection.clear()
           break
         case "scroll":
