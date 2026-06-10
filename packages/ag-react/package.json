@@ -267,6 +267,7 @@
     "@silvery/headless": "0.21.0",
     "@silvery/scope": "0.21.0",
     "@silvery/theme": "0.21.0",
+    "loggily": "^0.10.0",
     "upng-js": "^2.1.0"
   },
   "peerDependencies": {

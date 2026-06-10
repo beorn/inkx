@@ -380,7 +380,8 @@
     "@silvery/signals": "0.21.0",
     "@silvery/test": "0.21.0",
     "@silvery/theme": "0.21.0",
-    "flexily": "github:beorn/flexily"
+    "flexily": "0.7.1",
+    "loggily": "^0.10.0"
   },
   "tsdown": {
     "clean": true,
