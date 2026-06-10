@@ -138,7 +138,7 @@ The slug is **tier 2 by default** (paranoid) — `SILVERY_STRICT=1` does _not_ e
 
 ## Integration with close-gates
 
-The full close-gate contract (per [@km/all/embed-close-gates-in-beads](https://github.com/beorn/km/blob/main/%40km/all/embed-close-gates-in-beads.md)) requires CLS evidence for visual-bug close-reasons. Format:
+The full close-gate contract (per `@km/all/embed-close-gates-in-beads`) requires CLS evidence for visual-bug close-reasons. Format:
 
 ```
 CLS: <termless test path> | unexpectedShifts: 0 | cumulativeScore: <n>
@@ -153,7 +153,7 @@ CLS: apps/silvercode/tests/visual/codeblock-flush-left-not-centered.test.tsx | u
 Verified: km view screenshot (/tmp/codeblock-fixed.png) + termless integration test + user confirmed
 ```
 
-Pairs with [`@km/silvery/termless-realism-parity`](https://github.com/beorn/km/blob/main/%40km/silvery/termless-realism-parity.md): CLS evidence is only valid when the test mounts the production component tree. Mounting `<MarkdownView>` in isolation produces a meaningless CLS report — the bug class CLS catches lives at the composition layer.
+Pairs with `@km/silvery/termless-realism-parity`: CLS evidence is only valid when the test mounts the production component tree. Mounting `<MarkdownView>` in isolation produces a meaningless CLS report — the bug class CLS catches lives at the composition layer.
 
 ## How it works under the hood
 
@@ -185,5 +185,5 @@ The whole stack is ~450 LOC; the test suite is ~600 LOC (19 unit on pure math, 1
 
 - `@silvery/test` — capture API (`beginCLSCapture`, `endCLSCapture`, types); see the "Quick start" + "Capture API" sections above for usage
 - [SILVERY_STRICT contract](/guide/debugging#silvery_strict) — umbrella env var, slug taxonomy
-- [`@km/silvery/termless-realism-parity`](https://github.com/beorn/km/blob/main/%40km/silvery/termless-realism-parity.md) — sibling bead, mount production tree for CLS evidence to be valid
+- `@km/silvery/termless-realism-parity` — sibling bead, mount production tree for CLS evidence to be valid
 - Web Vitals CLS — the design inspiration: [web.dev/articles/cls](https://web.dev/articles/cls)

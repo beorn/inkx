@@ -69,7 +69,7 @@ reasonable lookup. Every flat key in this page exists on every derived
 Theme. The compiler refuses `<Alert variant="destructive">` (Alert doesn't
 accept that variant); dynamic indexing of unknown tokens throws a
 `TypeError` with a "did you mean…?" hint. See
-[`hub/silvery/design/v10-terminal/design-system.md` §"Asymmetric Surprise"](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md)
+the internal Sterling design doc (`design/v10-terminal/design-system.md` §"Asymmetric Surprise")
 for the full rule.
 
 ## Tokens by family
@@ -203,7 +203,7 @@ for the full rule.
 
 ## See also
 
-- [Sterling design system](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md) — internal canonical doc
+- Sterling design system (`design/v10-terminal/design-system.md` in the internal repo) — internal canonical doc
 - [`STERLING_FLAT_TOKENS`](../../packages/ansi/src/sterling/flat-tokens.ts) — the type-level union, in lockstep with this page
 - [`PUBLIC_TOKENS`](../../packages/ansi/src/sterling/token-manifest.ts) — the manifest powering this generator
 - "Ratio vs canvas" measures contrast against `bg-surface-default` (= `#2E3440` for Nord); values < 4.5:1 are non-text tokens (borders, surfaces, hover backgrounds) and listed for reference only.
