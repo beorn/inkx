@@ -138,7 +138,7 @@ function sampleRegionScrimTarget(plan: Plan, buffer: TerminalBuffer): HexColor |
     // Mirror fadeCell's continuation skip so a wide char's bg is counted once
     // (the lead cell), not twice.
     if (buffer.isCellContinuation(x, y)) return
-    const bgHex = colorToHex(buffer.getCell(x, y).bg)
+    const bgHex = colorToHex(buffer.getCell(x, y).bg, plan.palette ?? undefined)
     if (bgHex === null) return
     const lum = relativeLuminance(bgHex)
     if (lum === null) return
@@ -277,7 +277,11 @@ function fadeCell(
   if (plan.kittyEnabled && isEmojiGlyph) return false
 
   const { amount, scrim, defaultBg, defaultFg, scrimTowardLight } = plan
-  const rawFgHex = colorToHex(cell.fg)
+  // Resolve palette-indexed cells (ANSI 0–15) against the active theme palette
+  // when present, so parsed-terminal cyan fades toward the theme's cyan rather
+  // than VGA teal `#008080` (@km 19764). `undefined` palette → VGA fallback.
+  const palette = plan.palette ?? undefined
+  const rawFgHex = colorToHex(cell.fg, palette)
 
   if (scrim !== null) {
     // Two-channel path — scrim is available. An explicit scrim is useful
@@ -299,7 +303,7 @@ function fadeCell(
     // `colorToHex(cell.bg) ?? defaultBg` — when cell.bg is null/default
     // and no defaultBg is available, bgHex stays null and we skip the bg
     // mix while still deemphasizing fg.
-    const bgHex: HexColor | null = colorToHex(cell.bg) ?? defaultBg
+    const bgHex: HexColor | null = colorToHex(cell.bg, palette) ?? defaultBg
     const mixedBgHex = bgHex !== null ? mixSrgb(bgHex, scrim, amount) : null
     const mixedBg = mixedBgHex !== null ? hexToRgb(mixedBgHex) : null
 
@@ -365,7 +369,7 @@ function fadeCell(
   // don't "pop" bright outside the overlay. Cells whose bg is unresolvable
   // (null / DEFAULT_BG) can't be mixed without a target, so they keep the
   // dim-stamp fallback below.
-  const bgHex = colorToHex(cell.bg)
+  const bgHex = colorToHex(cell.bg, palette)
   const cellTarget = regionTarget ?? (bgHex !== null ? legacyScrimTargetFor(bgHex) : DARK_SCRIM)
   const darkenedBgRgb = bgHex !== null ? hexToRgb(mixSrgb(bgHex, cellTarget, amount)) : null
 

@@ -256,6 +256,7 @@ describe("backdrop-hardening 3: realize-kitty-guard — full contract", () => {
       scrim: "#000000" as const,
       defaultBg: "#000000" as const,
       defaultFg: "#ffffff" as const,
+      palette: null,
       includes: [{ rect: { x: 0, y: 0, width: 4, height: 4 } }],
       excludes: [],
       mixedAmounts: false,

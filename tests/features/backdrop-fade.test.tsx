@@ -473,6 +473,49 @@ describe("standalone Backdrop: defaultBg from ThemeProvider", () => {
     expect(bg.b).toBe(0)
   })
 
+  test("palette-indexed bg (parsed-terminal cyan) fades toward THEME cyan, not VGA #008080 (@km 19764)", () => {
+    // The production threading: createAg → findRootThemeAnsi16(root) walks the
+    // ThemeProvider's <Box theme={…}> node, reads theme.palette (16 ANSI hex
+    // slots), and threads them as the backdrop `palette` option. A cell whose
+    // bg is a PALETTE INDEX (`backgroundColor="cyan"` → parseColor → numeric 6,
+    // the same Color a parsed agent terminal emits) then fades toward the
+    // theme's cyan rather than the hardcoded VGA teal table in ansi256ToRgb.
+    //
+    // catppuccin mocha: bg #1e1e2e (lum ≈ 0.012) → dark scrim #000000;
+    // palette[6] (cyan) = #94E2D5 (148,226,213). sRGB source-over at α=0.4:
+    //   themed → (148,226,213) * 0.6 = (89, 136, 128)   ← RED present
+    //   VGA    → (  0,128,128) * 0.6 = ( 0,  77,  77)    ← RED zero (the bug)
+    const render = createRenderer({ cols: 20, rows: 5 })
+
+    function App() {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Backdrop fade={0.4}>
+            <Box backgroundColor="cyan" width={10} height={3}>
+              <Text color="#ffffff">CHROME</Text>
+            </Box>
+          </Backdrop>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App />)
+    expect(app.text).toContain("CHROME")
+
+    const cell = app.cell(0, 0)
+    expect(cell.bg).not.toBeNull()
+    const bg = cell.bg as { r: number; g: number; b: number }
+
+    // Resolved against the THEME palette (#94E2D5 → black @ α=0.4).
+    expect(bg.r).toBe(89)
+    expect(bg.g).toBe(136)
+    expect(bg.b).toBe(128)
+
+    // And specifically NOT the VGA-table result — the visible defect was RED=0.
+    expect(bg.r).toBeGreaterThan(0)
+    expect(bg).not.toEqual({ r: 0, g: 77, b: 77 })
+  })
+
   test("Backdrop without ThemeProvider uses the legacy two-channel path (fg→bg, bg→polarity target)", () => {
     // Without ThemeProvider, findRootThemeBg returns null → scrim = null →
     // legacy path. It is two-channel:
