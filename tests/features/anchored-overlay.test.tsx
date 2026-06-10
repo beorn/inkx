@@ -1,8 +1,12 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { createRenderer } from "@silvery/test"
+import { createRenderer, createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+import { run } from "../../packages/ag-term/src/runtime/run"
 import { AnchoredOverlay, Box, Text } from "@silvery/ag-react"
 import type { AgNode, BoxProps, Placement } from "@silvery/ag/types"
+
+const settle = (ms = 80) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 function getRoot(app: ReturnType<ReturnType<typeof createRenderer>>): AgNode {
   return (app as unknown as { getContainer: () => AgNode }).getContainer()
@@ -272,6 +276,68 @@ describe("AnchoredOverlay", () => {
     expect(rect!.x).toBeGreaterThanOrEqual(0)
     expect(rect!.y).toBeGreaterThanOrEqual(0)
     expect(rect!.y + rect!.height).toBeLessThanOrEqual(ROWS)
+  })
+
+  test("sizing=max popover anchored low places below the anchor without top-clipping", async () => {
+    // Regression for @km/code/v0.2/19777 (origin 19624): a `sizing="max"`
+    // popover declares a near-full-viewport collision footprint, but its
+    // CONTENT is short. The old behavior treated the footprint as the real
+    // size, so the bottom-placed popover "overflowed" the viewport bottom and
+    // the shift step dragged it UP — its leading lines clipped above the
+    // visible top (under surrounding chrome). The footprint is refined to the
+    // measured content height (one frame late — the measure→re-place settle),
+    // so the popover stays just below the anchor with its full content visible.
+    //
+    // Driven through the live runtime (`createTermless` + `run`) rather than the
+    // static `createRenderer`: the content-height measurement settles on the
+    // following event-batch commit, which only the runtime's commit boundary
+    // advances. The header rows above the anchor stand in for the dialog chrome
+    // that the leading popover lines were clipping under.
+    const COLS = 60
+    const ROWS = 24
+    using term = createTermless({ cols: COLS, rows: ROWS })
+
+    function Tree(): React.ReactElement {
+      return (
+        <Box width={COLS} height={ROWS} flexDirection="column">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Box key={i} height={1}>
+              <Text>{`header-${i}`}</Text>
+            </Box>
+          ))}
+          <Box anchorRef="trigger" width={20} height={1}>
+            <Text>trigger</Text>
+          </Box>
+          <AnchoredOverlay
+            anchorId="trigger"
+            placement="bottom-start"
+            sizing="max"
+            size={{ width: 40, height: ROWS - 2 }}
+            id="overlay"
+          >
+            <Box flexDirection="column">
+              <Text>POPOVER-FIRST-LINE</Text>
+              <Text>middle line</Text>
+              <Text>POPOVER-LAST-LINE</Text>
+            </Box>
+          </AnchoredOverlay>
+        </Box>
+      )
+    }
+
+    const handle = await run(<Tree />, term)
+    await settle()
+
+    // Both the leading and trailing popover lines must be on-screen: the top is
+    // not clipped above the popover, and the content is not clipped at the
+    // bottom. Before the fix, "POPOVER-FIRST-LINE" was dragged above row 0.
+    expect(term.screen).toContainText("POPOVER-FIRST-LINE")
+    expect(term.screen).toContainText("POPOVER-LAST-LINE")
+    // The header rows above the anchor remain visible (the popover did not get
+    // dragged up over them).
+    expect(term.screen).toContainText("header-0")
+
+    await handle.unmount?.()
   })
 
   test("removes overlay content when closed", () => {
