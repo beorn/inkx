@@ -17,7 +17,7 @@ import {
   type UnderlineStyle,
   createMutableCell,
 } from "../buffer"
-import type { AgNode, TextProps } from "@silvery/ag/types"
+import type { AgNode, TextProps, TextTruncateHook, TextMeasure } from "@silvery/ag/types"
 import {
   type StyledSegment,
   ensureEmojiPresentation,
@@ -861,6 +861,7 @@ export function formatTextLines(
   wrap: TextProps["wrap"],
   ctx?: PipelineContext,
   trim = true,
+  truncate?: TextTruncateHook,
 ): string[] {
   // Guard against width <= 0 to prevent infinite loops
   // This can happen with display="none" nodes (0x0 dimensions)
@@ -909,17 +910,18 @@ export function formatTextLines(
     return out
   }
 
-  // No wrapping, just truncate at end
+  // No wrapping, just truncate at end. The truncate hook (when present) is
+  // consulted per-line for every truncate mode and applies after overflow.
   if (wrap === false || wrap === "truncate-end" || wrap === "truncate") {
-    return lines.map((line) => truncateText(line, width, "end", ctx))
+    return lines.map((line) => truncateText(line, width, "end", ctx, truncate))
   }
 
   if (wrap === "truncate-start") {
-    return lines.map((line) => truncateText(line, width, "start", ctx))
+    return lines.map((line) => truncateText(line, width, "start", ctx, truncate))
   }
 
   if (wrap === "truncate-middle") {
-    return lines.map((line) => truncateText(line, width, "middle", ctx))
+    return lines.map((line) => truncateText(line, width, "middle", ctx, truncate))
   }
 
   // Optimal wrapping (Knuth-Plass): minimize total raggedness across all lines.
@@ -982,16 +984,52 @@ export function formatTextLines(
 }
 
 /**
+ * Build a cell-width-aware {@link TextMeasure} bound to the active measurer
+ * (or module-level fallbacks). Handed to a {@link TextTruncateHook} so the hook
+ * never re-derives width math. Same `sliceFn`/`sliceEndFn`/`getTextWidth`
+ * pattern used internally by `truncateText`.
+ */
+function makeTextMeasure(ctx?: PipelineContext): TextMeasure {
+  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+  return {
+    width: (text) => getTextWidth(text, ctx),
+    sliceByWidth: (text, max) => sliceFn(text, max),
+    sliceByWidthFromEnd: (text, max) => sliceEndFn(text, max),
+  }
+}
+
+/**
  * Truncate text to fit within width.
+ *
+ * @param hook - Optional per-line {@link TextTruncateHook}. When provided and
+ *   the text overflows, the hook is consulted FIRST; a non-null result is
+ *   defensively hard-clipped to `width` (never trusted to fit on its own) and
+ *   returned, while `null` falls through to the built-in `mode` behavior. When
+ *   the hook is absent, output is byte-identical to the historical truncation.
  */
 export function truncateText(
   text: string,
   width: number,
   mode: "start" | "middle" | "end",
   ctx?: PipelineContext,
+  hook?: TextTruncateHook,
 ): string {
   const textWidth = getTextWidth(text, ctx)
   if (textWidth <= width) return text
+
+  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+
+  // Consult the hook first. NO silent trust: if the hook's result still
+  // overflows the box, hard-clip it so it can never paint past the edge.
+  if (hook && width > 0) {
+    const result = hook(text, width, makeTextMeasure(ctx))
+    if (result !== null) {
+      return getTextWidth(result, ctx) <= width ? result : sliceFn(result, width)
+    }
+    // result === null \u2192 fall through to the built-in mode behavior below.
+  }
 
   const ellipsis = "\u2026" // ...
   const availableWidth = width - 1 // Reserve space for ellipsis
@@ -999,9 +1037,6 @@ export function truncateText(
   if (availableWidth <= 0) {
     return width > 0 ? ellipsis : ""
   }
-
-  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
-  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
 
   if (mode === "end") {
     return sliceFn(text, availableWidth) + ellipsis
@@ -1740,6 +1775,7 @@ export function renderText(
     (inheritedBg !== undefined && inheritedBg !== null)
   const trim = !hasBg
   const internalTransform = props.internal_transform
+  const truncateHook = props.truncate
 
   let lines: string[]
   let lineOffsets: Array<{ start: number; end: number }>
@@ -1749,14 +1785,17 @@ export function renderText(
   // STRICT incremental≡fresh holds (rowMeta must be identical every render).
   let lineBreaks: LineBreakKind[]
 
-  // Skip format cache when internal_transform is present (may depend on external state)
-  const cachedFmt = !internalTransform ? getCachedFormat(node, width, props.wrap, trim) : null
+  // Skip format cache when internal_transform OR a truncate hook is present —
+  // both are functions that may depend on external state and have unstable
+  // identity (the (node, width, wrap, trim) cache key can't capture them).
+  const bypassFormatCache = !!internalTransform || !!truncateHook
+  const cachedFmt = !bypassFormatCache ? getCachedFormat(node, width, props.wrap, trim) : null
   if (cachedFmt) {
     lines = cachedFmt.lines
     lineOffsets = cachedFmt.hasLineOffsets ? cachedFmt.lineOffsets : []
     lineBreaks = cachedFmt.lineBreaks as LineBreakKind[]
   } else {
-    lines = formatTextLines(text, width, props.wrap, ctx, trim)
+    lines = formatTextLines(text, width, props.wrap, ctx, trim, truncateHook)
     if (internalTransform) {
       lines = lines.map((line, index) => internalTransform(line, index))
     }
@@ -1768,8 +1807,11 @@ export function renderText(
     // last-line "end" / non-match path. Skip it; those nodes get the default
     // not-soft-wrapped metadata, which is correct (transforms are single-line
     // chrome, not wrapped prose).
-    lineBreaks = internalTransform ? [] : classifyLineBreaks(text, lines)
-    if (!internalTransform) {
+    // A truncate hook (like internal_transform) can emit lines that don't
+    // appear verbatim in `text` (custom separators), so break classification by
+    // matching back into `text` is meaningless — skip it and don't cache.
+    lineBreaks = bypassFormatCache ? [] : classifyLineBreaks(text, lines)
+    if (!bypassFormatCache) {
       setCachedFormat(
         node,
         width,

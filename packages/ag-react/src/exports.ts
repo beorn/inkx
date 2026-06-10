@@ -86,6 +86,7 @@ export type {
 } from "@silvery/ag/island-guests"
 export { createCellBuffer } from "@silvery/ag"
 export type { CellBuffer, MutableCellBuffer } from "@silvery/ag"
+export type { TextTruncateHook, TextMeasure } from "@silvery/ag"
 export type {
   IslandGuest,
   IslandContext,

@@ -968,6 +968,39 @@ export interface TextFlexItemProps {
   maxHeight?: number | string
 }
 
+/**
+ * Cell-width-aware measurement helpers handed to a {@link TextTruncateHook}.
+ * Every method counts display columns (CJK / emoji are 2 cells), never code
+ * units — so a hook can implement its own elision policy without re-deriving
+ * width math. Backed by the active pipeline measurer when present, module-level
+ * fallbacks otherwise.
+ */
+export interface TextMeasure {
+  /** Display width (terminal columns) of `text`. */
+  width(text: string): number
+  /** Longest prefix of `text` whose display width is <= `max` columns. */
+  sliceByWidth(text: string, max: number): string
+  /** Longest suffix of `text` whose display width is <= `max` columns. */
+  sliceByWidthFromEnd(text: string, max: number): string
+}
+
+/**
+ * Per-line truncation hook for `wrap` truncate modes. Only consulted when the
+ * line OVERFLOWS the available width; receives the overflowing `line`, the
+ * available cell `width`, and a cell-width-aware {@link TextMeasure}.
+ *
+ * Return the fitted line, or `null` to fall back to the built-in truncation for
+ * the active mode. The returned string is NOT trusted blindly — if it still
+ * overflows, the pipeline hard-clips it via `measure.sliceByWidth`, so a hook
+ * can never paint past the box edge. Returning `null` MUST be cheap and safe;
+ * the hook runs once per overflowing line, every render.
+ *
+ * This is where width-dependent elision policy lives (e.g. a tail-length
+ * formula derived from `width`), which a static data prop cannot express.
+ * Function-prop precedent in `TextProps`: the mouse handlers.
+ */
+export type TextTruncateHook = (line: string, width: number, measure: TextMeasure) => string | null
+
 export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, MouseEventProps {
   children?: React.ReactNode
   /**
@@ -1001,6 +1034,17 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
     | "truncate-end"
     | "clip"
     | boolean
+  /**
+   * Per-line truncation hook. Only consulted when `wrap` is a truncate mode
+   * (`"truncate"` / `"truncate-start"` / `"truncate-middle"` / `"truncate-end"`)
+   * AND the line overflows the available width. Lets the consumer supply a
+   * width-dependent elision policy (custom separator, token-boundary breaks,
+   * slug rescue) the built-in modes can't express. Returns the fitted line or
+   * `null` to use the built-in truncation. An overwide return value is
+   * defensively hard-clipped — the hook can never paint past the box edge.
+   * See {@link TextTruncateHook}.
+   */
+  truncate?: TextTruncateHook
   /** Internal transform function applied to each rendered line. Used by Transform component. */
   internal_transform?: (line: string, index: number) => string
   /**
