@@ -23,7 +23,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./plain": "./src/plain.ts"
+    "./plain": "./src/plain.ts",
+    "./theme": "./src/theme.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -35,6 +36,10 @@
       "./plain": {
         "types": "./dist/plain.d.mts",
         "import": "./dist/plain.mjs"
+      },
+      "./theme": {
+        "types": "./dist/theme.d.mts",
+        "import": "./dist/theme.mjs"
       }
     }
   },
@@ -51,7 +56,8 @@
     "dts": true,
     "entry": [
       "src/index.ts",
-      "src/plain.ts"
+      "src/plain.ts",
+      "src/theme.ts"
     ],
     "external": [
       "commander",
