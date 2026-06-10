@@ -2,8 +2,21 @@ import React, { act } from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, PopoverProvider, Text, usePopoverHandlers } from "../src/index.js"
+import type { AgNode } from "@silvery/ag/types"
 
 const settle = (ms = 60) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+function getRoot(app: ReturnType<ReturnType<typeof createRenderer>>): AgNode {
+  return (app as unknown as { getContainer: () => AgNode }).getContainer()
+}
+
+function hasContainedPopoverOverlay(node: AgNode): boolean {
+  const props = node.props as { backgroundColor?: unknown; userSelect?: unknown } | undefined
+  if (props?.backgroundColor === "$bg-surface-overlay" && props.userSelect === "contain") {
+    return true
+  }
+  return node.children.some(hasContainedPopoverOverlay)
+}
 
 function HoverTarget({ label, body }: { label: string; body: string }): React.ReactElement {
   const popover = usePopoverHandlers(
@@ -44,6 +57,7 @@ describe("Popover hover handoff", () => {
     expect(overlayRow).toBeGreaterThanOrEqual(0)
     const overlayCol = app.lines[overlayRow]!.indexOf("TOP POPOVER")
     expect(overlayCol).toBeGreaterThanOrEqual(0)
+    expect(hasContainedPopoverOverlay(getRoot(app))).toBe(true)
     await act(async () => {
       await app.hover(overlayCol, overlayRow)
       await settle(650)

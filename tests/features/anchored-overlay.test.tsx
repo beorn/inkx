@@ -34,7 +34,9 @@ describe("AnchoredOverlay", () => {
     )
 
     expect(app.text).toContain("menu")
-    expect(findById(getRoot(app), "overlay")?.boxRect).toEqual({
+    const overlay = findById(getRoot(app), "overlay")
+    expect((overlay?.props as BoxProps | undefined)?.userSelect).toBe("contain")
+    expect(overlay?.boxRect).toEqual({
       x: 1,
       y: 3,
       width: 8,
@@ -295,5 +297,22 @@ describe("AnchoredOverlay", () => {
 
     expect(app.text).not.toContain("menu")
     expect(findById(getRoot(app), "overlay")).toBeNull()
+  })
+
+  test("allows callers to override the default selection containment", () => {
+    const render = createRenderer({ cols: 40, rows: 14 })
+
+    const app = render(
+      <Box width={40} height={14} padding={1}>
+        <Box anchorRef="trigger" width={10} height={2}>
+          <Text>trigger</Text>
+        </Box>
+        <AnchoredOverlay anchorId="trigger" size={{ width: 8, height: 2 }} id="overlay" userSelect="text">
+          <Text>menu</Text>
+        </AnchoredOverlay>
+      </Box>,
+    )
+
+    expect((findById(getRoot(app), "overlay")?.props as BoxProps | undefined)?.userSelect).toBe("text")
   })
 })

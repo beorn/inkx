@@ -140,13 +140,15 @@ function AnchoredOverlayContent({
   const width = rect.width || fallbackSize.width
   const height = rect.height || fallbackSize.height
   const sizeProps = sizing === "max" ? { maxWidth: width, maxHeight: height } : { width, height }
+  const { userSelect, ...restBoxProps } = boxProps
   return (
     <Box
-      {...boxProps}
+      {...restBoxProps}
       position="absolute"
       top={rect.y - (hostRect?.y ?? 0)}
       left={rect.x - (hostRect?.x ?? 0)}
       {...sizeProps}
+      userSelect={userSelect ?? "contain"}
     >
       {children}
     </Box>

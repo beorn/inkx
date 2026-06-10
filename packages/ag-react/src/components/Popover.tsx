@@ -364,6 +364,7 @@ function PopoverOverlay({
       overflow="scroll"
       scrollOffset={scrollOffset}
       onWheel={onWheel}
+      userSelect="contain"
       borderStyle={borderless ? undefined : "round"}
       borderColor={borderless ? undefined : "$fg-muted"}
       backgroundColor="$bg-surface-overlay"
