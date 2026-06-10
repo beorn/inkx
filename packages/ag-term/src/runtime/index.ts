@@ -78,6 +78,11 @@ export {
 // Buffer helper
 export { createBuffer } from "./create-buffer"
 
+// Durable stderr writes for exit-time diagnostics (panic flush, host resume
+// hints). Queued stream writes can be jumped + truncated by sync writes in
+// `process.on("exit")` handlers — see stderr-durable.ts.
+export { writeStderrDurably, type WriteStderrDurablyDeps } from "./stderr-durable"
+
 // Layer 1: Runtime kernel
 export { createRuntime } from "./create-runtime"
 

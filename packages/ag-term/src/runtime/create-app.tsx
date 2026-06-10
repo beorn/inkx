@@ -44,6 +44,7 @@
  */
 
 import { writeSync, writeFileSync } from "node:fs"
+import { writeStderrDurably } from "./stderr-durable"
 import { tmpdir } from "node:os"
 import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
@@ -1794,7 +1795,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
       }
       lines.push("")
-      process.stderr.write(lines.join("\n"))
+      // Durable write: a queued stream write can be reordered against sync
+      // writes in `process.on("exit")` handlers (host resume hints) and its
+      // tail dropped at exit. See stderr-durable.ts (@km/silvercode/19767).
+      writeStderrDurably(lines.join("\n"))
     } catch {
       // Best-effort — stderr may already be torn down
     }
@@ -2594,7 +2598,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           lines.push(`  - ${error.message}${dumpPath ? ` (dump: ${dumpPath})` : ""}`)
         }
         lines.push("")
-        process.stderr.write(lines.join("\n"))
+        // Durable for the same reason as flushPanicReports — see stderr-durable.ts.
+        writeStderrDurably(lines.join("\n"))
       } catch {
         // Best-effort — stderr may already be torn down
       }
