@@ -52,7 +52,7 @@ describe("withTheme — option registration", () => {
     const cmd = new Command("app")
     withTheme(cmd, { schemes })
     cmd.parse(["node", "app"], { from: "node" })
-    expect(optsOf(cmd).theme).toBe("auto")
+    expect(optsOf(cmd).theme).toBe("default")
   })
 
   it("accepts a custom flag name and exposes its camelCased opts key", () => {
@@ -76,12 +76,33 @@ describe("withTheme — resolution", () => {
     expect(typeof (r.theme as Record<string, unknown>)["bg-surface-default"]).toBe("string")
   })
 
-  it("default (omitted) resolves via auto and returns a valid theme", async () => {
+  it("default (omitted) resolves via 'default' WITHOUT probing the terminal", async () => {
     const cmd = new Command("app")
-    const themes = withTheme(cmd, { schemes, detect: { timeoutMs: 20 } })
+    const themes = withTheme(cmd, { schemes })
     cmd.parse(["node", "app"], { from: "node" })
     const r = await themes.resolve(optsOf(cmd).theme)
-    expect(r.via).toBe("auto")
+    expect(r.via).toBe("default")
+    expect(r.detected).toBeUndefined() // no OSC probe happened
+    expect(r.scheme).toBeDefined()
+    expect(typeof (r.theme as Record<string, unknown>)["bg-surface-default"]).toBe("string")
+  })
+
+  it("dark:false default picks the light built-in scheme (still no probe)", async () => {
+    const cmd = new Command("app")
+    const themes = withTheme(cmd, { schemes, dark: false })
+    const dark = await withTheme(new Command("d"), { schemes }).resolve("default")
+    const light = await themes.resolve("default")
+    expect(light.via).toBe("default")
+    expect(light.scheme.background).not.toBe(dark.scheme.background)
+  })
+
+  it("explicit --theme detect uses the OSC probe path", async () => {
+    const cmd = new Command("app")
+    const themes = withTheme(cmd, { schemes, detect: { timeoutMs: 20 } })
+    cmd.parse(["node", "app", "--theme", "detect"], { from: "node" })
+    const r = await themes.resolve(optsOf(cmd).theme)
+    expect(r.via).toBe("detect")
+    // Non-TTY test env → probe yields no result → graceful fallback scheme.
     expect(r.scheme).toBeDefined()
     expect(typeof (r.theme as Record<string, unknown>)["bg-surface-default"]).toBe("string")
   })

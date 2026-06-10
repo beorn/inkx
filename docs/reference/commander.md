@@ -329,6 +329,51 @@ Default values can be passed as the fourth argument:
 .option("-p, --port <n>", "Port", parseInt, 8080)  // port: number (defaults to 8080)
 ```
 
+## Theme selection (`withTheme`)
+
+`withTheme()` is an opt-in plugin that adds a `--theme` option to any command and
+resolves it to a [Silvery `Theme`](/themes) you can hand to `ThemeProvider`.
+Import it from the `@silvery/commander/theme` subpath so the core `Command`
+import stays lean — the OSC-probe machinery from `@silvery/ansi` only loads when
+you actually use it.
+
+```typescript
+import { Command } from "@silvery/commander"
+import { withTheme } from "@silvery/commander/theme"
+import { builtinPalettes } from "@silvery/theme/schemes"
+
+const program = new Command("myapp")
+const themes = withTheme(program, { schemes: builtinPalettes })
+
+program.action(async (opts) => {
+  const { theme } = await themes.resolve(opts.theme)
+  render(<ThemeProvider theme={theme}>…</ThemeProvider>)
+})
+
+program.parse()
+```
+
+`--theme <value>` resolves four ways:
+
+| Value | Behaviour |
+| --- | --- |
+| `default` (the default) | **No probe** — derives a `Theme` from the built-in `defaultDark` / `defaultLight` scheme. Fast and deterministic. |
+| `detect` (alias `auto`) | Probes the terminal palette via OSC 4/10/11, fingerprints it against the injected schemes, falls back gracefully. **Opt-in**, because probing costs ~450 ms of sequential OSC queries and is only partially reliable on terminals with weak OSC support. |
+| `<name>` | A named scheme from the injected `schemes` registry (`nord`, `dracula`, …). |
+| `<path>.json` | A `ColorScheme` JSON file on disk. |
+
+The default is non-probing on purpose: a CLI shouldn't pay a half-second OSC
+round-trip on every startup. Reach for `detect` only when the app wants to match
+the terminal's exact colours in truecolor (the terminal's own palette still shows
+through at the rendering layer when the app runs at an ANSI color level).
+
+Named-scheme resolution is **injected** (dependency injection) rather than
+bundled, so `@silvery/commander` never takes a hard dependency on the 84-scheme
+`@silvery/theme` table — pass `{ schemes: builtinPalettes }` when you want named
+schemes. Unknown names fail loud at parse time; malformed or missing palette
+files throw. Use `{ dark: false }` to make the non-probing default derive from
+`defaultLight` instead of `defaultDark`.
+
 ## Beyond extra-typings
 
 Built on the shoulders of [@commander-js/extra-typings](https://github.com/commander-js/extra-typings). We add:
