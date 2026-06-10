@@ -18,6 +18,8 @@ export type {
   AgNodeType,
   BoxProps,
   TextProps,
+  TextTruncateHook,
+  TextMeasure,
   FlexboxProps,
   StyleProps,
   TestProps,

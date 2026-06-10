@@ -17,7 +17,7 @@ import {
   type UnderlineStyle,
   createMutableCell,
 } from "../buffer"
-import type { AgNode, TextProps } from "@silvery/ag/types"
+import type { AgNode, TextProps, TextTruncateHook, TextMeasure } from "@silvery/ag/types"
 import {
   type StyledSegment,
   ensureEmojiPresentation,
@@ -861,6 +861,7 @@ export function formatTextLines(
   wrap: TextProps["wrap"],
   ctx?: PipelineContext,
   trim = true,
+  truncate?: TextTruncateHook,
 ): string[] {
   // Guard against width <= 0 to prevent infinite loops
   // This can happen with display="none" nodes (0x0 dimensions)
@@ -909,17 +910,18 @@ export function formatTextLines(
     return out
   }
 
-  // No wrapping, just truncate at end
+  // No wrapping, just truncate at end. The truncate hook (when present) is
+  // consulted per-line for every truncate mode and applies after overflow.
   if (wrap === false || wrap === "truncate-end" || wrap === "truncate") {
-    return lines.map((line) => truncateText(line, width, "end", ctx))
+    return lines.map((line) => truncateText(line, width, "end", ctx, truncate))
   }
 
   if (wrap === "truncate-start") {
-    return lines.map((line) => truncateText(line, width, "start", ctx))
+    return lines.map((line) => truncateText(line, width, "start", ctx, truncate))
   }
 
   if (wrap === "truncate-middle") {
-    return lines.map((line) => truncateText(line, width, "middle", ctx))
+    return lines.map((line) => truncateText(line, width, "middle", ctx, truncate))
   }
 
   // Optimal wrapping (Knuth-Plass): minimize total raggedness across all lines.
@@ -982,16 +984,110 @@ export function formatTextLines(
 }
 
 /**
+ * Build a cell-width-aware {@link TextMeasure} bound to the active measurer
+ * (or module-level fallbacks). Handed to a {@link TextTruncateHook} so the hook
+ * never re-derives width math. Same `sliceFn`/`sliceEndFn`/`getTextWidth`
+ * pattern used internally by `truncateText`.
+ */
+function makeTextMeasure(ctx?: PipelineContext): TextMeasure {
+  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+  return {
+    width: (text) => getTextWidth(text, ctx),
+    sliceByWidth: (text, max) => sliceFn(text, max),
+    sliceByWidthFromEnd: (text, max) => sliceEndFn(text, max),
+  }
+}
+
+// One SGR escape: ESC [ <params> m. Used to peel a uniformly-styled run's
+// leading/trailing style sequences so the truncate hook only ever sees the
+// plain VISIBLE core (it must never slice mid-escape).
+const SGR_SEQ = /^\x1b\[[0-9;:]*m/
+const SGR_SEQ_END = /\x1b\[[0-9;:]*m$/
+
+/**
+ * Peel a single uniformly-styled SGR run: optional leading SGR sequence(s) +
+ * plain core (NO escape sequences inside) + optional trailing SGR sequence(s).
+ *
+ * Returns `{ prefix, core, suffix }` when the line is exactly that shape, or
+ * `null` for any other ANSI shape (multi-run, OSC 8 links, escapes mid-line).
+ * The truncate hook is caller domain policy operating on visible text — it gets
+ * the plain `core`, and the framework re-attaches `prefix`/`suffix` around the
+ * hook's result so the style survives and no escape is ever cut.
+ */
+function peelUniformSgr(line: string): { prefix: string; core: string; suffix: string } | null {
+  let rest = line
+  let prefix = ""
+  // Consume leading SGR sequences.
+  for (let m = rest.match(SGR_SEQ); m; m = rest.match(SGR_SEQ)) {
+    prefix += m[0]
+    rest = rest.slice(m[0].length)
+  }
+  let suffix = ""
+  // Consume trailing SGR sequences.
+  for (let m = rest.match(SGR_SEQ_END); m; m = rest.match(SGR_SEQ_END)) {
+    suffix = m[0] + suffix
+    rest = rest.slice(0, rest.length - m[0].length)
+  }
+  // The remaining core must contain NO escape sequences — any ESC means the
+  // line is not a single uniform run (mid-line SGR, OSC 8, cursor moves, etc.).
+  if (rest.includes("\x1b")) return null
+  // Require that peeling actually removed style (otherwise hasAnsi was a false
+  // positive from a non-SGR escape, which the core-ESC check already rejects).
+  if (prefix === "" && suffix === "") return null
+  return { prefix, core: rest, suffix }
+}
+
+/**
  * Truncate text to fit within width.
+ *
+ * @param hook - Optional per-line {@link TextTruncateHook}. When provided and
+ *   the text overflows, the hook is consulted FIRST; a non-null result is
+ *   defensively hard-clipped to `width` (never trusted to fit on its own) and
+ *   returned, while `null` falls through to the built-in `mode` behavior. When
+ *   the hook is absent, output is byte-identical to the historical truncation.
  */
 export function truncateText(
   text: string,
   width: number,
   mode: "start" | "middle" | "end",
   ctx?: PipelineContext,
+  hook?: TextTruncateHook,
 ): string {
   const textWidth = getTextWidth(text, ctx)
   if (textWidth <= width) return text
+
+  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+
+  // Consult the hook first. The hook is caller domain policy that operates on
+  // PLAIN VISIBLE text \u2014 it must never receive (and so never slice through)
+  // inline ANSI. NO silent trust on its result either: a fitted result that
+  // still overflows is hard-clipped so it can never paint past the box edge.
+  if (hook && width > 0) {
+    if (hasAnsi(text)) {
+      // Only a single uniformly-styled run is safe to peel: leading SGR +
+      // plain core + trailing SGR. Any other ANSI shape (multi-run, OSC 8,
+      // mid-line escapes) \u2192 skip the hook, use the built-in ANSI-aware mode.
+      const peeled = peelUniformSgr(text)
+      if (peeled) {
+        const result = hook(peeled.core, width, makeTextMeasure(ctx))
+        if (result !== null) {
+          // Clip-check on the PLAIN result before re-attaching style, so the
+          // re-styled line never exceeds the box even if the hook overran.
+          const fitted = getTextWidth(result, ctx) <= width ? result : sliceFn(result, width)
+          return peeled.prefix + fitted + peeled.suffix
+        }
+      }
+      // peeled === null OR hook returned null \u2192 fall through to built-in below.
+    } else {
+      const result = hook(text, width, makeTextMeasure(ctx))
+      if (result !== null) {
+        return getTextWidth(result, ctx) <= width ? result : sliceFn(result, width)
+      }
+      // result === null \u2192 fall through to the built-in mode behavior below.
+    }
+  }
 
   const ellipsis = "\u2026" // ...
   const availableWidth = width - 1 // Reserve space for ellipsis
@@ -999,9 +1095,6 @@ export function truncateText(
   if (availableWidth <= 0) {
     return width > 0 ? ellipsis : ""
   }
-
-  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
-  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
 
   if (mode === "end") {
     return sliceFn(text, availableWidth) + ellipsis
@@ -1740,6 +1833,7 @@ export function renderText(
     (inheritedBg !== undefined && inheritedBg !== null)
   const trim = !hasBg
   const internalTransform = props.internal_transform
+  const truncateHook = props.truncate
 
   let lines: string[]
   let lineOffsets: Array<{ start: number; end: number }>
@@ -1749,14 +1843,17 @@ export function renderText(
   // STRICT incremental≡fresh holds (rowMeta must be identical every render).
   let lineBreaks: LineBreakKind[]
 
-  // Skip format cache when internal_transform is present (may depend on external state)
-  const cachedFmt = !internalTransform ? getCachedFormat(node, width, props.wrap, trim) : null
+  // Skip format cache when internal_transform OR a truncate hook is present —
+  // both are functions that may depend on external state and have unstable
+  // identity (the (node, width, wrap, trim) cache key can't capture them).
+  const bypassFormatCache = !!internalTransform || !!truncateHook
+  const cachedFmt = !bypassFormatCache ? getCachedFormat(node, width, props.wrap, trim) : null
   if (cachedFmt) {
     lines = cachedFmt.lines
     lineOffsets = cachedFmt.hasLineOffsets ? cachedFmt.lineOffsets : []
     lineBreaks = cachedFmt.lineBreaks as LineBreakKind[]
   } else {
-    lines = formatTextLines(text, width, props.wrap, ctx, trim)
+    lines = formatTextLines(text, width, props.wrap, ctx, trim, truncateHook)
     if (internalTransform) {
       lines = lines.map((line, index) => internalTransform(line, index))
     }
@@ -1768,8 +1865,11 @@ export function renderText(
     // last-line "end" / non-match path. Skip it; those nodes get the default
     // not-soft-wrapped metadata, which is correct (transforms are single-line
     // chrome, not wrapped prose).
-    lineBreaks = internalTransform ? [] : classifyLineBreaks(text, lines)
-    if (!internalTransform) {
+    // A truncate hook (like internal_transform) can emit lines that don't
+    // appear verbatim in `text` (custom separators), so break classification by
+    // matching back into `text` is meaningless — skip it and don't cache.
+    lineBreaks = bypassFormatCache ? [] : classifyLineBreaks(text, lines)
+    if (!bypassFormatCache) {
       setCachedFormat(
         node,
         width,
