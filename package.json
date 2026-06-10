@@ -128,7 +128,7 @@
     "fast-check": "^4.6.0",
     "mermaid": "^11.14.0",
     "mitata": "^1.0.34",
-    "oxfmt": "^0.38.0",
+    "oxfmt": "0.38.0",
     "oxlint": "^1.51.0",
     "playwright": "^1.58.2",
     "react": "^19.0.0",
