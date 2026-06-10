@@ -158,6 +158,15 @@ export interface RenderOptions {
   /** Use Kitty keyboard protocol encoding for press(). When true, press() uses keyToKittyAnsi. */
   kittyMode?: boolean
   /**
+   * Handle Tab / Shift+Tab as focus-cycling keystrokes in `sendInput`/`press`.
+   * When `false`, Tab and Shift+Tab reach `useInput` instead of being consumed
+   * by the focus manager — matching the production `run()` option of the same
+   * name (Claude-Code-style "Shift+Tab cycles permission mode" apps).
+   *
+   * Default: true.
+   */
+  handleTabCycling?: boolean
+  /**
    * Maximum layout-pass iterations per render. Each pass: runPipeline +
    * flushSyncWork. Loop exits when no React commit happens (converged) or
    * when the cap is reached.
@@ -379,6 +388,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     : (optsOrStore.maxLayoutPasses ?? MAX_CONVERGENCE_PASSES)
   const kittyMode = storeMode ? false : (optsOrStore.kittyMode ?? false)
   const autoRender = storeMode ? false : (optsOrStore.autoRender ?? false)
+  const handleTabCycling = storeMode ? true : (optsOrStore.handleTabCycling ?? true)
   const onFrame = storeMode ? undefined : optsOrStore.onFrame
   const onBufferReady = storeMode ? undefined : optsOrStore.onBufferReady
   const wrapRoot = storeMode ? undefined : optsOrStore.wrapRoot
@@ -1375,14 +1385,14 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             // Each focus change runs in its own act() boundary so React
             // commits the re-render before the next keypress or doRender().
             const [, key] = parseKey(keypress)
-            if (key.tab && !key.shift) {
+            if (handleTabCycling && key.tab && !key.shift) {
               act(() => {
                 const root = getContainerRoot(instance.container)
                 focusManager.focusNext(root)
               })
               continue
             }
-            if (key.tab && key.shift) {
+            if (handleTabCycling && key.tab && key.shift) {
               act(() => {
                 const root = getContainerRoot(instance.container)
                 focusManager.focusPrev(root)
