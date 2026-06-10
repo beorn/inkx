@@ -83,6 +83,7 @@ const TEXT_CONTENT_PROPS = new Set(["wrap", "internal_transform", "truncate"])
  */
 const STYLE_PROPS = new Set([
   "color",
+  "truncateMarkerColor",
   "backgroundColor",
   "bold",
   "italic",

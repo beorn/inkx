@@ -985,12 +985,39 @@ export interface TextMeasure {
 }
 
 /**
+ * Rich result a {@link TextTruncateHook} may return instead of a bare string,
+ * so a policy hook can mark which spans of its fitted line are elision-marker
+ * CHROME (e.g. a `" … "` separator) rather than content. Marker spans render
+ * with {@link TextProps.truncateMarkerColor} (default `"$muted"`), making the
+ * elision read as quiet chrome instead of competing with the surrounding text.
+ *
+ * A bare `string` return is exactly equivalent to `{ text }` with no markers —
+ * today's behavior, no marker styling of hook output.
+ */
+export interface TextTruncateResult {
+  /** The fitted line. Same contract as a bare-string return — defensively
+   *  hard-clipped if it still overflows, so the hook can never paint past the
+   *  box edge. */
+  text: string
+  /**
+   * JS string-index `[start, end)` ranges within `text` that are
+   * elision-marker chrome, rendered with {@link TextProps.truncateMarkerColor}.
+   * Indices are UTF-16 offsets into `text` (the PLAIN visible string the hook
+   * was handed and returned — never the inline-ANSI form). Out-of-bounds or
+   * overlapping ranges are clamped / ignored defensively (a STRICT-mode warning
+   * is emitted); a malformed `markers` array never throws in production paths.
+   */
+  markers?: readonly { start: number; end: number }[]
+}
+
+/**
  * Per-line truncation hook for `wrap` truncate modes. Only consulted when the
  * line OVERFLOWS the available width; receives the overflowing `line`, the
  * available cell `width`, and a cell-width-aware {@link TextMeasure}.
  *
- * Return the fitted line, or `null` to fall back to the built-in truncation for
- * the active mode. The returned string is NOT trusted blindly — if it still
+ * Return the fitted line (bare `string`), a {@link TextTruncateResult} to also
+ * mark marker-chrome spans, or `null` to fall back to the built-in truncation
+ * for the active mode. The returned text is NOT trusted blindly — if it still
  * overflows, the pipeline hard-clips it via `measure.sliceByWidth`, so a hook
  * can never paint past the box edge. Returning `null` MUST be cheap and safe;
  * the hook runs once per overflowing line, every render.
@@ -999,7 +1026,11 @@ export interface TextMeasure {
  * formula derived from `width`), which a static data prop cannot express.
  * Function-prop precedent in `TextProps`: the mouse handlers.
  */
-export type TextTruncateHook = (line: string, width: number, measure: TextMeasure) => string | null
+export type TextTruncateHook = (
+  line: string,
+  width: number,
+  measure: TextMeasure,
+) => string | TextTruncateResult | null
 
 export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, MouseEventProps {
   children?: React.ReactNode
@@ -1045,6 +1076,21 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
    * See {@link TextTruncateHook}.
    */
   truncate?: TextTruncateHook
+  /**
+   * Color for elision-marker CHROME in truncated output — the inserted "…" of
+   * the built-in truncate modes (`"truncate"` / `"truncate-end"` /
+   * `"truncate-start"` / `"truncate-middle"` / `"wrap-truncate"`) AND any
+   * marker ranges a {@link TextTruncateHook} returns via
+   * {@link TextTruncateResult.markers}. Styling the marker separately from the
+   * surrounding text lets the elision read as quiet chrome, not content.
+   *
+   * Accepts the same color forms as {@link StyleProps.color} (`$token`, hex,
+   * named, `rgb(...)`, `mix(...)`), resolved against the active theme at paint
+   * time. Does NOT affect the surrounding text — only the marker cells.
+   *
+   * @default "$muted"
+   */
+  truncateMarkerColor?: string
   /** Internal transform function applied to each rendered line. Used by Transform component. */
   internal_transform?: (line: string, index: number) => string
   /**
