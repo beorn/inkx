@@ -19,6 +19,7 @@ export type {
   BoxProps,
   TextProps,
   TextTruncateHook,
+  TextTruncateResult,
   TextMeasure,
   FlexboxProps,
   StyleProps,
