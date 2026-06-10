@@ -999,6 +999,45 @@ function makeTextMeasure(ctx?: PipelineContext): TextMeasure {
   }
 }
 
+// One SGR escape: ESC [ <params> m. Used to peel a uniformly-styled run's
+// leading/trailing style sequences so the truncate hook only ever sees the
+// plain VISIBLE core (it must never slice mid-escape).
+const SGR_SEQ = /^\x1b\[[0-9;:]*m/
+const SGR_SEQ_END = /\x1b\[[0-9;:]*m$/
+
+/**
+ * Peel a single uniformly-styled SGR run: optional leading SGR sequence(s) +
+ * plain core (NO escape sequences inside) + optional trailing SGR sequence(s).
+ *
+ * Returns `{ prefix, core, suffix }` when the line is exactly that shape, or
+ * `null` for any other ANSI shape (multi-run, OSC 8 links, escapes mid-line).
+ * The truncate hook is caller domain policy operating on visible text — it gets
+ * the plain `core`, and the framework re-attaches `prefix`/`suffix` around the
+ * hook's result so the style survives and no escape is ever cut.
+ */
+function peelUniformSgr(line: string): { prefix: string; core: string; suffix: string } | null {
+  let rest = line
+  let prefix = ""
+  // Consume leading SGR sequences.
+  for (let m = rest.match(SGR_SEQ); m; m = rest.match(SGR_SEQ)) {
+    prefix += m[0]
+    rest = rest.slice(m[0].length)
+  }
+  let suffix = ""
+  // Consume trailing SGR sequences.
+  for (let m = rest.match(SGR_SEQ_END); m; m = rest.match(SGR_SEQ_END)) {
+    suffix = m[0] + suffix
+    rest = rest.slice(0, rest.length - m[0].length)
+  }
+  // The remaining core must contain NO escape sequences — any ESC means the
+  // line is not a single uniform run (mid-line SGR, OSC 8, cursor moves, etc.).
+  if (rest.includes("\x1b")) return null
+  // Require that peeling actually removed style (otherwise hasAnsi was a false
+  // positive from a non-SGR escape, which the core-ESC check already rejects).
+  if (prefix === "" && suffix === "") return null
+  return { prefix, core: rest, suffix }
+}
+
 /**
  * Truncate text to fit within width.
  *
@@ -1021,14 +1060,33 @@ export function truncateText(
   const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
   const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
 
-  // Consult the hook first. NO silent trust: if the hook's result still
-  // overflows the box, hard-clip it so it can never paint past the edge.
+  // Consult the hook first. The hook is caller domain policy that operates on
+  // PLAIN VISIBLE text \u2014 it must never receive (and so never slice through)
+  // inline ANSI. NO silent trust on its result either: a fitted result that
+  // still overflows is hard-clipped so it can never paint past the box edge.
   if (hook && width > 0) {
-    const result = hook(text, width, makeTextMeasure(ctx))
-    if (result !== null) {
-      return getTextWidth(result, ctx) <= width ? result : sliceFn(result, width)
+    if (hasAnsi(text)) {
+      // Only a single uniformly-styled run is safe to peel: leading SGR +
+      // plain core + trailing SGR. Any other ANSI shape (multi-run, OSC 8,
+      // mid-line escapes) \u2192 skip the hook, use the built-in ANSI-aware mode.
+      const peeled = peelUniformSgr(text)
+      if (peeled) {
+        const result = hook(peeled.core, width, makeTextMeasure(ctx))
+        if (result !== null) {
+          // Clip-check on the PLAIN result before re-attaching style, so the
+          // re-styled line never exceeds the box even if the hook overran.
+          const fitted = getTextWidth(result, ctx) <= width ? result : sliceFn(result, width)
+          return peeled.prefix + fitted + peeled.suffix
+        }
+      }
+      // peeled === null OR hook returned null \u2192 fall through to built-in below.
+    } else {
+      const result = hook(text, width, makeTextMeasure(ctx))
+      if (result !== null) {
+        return getTextWidth(result, ctx) <= width ? result : sliceFn(result, width)
+      }
+      // result === null \u2192 fall through to the built-in mode behavior below.
     }
-    // result === null \u2192 fall through to the built-in mode behavior below.
   }
 
   const ellipsis = "\u2026" // ...

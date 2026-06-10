@@ -194,4 +194,74 @@ describe("truncate hook", () => {
     expect(displayWidth(second)).toBeLessThanOrEqual(WIDTH)
     expect(second).not.toBe(first)
   })
+
+  // (1) ANSI contract: a Text with a color prop arrives at the hook as one
+  // uniformly-styled SGR run. The hook must receive the PLAIN visible string
+  // (no \x1b), and the rendered row must keep its styling with no literal
+  // escape fragments leaking as text. Repro guard for 19746.
+  test("color-prop Text: hook receives plain text, styling survives", () => {
+    const WIDTH = 44
+    const hookInputs: string[] = []
+    const recordingElision: TextTruncateHook = (line, width, m) => {
+      hookInputs.push(line)
+      return shellElision(line, width, m)
+    }
+    function App() {
+      return (
+        <Box width={WIDTH} height={3}>
+          <Text color="#8f95a1" wrap="truncate-middle" truncate={recordingElision}>
+            {CMD}
+          </Text>
+        </Box>
+      )
+    }
+    const render = createRenderer({ cols: WIDTH, rows: 3 })
+    const app = render(<App />)
+
+    // The hook saw plain visible text — no escape bytes, no SGR fragments.
+    expect(hookInputs.length).toBeGreaterThan(0)
+    for (const input of hookInputs) {
+      expect(input).not.toContain("\x1b")
+      expect(input).not.toMatch(/\[38[;:]/) // no "38;2;..." SGR params
+    }
+
+    // The elision survives (the hook's marker), and no escape fragment leaked
+    // into the visible text. app.text is the plain (ANSI-stripped) frame, so a
+    // leak would show up as literal "[38" / ";2;" digits.
+    const row = app.text.split("\n")[0]!
+    expect(row).toContain(" … ")
+    expect(row).not.toContain("[38")
+    expect(row).not.toMatch(/\d;\s*\d;\s*\d{2,3}m/) // no "143 ; 149 ; 161m" garbage
+    expect(displayWidth(row.trimEnd())).toBeLessThanOrEqual(WIDTH)
+
+    // The styling is intact at the cell level: the first visible cell carries
+    // the resolved color (0x8f=143, 0x95=149, 0xa1=161), proving prefix/suffix
+    // re-attachment worked.
+    expect(app.cell(0, 0).fg).toEqual({ r: 143, g: 149, b: 161 })
+  })
+
+  // (2) Multi-styled line (two different SGR runs) → NOT a single uniform run,
+  // so the hook is NOT called; the built-in ANSI-aware truncation runs and no
+  // literal escape fragment is rendered.
+  test("multi-styled line: hook skipped, built-in ANSI-aware truncation used", () => {
+    // Two distinct SGR runs glued together — peelUniformSgr must reject this.
+    const red = "\x1b[31m"
+    const green = "\x1b[32m"
+    const reset = "\x1b[0m"
+    const multi = `${red}alpha-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${reset}${green}beta-bbbbbbbbbbbbbbbbbbbbbbbb${reset}`
+    let called = false
+    const spyHook: TextTruncateHook = (line) => {
+      called = true
+      return line // would be wrong (overwide / mid-escape) if ever used
+    }
+    const out = truncateText(multi, 20, "middle", undefined, spyHook)
+    expect(called).toBe(false) // hook skipped for multi-run ANSI
+    // Built-in ANSI-aware path: visible width within budget, no leaked escape
+    // FRAGMENT (a partial "[31" without the leading ESC) in the visible text.
+    expect(displayWidth(out)).toBeLessThanOrEqual(20)
+    const visible = out.replace(/\x1b\[[0-9;:]*m/g, "")
+    expect(visible).not.toContain("[31")
+    expect(visible).not.toContain("[32")
+    expect(visible).toContain("…")
+  })
 })
