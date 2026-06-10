@@ -158,7 +158,11 @@ export function PopoverProvider({ children }: { children: React.ReactNode }): Re
       // cleanup of a different row) must not close someone else's popover.
       // This is the flap fix: pre-guard, every handler mount/unmount hid
       // the global popover while the user was still cmd-hovering an anchor.
-      if (options?.owner !== undefined && ownerRef.current !== null && ownerRef.current !== options.owner) {
+      if (
+        options?.owner !== undefined &&
+        ownerRef.current !== null &&
+        ownerRef.current !== options.owner
+      ) {
         return
       }
       clearHide()
