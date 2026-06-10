@@ -988,8 +988,9 @@ export interface TextMeasure {
  * Rich result a {@link TextTruncateHook} may return instead of a bare string,
  * so a policy hook can mark which spans of its fitted line are elision-marker
  * CHROME (e.g. a `" … "` separator) rather than content. Marker spans render
- * with {@link TextProps.truncateMarkerColor} (default `"$muted"`), making the
- * elision read as quiet chrome instead of competing with the surrounding text.
+ * with {@link TextProps.truncateMarkerColor} (default `"$fg-muted"`), making
+ * the elision read as quiet chrome instead of competing with the surrounding
+ * text.
  *
  * A bare `string` return is exactly equivalent to `{ text }` with no markers —
  * today's behavior, no marker styling of hook output.
@@ -1088,7 +1089,11 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
    * named, `rgb(...)`, `mix(...)`), resolved against the active theme at paint
    * time. Does NOT affect the surrounding text — only the marker cells.
    *
-   * @default "$muted"
+   * Defaults to `"$fg-muted"` (the standard low/dim fg slot), NOT `"$muted"` —
+   * in the default pipeline theme `"$muted"` resolves to the same value as
+   * `"$fg"`, so it would never dim against `$fg`-colored text.
+   *
+   * @default "$fg-muted"
    */
   truncateMarkerColor?: string
   /** Internal transform function applied to each rendered line. Used by Transform component. */

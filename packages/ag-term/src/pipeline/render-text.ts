@@ -2030,13 +2030,16 @@ export function renderText(
   const trim = !hasBg
   const internalTransform = props.internal_transform
   const truncateHook = props.truncate
-  // Elision-marker chrome color. Defaults to "$muted" so the inserted "…" (and
-  // hook-returned marker ranges) read as quiet chrome, not content. Resolved
-  // against the active theme at paint time via parseColor (same path as the
-  // `color` prop). A theme change invalidates the collected-text cache (which
-  // keys on contextTheme), which clears the format cache — so the embedded
-  // marker SGR is recomputed with the new token value.
-  const markerSgr = resolveMarkerSgr(props.truncateMarkerColor ?? "$muted")
+  // Elision-marker chrome color. Defaults to "$fg-muted" so the inserted "…"
+  // (and hook-returned marker ranges) read as quiet chrome, not content. NOT
+  // "$muted" — in the default pipeline theme "$muted" resolves to the same
+  // value as "$fg" (both #d8dee9), so it would never dim against $fg-colored
+  // text. "$fg-muted" is the codebase's standard low/dim fg slot (e.g.
+  // StatusGlyph lowColor). Resolved against the active theme at paint time via
+  // parseColor (same path as the `color` prop). A theme change invalidates the
+  // collected-text cache (which keys on contextTheme), which clears the format
+  // cache — so the embedded marker SGR is recomputed with the new token value.
+  const markerSgr = resolveMarkerSgr(props.truncateMarkerColor ?? "$fg-muted")
 
   let lines: string[]
   let lineOffsets: Array<{ start: number; end: number }>

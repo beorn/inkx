@@ -3,8 +3,8 @@
  *
  * The inserted "…" of the built-in truncate modes, and any marker ranges a
  * `truncate` hook returns via `TextTruncateResult.markers`, render with
- * `TextProps.truncateMarkerColor` (default `"$muted"`) so the elision reads as
- * quiet chrome, not content. The surrounding text keeps its own color.
+ * `TextProps.truncateMarkerColor` (default `"$fg-muted"`) so the elision reads
+ * as quiet chrome, not content. The surrounding text keeps its own color.
  *
  * Cell-level assertions via `app.cell(col, row).fg` — never raw ANSI bytes.
  * Realistic-scale fixtures (50+ Text rows) per silvery's new-prop rule, so the
@@ -17,6 +17,7 @@ import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
 import { formatTextLines, truncateText } from "@silvery/ag-term/pipeline/render-text"
+import { parseColor } from "@silvery/ag-term/pipeline/render-helpers"
 import { displayWidth } from "@silvery/ag-term"
 import type { TextTruncateHook, TextMeasure } from "@silvery/ag"
 
@@ -58,9 +59,9 @@ function markedElision(line: string, width: number, m: TextMeasure) {
 }
 
 describe("truncateMarkerColor — built-in ellipsis", () => {
-  // The built-in "…" gets the $muted default while surrounding text keeps its
-  // own color. 50-row fixture so the cascade is exercised at scale.
-  test("default $muted: ellipsis cell fg differs from text cell fg (50 rows)", () => {
+  // The built-in "…" gets the $fg-muted default while surrounding text keeps
+  // its own color. 50-row fixture so the cascade is exercised at scale.
+  test("default $fg-muted: ellipsis cell fg differs from text cell fg (50 rows)", () => {
     const WIDTH = 30
     const ROWS = 50
     function App() {
@@ -174,6 +175,37 @@ describe("truncateMarkerColor — hook-returned markers", () => {
     expect(row.trimEnd().endsWith("--no-verify")).toBe(true)
     const lastCol = row.trimEnd().length - 1
     expect(app.cell(lastCol, 0).fg).toEqual({ r: 255, g: 255, b: 255 })
+  })
+
+  // The exact km shape that caught the $muted-aliases-$fg bug: hook-returned
+  // markers + DEFAULT marker color (prop OMITTED) + a $token TEXT color. With
+  // the wrong default ($muted == $fg), the marker fg would equal the text fg
+  // and the elision would not dim at all. Assert the default marker dims.
+  test("default marker + $token text color: marker fg dims vs text fg (km shape)", () => {
+    const WIDTH = 44
+    function App() {
+      return (
+        <Box width={WIDTH} height={1}>
+          {/* truncateMarkerColor OMITTED → default. color is the $fg token. */}
+          <Text color="$fg" wrap="truncate-middle" truncate={markedElision}>
+            {CMD}
+          </Text>
+        </Box>
+      )
+    }
+    const render = createRenderer({ cols: WIDTH, rows: 1 })
+    const app = render(<App />)
+    expect(app.lines[0]!).toContain(" … ")
+
+    const textFg = parseColor("$fg")
+    const dotCol = colOf(app, "…", 0)
+    // The marked separator is the DEFAULT ($fg-muted) — it must NOT equal the
+    // $fg text color (the regression: $muted resolved to the same RGB as $fg).
+    const markerFg = app.cell(dotCol, 0).fg
+    expect(markerFg).not.toEqual(textFg)
+    expect(markerFg).toEqual(parseColor("$fg-muted"))
+    // Head + rescued tail keep the $fg text color.
+    expect(app.cell(0, 0).fg).toEqual(textFg)
   })
 
   // A bare-string hook return gets NO marker styling — the " … " stays the
