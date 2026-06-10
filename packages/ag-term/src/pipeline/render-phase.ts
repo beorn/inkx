@@ -1412,6 +1412,8 @@ export interface ScrollPlanInputs {
   scrollOffsetChanged: boolean
   /** Visible child index range changed. */
   visibleRangeChanged: boolean
+  /** Any child subtree has pending render dirtiness in this frame. */
+  descendantDirty: boolean
   /** Scroll container has sticky children. */
   hasStickyChildren: boolean
   /** Parent cascade: children need fresh render (contentAreaAffected || bgRefillNeeded). */
@@ -1469,6 +1471,7 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
   const {
     scrollOffsetChanged,
     visibleRangeChanged,
+    descendantDirty,
     hasStickyChildren,
     childrenNeedFreshRender,
     childrenDirty,
@@ -1489,6 +1492,7 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
   const scrollOnly =
     hasPrevBuffer &&
     scrollOffsetChanged &&
+    !descendantDirty &&
     !childrenDirty &&
     !childrenNeedFreshRender &&
     !hasStickyChildren &&
@@ -1512,6 +1516,7 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
     if (childrenDirty) reasons.push("childrenDirty")
     if (childrenNeedFreshRender) reasons.push("childrenNeedFreshRender")
     if (visibleRangeChanged) reasons.push("visibleRangeChanged")
+    if (descendantDirty) reasons.push("descendantDirty")
     if (hasOverlappingAbsoluteSibling) reasons.push("overlappingAbsoluteSibling")
   }
   if (stickyForceRefresh) reasons.push("stickyForceRefresh")
@@ -1599,6 +1604,7 @@ function renderScrollContainerChildren(
   const visibleRangeChanged =
     ss.firstVisibleChild !== ss.prevFirstVisibleChild ||
     ss.lastVisibleChild !== ss.prevLastVisibleChild
+  const descendantDirty = hasDirtyScrollDescendant(node)
 
   // Compute viewport geometry (shared by all tiers).
   // `clearY` / `clearHeight` describe the FULL viewport (including indicator
@@ -1636,6 +1642,7 @@ function renderScrollContainerChildren(
   const plan = planScrollRender({
     scrollOffsetChanged,
     visibleRangeChanged,
+    descendantDirty,
     hasStickyChildren,
     childrenNeedFreshRender,
     childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
@@ -2313,6 +2320,22 @@ function canSkipChildSubtree(
   // Defensive: scroll offset changed without dirty propagation
   if (child.scrollState && child.scrollState.offset !== child.scrollState.prevOffset) return false
   return true
+}
+
+/**
+ * Tier 1 buffer-shift is valid only when the previous buffer is a pure
+ * previous-scroll-position image of the current tree. If child content/layout
+ * is dirty in the same frame, shifting old pixels can preserve stale text at
+ * new viewport positions. Scroll phase marks the container itself subtree-dirty
+ * for offset/range changes, so inspect children to distinguish pure scroll from
+ * scroll-plus-descendant-mutation.
+ */
+function hasDirtyScrollDescendant(node: AgNode): boolean {
+  for (const child of node.children) {
+    if (isAnyDirty(child.dirtyBits, child.dirtyEpoch)) return true
+    if (isCurrentEpoch(child.layoutChangedThisFrame)) return true
+  }
+  return false
 }
 
 // ============================================================================
