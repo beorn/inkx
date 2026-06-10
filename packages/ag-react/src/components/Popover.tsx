@@ -86,8 +86,20 @@ interface PopoverState {
 }
 
 interface PopoverCtxValue {
-  show(content: PopoverContent, anchor: PopoverAnchor): void
-  hide(options?: { immediate?: boolean }): void
+  /**
+   * Show a popover. `owner` identifies the handler instance requesting it;
+   * subsequent owned `hide` calls from OTHER owners are no-ops, so an
+   * unrelated handler mounting/unmounting (a transcript leaf streaming in)
+   * can never close a popover it doesn't own. The flicker-guard pattern,
+   * ported from km-tui's popover store (bead @km/tui/14289-popover-flicker).
+   */
+  show(content: PopoverContent, anchor: PopoverAnchor, owner?: symbol): void
+  /**
+   * Hide the popover. With `owner`, only hides when that owner currently
+   * holds the popover (guarded). Without `owner`, force-hides (external
+   * dismissals: click-away, escape).
+   */
+  hide(options?: { immediate?: boolean; owner?: symbol }): void
   /** Cancel a pending hide — call when mouse enters the popover itself. */
   cancelHide(): void
 }
@@ -119,6 +131,8 @@ export function PopoverProvider({ children }: { children: React.ReactNode }): Re
   const [state, setState] = useState<PopoverState>({ content: null, anchor: null })
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const overlayHoveredRef = useRef(false)
+  /** The handler instance whose popover is currently showing (or pending). */
+  const ownerRef = useRef<symbol | null>(null)
 
   const clearHide = useCallback(() => {
     if (hideTimerRef.current) {
@@ -128,25 +142,36 @@ export function PopoverProvider({ children }: { children: React.ReactNode }): Re
   }, [])
 
   const show = useCallback(
-    (content: PopoverContent, anchor: PopoverAnchor) => {
+    (content: PopoverContent, anchor: PopoverAnchor, owner?: symbol) => {
       if (overlayHoveredRef.current) return
       clearHide()
+      ownerRef.current = owner ?? null
       setState({ content, anchor })
     },
     [clearHide],
   )
 
   const hide = useCallback(
-    (options?: { immediate?: boolean }) => {
+    (options?: { immediate?: boolean; owner?: symbol }) => {
+      // Owned hides only apply when the caller owns the visible popover —
+      // an unrelated handler (a new transcript leaf mounting, the unmount
+      // cleanup of a different row) must not close someone else's popover.
+      // This is the flap fix: pre-guard, every handler mount/unmount hid
+      // the global popover while the user was still cmd-hovering an anchor.
+      if (options?.owner !== undefined && ownerRef.current !== null && ownerRef.current !== options.owner) {
+        return
+      }
       clearHide()
       if (options?.immediate) {
         overlayHoveredRef.current = false
+        ownerRef.current = null
         setState({ content: null, anchor: null })
         return
       }
       if (overlayHoveredRef.current) return
       hideTimerRef.current = setTimeout(() => {
         hideTimerRef.current = null
+        ownerRef.current = null
         setState({ content: null, anchor: null })
       }, HIDE_DELAY_MS)
     },
@@ -210,6 +235,25 @@ export function usePopoverHandlers(
   const anchorRef = useRef<PopoverAnchor | null>(null)
   const hoverRef = useRef(false)
   const cmdHeldRef = useRef(false)
+  // Latest content lives in a REF, not in callback deps. Consumers rebuild
+  // the content object on every render (live metrics chrome re-renders every
+  // second); if `scheduleShow` depended on `content`, every parent render
+  // would restart the dwell timer (a parent ticking faster than
+  // HOVER_SHOW_DELAY_MS starves the popover — it never opens) and re-run the
+  // arm/hide effect (the "popover flaps open/closed under a stationary
+  // cursor" report, silvercode 2026-06-10). The ref keeps the timers and
+  // effects identity-stable across renders while `show` always reads the
+  // freshest content.
+  const contentRef = useRef(content)
+  contentRef.current = content
+  // True from the moment this handler's popover is showing until it hides
+  // for any reason — used to refresh content in place without a new dwell.
+  const shownRef = useRef(false)
+  // Stable per-instance identity: owned show/hide so this handler can never
+  // close a popover held by a different anchor (and vice versa).
+  const ownerIdRef = useRef<symbol | null>(null)
+  ownerIdRef.current ??= Symbol("popover-owner")
+  const ownerId = ownerIdRef.current
 
   useEffect(() => {
     cmdHeldRef.current = cmdHeld
@@ -230,23 +274,31 @@ export function usePopoverHandlers(
   const scheduleShow = useCallback(
     (anchor: PopoverAnchor) => {
       if (!popover) return
-      clearPending()
+      // An armed re-arm while the dwell is already pending must NOT restart
+      // the clock; the first complete dwell wins.
+      if (pendingShowRef.current !== null) return
       pendingShowRef.current = setTimeout(() => {
         pendingShowRef.current = null
         if (!hoverRef.current) return
         if (anchorRef.current !== anchor) return
         if (!isArmed()) return
-        popover.show(content, anchor)
+        shownRef.current = true
+        popover.show(contentRef.current, anchor, ownerId)
       }, HOVER_SHOW_DELAY_MS)
     },
-    [popover, content, clearPending, isArmed],
+    [popover, clearPending, isArmed, ownerId],
   )
+
+  const hideNow = useCallback(() => {
+    shownRef.current = false
+    popover?.hide({ owner: ownerId })
+  }, [popover, ownerId])
 
   useEffect(() => {
     if (!popover) return
     if (!hoverRef.current || !hover.isHovered) {
       clearPending()
-      popover.hide()
+      hideNow()
       return
     }
     const anchor = anchorRef.current
@@ -255,15 +307,28 @@ export function usePopoverHandlers(
       return
     }
     if (trigger === "hover") clearPending()
-    popover.hide()
-  }, [cmdHeld, hover.isHovered, popover, scheduleShow, clearPending, isArmed, trigger])
+    hideNow()
+  }, [cmdHeld, hover.isHovered, popover, scheduleShow, clearPending, hideNow, isArmed, trigger])
+
+  // Content refresh: when the popover is already SHOWING for this anchor and
+  // the consumer re-rendered with new content, swap the content in place —
+  // no dwell, no hide/show cycle. Runs every render by design (content
+  // identity changes every render for live consumers); `show` is a setState
+  // under the hood, so React bails out when nothing visible changed.
+  useEffect(() => {
+    if (!popover) return
+    const anchor = anchorRef.current
+    if (!shownRef.current || !hoverRef.current || anchor === null) return
+    popover.show(contentRef.current, anchor, ownerId)
+  })
 
   useEffect(() => {
     return () => {
       clearPending()
-      popover?.hide()
+      shownRef.current = false
+      popover?.hide({ owner: ownerId })
     }
-  }, [clearPending, popover])
+  }, [clearPending, popover, ownerId])
 
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
@@ -273,9 +338,11 @@ export function usePopoverHandlers(
       const anchor = { x: e.x, y: e.y }
       anchorRef.current = anchor
       if (!popover) return
+      // Fresh hover: restart the dwell against the new anchor.
+      clearPending()
       scheduleShow(anchor)
     },
-    [hover, popover, scheduleShow, trigger],
+    [hover, popover, clearPending, scheduleShow, trigger],
   )
   const onMouseLeave = useCallback(
     (e: SilveryMouseEvent) => {
@@ -284,9 +351,9 @@ export function usePopoverHandlers(
       anchorRef.current = null
       if (!popover) return
       clearPending()
-      popover.hide()
+      hideNow()
     },
-    [hover, popover, clearPending],
+    [hover, popover, clearPending, hideNow],
   )
   return { isHovered: hover.isHovered, onMouseEnter, onMouseLeave }
 }
