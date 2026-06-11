@@ -121,6 +121,7 @@ import { createLogger } from "loggily"
 
 const wheelLog = createLogger("silvery:wheel")
 const listLog = createLogger("silvery:listview")
+const POINTER_ANCHOR_WINDOW_MS = 500
 
 /**
  * Project a committed boxRect to the rounded `{w, h}` shape that ListView's
@@ -892,6 +893,9 @@ function ListViewInner<T>(
   const prevViewportWidthRef = useRef<number | null>(null)
   const followWidthReflowRef = useRef<boolean>(false)
   const prevResolvedFollowRef = useRef<FollowPolicy>(resolvedFollow)
+  const suppressFollowEndUntilBottomRef = useRef(false)
+  const pointerAnchorTopRowRef = useRef<number | null>(null)
+  const pointerAnchorExpiresAtRef = useRef(0)
   if (!followInitialisedRef.current) {
     followInitialisedRef.current = true
     followEndPinRef.current = resolvedFollow === "end" ? followEndPin("pending") : { kind: "none" }
@@ -1131,6 +1135,19 @@ function ListViewInner<T>(
     },
     [markWheelGestureActive, physics],
   )
+
+  const handlePointerViewportIntent = useCallback(() => {
+    if (resolvedFollow !== "end") return
+    const maxRow = maxScrollRowRef.current
+    pointerAnchorTopRowRef.current = Math.max(
+      0,
+      Math.min(maxRow, Math.round(visualTopRowRef.current)),
+    )
+    suppressFollowEndUntilBottomRef.current = true
+    pointerAnchorExpiresAtRef.current = Date.now() + POINTER_ANCHOR_WINDOW_MS
+    followEndPinRef.current = { kind: "none" }
+    isWheelDrivenRef.current = true
+  }, [resolvedFollow])
 
   // Set the viewport position from a fractional 0..1 value. Used by
   // scrollbar click-to-position (click the track at frac=0.6 → snap
@@ -1664,10 +1681,18 @@ function ListViewInner<T>(
       : 0
   const totalRowsMeasured = Math.max(1, heightModel.totalRows(), layoutContentRows)
   const scrollableRows = Math.max(0, Math.round(totalRowsMeasured - contentViewportHeight))
+  const pointerAnchorFresh = Date.now() <= pointerAnchorExpiresAtRef.current
+  const pointerAnchorTopRow =
+    suppressFollowEndUntilBottomRef.current &&
+    pointerAnchorFresh &&
+    pointerAnchorTopRowRef.current !== null
+      ? Math.max(0, Math.min(scrollableRows, pointerAnchorTopRowRef.current))
+      : null
+  const effectiveScrollRow = scrollRow ?? pointerAnchorTopRow
   const virtualizerRowsAboveViewport = heightModel.rowOfIndex(scrollOffset)
   const layoutOwnsRowBaseline =
     resolvedVirtualization === "index" &&
-    scrollRow === null &&
+    effectiveScrollRow === null &&
     !isWheelDrivenRef.current &&
     !(followEndPinRef.current.kind === "end" && followEndPinRef.current.snap === "pending")
   const rowsAboveViewport = resolveRowsAboveViewport({
@@ -1738,12 +1763,12 @@ function ListViewInner<T>(
   const baseTopRow =
     declarativeScrollRow ??
     followPinnedTopRow ??
-    (scrollRow !== null ? scrollRow : rowsAboveViewport)
+    (effectiveScrollRow !== null ? effectiveScrollRow : rowsAboveViewport)
   const cursorScrollTargetActive =
     scrollToProp === undefined &&
     nav === true &&
     adjustedScrollTo !== undefined &&
-    scrollRow === null
+    effectiveScrollRow === null
   const anchoringEnabled =
     !cursorScrollTargetActive &&
     shouldApplyVisibleContentAnchoring({
@@ -1773,7 +1798,7 @@ function ListViewInner<T>(
   const renderScroll = resolveListViewViewportFrame({
     declarativeScrollRow,
     followPinnedTopRow,
-    scrollRow,
+    scrollRow: effectiveScrollRow,
     followDisengageTopRow: followDisengagedThisRender ? followDisengageTopRow : null,
     maintainedTopRow: scrollAnchoring.maintainedTopRow,
   })
@@ -2391,13 +2416,15 @@ function ListViewInner<T>(
         // increments would collapse to a single-row scroll.
         const seed = isWheelDrivenRef.current
           ? physics.getScrollFloat()
-          : (() => {
-              const cursorIdx = activeCursorRef.current
-              const lastIdx = itemCountRef.current - 1
-              if (cursorIdx >= lastIdx && lastIdx >= 0) return maxRow
-              if (cursorIdx <= 0) return 0
-              return Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
-            })()
+          : followEndPinRef.current.kind === "end"
+            ? Math.max(0, Math.min(maxRow, visualTopRowRef.current))
+            : (() => {
+                const cursorIdx = activeCursorRef.current
+                const lastIdx = itemCountRef.current - 1
+                if (cursorIdx >= lastIdx && lastIdx >= 0) return maxRow
+                if (cursorIdx <= 0) return 0
+                return Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
+              })()
         const next = Math.max(0, Math.min(maxRow, seed + rows))
         if (next === seed) return
         scrollAnchoring.suppressOnce()
@@ -2694,7 +2721,7 @@ function ListViewInner<T>(
     // unified form also handles cursor-following mode correctly when
     // scrollRow is null.
     const maxRow = maxScrollRowRef.current
-    const topRow = scrollRow !== null ? scrollRow : rowsAboveViewportRef.current
+    const topRow = effectiveScrollRow !== null ? effectiveScrollRow : rowsAboveViewportRef.current
     const bottomRow = topRow + contentViewportHeight
     const totalContentRows = heightModel.totalRows()
     const computedAtEnd = bottomRow >= totalContentRows - 0.5
@@ -2716,6 +2743,11 @@ function ListViewInner<T>(
       tailMeasuredHeight !== undefined &&
       Math.abs(tailMeasuredHeight - prevTailMeasuredHeight) > 0.5
     const rowsChangedFromTailMeasurement = rowsChanged && tailMeasuredHeightChanged
+    const pointerAnchorExpired =
+      suppressFollowEndUntilBottomRef.current &&
+      pointerAnchorTopRowRef.current !== null &&
+      Date.now() > pointerAnchorExpiresAtRef.current
+    const suppressFollowEnd = suppressFollowEndUntilBottomRef.current && !pointerAnchorExpired
 
     // Auto-follow: when `follow="end"` is engaged, snap scrollRow to
     // maxRow when:
@@ -2762,9 +2794,9 @@ function ListViewInner<T>(
     const prevMaxRow = prevMaxScrollRowRef.current
     const userScrolledAway =
       followEndPinRef.current.kind !== "end" &&
-      scrollRow !== null &&
+      effectiveScrollRow !== null &&
       prevMaxRow !== null &&
-      scrollRow < prevMaxRow - 0.5
+      effectiveScrollRow < prevMaxRow - 0.5
     const activeDownwardScrollReachedPreviousEnd =
       wheelGestureActiveRef.current &&
       gestureDirectionRef.current === "down" &&
@@ -2779,6 +2811,7 @@ function ListViewInner<T>(
       resolvedFollow === "end" &&
       viewportReady &&
       maxRow > 0 &&
+      !suppressFollowEnd &&
       !userScrolledAway &&
       !activeUpwardScrollAwayFromEnd &&
       (pendingSnap ||
@@ -2853,6 +2886,7 @@ function ListViewInner<T>(
           : computedAtEnd
     const keepFollowEndPinned =
       resolvedFollow === "end" &&
+      !suppressFollowEnd &&
       !activeUpwardScrollAwayFromEnd &&
       (followEndPinRef.current.kind === "end" || atBottom)
     followEndPinRef.current = keepFollowEndPinned
@@ -2862,6 +2896,11 @@ function ListViewInner<T>(
             : "settled",
         )
       : { kind: "none" }
+    if (pointerAnchorExpired || resolvedFollow !== "end" || (atBottom && rowsChanged)) {
+      suppressFollowEndUntilBottomRef.current = false
+      pointerAnchorTopRowRef.current = null
+      pointerAnchorExpiresAtRef.current = 0
+    }
 
     // Edge-triggered transition callback. Fires on the initial commit
     // unconditionally (sentinel `null`) and on every subsequent change.
@@ -2873,6 +2912,7 @@ function ListViewInner<T>(
     activeItems.length,
     flashScrollbarOnItemCountGrow,
     physics,
+    effectiveScrollRow,
     scrollRow,
     activeCursor,
     nav,
@@ -3282,6 +3322,8 @@ function ListViewInner<T>(
         scrollOffset={renderScrollRow ?? undefined}
         overflowIndicator={overflowIndicator}
         onWheel={onWheel}
+        onMouseDown={handlePointerViewportIntent}
+        onClick={handlePointerViewportIntent}
       >
         {/* Leading placeholder for virtual height.
          *

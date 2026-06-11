@@ -26,7 +26,7 @@ import {
   STYLE_PROPS_BIT,
 } from "@silvery/ag/epoch"
 import { getLayoutEngine } from "./layout-engine"
-import type { TextFrame } from "@silvery/ag/text-frame"
+import type { RGB, TextFrame } from "@silvery/ag/text-frame"
 import { TerminalBuffer, createTextFrame } from "./buffer"
 import { runWithMeasurer, type Measurer } from "./unicode"
 import { measurePhase } from "./pipeline/measure-phase"
@@ -250,6 +250,60 @@ function findRootThemeBg(root: AgNode): string | null {
   }
   for (const child of root.children) {
     const found = findRootThemeBg(child)
+    if (found !== null) return found
+  }
+  return null
+}
+
+/** Parse `#rrggbb` (or `#rgb`) into RGB; null on any non-hex input. */
+function parseHexToRgb(hex: string): RGB | null {
+  if (typeof hex !== "string") return null
+  let s = hex.trim().toLowerCase()
+  if (s.startsWith("#")) s = s.slice(1)
+  if (s.length === 3) s = s[0]! + s[0]! + s[1]! + s[1]! + s[2]! + s[2]!
+  if (!/^[0-9a-f]{6}$/.test(s)) return null
+  return {
+    r: parseInt(s.slice(0, 2), 16),
+    g: parseInt(s.slice(2, 4), 16),
+    b: parseInt(s.slice(4, 6), 16),
+  }
+}
+
+/**
+ * Walk the ag tree top-down to find the root ThemeProvider's 16 ANSI colors
+ * (`theme.palette`), converted to RGB for the backdrop fade.
+ *
+ * Mirrors `findRootThemeBg`: ThemeProvider renders `<Box theme={merged}>`, and
+ * the Sterling `Theme` carries `palette: readonly string[]` — a 16-slot ANSI
+ * catalog in canonical order (0 black … 6 cyan … 15 brightWhite), the SAME
+ * index order as a buffer cell's numeric `Color`. We return those 16 slots as
+ * RGB so the fade resolves palette-indexed cells against the active theme
+ * instead of the hardcoded VGA table (@km 19764).
+ *
+ * Returns `null` when no theme node is present (bare tests without
+ * ThemeProvider) OR the theme has no usable 16-entry hex palette — the fade
+ * then falls back to `ansi256ToRgb` (VGA), preserving pre-fix behavior.
+ */
+function findRootThemeAnsi16(root: AgNode): readonly RGB[] | null {
+  const props = root.props as Record<string, unknown>
+  if (props.theme) {
+    const theme = props.theme as Record<string, unknown>
+    const palette = theme["palette"]
+    if (Array.isArray(palette) && palette.length >= 16) {
+      const rgb: RGB[] = []
+      for (let i = 0; i < 16; i++) {
+        const slot = palette[i]
+        const parsed = typeof slot === "string" ? parseHexToRgb(slot) : null
+        // A single unparseable slot aborts to the VGA fallback rather than
+        // emitting a partial palette (which would mix themed + VGA colors).
+        if (parsed === null) return null
+        rgb.push(parsed)
+      }
+      return rgb
+    }
+  }
+  for (const child of root.children) {
+    const found = findRootThemeAnsi16(child)
     if (found !== null) return found
   }
   return null
@@ -512,9 +566,13 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
         _prevBuffer = carryForwardBuffer
       }
       const defaultBg = findRootThemeBg(root) ?? undefined
+      // Theme ANSI-16 palette so palette-indexed chrome (parsed agent terminal
+      // cyan etc.) fades toward the theme's color, not VGA teal (@km 19764).
+      const palette = findRootThemeAnsi16(root) ?? undefined
       const result = applyBackdrop(root, buffer, {
         colorLevel,
         defaultBg,
+        palette,
         kittyGraphics,
       })
       overlay = result.overlay

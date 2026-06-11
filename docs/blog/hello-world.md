@@ -6,7 +6,7 @@ date: 2026-04-02
 
 # Welcome to the Silvery Blog
 
-I've been meaning to start writing about Silvery for a while. The framework has grown from a side experiment into something I use every day to build [km](https://github.com/beorn/km), and along the way I've accumulated a lot of notes on terminal rendering, layout engines, and the surprising depth of the terminal ecosystem. This blog is where those notes will live.
+I've been meaning to start writing about Silvery for a while. The framework has grown from a side experiment into something I use every day to build km (a personal knowledge tool), and along the way I've accumulated a lot of notes on terminal rendering, layout engines, and the surprising depth of the terminal ecosystem. This blog is where those notes will live.
 
 Here's what to expect:
 

@@ -9,6 +9,7 @@
  * Bead: @km/silvery/responsive-layout-architecture-reframe (A0.7).
  */
 
+import { spawnSync } from "node:child_process"
 import { readFileSync, readdirSync, copyFileSync, mkdtempSync, rmSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
@@ -17,6 +18,15 @@ import { describe, expect, test, afterEach } from "vitest"
 import { transformFile } from "./autofit-to-box-fitwidth"
 
 const FIXTURES_DIR = join(dirname(fileURLToPath(import.meta.url)), "__fixtures__")
+
+function formatFile(path: string): void {
+  const result = spawnSync("oxfmt", ["--write", path], { encoding: "utf8" })
+  if (result.status !== 0) {
+    throw new Error(
+      `oxfmt failed for ${path}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+    )
+  }
+}
 
 function listFixturePairs(): { name: string; input: string; expected: string }[] {
   const files = readdirSync(FIXTURES_DIR).filter((f) => f.endsWith(".input.tsx"))
@@ -47,6 +57,7 @@ describe("autofit-to-box-fitwidth codemod", () => {
       copyFileSync(fixture.input, target)
 
       const result = transformFile(target, {})
+      formatFile(target)
       const actual = readFileSync(target, "utf8").trimEnd()
       const expected = readFileSync(fixture.expected, "utf8").trimEnd()
 

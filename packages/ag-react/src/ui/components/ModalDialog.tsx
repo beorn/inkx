@@ -1,7 +1,7 @@
 /**
  * ModalDialog Component
  *
- * Reusable modal dialog with consistent styling: double border, title bar,
+ * Reusable modal dialog with consistent styling: raised background, title bar,
  * optional footer, and solid background that covers board content.
  *
  * Moved from km-tui shared-components to silvery for reuse across apps.
@@ -34,7 +34,7 @@ export interface ModalDialogProps extends Omit<BoxProps, "children" | "flexDirec
   titleColor?: string
   /** Title alignment (default: center) */
   titleAlign?: "center" | "flex-start" | "flex-end"
-  /** Toggle hotkey character (e.g., "?" for help). Renders [X] prefix in title. */
+  /** Toggle hotkey character (e.g., "?" for help). Reserved for callers; not rendered in the title. */
   hotkey?: string
   /** Content to render on the right side of the title bar (e.g., hotkey indicator, match count) */
   titleRight?: React.ReactNode
@@ -138,7 +138,7 @@ export function formatTitleWithHotkey(
  *
  * Features:
  * - Solid raised background (covers board content)
- * - Double border (configurable color). Cyan reserved for focus rings.
+ * - Borderless by default; the raised background carries the modal surface.
  * - Horizontal padding (2), vertical padding (1)
  * - Title: bold, colored, with spacer below
  * - Footer: centered, dimColor, with spacer above
@@ -148,7 +148,7 @@ export function ModalDialog({
   title,
   titleColor,
   titleAlign = "center",
-  hotkey,
+  hotkey: _hotkey,
   titleRight,
   width,
   height,
@@ -175,7 +175,6 @@ export function ModalDialog({
       flexDirection="column"
       width={width ?? "snug-content"}
       height={height}
-      borderStyle="double"
       borderColor={borderColor}
       backgroundColor={"$bg-surface-raised"}
       paddingX={2}
@@ -187,13 +186,9 @@ export function ModalDialog({
       {title && (
         <Box flexShrink={0} flexDirection="column">
           <Box justifyContent={effectiveTitleAlign}>
-            {hotkey ? (
-              formatTitleWithHotkey(title, hotkey, effectiveTitleColor)
-            ) : (
-              <Text color={effectiveTitleColor} bold>
-                {title}
-              </Text>
-            )}
+            <Text color={effectiveTitleColor} bold>
+              {title}
+            </Text>
             {titleRight}
           </Box>
           <Text> </Text>

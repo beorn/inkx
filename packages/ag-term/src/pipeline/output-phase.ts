@@ -19,11 +19,13 @@ import {
   styleEquals,
 } from "../buffer"
 import { fgColorCode, bgColorCode } from "../ansi/sgr-codes"
+import { resetCursorStyle, setCursorStyle } from "../output"
 import type { CursorState } from "@silvery/ag-react/hooks/useCursor"
 import { IncrementalRenderMismatchError } from "../errors"
 import { textSized } from "../text-sizing"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode"
 import type { CellChange } from "./types"
+import { checkRenderEmulatorDivergence, countNonSpaceInText } from "../strict-divergence"
 import { createLogger } from "loggily"
 import {
   replayAnsiWithStyles,
@@ -1451,6 +1453,29 @@ export function outputPhase(
   if (tvState.backends.length > 0 && (tvState.terminal || tvState.ghosttyTerminal)) {
     tvState.frameCount++
     _verifyTerminalEquivalence(tvState, incrOutput, next, ctx, bufferToAnsi)
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Render/emulator divergence canary  (SILVERY_STRICT slug: "divergence")
+    // ───────────────────────────────────────────────────────────────────────
+    //
+    // The frame's cumulative ANSI has now been fed into the in-process
+    // emulator (above). Read it back: if silvery painted a real content
+    // frame (`next.countPaintedCells()`) but the emulator screen is
+    // all-spaces, that's the 19604 blank-screen signature — a full frame
+    // emitted to a blank screen. Tier 2 throws; tier 1 logs. NO-OP for
+    // live TTYs (they never enter this in-process-emulator block).
+    // Bead: @km/code/v0.2/19604-focus-blank.
+    const divergenceTerm = tvState.terminal ?? tvState.ghosttyTerminal
+    if (divergenceTerm) {
+      checkRenderEmulatorDivergence(
+        next,
+        {
+          nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+          backendName: tvState.terminal ? "xterm" : "ghostty",
+        },
+        tvState.frameCount,
+      )
+    }
   }
 
   if (CAPTURE_RAW) {
@@ -1541,7 +1566,7 @@ function inlineCursorSuffix(
   ctx: OutputContext,
 ): string {
   const { termRows } = ctx
-  if (!cursorPos?.visible) {
+  if (!cursorPos) {
     // No active cursor — hide it
     return "\x1b[?25l"
   }
@@ -1578,7 +1603,14 @@ function inlineCursorSuffix(
   if (cursorPos.x > 0) {
     suffix += `\x1b[${cursorPos.x}C`
   }
-  // Show cursor
+  if (!cursorPos.visible) {
+    suffix += "\x1b[?25l"
+    return suffix
+  }
+  // Show cursor with the requested shape. Fullscreen mode emits the same
+  // DECSCUSR sequence in scheduler/runtime; inline mode needs to do it here
+  // because inline cursor positioning is owned by output-phase.
+  suffix += cursorPos.shape ? setCursorStyle(cursorPos.shape) : resetCursorStyle()
   suffix += "\x1b[?25h"
   return suffix
 }
@@ -1783,6 +1815,21 @@ function inlineIncrementalRender(
     if (tvState && tvState.backends.length > 0 && (tvState.terminal || tvState.ghosttyTerminal)) {
       tvState.frameCount++
       _verifyTerminalEquivalence(tvState, fsIncrOutput, next, ctx, bufferToAnsi)
+
+      // Render/emulator divergence canary (inline path) — same 19604
+      // class-killer as the fullscreen path. See the matching block in
+      // outputPhase(). NO-OP for live TTYs. Bead: @km/code/v0.2/19604-focus-blank.
+      const divergenceTerm = tvState.terminal ?? tvState.ghosttyTerminal
+      if (divergenceTerm) {
+        checkRenderEmulatorDivergence(
+          next,
+          {
+            nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+            backendName: tvState.terminal ? "xterm" : "ghostty",
+          },
+          tvState.frameCount,
+        )
+      }
     }
     ctx.mode = savedMode
   }

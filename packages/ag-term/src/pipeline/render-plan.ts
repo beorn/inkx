@@ -88,7 +88,13 @@ export type RenderOp =
       attrs: CellAttrs
       underlineColor?: Color
     }
-  | { kind: "setRowMeta"; row: number; softWrapped?: boolean; lastContentCol?: number }
+  | {
+      kind: "setRowMeta"
+      row: number
+      softWrapped?: boolean
+      lastContentCol?: number
+      wrapJoinSpace?: boolean
+    }
 
 export interface RenderPlan {
   readonly width: number
@@ -235,7 +241,10 @@ export class RecordingBuffer extends TerminalBuffer {
       })
   }
 
-  override setRowMeta(row: number, meta: { softWrapped?: boolean; lastContentCol?: number }): void {
+  override setRowMeta(
+    row: number,
+    meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
+  ): void {
     super.setRowMeta(row, meta)
     if (this.recording) this.ops.push({ kind: "setRowMeta", row, ...meta })
   }
@@ -325,7 +334,11 @@ function copyBufferState(dst: TerminalBuffer, src: TerminalBuffer): void {
   }
   for (let y = 0; y < src.height; y++) {
     const meta = src.getRowMeta(y)
-    dst.setRowMeta(y, { softWrapped: meta.softWrapped, lastContentCol: meta.lastContentCol })
+    dst.setRowMeta(y, {
+      softWrapped: meta.softWrapped,
+      lastContentCol: meta.lastContentCol,
+      wrapJoinSpace: meta.wrapJoinSpace,
+    })
   }
   // Phase 2 Step 5 of paint-clear-invariant L5 retired
   // `buffer.outlineSnapshots`; cross-frame outline state lives on
@@ -404,9 +417,10 @@ function applyOp(buffer: TerminalBuffer, op: RenderOp): void {
       buffer.mergeAttrsInRect(op.x, op.y, op.width, op.height, op.attrs, op.underlineColor)
       return
     case "setRowMeta": {
-      const meta: { softWrapped?: boolean; lastContentCol?: number } = {}
+      const meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean } = {}
       if (op.softWrapped !== undefined) meta.softWrapped = op.softWrapped
       if (op.lastContentCol !== undefined) meta.lastContentCol = op.lastContentCol
+      if (op.wrapJoinSpace !== undefined) meta.wrapJoinSpace = op.wrapJoinSpace
       buffer.setRowMeta(op.row, meta)
       return
     }
@@ -554,7 +568,13 @@ export type OverlayOp = {
  * same SELECTABLE_FLAG bits as the direct BufferSink path.
  */
 export type PostStateOp =
-  | { kind: "setRowMeta"; row: number; softWrapped?: boolean; lastContentCol?: number }
+  | {
+      kind: "setRowMeta"
+      row: number
+      softWrapped?: boolean
+      lastContentCol?: number
+      wrapJoinSpace?: boolean
+    }
   | {
       // Outline snapshots — cells captured during the decoration pass so
       // the next frame can restore the under-cells before drawing the new
@@ -764,9 +784,10 @@ function applyOverlay(buffer: TerminalBuffer, op: OverlayOp): void {
 function applyPostState(buffer: TerminalBuffer, op: PostStateOp): void {
   switch (op.kind) {
     case "setRowMeta": {
-      const meta: { softWrapped?: boolean; lastContentCol?: number } = {}
+      const meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean } = {}
       if (op.softWrapped !== undefined) meta.softWrapped = op.softWrapped
       if (op.lastContentCol !== undefined) meta.lastContentCol = op.lastContentCol
+      if (op.wrapJoinSpace !== undefined) meta.wrapJoinSpace = op.wrapJoinSpace
       buffer.setRowMeta(op.row, meta)
       return
     }

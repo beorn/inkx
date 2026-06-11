@@ -99,6 +99,87 @@ describe("fullscreen reflow residue", () => {
     expect(frame).toContain("\x1b[2J\x1b[H")
   })
 
+  // The shadow⇄terminal desync at the heart of 19604: a same-size reflow
+  // delivers an IDENTICAL buffer (the React tree didn't change), so a diff
+  // against the shadow prevBuffer is empty. Pre-fix the runtime emitted the 2J
+  // clear with no repaint body → blank screen. The clear must carry a FULL
+  // repaint of the (unchanged) content. Bead: @km/code/v0.2/19604-focus-blank.
+  test("same-size resize with an IDENTICAL buffer still clears AND repaints content (no blank)", () => {
+    let dims: Dims = { cols: 24, rows: 6 }
+    let onResize: ((dims: Dims) => void) | undefined
+    const writes: string[] = []
+
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize(handler) {
+          onResize = handler
+          return () => {
+            onResize = undefined
+          }
+        },
+      },
+    })
+
+    runtime.render(buffer(dims.cols, dims.rows, "STABLE"))
+    writes.length = 0
+
+    // Same dims, same content — the desync case. Without the fix the diff is
+    // empty and only 2J is emitted.
+    onResize?.(dims)
+    runtime.render(buffer(dims.cols, dims.rows, "STABLE"))
+
+    const frame = writes.at(-1) ?? ""
+    expect(frame, "must clear").toContain("\x1b[2J\x1b[H")
+    expect(frame, "must repaint the content, not just clear").toContain("STABLE")
+  })
+
+  // The latch must survive an intermediate no-output frame. After a resize, a
+  // render() of a byte-identical buffer (pre-fix: zero-diff early-return that
+  // consumed clearNextFullscreenRender) must NOT swallow the pending clear —
+  // the resize repaint stays armed until a paint actually writes.
+  test("resize-paint latch survives an intermediate identical-buffer frame", () => {
+    let dims: Dims = { cols: 24, rows: 6 }
+    let onResize: ((dims: Dims) => void) | undefined
+    const writes: string[] = []
+
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize(handler) {
+          onResize = handler
+          return () => {
+            onResize = undefined
+          }
+        },
+      },
+    })
+
+    const stable = buffer(dims.cols, dims.rows, "ROW")
+    runtime.render(stable)
+    writes.length = 0
+
+    onResize?.(dims)
+    expect(runtime.isResizePending(), "latch armed after resize").toBe(true)
+
+    // First post-resize render writes the clear+repaint and disarms the latch.
+    runtime.render(buffer(dims.cols, dims.rows, "ROW"))
+    expect(writes.at(-1) ?? "", "clear+repaint emitted").toContain("\x1b[2J\x1b[H")
+    expect(runtime.isResizePending(), "latch cleared only after a real write").toBe(false)
+  })
+
   test("runtime clear-screen repaint does not use DEC 2026 sync markers", () => {
     let dims: Dims = { cols: 24, rows: 6 }
     let onResize: ((dims: Dims) => void) | undefined
@@ -166,9 +247,13 @@ describe("fullscreen reflow residue", () => {
     runtime.render(buffer(dims.cols, dims.rows, "after"))
 
     const frame = writes.at(-1) ?? ""
-    expect(frame).toContain("\x1b[2J\x1b[H")
-    expect(frame.startsWith("\x1b[?2026h")).toBe(true)
+    // syncUpdate wraps the repaint body, but the 2J clear still stays OUTSIDE
+    // the sync region (never clear inside sync — km bead 19604). So the frame
+    // opens with the clear, THEN the sync region.
+    expect(frame.startsWith("\x1b[2J\x1b[H")).toBe(true)
+    expect(frame.indexOf("\x1b[2J\x1b[H")).toBeLessThan(frame.indexOf("\x1b[?2026h"))
     expect(frame.endsWith("\x1b[?2026l")).toBe(true)
+    expect(frame.slice(frame.indexOf("\x1b[?2026h")).includes("\x1b[2J")).toBe(false)
   })
 
   test("termless resize-residue backend is cleared by the next fullscreen paint", async () => {
@@ -185,6 +270,14 @@ describe("fullscreen reflow residue", () => {
     const outputAfterResize = term.out.getText()
     expect(outputAfterResize).toContain("\x1b[2J")
     expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+    // (c) Content-present — the assertion the 19604 cluster was missing. A
+    // clear-WITHOUT-repaint passes the 2J + marker-gone checks above yet leaves
+    // the screen blank (the bug). Assert the transcript content is actually on
+    // the emulator after the reflow. @km/code/v0.2/19604-focus-blank.
+    expect(term.screen, "content must survive the reflow, not just clear").toContainText(
+      "stable top",
+    )
+    expect(term.screen).toContainText("stable bottom")
 
     handle.unmount()
   })
@@ -202,6 +295,11 @@ describe("fullscreen reflow residue", () => {
 
     const outputAfterResize = term.out.getText()
     expect(outputAfterResize).toContain("\x1b[2J")
+    // (c) Content-present after the same-size heal — see note above.
+    expect(term.screen, "content must survive the same-size resize heal").toContainText(
+      "stable top",
+    )
+    expect(term.screen).toContainText("stable bottom")
 
     handle.unmount()
   })
@@ -220,6 +318,9 @@ describe("fullscreen reflow residue", () => {
     const outputAfterFocus = term.out.getText()
     expect(outputAfterFocus).toContain("\x1b[2J")
     expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+    // (c) Content-present after the focus-in restore — see note above.
+    expect(term.screen, "content must survive the focus-in restore").toContainText("stable top")
+    expect(term.screen).toContainText("stable bottom")
 
     handle.unmount()
   })
@@ -241,6 +342,11 @@ describe("fullscreen reflow residue", () => {
       const outputAfterTick = term.out.getText()
       expect(outputAfterTick).toContain("\x1b[2J")
       expect(term.screen.getText()).not.toContain(term.reflowResidue!.marker)
+      // (c) Content-present after the focus-out damage repair — the live
+      // transcript must remain on the emulator, not just the clear fired.
+      expect(term.screen, "live content must survive the damage repair").toContainText(
+        "live transcript row",
+      )
     } finally {
       handle.unmount()
     }
@@ -353,7 +459,7 @@ describe("auto sync-wrap for large fullscreen frames (km bead 19633)", () => {
     expect(frame.includes(SYNC_END)).toBe(false)
   })
 
-  test("a large clearFullscreen repaint is NOT auto-wrapped (km bead 19604 — Ghostty clear-in-sync caveat)", () => {
+  test("a large clearFullscreen repaint keeps the 2J clear OUTSIDE sync but wraps the repaint body (km bead 19604)", () => {
     const dims: Dims = { cols: 120, rows: 40 }
     let onResize: ((dims: Dims) => void) | undefined
     const writes: string[] = []
@@ -379,18 +485,70 @@ describe("auto sync-wrap for large fullscreen frames (km bead 19633)", () => {
     runtime.render(denseBuffer(dims.cols, dims.rows, 1))
     writes.length = 0
     // A focus-in / resize forces a clearFullscreen repaint (2J + full repaint).
-    // Even though it is large, it must NOT be sync-wrapped: a clear performed
-    // inside a DEC 2026 region corrupts on older Ghostty and blanks the pane
-    // after a workspace focus switch (km bead 19604-focus-blank).
+    // Two invariants must BOTH hold (km bead 19604-focus-blank):
+    //   1. The destructive 2J clear stays OUTSIDE the DEC 2026 sync region —
+    //      older Ghostty corrupts a clear performed inside sync (the original
+    //      blank symptom).
+    //   2. The large repaint body is STILL delivered atomically (sync-wrapped) —
+    //      a large repaint written un-synchronized tears/drops cells under
+    //      compositor load and settles blank with residue (the recurrence).
     onResize?.(dims)
     runtime.render(denseBuffer(dims.cols, dims.rows, 2))
 
     const frame = writes.at(-1) ?? ""
     expect(frame, "frame should be a clear repaint").toContain("\x1b[2J\x1b[H")
     expect(Buffer.byteLength(frame), "clear repaint should be large").toBeGreaterThan(2048)
-    expect(frame.includes(SYNC_BEGIN), "large clear repaint must not open a sync region").toBe(
-      false,
+    // The repaint body is wrapped: a sync region IS opened/closed...
+    expect(frame.includes(SYNC_BEGIN), "large clear repaint should wrap its body in sync").toBe(
+      true,
     )
-    expect(frame.includes(SYNC_END)).toBe(false)
+    expect(frame.includes(SYNC_END)).toBe(true)
+    // ...but the 2J clear is emitted BEFORE the sync region opens — never inside it.
+    const clearIdx = frame.indexOf("\x1b[2J\x1b[H")
+    const syncIdx = frame.indexOf(SYNC_BEGIN)
+    expect(clearIdx, "2J clear must precede the sync region (clear outside sync)").toBeLessThan(
+      syncIdx,
+    )
+    expect(
+      frame.slice(syncIdx).includes("\x1b[2J"),
+      "no 2J clear may appear inside the sync region",
+    ).toBe(false)
+  })
+
+  test("focus-in invalidate({clearScreen}) large repaint: 2J outside sync, body wrapped (km bead 19604)", () => {
+    const dims: Dims = { cols: 120, rows: 40 }
+    const writes: string[] = []
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      outputPhaseFn: createOutputPhase({}),
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize() {
+          return () => {}
+        },
+      },
+    })
+
+    runtime.render(denseBuffer(dims.cols, dims.rows, 1))
+    writes.length = 0
+    // This is the exact focus-in path: createApp's term:focus handler calls
+    // runtime.invalidate({ clearScreen: true }) when a cmux workspace switch
+    // refocuses the pane. The very next render must clear+repaint atomically.
+    runtime.invalidate({ clearScreen: true })
+    runtime.render(denseBuffer(dims.cols, dims.rows, 2))
+
+    const frame = writes.at(-1) ?? ""
+    expect(frame, "focus-in frame should be a clear repaint").toContain("\x1b[2J\x1b[H")
+    expect(Buffer.byteLength(frame), "focus-in repaint should be large").toBeGreaterThan(2048)
+    expect(frame.includes(SYNC_BEGIN), "focus-in repaint body should be sync-wrapped").toBe(true)
+    const clearIdx = frame.indexOf("\x1b[2J\x1b[H")
+    const syncIdx = frame.indexOf(SYNC_BEGIN)
+    expect(clearIdx, "focus-in 2J clear must stay outside sync").toBeLessThan(syncIdx)
+    expect(frame.slice(syncIdx).includes("\x1b[2J")).toBe(false)
   })
 })

@@ -88,6 +88,14 @@ export interface TextAreaProps {
   onChange?: (value: string) => void
   /** Called on submit (Ctrl+Enter by default, or Enter if submitKey="enter") */
   onSubmit?: (value: string) => void
+  /**
+   * Called when Ctrl+D is pressed on an empty active buffer.
+   *
+   * Ctrl+D keeps its normal readline delete-forward behavior when text exists.
+   * This callback only models terminal EOF for hosts that want to bind an empty
+   * compose field to exit, close, or send-end-of-input behavior.
+   */
+  onEof?: () => void
   /** Key to trigger submit: "ctrl+enter" (default), "enter", or "meta+enter" */
   submitKey?: "ctrl+enter" | "enter" | "meta+enter"
   /** Placeholder text when empty */
@@ -126,7 +134,7 @@ export interface TextAreaProps {
    * @default 8
    */
   maxRows?: number
-  /** Cursor style: 'block' (inverse) or 'underline' */
+  /** Cursor style for both the active hardware cursor and inactive fake cursor. */
   cursorStyle?: "block" | "underline"
   /**
    * When the TextArea is inactive (`isActive === false`), render an
@@ -237,6 +245,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     defaultValue = "",
     onChange,
     onSubmit,
+    onEof,
     submitKey = "ctrl+enter",
     placeholder = "",
     isActive: isActiveProp,
@@ -321,6 +330,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     defaultValue,
     onChange,
     onSubmit,
+    onEof,
     submitKey,
     isActive,
     height: upperBoundRows,
@@ -349,7 +359,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // Imperative handle
   useImperativeHandle(ref, () => ({
     clear: ta.clear,
-    getValue: () => ta.value,
+    getValue: ta.getValue,
     setValue: ta.setValue,
     setCursor: ta.setCursor,
     getSelection: ta.getSelection,
@@ -418,12 +428,19 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     col: ta.cursorCol,
     row: ta.visibleCursorRow,
     visible: isActive && !disabled && !ta.selection,
+    shape: cursorStyle,
   }
+  // Active text inputs own cursor placement whether the hardware cursor is
+  // visible or intentionally hidden (disabled/selection). Otherwise an active
+  // composer cursor becomes only a fallback candidate and a deeper visible
+  // cursor can win in composite layouts.
+  const focusedCursorOwner = isActive
 
   if (showPlaceholder) {
     return (
       <Box
         focusable
+        focused={focusedCursorOwner}
         testID={testID}
         flexDirection="column"
         width="100%"
@@ -445,6 +462,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   return (
     <Box
       focusable
+      focused={focusedCursorOwner}
       testID={testID}
       key={ta.scrollOffset}
       flexDirection="column"

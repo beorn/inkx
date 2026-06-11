@@ -65,6 +65,7 @@
 
 import { relativeLuminance } from "@silvery/color"
 import type { AgNode, Rect } from "@silvery/ag/types"
+import type { RGB } from "@silvery/ag/text-frame"
 export type { ColorLevel } from "@silvery/ansi"
 import type { ColorLevel } from "@silvery/ansi"
 import { type HexColor, normalizeHex } from "./color"
@@ -100,6 +101,19 @@ export interface BackdropOptions {
    * `buildPlan`.
    */
   defaultFg?: string
+  /**
+   * The active theme's 16 ANSI colors, in canonical slot order
+   * (`theme.palette`: 0 black … 6 cyan … 15 brightWhite). When supplied, the
+   * fade resolves PALETTE-INDEXED cells (numeric `cell.fg`/`cell.bg` in 0–15,
+   * e.g. ANSI cyan from parsed agent terminal output) against this palette
+   * instead of the hardcoded VGA table in `ansi256ToRgb`. Without it,
+   * palette-cyan chrome fades to harsh VGA teal `#008080` (@km 19764).
+   *
+   * Threaded from `ag.ts`'s `findRootThemeAnsi16(root)` (mirrors
+   * `findRootThemeBg`). Indices ≥ 16 (the 6×6×6 cube + grayscale ramp) are
+   * palette-independent and keep `ansi256ToRgb` regardless.
+   */
+  palette?: readonly RGB[]
   /**
    * When true, emit Kitty graphics protocol overlays on emoji cells inside
    * the faded region. The terminal renders a translucent scrim image above
@@ -171,7 +185,9 @@ export interface PlanRect {
  *   prod falls back to first).
  * - `scrim` is either a normalized `#rrggbb` hex (with a known theme bg or
  *   an explicit `scrimColor`) or `null` (legacy fallback where the buffer
- *   realizer mixes fg toward cell.bg without a scrim).
+ *   realizer mixes fg toward cell.bg AND recedes cell.bg toward a SCENE-LEVEL
+ *   polarity target sampled from the faded region — no single theme scrim to
+ *   mix toward; see `realize-buffer.ts` `sampleRegionScrimTarget`).
  * - `defaultBg` / `defaultFg` are resolved for stage-2 passes.
  * - `scrimTowardLight` records whether the scrim is on the light side of
  *   the luminance threshold. Null-scrim plans default to `false`.
@@ -188,8 +204,11 @@ export interface CorePlan {
    */
   readonly amount: number
   /**
-   * Resolved scrim hex, or null when no theme bg is available. The
-   * buffer-realizer falls back to a legacy single-channel mix when null.
+   * Resolved scrim hex, or null when no theme bg is available. When null the
+   * buffer-realizer runs the legacy two-channel mix: fg toward cell.bg, and
+   * cell.bg toward a SCENE-LEVEL polarity target sampled from the faded region
+   * (predominantly-dark scene → black, predominantly-light → white). Falls
+   * back to a per-cell target only when the region has no resolvable bg sample.
    */
   readonly scrim: HexColor | null
   /** Default background hex for resolving null/default `cell.bg`. */
@@ -200,6 +219,14 @@ export interface CorePlan {
    * dark scrim, black for light).
    */
   readonly defaultFg: HexColor | null
+  /**
+   * The active theme's 16 ANSI colors (`options.palette`), carried verbatim so
+   * realizers resolve palette-indexed cells (0–15) against the theme rather
+   * than the VGA table. `null` when the caller supplied no palette (bare /
+   * no-theme renders) — `colorToHex` then falls back to `ansi256ToRgb`
+   * (@km 19764).
+   */
+  readonly palette: readonly RGB[] | null
   /** Rects marked `data-backdrop-fade` — fade cells INSIDE each rect. */
   readonly includes: readonly PlanRect[]
   /**
@@ -257,6 +284,7 @@ export const INACTIVE_PLAN: TerminalPlan = Object.freeze({
   scrim: null,
   defaultBg: null,
   defaultFg: null,
+  palette: null,
   includes: Object.freeze([]) as readonly PlanRect[],
   excludes: Object.freeze([]) as readonly PlanRect[],
   mixedAmounts: false,
@@ -293,6 +321,7 @@ const INACTIVE_CORE_PLAN: CorePlan = Object.freeze({
   scrim: null,
   defaultBg: null,
   defaultFg: null,
+  palette: null,
   includes: Object.freeze([]) as readonly PlanRect[],
   excludes: Object.freeze([]) as readonly PlanRect[],
   mixedAmounts: false,
@@ -394,6 +423,10 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): TerminalPlan
     scrim,
     defaultBg,
     defaultFg,
+    // Carry the theme ANSI-16 palette so realizers resolve palette-indexed
+    // cells against the theme, not the VGA table (@km 19764). `null` when the
+    // caller supplied none (bare / no-theme renders).
+    palette: options?.palette ?? null,
     includes,
     excludes,
     mixedAmounts: hasMixedAmounts,
@@ -443,8 +476,8 @@ function assertSingleAmount(
 /**
  * Derive the auto scrim color from a normalized bg hex. Dark themes scrim
  * toward `DARK_SCRIM`; light themes scrim toward `LIGHT_SCRIM`. Returns
- * `null` when `bg` is absent or unparseable — signals legacy single-
- * channel fallback in `fadeCell`.
+ * `null` when `bg` is absent or unparseable — signals the legacy
+ * per-cell-polarity two-channel fallback in `fadeCell`.
  */
 function deriveAutoScrimColor(bg: HexColor | null): HexColor | null {
   if (!bg) return null

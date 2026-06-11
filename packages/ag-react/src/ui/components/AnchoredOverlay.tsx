@@ -1,7 +1,8 @@
-import React, { useMemo } from "react"
+import React, { useLayoutEffect, useMemo, useState } from "react"
 import type { BoxProps } from "../../components/Box"
 import { Box } from "../../components/Box"
 import { useAgNode } from "../../hooks/useAgNode"
+import { useBoxSize } from "../../hooks/useLayout"
 import { useSignal } from "../../hooks/useSignal"
 import type { DecorationRect } from "@silvery/ag/layout-signals"
 import type { CollisionStrategy, Decoration, Placement, Rect } from "@silvery/ag/types"
@@ -73,19 +74,41 @@ export function AnchoredOverlay({
   ...boxProps
 }: AnchoredOverlayProps): React.ReactElement | null {
   const decorationId = overlayId ?? anchorId
+
+  // For `sizing="max"`, `size` is a CAP, not the real footprint. Declaring the
+  // full cap (often the whole viewport height) as the collision footprint makes
+  // placement believe the popover is screen-tall: a short popover anchored low
+  // then overflows its placement side, and the shift/flip step drags it across
+  // the anchor — clipping the popover's leading lines under surrounding chrome
+  // (the @km/code/v0.2/19777 top-clip). The real footprint is the CONTENT's
+  // natural height, which we learn by measuring the rendered content one frame
+  // late and feeding `min(cap, measured)` back as the collision size. The
+  // committed-rect read + layout-prop write converges in one event batch (see
+  // useLayout's reactive-rect contract), so this settles deterministically:
+  // frame 1 places at the cap, frame 2 places at the measured content height.
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null)
+  const collisionHeight =
+    sizing === "max" && measuredHeight !== null
+      ? Math.min(size.height, measuredHeight)
+      : size.height
+  const collisionSize = useMemo(
+    () => ({ width: size.width, height: collisionHeight }),
+    [size.width, collisionHeight],
+  )
+
   const decorations = useMemo<Decoration[]>(() => {
     const decoration: Decoration = {
       kind: "popover",
       id: decorationId,
       anchorId,
       placement,
-      size,
+      size: collisionSize,
     }
     if (offset !== undefined) decoration.offset = offset
     if (alignOffset !== undefined) decoration.alignOffset = alignOffset
     if (collisionStrategy !== undefined) decoration.collisionStrategy = collisionStrategy
     return [decoration]
-  }, [anchorId, alignOffset, collisionStrategy, decorationId, offset, placement, size])
+  }, [anchorId, alignOffset, collisionStrategy, collisionSize, decorationId, offset, placement])
 
   if (!open) return null
   return (
@@ -103,6 +126,7 @@ export function AnchoredOverlay({
         fallbackSize={size}
         sizing={sizing}
         boxProps={boxProps}
+        onMeasureHeight={sizing === "max" ? setMeasuredHeight : undefined}
       >
         {children}
       </AnchoredOverlayContent>
@@ -115,12 +139,14 @@ function AnchoredOverlayContent({
   fallbackSize,
   sizing,
   boxProps,
+  onMeasureHeight,
   children,
 }: {
   decorationId: string
   fallbackSize: { width: number; height: number }
   sizing: "fixed" | "max"
   boxProps: AnchoredOverlayBoxProps
+  onMeasureHeight?: (height: number) => void
   children: React.ReactNode
 }): React.ReactElement | null {
   const ag = useAgNode()
@@ -139,7 +165,21 @@ function AnchoredOverlayContent({
   if (!hostRect) return null
   const width = rect.width || fallbackSize.width
   const height = rect.height || fallbackSize.height
-  const sizeProps = sizing === "max" ? { maxWidth: width, maxHeight: height } : { width, height }
+  // For `sizing="max"`, `rect.height` is the COLLISION footprint (refined to the
+  // measured content height to place the popover correctly — see the parent's
+  // note). It must NOT cap the rendered box: the box keeps the generous
+  // `fallbackSize.height` cap so content fills to its natural height and only
+  // scrolls when it genuinely exceeds the cap. Using the shrunk collision height
+  // here would re-clip the content we just measured to place it.
+  const sizeProps =
+    sizing === "max" ? { maxWidth: width, maxHeight: fallbackSize.height } : { width, height }
+  // When measuring (sizing="max"), the probe reads the overlay box's committed
+  // content height and reports it up. Because the box keeps the GENEROUS
+  // `fallbackSize.height` cap (not the shrunk collision height), its measured
+  // height is the content's natural height (only clamped if content truly
+  // exceeds the cap) — so there is no shrinking feedback loop. The collision
+  // footprint refines to this height one frame later, placing the popover
+  // against the anchor without dragging its leading lines off-screen.
   return (
     <Box
       {...boxProps}
@@ -148,9 +188,30 @@ function AnchoredOverlayContent({
       left={rect.x - (hostRect?.x ?? 0)}
       {...sizeProps}
     >
+      {onMeasureHeight ? <OverlayHeightProbe onMeasure={onMeasureHeight} /> : null}
       {children}
     </Box>
   )
+}
+
+/**
+ * Zero-footprint child that measures its enclosing overlay box's committed
+ * content height and reports it up so the parent can refine its collision
+ * footprint (see the `sizing="max"` note above). It reads the COMMITTED
+ * boxRect via `useBoxSize`, which re-renders the probe on the next commit
+ * boundary — so the read/write pair converges within one event batch and
+ * cannot form a layout feedback loop.
+ */
+function OverlayHeightProbe({ onMeasure }: { onMeasure: (height: number) => void }): null {
+  const { height } = useBoxSize()
+  // useLayoutEffect (not useEffect): the synchronous render path
+  // (`flushSyncWork`) commits layout effects but defers passive effects, so a
+  // passive effect would not propagate the measurement into the next sync
+  // re-place — only a layout effect settles deterministically in one frame.
+  useLayoutEffect(() => {
+    if (height > 0) onMeasure(height)
+  }, [height, onMeasure])
+  return null
 }
 
 export type { Rect as AnchoredOverlayRect }

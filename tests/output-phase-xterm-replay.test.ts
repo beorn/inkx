@@ -10,15 +10,15 @@ import { readFileSync, existsSync } from "fs"
 
 const COLS = 220
 const ROWS = 40
+const HAS_CAPTURE_FIXTURES =
+  process.env.SILVERY_XTERM_REPLAY_CAPTURE === "1" &&
+  existsSync("/tmp/silvery-raw.ansi") &&
+  existsSync("/tmp/silvery-raw-fresh-8.ansi")
 
-describe("output-phase xterm.js replay", () => {
+describe.skipIf(!HAS_CAPTURE_FIXTURES)("output-phase xterm.js replay", () => {
   test("cumulative incremental ANSI matches fresh render in xterm.js", () => {
     const rawPath = "/tmp/silvery-raw.ansi"
     const freshPath = "/tmp/silvery-raw-fresh-8.ansi"
-
-    if (!existsSync(rawPath) || !existsSync(freshPath)) {
-      return // Skip: run with SILVERY_CAPTURE_RAW=1 first to capture ANSI files
-    }
 
     const cumulativeAnsi = readFileSync(rawPath, "utf-8")
     const freshAnsi = readFileSync(freshPath, "utf-8")
@@ -77,10 +77,6 @@ describe("output-phase xterm.js replay", () => {
   test("analyze flag emoji cursor drift", () => {
     const rawPath = "/tmp/silvery-raw.ansi"
     const freshPath = "/tmp/silvery-raw-fresh-8.ansi"
-
-    if (!existsSync(rawPath) || !existsSync(freshPath)) {
-      return
-    }
 
     const cumulativeAnsi = readFileSync(rawPath, "utf-8")
     const freshAnsi = readFileSync(freshPath, "utf-8")

@@ -26,7 +26,7 @@
  */
 import React, { createContext, useCallback, useContext, useState } from "react"
 import { useInput } from "../../hooks/useInput"
-import { Box } from "../../components/Box"
+import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 
 // =============================================================================
@@ -49,6 +49,15 @@ export interface TabsProps {
 export interface TabListProps {
   /** Tab children */
   children: React.ReactNode
+  /** Horizontal alignment of the tab labels inside the list. */
+  justifyContent?: BoxProps["justifyContent"]
+  /**
+   * Wrap behavior when the tab labels exceed the list width. Defaults to
+   * `"nowrap"` (single row; overflowing tabs clip). Pass `"wrap"` so a tab bar
+   * that is too wide for a narrow container flows onto additional rows instead
+   * of clipping the trailing tabs off-screen.
+   */
+  flexWrap?: BoxProps["flexWrap"]
 }
 
 export interface TabProps {
@@ -147,7 +156,7 @@ export function Tabs({
 
   return (
     <TabsContext.Provider value={{ activeValue, setActiveValue, tabValues, registerTab }}>
-      <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1} minHeight={0}>
         {children}
       </Box>
     </TabsContext.Provider>
@@ -157,11 +166,19 @@ export function Tabs({
 /**
  * Horizontal tab bar container.
  *
- * Renders Tab children in a horizontal row with gap spacing.
+ * Renders Tab children in a compact segmented row.
  */
-export function TabList({ children }: TabListProps): React.ReactElement {
+export function TabList({ children, justifyContent, flexWrap }: TabListProps): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} borderBottom borderColor="$border-default">
+    <Box
+      flexDirection="row"
+      flexWrap={flexWrap}
+      gap={0}
+      width="100%"
+      borderBottom
+      borderColor="$border-default"
+      justifyContent={justifyContent}
+    >
       {children}
     </Box>
   )
@@ -170,12 +187,11 @@ export function TabList({ children }: TabListProps): React.ReactElement {
 /**
  * Individual tab trigger.
  *
- * Renders the tab label with active/inactive styling. Active tab is bold
- * with `$fg-accent` color; inactive tabs use `$fg-muted`.
+ * Renders the tab label with active/inactive styling. Tabs do not use a
+ * filled background; the active tab is the selected text color.
  *
- * Hover: a non-active hovered tab gets a subtle `$bg-muted` background to
- * signal interactivity. The active tab is already visually prominent — no
- * extra hover styling is applied to avoid double-styling.
+ * Hover: a non-active hovered tab gets the same selected text color to
+ * signal interactivity without adding a second surface treatment.
  */
 export function Tab({ value, children }: TabProps): React.ReactElement {
   const { activeValue, setActiveValue, registerTab } = useTabsContext()
@@ -187,18 +203,16 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
     registerTab(value)
   }, [value, registerTab])
 
-  // Hover background: only for inactive tabs. Active tab already has $fg-accent
-  // fg + bold — adding a bg on top creates visual conflict.
-  const hoverBg = !isActive && isHovered ? "$bg-muted" : undefined
+  const color = isActive || isHovered ? "$fg-warning" : "$fg"
 
   return (
     <Box
       onMouseDown={() => setActiveValue(value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      backgroundColor={hoverBg}
+      paddingRight={2}
     >
-      <Text color={isActive ? "$fg-accent" : "$fg-muted"} bold={isActive} underline={isActive}>
+      <Text color={color} bold>
         {children}
       </Text>
     </Box>
@@ -216,7 +230,7 @@ export function TabPanel({ value, children }: TabPanelProps): React.ReactElement
   if (activeValue !== value) return null
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
+    <Box flexDirection="column" flexGrow={1} minHeight={0}>
       {children}
     </Box>
   )

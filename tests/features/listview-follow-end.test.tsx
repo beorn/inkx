@@ -22,9 +22,11 @@
 
 import React from "react"
 import { describe, test, expect } from "vitest"
+import "@termless/test/matchers"
 import { createRenderer, createTermless } from "@silvery/test"
 import { Box, Text, ListView } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
+import type { SilveryMouseEvent } from "../../packages/ag-term/src/mouse-events"
 
 const settle = (ms = 60) => new Promise((r) => setTimeout(r, ms))
 
@@ -97,6 +99,38 @@ function DisclosureFollowChat({ expanded }: { expanded: boolean }) {
         renderItem={(label) =>
           label === "command" ? (
             <Box flexDirection="column">
+              <Text>$ printf long-output</Text>
+              {expanded
+                ? Array.from({ length: 12 }, (_, i) => <Text key={i}>output {i}</Text>)
+                : null}
+            </Box>
+          ) : (
+            <Text>{label}</Text>
+          )
+        }
+      />
+    </Box>
+  )
+}
+
+function ClickDisclosureFollowChat() {
+  const [expanded, setExpanded] = React.useState(false)
+  return (
+    <Box flexDirection="column" height={6} width={40}>
+      <ListView
+        items={["context", "command"]}
+        height={6}
+        follow="end"
+        getKey={(item) => item}
+        renderItem={(label) =>
+          label === "command" ? (
+            <Box
+              flexDirection="column"
+              onClick={(event: SilveryMouseEvent) => {
+                event.stopPropagation()
+                setExpanded((value) => !value)
+              }}
+            >
               <Text>$ printf long-output</Text>
               {expanded
                 ? Array.from({ length: 12 }, (_, i) => <Text key={i}>output {i}</Text>)
@@ -333,6 +367,34 @@ describe('ListView follow="end"', () => {
     expect(afterCommandRow, app.text).toBe(beforeCommandRow)
     expect(app.text).toContain("output 0")
     expect(app.text).not.toContain("output 11")
+  })
+
+  test("pointer disclosure expansion preserves the clicked row under follow=end", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const handle = await run(<ClickDisclosureFollowChat />, term, {
+      mouse: true,
+      selection: false,
+    })
+    try {
+      await settle()
+      const before = term.screen.getLines()
+      const commandRow = before.findIndex((line) => line.includes("$ printf long-output"))
+      expect(commandRow, term.screen.getText()).toBeGreaterThanOrEqual(0)
+      const commandCol = before[commandRow]!.indexOf("$ printf long-output")
+
+      await term.mouse.click(commandCol + 1, commandRow)
+      await settle()
+
+      expect(term.screen.getLines()[commandRow], term.screen.getText()).toContain(
+        "$ printf long-output",
+      )
+
+      await term.mouse.wheel(commandCol + 1, commandRow, 3)
+      await settle()
+      expect(term.screen).toContainText("output 1")
+    } finally {
+      handle.unmount()
+    }
   })
 })
 

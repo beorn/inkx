@@ -44,6 +44,7 @@
  */
 
 import { writeSync, writeFileSync } from "node:fs"
+import { writeStderrDurably } from "./stderr-durable"
 import { tmpdir } from "node:os"
 import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
@@ -1527,8 +1528,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const restoreFrameCursor = (): void => {
     if (!currentBuffer) return
     const cursor = findActiveCursorRect(currentBuffer.nodes)
-    if (cursor && cursor.visible) {
-      writeOutOfBand(`\x1b[${cursor.y + 1};${cursor.x + 1}H\x1b[?25h`)
+    if (cursor) {
+      const move = `\x1b[${cursor.y + 1};${cursor.x + 1}H`
+      writeOutOfBand(cursor.visible ? `${move}\x1b[?25h` : `${move}\x1b[?25l`)
     } else {
       writeOutOfBand("\x1b[?25l")
     }
@@ -1793,7 +1795,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
       }
       lines.push("")
-      process.stderr.write(lines.join("\n"))
+      // Durable write: a queued stream write can be reordered against sync
+      // writes in `process.on("exit")` handlers (host resume hints) and its
+      // tail dropped at exit. See stderr-durable.ts (@km/silvercode/19767).
+      writeStderrDurably(lines.join("\n"))
     } catch {
       // Best-effort — stderr may already be torn down
     }
@@ -1990,6 +1995,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     row: number
     scope: SelectionScope | null
     clickCount: 2 | 3
+    /** Raw-buffer (Shift) selection — copy verbatim, skip SELECTABLE_FLAG. */
+    forceBufferSelection: boolean
   } | null = null
   let activeSelectionBoundaries: SelectionBoundary[] = []
   let activeForceBufferSelection = false
@@ -2092,6 +2099,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         notifySelectionListeners()
         if (currentBuffer) {
           runtime.invalidate()
+        }
+      },
+      copy: () => {
+        // Keyboard copy-mode yank: extract the current selection and write it
+        // via OSC 52 — the same path mouse drag-copy uses (semantic by default;
+        // copy-mode has no Shift raw-rectangle mode). km-silvery 19761.
+        if (!copyOnSelectEnabled || !selectionState.range || !currentBuffer) return
+        const text = extractText(currentBuffer._buffer, selectionState.range, {
+          scope: selectionState.scope,
+          rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
+        })
+        if (text.length > 0) {
+          const base64 = globalThis.Buffer.from(text).toString("base64")
+          target.write(`\x1b]52;c;${base64}\x07`)
         }
       },
     })
@@ -2577,7 +2598,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           lines.push(`  - ${error.message}${dumpPath ? ` (dump: ${dumpPath})` : ""}`)
         }
         lines.push("")
-        process.stderr.write(lines.join("\n"))
+        // Durable for the same reason as flushPanicReports — see stderr-durable.ts.
+        writeStderrDurably(lines.join("\n"))
       } catch {
         // Best-effort — stderr may already be torn down
       }
@@ -2762,7 +2784,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   //
   // We still override `.size.cols()` / `.rows()` / `.snapshot()` to read
   // `currentDims` so resizes propagate through the same subscriber fanout.
-  const baseMockTerm = createTerm({ cols: currentDims.cols, rows: currentDims.rows })
+  // TermContext needs app-controlled dimensions, but consumers also read the
+  // runtime profile caps (e.g. Kitty graphics). Preserve those caps when
+  // creating the dimension-controlled context term.
+  const termContextCaps = effectiveCaps ?? effectiveTerm?.caps
+  const baseMockTerm = createTerm({
+    cols: currentDims.cols,
+    rows: currentDims.rows,
+    ...(termContextCaps ? { caps: termContextCaps } : {}),
+  })
   const mockTermSubscribers = new Set<(state: { cols: number; rows: number }) => void>()
   // Bridge resize notifications into the baseMockTerm.size signal, so any
   // `useTerm(t => t.size.cols())` consumer re-renders on resize. The headless
@@ -3800,6 +3830,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           if (selectionState.selecting) {
             // dragging → idle. Finish selection, copy via OSC 52, and
             // CONSUME the event so onClick/onSelect does NOT fire (Bug 2).
+            // Capture the raw-buffer (Shift+drag) flag BEFORE it is reset
+            // below — the copy extraction uses it to choose semantic vs raw.
+            const forceBufferSelection = activeForceBufferSelection
             const [next] = terminalSelectionUpdate({ type: "finish" }, selectionState)
             selectionState = next
             pendingSelectionDown = null
@@ -3809,7 +3842,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
             // Copy selected text via OSC 52 — gated on copyOnSelect.
             if (copyOnSelectEnabled && next.range && currentBuffer) {
-              const text = extractText(currentBuffer._buffer, next.range, { scope: next.scope })
+              const text = extractText(currentBuffer._buffer, next.range, {
+                scope: next.scope,
+                // Semantic copy: skip non-selectable margins/gutters/padding so
+                // the clipboard matches the highlight, which already filters by
+                // SELECTABLE_FLAG (renderer.ts). Shift+drag raw-buffer selection
+                // opts out and copies the screen rectangle verbatim.
+                respectSelectableFlag: !forceBufferSelection,
+                // Join soft-wrapped rows into their logical line + precise
+                // trailing-space trimming via per-row metadata.
+                rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
+              })
               if (text.length > 0) {
                 const base64 = globalThis.Buffer.from(text).toString("base64")
                 target.write(`\x1b]52;c;${base64}\x07`)
@@ -3870,6 +3913,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                   anchor.forceBufferSelection,
                 ),
                 clickCount: anchor.clickCount,
+                forceBufferSelection: anchor.forceBufferSelection,
               }
             }
             // Don't consume — let the click event reach the component
@@ -3946,6 +3990,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         if (copyOnSelectEnabled && finished.range) {
           const text = extractText(currentBuffer._buffer, finished.range, {
             scope: finished.scope,
+            // Semantic copy (skip non-selectable margins/gutters/padding) unless
+            // this is a Shift raw-buffer selection. Mirrors the drag-finish path.
+            respectSelectableFlag: !anchor.forceBufferSelection,
+            rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
           })
           if (text.length > 0) {
             const base64 = globalThis.Buffer.from(text).toString("base64")

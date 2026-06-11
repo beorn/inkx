@@ -1,6 +1,6 @@
 # ModalDialog
 
-Reusable modal dialog with consistent styling: double border, title bar, optional footer, and solid background that covers board content.
+Reusable modal dialog with consistent styling: title bar, optional footer, and a raised background surface that covers board content.
 
 ## Import
 
@@ -10,25 +10,25 @@ import { ModalDialog, formatTitleWithHotkey } from "silvery"
 
 ## Props
 
-| Prop          | Type                                     | Default             | Description                                             |
-| ------------- | ---------------------------------------- | ------------------- | ------------------------------------------------------- |
-| `children`    | `ReactNode`                              | **required**        | Dialog content                                          |
-| `title`       | `string`                                 | --                  | Dialog title (rendered bold in titleColor)              |
-| `titleColor`  | `string`                                 | `"$fg-accent"`      | Title color override                                    |
-| `titleAlign`  | `"center" \| "flex-start" \| "flex-end"` | `"center"`          | Title alignment                                         |
-| `hotkey`      | `string`                                 | --                  | Toggle hotkey character (renders `[X]` prefix in title) |
-| `titleRight`  | `ReactNode`                              | --                  | Content on the right side of the title bar              |
-| `borderColor` | `string`                                 | `"$border-default"` | Border color (focus ring uses `$border-focus`)          |
-| `width`       | `number`                                 | --                  | Dialog width                                            |
-| `height`      | `number`                                 | --                  | Dialog height (auto-height if omitted)                  |
-| `footer`      | `ReactNode`                              | --                  | Footer hint text (dimColor at bottom)                   |
-| `footerAlign` | `"center" \| "flex-start" \| "flex-end"` | `"center"`          | Footer alignment                                        |
-| `onClose`     | `() => void`                             | --                  | Called when ESC is pressed                              |
-| `focusScope`  | `boolean`                                | `true`              | Whether to create a focus scope                         |
+| Prop          | Type                                     | Default             | Description                                                       |
+| ------------- | ---------------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `children`    | `ReactNode`                              | **required**        | Dialog content                                                    |
+| `title`       | `string`                                 | --                  | Dialog title (rendered bold in titleColor)                        |
+| `titleColor`  | `string`                                 | `"$fg-accent"`      | Title color override                                              |
+| `titleAlign`  | `"center" \| "flex-start" \| "flex-end"` | `"center"`          | Title alignment                                                   |
+| `hotkey`      | `string`                                 | --                  | Toggle hotkey character reserved by caller; not rendered in title |
+| `titleRight`  | `ReactNode`                              | --                  | Content on the right side of the title bar                        |
+| `borderColor` | `string`                                 | `"$border-default"` | Border color (focus ring uses `$border-focus`)                    |
+| `width`       | `number`                                 | --                  | Dialog width                                                      |
+| `height`      | `number`                                 | --                  | Dialog height (auto-height if omitted)                            |
+| `footer`      | `ReactNode`                              | --                  | Footer hint text (dimColor at bottom)                             |
+| `footerAlign` | `"center" \| "flex-start" \| "flex-end"` | `"center"`          | Footer alignment                                                  |
+| `onClose`     | `() => void`                             | --                  | Called when ESC is pressed                                        |
+| `focusScope`  | `boolean`                                | `true`              | Whether to create a focus scope                                   |
 
 ## Helper: formatTitleWithHotkey
 
-Formats a dialog title with a hotkey prefix. If the hotkey letter appears in the title, highlights it inline.
+Formats a dialog title with a hotkey prefix for legacy/custom callers. `ModalDialog` itself renders plain titles.
 
 ```tsx
 formatTitleWithHotkey("Details", "D") // [D]etails
@@ -50,16 +50,14 @@ formatTitleWithHotkey("Help", "?") // [?] Help
 ## Visual Structure
 
 ```
-+==========================+
-|       Dialog Title       |
-|                          |
-|   Content area           |
-|                          |
-|       Footer hint        |
-+==========================+
+       Dialog Title
+
+   Content area
+
+       Footer hint
 ```
 
-Double border, `$surface-bg` background, `paddingX={2}`, `paddingY={1}`.
+Borderless `$bg-surface-raised` background, `paddingX={2}`, `paddingY={1}`.
 
 ## See Also
 

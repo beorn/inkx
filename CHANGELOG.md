@@ -7,6 +7,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed — copy extraction is semantic by default (`respectSelectableFlag` → `true`)
+
+`extractText` (@silvery/headless) and `extractHtml` (@silvery/ag-term) now default
+`respectSelectableFlag` to `true`: a copied selection contains only cells that carry
+SELECTABLE_FLAG, matching the highlight. Previously the default was `false`, so every
+copy path (OSC 52 mouse-drag, word/line click, rich copy) leaked non-selectable
+margins / gutters / padding / wrap-fill into the clipboard while the highlight already
+filtered them — a defaults-contract violation: the default did not match the documented
+semantic-copy behavior (km-silvery 19756).
+
+Soft-wrapped visual rows now rejoin into their logical line — word-wrap reinserts the
+breaking space that trim-mode rendering stripped (new `RowMetadata.wrapJoinSpace`,
+produced by the render pipeline), while a forced mid-word break (URLs / hashes / paths)
+rejoins with nothing.
+
+**Migration**: raw screen-rectangle extraction — the Shift+drag escape hatch — opts out
+explicitly with `respectSelectableFlag: false`. Callers that relied on the old default to
+copy the full padded rectangle must now pass `false`.
+
 ### Tests — pre-existing failure audit (km-silvery.test-fails-14-pre-existing-audit)
 
 Characterized the 14 pre-existing vendor-project test failures that had been the

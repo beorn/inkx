@@ -48,6 +48,9 @@ function createScreen(cols: number, rows: number) {
             params += ansi[j]
             j++
           }
+          while (j < ansi.length && ansi[j]! >= " " && ansi[j]! <= "/") {
+            j++
+          }
           const cmd = ansi[j]
           j++
           const paramParts = params.split(";")

@@ -15,6 +15,7 @@ function defaults(): ScrollPlanInputs {
   return {
     scrollOffsetChanged: false,
     visibleRangeChanged: false,
+    descendantDirty: false,
     hasStickyChildren: false,
     childrenNeedFreshRender: false,
     childrenDirty: false,
@@ -65,6 +66,21 @@ describe("scroll tier planner — tier selection", () => {
       overrides: { hasPrevBuffer: true, scrollOffsetChanged: true, visibleRangeChanged: true },
       expected: "shift",
     },
+    {
+      name: "scroll + descendantDirty -> clear",
+      overrides: { hasPrevBuffer: true, scrollOffsetChanged: true, descendantDirty: true },
+      expected: "clear",
+    },
+    {
+      name: "scroll + visibleRangeChanged + descendantDirty -> clear",
+      overrides: {
+        hasPrevBuffer: true,
+        scrollOffsetChanged: true,
+        visibleRangeChanged: true,
+        descendantDirty: true,
+      },
+      expected: "clear",
+    },
 
     // Tier 3: subtree-only
     {
@@ -75,6 +91,11 @@ describe("scroll tier planner — tier selection", () => {
     {
       name: "only subtreeDirty (nothing else) -> subtree-only",
       overrides: { hasPrevBuffer: true },
+      expected: "subtree-only",
+    },
+    {
+      name: "descendantDirty without scroll -> subtree-only",
+      overrides: { hasPrevBuffer: true, descendantDirty: true },
       expected: "subtree-only",
     },
     {

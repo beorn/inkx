@@ -53,6 +53,13 @@ export interface SelectionFeature {
   /** Clear the current selection. */
   clear(): void
 
+  /**
+   * Copy the current selection to the clipboard, using the same extraction +
+   * write path as mouse/drag copy. Drives keyboard copy-mode `yank`. No-op when
+   * there is no selection, buffer, or clipboard.
+   */
+  copySelection(): void
+
   /** Clean up resources. */
   dispose(): void
 }
@@ -70,6 +77,13 @@ export interface SelectionBridgeOptions {
   setRange: (range: SelectionRange | null) => void
   /** Clear the selection. */
   clear: () => void
+  /**
+   * Copy the current selection to the clipboard (used by copy-mode `yank`).
+   * create-app supplies this to run its inline extract + OSC 52 write — the
+   * same path mouse drag-copy uses. Optional: a bridge without it makes
+   * `copySelection` a no-op (headless / test usage).
+   */
+  copy?: () => void
 }
 
 /** Options for creating a SelectionFeature. */
@@ -165,7 +179,13 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
       // Extract text and copy to clipboard on mouse up
       const copyEffects = [...effects]
       if (newState.range && clipboard && buffer) {
-        const text = extractText(buffer, newState.range)
+        // Semantic copy is the default (skips non-selectable margins/gutters/
+        // padding, matching the highlight). This fallback path has no Shift+drag
+        // raw-buffer mode, so it never opts out. rowMetadata joins soft-wrapped
+        // rows into their logical line + precise trailing-space trimming.
+        const text = extractText(buffer, newState.range, {
+          rowMetadata: buffer.getRowMetadataArray(),
+        })
         if (text.length > 0) {
           copyEffects.push({ type: "copy", text })
         }
@@ -199,6 +219,21 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
     clear(): void {
       const [newState, effects] = terminalSelectionUpdate({ type: "clear" }, selectionState)
       updateState(newState, effects)
+    },
+
+    copySelection(): void {
+      const range = selectionState.range
+      if (!range || !clipboard || !buffer) return
+      // Same extraction the mouse-up copy path uses: semantic by default,
+      // soft-wrap rejoin + trailing trim via row metadata. Route through the
+      // shared processEffects "copy" handler so rich (extractHtml) vs plain
+      // copy is decided identically to drag-copy.
+      const text = extractText(buffer, range, {
+        rowMetadata: buffer.getRowMetadataArray(),
+      })
+      if (text.length > 0) {
+        processEffects([{ type: "copy", text }], range)
+      }
     },
 
     dispose(): void {
@@ -241,6 +276,10 @@ export function createSelectionBridge(options: SelectionBridgeOptions): Selectio
 
     clear(): void {
       options.clear()
+    },
+
+    copySelection(): void {
+      options.copy?.()
     },
 
     dispose(): void {},

@@ -1,11 +1,11 @@
 /**
- * Tabs hover state — inactive tabs get subtle $bg-muted background on mouse-enter.
+ * Tabs hover state — inactive tabs get selected text color on mouse-enter.
  *
  * Verifies:
- * 1. Hovering a non-active tab gives it hover bg ($bg-muted)
+ * 1. Hovering a non-active tab changes its text color without a filled bg
  * 2. Clicking a tab activates it (existing behavior still works)
- * 3. Active tab's hover styling is distinct from non-active hover (no double-styling)
- * 4. Mouse leave removes hover bg
+ * 3. Active tab's selected styling is text-only, not link-like or filled
+ * 4. Mouse leave restores inactive text color
  */
 
 import React from "react"
@@ -48,11 +48,11 @@ function TestTabs({
 }
 
 // ============================================================================
-// 1. Hovering a non-active tab gives it hover bg
+// 1. Hovering a non-active tab changes text color
 // ============================================================================
 
-describe("Tabs hover state: non-active tab gets hover bg", () => {
-  test("hovering inactive tab adds bg color to that tab", async () => {
+describe("Tabs hover state: non-active tab changes text color", () => {
+  test("hovering inactive tab changes text color without adding bg", async () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(<TestTabs defaultValue="one" />)
 
@@ -60,23 +60,19 @@ describe("Tabs hover state: non-active tab gets hover bg", () => {
     const col = app.text.indexOf("Tab Two")
     expect(col).toBeGreaterThanOrEqual(0)
 
-    // Before hover: no bg
     const cellBefore = app.cell(col, 0)
-    const bgBefore = cellBefore.bg
+    const fgBefore = cellBefore.fg
+    expect(cellBefore.bg).toBeNull()
 
     // Hover over "Tab Two"
     await app.hover(col, 0)
 
-    // After hover: bg should be set (mutedbg token)
     const cellAfter = app.cell(col, 0)
-    expect(cellAfter.bg).not.toBeNull()
-    // And it should differ from the pre-hover bg (or was null before)
-    if (bgBefore === null) {
-      expect(cellAfter.bg).not.toBeNull()
-    }
+    expect(cellAfter.bg).toBeNull()
+    expect(cellAfter.fg).not.toStrictEqual(fgBefore)
   })
 
-  test("mouse leave removes hover bg from inactive tab", async () => {
+  test("mouse leave restores inactive tab text color", async () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <Box flexDirection="column" width={40}>
@@ -98,14 +94,13 @@ describe("Tabs hover state: non-active tab gets hover bg", () => {
     const twoCol = app.text.indexOf("Two")
     // Hover over "Two" (inactive tab)
     await app.hover(twoCol, 0)
-    const bgHovered = app.cell(twoCol, 0).bg
-    expect(bgHovered).not.toBeNull()
+    const fgHovered = app.cell(twoCol, 0).fg
 
     // Move to panel area (row 1) to trigger leave
     await app.hover(0, 1)
-    const bgAfterLeave = app.cell(twoCol, 0).bg
-    // bg should be cleared (back to null/transparent)
-    expect(bgAfterLeave).toBeNull()
+    const cellAfterLeave = app.cell(twoCol, 0)
+    expect(cellAfterLeave.bg).toBeNull()
+    expect(cellAfterLeave.fg).not.toStrictEqual(fgHovered)
   })
 })
 
@@ -145,7 +140,7 @@ describe("Tabs hover state: click still activates tab", () => {
 })
 
 // ============================================================================
-// 3. Active tab hover is distinct — no double bg styling
+// 3. Active tab hover is distinct — no filled bg styling
 // ============================================================================
 
 describe("Tabs hover state: active tab has no hover bg override", () => {
@@ -161,7 +156,7 @@ describe("Tabs hover state: active tab has no hover bg override", () => {
     await app.hover(col, 0)
     const bgAfter = app.cell(col, 0).bg
 
-    // Active tab should not gain hover bg (hoverBg condition: !isActive && isHovered)
+    // Active tab should keep the same text-only selected styling.
     expect(bgAfter).toEqual(bgBefore)
   })
 
@@ -169,18 +164,88 @@ describe("Tabs hover state: active tab has no hover bg override", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(<TestTabs defaultValue="one" />)
 
-    // Get active tab ("Tab One") cell fg — should have $primary color
+    // Get active tab ("Tab One") cell — selected via text, not background.
     const activeCol = app.text.indexOf("Tab One")
     const activeCell = app.cell(activeCol, 0)
 
-    // Get inactive tab ("Tab Two") — should have $muted color normally
+    // Get inactive tab ("Tab Two") — should use ordinary bold text and no selected bg.
     const inactiveCol = app.text.indexOf("Tab Two")
     const inactiveCell = app.cell(inactiveCol, 0)
 
-    // Active tab fg ($primary) should differ from inactive tab fg ($muted)
-    // (unless theme has identical primary/muted which is unusual)
-    // At minimum they should render differently
-    expect(activeCell.bold).toBe(true) // active tab is bold
-    expect(inactiveCell.bold).toBeFalsy() // inactive tab is not bold
+    expect(activeCell.bold).toBe(true)
+    expect(activeCell.bg).toBeNull()
+    expect(activeCell.underline).toBe(false)
+    expect(activeCell.fg).not.toStrictEqual(inactiveCell.fg)
+    expect(inactiveCell.bold).toBe(true)
+    expect(inactiveCell.bg).toBeNull()
+  })
+})
+
+describe("Tabs layout", () => {
+  test("TabList can center tab labels across the available width", () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(
+      <Box flexDirection="column" width={40}>
+        <Tabs defaultValue="one">
+          <TabList justifyContent="center">
+            <Tab value="one">One</Tab>
+            <Tab value="two">Two</Tab>
+          </TabList>
+          <TabPanel value="one">
+            <Text>Panel content</Text>
+          </TabPanel>
+          <TabPanel value="two">
+            <Text>Other panel</Text>
+          </TabPanel>
+        </Tabs>
+      </Box>,
+    )
+
+    const firstLine = app.text.split("\n")[0] ?? ""
+    const oneCol = firstLine.indexOf("One")
+    expect(oneCol, firstLine).toBeGreaterThan(8)
+    expect(firstLine.indexOf("Two"), firstLine).toBeGreaterThan(oneCol)
+  })
+
+  function WrapTabs({ flexWrap }: { flexWrap?: "nowrap" | "wrap" | "wrap-reverse" }) {
+    return (
+      <Box flexDirection="column" width={20}>
+        <Tabs defaultValue="one">
+          <TabList flexWrap={flexWrap}>
+            <Tab value="one">Alpha</Tab>
+            <Tab value="two">Bravo</Tab>
+            <Tab value="three">Charlie</Tab>
+            <Tab value="four">Delta</Tab>
+          </TabList>
+          <TabPanel value="one">
+            <Text>Panel</Text>
+          </TabPanel>
+        </Tabs>
+      </Box>
+    )
+  }
+
+  test("TabList flexWrap='wrap' flows overflowing tabs onto a second row instead of clipping", () => {
+    // 4 padded tabs (~33 cols) cannot fit one 20-col row; with wrap they must
+    // all stay reachable across multiple rows.
+    const render = createRenderer({ cols: 20, rows: 6 })
+    const app = render(<WrapTabs flexWrap="wrap" />)
+    for (const label of ["Alpha", "Bravo", "Charlie", "Delta"]) {
+      expect(app.text, `tab "${label}" must survive the wrap`).toContain(label)
+    }
+    const firstLine = app.text.split("\n")[0] ?? ""
+    // The bar genuinely wrapped — the trailing tab is not on the first row.
+    expect(firstLine.includes("Delta"), firstLine).toBe(false)
+    const deltaRow = app.text.split("\n").findIndex((line) => line.includes("Delta"))
+    expect(deltaRow, app.text).toBeGreaterThan(0)
+  })
+
+  test("TabList default (no flexWrap) keeps the single-row layout", () => {
+    // Omitting the prop must not introduce wrapping — the first row still leads
+    // with the first tab and the bar stays a single flex row.
+    const render = createRenderer({ cols: 20, rows: 6 })
+    const app = render(<WrapTabs />)
+    const firstLine = app.text.split("\n")[0] ?? ""
+    expect(firstLine.includes("Alpha"), firstLine).toBe(true)
   })
 })

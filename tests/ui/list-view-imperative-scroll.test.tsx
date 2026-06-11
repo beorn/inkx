@@ -159,6 +159,20 @@ describe("ListView imperative scroll API", () => {
     expect(after).not.toContain("Item 58")
   })
 
+  test('scrollBy(-1) from follow="end" works when nav is disabled', () => {
+    const items = makeItems(60)
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(renderList(items, listRef, { follow: "end", nav: false }))
+    expect(stripAnsi(app.text)).toContain("Item 59")
+
+    act(() => {
+      listRef.current!.scrollBy(-1)
+    })
+    app.rerender(renderList(items, listRef, { follow: "end", nav: false }))
+    expect(stripAnsi(app.text)).not.toContain("Item 59")
+  })
+
   test('scrollToBottom re-engages follow="end" auto-follow on subsequent appends', () => {
     let items = makeItems(20)
     const listRef = React.createRef<ListViewHandle>()

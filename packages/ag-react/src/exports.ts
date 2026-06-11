@@ -86,6 +86,7 @@ export type {
 } from "@silvery/ag/island-guests"
 export { createCellBuffer } from "@silvery/ag"
 export type { CellBuffer, MutableCellBuffer } from "@silvery/ag"
+export type { TextTruncateHook, TextTruncateResult, TextMeasure } from "@silvery/ag"
 export type {
   IslandGuest,
   IslandContext,
@@ -221,6 +222,9 @@ export type { CursorLineProps } from "./ui/components"
 // Dialog Components
 export { ModalDialog, formatTitleWithHotkey } from "./ui/components"
 export type { ModalDialogProps } from "./ui/components"
+
+export { ModalOverlay } from "./ui/components"
+export type { ModalOverlayProps } from "./ui/components"
 
 export { Backdrop } from "./ui/components"
 export type { BackdropProps } from "./ui/components"

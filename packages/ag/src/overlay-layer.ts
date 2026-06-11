@@ -47,8 +47,10 @@ import {
  * `collectOverlayLayer(root)`.
  *
  * Fields:
- *   - `caret`: result of `findActiveCursorRect(root)` — the caret to paint
- *     this frame (or null when no caret is declared / clipped / hidden).
+ *   - `caret`: result of `findActiveCursorRect(root)` — the caret owner for
+ *     this frame. May carry `visible: false` when a focused input owns a
+ *     hidden caret; null means no cursor owner is present or the owner is
+ *     clipped / intentionally unfocused.
  *   - `focus`: focused-node id from `findActiveFocusedNodeId(root)`. The
  *     OverlayLayer doesn't expose the focus rect — focused-node painting is
  *     a per-renderer concern (the renderer reads the node's `boxRect` via

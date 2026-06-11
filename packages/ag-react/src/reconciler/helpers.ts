@@ -67,9 +67,12 @@ export const LAYOUT_PROPS = new Set([
 
 /**
  * Set of content props that affect layout dimensions (trigger contentDirty + Flexily markDirty()).
- * wrap changes text line count; internal_transform changes text width.
+ * wrap changes text line count; internal_transform changes text width; truncate
+ * is a per-line elision hook whose output changes the painted line, so a change
+ * to it must force a content re-render (its identity is unstable across renders,
+ * which is also why render-text.ts bypasses the format cache when it is present).
  */
-const TEXT_CONTENT_PROPS = new Set(["wrap", "internal_transform"])
+const TEXT_CONTENT_PROPS = new Set(["wrap", "internal_transform", "truncate"])
 
 /**
  * Set of style props that affect content (paint) but NOT layout dimensions.
@@ -80,6 +83,7 @@ const TEXT_CONTENT_PROPS = new Set(["wrap", "internal_transform"])
  */
 const STYLE_PROPS = new Set([
   "color",
+  "truncateMarkerColor",
   "backgroundColor",
   "bold",
   "italic",

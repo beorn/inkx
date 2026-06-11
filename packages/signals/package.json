@@ -32,7 +32,7 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "alien-signals": "^3.1.2"
+    "alien-signals": "~3.1.2"
   },
   "tsdown": {
     "clean": true,

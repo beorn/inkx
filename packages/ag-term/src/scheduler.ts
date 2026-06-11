@@ -736,11 +736,15 @@ export class RenderScheduler {
       let cursorSuffix = ""
       if (this.nonTTYMode === "tty") {
         const cursor = this.resolveActiveCursor()
-        if (cursor && cursor.visible) {
-          const activeNode = findActiveCursorNode(this.root)
-          const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
-          const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
-          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+        if (cursor) {
+          if (cursor.visible) {
+            const activeNode = findActiveCursorNode(this.root)
+            const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
+            const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
+            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+          } else {
+            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
+          }
         } else {
           cursorSuffix = ANSI.CURSOR_HIDE
         }

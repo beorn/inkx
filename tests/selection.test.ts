@@ -238,13 +238,16 @@ describe("normalizeRange", () => {
 // ============================================================================
 
 describe("extractText", () => {
+  // Text cells in a real rendered buffer carry SELECTABLE_FLAG. extractText is
+  // semantic by default (respectSelectableFlag defaults to true), so these
+  // mechanics tests must flag their content cells to mirror a real render.
   function createBufferWithText(lines: string[], width = 20): TerminalBuffer {
     const height = lines.length
     const buf = new TerminalBuffer(width, height)
     for (let y = 0; y < height; y++) {
       const line = lines[y]!
       for (let x = 0; x < line.length && x < width; x++) {
-        buf.setCell(x, y, { char: line[x]!, fg: null, bg: null })
+        buf.setCell(x, y, { char: line[x]!, fg: null, bg: null, selectable: true })
       }
     }
     return buf
@@ -298,11 +301,13 @@ describe("extractText", () => {
 
   test("skips wide-char continuation cells", () => {
     const buf = new TerminalBuffer(10, 1)
-    // Write "A" at col 0, wide char "漢" at col 1-2, "B" at col 3
-    buf.setCell(0, 0, { char: "A" })
-    buf.setCell(1, 0, { char: "漢", wide: true })
-    buf.setCell(2, 0, { char: "", continuation: true })
-    buf.setCell(3, 0, { char: "B" })
+    // Write "A" at col 0, wide char "漢" at col 1-2, "B" at col 3.
+    // Flag content cells selectable to mirror a real render (extractText is
+    // semantic by default).
+    buf.setCell(0, 0, { char: "A", selectable: true })
+    buf.setCell(1, 0, { char: "漢", wide: true, selectable: true })
+    buf.setCell(2, 0, { char: "", continuation: true, selectable: true })
+    buf.setCell(3, 0, { char: "B", selectable: true })
 
     const text = extractText(buf, {
       anchor: { col: 0, row: 0 },

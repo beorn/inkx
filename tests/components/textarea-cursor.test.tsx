@@ -12,7 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, TextArea } from "silvery"
+import { Box, Text, TextArea } from "silvery"
 
 describe("TextArea cursor position", () => {
   test("cursor is after last character without border (uncontrolled)", () => {
@@ -39,6 +39,66 @@ describe("TextArea cursor position", () => {
     expect(cursor!.visible).toBe(true)
     expect(cursor!.x).toBe(1)
     expect(cursor!.y).toBe(0)
+  })
+
+  test("cursorStyle controls the active hardware cursor shape", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <Box>
+          <TextArea defaultValue="X" fieldSizing="fixed" rows={1} cursorStyle="underline" />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.shape).toBe("underline")
+  })
+
+  test("active disabled TextArea owns a hidden cursor position", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <Box padding={1}>
+          <TextArea defaultValue="blocked" fieldSizing="fixed" rows={1} isActive disabled />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.visible).toBe(false)
+    expect(cursor!.x).toBe(1 + "blocked".length)
+    expect(cursor!.y).toBe(1)
+  })
+
+  test("active visible TextArea owns cursor precedence over deeper fallbacks", () => {
+    const r = createRenderer({ cols: 60, rows: 10 })
+
+    function App() {
+      return (
+        <Box flexDirection="column" padding={1}>
+          <TextArea defaultValue="compose" fieldSizing="fixed" rows={1} isActive />
+          <Box flexDirection="column" padding={1}>
+            <Box cursorOffset={{ col: 5, row: 0, visible: true }}>
+              <Text>deeper fallback</Text>
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.visible).toBe(true)
+    expect(cursor!.x).toBe(1 + "compose".length)
+    expect(cursor!.y).toBe(1)
   })
 
   test("cursor is after last character when borderStyle is set (uncontrolled)", () => {

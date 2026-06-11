@@ -5,8 +5,9 @@
  * This file pins the six invariants that downstream consumers (Phase 4 / overlay
  * anchors, cross-target renderers, focus tree) rely on:
  *
- *  1. **Active caret precedence** — focused-editable wins > deepest visible
- *     in paint order > null. Documented in `findActiveCursorRect`'s JSDoc.
+ *  1. **Active caret precedence** — focused cursor owner wins, including
+ *     hidden focused cursors > deepest visible in paint order > null.
+ *     Documented in `findActiveCursorRect`'s JSDoc.
  *  2. **Recompute on semantic prop changes** — `cursorRect` updates when
  *     `cursorOffset` value changes, even when no rect changes (rect signal
  *     reference-equal). Tests the prop-as-output equivalent of the bug class
@@ -111,6 +112,104 @@ describe("invariant 1: active caret precedence", () => {
     // Focused shallow → x = padding(1) + col(0) = 1, y = padding(1) + 0 = 1
     expect(active!.x).toBe(1)
     expect(active!.y).toBe(1)
+  })
+
+  test("focused hidden cursor suppresses deeper visible fallback", () => {
+    const render = createRenderer({ cols: 60, rows: 12 })
+
+    function App() {
+      return (
+        <Box flexDirection="column" padding={1}>
+          {/* Shallow focused owner with an intentionally hidden caret, matching
+              disabled-but-focused TextArea / pending-permission composer. */}
+          <Box id="shallow" cursorOffset={{ col: 0, row: 0, visible: false }}>
+            <Text>shallow</Text>
+          </Box>
+          {/* Deeper visible fallback must NOT win while the focused owner
+              declares a hidden cursor. */}
+          <Box flexDirection="column" padding={1}>
+            <Box
+              id="deep"
+              borderStyle="round"
+              paddingX={1}
+              cursorOffset={{ col: 5, row: 0, visible: true }}
+            >
+              <Text>deeper</Text>
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<App />)
+    const root = getRoot(app)
+    const shallow = root.children[0]?.children[0]
+    if (!shallow) throw new Error("test fixture: shallow node missing")
+    shallow.interactiveState = {
+      hovered: false,
+      armed: false,
+      selected: false,
+      focused: true,
+      dropTarget: false,
+    }
+
+    const active = findActiveCursorRect(root)
+    expect(active).not.toBeNull()
+    expect(active!.visible).toBe(false)
+    // Hidden focused shallow still owns placement: x = padding(1), y = padding(1).
+    expect(active!.x).toBe(1)
+    expect(active!.y).toBe(1)
+  })
+
+  test("declarative focused hidden cursor suppresses deeper visible fallback", () => {
+    const render = createRenderer({ cols: 60, rows: 12 })
+
+    function App() {
+      return (
+        <Box flexDirection="column" padding={1}>
+          <Box id="shallow" focused cursorOffset={{ col: 0, row: 0, visible: false }}>
+            <Text>shallow</Text>
+          </Box>
+          <Box flexDirection="column" padding={1}>
+            <Box
+              id="deep"
+              borderStyle="round"
+              paddingX={1}
+              cursorOffset={{ col: 5, row: 0, visible: true }}
+            >
+              <Text>deeper</Text>
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<App />)
+    const active = findActiveCursorRect(getRoot(app))
+    const activeNode = findActiveCursorNode(getRoot(app))
+    expect(active).not.toBeNull()
+    expect(active!.visible).toBe(false)
+    expect(active!.x).toBe(1)
+    expect(active!.y).toBe(1)
+    expect((activeNode?.props as { id?: string } | undefined)?.id).toBe("shallow")
+  })
+
+  test("unfocused hidden cursor owner is ignored when no visible owner exists", () => {
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <Box flexDirection="column" padding={1}>
+          <Box cursorOffset={{ col: 2, row: 0, visible: false }}>
+            <Text>disabled input</Text>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<App />)
+    const active = findActiveCursorRect(getRoot(app))
+    expect(active).toBeNull()
   })
 
   test("no focused declarer → falls back to deepest visible", () => {

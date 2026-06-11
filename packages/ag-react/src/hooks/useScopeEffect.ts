@@ -59,6 +59,8 @@ export function useScopeEffect(setup: ScopeEffectSetup, deps: DependencyList): v
   //
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (parent.disposed) return
+
     const child = parent.child()
     let userCleanup: (() => void) | undefined
     try {

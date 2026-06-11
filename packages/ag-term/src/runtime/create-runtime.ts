@@ -200,6 +200,16 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   let lastRenderDims: Dims | null = null
   let lastCursorSuffix = ""
   let clearNextFullscreenRender = false
+  // Resize-repaint latch (fullscreen only). Set on every resize notification,
+  // cleared ONLY after a render() actually writes bytes. Distinct from
+  // `clearNextFullscreenRender` (a one-frame clear request that any render —
+  // including a no-output early-return — resets): this latch survives
+  // intermediate no-output frames so the eventual content render is guaranteed
+  // to clear+repaint. A same-size terminal/emulator reflow can blank or
+  // scramble the visible cells while silvery's shadow `prevBuffer` still holds
+  // the prior frame, which made the zero-diff fast path emit nothing and leave
+  // the screen blank. Bead: @km/code/v0.2/19604-focus-blank.
+  let resizePaintPending = false
 
   // Scrollback offset tracking (inline mode only)
   let scrollbackOffset = 0
@@ -216,6 +226,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     unsubscribeResize = target.onResize((dims) => {
       if (mode === "fullscreen") {
         clearNextFullscreenRender = true
+        // Latch a guaranteed clear+repaint that survives any intermediate
+        // no-output frame until a real paint lands. See `resizePaintPending`.
+        resizePaintPending = true
       }
       eventChannel.push({ type: "resize", cols: dims.cols, rows: dims.rows })
     })
@@ -307,19 +320,35 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       const targetDimsChanged =
         lastRenderDims !== null &&
         (lastRenderDims.cols !== targetDims.cols || lastRenderDims.rows !== targetDims.rows)
+      // `resizePaintPending` forces a clear+repaint that the zero-diff
+      // early-return below cannot swallow: a resize notification may have
+      // reflowed/cleared the visible cells even when our tracked dims and the
+      // shadow buffer are unchanged (same-size reflow), so emitting nothing
+      // would leave the screen blank. The latch is cleared only after a real
+      // write lands (see the write site below), so an intermediate no-output
+      // frame can't consume it. Bead: @km/code/v0.2/19604-focus-blank.
       const clearFullscreen =
-        mode === "fullscreen" && renderedOnce && (clearNextFullscreenRender || targetDimsChanged)
+        mode === "fullscreen" &&
+        renderedOnce &&
+        (clearNextFullscreenRender || targetDimsChanged || resizePaintPending)
       const overlayChanged = !!buffer.overlay && buffer.overlay.length > 0
       let cursorSuffix = ""
       if (mode === "fullscreen") {
         const cursor = findActiveCursorRect(buffer.nodes)
-        if (cursor && cursor.visible) {
+        if (cursor) {
           // Caret shape is target-specific — derive at the terminal layer
           // (invariant 6 of `km-silvery.cursor-invariants`).
-          const activeNode = findActiveCursorNode(buffer.nodes)
-          const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
-          const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
-          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+          if (cursor.visible) {
+            const activeNode = findActiveCursorNode(buffer.nodes)
+            const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
+            const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
+            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+          } else {
+            // Move before hiding so ignored/late DECTCEM, unfocused-terminal
+            // hollow cursors, and visibility-blind emulators do not leave the
+            // hardware cursor at the last transcript write position.
+            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
+          }
         } else {
           cursorSuffix = ANSI.CURSOR_HIDE
         }
@@ -341,14 +370,23 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       }
 
       // Use scoped output phase if provided (threads measurer/caps correctly),
-      // otherwise fall back to raw diff() for backwards compatibility
+      // otherwise fall back to raw diff() for backwards compatibility.
+      //
+      // When `clearFullscreen` is set we emit a destructive `2J` prefix below,
+      // so the repaint BODY must be a FULL render of `next` — diffing against
+      // the (now-erased) prevBuffer would emit only the cells that differ from
+      // a screen that no longer exists. The critical case is a same-size
+      // terminal/emulator reflow where the shadow `prevBuffer` is byte-identical
+      // to `next`: a diff would be empty, so `2J` alone would clear the screen
+      // and leave it blank. Passing `null` as prev forces the output phase's
+      // first-render path (full `bufferToAnsi`). Bead: @km/code/v0.2/19604-focus-blank.
+      const diffPrev = clearFullscreen ? null : (prevBuffer?._buffer ?? null)
       let patch: string
       if (outputPhaseFn) {
-        const prevBuf = prevBuffer?._buffer ?? null
         const nextBuf = buffer._buffer
-        patch = outputPhaseFn(prevBuf, nextBuf, mode, offset, termRows)
+        patch = outputPhaseFn(diffPrev, nextBuf, mode, offset, termRows)
       } else {
-        patch = diff(prevBuffer, buffer, mode, offset, termRows)
+        patch = diff(clearFullscreen ? null : prevBuffer, buffer, mode, offset, termRows)
       }
       prevBuffer = buffer
 
@@ -373,11 +411,12 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       // already positions the cursor inside the diff output.
       patch += cursorSuffix
 
-      if (clearFullscreen) {
-        patch = "\x1b[2J\x1b[H" + patch
-      }
+      // The destructive fullscreen clear (2J) is emitted as a prefix that always
+      // stays OUTSIDE the DEC 2026 synchronized-output region (see the sync-wrap
+      // block below). `patch` from here on is the repaint BODY only.
+      const clearPrefix = clearFullscreen ? "\x1b[2J\x1b[H" : ""
 
-      if (patch.length === 0) {
+      if (clearPrefix.length === 0 && patch.length === 0) {
         lastCursorSuffix = cursorSuffix
         lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
         renderedOnce = true
@@ -389,33 +428,49 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       if (process.env.SILVERY_CAPTURE_RAW) {
         try {
           const fs = require("fs")
-          fs.appendFileSync("/tmp/silvery-runtime-raw.ansi", patch)
+          fs.appendFileSync("/tmp/silvery-runtime-raw.ansi", clearPrefix + patch)
         } catch {}
       }
 
-      // Write to target, wrapped in DEC 2026 synchronized-output markers when:
-      //   - syncUpdate is forced (SILVERY_SYNC_UPDATE=1), or
-      //   - this is a LARGE, non-clear fullscreen frame (>= LARGE_FULLSCREEN_SYNC_BYTES).
-      // Large streaming/scroll diffs tear visibly when written un-synchronized;
-      // wrapping makes the terminal swap them in one frame. Small incremental
-      // cursor-positioned diffs stay unwrapped to avoid the older-Ghostty
-      // corruption caveat (see km bead 19633-output-flicker).
+      // DEC 2026 synchronized-output framing — two independent invariants that
+      // must BOTH hold (km beads 19604-focus-blank + 19633-output-flicker):
       //
-      // clearFullscreen repaints (2J + full repaint on focus-in / resize) are
-      // EXCLUDED from auto-wrap: older Ghostty corrupts a clear performed inside
-      // a sync region, which blanks the pane after a workspace focus switch
-      // (km bead 19604-focus-blank). The explicit SILVERY_SYNC_UPDATE opt-in
-      // still wraps them — that caller has accepted the tradeoff.
-      const wrapSync =
-        syncUpdate ||
-        (mode === "fullscreen" &&
-          !clearFullscreen &&
-          Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES)
-      target.write(wrapSync ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch)
+      // 1. NEVER clear inside a sync region. Older Ghostty corrupts a 2J
+      //    performed inside `?2026h…?2026l`, which blanks the pane after a cmux
+      //    workspace focus switch (19604, original symptom). The 2J clear prefix
+      //    therefore stays OUTSIDE the sync region, always.
+      //
+      // 2. DO swap a large repaint atomically. A large fullscreen repaint
+      //    written un-synchronized tears under terminal/compositor load and can
+      //    drop cells — the focus-in `2J + repaint` then settles blank with
+      //    stray residue (19604 recurrence: the un-synced repaint was the second
+      //    failure mode, after clear-in-sync was ruled out). Wrapping the body
+      //    makes the terminal apply it all-or-nothing. Small incremental
+      //    cursor-positioned diffs stay unwrapped to avoid the older-Ghostty
+      //    incremental caveat (19633).
+      //
+      // Net for a focus-in/resize frame: emit `2J` un-synced, then a sync-wrapped
+      // repaint body — neither the clear-in-sync corruption nor the
+      // torn-unsynced-repaint blank can occur. The earlier fix excluded clear
+      // frames from wrapping entirely, which removed (1)'s corruption but
+      // re-exposed (2)'s tear.
+      const wrapBody =
+        patch.length > 0 &&
+        (syncUpdate ||
+          (mode === "fullscreen" && Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES))
+      const body = wrapBody ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch
+      target.write(clearPrefix + body)
       lastCursorSuffix = cursorSuffix
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
       renderedOnce = true
       clearNextFullscreenRender = false
+      // Cleared only here — at the actual write. The two early-returns above
+      // (zero-diff, empty-patch) deliberately leave the latch set: when
+      // `resizePaintPending` is true `clearFullscreen` is true, so neither
+      // early-return is taken and control always reaches this write. Clearing
+      // post-write is what makes the latch survive intermediate no-output
+      // frames. Bead: @km/code/v0.2/19604-focus-blank.
+      resizePaintPending = false
     },
 
     addScrollbackLines(lines: number): void {
@@ -428,6 +483,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       if (options?.clearScreen && mode === "fullscreen") {
         clearNextFullscreenRender = true
       }
+    },
+
+    isResizePending(): boolean {
+      return resizePaintPending
     },
 
     setOutputPhaseFn(fn: RuntimeOptions["outputPhaseFn"]): void {

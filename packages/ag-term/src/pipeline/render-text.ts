@@ -17,11 +17,18 @@ import {
   type UnderlineStyle,
   createMutableCell,
 } from "../buffer"
-import type { AgNode, TextProps } from "@silvery/ag/types"
+import type {
+  AgNode,
+  TextProps,
+  TextTruncateHook,
+  TextTruncateResult,
+  TextMeasure,
+} from "@silvery/ag/types"
 import {
   type StyledSegment,
   ensureEmojiPresentation,
   fixOsc8AcrossWrappedLines,
+  fixSgrAcrossWrappedLines,
   graphemeWidth,
   hasAnsi,
   parseAnsiText,
@@ -46,6 +53,7 @@ import {
 import { buildTextAnalysis, balancedWidth as computeBalancedWidth, optimalWrap } from "./pretext"
 import { createFrameSink, type RenderSink } from "./render-sink"
 import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types"
+import { isStrictAnyEnabled } from "../strict-mode"
 import { createLogger } from "loggily"
 
 const log = createLogger("silvery:content")
@@ -749,6 +757,100 @@ function findLineStart(normalized: string, plainLine: string, fromOffset: number
   return fromOffset
 }
 
+/**
+ * Classification of the boundary between formatted line[i] and line[i+1] in
+ * terms of what the ORIGINAL (normalized) text had between them. Drives the
+ * per-row `softWrapped` / `wrapJoinSpace` metadata that copy-selection reads
+ * to rejoin soft-wrapped visual rows into their logical line.
+ *
+ * - "soft-space": the rows are the same logical line, split by word wrap that
+ *   consumed whitespace (the gap was only spaces). Rejoin with a single space.
+ *   → { softWrapped: true, wrapJoinSpace: true }
+ * - "soft-break": the rows are the same logical line, split mid-token with NO
+ *   whitespace consumed (a token longer than the width, or `wrap="hard"`).
+ *   Rejoin with nothing. → { softWrapped: true, wrapJoinSpace: false }
+ * - "hard": the gap contained an explicit `\n` — a real line break. Keep the
+ *   newline. → { softWrapped: false }
+ * - "end": the last (or only) line — no following row. → { softWrapped: false }
+ */
+export type LineBreakKind = "soft-space" | "soft-break" | "hard" | "end"
+
+/**
+ * Classify each formatted line's break to the next, by walking the normalized
+ * original text alongside the formatted `lines` (mirroring
+ * `mapLinesToCharOffsets` / `findLineStart`'s "skip whitespace/newlines
+ * consumed by wrapping" logic).
+ *
+ * For each line, find where it starts in the normalized text and where it
+ * ends; the GAP to the next line's start is the text consumed at the break:
+ *   - contains "\n"            → "hard"
+ *   - non-empty (only spaces)  → "soft-space"
+ *   - empty (adjacent)         → "soft-break"
+ * The final line is "end".
+ *
+ * PURE: depends only on (text, lines). Computed once per (node, width, wrap,
+ * trim) and replayed from the format cache, so STRICT incremental≡fresh holds.
+ *
+ * Returns one entry per formatted line (same length as `formattedLines`).
+ */
+function classifyLineBreaks(originalText: string, formattedLines: string[]): LineBreakKind[] {
+  const result: LineBreakKind[] = []
+  const lineCount = formattedLines.length
+  if (lineCount === 0) return result
+
+  // Mirror mapLinesToCharOffsets: strip ANSI, normalize tabs, then match each
+  // formatted line back into the normalized text by UTF-16 offset.
+  const plainOriginal = hasAnsi(originalText) ? stripAnsiForBg(originalText) : originalText
+  const normalized = plainOriginal.replace(/\t/g, "    ")
+
+  let charOffset = 0
+  // lineStart/lineEnd of the CURRENT line in `normalized` (UTF-16 offsets).
+  let curStart = -1
+  let curEnd = -1
+
+  for (let i = 0; i < lineCount; i++) {
+    const line = formattedLines[i]!
+    const plainLine = hasAnsi(line) ? stripAnsiForBg(line) : line
+
+    if (i === 0) {
+      curStart = findLineStart(normalized, plainLine, charOffset)
+      const lineLen = Math.min(plainLine.length, normalized.length - curStart)
+      curEnd = curStart + lineLen
+    }
+
+    if (i === lineCount - 1) {
+      // No following row.
+      result.push("end")
+      break
+    }
+
+    // Locate the NEXT line's start to measure the gap consumed at this break.
+    const nextLine = formattedLines[i + 1]!
+    const plainNext = hasAnsi(nextLine) ? stripAnsiForBg(nextLine) : nextLine
+    const nextStart = findLineStart(normalized, plainNext, curEnd)
+    const gap = normalized.slice(curEnd, nextStart)
+
+    if (gap.includes("\n")) {
+      result.push("hard")
+    } else if (gap.length > 0) {
+      // Word wrap consumed whitespace (trim-mode stripped it from both rows).
+      result.push("soft-space")
+    } else {
+      // Adjacent in the original — a forced mid-token break (long token or
+      // wrap="hard"). No separator to reinsert.
+      result.push("soft-break")
+    }
+
+    // Advance to the next line for the following iteration.
+    const nextLen = Math.min(plainNext.length, normalized.length - nextStart)
+    curStart = nextStart
+    curEnd = nextStart + nextLen
+    charOffset = curEnd
+  }
+
+  return result
+}
+
 // ============================================================================
 // Text Formatting
 // ============================================================================
@@ -759,6 +861,10 @@ function findLineStart(normalized: string, plainLine: string, fromOffset: number
  * @param trim - When true, trims trailing spaces on broken lines and skips leading
  *   spaces on continuation lines. When false (e.g., text has backgroundColor),
  *   preserves trailing spaces so background color covers them. Defaults to true.
+ * @param markerSgr - Inline SGR opening marker-chrome styling for inserted
+ *   elision markers (built-in "…" and hook-returned marker ranges). `""` (the
+ *   default when `truncateMarkerColor` is unset/unresolvable) leaves markers
+ *   styled like their surroundings — byte-identical to the historical output.
  */
 export function formatTextLines(
   text: string,
@@ -766,6 +872,8 @@ export function formatTextLines(
   wrap: TextProps["wrap"],
   ctx?: PipelineContext,
   trim = true,
+  truncate?: TextTruncateHook,
+  markerSgr = "",
 ): string[] {
   // Guard against width <= 0 to prevent infinite loops
   // This can happen with display="none" nodes (0x0 dimensions)
@@ -814,22 +922,35 @@ export function formatTextLines(
     return out
   }
 
-  // No wrapping, just truncate at end
+  // No wrapping, just truncate at end. The truncate hook (when present) is
+  // consulted per-line for every truncate mode and applies after overflow.
   if (wrap === false || wrap === "truncate-end" || wrap === "truncate") {
-    return lines.map((line) => truncateText(line, width, "end", ctx))
+    return lines.map((line) => truncateText(line, width, "end", ctx, truncate, markerSgr))
   }
 
   if (wrap === "truncate-start") {
-    return lines.map((line) => truncateText(line, width, "start", ctx))
+    return lines.map((line) => truncateText(line, width, "start", ctx, truncate, markerSgr))
   }
 
   if (wrap === "truncate-middle") {
-    return lines.map((line) => truncateText(line, width, "middle", ctx))
+    return lines.map((line) => truncateText(line, width, "middle", ctx, truncate, markerSgr))
   }
 
   // Optimal wrapping (Knuth-Plass): minimize total raggedness across all lines.
   // Uses dynamic programming over breakpoints for globally optimal line breaks.
   if (wrap === "even") {
+    // The optimal wrapper operates on visible text analysis and is not safe for
+    // control sequences. Fall back to the ANSI-aware greedy wrapper so OSC 8
+    // hyperlinks stay atomic and never leak a partial close token as text.
+    if (hasAnsi(normalizedText)) return wrapText(normalizedText, width, true, trim)
+    // NB (defense-in-depth): the early-return above sends EVERY ansi-bearing
+    // string through greedy `wrapText` — which already self-contains both OSC 8
+    // and SGR per line — so `optimalWrap` only reaches here for ansi-free text
+    // and the two `fix*AcrossWrappedLines` guards below never fire today. They
+    // are kept symmetric with `wrapTextWithMeasurer` so that, if the early
+    // return is ever narrowed (e.g. to let optimalWrap handle SGR-only runs),
+    // per-line self-containment still holds here. Drop both together if the
+    // early-return is ever proven permanent.
     const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
     const analysis = buildTextAnalysis(normalizedText, gWidthFn)
     const evenLines = optimalWrap(normalizedText, analysis, width)
@@ -840,6 +961,13 @@ export function formatTextLines(
     // identical to wrapTextWithMeasurer. See @km/code/v0.2/19654-osc-link-leak.
     if (normalizedText.includes("\x1b]8;;")) {
       fixOsc8AcrossWrappedLines(evenLines)
+    }
+    // Same self-containment requirement for SGR fg/attrs: optimalWrap preserves
+    // ANSI tokens but doesn't re-open a style split across a break, so a
+    // continuation line loses its colour/attr. Sibling of the OSC 8 fix above.
+    // See @km/code/v0.2/19690-status-tuple-wrap-color.
+    if (evenLines.length > 1 && normalizedText.includes("\x1b[")) {
+      fixSgrAcrossWrappedLines(evenLines)
     }
     return evenLines
   }
@@ -855,8 +983,15 @@ export function formatTextLines(
   // `overflow-wrap: break-word` + `text-overflow: ellipsis`. Tracks
   // `@km/silvery/card-body-truncate-ellipsis`.
   if (wrap === "wrap-truncate") {
-    if (ctx) return ctx.measurer.wrapText(normalizedText, width, true, false, true)
-    return wrapText(normalizedText, width, true, true, true)
+    const wrapped = ctx
+      ? ctx.measurer.wrapText(normalizedText, width, true, false, true)
+      : wrapText(normalizedText, width, true, true, true)
+    // The ellipsis is inserted by the wrapper at a forced truncation, always at
+    // the END of the offending line. Style a trailing "…" as marker chrome.
+    // No-op when markerSgr is "" → byte-identical historical output.
+    return markerSgr === ""
+      ? wrapped
+      : wrapped.map((line) => styleTrailingEllipsis(line, markerSgr))
   }
 
   // wrap === true or wrap === 'wrap' or wrap === 'balanced' - word-aware wrapping
@@ -868,40 +1003,308 @@ export function formatTextLines(
 }
 
 /**
+ * Build a cell-width-aware {@link TextMeasure} bound to the active measurer
+ * (or module-level fallbacks). Handed to a {@link TextTruncateHook} so the hook
+ * never re-derives width math. Same `sliceFn`/`sliceEndFn`/`getTextWidth`
+ * pattern used internally by `truncateText`.
+ */
+function makeTextMeasure(ctx?: PipelineContext): TextMeasure {
+  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+  return {
+    width: (text) => getTextWidth(text, ctx),
+    sliceByWidth: (text, max) => sliceFn(text, max),
+    sliceByWidthFromEnd: (text, max) => sliceEndFn(text, max),
+  }
+}
+
+// One SGR escape: ESC [ <params> m. Used to peel a uniformly-styled run's
+// leading/trailing style sequences so the truncate hook only ever sees the
+// plain VISIBLE core (it must never slice mid-escape).
+const SGR_SEQ = /^\x1b\[[0-9;:]*m/
+const SGR_SEQ_END = /\x1b\[[0-9;:]*m$/
+
+/**
+ * Peel a single uniformly-styled SGR run: optional leading SGR sequence(s) +
+ * plain core (NO escape sequences inside) + optional trailing SGR sequence(s).
+ *
+ * Returns `{ prefix, core, suffix }` when the line is exactly that shape, or
+ * `null` for any other ANSI shape (multi-run, OSC 8 links, escapes mid-line).
+ * The truncate hook is caller domain policy operating on visible text — it gets
+ * the plain `core`, and the framework re-attaches `prefix`/`suffix` around the
+ * hook's result so the style survives and no escape is ever cut.
+ */
+function peelUniformSgr(line: string): { prefix: string; core: string; suffix: string } | null {
+  let rest = line
+  let prefix = ""
+  // Consume leading SGR sequences.
+  for (let m = rest.match(SGR_SEQ); m; m = rest.match(SGR_SEQ)) {
+    prefix += m[0]
+    rest = rest.slice(m[0].length)
+  }
+  let suffix = ""
+  // Consume trailing SGR sequences.
+  for (let m = rest.match(SGR_SEQ_END); m; m = rest.match(SGR_SEQ_END)) {
+    suffix = m[0] + suffix
+    rest = rest.slice(0, rest.length - m[0].length)
+  }
+  // The remaining core must contain NO escape sequences — any ESC means the
+  // line is not a single uniform run (mid-line SGR, OSC 8, cursor moves, etc.).
+  if (rest.includes("\x1b")) return null
+  // Require that peeling actually removed style (otherwise hasAnsi was a false
+  // positive from a non-SGR escape, which the core-ESC check already rejects).
+  if (prefix === "" && suffix === "") return null
+  return { prefix, core: rest, suffix }
+}
+
+/**
+ * Build the foreground SGR sequence (`ESC [ 38;… m`) for a resolved {@link Color}.
+ * Returns `""` for `null` (no color / stripped at mono tier) so callers can
+ * treat "no marker color" as "leave the marker styled like its surroundings".
+ * Mirrors the fg branch of {@link styleToAnsi} but takes an already-resolved
+ * Color instead of a color string.
+ */
+function colorToFgSgr(color: Color): string {
+  if (color === null) return ""
+  if (typeof color === "number") return `\x1b[38;5;${color}m`
+  return `\x1b[38;2;${color.r};${color.g};${color.b}m`
+}
+
+/**
+ * Resolve a `truncateMarkerColor` prop (string color form) into the inline SGR
+ * sequence that opens marker-chrome styling, or `""` when there is nothing to
+ * apply (unset, unresolvable, or stripped at mono tier — markers then render
+ * with the surrounding text's style, which is the correct degradation).
+ *
+ * Resolution goes through `parseColor`, so `$token` / hex / named / `rgb(...)` /
+ * `mix(...)` all work and resolve against the active theme at paint time — the
+ * same path `getTextStyle` uses for `color`. No second token-resolution path.
+ */
+function resolveMarkerSgr(markerColor: string | undefined): string {
+  if (!markerColor) return ""
+  return colorToFgSgr(parseColor(markerColor))
+}
+
+/**
+ * Insert marker-chrome styling around `[start, end)` ranges of a PLAIN string.
+ *
+ * For each marker range, emits `markerSgr` before the range and `reopenSgr`
+ * after it, so the marker cells paint with the marker color and the surrounding
+ * text restores its own style. `reopenSgr` is the line's own opening SGR (the
+ * peeled prefix for a color-prop Text) or an SGR reset (`ESC [ 0 m`) for plain
+ * text — never "reset to terminal default mid-styled-line", which would drop
+ * the line's color after the first marker.
+ *
+ * Defensive against malformed `markers`: ranges are clamped to `[0, len]`,
+ * empty/inverted ranges dropped, and overlaps merged. Never throws; a malformed
+ * array under STRICT logs a deduplicated warning. When `markerSgr === ""`
+ * (no/unresolvable marker color) the input is returned unchanged.
+ */
+function applyMarkerRanges(
+  text: string,
+  markers: readonly { start: number; end: number }[] | undefined,
+  markerSgr: string,
+  reopenSgr: string,
+): string {
+  if (!markers || markers.length === 0 || markerSgr === "") return text
+  const len = text.length
+
+  // Clamp + drop degenerate ranges, then sort by start.
+  let malformed = false
+  const clamped: { start: number; end: number }[] = []
+  for (const m of markers) {
+    let s = m.start
+    let e = m.end
+    if (!Number.isFinite(s) || !Number.isFinite(e) || s < 0 || e > len || s >= e) {
+      malformed = true
+      s = Math.max(0, Math.min(s, len))
+      e = Math.max(0, Math.min(e, len))
+      if (s >= e) continue
+    }
+    clamped.push({ start: s, end: e })
+  }
+  clamped.sort((a, b) => a.start - b.start)
+
+  // Merge overlapping/adjacent ranges so we never emit nested marker SGR.
+  const merged: { start: number; end: number }[] = []
+  for (const r of clamped) {
+    const last = merged[merged.length - 1]
+    if (last && r.start <= last.end) {
+      if (r.start < last.end) malformed = true // genuine overlap (not just adjacency)
+      last.end = Math.max(last.end, r.end)
+    } else {
+      merged.push({ ...r })
+    }
+  }
+
+  if (malformed && isStrictAnyEnabled()) {
+    warnMarkerRanges(text, markers)
+  }
+
+  if (merged.length === 0) return text
+
+  // Stitch: plain segment, then markerSgr + marker + reopenSgr, repeat.
+  let out = ""
+  let cursor = 0
+  for (const r of merged) {
+    out += text.slice(cursor, r.start)
+    out += markerSgr + text.slice(r.start, r.end) + reopenSgr
+    cursor = r.end
+  }
+  out += text.slice(cursor)
+  return out
+}
+
+const warnedMarkerRanges = new Set<string>()
+
+/** Deduplicated STRICT-mode warning for out-of-bounds / overlapping marker ranges. */
+function warnMarkerRanges(text: string, markers: readonly { start: number; end: number }[]): void {
+  const key = `${text.length}:${JSON.stringify(markers)}`
+  if (warnedMarkerRanges.has(key)) return
+  warnedMarkerRanges.add(key)
+  log.warn?.(
+    `[silvery] truncate hook returned out-of-bounds or overlapping marker ranges ` +
+      `for a line of length ${text.length}: ${JSON.stringify(markers)}. ` +
+      `Ranges were clamped/merged defensively.`,
+  )
+}
+
+/**
  * Truncate text to fit within width.
+ *
+ * @param hook - Optional per-line {@link TextTruncateHook}. When provided and
+ *   the text overflows, the hook is consulted FIRST; a non-null result is
+ *   defensively hard-clipped to `width` (never trusted to fit on its own) and
+ *   returned, while `null` falls through to the built-in `mode` behavior. When
+ *   the hook is absent, output is byte-identical to the historical truncation.
+ * @param markerSgr - Inline SGR sequence opening marker-chrome styling for the
+ *   built-in ellipsis and for hook-returned marker ranges. `""` (the default
+ *   when `truncateMarkerColor` is unset/unresolvable) leaves markers styled
+ *   like their surroundings — byte-identical to the historical output.
  */
 export function truncateText(
   text: string,
   width: number,
   mode: "start" | "middle" | "end",
   ctx?: PipelineContext,
+  hook?: TextTruncateHook,
+  markerSgr = "",
 ): string {
   const textWidth = getTextWidth(text, ctx)
   if (textWidth <= width) return text
+
+  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+
+  // Consult the hook first. The hook is caller domain policy that operates on
+  // PLAIN VISIBLE text \u2014 it must never receive (and so never slice through)
+  // inline ANSI. NO silent trust on its result either: a fitted result that
+  // still overflows is hard-clipped so it can never paint past the box edge.
+  if (hook && width > 0) {
+    if (hasAnsi(text)) {
+      // Only a single uniformly-styled run is safe to peel: leading SGR +
+      // plain core + trailing SGR. Any other ANSI shape (multi-run, OSC 8,
+      // mid-line escapes) \u2192 skip the hook, use the built-in ANSI-aware mode.
+      const peeled = peelUniformSgr(text)
+      if (peeled) {
+        const raw = hook(peeled.core, width, makeTextMeasure(ctx))
+        if (raw !== null) {
+          const { text: result, markers } = normalizeHookResult(raw)
+          // Clip-check on the PLAIN result before marker-styling + re-attaching
+          // style, so the re-styled line never exceeds the box even if the hook
+          // overran. Marker ranges are dropped when the result was clipped \u2014 the
+          // hook's offsets no longer line up with the trimmed string.
+          const overran = getTextWidth(result, ctx) > width
+          const fitted = overran ? sliceFn(result, width) : result
+          // Marker SGR opens the marker color; `reopenSgr` restores the line's
+          // OWN style (the peeled prefix) after each marker so the surrounding
+          // colored text keeps its color, never resetting to terminal default.
+          const styled = overran
+            ? fitted
+            : applyMarkerRanges(fitted, markers, markerSgr, peeled.prefix)
+          return peeled.prefix + styled + peeled.suffix
+        }
+      }
+      // peeled === null OR hook returned null \u2192 fall through to built-in below.
+    } else {
+      const raw = hook(text, width, makeTextMeasure(ctx))
+      if (raw !== null) {
+        const { text: result, markers } = normalizeHookResult(raw)
+        const overran = getTextWidth(result, ctx) > width
+        if (overran) return sliceFn(result, width)
+        // Plain (unstyled) line: restore to terminal default after each marker.
+        return applyMarkerRanges(result, markers, markerSgr, SGR_RESET)
+      }
+      // result === null \u2192 fall through to the built-in mode behavior below.
+    }
+  }
 
   const ellipsis = "\u2026" // ...
   const availableWidth = width - 1 // Reserve space for ellipsis
 
   if (availableWidth <= 0) {
-    return width > 0 ? ellipsis : ""
+    return width > 0 ? styleMarker(ellipsis, markerSgr) : ""
   }
 
-  const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
-  const sliceEndFn = ctx ? ctx.measurer.sliceByWidthFromEnd : sliceByWidthFromEnd
+  // The built-in ellipsis is marker chrome. `styleMarker` wraps it with the
+  // marker SGR (when set) + an SGR reset, so adjacent text (plain, or \u2014 in the
+  // multi-run ANSI fall-through \u2014 text that re-opens its own SGR at the slice
+  // boundary) is not painted with the marker color.
+  const marker = styleMarker(ellipsis, markerSgr)
 
   if (mode === "end") {
-    return sliceFn(text, availableWidth) + ellipsis
+    return sliceFn(text, availableWidth) + marker
   }
 
   if (mode === "start") {
-    return ellipsis + sliceEndFn(text, availableWidth)
+    return marker + sliceEndFn(text, availableWidth)
   }
 
   // middle
   const halfWidth = Math.floor(availableWidth / 2)
   const startPart = sliceFn(text, halfWidth)
   const endPart = sliceEndFn(text, availableWidth - halfWidth)
-  return startPart + ellipsis + endPart
+  return startPart + marker + endPart
+}
+
+/** SGR reset \u2014 restores terminal default style. */
+const SGR_RESET = "\x1b[0m"
+
+/**
+ * Normalize a {@link TextTruncateHook} return into `{ text, markers }`. A bare
+ * string is `{ text }` with no markers (today's behavior). A
+ * {@link TextTruncateResult} passes through.
+ */
+function normalizeHookResult(raw: string | TextTruncateResult): {
+  text: string
+  markers?: readonly { start: number; end: number }[]
+} {
+  if (typeof raw === "string") return { text: raw }
+  return { text: raw.text, markers: raw.markers }
+}
+
+/**
+ * Wrap the built-in ellipsis marker with marker-chrome SGR. When `markerSgr`
+ * is empty (no/unresolvable `truncateMarkerColor`) the marker is returned
+ * verbatim \u2014 byte-identical to the historical output. Otherwise the marker is
+ * `markerSgr + marker + RESET` so it never bleeds color onto adjacent text.
+ */
+function styleMarker(marker: string, markerSgr: string): string {
+  if (markerSgr === "") return marker
+  return markerSgr + marker + SGR_RESET
+}
+
+/**
+ * Style a trailing elision ellipsis as marker chrome — used by `wrap-truncate`,
+ * whose wrapper inserts the "…" at the end of a force-truncated line. When the
+ * line carries no inline ANSI, wraps a trailing "…" with marker SGR + reset.
+ * Lines that already contain ANSI are left untouched (the wrap-truncate path is
+ * fed plain text by render, so this is the common case) to avoid composing with
+ * unknown trailing SGR. No-op when the line does not end in "…".
+ */
+function styleTrailingEllipsis(line: string, markerSgr: string): string {
+  if (markerSgr === "" || hasAnsi(line) || !line.endsWith("…")) return line
+  return line.slice(0, -1) + markerSgr + "…" + SGR_RESET
 }
 
 // ============================================================================
@@ -1626,24 +2029,63 @@ export function renderText(
     (inheritedBg !== undefined && inheritedBg !== null)
   const trim = !hasBg
   const internalTransform = props.internal_transform
+  const truncateHook = props.truncate
+  // Elision-marker chrome color. Defaults to "$fg-muted" so the inserted "…"
+  // (and hook-returned marker ranges) read as quiet chrome, not content. NOT
+  // "$muted" — in the default pipeline theme "$muted" resolves to the same
+  // value as "$fg" (both #d8dee9), so it would never dim against $fg-colored
+  // text. "$fg-muted" is the codebase's standard low/dim fg slot (e.g.
+  // StatusGlyph lowColor). Resolved against the active theme at paint time via
+  // parseColor (same path as the `color` prop). A theme change invalidates the
+  // collected-text cache (which keys on contextTheme), which clears the format
+  // cache — so the embedded marker SGR is recomputed with the new token value.
+  const markerSgr = resolveMarkerSgr(props.truncateMarkerColor ?? "$fg-muted")
 
   let lines: string[]
   let lineOffsets: Array<{ start: number; end: number }>
+  // Per-line break classification (soft-space | soft-break | hard | end) used
+  // to produce row metadata for copy-selection soft-wrap rejoining. Computed
+  // once per (node, width, wrap, trim) and replayed from the format cache so
+  // STRICT incremental≡fresh holds (rowMeta must be identical every render).
+  let lineBreaks: LineBreakKind[]
 
-  // Skip format cache when internal_transform is present (may depend on external state)
-  const cachedFmt = !internalTransform ? getCachedFormat(node, width, props.wrap, trim) : null
+  // Skip format cache when internal_transform OR a truncate hook is present —
+  // both are functions that may depend on external state and have unstable
+  // identity (the (node, width, wrap, trim) cache key can't capture them).
+  const bypassFormatCache = !!internalTransform || !!truncateHook
+  const cachedFmt = !bypassFormatCache ? getCachedFormat(node, width, props.wrap, trim) : null
   if (cachedFmt) {
     lines = cachedFmt.lines
     lineOffsets = cachedFmt.hasLineOffsets ? cachedFmt.lineOffsets : []
+    lineBreaks = cachedFmt.lineBreaks as LineBreakKind[]
   } else {
-    lines = formatTextLines(text, width, props.wrap, ctx, trim)
+    lines = formatTextLines(text, width, props.wrap, ctx, trim, truncateHook, markerSgr)
     if (internalTransform) {
       lines = lines.map((line, index) => internalTransform(line, index))
     }
     const needLineOffsets = bgSegments.length > 0 || childSpans.length > 0
     lineOffsets = needLineOffsets ? mapLinesToCharOffsets(text, lines, ctx) : []
-    if (!internalTransform) {
-      setCachedFormat(node, width, props.wrap, trim, lines, lineOffsets, needLineOffsets)
+    // internal_transform can produce lines that don't exist in the original
+    // text (e.g. injected markers), so break classification by matching back
+    // into `text` is meaningless there — every line falls through to the
+    // last-line "end" / non-match path. Skip it; those nodes get the default
+    // not-soft-wrapped metadata, which is correct (transforms are single-line
+    // chrome, not wrapped prose).
+    // A truncate hook (like internal_transform) can emit lines that don't
+    // appear verbatim in `text` (custom separators), so break classification by
+    // matching back into `text` is meaningless — skip it and don't cache.
+    lineBreaks = bypassFormatCache ? [] : classifyLineBreaks(text, lines)
+    if (!bypassFormatCache) {
+      setCachedFormat(
+        node,
+        width,
+        props.wrap,
+        trim,
+        lines,
+        lineOffsets,
+        needLineOffsets,
+        lineBreaks,
+      )
     }
   }
 
@@ -1676,7 +2118,8 @@ export function renderText(
         ? clipBounds.left
         : undefined
     const lineTextForSelection = hasAnsi(line) ? stripAnsiForBg(line) : line
-    const lineSelectable = nodeState.selectableMode && /\S/.test(lineTextForSelection)
+    const lineHasContent = /\S/.test(lineTextForSelection)
+    const lineSelectable = nodeState.selectableMode && lineHasContent
     const endCol = renderTextLineReturn(
       buffer,
       x,
@@ -1690,6 +2133,26 @@ export function renderText(
       lineSelectable,
       props.bgConflict,
     )
+
+    // Row metadata for copy-selection: soft-wrap rejoining + trailing-space
+    // trimming. ALWAYS write so stale metadata from a prior frame (the cloned
+    // buffer carries it forward) is overwritten on every render.
+    //   - lastContentCol: rightmost content column. endCol is the col AFTER the
+    //     last written char; subtract 1. An empty line wrote nothing (endCol ==
+    //     x), so report -1 ("no content") to match the buffer default and the
+    //     consumer's trailing-trim contract — never x-1, which would claim
+    //     phantom content.
+    //   - softWrapped / wrapJoinSpace: from the precomputed break classification
+    //     (soft-space → join with a space; soft-break → join with nothing;
+    //     hard/end → not soft-wrapped, keep the newline).
+    const lastContentCol = lineHasContent ? endCol - 1 : -1
+    const breakKind = lineBreaks[lineIdx]
+    const softWrapped = breakKind === "soft-space" || breakKind === "soft-break"
+    sink.setRowMeta(lineY, {
+      softWrapped,
+      lastContentCol,
+      wrapJoinSpace: breakKind === "soft-space",
+    })
 
     // Clear remaining cells after text to end of layout width (clipped).
     // When text content shrinks (e.g., breadcrumb changes from long to short path),

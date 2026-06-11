@@ -43,7 +43,7 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "alien-signals": "^3.1.2",
+    "alien-signals": "~3.1.2",
     "cosmiconfig": "^9.0.1",
     "yaml": ">=2.0.0"
   },

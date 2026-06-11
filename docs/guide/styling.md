@@ -8,6 +8,8 @@ Colors tarnish fast. Typography gets inconsistent. A hardcoded `"red"` here, a `
 Silvery 0.20.0 ships [Sterling](/reference/sterling) as **THE Theme**. The tokens used below — `$fg-accent`, `$fg-muted`, `$bg-surface-subtle`, `$border-focus`, `$bg-selected`, `$fg-on-error` — are Sterling's flat hyphen-keys. Every silvery component already speaks them.
 
 Migrating from silvery 0.19.x? Legacy `$tokens` (`$primary`, `$muted`, `$selectionbg`, …) keep resolving through 0.20.x via a kebab-fallback path. Migrate during this window — they're removed in 0.21.0. The full map is in the [Sterling primer](/reference/sterling#token-migration-map).
+
+**`$muted` is not "dim"** — it is the legacy muted-_surface_ text slot (pairs with `$mutedbg`), and in dark themes it resolves to ≈`$fg`. Code that reaches for `$muted` expecting dimmed text gets full-brightness foreground and the "dimming" silently does nothing. The dim foreground slot is **`$fg-muted`**. (Found the hard way: a default elision-marker color set to `$muted` never dimmed; only a cell-color test against the resolved RGB caught it.)
 :::
 
 ## 1. Don't Specify Colors

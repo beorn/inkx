@@ -337,7 +337,20 @@ export function normalizeRange(range: SelectionRange): {
 // ============================================================================
 
 export interface ExtractTextOptions {
-  /** When true, skip cells that don't have SELECTABLE_FLAG set */
+  /**
+   * Whether to skip cells without the SELECTABLE_FLAG (margins, gutters,
+   * padding, borders, chrome). **Default: `true`** — copy is *semantic* by
+   * contract (see docs/guide/text-selection.md: "Copy uses this semantic
+   * metadata"), matching the highlight, which filters the same way
+   * (`composeSelectionCells(..., respectSelectableFlag=true)`). Pass `false`
+   * ONLY for raw screen-rectangle extraction — i.e. Shift+drag buffer
+   * selection, which deliberately copies exactly what is on screen.
+   *
+   * The default was `false`, which silently let every copy path leak the
+   * padded screen rectangle until each remembered to opt in — the
+   * defaults-contract bug class. The default now matches the documented
+   * contract; raw extraction opts out.
+   */
   respectSelectableFlag?: boolean
   /** Row metadata for soft-wrap handling and precise trailing space trimming */
   rowMetadata?: readonly RowMetadata[]
@@ -353,8 +366,11 @@ export interface ExtractTextOptions {
  * Extract text from a buffer within a selection range.
  *
  * Handles:
- * - Soft-wrap joining (via RowMetadata.softWrapped)
- * - Trailing space trimming (via RowMetadata.lastContentCol or content scan)
+ * - Soft-wrap joining (via RowMetadata.softWrapped) — rejoins wrapped visual
+ *   rows into their logical line, reinserting the word-wrap break space
+ *   (RowMetadata.wrapJoinSpace) that trim-mode rendering stripped
+ * - Trailing fill exclusion (clamp to RowMetadata.lastContentCol; falls back
+ *   to a trailing-whitespace trim when a row carries no metadata)
  * - Blank line preservation within selection
  * - Wide-char continuation cell skipping
  * - SELECTABLE_FLAG filtering (when respectSelectableFlag is true)
@@ -366,13 +382,16 @@ export function extractText(
   options?: ExtractTextOptions,
 ): string {
   const { startRow, startCol, endRow, endCol } = normalizeRange(range)
-  const respectSelectable = options?.respectSelectableFlag ?? false
+  // Semantic-by-default: copy matches the highlight (which filters by
+  // SELECTABLE_FLAG). Raw screen-rectangle extraction (Shift+drag) opts out.
+  const respectSelectable = options?.respectSelectableFlag ?? true
   const rowMeta = options?.rowMetadata
   const scope = options?.scope
 
   const parts: string[] = []
 
   for (let row = startRow; row <= endRow; row++) {
+    const meta = rowMeta?.[row]
     let colStart = row === startRow ? startCol : 0
     let colEnd = row === endRow ? endCol : buffer.width - 1
     // Clip to contain scope on every row, not just the anchor/head rows.
@@ -384,13 +403,23 @@ export function extractText(
       if (colStart > colEnd) {
         // This row is entirely outside the scope — emit an empty line to
         // preserve row counts, then continue.
-        const meta = rowMeta?.[row]
         if (!(meta?.softWrapped && row < endRow)) {
           parts.push("")
           if (row < endRow) parts.push("\n")
         }
         continue
       }
+    }
+
+    // Don't read past the row's real content into clear-to-edge background
+    // fill. `lastContentCol` is the last column the text producer actually
+    // wrote: authored trailing spaces are included, but the fill cells a
+    // short/wrapped row paints out to the screen edge are not. Bounding the
+    // loop (instead of trailing-trimming the built string) stays correct when
+    // continuation / non-selectable cells are skipped mid-row, and preserves
+    // authored trailing whitespace that a blanket trim would eat.
+    if (meta && meta.lastContentCol >= 0) {
+      colEnd = Math.min(colEnd, meta.lastContentCol)
     }
 
     let line = ""
@@ -404,25 +433,23 @@ export function extractText(
       line += buffer.getCellChar(col, row)
     }
 
-    // Trim trailing spaces using lastContentCol if available, otherwise fallback
-    const meta = rowMeta?.[row]
-    if (meta && meta.lastContentCol >= 0) {
-      // Compute how much of the line is trailing whitespace
-      // lastContentCol is the rightmost col with non-space content
-      const effectiveEnd = row === endRow ? endCol : buffer.width - 1
-      const trailingCols = effectiveEnd - meta.lastContentCol
-      if (trailingCols > 0 && line.length > 0) {
-        // Trim up to trailingCols chars of trailing spaces
-        line = line.replace(/\s+$/, "")
-      }
-    } else {
+    // No producer metadata (a direct extractText caller that didn't pass
+    // rowMetadata): fall back to a trailing-whitespace trim so raw fill spaces
+    // don't leak. With metadata, the colEnd clamp above already excluded the
+    // fill — no trim needed (or wanted: it would eat authored trailing spaces
+    // that are real selectable content).
+    if (!meta || meta.lastContentCol < 0) {
       line = line.replace(/\s+$/, "")
     }
 
-    // Preserve blank lines within selection (don't drop them)
-    // but join soft-wrapped lines without a newline
+    // Preserve blank lines within selection (don't drop them).
+    // Soft-wrapped rows rejoin into their logical line with NO newline; a
+    // word-wrap break consumed a space (trimmed from both rows) so reinsert a
+    // single separator space, while a forced mid-word break (`wrapJoinSpace`
+    // false/undefined) rejoins with nothing. Hard breaks keep their newline.
     if (meta?.softWrapped && row < endRow) {
       parts.push(line)
+      if (meta.wrapJoinSpace) parts.push(" ")
     } else {
       parts.push(line)
       // Add newline separator unless this is the last row

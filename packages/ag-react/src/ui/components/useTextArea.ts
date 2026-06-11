@@ -80,6 +80,8 @@ export interface UseTextAreaOptions {
   onChange?: (value: string) => void
   /** Called on submit (Ctrl+Enter by default, or Enter if submitKey="enter") */
   onSubmit?: (value: string) => void
+  /** Called when Ctrl+D is pressed on an empty buffer. */
+  onEof?: () => void
   /** Key to trigger submit: "ctrl+enter" (default), "enter", or "meta+enter" */
   submitKey?: "ctrl+enter" | "enter" | "meta+enter"
   /** Whether input is active (receives keystrokes) */
@@ -126,6 +128,8 @@ export interface UseTextAreaResult {
   selectionAnchor: number | null
   /** Clear the input */
   clear: () => void
+  /** Get the live editor value, including updates from the current input batch */
+  getValue: () => string
   /** Set value programmatically (cursor moves to end) */
   setValue: (value: string) => void
   /** Get the current selection range, or null if no selection */
@@ -170,6 +174,7 @@ export function useTextArea({
   defaultValue = "",
   onChange,
   onSubmit,
+  onEof,
   submitKey = "ctrl+enter",
   isActive = true,
   height,
@@ -190,6 +195,8 @@ export function useTextArea({
   // Stable ref to onEdge so handlers see the latest version without re-binding.
   const onEdgeRef = useRef(onEdge)
   onEdgeRef.current = onEdge
+  const onEofRef = useRef(onEof)
+  onEofRef.current = onEof
 
   // Selection: anchor is where the selection started, cursor is the moving end.
   // When anchor is non-null, the selected range is [min(anchor, cursor), max(anchor, cursor)).
@@ -613,14 +620,13 @@ export function useTextArea({
       }
 
       // =================================================================
-      // Multi-line: Ctrl+K/U (kill to end/beginning of wrapped line)
+      // Multi-line: Ctrl+K/U (kill to end/beginning of logical line)
       // =================================================================
       if (key.ctrl && input === "k") {
         stickyXRef.current = null
         clearSelection()
-        const currentLine = lines[cRow]
-        if (!currentLine) return
-        const lineEnd = currentLine.startOffset + currentLine.line.length
+        const nextNewline = value.indexOf("\n", cursor)
+        const lineEnd = nextNewline === -1 ? value.length : nextNewline
         if (cursor < lineEnd) {
           addToKillRing(value.slice(cursor, lineEnd))
           updateValue(value.slice(0, cursor) + value.slice(lineEnd), cursor)
@@ -634,9 +640,7 @@ export function useTextArea({
       if (key.ctrl && input === "u") {
         stickyXRef.current = null
         clearSelection()
-        const currentLine = lines[cRow]
-        if (!currentLine) return
-        const lineStart = currentLine.startOffset
+        const lineStart = value.lastIndexOf("\n", Math.max(0, cursor - 1)) + 1
         if (cursor > lineStart) {
           addToKillRing(value.slice(lineStart, cursor))
           updateValue(value.slice(0, lineStart) + value.slice(cursor), lineStart)
@@ -663,6 +667,17 @@ export function useTextArea({
         }
         yankStateRef.current = null
         return
+      }
+
+      // Ctrl+D on an empty active buffer is the terminal EOF gesture.
+      // Preserve readline delete-forward for non-empty buffers below.
+      if (key.ctrl && input === "d" && value.length === 0 && cursor === 0 && !hasSelection) {
+        if (onEofRef.current) {
+          stickyXRef.current = null
+          yankStateRef.current = null
+          onEofRef.current()
+          return
+        }
       }
 
       // =================================================================
@@ -743,6 +758,8 @@ export function useTextArea({
     setSelectionAnchor(null)
   }, [updateValue])
 
+  const getValue = useCallback(() => stateRef.current.value, [])
+
   const setValue = useCallback(
     (v: string) => {
       updateValue(v, v.length)
@@ -773,6 +790,7 @@ export function useTextArea({
     selection,
     selectionAnchor,
     clear,
+    getValue,
     setValue,
     getSelection: getSelectionRange,
     setCursor: setCursorFn,

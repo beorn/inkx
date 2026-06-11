@@ -666,5 +666,5 @@ The more visible your behavior is — the easier your app is to test, debug, aut
 
 ## See Also
 
-- [Functional Core, Imperative Shell](https://kennethlange.com/functional-core-imperative-shell/) — the architectural principle behind Levels 3-5
+- [Functional Core, Imperative Shell](https://web.archive.org/web/2025/https://kennethlange.com/functional-core-imperative-shell/) — the architectural principle behind Levels 3-5
 - [The Elm Architecture](https://guide.elm-lang.org/architecture/) — the gold standard for ops + effects as data

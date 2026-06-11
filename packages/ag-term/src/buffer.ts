@@ -225,6 +225,19 @@ export interface RowMetadata {
   softWrapped: boolean
   /** Rightmost column with non-space content (for trailing space trimming) */
   lastContentCol: number
+  /**
+   * Only meaningful when `softWrapped` is true. Records whether the soft-wrap
+   * break to the next row consumed a whitespace character (word wrap) versus a
+   * forced mid-word break (a token longer than the line, or `wrap="hard"`).
+   *
+   * `trim`-mode rendering (the default) strips the breaking space from BOTH
+   * rows, so copy extraction must reinsert exactly one separator when rejoining
+   * the visual rows into their logical line: a single space when
+   * `wrapJoinSpace` is true, nothing when it is false/undefined. Without this,
+   * "alpha beta gamma"+"delta" rejoins as "alpha beta gammadelta" (lost space)
+   * and "verylong"+"word" would gain a spurious space.
+   */
+  wrapJoinSpace?: boolean
 }
 
 // ============================================================================
@@ -655,6 +668,7 @@ export class TerminalBuffer {
     const existing = this._rowMetadata[row]!
     if (meta.softWrapped !== undefined) existing.softWrapped = meta.softWrapped
     if (meta.lastContentCol !== undefined) existing.lastContentCol = meta.lastContentCol
+    if (meta.wrapJoinSpace !== undefined) existing.wrapJoinSpace = meta.wrapJoinSpace
   }
 
   /**

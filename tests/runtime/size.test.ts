@@ -163,7 +163,13 @@ describe("createSize: resize coalescing", () => {
     stop()
   })
 
-  test("zero-dimension resize events keep the last valid dimensions", async () => {
+  test("zero-dimension resize floors dims to last-good but still heals (repaint)", async () => {
+    // A degenerate (0×0) resize never publishes 0×0 to the renderer — the
+    // published dims stay at the last valid value. But it DOES republish a heal
+    // at those last-good dims so the fullscreen runtime repaints over whatever
+    // the multiplexer left on screen during the focus/workspace cycle. Pre-fix
+    // this fired no notification (`force: validResize`), which swallowed the
+    // heal and left the pane blank — @km/code/v0.2/19604-focus-blank.
     const stdout = createMockStdout(120, 40)
     using size = mkSize(stdout)
 
@@ -172,13 +178,17 @@ describe("createSize: resize coalescing", () => {
     setDims(stdout, 0, 0)
     await sleep(50)
 
-    expect(changes).toEqual([])
+    // Dims unchanged (floored to last-good), but the heal republish fired.
+    expect(changes).toEqual([{ cols: 120, rows: 40 }])
     expect(size.snapshot()).toEqual({ cols: 120, rows: 40 })
 
     setDims(stdout, 100, 30)
     await sleep(50)
 
-    expect(changes).toEqual([{ cols: 100, rows: 30 }])
+    expect(changes).toEqual([
+      { cols: 120, rows: 40 },
+      { cols: 100, rows: 30 },
+    ])
     expect(size.snapshot()).toEqual({ cols: 100, rows: 30 })
 
     stop()
@@ -510,6 +520,86 @@ describe("createSize: stream-shared listener (no MaxListenersExceeded leak)", ()
     expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
     for (const s of sizes) s[Symbol.dispose]()
     expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
+  })
+})
+
+// ============================================================================
+// Tests — 19604 degenerate-flush repaint gap (#undead, #P0)
+//
+// @km/code/v0.2/19604-focus-blank — Silver Code blanks after a cmux workspace
+// focus switch. The live zero-cell form (surface:304/372 read-screen
+// nonspace=0 on an otherwise-live pane) localizes to the createSize
+// trailing-edge debounce, NOT the renderer.
+//
+// Mechanism: a fullscreen pane is live at WIDE and showing content. A cmux
+// workspace focus-RESTORE fires a SIGWINCH burst. The same-size republish on a
+// focus restore is the DESIGNED healing path (size.ts:17-19 — "cmux/focus
+// restores can corrupt terminal screen state without changing cols/rows ...
+// fullscreen runtimes need the event so they can repaint/clear"). But the
+// trailing-edge debounce collapses the whole burst into ONE flush that reads
+// `stdout.columns/rows` at flush time. If that flush-time read is degenerate
+// (0×0 — a hidden-pane straggler frame landing inside the window), `flush()`
+// floors to last-good dims with `validResize=false`, so `publish(prev, prev,
+// {force:false})` is SKIPPED (no change + no force). The owed repaint never
+// fires → the runtime never repaints over the screen the multiplexer cleared →
+// the pane settles BLANK until the next manual resize.
+//
+// This is the one path the emulator harness (createFixedSize, synchronous
+// update) cannot exercise, which is why every hermetic termless 19604 test was
+// green while the live pane blanked. The fix: a degenerate flush must still
+// deliver the heal republish at last-good dims.
+// ============================================================================
+
+describe("createSize: 19604 focus-restore heal must survive a degenerate flush", () => {
+  test("a focus-restore burst that FLUSHES on a degenerate 0×0 straggler still delivers the heal repaint", async () => {
+    // Pane is live at WIDE, content on screen.
+    const stdout = createMockStdout(120, 40)
+    using size = createSize(stdout, { coalesceMs: 30 })
+
+    const { changes, stop } = observeChanges(size)
+
+    // Workspace switch-away then switch-back. The focus-restore fires a
+    // same-size SIGWINCH (the heal), then a hidden-pane 0×0 straggler lands
+    // LAST inside the debounce window — so the single coalesced flush reads
+    // 0×0.
+    setDims(stdout, 120, 40) // focus-restore same-size SIGWINCH (the heal)
+    await sleep(5) // still inside the 30 ms window
+    setDims(stdout, 0, 0) // hidden-pane straggler — flush reads this
+    await sleep(60) // past the window → exactly one flush
+
+    // Dims must stay at last-good (never publish 0×0 to the renderer).
+    expect(size.snapshot()).toEqual({ cols: 120, rows: 40 })
+    // The heal repaint is OWED: the multiplexer cleared the screen on the
+    // focus cycle. A degenerate flush must still republish at last-good dims so
+    // the fullscreen runtime repaints. Pre-fix: changes == [] (heal swallowed →
+    // blank). Post-fix: exactly one same-size heal.
+    expect(changes, "degenerate flush must still deliver the focus-restore heal").toEqual([
+      { cols: 120, rows: 40 },
+    ])
+
+    stop()
+  })
+
+  test("a standalone degenerate 0×0 notification still heals at last-good dims", async () => {
+    // The minimal shape: the pane is live; a single 0×0 frame (hidden-pane GUI
+    // frame / focus blur-repair clear) arrives. The screen may have been
+    // cleared; the runtime is owed a repaint. The published dims stay last-good
+    // (never 0×0), but the heal republish must fire.
+    const stdout = createMockStdout(120, 40)
+    using size = createSize(stdout, { coalesceMs: 16 })
+
+    const { changes, stop } = observeChanges(size)
+
+    setDims(stdout, 0, 0)
+    await sleep(50)
+
+    expect(size.snapshot()).toEqual({ cols: 120, rows: 40 })
+    expect(
+      changes,
+      "a degenerate frame must heal at last-good dims, not swallow the repaint",
+    ).toEqual([{ cols: 120, rows: 40 }])
+
+    stop()
   })
 })
 

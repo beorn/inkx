@@ -23,7 +23,7 @@ import { TextArea } from "silvery"
 | `rows`             | `number`                                  | `1`                 | Visible row count in `"fixed"` mode                       |
 | `minRows`          | `number`                                  | `1`                 | Minimum rows in `"content"` mode                          |
 | `maxRows`          | `number`                                  | `8`                 | Maximum rows in `"content"` mode (scrolls beyond)         |
-| `cursorStyle`      | `"block" \| "underline"`                  | `"block"`           | Cursor style                                              |
+| `cursorStyle`      | `"block" \| "underline"`                  | `"block"`           | Active hardware and inactive visual cursor style          |
 | `scrollMargin`     | `number`                                  | `1`                 | Context lines above/below cursor when scrolling           |
 | `disabled`         | `boolean`                                 | --                  | Ignore all input and dim text                             |
 | `maxLength`        | `number`                                  | --                  | Maximum number of characters allowed                      |

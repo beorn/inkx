@@ -12,6 +12,7 @@
  */
 
 import { ansi256ToRgb, isDefaultBg, type Color } from "../../buffer"
+import type { RGB } from "@silvery/ag/text-frame"
 
 /**
  * Template-literal brand for a canonical 6-digit lowercase hex color.
@@ -24,11 +25,30 @@ import { ansi256ToRgb, isDefaultBg, type Color } from "../../buffer"
  */
 export type HexColor = `#${string}`
 
-/** Convert a buffer Color to a `#rrggbb` hex string, or null if unresolvable. */
-export function colorToHex(color: Color): HexColor | null {
+/**
+ * Convert a buffer Color to a `#rrggbb` hex string, or null if unresolvable.
+ *
+ * `palette` is the active theme's 16 ANSI colors (`theme.palette`, in the
+ * canonical slot order: 0 black … 6 cyan … 15 brightWhite). When supplied AND
+ * the color is a palette index 0–15 (the slots a real terminal themes), the
+ * index resolves against `palette[idx]` instead of the hardcoded VGA table in
+ * `ansi256ToRgb`. This is what the backdrop fade threads through so a
+ * palette-indexed cell (e.g. ANSI cyan index 6 parsed from agent terminal
+ * output) fades toward the THEME's cyan, not VGA teal `#008080` (@km 19764).
+ *
+ * Indices ≥ 16 always use `ansi256ToRgb` — the 6×6×6 color cube and grayscale
+ * ramp are palette-independent. Omitting `palette` keeps the historical VGA
+ * fallback verbatim, which `createTextFrame` readback and bare (no-theme)
+ * tests depend on.
+ */
+export function colorToHex(color: Color, palette?: readonly RGB[]): HexColor | null {
   if (color === null) return null
   if (typeof color === "number") {
-    const rgb = ansi256ToRgb(color)
+    // Theme-aware resolution for the 16 ANSI slots a terminal themes (0–15).
+    // Falls back to the VGA table for cube/grayscale indices and whenever no
+    // palette is supplied (bare buffers, readback).
+    const themed = palette !== undefined && color >= 0 && color < 16 ? palette[color] : undefined
+    const rgb = themed ?? ansi256ToRgb(color)
     return rgbToHex(rgb.r, rgb.g, rgb.b)
   }
   if (isDefaultBg(color)) return null

@@ -712,7 +712,7 @@ function renderText(
 
   // Format text into lines (handles wrapping, truncation, newlines)
   const availableWidth = maxCol - x
-  const lines = formatTextLines(text, availableWidth, props.wrap)
+  const lines = formatTextLines(text, availableWidth, props.wrap, undefined, true, props.truncate)
 
   // If all segments have the same style (common case), use fast path
   if (segments.length <= 1) {

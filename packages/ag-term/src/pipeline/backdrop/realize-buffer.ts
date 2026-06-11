@@ -37,13 +37,117 @@
  * @see ./region.ts for the shared include/exclude region walker.
  */
 
-import { mixSrgb } from "@silvery/color"
+import { mixSrgb, relativeLuminance } from "@silvery/color"
 import type { TerminalBuffer } from "../../buffer"
 import { isLikelyEmoji } from "../../unicode"
 import { colorToHex, type HexColor, hexToRgb } from "./color"
 import { deemphasizeOklchToward } from "./color-shim"
 import { DARK_SCRIM, LIGHT_SCRIM, type Plan } from "./plan"
 import { forEachBackdropCell } from "./region"
+
+/**
+ * Surface-polarity midpoint for the legacy (scrim===null) per-cell darkening
+ * target. A cell whose own bg luminance is at/above this lightens toward
+ * `LIGHT_SCRIM`; below it darkens toward `DARK_SCRIM`.
+ *
+ * This is INTENTIONALLY 0.5 (the perceptual light/dark surface midpoint),
+ * NOT `DARK_LUMINANCE_THRESHOLD` (0.18). That constant detects a dark THEME
+ * bg, which sits near 0 — it's the right boundary when classifying a whole
+ * theme. Here we classify an arbitrary individual cell bg, and 0.18 would
+ * send saturated mid-luminance surfaces (pure red ≈0.21, magenta ≈0.29,
+ * mid-grey ≈0.22) toward WHITE — visually wrong for "recede under a
+ * backdrop." 0.5 keeps every dark theme AND every saturated/mid surface
+ * darkening toward black, and only genuinely-light surfaces (light-theme
+ * panels, near-white) lighten toward white — matching how the theme-driven
+ * scrim path behaves on light vs dark themes.
+ */
+const LEGACY_SURFACE_LIGHT_MIDPOINT = 0.5
+
+/**
+ * Polarity-aware darkening target for a single resolved bg hex in the legacy
+ * (scrim===null) path. Used ONLY as the no-usable-sample FALLBACK now — the
+ * primary path derives ONE scene-level target via `sampleRegionScrimTarget`
+ * (see below). The legacy path has NO theme context, so global polarity can't
+ * be derived from a `defaultBg`; this per-cell heuristic reads the cell's own
+ * luminance: below the surface midpoint it recedes toward `DARK_SCRIM`
+ * (black), at/above it toward `LIGHT_SCRIM` (white). Falls back to `DARK_SCRIM`
+ * when luminance is unresolvable (rare hex edge) — the historical dark-theme
+ * default.
+ *
+ * Why this is no longer the primary path: per-cell polarity sends a LIGHT
+ * element (e.g. a `#d8dee9` scrollbar block, luminance ≈ 0.87) toward WHITE,
+ * so on a predominantly-DARK scene that cell gets BRIGHTER under the modal
+ * instead of receding. A light element on a dark scene should recede toward
+ * the dark scene, not pop toward white. Scene-level polarity fixes that — see
+ * `sampleRegionScrimTarget`. (@km 19684, follow-up to 19665.)
+ */
+function legacyScrimTargetFor(bgHex: HexColor): HexColor {
+  const lum = relativeLuminance(bgHex)
+  if (lum === null) return DARK_SCRIM
+  return lum >= LEGACY_SURFACE_LIGHT_MIDPOINT ? LIGHT_SCRIM : DARK_SCRIM
+}
+
+/**
+ * Derive ONE scene-level polarity target for the legacy (scrim===null) path by
+ * sampling the faded region's resolvable cell backgrounds.
+ *
+ * ### Why scene-level, not per-cell
+ *
+ * The legacy path runs when no theme bg flows into the backdrop options, so
+ * there is no single `defaultBg` to derive a scrim from. The previous fix
+ * (@km 19665) darkened each cell toward a PER-CELL polarity target. That
+ * correctly darkened the dark status bar, but it also sent every LIGHT element
+ * (a light scrollbar block, a light-on-dark badge) toward WHITE — making those
+ * cells BRIGHTER under the modal instead of receding. On a dark scene a light
+ * element must recede toward the DARK scene; on a light scene a dark element
+ * must recede toward the LIGHT scene. Polarity is a property of the SCENE, not
+ * of the individual cell — so we resolve it once for the whole region.
+ *
+ * ### Sampling approach: dominant-by-count of polarity buckets
+ *
+ * We walk every cell in the region (`forEachBackdropCell` — the same walker
+ * the realize pass uses, so the sampled set is exactly the faded set) and
+ * tally resolvable backgrounds into two buckets: `dark` (luminance below the
+ * surface midpoint) and `light` (at/above it). The dominant bucket wins:
+ *
+ *   - light > dark  → `LIGHT_SCRIM` (predominantly-light scene)
+ *   - otherwise     → `DARK_SCRIM`  (predominantly-dark scene; ties → dark)
+ *
+ * Counting buckets (rather than averaging luminance) is deliberately
+ * outlier-resistant: it matches a median's robustness for a BINARY polarity
+ * decision without storing/sorting a per-cell sample array each frame. A scene
+ * that is 95% dark cells with a handful of bright accents stays "dark" no
+ * matter how extreme those accents are — a mean could be dragged across the
+ * midpoint by a few saturated cells. Ties resolve to `DARK_SCRIM`, the
+ * historical dark-theme default (a tie on a TUI is overwhelmingly a dark scene
+ * with light accents).
+ *
+ * ### Fallback
+ *
+ * Returns `null` when the region has NO resolvable bg cells (every cell is
+ * null / DEFAULT_BG). With no sample there is nothing to count, so the caller
+ * falls back to the per-cell `legacyScrimTargetFor` heuristic.
+ *
+ * Cheap: one extra walk of the region, two integer counters, no allocation
+ * beyond the walker's own visited bitset.
+ */
+function sampleRegionScrimTarget(plan: Plan, buffer: TerminalBuffer): HexColor | null {
+  let dark = 0
+  let light = 0
+  forEachBackdropCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
+    // Mirror fadeCell's continuation skip so a wide char's bg is counted once
+    // (the lead cell), not twice.
+    if (buffer.isCellContinuation(x, y)) return
+    const bgHex = colorToHex(buffer.getCell(x, y).bg, plan.palette ?? undefined)
+    if (bgHex === null) return
+    const lum = relativeLuminance(bgHex)
+    if (lum === null) return
+    if (lum >= LEGACY_SURFACE_LIGHT_MIDPOINT) light += 1
+    else dark += 1
+  })
+  if (dark === 0 && light === 0) return null
+  return light > dark ? LIGHT_SCRIM : DARK_SCRIM
+}
 
 /**
  * Stage 2a — apply the plan's cell-level transform to the buffer.
@@ -64,9 +168,18 @@ export function realizeToBuffer(plan: Plan, buffer: TerminalBuffer): boolean {
   if (!plan.active) return false
   if (plan.amount <= 0) return false
 
+  // Legacy (scrim===null) path: derive ONE scene-level polarity target from
+  // the region's resolvable backgrounds BEFORE the per-cell fade, so light
+  // elements recede toward a dark scene (and dark elements toward a light
+  // scene) instead of each cell pulling toward its own polarity. `null` when
+  // the region has no resolvable bg sample — fadeCell then falls back to the
+  // per-cell heuristic. Computed once per frame; the two-channel scrim path
+  // ignores it (it already recedes toward the resolved scrim).
+  const regionTarget = plan.scrim === null ? sampleRegionScrimTarget(plan, buffer) : null
+
   let modified = false
   forEachBackdropCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
-    if (fadeCell(buffer, x, y, plan)) modified = true
+    if (fadeCell(buffer, x, y, plan, regionTarget)) modified = true
   })
   return modified
 }
@@ -96,11 +209,32 @@ export function realizeToBuffer(plan: Plan, buffer: TerminalBuffer): boolean {
  * 0.54).
  *
  * The `scrim !== null` gate activates the full two-channel path: fg always
- * deemphasizes, and bg mixes toward the scrim when a resolvable bg hex is
- * available (`cell.bg` non-null OR `defaultBg` non-null). When both
- * `scrim` and a resolvable bg are null (no theme context at all): falls
- * back to mixing fg toward `cell.bg` so the cell still reads as "receded"
- * without needing external theme info.
+ * deemphasizes (OKLCH), and bg mixes toward the scrim when a resolvable bg
+ * hex is available (`cell.bg` non-null OR `defaultBg` non-null).
+ *
+ * When `scrim === null` (no theme context resolved a default bg) the LEGACY
+ * path runs. It is ALSO two-channel, but derives a SCENE-LEVEL polarity target
+ * (`regionTarget`, sampled once over the whole region in `realizeToBuffer`)
+ * instead of a single theme scrim:
+ *
+ *   fg' = mixSrgb(fg, cell.bg, amount)         // fg recedes toward its own bg
+ *   bg' = mixSrgb(bg, regionTarget, amount)    // regionTarget = DARK_SCRIM for
+ *                                              // a predominantly-dark scene,
+ *                                              // LIGHT_SCRIM for a
+ *                                              // predominantly-light one
+ *
+ * Using ONE scene-level target (not the cell's own luminance) is the @km 19684
+ * fix: a per-cell target made light elements (a light scrollbar block) recede
+ * toward WHITE even on a dark scene — brightening them under the modal instead
+ * of dimming. When the region had no resolvable bg sample
+ * (`regionTarget === null`), this cell falls back to the per-cell
+ * `legacyScrimTargetFor` heuristic.
+ *
+ * Recede-ing the bg here is what makes opaque background blocks (a status bar
+ * with an explicit hex bg, a colored panel) recede under the backdrop even
+ * with NO node-theme prop mounted — otherwise they stay full-brightness and
+ * "pop" outside the modal overlay. Cells whose bg is unresolvable (null /
+ * DEFAULT_BG) have nothing to mix toward, so they fall back to a dim stamp.
  *
  * ### Wide-char / emoji handling
  *
@@ -115,7 +249,13 @@ export function realizeToBuffer(plan: Plan, buffer: TerminalBuffer): boolean {
  *    TEXT (CJK etc.) goes through the normal deemphasize path on both
  *    branches — the fg mix works fine and SGR 2 on CJK over-fades.
  */
-function fadeCell(buffer: TerminalBuffer, x: number, y: number, plan: Plan): boolean {
+function fadeCell(
+  buffer: TerminalBuffer,
+  x: number,
+  y: number,
+  plan: Plan,
+  regionTarget: HexColor | null,
+): boolean {
   // Skip continuation half of wide chars — the leading cell at x-1 updates
   // this cell in lockstep when it's processed.
   if (buffer.isCellContinuation(x, y)) return false
@@ -137,7 +277,11 @@ function fadeCell(buffer: TerminalBuffer, x: number, y: number, plan: Plan): boo
   if (plan.kittyEnabled && isEmojiGlyph) return false
 
   const { amount, scrim, defaultBg, defaultFg, scrimTowardLight } = plan
-  const rawFgHex = colorToHex(cell.fg)
+  // Resolve palette-indexed cells (ANSI 0–15) against the active theme palette
+  // when present, so parsed-terminal cyan fades toward the theme's cyan rather
+  // than VGA teal `#008080` (@km 19764). `undefined` palette → VGA fallback.
+  const palette = plan.palette ?? undefined
+  const rawFgHex = colorToHex(cell.fg, palette)
 
   if (scrim !== null) {
     // Two-channel path — scrim is available. An explicit scrim is useful
@@ -159,7 +303,7 @@ function fadeCell(buffer: TerminalBuffer, x: number, y: number, plan: Plan): boo
     // `colorToHex(cell.bg) ?? defaultBg` — when cell.bg is null/default
     // and no defaultBg is available, bgHex stays null and we skip the bg
     // mix while still deemphasizing fg.
-    const bgHex: HexColor | null = colorToHex(cell.bg) ?? defaultBg
+    const bgHex: HexColor | null = colorToHex(cell.bg, palette) ?? defaultBg
     const mixedBgHex = bgHex !== null ? mixSrgb(bgHex, scrim, amount) : null
     const mixedBg = mixedBgHex !== null ? hexToRgb(mixedBgHex) : null
 
@@ -202,29 +346,57 @@ function fadeCell(buffer: TerminalBuffer, x: number, y: number, plan: Plan): boo
 
   const fgHex = rawFgHex
 
-  // Legacy path (no scrim): mix fg toward cell.bg.
-  const bgHex = colorToHex(cell.bg)
+  // Legacy path (no scrim — no theme context resolved a default bg). Two
+  // channels, same as the scrim path but with a SCENE-LEVEL polarity target:
+  //
+  //   fg' = mixSrgb(fg, cell.bg, amount)     // fg recedes toward its own bg
+  //   bg' = mixSrgb(bg, sceneTarget, amount) // bg recedes toward the scene
+  //                                          // polarity (dark scene → black,
+  //                                          // light scene → white)
+  //
+  // `sceneTarget` is the SINGLE region target sampled in `realizeToBuffer`
+  // (`sampleRegionScrimTarget`), shared by every cell in the region. This is
+  // the @km 19684 fix: a per-cell target (the @km 19665 behavior) sent a LIGHT
+  // element toward WHITE even on a dark scene, brightening it under the modal
+  // instead of receding. Scene polarity keeps a light scrollbar on a dark
+  // scene darkening WITH the scene. When the region had no resolvable sample
+  // (`regionTarget === null`), fall back to the per-cell `legacyScrimTargetFor`
+  // heuristic for this cell.
+  //
+  // The bg recede is the load-bearing fix from 19665: opaque background blocks
+  // (e.g. an app's status bar painted with an explicit hex bg) must recede
+  // under the modal backdrop even when no node-theme prop is mounted, so they
+  // don't "pop" bright outside the overlay. Cells whose bg is unresolvable
+  // (null / DEFAULT_BG) can't be mixed without a target, so they keep the
+  // dim-stamp fallback below.
+  const bgHex = colorToHex(cell.bg, palette)
+  const cellTarget = regionTarget ?? (bgHex !== null ? legacyScrimTargetFor(bgHex) : DARK_SCRIM)
+  const darkenedBgRgb = bgHex !== null ? hexToRgb(mixSrgb(bgHex, cellTarget, amount)) : null
 
-  if (fgHex && bgHex) {
-    const mixedHex = mixSrgb(fgHex, bgHex, amount)
-    const mixedRgb = hexToRgb(mixedHex)
-    if (!mixedRgb) return false
-    // Emoji glyphs ignore fg color — the mix has no visible effect on the
-    // glyph. Stamp attrs.dim on lead + continuation so terminals honoring
-    // SGR 2 on emoji still fade the glyph. CJK and other wide TEXT keep
-    // getting the fg mix only; SGR 2 on CJK over-fades.
-    if (isEmojiGlyph) {
-      const newAttrs = cell.attrs.dim ? cell.attrs : { ...cell.attrs, dim: true }
-      buffer.setCell(x, y, { ...cell, fg: mixedRgb, attrs: newAttrs })
-      propagateToContinuation(buffer, cell, x, y, { dim: true })
-      return true
+  if (bgHex !== null && darkenedBgRgb) {
+    // fg recedes toward the ORIGINAL bg (preserves the historical legacy fg
+    // result); the bg darkens separately toward the polarity target.
+    const mixedFgRgb = fgHex ? hexToRgb(mixSrgb(fgHex, bgHex, amount)) : null
+
+    // Emoji glyphs ignore fg color — the fg mix has no visible effect on the
+    // glyph. Stamp attrs.dim on lead + continuation so terminals honoring SGR
+    // 2 on emoji still fade the glyph. CJK and other wide TEXT keep the fg mix
+    // only; SGR 2 on CJK over-fades.
+    const stampEmojiDim = isEmojiGlyph
+    const newAttrs = stampEmojiDim && !cell.attrs.dim ? { ...cell.attrs, dim: true } : cell.attrs
+
+    if (mixedFgRgb) {
+      buffer.setCell(x, y, { ...cell, fg: mixedFgRgb, bg: darkenedBgRgb, attrs: newAttrs })
+    } else {
+      buffer.setCell(x, y, { ...cell, bg: darkenedBgRgb, attrs: newAttrs })
     }
-    buffer.setCell(x, y, { ...cell, fg: mixedRgb })
+    propagateToContinuation(buffer, cell, x, y, { bg: darkenedBgRgb, dim: stampEmojiDim })
     return true
   }
 
-  // Fallback — bg unresolvable (DEFAULT_BG / null) or fg null. Stamp dim so
-  // the cell still reads as "backdrop".
+  // Fallback — bg unresolvable (DEFAULT_BG / null). With no resolvable bg and
+  // no theme default there is nothing to darken toward, so stamp dim to keep
+  // the cell reading as "backdrop".
   if (cell.attrs.dim) return false
   buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
   if (cell.wide && x + 1 < buffer.width) {

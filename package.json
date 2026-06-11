@@ -109,13 +109,18 @@
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
     "flexily": "0.7.3",
-    "loggily": "^0.8.0",
+    "loggily": "^0.10.0",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^8.0.0",
     "string-width": "^8.2.0"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
+    "@silvery/ag": "0.21.0",
+    "@silvery/ag-react": "0.21.0",
+    "@silvery/ag-term": "0.21.0",
+    "@silvery/ansi": "0.21.0",
+    "@silvery/theme": "0.21.0",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
     "@vue/server-renderer": "^3.5.31",
@@ -128,7 +133,7 @@
     "fast-check": "^4.6.0",
     "mermaid": "^11.14.0",
     "mitata": "^1.0.34",
-    "oxfmt": "^0.38.0",
+    "oxfmt": "0.38.0",
     "oxlint": "^1.51.0",
     "playwright": "^1.58.2",
     "react": "^19.0.0",
@@ -150,6 +155,10 @@
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
+  },
+  "overrides": {
+    "flexily": "github:beorn/flexily",
+    "loggily": "github:beorn/loggily"
   },
   "tsdown": {
     "clean": true,

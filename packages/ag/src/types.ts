@@ -714,9 +714,13 @@ export interface BoxProps
    * across conditional mounts (see `km-silvercode.cursor-startup-position`).
    *
    * **Precedence across nodes** (locked by `km-silvery.cursor-invariants` #1):
-   * 1. Focused-editable wins — a Box that is `focused` AND has visible
-   *    `cursorOffset` always beats a non-focused declarer.
-   * 2. Otherwise deepest-in-paint-order (post-order tree walk) wins.
+   * 1. Focused cursor owner wins — a Box that has `cursorOffset` and either
+   *    `focused === true` or focus-manager `interactiveState.focused === true`
+   *    always beats a non-focused declarer, even when
+   *    `cursorOffset.visible === false`. Hidden focused owners still carry a
+   *    position so terminal renderers can move there before hiding the
+   *    hardware cursor.
+   * 2. Otherwise deepest visible in paint order (post-order tree walk) wins.
    * 3. Otherwise null.
    *
    * **Clipping** (invariant #4): if the caret falls outside the nearest
@@ -964,6 +968,71 @@ export interface TextFlexItemProps {
   maxHeight?: number | string
 }
 
+/**
+ * Cell-width-aware measurement helpers handed to a {@link TextTruncateHook}.
+ * Every method counts display columns (CJK / emoji are 2 cells), never code
+ * units — so a hook can implement its own elision policy without re-deriving
+ * width math. Backed by the active pipeline measurer when present, module-level
+ * fallbacks otherwise.
+ */
+export interface TextMeasure {
+  /** Display width (terminal columns) of `text`. */
+  width(text: string): number
+  /** Longest prefix of `text` whose display width is <= `max` columns. */
+  sliceByWidth(text: string, max: number): string
+  /** Longest suffix of `text` whose display width is <= `max` columns. */
+  sliceByWidthFromEnd(text: string, max: number): string
+}
+
+/**
+ * Rich result a {@link TextTruncateHook} may return instead of a bare string,
+ * so a policy hook can mark which spans of its fitted line are elision-marker
+ * CHROME (e.g. a `" … "` separator) rather than content. Marker spans render
+ * with {@link TextProps.truncateMarkerColor} (default `"$fg-muted"`), making
+ * the elision read as quiet chrome instead of competing with the surrounding
+ * text.
+ *
+ * A bare `string` return is exactly equivalent to `{ text }` with no markers —
+ * today's behavior, no marker styling of hook output.
+ */
+export interface TextTruncateResult {
+  /** The fitted line. Same contract as a bare-string return — defensively
+   *  hard-clipped if it still overflows, so the hook can never paint past the
+   *  box edge. */
+  text: string
+  /**
+   * JS string-index `[start, end)` ranges within `text` that are
+   * elision-marker chrome, rendered with {@link TextProps.truncateMarkerColor}.
+   * Indices are UTF-16 offsets into `text` (the PLAIN visible string the hook
+   * was handed and returned — never the inline-ANSI form). Out-of-bounds or
+   * overlapping ranges are clamped / ignored defensively (a STRICT-mode warning
+   * is emitted); a malformed `markers` array never throws in production paths.
+   */
+  markers?: readonly { start: number; end: number }[]
+}
+
+/**
+ * Per-line truncation hook for `wrap` truncate modes. Only consulted when the
+ * line OVERFLOWS the available width; receives the overflowing `line`, the
+ * available cell `width`, and a cell-width-aware {@link TextMeasure}.
+ *
+ * Return the fitted line (bare `string`), a {@link TextTruncateResult} to also
+ * mark marker-chrome spans, or `null` to fall back to the built-in truncation
+ * for the active mode. The returned text is NOT trusted blindly — if it still
+ * overflows, the pipeline hard-clips it via `measure.sliceByWidth`, so a hook
+ * can never paint past the box edge. Returning `null` MUST be cheap and safe;
+ * the hook runs once per overflowing line, every render.
+ *
+ * This is where width-dependent elision policy lives (e.g. a tail-length
+ * formula derived from `width`), which a static data prop cannot express.
+ * Function-prop precedent in `TextProps`: the mouse handlers.
+ */
+export type TextTruncateHook = (
+  line: string,
+  width: number,
+  measure: TextMeasure,
+) => string | TextTruncateResult | null
+
 export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, MouseEventProps {
   children?: React.ReactNode
   /**
@@ -997,6 +1066,36 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
     | "truncate-end"
     | "clip"
     | boolean
+  /**
+   * Per-line truncation hook. Only consulted when `wrap` is a truncate mode
+   * (`"truncate"` / `"truncate-start"` / `"truncate-middle"` / `"truncate-end"`)
+   * AND the line overflows the available width. Lets the consumer supply a
+   * width-dependent elision policy (custom separator, token-boundary breaks,
+   * slug rescue) the built-in modes can't express. Returns the fitted line or
+   * `null` to use the built-in truncation. An overwide return value is
+   * defensively hard-clipped — the hook can never paint past the box edge.
+   * See {@link TextTruncateHook}.
+   */
+  truncate?: TextTruncateHook
+  /**
+   * Color for elision-marker CHROME in truncated output — the inserted "…" of
+   * the built-in truncate modes (`"truncate"` / `"truncate-end"` /
+   * `"truncate-start"` / `"truncate-middle"` / `"wrap-truncate"`) AND any
+   * marker ranges a {@link TextTruncateHook} returns via
+   * {@link TextTruncateResult.markers}. Styling the marker separately from the
+   * surrounding text lets the elision read as quiet chrome, not content.
+   *
+   * Accepts the same color forms as {@link StyleProps.color} (`$token`, hex,
+   * named, `rgb(...)`, `mix(...)`), resolved against the active theme at paint
+   * time. Does NOT affect the surrounding text — only the marker cells.
+   *
+   * Defaults to `"$fg-muted"` (the standard low/dim fg slot), NOT `"$muted"` —
+   * in the default pipeline theme `"$muted"` resolves to the same value as
+   * `"$fg"`, so it would never dim against `$fg`-colored text.
+   *
+   * @default "$fg-muted"
+   */
+  truncateMarkerColor?: string
   /** Internal transform function applied to each rendered line. Used by Transform component. */
   internal_transform?: (line: string, index: number) => string
   /**
