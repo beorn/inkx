@@ -104,8 +104,7 @@ export function Button({
       <Box focusable {...rest}>
         <Text color={color} inverse={active}>
           {" "}
-          {label}
-          {" "}
+          {label}{" "}
         </Text>
       </Box>
     )
@@ -119,8 +118,7 @@ export function Button({
     <Box focusable backgroundColor={bg} {...rest}>
       <Text color={tokens.fgOn} bold>
         {" "}
-        {label}
-        {" "}
+        {label}{" "}
       </Text>
     </Box>
   )
