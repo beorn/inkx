@@ -164,7 +164,9 @@ describe("Alert", () => {
         </Alert.Actions>
       </Alert>,
     )
-    expect(app.containsText("[ Delete ]")).toBe(true)
-    expect(app.containsText("[ Cancel ]")).toBe(true)
+    expect(app.containsText("[ Delete ]")).toBe(false)
+    expect(app.containsText("[ Cancel ]")).toBe(false)
+    expect(app.containsText(" Delete ")).toBe(true)
+    expect(app.containsText(" Cancel ")).toBe(true)
   })
 })

@@ -64,7 +64,7 @@ export interface ButtonProps extends Omit<BoxProps, "children"> {
 /**
  * Focusable button control.
  *
- * Renders `[ label ]` with variant-resolved background fill and inverse-mapped
+ * Renders ` label ` with variant-resolved background fill and inverse-mapped
  * foreground when focused. Activates on Enter or Space key press.
  */
 export function Button({
@@ -103,9 +103,9 @@ export function Button({
     return (
       <Box focusable {...rest}>
         <Text color={color} inverse={active}>
-          {"[ "}
+          {" "}
           {label}
-          {" ]"}
+          {" "}
         </Text>
       </Box>
     )
@@ -118,9 +118,9 @@ export function Button({
   return (
     <Box focusable backgroundColor={bg} {...rest}>
       <Text color={tokens.fgOn} bold>
-        {"[ "}
+        {" "}
         {label}
-        {" ]"}
+        {" "}
       </Text>
     </Box>
   )

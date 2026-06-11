@@ -22,13 +22,13 @@ interface BoxStyleProps extends StyleProps {
 }
 
 function textColorOf(label: string, app: ReturnType<typeof render>): string | undefined {
-  const node = app.getByText(`[ ${label} ]`).resolve()
+  const node = app.getByText(` ${label} `).resolve()
   return (node?.props as StyleProps | undefined)?.color as string | undefined
 }
 
 function bgColorOf(label: string, app: ReturnType<typeof render>): string | undefined {
   // Button wraps its Text in a Box — walk up from the text node to the Box.
-  const text = app.getByText(`[ ${label} ]`).resolve()
+  const text = app.getByText(` ${label} `).resolve()
   const box = text?.parent
   return (box?.props as BoxStyleProps | undefined)?.backgroundColor
 }
@@ -70,6 +70,8 @@ describe("Button variant surface", () => {
 
   test("default variant is accent (no variant prop, no color prop)", () => {
     const app = render(<Button label="default" onPress={() => {}} />)
+    expect(app.containsText("[ default ]")).toBe(false)
+    expect(app.containsText(" default ")).toBe(true)
     expect(bgColorOf("default", app)).toBe("$bg-accent")
     expect(textColorOf("default", app)).toBe("$fg-on-accent")
   })
