@@ -337,16 +337,16 @@ For tests that need to verify actual ANSI output, colors, cursor positioning, or
 
 ```bash
 # Run all tests
-bun test
+bunx --bun vitest run
 
 # Run specific test file
-bun test tests/unicode.test.ts
+bunx --bun vitest run tests/unicode.test.ts
 
 # Run tests matching pattern
-bun test --pattern "CJK"
+bunx --bun vitest run -t "CJK"
 
 # Run with verbose output
-bun test --verbose
+bunx --bun vitest run --reporter=verbose
 ```
 
 ## Test Organization Patterns

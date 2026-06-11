@@ -95,7 +95,7 @@ interface TextHandle {
 
 Long path-style or identifier tokens like `.claude/skills/{claim,do}/SKILL.md` are unbreakable from a pure word-boundary perspective. `"wrap"` breaks them at the SECONDARY break points `/`, `\`, `.`, `_`, `:`, `,` (after the separator) — `path/` ends one line, `to` starts the next. Brackets and parens (`{` `}` `[` `]` `(` `)`) are **not** soft breaks — paired delimiters shouldn't be orphaned, matching CSS behavior.
 
-For atomic tokens with no separators (e.g. `aaaaaaaaaaaaaaaaaaaa`), `"wrap"` falls back to character wrap (the token spans multiple lines). If you'd prefer `…` truncation in that case, use `"wrap-truncate"`: the wrap algorithm is the same, but when an unbreakable token would otherwise character-wrap, the offending line ends with `…` and the rest of that token is dropped. Subsequent text after the next word boundary continues wrapping normally — only the offending atomic run is truncated, not the entire text. Tracked: `@km/silvery/card-body-truncate-ellipsis` (closed) and `@km/silvery/css-aligned-wrap-overflow-terminology`.
+For atomic tokens with no separators (e.g. `aaaaaaaaaaaaaaaaaaaa`), `"wrap"` falls back to character wrap (the token spans multiple lines). If you'd prefer `…` truncation in that case, use `"wrap-truncate"`: the wrap algorithm is the same, but when an unbreakable token would otherwise character-wrap, the offending line ends with `…` and the rest of that token is dropped. Subsequent text after the next word boundary continues wrapping normally — only the offending atomic run is truncated, not the entire text.
 
 ## See Also
 

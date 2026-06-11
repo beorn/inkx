@@ -308,7 +308,7 @@ type IslandHydrate = "load" | "idle" | "visible" | "only-on-focus"
 - **`"visible"`** — defer until the island's rect intersects the viewport. The guest only runs when the user can see it.
 - **`"only-on-focus"`** — defer until first focus; tear down on blur. The cheapest mode for multi-pane hosts where most panes sit idle most of the time.
 
-Phase 1 ships `"load"` only. The other three modes are accepted but currently behave as `"load"` (the deferred-hydrate scheduler arrives in Phase 2 — see `@km/silvery/15646-islands`).
+Phase 1 ships `"load"` only. The other three modes are accepted but currently behave as `"load"` (the deferred-hydrate scheduler arrives in Phase 2).
 
 ## Palette policy
 
@@ -330,7 +330,7 @@ type IslandPalettePolicy =
 When an island is focused, the host enables the terminal protocol modes the guest wants. When focus moves elsewhere, the host disables modes only that island wanted. The aggregation walks the focus subtree — from the focused leaf to root — and unions every `silvery-island` ancestor's `handle.modes.modes`:
 
 ```ts
-// vendor/silvery/packages/ag-term/src/runtime/island-aggregator.ts
+// packages/ag-term/src/runtime/island-aggregator.ts
 const aggregated = deriveProtocolModesFromFocusSubtree(focusManager.activeElement)
 // → { kittyKeyboard: true, mouseTracking: "drag", focusReporting: true }
 ```
@@ -509,4 +509,3 @@ Nested islands are possible by construction. The aggregator walks every island o
 - [docs/reference/term.md](../reference/term.md) — the parent `Term.input` / `Term.output` / `Term.modes` pattern islands recursively implement
 - [docs/guide/scope.md](./scope.md) — the Scope primitive `<Island>` uses for lifecycle (`useScopeEffect` + `ctx.abortSignal`)
 - [docs/guide/debugging.md](./debugging.md) — full SILVERY_STRICT slug table including the 7 island slugs
-- `@km/silvery/15646-islands` — the full epic body (design, P0 landmines, /pro decisions, phases)

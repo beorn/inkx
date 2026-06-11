@@ -302,7 +302,7 @@ truthy values, leaving only the opt-out semantics.
 ## Testing
 
 Tests live at
-`vendor/silvery/tests/features/terminal-component.test.tsx`. The
+`tests/features/terminal-component.test.tsx`. The
 canonical setup mirrors the recording overlay:
 
 ```tsx

@@ -184,7 +184,7 @@ Apps extend the variant table via <span v-pre>`<ThemeProvider tokens={{ variants
 :::
 
 ::: tip ✨ Shiny — Let `<Text wrap="truncate">` own ellipsis
-For fixed-width labels, titles, status bars, and table cells, pass `wrap="truncate"` (or `truncate-start` / `truncate-middle`) and let the text renderer ellipsize against the actual laid-out container. It is ANSI-aware, wide-character-aware, and only adds `…` when content overflows; exact-fit text remains unchanged. Leading-edge / bidi-aware ellipsis direction is future work tracked by `@km/silvery/text-truncate-i18n-and-strictness`.
+For fixed-width labels, titles, status bars, and table cells, pass `wrap="truncate"` (or `truncate-start` / `truncate-middle`) and let the text renderer ellipsize against the actual laid-out container. It is ANSI-aware, wide-character-aware, and only adds `…` when content overflows; exact-fit text remains unchanged. Leading-edge / bidi-aware ellipsis direction is future work.
 :::
 
 → [Typography reference](/components/typography) · [Text reference](/api/text) · [Theme tokens](/guide/styling#token-reference)

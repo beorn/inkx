@@ -20,14 +20,14 @@ cd silvery
 bun install
 
 # Run tests to verify setup
-bun test tests/
+bun run test
 ```
 
 ### Available Scripts
 
 | Script                       | Description                                 |
 | ---------------------------- | ------------------------------------------- |
-| `bun test tests/`            | Run all unit tests                          |
+| `bun run test`               | Run all unit tests                          |
 | `bun run test:fast`          | Run tests with 5s timeout (faster feedback) |
 | `bun run test:compat`        | Run Ink compatibility tests                 |
 | `bun run test:visual`        | Run Playwright visual regression tests      |
@@ -53,13 +53,13 @@ bun run example:scroll
 
 ```bash
 # Run all tests
-bun test tests/
+bun run test
 
 # Run specific test file
-bun test tests/hooks.test.tsx
+bunx --bun vitest run tests/hooks.test.tsx
 
 # Run tests in watch mode
-bun test tests/ --watch
+bunx --bun vitest --watch
 
 # Run with timeout (useful for debugging)
 bun run test:fast
@@ -210,7 +210,7 @@ git checkout -b feature/my-feature
 # Must pass before submitting
 bun run lint
 bun run typecheck
-bun test tests/
+bun run test
 ```
 
 ### 4. Commit Guidelines
