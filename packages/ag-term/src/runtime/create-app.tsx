@@ -211,6 +211,14 @@ import {
 const log = createLogger("silvery:app")
 const traceLog = createLogger("silvery:trace")
 
+// Above this many standalone convergence cap-exceeds in one app session, the
+// teardown summary escalates from debug to a loud warn — a persistent edge is
+// being papered over by the non-lossy recovery (one extra frame per batch)
+// instead of bounded at the source. A handful is the expected transient regime
+// (a growing ListView item settling its ±1 viewport oscillation). Bead:
+// @km/silvercode/19383.
+const STANDALONE_CAP_EXCEED_WARN_THRESHOLD = 8
+
 // ============================================================================
 // Feature-detection flags — hoisted to module scope.
 //
@@ -1276,6 +1284,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let isRendering = false // Re-entrancy guard for store subscription
   let inEventHandler = false // True during processEvent/press — suppresses subscription renders
   let pendingRerender = false // Deferred render flag for re-entrancy
+  // Armed by drainStandaloneCommitRerenders when the standalone convergence
+  // loop hits its cap with a React-requested rerender still pending. Instead of
+  // silently dropping that rerender (the @km/silvercode/19383 freeze), we paint
+  // the current frame and schedule EXACTLY ONE follow-up standalone frame on the
+  // next tick. Self-limiting: the follow-up gets its own fresh convergence
+  // budget, so a steadily-growing stream converges one frame later instead of
+  // stranding the buffer behind committed React state. The flag dedupes so a
+  // burst of cap-exceeds within one frame schedules only one follow-up.
+  let followupFrameScheduled = false
+  // Lifetime count of standalone convergence cap-exceeds for this app session.
+  // The per-occurrence breadcrumb is debug-level (DEBUG_LOG-routed, see
+  // drainStandaloneCommitRerenders); the teardown summary escalates to a loud
+  // warn past STANDALONE_CAP_EXCEED_WARN_THRESHOLD. Together with the STRICT
+  // assert these are the three NO-SILENT-ERRORS rails for the dropped-paint
+  // class. Bead: @km/silvercode/19383.
+  let standaloneCapExceedCount = 0
 
   // ========================================================================
   // ANSI Trace: SILVERY_TRACE=1 logs all stdout writes with decoded sequences
@@ -2335,6 +2359,28 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Log keypress performance summary before teardown (only emits when TRACE was active)
     logExitSummary()
 
+    // Surface the lifetime count of standalone convergence cap-exceeds at
+    // teardown so it never goes silent (NO SILENT ERRORS). A small number is
+    // the expected handled-transient regime (a growing ListView item settling
+    // its ±1 viewport oscillation across follow-up frames). A PERSISTENT count
+    // means a feedback edge is being papered over by the non-lossy recovery on
+    // every batch — that is worth a loud warn so it gets bounded at the source.
+    // Routed through loggily (DEBUG_LOG file in fullscreen).
+    if (standaloneCapExceedCount > 0) {
+      const summary =
+        `standalone convergence cap exceeded ${standaloneCapExceedCount}× this session ` +
+        `(each handled non-lossily via a follow-up frame — no dropped paint). ` +
+        `Bead: @km/silvercode/19383.`
+      if (standaloneCapExceedCount >= STANDALONE_CAP_EXCEED_WARN_THRESHOLD) {
+        log.warn?.(
+          `${summary} This count is high enough to indicate a feedback edge that needs ` +
+            `bounding at the source (re-run with SILVERY_INSTRUMENT=1 for the breakdown).`,
+        )
+      } else {
+        log.debug?.(summary)
+      }
+    }
+
     // Pass-cause histogram (only emits when SILVERY_INSTRUMENT=1; no-op
     // otherwise). Aggregates across the lifetime of this app instance.
     //
@@ -3262,6 +3308,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   }
 
+  // Schedule EXACTLY ONE follow-up standalone frame after the current frame
+  // unwinds. Used when the convergence loop hits its cap with work still
+  // pending — instead of dropping that work, we converge it on a fresh frame
+  // next tick. Deduped via `followupFrameScheduled`; `setImmediate` runs after
+  // the current `renderStandaloneFrame`'s `finally` clears `isRendering`, so
+  // the follow-up takes the normal (non-reentrant) render path.
+  function scheduleFollowupStandaloneFrame(): void {
+    if (followupFrameScheduled || shouldExit) return
+    followupFrameScheduled = true
+    setImmediate(() => {
+      followupFrameScheduled = false
+      if (shouldExit) return
+      void renderStandaloneFrame()
+    })
+  }
+
   async function drainStandaloneCommitRerenders(): Promise<number> {
     let commitRerenders = 0
     for (;;) {
@@ -3284,8 +3346,42 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       reconciler.flushSyncWork()
       if (!pendingRerender) return commitRerenders
       if (commitRerenders >= MAX_CONVERGENCE_PASSES) {
+        // Cap hit with a React-requested rerender STILL pending. The committed
+        // React tree is ahead of `currentBuffer` by one pass. Historically we
+        // cleared `pendingRerender` and returned here — silently discarding the
+        // rerender. Under a steadily-growing stream (ListView re-measuring a
+        // growing assistant block — the boxSize feedback edge in
+        // @km/silvercode/19383) that drop strands the buffer behind committed
+        // state: a blank hole where layout allocated rows whose paint was
+        // dropped. NO SILENT ERRORS — converge instead of dropping.
+        //
+        // Render ONE final pass so this frame paints the latest committed
+        // state, then schedule a follow-up frame (fresh budget) to absorb any
+        // residual feedback. We do NOT loop again here (that would be the
+        // unbounded loop the cap exists to prevent) — the follow-up frame is
+        // the bounded, self-limiting continuation.
         pendingRerender = false
+        currentBuffer = doRender()
+        commitRerenders++
+        standaloneCapExceedCount++
+        // Per-occurrence breadcrumb, routed through loggily at DEBUG level so it
+        // lands in DEBUG_LOG (never raw stdout in fullscreen) and is visible via
+        // `DEBUG=silvery:app`. This is a HANDLED, RECOVERED condition (the
+        // follow-up frame below converges the committed state), so it must not
+        // cry wolf on every large stream — hence debug, not warn. The loud
+        // signals are: (a) the STRICT assert below (the test/dev detector),
+        // (b) the teardown summary when the count is PERSISTENT (a real edge
+        // that the non-lossy recovery is papering over). NO SILENT ERRORS: the
+        // condition is observable on all three rails.
+        log.debug?.(
+          `standalone convergence cap (${MAX_CONVERGENCE_PASSES}) hit with rerender still ` +
+            `pending (occurrence ${standaloneCapExceedCount}); painting latest committed ` +
+            `frame + scheduling one follow-up frame (non-lossy — no dropped paint). ` +
+            `Likely a re-measuring boxSize subscriber (e.g. a growing ListView item). ` +
+            `SILVERY_INSTRUMENT=1 for the per-cause breakdown. Bead: @km/silvercode/19383.`,
+        )
         assertBoundedConvergence(commitRerenders + 1, "production-flush", MAX_CONVERGENCE_PASSES)
+        scheduleFollowupStandaloneFrame()
         return commitRerenders
       }
       pendingRerender = false

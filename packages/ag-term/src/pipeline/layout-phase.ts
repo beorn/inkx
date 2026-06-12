@@ -31,20 +31,76 @@ import { logPass, INSTRUMENT } from "../runtime/pass-cause"
 const log = createLogger("silvery:layout")
 
 /**
- * Stable-ish identity string for an AgNode used by pass-cause records.
- * Prefers explicit identity props (testid / id / name / nodeId) and falls
- * back to type. Keeps the histogram readable without paying a Map lookup
- * per node when SILVERY_INSTRUMENT is unset (call site is gated by the
- * inert no-op in `logPass`).
+ * Explicit identity props (testid / id / name / nodeId) when present.
+ * Returns undefined for anonymous nodes so callers can decide how to
+ * disambiguate (structural tag, named-ancestor walk).
  */
-function nodeIdent(node: AgNode): string {
+function explicitIdent(node: AgNode): string | undefined {
   const props = node.props as Record<string, unknown> | undefined
-  const ident =
+  return (
     (props?.["testid"] as string | undefined) ??
     (props?.["id"] as string | undefined) ??
     (props?.["name"] as string | undefined) ??
     (props?.["nodeId"] as string | undefined)
-  return ident ? `${node.type}#${ident}` : node.type
+  )
+}
+
+/**
+ * Compact structural tag for an anonymous node — the layout props that make
+ * one anonymous `silvery-box` distinguishable from another. Keeps only the
+ * fields that meaningfully shape a feedback edge (a measured/scrolled box).
+ * Example: `silvery-box[overflow=scroll,flexGrow=1]`.
+ */
+function structuralTag(node: AgNode): string {
+  const props = (node.props ?? {}) as Record<string, unknown>
+  const parts: string[] = []
+  if (props.overflow !== undefined && props.overflow !== "visible") {
+    parts.push(`overflow=${String(props.overflow)}`)
+  }
+  if (props.position !== undefined && props.position !== "relative") {
+    parts.push(`position=${String(props.position)}`)
+  }
+  if (props.flexGrow) parts.push(`flexGrow=${String(props.flexGrow)}`)
+  if (props.flexDirection !== undefined) parts.push(`dir=${String(props.flexDirection)}`)
+  return parts.length > 0 ? `${node.type}[${parts.join(",")}]` : node.type
+}
+
+/**
+ * Stable-ish identity string for an AgNode used by pass-cause records.
+ *
+ * Most boxes in a real app are anonymous (no testid/id/name/nodeId), so the
+ * bare `node.type` collapses every feedback edge into the useless
+ * `"silvery-box"` bucket — the attribution gap behind @km/silvercode/19383.
+ *
+ * When a node is anonymous we attribute the edge to a *component-ish path*:
+ * the nearest named ancestor (a host component that DID set an identity prop)
+ * plus the offending node's structural tag, e.g.
+ * `silvery-box#chat-transcript > silvery-box[overflow=scroll]`. That is enough
+ * to name which subscriber re-fires `boxSize` on every standalone batch even
+ * when the leaf box itself carries no id.
+ *
+ * Gated by `INSTRUMENT` at every call site (inert no-op in `logPass`), so the
+ * ancestor walk never runs in production when SILVERY_INSTRUMENT is unset.
+ */
+function nodeIdent(node: AgNode): string {
+  const own = explicitIdent(node)
+  if (own) return `${node.type}#${own}`
+
+  // Anonymous node: find the nearest NAMED ancestor for context, capping the
+  // walk so a deep tree doesn't pay an unbounded climb per record.
+  let ancestor: AgNode | null = node.parent
+  let hops = 0
+  const MAX_HOPS = 12
+  while (ancestor && hops < MAX_HOPS) {
+    const named = explicitIdent(ancestor)
+    if (named) return `${ancestor.type}#${named} > ${structuralTag(node)}`
+    ancestor = ancestor.parent
+    hops += 1
+  }
+  // No named ancestor within reach — fall back to a structural tag plus the
+  // immediate parent's type so sibling anonymous boxes don't fully collide.
+  const parentType = node.parent?.type
+  return parentType ? `${parentType} > ${structuralTag(node)}` : structuralTag(node)
 }
 
 function nodePath(node: AgNode): string {
