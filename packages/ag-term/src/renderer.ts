@@ -10,7 +10,16 @@
  */
 
 import { EventEmitter } from "node:events"
-import React, { type ReactElement, type ReactNode, act } from "react"
+import React, { type ReactElement, type ReactNode } from "react"
+// React's `act` exists only in dev/test builds — production React omits the
+// export, and a static named import fails to LINK in a NODE_ENV=production
+// host (km 19841). The renderer's act-wrapping matters only on test paths
+// (where dev React is loaded and provides the real act); under production
+// React, fall back to direct invocation — updateContainerSync /
+// flushSyncWork still run synchronously, and passive-effect flushing is
+// handled by the renderer's own settle/convergence passes.
+type ActCallback = (cb: () => void) => void
+const act: ActCallback = (React as unknown as { act?: ActCallback }).act ?? ((cb) => cb())
 import { type App, buildApp } from "./app.js"
 import { createClsMonitor } from "./runtime/cls-monitor.js"
 import { type TerminalBuffer, cellEquals } from "./buffer.js"

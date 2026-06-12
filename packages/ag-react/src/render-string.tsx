@@ -24,7 +24,16 @@
  * ```
  */
 
-import React, { type ReactElement, act } from "react"
+import React, { type ReactElement } from "react"
+// React's `act` exists only in dev/test builds — production React omits the
+// export, and a static named import fails to LINK in a NODE_ENV=production
+// host (km 19841). The render-to-string path's act-wrapping matters only on
+// test paths (where dev React is loaded and provides the real act); under
+// production React, fall back to direct invocation — updateContainerSync /
+// flushSyncWork still run synchronously, and the layout-stabilization loop
+// below drives convergence without React's passive-effect scheduling.
+type ActCallback = (cb: () => void) => void
+const act: ActCallback = (React as unknown as { act?: ActCallback }).act ?? ((cb) => cb())
 
 import { createTerm } from "@silvery/ag-term/ansi"
 
