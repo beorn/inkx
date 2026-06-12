@@ -201,4 +201,56 @@ describe("ListView imperative scroll API", () => {
     app.rerender(renderList(items, listRef, { follow: "end" }))
     expect(stripAnsi(app.text)).toContain("New 9")
   })
+
+  test("scrollBy clamped at the bottom edge flashes the bottom overscroll indicator", () => {
+    // Intent-based edge bump for the imperative path: app-level keyboard
+    // scroll (silvercode Ctrl+Down) and forwarded wheel events both go
+    // through scrollBy. A scroll request that clamps at the edge is intent
+    // to move past it — same cue as the wheel handler's onEdgeReached and
+    // moveTo's cursor bump. Without this, scrolling at the end from the
+    // keyboard (or with the pointer over an overlay that forwards wheel
+    // deltas) gives no "you hit the end" feedback at all.
+    const items = makeItems(50)
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(renderList(items, listRef, { follow: "end" }))
+    expect(stripAnsi(app.text)).toContain("Item 49")
+    expect(stripAnsi(app.text)).not.toContain("▄▄▄▄▄▄▄▄▄▄")
+
+    act(() => {
+      listRef.current!.scrollBy(5)
+    })
+    app.rerender(renderList(items, listRef, { follow: "end" }))
+    expect(stripAnsi(app.text)).toContain("▄▄▄▄▄▄▄▄▄▄")
+  })
+
+  test("scrollBy clamped at the top edge flashes the top overscroll indicator", () => {
+    const items = makeItems(50)
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(renderList(items, listRef))
+    expect(stripAnsi(app.text)).toContain("Item 0")
+    expect(stripAnsi(app.text)).not.toContain("▀▀▀▀▀▀▀▀▀▀")
+
+    act(() => {
+      listRef.current!.scrollBy(-5)
+    })
+    app.rerender(renderList(items, listRef))
+    expect(stripAnsi(app.text)).toContain("▀▀▀▀▀▀▀▀▀▀")
+  })
+
+  test("scrollBy on a list whose content fits stays silent — no spurious edge bump", () => {
+    const items = makeItems(3)
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(renderList(items, listRef))
+
+    act(() => {
+      listRef.current!.scrollBy(5)
+      listRef.current!.scrollBy(-5)
+    })
+    app.rerender(renderList(items, listRef))
+    expect(stripAnsi(app.text)).not.toContain("▄▄▄▄▄▄▄▄▄▄")
+    expect(stripAnsi(app.text)).not.toContain("▀▀▀▀▀▀▀▀▀▀")
+  })
 })

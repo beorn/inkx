@@ -2426,7 +2426,16 @@ function ListViewInner<T>(
                 return Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
               })()
         const next = Math.max(0, Math.min(maxRow, seed + rows))
-        if (next === seed) return
+        if (next === seed) {
+          // Clamped at an edge: the caller asked to move past it. Flash the
+          // overscroll indicator — intent-based, mirroring moveTo's cursor
+          // bump and the wheel handler's onEdgeReached — so app-level
+          // keyboard scroll and forwarded wheel deltas get the same "you
+          // hit the end" cue as direct wheel input.
+          if (rows > 0 && next >= maxRow) flashEdgeBump("bottom")
+          else if (rows < 0 && next <= 0) flashEdgeBump("top")
+          return
+        }
         scrollAnchoring.suppressOnce()
         if (
           !isWheelDrivenRef.current ||
@@ -2474,7 +2483,7 @@ function ListViewInner<T>(
         return composedViewportRef.current
       },
     }),
-    [physics, scrollBehavior, scrollToItem, unmountedCount, resolvedFollow],
+    [flashEdgeBump, physics, scrollBehavior, scrollToItem, unmountedCount, resolvedFollow],
   )
 
   // ── Mouse wheel handler ─────────────────────────────────────────
