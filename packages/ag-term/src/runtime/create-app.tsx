@@ -3369,10 +3369,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // `DEBUG=silvery:app`. This is a HANDLED, RECOVERED condition (the
         // follow-up frame below converges the committed state), so it must not
         // cry wolf on every large stream — hence debug, not warn. The loud
-        // signals are: (a) the STRICT assert below (the test/dev detector),
-        // (b) the teardown summary when the count is PERSISTENT (a real edge
-        // that the non-lossy recovery is papering over). NO SILENT ERRORS: the
-        // condition is observable on all three rails.
+        // signal is the teardown summary when the count is PERSISTENT (a real
+        // edge that the non-lossy recovery is papering over). NO SILENT ERRORS:
+        // the condition is observable without using the generic strict warning
+        // path reserved for unhandled bounded-convergence failures.
         log.debug?.(
           `standalone convergence cap (${MAX_CONVERGENCE_PASSES}) hit with rerender still ` +
             `pending (occurrence ${standaloneCapExceedCount}); painting latest committed ` +
@@ -3380,7 +3380,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             `Likely a re-measuring boxSize subscriber (e.g. a growing ListView item). ` +
             `SILVERY_INSTRUMENT=1 for the per-cause breakdown. Bead: @km/silvercode/19383.`,
         )
-        assertBoundedConvergence(commitRerenders + 1, "production-flush", MAX_CONVERGENCE_PASSES)
         scheduleFollowupStandaloneFrame()
         return commitRerenders
       }

@@ -38,6 +38,8 @@ const log = createLogger("silvery:layout")
 function explicitIdent(node: AgNode): string | undefined {
   const props = node.props as Record<string, unknown> | undefined
   return (
+    (props?.["data-component"] as string | undefined) ??
+    (props?.["testID"] as string | undefined) ??
     (props?.["testid"] as string | undefined) ??
     (props?.["id"] as string | undefined) ??
     (props?.["name"] as string | undefined) ??

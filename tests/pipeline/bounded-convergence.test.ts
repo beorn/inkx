@@ -162,4 +162,16 @@ describe("bounded-convergence: assertion behaviour", () => {
       ).not.toThrow()
     })
   })
+
+  test("STRICT=0 is a no-op even when the bound is exceeded", () => {
+    withStrict("0", () => {
+      expect(() =>
+        assertBoundedConvergence(
+          MAX_CONVERGENCE_PASSES + 100,
+          "production-flush",
+          MAX_CONVERGENCE_PASSES,
+        ),
+      ).not.toThrow()
+    })
+  })
 })

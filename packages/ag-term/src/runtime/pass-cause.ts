@@ -630,7 +630,7 @@ export function assertBoundedConvergence(
 ): void {
   if (passCount <= cap) return
   const strict = process?.env?.SILVERY_STRICT
-  if (!strict) return
+  if (!strict || strict === "0") return
   const h = getPassHistogram()
   const breakdown = h.byCause
     .map((e) => `${e.cause}=${e.count}(bound=${PASS_CAUSE_BOUNDS[e.cause]})`)
