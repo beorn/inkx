@@ -1597,6 +1597,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     for (const data of writes) {
       writeOutOfBand(data, { source: "post-paint-write", phase: "post-paint" })
     }
+    restoreFrameCursor()
   }
 
   // Resolve textSizing from caps + option
