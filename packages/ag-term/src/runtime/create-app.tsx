@@ -82,6 +82,7 @@ import {
 } from "../text-sizing"
 import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
 import { isStrictEnabled } from "../strict-mode.js"
+import { recordOutputCursorDiagnostics, type OutputCursorTarget } from "../cursor-diagnostics"
 import { createBytesOutMonitor } from "../bytes-out-monitor"
 import { createMemMonitor } from "../mem-monitor"
 import {
@@ -1552,12 +1553,28 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const restoreFrameCursor = (): void => {
     if (!currentBuffer) return
     const cursor = findActiveCursorRect(currentBuffer.nodes)
+    let output = "\x1b[?25l"
+    let target: OutputCursorTarget | null = null
     if (cursor) {
       const move = `\x1b[${cursor.y + 1};${cursor.x + 1}H`
-      writeOutOfBand(cursor.visible ? `${move}\x1b[?25h` : `${move}\x1b[?25l`)
-    } else {
-      writeOutOfBand("\x1b[?25l")
+      output = cursor.visible ? `${move}\x1b[?25h` : `${move}\x1b[?25l`
+      target = {
+        x: cursor.x,
+        y: cursor.y,
+        visible: cursor.visible,
+        shape: cursor.shape,
+      }
     }
+    recordOutputCursorDiagnostics({
+      reason: "post-paint-cursor-restore",
+      mode: "fullscreen",
+      width: currentDims.cols,
+      height: currentDims.rows,
+      termRows: currentDims.rows,
+      output,
+      target,
+    })
+    writeOutOfBand(output)
   }
   const flushFrameArtifacts = (phase: "pre-paint" | "post-paint"): boolean => {
     let flushed = false

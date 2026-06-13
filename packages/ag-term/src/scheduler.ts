@@ -34,6 +34,7 @@ import {
 } from "@silvery/ag/layout-signals"
 import { findActiveCursorNode, resolveCaretStyle } from "./caret-style"
 import { createOsc52Backend } from "./clipboard"
+import { recordOutputCursorDiagnostics, type OutputCursorTarget } from "./cursor-diagnostics"
 import { ANSI, notify as notifyTerminal, setCursorStyle, resetCursorStyle } from "./output"
 import type { PipelineConfig } from "./pipeline"
 import {
@@ -734,9 +735,16 @@ export class RenderScheduler {
       // `resolveCaretStyle` — the framework-agnostic core no longer carries
       // a target-specific enum. See `km-silvery.cursor-invariants` invariant 6.
       let cursorSuffix = ""
+      let cursorTarget: OutputCursorTarget | null = null
       if (this.nonTTYMode === "tty") {
         const cursor = this.resolveActiveCursor()
         if (cursor) {
+          cursorTarget = {
+            x: cursor.x,
+            y: cursor.y,
+            visible: cursor.visible,
+            shape: cursor.shape,
+          }
           if (cursor.visible) {
             const activeNode = findActiveCursorNode(this.root)
             const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
@@ -784,6 +792,14 @@ export class RenderScheduler {
           fs.appendFileSync(captureFile, "\n")
         }
 
+        recordOutputCursorDiagnostics({
+          reason: "scheduler-render",
+          mode: "fullscreen",
+          width,
+          height,
+          output: fullOutput,
+          target: cursorTarget,
+        })
         this.writeOutput(fullOutput)
         // bytes_out instrumentation — record AFTER write so the monitor
         // accounts for what actually left the process. Fixed thresholds

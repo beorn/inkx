@@ -21,11 +21,15 @@ import {
 import { fgColorCode, bgColorCode } from "../ansi/sgr-codes"
 import { resetCursorStyle, setCursorStyle } from "../output"
 import type { CursorState } from "@silvery/ag-react/hooks/useCursor"
-import { IncrementalRenderMismatchError } from "../errors"
 import { textSized } from "../text-sizing"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode"
 import type { CellChange } from "./types"
 import { checkRenderEmulatorDivergence, countNonSpaceInText } from "../strict-divergence"
+import {
+  clearLastOutputCursorDiagnostics,
+  getLastOutputCursorDiagnostics,
+  recordOutputCursorDiagnostics,
+} from "../cursor-diagnostics"
 import { createLogger } from "loggily"
 import {
   replayAnsiWithStyles,
@@ -35,7 +39,6 @@ import {
   verifyTerminalEquivalence as _verifyTerminalEquivalence,
   initTerminalVerifyState,
   createTerminalVerifyState,
-  strictTerminalBackends,
   sgrColorEquals,
   formatColor,
   type AccumulateState,
@@ -100,6 +103,8 @@ export function getLastOutputPhaseDiagnostics(): OutputPhaseDiagnostics | null {
 export function clearLastOutputPhaseDiagnostics(): void {
   lastOutputPhaseDiagnostics = null
 }
+
+export { getLastOutputCursorDiagnostics, clearLastOutputCursorDiagnostics }
 
 function setLastOutputPhaseDiagnostics(diagnostics: OutputPhaseDiagnostics): void {
   lastOutputPhaseDiagnostics = diagnostics
@@ -1135,7 +1140,31 @@ export function outputPhase(
         rawChangedCells: renderedCellCount(next, termRows),
         dirtyRows: Math.min(next.height, termRows ?? next.height),
       })
-      return prefix + firstOutput + inlineCursorSuffix(cursorPos ?? null, next, ctx)
+      const firstCursorSuffix = inlineCursorSuffix(cursorPos ?? null, next, ctx)
+      const output = prefix + firstOutput + firstCursorSuffix
+      const target = cursorPos
+        ? { x: cursorPos.x, y: cursorPos.y, visible: cursorPos.visible, shape: cursorPos.shape }
+        : null
+      const expectedTerminal =
+        cursorPos && cursorPos.visible
+          ? {
+              x: cursorPos.x,
+              y: cursorPos.y - firstStartLine,
+              visible: true,
+              shape: cursorPos.shape,
+            }
+          : target
+      recordOutputCursorDiagnostics({
+        reason: "inline-first-render",
+        mode,
+        width: next.width,
+        height: next.height,
+        termRows,
+        output,
+        target,
+        expectedTerminal,
+      })
+      return output
     }
     if (isStrictAccumulate()) {
       accState.accumulatedAnsi = firstOutput

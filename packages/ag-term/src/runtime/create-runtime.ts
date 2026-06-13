@@ -27,6 +27,7 @@ import { diff } from "./diff"
 import type { Buffer, Dims, Event, Runtime, RuntimeOptions } from "./types"
 import { findActiveCursorRect } from "@silvery/ag/layout-signals"
 import { findActiveCursorNode, resolveCaretStyle } from "../caret-style"
+import { recordOutputCursorDiagnostics, type OutputCursorTarget } from "../cursor-diagnostics"
 import { ANSI, setCursorStyle, resetCursorStyle } from "../output"
 // Side-effect import: install the terminal wrap-measurer adapter into
 // `@silvery/ag`'s registry the moment a runtime is constructed. The
@@ -333,9 +334,16 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         (clearNextFullscreenRender || targetDimsChanged || resizePaintPending)
       const overlayChanged = !!buffer.overlay && buffer.overlay.length > 0
       let cursorSuffix = ""
+      let cursorTarget: OutputCursorTarget | null = null
       if (mode === "fullscreen") {
         const cursor = findActiveCursorRect(buffer.nodes)
         if (cursor) {
+          cursorTarget = {
+            x: cursor.x,
+            y: cursor.y,
+            visible: cursor.visible,
+            shape: cursor.shape,
+          }
           // Caret shape is target-specific — derive at the terminal layer
           // (invariant 6 of `km-silvery.cursor-invariants`).
           if (cursor.visible) {
@@ -459,7 +467,17 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         (syncUpdate ||
           (mode === "fullscreen" && Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES))
       const body = wrapBody ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch
-      target.write(clearPrefix + body)
+      const frameOutput = clearPrefix + body
+      recordOutputCursorDiagnostics({
+        reason: clearFullscreen ? "fullscreen-clear-render" : "fullscreen-render",
+        mode,
+        width: targetDims.cols,
+        height: buffer._buffer.height,
+        termRows,
+        output: frameOutput,
+        target: cursorTarget,
+      })
+      target.write(frameOutput)
       lastCursorSuffix = cursorSuffix
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
       renderedOnce = true
