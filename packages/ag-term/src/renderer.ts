@@ -444,6 +444,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   let hadReactCommit = false
   let autoRenderScheduled = false
   let inRenderCycle = false // true during doRender() and explicit operations
+  let currentElement: ReactElement = element
 
   // Per-App ClsMonitor instance. The monitor walks the tree on every commit
   // (reading post-scroll, sticky-aware `screenRect`) and feeds shifts to
@@ -1080,7 +1081,12 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   try {
     withActEnvironment(() => {
       act(() => {
-        reconciler.updateContainerSync(wrapWithContexts(element), instance.fiberRoot, null, null)
+        reconciler.updateContainerSync(
+          wrapWithContexts(currentElement),
+          instance.fiberRoot,
+          null,
+          null,
+        )
         reconciler.flushSyncWork()
       })
     })
@@ -1513,8 +1519,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     try {
       withActEnvironment(() => {
         act(() => {
+          currentElement = newElement as ReactElement
           reconciler.updateContainerSync(
-            wrapWithContexts(newElement as ReactElement),
+            wrapWithContexts(currentElement),
             instance.fiberRoot,
             null,
             null,
@@ -1622,6 +1629,13 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     withActEnvironment(() => {
       act(() => {
         fn()
+        reconciler.updateContainerSync(
+          wrapWithContexts(currentElement),
+          instance.fiberRoot,
+          null,
+          null,
+        )
+        reconciler.flushSyncWork()
       })
     })
     const newFrame = settleAfterCommit(doRender())
