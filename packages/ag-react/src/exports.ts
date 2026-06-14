@@ -123,6 +123,7 @@ export type {
   ListItemMeta,
   ListViewCacheConfig,
   ListViewSearchConfig,
+  TailReserveRows,
 } from "./ui/components"
 export { HorizontalVirtualList } from "./ui/components"
 export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./ui/components"

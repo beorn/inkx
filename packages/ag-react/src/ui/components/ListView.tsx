@@ -281,6 +281,7 @@ export type VirtualizationStrategy = "none" | "index" | "measured"
  * is the default (no auto-follow).
  */
 export type FollowPolicy = "none" | "end"
+export type TailReserveRows = number | "auto"
 
 type FollowEndPin =
   | { kind: "none" }
@@ -310,6 +311,16 @@ function resolveFollowEndTopRow({
     height: viewportHeight,
   }).topRow
   return Math.max(geometryTopRow, measuredMaxTopRow)
+}
+
+function resolveTailReserveRows(
+  value: TailReserveRows | undefined,
+  viewportHeight: number,
+): number {
+  if (value === undefined) return 0
+  if (value === "auto") return Math.max(1, Math.ceil(Math.max(1, viewportHeight) / 3))
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.round(value))
 }
 
 export interface ListViewProps<T> {
@@ -521,6 +532,16 @@ export interface ListViewProps<T> {
    * overscroll indicator. Default: `"none"`.
    */
   follow?: FollowPolicy
+
+  /**
+   * Elastic blank rows reserved after the tail while `follow="end"` owns the
+   * viewport. `"auto"` reserves roughly one third of the content viewport.
+   *
+   * Dynamic tail growth consumes this reserve before moving the viewport.
+   * Dynamic tail shrink grows the reserve instead of snapping upward and
+   * exposing earlier transcript rows. Ignored unless `follow="end"` is active.
+   */
+  tailReserveRows?: TailReserveRows
 
   /**
    * Preserve the current visible content position across item/content height
@@ -839,6 +860,7 @@ function ListViewInner<T>(
     scrollBehavior = "instant",
     enableInputCadenceDetection = false,
     follow,
+    tailReserveRows,
     maintainVisibleContentPosition = true,
     stickyBottom = false,
     onAtBottomChange,
@@ -891,6 +913,10 @@ function ListViewInner<T>(
   const prevMeasuredCountRef = useRef<number | null>(null)
   const prevTailMeasuredHeightRef = useRef<number | null>(null)
   const prevViewportWidthRef = useRef<number | null>(null)
+  const prevTailReserveContentRowsRef = useRef<number | null>(null)
+  const prevTailReserveTopRowRef = useRef<number | null>(null)
+  const tailReserveBaseRowsRef = useRef<number | null>(null)
+  const tailReserveRowsRef = useRef(0)
   const followWidthReflowRef = useRef<boolean>(false)
   const prevResolvedFollowRef = useRef<FollowPolicy>(resolvedFollow)
   const suppressFollowEndUntilBottomRef = useRef(false)
@@ -967,6 +993,7 @@ function ListViewInner<T>(
   const liveAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
   const wheelMeasurementSnapshotAvgHeightRef = useRef<number | undefined>(undefined)
   const [, rerenderOnWheelGestureIdle] = useReducer((value: number) => value + 1, 0)
+  const [, rerenderTailReserve] = useReducer((value: number) => value + 1, 0)
 
   const markWheelGestureActive = useCallback(() => {
     const wasActive = wheelGestureActiveRef.current
@@ -1503,11 +1530,28 @@ function ListViewInner<T>(
     Math.min(Math.round(viewportBottomInset), Math.max(0, outerViewportHeight - 1)),
   )
   const contentViewportHeight = Math.max(1, outerViewportHeight - viewportInsetRows)
+  const baseTailReserveRows =
+    resolvedFollow === "end" ? resolveTailReserveRows(tailReserveRows, contentViewportHeight) : 0
+  if (baseTailReserveRows <= 0 || activeItems.length === 0) {
+    tailReserveBaseRowsRef.current = null
+    tailReserveRowsRef.current = 0
+  } else if (tailReserveBaseRowsRef.current === null) {
+    tailReserveBaseRowsRef.current = baseTailReserveRows
+    tailReserveRowsRef.current = baseTailReserveRows
+  } else if (baseTailReserveRows > tailReserveBaseRowsRef.current) {
+    tailReserveBaseRowsRef.current = baseTailReserveRows
+    tailReserveRowsRef.current = Math.max(tailReserveRowsRef.current, baseTailReserveRows)
+  } else {
+    tailReserveBaseRowsRef.current = baseTailReserveRows
+  }
+  const effectiveTailReserveRows =
+    resolvedFollow === "end" && activeItems.length > 0 ? tailReserveRowsRef.current : 0
 
   // Count of trailing extra children rendered between the visible items and
   // the trailing placeholder (listFooter). useVirtualizer uses this to
   // correctly map `scrollState.lastVisibleChild` back to a virtual item.
-  const trailingExtraChildren = listFooter != null && listFooter !== false ? 1 : 0
+  const trailingExtraChildren =
+    (listFooter != null && listFooter !== false ? 1 : 0) + (effectiveTailReserveRows > 0 ? 1 : 0)
 
   // In height-independent mode we still call `useVirtualizer` so that the
   // measurement cache, `scrollToItem`, and the cache/search pipelines keep
@@ -1679,7 +1723,12 @@ function ListViewInner<T>(
     innerScrollState !== null && innerScrollState.contentHeight > 0
       ? innerScrollState.contentHeight
       : 0
-  const totalRowsMeasured = Math.max(1, heightModel.totalRows(), layoutContentRows)
+  const totalContentRows = Math.max(1, heightModel.totalRows())
+  const totalRowsMeasured = Math.max(
+    1,
+    totalContentRows + effectiveTailReserveRows,
+    layoutContentRows,
+  )
   const scrollableRows = Math.max(0, Math.round(totalRowsMeasured - contentViewportHeight))
   const pointerAnchorFresh = Date.now() <= pointerAnchorExpiresAtRef.current
   const pointerAnchorTopRow =
@@ -2732,7 +2781,6 @@ function ListViewInner<T>(
     const maxRow = maxScrollRowRef.current
     const topRow = effectiveScrollRow !== null ? effectiveScrollRow : rowsAboveViewportRef.current
     const bottomRow = topRow + contentViewportHeight
-    const totalContentRows = heightModel.totalRows()
     const computedAtEnd = bottomRow >= totalContentRows - 0.5
     const prevTotalRows = prevTotalRowsRef.current
     const rowsChanged = prevTotalRows !== null && Math.abs(totalRowsMeasured - prevTotalRows) > 0.5
@@ -2816,6 +2864,37 @@ function ListViewInner<T>(
       rowsChanged
     const activeUpwardScrollAwayFromEnd =
       wheelGestureActiveRef.current && gestureDirectionRef.current === "up" && scrollRow !== null
+    const tailReserveEnabled =
+      baseTailReserveRows > 0 && resolvedFollow === "end" && activeItems.length > 0
+    const prevTailReserveContentRows = prevTailReserveContentRowsRef.current
+    const tailReserveContentDelta =
+      prevTailReserveContentRows === null ? 0 : totalContentRows - prevTailReserveContentRows
+    let tailReserveSnapRow: number | null = null
+    if (
+      tailReserveEnabled &&
+      prevTailReserveContentRows !== null &&
+      Math.abs(tailReserveContentDelta) > 0.5 &&
+      wasAtEndPrev &&
+      !userScrolledAway &&
+      !activeUpwardScrollAwayFromEnd
+    ) {
+      const previousTopRow = prevTailReserveTopRowRef.current ?? topRow
+      const deltaRows = Math.round(tailReserveContentDelta)
+      const previousReserve = tailReserveRowsRef.current
+      const nextReserve =
+        deltaRows < 0
+          ? previousReserve + Math.abs(deltaRows)
+          : Math.max(0, previousReserve - deltaRows)
+      const maxRowWithReserve = Math.max(
+        0,
+        Math.round(totalContentRows + nextReserve - contentViewportHeight),
+      )
+      tailReserveSnapRow = Math.max(previousTopRow, maxRowWithReserve)
+      if (nextReserve !== previousReserve) {
+        tailReserveRowsRef.current = nextReserve
+        rerenderTailReserve()
+      }
+    }
     const shouldSnap =
       resolvedFollow === "end" &&
       viewportReady &&
@@ -2824,6 +2903,7 @@ function ListViewInner<T>(
       !userScrolledAway &&
       !activeUpwardScrollAwayFromEnd &&
       (pendingSnap ||
+        tailReserveSnapRow !== null ||
         ((grew ||
           rowsShrank ||
           rowsChangedFromNewMeasurements ||
@@ -2835,14 +2915,17 @@ function ListViewInner<T>(
           wasAtEndPrev))
     const shouldTrackActiveBottom =
       !shouldSnap && viewportReady && maxRow > 0 && activeDownwardScrollReachedPreviousEnd
+    let committedFollowTopRow: number | null = null
     if (shouldSnap) {
       const targetRow = Math.round(
-        resolveFollowEndTopRow({
-          geometry: contentGeometry,
-          viewportHeight: contentViewportHeight,
-          measuredMaxTopRow: maxRow,
-        }),
+        tailReserveSnapRow ??
+          resolveFollowEndTopRow({
+            geometry: contentGeometry,
+            viewportHeight: contentViewportHeight,
+            measuredMaxTopRow: maxRow,
+          }),
       )
+      committedFollowTopRow = targetRow
       isWheelDrivenRef.current = true
       wheelMeasurementSnapshotAvgHeightRef.current = undefined
       physics.setScrollFloat(targetRow)
@@ -2856,6 +2939,7 @@ function ListViewInner<T>(
           measuredMaxTopRow: maxRow,
         }),
       )
+      committedFollowTopRow = targetRow
       isWheelDrivenRef.current = true
       physics.setScrollFloat(targetRow)
       setScrollRow(targetRow)
@@ -2868,6 +2952,7 @@ function ListViewInner<T>(
     ) {
       const desiredTopRow = topRow + (totalRowsMeasured - prevTotalRows)
       const clampedTopRow = Math.max(0, Math.min(maxRow, desiredTopRow))
+      committedFollowTopRow = Math.round(clampedTopRow)
       isWheelDrivenRef.current = true
       physics.nudgeScrollFloat(clampedTopRow)
       setScrollRow(Math.round(clampedTopRow))
@@ -2879,6 +2964,7 @@ function ListViewInner<T>(
     if (viewportWidthChanged) followWidthReflowRef.current = true
     else if (widthReflowActive && !rowsChanged) followWidthReflowRef.current = false
     if ((viewportSize?.w ?? 0) > 0) prevViewportWidthRef.current = viewportSize!.w
+    prevTailReserveContentRowsRef.current = tailReserveEnabled ? totalContentRows : null
 
     // When we're snapping, the post-snap state IS at-end — even though
     // the scrollRow we read above is stale (the previous frame's value,
@@ -2905,6 +2991,10 @@ function ListViewInner<T>(
             : "settled",
         )
       : { kind: "none" }
+    prevTailReserveTopRowRef.current =
+      tailReserveEnabled && followEndPinRef.current.kind === "end"
+        ? (committedFollowTopRow ?? topRow)
+        : null
     if (pointerAnchorExpired || resolvedFollow !== "end" || (atBottom && rowsChanged)) {
       suppressFollowEndUntilBottomRef.current = false
       pointerAnchorTopRowRef.current = null
@@ -3428,6 +3518,10 @@ function ListViewInner<T>(
 
         {/* Footer content (e.g., filter hidden count) */}
         {listFooter}
+
+        {/* Elastic follow-end tail reserve. This is real scroll content so
+         * the viewport can remain stable while active tail rows shrink/grow. */}
+        {effectiveTailReserveRows > 0 && <Box height={effectiveTailReserveRows} flexShrink={0} />}
 
         {/* Trailing placeholder for virtual height.
          *
