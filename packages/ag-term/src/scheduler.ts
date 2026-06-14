@@ -32,10 +32,15 @@ import {
   findActiveCursorRect,
   type CursorRect,
 } from "@silvery/ag/layout-signals"
-import { findActiveCursorNode, resolveCaretStyle } from "./caret-style"
+import { findActiveCursorNode } from "./caret-style"
 import { createOsc52Backend } from "./clipboard"
-import { recordOutputCursorDiagnostics, type OutputCursorTarget } from "./cursor-diagnostics"
-import { ANSI, notify as notifyTerminal, setCursorStyle, resetCursorStyle } from "./output"
+import {
+  recordOutputCursorDiagnostics,
+  type OutputCursorBounds,
+  type OutputCursorTarget,
+} from "./cursor-diagnostics"
+import { ANSI, notify as notifyTerminal } from "./output"
+import { composeManagedCaret, cursorOwnerBounds } from "./managed-caret"
 import type { PipelineConfig } from "./pipeline"
 import {
   clearLastOutputPhaseDiagnostics,
@@ -203,6 +208,9 @@ export class RenderScheduler {
 
   /** Previous buffer for diffing */
   private prevBuffer: TerminalBuffer | null = null
+
+  /** Previous presentation buffer for terminal output diffing. */
+  private prevOutputBuffer: TerminalBuffer | null = null
 
   /**
    * Cross-frame post-state carrier (outline snapshots, etc.).
@@ -476,6 +484,7 @@ export class RenderScheduler {
 
     // Reset buffer for full redraw (alt screen was switched)
     this.prevBuffer = null
+    this.prevOutputBuffer = null
     // Outline snapshots reference cells in the discarded buffer — reset together.
     this.postState = createRenderPostState()
 
@@ -504,6 +513,7 @@ export class RenderScheduler {
 
     // Reset buffer so next render outputs everything
     this.prevBuffer = null
+    this.prevOutputBuffer = null
     // Outline snapshots reference cells in the discarded buffer — reset together.
     this.postState = createRenderPostState()
   }
@@ -668,6 +678,12 @@ export class RenderScheduler {
           prevBuffer: this.prevBuffer,
           postState: this.postState,
         })
+        const fullscreenCursor = this.mode === "fullscreen" ? this.resolveActiveCursor() : null
+        const managed =
+          this.mode === "fullscreen"
+            ? composeManagedCaret(buffer, fullscreenCursor)
+            : { buffer, compositorCaret: null }
+        const outputBuffer = managed.buffer
 
         const start = performance.now()
         const outputFn = this.pipelineConfig?.outputPhaseFn ?? outputPhase
@@ -675,8 +691,8 @@ export class RenderScheduler {
         try {
           clearLastOutputPhaseDiagnostics()
           ansiOutput = outputFn(
-            this.prevBuffer,
-            buffer,
+            this.prevOutputBuffer,
+            outputBuffer,
             this.mode,
             scrollbackOffset,
             this.mode === "inline" ? (this.size?.rows() ?? this.stdout.rows ?? 24) : undefined,
@@ -700,12 +716,22 @@ export class RenderScheduler {
           acc.pipelineCalls += 1
         }
 
-        return { output: ansiOutput, buffer, overlay }
+        return {
+          output: ansiOutput,
+          buffer,
+          outputBuffer,
+          overlay,
+          cursor: fullscreenCursor,
+          compositorCaret: managed.compositorCaret,
+        }
       }
       const {
         output,
         buffer,
+        outputBuffer,
         overlay: incrementalOverlay,
+        cursor: frameCursor,
+        compositorCaret,
       } = measurer ? runWithMeasurer(measurer, doRender) : doRender()
 
       // Transform output based on non-TTY mode
@@ -723,21 +749,26 @@ export class RenderScheduler {
         this.prevLineCount = countLines(output)
       }
 
-      // Build cursor control suffix (position + show/hide).
-      // This goes after rendered content so the terminal cursor lands
-      // at the right spot after painting.
+      // Build managed-frame cursor controls. Fullscreen TTY frames paint the
+      // visible caret into the presentation buffer, then move and hide the
+      // hardware cursor at the same semantic location so late/hollow terminal
+      // cursors cannot appear in transcript or chrome rows.
       //
       // Cursor source priority — see resolveActiveCursor():
       //   1. Layout-output cursor (BoxProps.cursorOffset → cursorRect signal)
       //   2. Cursor store (legacy useCursor() / Ink-compat path)
       //
-      // Caret shape (DECSCUSR) is resolved at the terminal layer via
-      // `resolveCaretStyle` — the framework-agnostic core no longer carries
-      // a target-specific enum. See `km-silvery.cursor-invariants` invariant 6.
       let cursorSuffix = ""
       let cursorTarget: OutputCursorTarget | null = null
+      let expectedTerminal: OutputCursorTarget | null = null
+      let promptBounds: OutputCursorBounds | null = null
+      let composerBounds: OutputCursorBounds | null = null
       if (this.nonTTYMode === "tty") {
-        const cursor = this.resolveActiveCursor()
+        const cursor = frameCursor
+        const activeNode = findActiveCursorNode(this.root)
+        const bounds = cursorOwnerBounds(activeNode, cursor)
+        promptBounds = bounds.promptBounds
+        composerBounds = bounds.composerBounds
         if (cursor) {
           cursorTarget = {
             x: cursor.x,
@@ -745,14 +776,8 @@ export class RenderScheduler {
             visible: cursor.visible,
             shape: cursor.shape,
           }
-          if (cursor.visible) {
-            const activeNode = findActiveCursorNode(this.root)
-            const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
-            const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
-            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
-          } else {
-            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
-          }
+          expectedTerminal = { ...cursorTarget, visible: false }
+          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
         } else {
           cursorSuffix = ANSI.CURSOR_HIDE
         }
@@ -799,6 +824,10 @@ export class RenderScheduler {
           height,
           output: fullOutput,
           target: cursorTarget,
+          expectedTerminal,
+          compositorCaret,
+          promptBounds,
+          composerBounds,
         })
         this.writeOutput(fullOutput)
         // bytes_out instrumentation — record AFTER write so the monitor
@@ -830,6 +859,7 @@ export class RenderScheduler {
 
       // Save buffer for next diff
       this.prevBuffer = buffer
+      this.prevOutputBuffer = outputBuffer
 
       // Commit boundary — promote in-flight rect signals (just written by
       // ag.layout above) to their committed peers. Reactive
@@ -973,6 +1003,7 @@ export class RenderScheduler {
 
         // Reset buffer to force full redraw
         this.prevBuffer = null
+        this.prevOutputBuffer = null
         // Outline snapshots are buffer-coordinate-bound; reset together so
         // post-resize clearPreviousOutlines doesn't write at out-of-bounds
         // coordinates from the old dimensions.

@@ -20,6 +20,20 @@ export interface OutputCursorTerminalState {
   style: string | null
 }
 
+export interface OutputCursorBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface OutputCompositorCaret {
+  x: number
+  y: number
+  visible: boolean
+  style: string
+}
+
 export interface OutputCursorDiagnostics {
   reason: string
   mode: "fullscreen" | "inline"
@@ -28,7 +42,14 @@ export interface OutputCursorDiagnostics {
   height: number
   termRows?: number
   outputBytes: number
+  semanticCursor: OutputCursorTarget | null
   target: OutputCursorTarget | null
+  hardwareParking: OutputCursorTarget | null
+  hardwareVisibility: boolean | null
+  compositorCaret: OutputCompositorCaret | null
+  promptBounds: OutputCursorBounds | null
+  composerBounds: OutputCursorBounds | null
+  finalCursorEscape: "show" | "hide" | null
   expectedTerminal: OutputCursorTarget | null
   terminal: OutputCursorTerminalState | null
 }
@@ -61,6 +82,21 @@ export function getLastOutputCursorDiagnostics(): OutputCursorDiagnostics | null
           : null,
         expectedTerminal: lastOutputCursorDiagnostics.expectedTerminal
           ? { ...lastOutputCursorDiagnostics.expectedTerminal }
+          : null,
+        semanticCursor: lastOutputCursorDiagnostics.semanticCursor
+          ? { ...lastOutputCursorDiagnostics.semanticCursor }
+          : null,
+        hardwareParking: lastOutputCursorDiagnostics.hardwareParking
+          ? { ...lastOutputCursorDiagnostics.hardwareParking }
+          : null,
+        compositorCaret: lastOutputCursorDiagnostics.compositorCaret
+          ? { ...lastOutputCursorDiagnostics.compositorCaret }
+          : null,
+        promptBounds: lastOutputCursorDiagnostics.promptBounds
+          ? { ...lastOutputCursorDiagnostics.promptBounds }
+          : null,
+        composerBounds: lastOutputCursorDiagnostics.composerBounds
+          ? { ...lastOutputCursorDiagnostics.composerBounds }
           : null,
         terminal: lastOutputCursorDiagnostics.terminal
           ? { ...lastOutputCursorDiagnostics.terminal }
@@ -112,7 +148,7 @@ function assertCursorMatches(diagnostics: OutputCursorDiagnostics): void {
   if (!actual) return
 
   if (!expected) {
-    if (actual.visible === false) return
+    if (actual.visible === false || diagnostics.finalCursorEscape === "hide") return
     const message =
       `SILVERY_STRICT=cursor expected hidden terminal cursor after ${diagnostics.reason}; ` +
       `actual x=${actual.x} y=${actual.y} visible=${actual.visible}`
@@ -120,7 +156,15 @@ function assertCursorMatches(diagnostics: OutputCursorDiagnostics): void {
   }
 
   if (!expected.visible) {
-    if (actual.visible === false || actual.visible === null) return
+    if (
+      (actual.visible === false ||
+        actual.visible === null ||
+        diagnostics.finalCursorEscape === "hide") &&
+      actual.x === expected.x &&
+      actual.y === expected.y
+    ) {
+      return
+    }
     const message =
       `SILVERY_STRICT=cursor expected hidden terminal cursor at ` +
       `${formatTarget(expected)} after ${diagnostics.reason}; ` +
@@ -146,11 +190,23 @@ export function recordOutputCursorDiagnostics(opts: {
   output: string
   target: OutputCursorTarget | null
   expectedTerminal?: OutputCursorTarget | null
+  compositorCaret?: OutputCompositorCaret | null
+  promptBounds?: OutputCursorBounds | null
+  composerBounds?: OutputCursorBounds | null
 }): void {
   if (!isCursorStrictEnabled()) return
 
   const terminalRows = opts.termRows ?? opts.height
   const terminal = replayCursor(opts.output, opts.width, terminalRows)
+  const finalCursorEscape = lastCursorVisibilityEscape(opts.output)
+  const expectedTerminal =
+    opts.expectedTerminal === undefined
+      ? opts.target
+        ? { ...opts.target }
+        : null
+      : opts.expectedTerminal
+        ? { ...opts.expectedTerminal }
+        : null
   const diagnostics: OutputCursorDiagnostics = {
     reason: opts.reason,
     mode: opts.mode,
@@ -159,15 +215,16 @@ export function recordOutputCursorDiagnostics(opts: {
     height: opts.height,
     termRows: opts.termRows,
     outputBytes: Buffer.byteLength(opts.output),
+    semanticCursor: opts.target ? { ...opts.target } : null,
     target: opts.target ? { ...opts.target } : null,
-    expectedTerminal:
-      opts.expectedTerminal === undefined
-        ? opts.target
-          ? { ...opts.target }
-          : null
-        : opts.expectedTerminal
-          ? { ...opts.expectedTerminal }
-          : null,
+    hardwareParking: expectedTerminal ? { ...expectedTerminal } : null,
+    hardwareVisibility:
+      finalCursorEscape === "hide" ? false : finalCursorEscape === "show" ? true : terminal.visible,
+    compositorCaret: opts.compositorCaret ? { ...opts.compositorCaret } : null,
+    promptBounds: opts.promptBounds ? { ...opts.promptBounds } : null,
+    composerBounds: opts.composerBounds ? { ...opts.composerBounds } : null,
+    finalCursorEscape,
+    expectedTerminal,
     terminal,
   }
   lastOutputCursorDiagnostics = diagnostics
@@ -175,8 +232,32 @@ export function recordOutputCursorDiagnostics(opts: {
   log.debug?.(
     `cursor ${opts.reason}: target=${formatTarget(diagnostics.target)} ` +
       `expected=${formatTarget(diagnostics.expectedTerminal)} ` +
-      `terminal=x=${terminal.x} y=${terminal.y} visible=${terminal.visible}`,
+      `terminal=x=${terminal.x} y=${terminal.y} visible=${terminal.visible} ` +
+      `compositor=${formatCompositorCaret(diagnostics.compositorCaret)} ` +
+      `prompt=${formatBounds(diagnostics.promptBounds)} ` +
+      `composer=${formatBounds(diagnostics.composerBounds)} ` +
+      `final=${diagnostics.finalCursorEscape ?? "none"}`,
   )
 
   assertCursorMatches(diagnostics)
+}
+
+function lastCursorVisibilityEscape(output: string): "show" | "hide" | null {
+  let last: "show" | "hide" | null = null
+  const re = /\x1b\[\?25([hl])/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(output))) {
+    last = match[1] === "h" ? "show" : "hide"
+  }
+  return last
+}
+
+function formatCompositorCaret(caret: OutputCompositorCaret | null): string {
+  if (!caret) return "none"
+  return `x=${caret.x} y=${caret.y} visible=${caret.visible} style=${caret.style}`
+}
+
+function formatBounds(bounds: OutputCursorBounds | null): string {
+  if (!bounds) return "none"
+  return `x=${bounds.x} y=${bounds.y} w=${bounds.width} h=${bounds.height}`
 }

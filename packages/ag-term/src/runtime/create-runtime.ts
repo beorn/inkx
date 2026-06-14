@@ -26,9 +26,15 @@ import { takeUntil } from "@silvery/create/streams"
 import { diff } from "./diff"
 import type { Buffer, Dims, Event, Runtime, RuntimeOptions } from "./types"
 import { findActiveCursorRect } from "@silvery/ag/layout-signals"
-import { findActiveCursorNode, resolveCaretStyle } from "../caret-style"
-import { recordOutputCursorDiagnostics, type OutputCursorTarget } from "../cursor-diagnostics"
-import { ANSI, setCursorStyle, resetCursorStyle } from "../output"
+import { findActiveCursorNode } from "../caret-style"
+import {
+  recordOutputCursorDiagnostics,
+  type OutputCompositorCaret,
+  type OutputCursorBounds,
+  type OutputCursorTarget,
+} from "../cursor-diagnostics"
+import { ANSI } from "../output"
+import { composeManagedCaret, cursorOwnerBounds } from "../managed-caret"
 // Side-effect import: install the terminal wrap-measurer adapter into
 // `@silvery/ag`'s registry the moment a runtime is constructed. The
 // registration itself is idempotent (see ./wrap-measurer-registration.ts);
@@ -333,10 +339,24 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         renderedOnce &&
         (clearNextFullscreenRender || targetDimsChanged || resizePaintPending)
       const overlayChanged = !!buffer.overlay && buffer.overlay.length > 0
+      let renderBuffer = buffer
       let cursorSuffix = ""
       let cursorTarget: OutputCursorTarget | null = null
+      let expectedTerminal: OutputCursorTarget | null = null
+      let compositorCaret: OutputCompositorCaret | null = null
+      let promptBounds: OutputCursorBounds | null = null
+      let composerBounds: OutputCursorBounds | null = null
       if (mode === "fullscreen") {
         const cursor = findActiveCursorRect(buffer.nodes)
+        const activeNode = findActiveCursorNode(buffer.nodes)
+        const bounds = cursorOwnerBounds(activeNode, cursor)
+        promptBounds = bounds.promptBounds
+        composerBounds = bounds.composerBounds
+        const managed = composeManagedCaret(buffer._buffer, cursor)
+        compositorCaret = managed.compositorCaret
+        if (managed.buffer !== buffer._buffer) {
+          renderBuffer = { ...buffer, _buffer: managed.buffer }
+        }
         if (cursor) {
           cursorTarget = {
             x: cursor.x,
@@ -344,26 +364,20 @@ export function createRuntime(options: RuntimeOptions): Runtime {
             visible: cursor.visible,
             shape: cursor.shape,
           }
-          // Caret shape is target-specific — derive at the terminal layer
-          // (invariant 6 of `km-silvery.cursor-invariants`).
-          if (cursor.visible) {
-            const activeNode = findActiveCursorNode(buffer.nodes)
-            const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
-            const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
-            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
-          } else {
-            // Move before hiding so ignored/late DECTCEM, unfocused-terminal
-            // hollow cursors, and visibility-blind emulators do not leave the
-            // hardware cursor at the last transcript write position.
-            cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
-          }
+          expectedTerminal = { ...cursorTarget, visible: false }
+          // Move before hiding so ignored/late DECTCEM, unfocused-terminal
+          // hollow cursors, and visibility-blind emulators do not leave the
+          // hardware cursor at the last transcript write position. Managed
+          // frames paint the visible caret into the buffer instead of showing
+          // the terminal hardware cursor.
+          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
         } else {
           cursorSuffix = ANSI.CURSOR_HIDE
         }
       }
       if (
         prevBuffer &&
-        buffersHaveSameVisibleCells(prevBuffer, buffer) &&
+        buffersHaveSameVisibleCells(prevBuffer, renderBuffer) &&
         offset === 0 &&
         !targetDimsChanged &&
         !clearFullscreen &&
@@ -391,12 +405,12 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       const diffPrev = clearFullscreen ? null : (prevBuffer?._buffer ?? null)
       let patch: string
       if (outputPhaseFn) {
-        const nextBuf = buffer._buffer
+        const nextBuf = renderBuffer._buffer
         patch = outputPhaseFn(diffPrev, nextBuf, mode, offset, termRows)
       } else {
-        patch = diff(clearFullscreen ? null : prevBuffer, buffer, mode, offset, termRows)
+        patch = diff(clearFullscreen ? null : prevBuffer, renderBuffer, mode, offset, termRows)
       }
-      prevBuffer = buffer
+      prevBuffer = renderBuffer
 
       // Append Kitty graphics overlay (scrim placements for emoji in the
       // backdrop-fade region). The overlay is a self-contained save-cursor /
@@ -472,10 +486,14 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         reason: clearFullscreen ? "fullscreen-clear-render" : "fullscreen-render",
         mode,
         width: targetDims.cols,
-        height: buffer._buffer.height,
+        height: renderBuffer._buffer.height,
         termRows,
         output: frameOutput,
         target: cursorTarget,
+        expectedTerminal,
+        compositorCaret,
+        promptBounds,
+        composerBounds,
       })
       target.write(frameOutput)
       lastCursorSuffix = cursorSuffix
