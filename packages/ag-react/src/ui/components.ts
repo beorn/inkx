@@ -32,6 +32,7 @@ export type {
   ListItemMeta,
   ListViewCacheConfig,
   ListViewSearchConfig,
+  TailReserveRows,
 } from "./components/ListView"
 
 export { HorizontalVirtualList } from "./components/HorizontalVirtualList"
