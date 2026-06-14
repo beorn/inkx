@@ -64,15 +64,22 @@ function rowOf(lines: readonly string[], needle: string): number {
   return lines.findIndex((line) => line.includes(needle))
 }
 
+function trailingBlankRows(lines: readonly string[]): number {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (lines[index]!.trim().length > 0) return lines.length - index - 1
+  }
+  return lines.length
+}
+
 describe("ListView follow=end tail reserve", () => {
-  test("keeps the viewport origin stable when the active focus tail shrinks", async () => {
+  test("keeps the viewport origin stable when active-tail shrink fits the reserve", async () => {
     const render = createRenderer({ cols: 36, rows: 9 })
     const app = render(<FocusTranscript activeLineCount={5} />)
     await settle(app)
 
     const anchor = firstVisibleLine(app.lines)
 
-    app.rerender(<FocusTranscript activeLineCount={1} />)
+    app.rerender(<FocusTranscript activeLineCount={3} />)
     await settle(app)
 
     expect(firstVisibleLine(app.lines), app.text).toBe(anchor)
@@ -90,5 +97,19 @@ describe("ListView follow=end tail reserve", () => {
     await settle(app)
 
     expect(rowOf(app.lines, anchor), app.text).toBe(anchorRow)
+  })
+
+  test("caps repeated active-tail shrink reserve to half the viewport", async () => {
+    const render = createRenderer({ cols: 36, rows: 9 })
+    const app = render(<FocusTranscript activeLineCount={9} />)
+    await settle(app)
+
+    for (const activeLineCount of [7, 5, 3, 1]) {
+      app.rerender(<FocusTranscript activeLineCount={activeLineCount} />)
+      await settle(app)
+    }
+
+    expect(trailingBlankRows(app.lines), app.text).toBeLessThanOrEqual(Math.ceil(9 / 2))
+    expect(app.text).toContain("active tail 0")
   })
 })

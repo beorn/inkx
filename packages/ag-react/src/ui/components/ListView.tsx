@@ -323,6 +323,11 @@ function resolveTailReserveRows(
   return Math.max(0, Math.round(value))
 }
 
+function resolveTailReserveMaxRows(baseRows: number, viewportHeight: number): number {
+  if (baseRows <= 0) return 0
+  return Math.max(baseRows, Math.ceil(Math.max(1, viewportHeight) / 2))
+}
+
 export interface ListViewProps<T> {
   /** Array of items to render */
   items: T[]
@@ -538,8 +543,9 @@ export interface ListViewProps<T> {
    * viewport. `"auto"` reserves roughly one third of the content viewport.
    *
    * Dynamic tail growth consumes this reserve before moving the viewport.
-   * Dynamic tail shrink grows the reserve instead of snapping upward and
-   * exposing earlier transcript rows. Ignored unless `follow="end"` is active.
+   * Dynamic tail shrink grows the reserve up to a half-viewport cap before
+   * clamping back toward the live tail. Ignored unless `follow="end"` is
+   * active.
    */
   tailReserveRows?: TailReserveRows
 
@@ -1532,6 +1538,7 @@ function ListViewInner<T>(
   const contentViewportHeight = Math.max(1, outerViewportHeight - viewportInsetRows)
   const baseTailReserveRows =
     resolvedFollow === "end" ? resolveTailReserveRows(tailReserveRows, contentViewportHeight) : 0
+  const maxTailReserveRows = resolveTailReserveMaxRows(baseTailReserveRows, contentViewportHeight)
   if (baseTailReserveRows <= 0 || activeItems.length === 0) {
     tailReserveBaseRowsRef.current = null
     tailReserveRowsRef.current = 0
@@ -1540,9 +1547,13 @@ function ListViewInner<T>(
     tailReserveRowsRef.current = baseTailReserveRows
   } else if (baseTailReserveRows > tailReserveBaseRowsRef.current) {
     tailReserveBaseRowsRef.current = baseTailReserveRows
-    tailReserveRowsRef.current = Math.max(tailReserveRowsRef.current, baseTailReserveRows)
+    tailReserveRowsRef.current = Math.min(
+      Math.max(tailReserveRowsRef.current, baseTailReserveRows),
+      maxTailReserveRows,
+    )
   } else {
     tailReserveBaseRowsRef.current = baseTailReserveRows
+    tailReserveRowsRef.current = Math.min(tailReserveRowsRef.current, maxTailReserveRows)
   }
   const effectiveTailReserveRows =
     resolvedFollow === "end" && activeItems.length > 0 ? tailReserveRowsRef.current : 0
@@ -2883,13 +2894,16 @@ function ListViewInner<T>(
       const previousReserve = tailReserveRowsRef.current
       const nextReserve =
         deltaRows < 0
-          ? previousReserve + Math.abs(deltaRows)
+          ? Math.min(maxTailReserveRows, previousReserve + Math.abs(deltaRows))
           : Math.max(0, previousReserve - deltaRows)
       const maxRowWithReserve = Math.max(
         0,
         Math.round(totalContentRows + nextReserve - contentViewportHeight),
       )
-      tailReserveSnapRow = Math.max(previousTopRow, maxRowWithReserve)
+      tailReserveSnapRow =
+        deltaRows < 0
+          ? Math.min(previousTopRow, maxRowWithReserve)
+          : Math.max(previousTopRow, maxRowWithReserve)
       if (nextReserve !== previousReserve) {
         tailReserveRowsRef.current = nextReserve
         rerenderTailReserve()
@@ -3017,6 +3031,7 @@ function ListViewInner<T>(
     nav,
     resolvedFollow,
     contentViewportHeight,
+    maxTailReserveRows,
     // `measurementVersion` makes the effect re-run when any measured item
     // height changes, not just when the measurement cache gains a new key.
     // Streaming chat updates grow an already-measured tail item in place; the
