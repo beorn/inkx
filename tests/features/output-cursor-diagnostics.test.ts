@@ -220,7 +220,7 @@ describe("output cursor diagnostics", () => {
     runtime.render(noCursorRuntimeBuffer(dims, "completed step"))
 
     expect(writes).toHaveLength(1)
-    const [frame] = writes
+    const frame = writes[0]!
     expect(frame).toContain("\x1b[?25l")
     expect(frame).not.toContain("\x1b[?25h")
 
@@ -265,7 +265,7 @@ describe("output cursor diagnostics", () => {
       runtime.render(managedComposerBuffer(dims, scenario))
 
       expect(writes, scenario.name).toHaveLength(1)
-      const [frame] = writes
+      const frame = writes[0]!
       expect(frame, scenario.name).toContain("\x1b[?25l")
       expect(frame, scenario.name).not.toContain("\x1b[?25h")
       expect((frame.match(/\x1b\[7m/g) ?? []).length, scenario.name).toBe(1)
