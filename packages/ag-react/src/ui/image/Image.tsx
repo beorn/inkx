@@ -27,7 +27,8 @@
 
 import { readFileSync } from "node:fs"
 import { type JSX, useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { StdoutContext } from "../../context"
+import type { Term } from "@silvery/ag-term/ansi"
+import { StdoutContext, TermContext } from "../../context"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useBoxSize, useScreenRect } from "../../hooks/useLayout"
@@ -89,16 +90,17 @@ export interface ImageProps {
  * Determine the best available image protocol.
  * Returns null if no image protocol is available.
  */
-function detectProtocol(preferred: ImageProtocol): "kitty" | "sixel" | null {
+function detectProtocol(preferred: ImageProtocol, term: Term | null): "kitty" | "sixel" | null {
+  const profile = term?.profile ?? undefined
   if (preferred === "kitty") {
-    return isKittyGraphicsSupported() ? "kitty" : null
+    return isKittyGraphicsSupported(profile) ? "kitty" : null
   }
   if (preferred === "sixel") {
     return isSixelSupported() ? "sixel" : null
   }
 
   // Auto-detect: prefer Kitty, fall back to Sixel
-  if (isKittyGraphicsSupported()) return "kitty"
+  if (isKittyGraphicsSupported(profile)) return "kitty"
   if (isSixelSupported()) return "sixel"
   return null
 }
@@ -220,6 +222,7 @@ function ImagePlacement({
   // pixel-to-cell ratio depends on the actual cell count. Consumers may
   // pass `width`/`height` to skip the auto-fill read.
   const boxRect = useScreenRect()
+  const term = useContext(TermContext)
   const stdoutCtx = useContext(StdoutContext)
   const { columns: viewportWidth, rows: viewportHeight } = useWindowSize()
   const viewport = { width: viewportWidth, height: viewportHeight }
@@ -260,7 +263,7 @@ function ImagePlacement({
   const decodedImage = useMemo(() => (pngData ? decodePngToRgba(pngData) : null), [pngData])
 
   // Detect protocol support
-  const activeProtocol = useMemo(() => detectProtocol(preferredProtocol), [preferredProtocol])
+  const activeProtocol = useMemo(() => detectProtocol(preferredProtocol, term), [preferredProtocol, term])
 
   // Assign a stable image ID for Kitty (for cleanup on unmount)
   if (activeProtocol === "kitty" && imageIdRef.current == null) {

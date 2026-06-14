@@ -19,6 +19,7 @@ describe("runtime input protocol routing", () => {
         <TextArea defaultValue="Hello" fieldSizing="fixed" rows={1} cursorStyle="underline" />
       </Box>,
       term,
+      { mode: "inline" },
     )
     try {
       await settle()

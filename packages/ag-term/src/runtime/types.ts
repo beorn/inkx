@@ -105,6 +105,12 @@ export interface RuntimeOptions {
     mode?: "fullscreen" | "inline",
     scrollbackOffset?: number,
     termRows?: number,
+    cursorPos?: {
+      x: number
+      y: number
+      visible: boolean
+      shape?: "block" | "underline" | "bar"
+    } | null,
   ) => string
 }
 

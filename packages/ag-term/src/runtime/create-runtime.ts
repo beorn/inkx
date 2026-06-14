@@ -346,8 +346,17 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       let compositorCaret: OutputCompositorCaret | null = null
       let promptBounds: OutputCursorBounds | null = null
       let composerBounds: OutputCursorBounds | null = null
+      const activeCursor = findActiveCursorRect(buffer.nodes)
+      if (activeCursor) {
+        cursorTarget = {
+          x: activeCursor.x,
+          y: activeCursor.y,
+          visible: activeCursor.visible,
+          shape: activeCursor.shape,
+        }
+      }
       if (mode === "fullscreen") {
-        const cursor = findActiveCursorRect(buffer.nodes)
+        const cursor = activeCursor
         const activeNode = findActiveCursorNode(buffer.nodes)
         const bounds = cursorOwnerBounds(activeNode, cursor)
         promptBounds = bounds.promptBounds
@@ -358,13 +367,12 @@ export function createRuntime(options: RuntimeOptions): Runtime {
           renderBuffer = { ...buffer, _buffer: managed.buffer }
         }
         if (cursor) {
-          cursorTarget = {
+          expectedTerminal = {
             x: cursor.x,
             y: cursor.y,
-            visible: cursor.visible,
+            visible: false,
             shape: cursor.shape,
           }
-          expectedTerminal = { ...cursorTarget, visible: false }
           // Move before hiding so ignored/late DECTCEM, unfocused-terminal
           // hollow cursors, and visibility-blind emulators do not leave the
           // hardware cursor at the last transcript write position. Managed
@@ -406,7 +414,14 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       let patch: string
       if (outputPhaseFn) {
         const nextBuf = renderBuffer._buffer
-        patch = outputPhaseFn(diffPrev, nextBuf, mode, offset, termRows)
+        patch = outputPhaseFn(
+          diffPrev,
+          nextBuf,
+          mode,
+          offset,
+          termRows,
+          mode === "inline" ? activeCursor : undefined,
+        )
       } else {
         patch = diff(clearFullscreen ? null : prevBuffer, renderBuffer, mode, offset, termRows)
       }

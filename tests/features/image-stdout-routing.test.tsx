@@ -35,6 +35,10 @@ const TINY_PNG = Buffer.from(
 const APC_OPEN = "\x1b_G"
 const APC_CLOSE = "\x1b\\"
 
+function createKittyTermless(dims: { cols: number; rows: number }): ReturnType<typeof createTermless> {
+  return createTermless({ ...dims, caps: { kittyGraphics: true } })
+}
+
 describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   test("Kitty encoder supports z-index, pixel offsets, source crop, and virtual placement", () => {
     const transmitted = encodeKittyImage(TINY_PNG, {
@@ -71,7 +75,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics APC envelope reaches the terminal output", async () => {
-    using term = createTermless({ cols: 40, rows: 10 })
+    using term = createKittyTermless({ cols: 40, rows: 10 })
 
     const handle = await run(
       <Box flexDirection="column" padding={1}>
@@ -92,7 +96,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics escapes are followed by the frame cursor suffix", async () => {
-    using term = createTermless({ cols: 40, rows: 10 })
+    using term = createKittyTermless({ cols: 40, rows: 10 })
 
     const handle = await run(
       <Box flexDirection="column">
@@ -124,7 +128,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics cursor position uses the image slot inside scroll panes", async () => {
-    using term = createTermless({ cols: 80, rows: 12 })
+    using term = createKittyTermless({ cols: 80, rows: 12 })
 
     const handle = await run(
       <Box flexDirection="row">
@@ -151,7 +155,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics writes preserve the app cursor while placing images", async () => {
-    using term = createTermless({ cols: 40, rows: 10 })
+    using term = createKittyTermless({ cols: 40, rows: 10 })
 
     const handle = await run(
       <Box flexDirection="column" padding={1}>
@@ -172,7 +176,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty virtual placements render Unicode placeholders in the text frame", async () => {
-    using term = createTermless({ cols: 40, rows: 10 })
+    using term = createKittyTermless({ cols: 40, rows: 10 })
 
     const handle = await run(
       <Box flexDirection="column" padding={1}>
@@ -192,7 +196,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics clips partially scrolled-off top images instead of deleting them", async () => {
-    using term = createTermless({ cols: 40, rows: 10 })
+    using term = createKittyTermless({ cols: 40, rows: 10 })
 
     const handle = await run(
       <Box flexDirection="column" height={3} overflow="scroll" scrollOffset={1}>
@@ -214,7 +218,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics clips images at the terminal bottom edge", async () => {
-    using term = createTermless({ cols: 40, rows: 5 })
+    using term = createKittyTermless({ cols: 40, rows: 5 })
 
     const handle = await run(
       <Box flexDirection="column">
@@ -236,7 +240,7 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   })
 
   test("Kitty graphics delete sequence is emitted on unmount", async () => {
-    using term = createTermless({ cols: 40, rows: 10 })
+    using term = createKittyTermless({ cols: 40, rows: 10 })
 
     const handle = await run(
       <Box flexDirection="column">

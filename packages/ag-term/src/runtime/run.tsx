@@ -471,6 +471,8 @@ export async function run(
         guardOutput: false, // Don't monkeypatch process.stdout in test/emulator context
         cols: term.cols ?? 80,
         rows: term.rows ?? 24,
+        caps: term.profile.caps,
+        profile: term.profile,
         mouse: emulatorMouseOption,
         // Emulator-backed runs drive resize explicitly via `term.resize(...)`,
         // not via real-terminal SIGWINCH. The autoTerm's `createSize` defaults

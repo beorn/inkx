@@ -490,7 +490,7 @@ describe("render-trace: end-to-end via run()", () => {
   test("terminal image artifacts are traced by owner", async () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
     process.env.SILVERY_KITTY_GRAPHICS = "1"
-    using term = createTermless({ cols: 30, rows: 8 })
+    using term = createTermless({ cols: 30, rows: 8, caps: { kittyGraphics: true } })
     const handle = await run(<Image src={TINY_PNG} width={4} height={2} protocol="kitty" />, term)
 
     await new Promise((r) => setTimeout(r, 30))

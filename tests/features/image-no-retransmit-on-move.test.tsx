@@ -32,6 +32,10 @@ const TINY_PNG = Buffer.from(
 
 const settle = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
+function createKittyTermless(dims: { cols: number; rows: number }): ReturnType<typeof createTermless> {
+  return createTermless({ ...dims, caps: { kittyGraphics: true } })
+}
+
 /** Count APC envelopes whose first param matches /a=([TtpdD])/. */
 function countActions(stream: string): { transmit: number; place: number; delete: number } {
   let transmit = 0
@@ -89,7 +93,7 @@ function StableImageWithUnrelatedTicks({ ticks }: { ticks: number }): React.Reac
 
 describe("Image: scrolling/moving does not re-transmit the PNG", () => {
   test("re-positioning emits one transmission and N placements", async () => {
-    using term = createTermless({ cols: 40, rows: 24 })
+    using term = createKittyTermless({ cols: 40, rows: 24 })
 
     const writes: string[] = []
     const internal = getInternalStreams(term).stdout as unknown as {
@@ -121,7 +125,7 @@ describe("Image: scrolling/moving does not re-transmit the PNG", () => {
   })
 
   test("stable images are not re-placed on unrelated rerenders", async () => {
-    using term = createTermless({ cols: 40, rows: 24 })
+    using term = createKittyTermless({ cols: 40, rows: 24 })
 
     const writes: string[] = []
     const internal = getInternalStreams(term).stdout as unknown as {
