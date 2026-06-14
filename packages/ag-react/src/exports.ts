@@ -301,6 +301,13 @@ export type { BadgeProps } from "./ui/components"
 export { Divider } from "./ui/components"
 export type { DividerProps } from "./ui/components"
 
+export { PaneDivider } from "./ui/components"
+export type {
+  PaneDividerOrientation,
+  PaneDividerProps,
+  PaneDividerResizeStartEvent,
+} from "./ui/components"
+
 // Form Components
 export { Form, FormField } from "./ui/components"
 export type { FormProps, FormFieldProps } from "./ui/components"

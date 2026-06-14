@@ -142,6 +142,13 @@ export type { BadgeProps } from "./components/Badge"
 export { Divider } from "./components/Divider"
 export type { DividerProps } from "./components/Divider"
 
+export { PaneDivider } from "./components/PaneDivider"
+export type {
+  PaneDividerOrientation,
+  PaneDividerProps,
+  PaneDividerResizeStartEvent,
+} from "./components/PaneDivider"
+
 // Typography Presets
 export {
   H1,
