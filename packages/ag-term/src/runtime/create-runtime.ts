@@ -34,7 +34,7 @@ import {
   type OutputCursorTarget,
 } from "../cursor-diagnostics"
 import { ANSI } from "../output"
-import { composeManagedCaret, cursorOwnerBounds } from "../managed-caret"
+import { composeManagedCaret, cursorOwnerBounds, managedCursorSuffix } from "../managed-caret"
 // Side-effect import: install the terminal wrap-measurer adapter into
 // `@silvery/ag`'s registry the moment a runtime is constructed. The
 // registration itself is idempotent (see ./wrap-measurer-registration.ts);
@@ -357,6 +357,15 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         if (managed.buffer !== buffer._buffer) {
           renderBuffer = { ...buffer, _buffer: managed.buffer }
         }
+        // Move before hiding so ignored/late DECTCEM, unfocused-terminal hollow
+        // cursors, and visibility-blind emulators do not leave the hardware
+        // cursor at the last transcript write position. Managed frames paint the
+        // visible caret into the buffer instead of showing the terminal hardware
+        // cursor. When no caret is active we still park (vs a bare hide) so a
+        // dropped `?25l` cannot strand the cursor in transcript/chrome rows
+        // (@km/code/v0.2/19702). See managedCursorSuffix.
+        const managedCursor = managedCursorSuffix(cursor, bounds)
+        cursorSuffix = managedCursor.suffix
         if (cursor) {
           cursorTarget = {
             x: cursor.x,
@@ -365,14 +374,8 @@ export function createRuntime(options: RuntimeOptions): Runtime {
             shape: cursor.shape,
           }
           expectedTerminal = { ...cursorTarget, visible: false }
-          // Move before hiding so ignored/late DECTCEM, unfocused-terminal
-          // hollow cursors, and visibility-blind emulators do not leave the
-          // hardware cursor at the last transcript write position. Managed
-          // frames paint the visible caret into the buffer instead of showing
-          // the terminal hardware cursor.
-          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
-        } else {
-          cursorSuffix = ANSI.CURSOR_HIDE
+        } else if (managedCursor.parkTarget) {
+          expectedTerminal = { ...managedCursor.parkTarget, visible: false }
         }
       }
       if (
@@ -384,7 +387,19 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         !overlayChanged &&
         cursorSuffix === lastCursorSuffix
       ) {
-        prevBuffer = buffer
+        // Store the PRESENTATION buffer (`renderBuffer`), not the raw `buffer`.
+        // In fullscreen mode `renderBuffer._buffer` carries the composited
+        // managed caret (an `inverse` cell painted by composeManagedCaret) and
+        // is what the terminal actually shows. The next real diff baselines
+        // against prevBuffer; if we stored the raw buffer here (no caret
+        // overlay), the next frame's diff would not see the OLD caret cell as
+        // "inverse → not-inverse" and would never emit a clear for it, leaving
+        // a stranded reverse-video block on that (usually blank) cell. That is
+        // the @km/code/v0.2/19702 "stale inverse on blank cells" signature:
+        // a no-op early-return frame lands between two caret positions and the
+        // old caret's inverse is never cleared. `buffer` and `renderBuffer` are
+        // the same reference when no caret is active, so this is a no-op there.
+        prevBuffer = renderBuffer
         lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
         renderedOnce = true
         clearNextFullscreenRender = false

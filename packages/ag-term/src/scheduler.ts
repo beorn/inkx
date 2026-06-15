@@ -40,7 +40,7 @@ import {
   type OutputCursorTarget,
 } from "./cursor-diagnostics"
 import { ANSI, notify as notifyTerminal } from "./output"
-import { composeManagedCaret, cursorOwnerBounds } from "./managed-caret"
+import { composeManagedCaret, cursorOwnerBounds, managedCursorSuffix } from "./managed-caret"
 import type { PipelineConfig } from "./pipeline"
 import {
   clearLastOutputPhaseDiagnostics,
@@ -769,6 +769,13 @@ export class RenderScheduler {
         const bounds = cursorOwnerBounds(activeNode, cursor)
         promptBounds = bounds.promptBounds
         composerBounds = bounds.composerBounds
+        // Always park the hardware cursor at a safe cell, then hide it. When no
+        // caret is active, parking (vs a bare hide) keeps a dropped/overridden
+        // `?25l` from leaving the hardware cursor stranded on the bottom-most
+        // painted row (transcript/activity/chrome) — the @km/code/v0.2/19702
+        // signature. See managedCursorSuffix.
+        const managedCursor = managedCursorSuffix(cursor, bounds)
+        cursorSuffix = managedCursor.suffix
         if (cursor) {
           cursorTarget = {
             x: cursor.x,
@@ -777,9 +784,8 @@ export class RenderScheduler {
             shape: cursor.shape,
           }
           expectedTerminal = { ...cursorTarget, visible: false }
-          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_HIDE
-        } else {
-          cursorSuffix = ANSI.CURSOR_HIDE
+        } else if (managedCursor.parkTarget) {
+          expectedTerminal = { ...managedCursor.parkTarget, visible: false }
         }
       }
 

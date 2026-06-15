@@ -223,12 +223,16 @@ describe("output cursor diagnostics", () => {
     const frame = writes[0]!
     expect(frame).toContain("\x1b[?25l")
     expect(frame).not.toContain("\x1b[?25h")
+    // No caret → park the hardware cursor at home (0,0) BEFORE hiding, so a
+    // dropped/overridden `?25l` cannot strand a visible cursor in the
+    // transcript/chrome. @km/code/v0.2/19702.
+    expect(frame).toContain("\x1b[1;1H\x1b[?25l")
 
     const diagnostics = getLastOutputCursorDiagnostics()
     expect(diagnostics).toMatchObject({
       mode: "fullscreen",
       target: null,
-      hardwareParking: null,
+      hardwareParking: { x: 0, y: 0, visible: false },
       hardwareVisibility: false,
       finalCursorEscape: "hide",
       compositorCaret: null,
