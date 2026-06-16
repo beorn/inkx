@@ -1264,6 +1264,41 @@ export function commitLayoutSnapshot(root: AgNode): void {
  * declarer return null after a single traversal.
  */
 export function findActiveCursorRect(root: AgNode): CursorRect | null {
+  return findActiveCursorRectWithProvenance(root)?.rect ?? null
+}
+
+/**
+ * The PROVENANCE of the active cursor rect — which track of
+ * `findActiveCursorRectWithProvenance` produced it. Lets terminal renderers
+ * decide visible-caret compositing from the SAME walk that produced the rect,
+ * instead of re-deriving from a second (divergent) tree walk:
+ *
+ *   - `"focused-declarative"` — a Box with `cursorOffset` that is focused
+ *     (`props.focused` or `interactiveState.focused`). The focused editable.
+ *   - `"island"` — a `cursorActive` island's guest cursor rendered as the host
+ *     caret, INDEPENDENT of input focus (@km/silvery/19426).
+ *   - `"declarative-fallback"` — a NON-focused visible `cursorOffset` declarer
+ *     (Ink-compat / `useCursor` / a mounted-but-unfocused editable). The
+ *     terminal compositing layer suppresses the visible caret for THIS source
+ *     only (the @km/code/v0.2/19702 fix) — focused-declarative and island still
+ *     composite.
+ */
+export type CursorProvenance = "focused-declarative" | "island" | "declarative-fallback"
+
+export interface ActiveCursorResult {
+  rect: CursorRect
+  provenance: CursorProvenance
+}
+
+/**
+ * Walk the tree once and return the active cursor rect WITH its provenance.
+ * `findActiveCursorRect` is the value-only projection of this. See
+ * `CursorProvenance` for the source categories and why the terminal layer needs
+ * them (one walk, no parallel island-blind re-derivation in the compositing
+ * gate). Precedence and clipping match `findActiveCursorRect`'s documented
+ * invariants exactly — this IS that walk.
+ */
+export function findActiveCursorRectWithProvenance(root: AgNode): ActiveCursorResult | null {
   // Two parallel tracks — focused cursor owner wins outright (invariant 1.1),
   // including hidden cursor owners such as a disabled-but-focused TextArea.
   // Falling back to deepest-visible covers Ink-compat / useCursor consumers
@@ -1272,6 +1307,10 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
   let focusedResult: CursorRect | null = null
   let focusedSuppressesFallback = false
   let fallbackResult: CursorRect | null = null
+  // Provenance of whatever last wrote `fallbackResult` (last-write-wins, so the
+  // surviving fallback's source is the last one recorded). Only consulted when
+  // the final result is the fallback (not focusedResult).
+  let fallbackProvenance: CursorProvenance = "declarative-fallback"
 
   // Stack of clip rects (innermost last). A null entry represents "no clip
   // at this level" so we don't allocate for every non-clipping Box.
@@ -1337,6 +1376,7 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
           if (rect.visible) {
             // Last-write-wins (deeper post-order entries overwrite shallower).
             fallbackResult = rect
+            fallbackProvenance = "declarative-fallback"
           }
         }
       } else if (isFocusedCursorOwner) {
@@ -1363,6 +1403,7 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
         }
         if (!focusedSuppressesFallback && !isClipped(rect)) {
           fallbackResult = rect
+          fallbackProvenance = "island"
         }
       }
     }
@@ -1373,7 +1414,9 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
   }
 
   walk(root)
-  return focusedResult ?? (focusedSuppressesFallback ? null : fallbackResult)
+  if (focusedResult) return { rect: focusedResult, provenance: "focused-declarative" }
+  if (focusedSuppressesFallback || !fallbackResult) return null
+  return { rect: fallbackResult, provenance: fallbackProvenance }
 }
 
 // ============================================================================

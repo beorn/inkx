@@ -47,6 +47,7 @@ import { afterEach, describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import { createOutputPhase } from "../../packages/ag-term/src/pipeline/output-phase"
 import { createRuntime } from "../../packages/ag-term/src/runtime/create-runtime"
+import { computeManagedFrame } from "../../packages/ag-term/src/managed-caret"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import type { Buffer, Dims } from "../../packages/ag-term/src/runtime/types"
@@ -223,3 +224,179 @@ describe("19702 (#undead) — active-turn fallback caret must not strand an inve
     })
   }
 })
+
+// ============================================================================
+// Provenance suite — the suppression decision must come from the SAME walk that
+// produces the cursor rect. A non-focused DECLARATIVE fallback is suppressed;
+// a FOCUSED declarer and a `cursorActive` ISLAND are composited. (Regression
+// guard for the inner no-parallel-derivation bug: the focus-gate used a second,
+// island-blind `findActiveCursorNode` walk that diverged from the rect-walk on
+// islands and clipping, vanishing island host-carets — @km/silvery/19426.)
+// ============================================================================
+
+const VIEWPORT: Rect = { x: 0, y: 0, width: 40, height: 12 }
+
+function rootWith(children: AgNode[]): AgNode {
+  const root = {
+    type: "silvery-root",
+    props: {},
+    children,
+    parent: null,
+    scrollRect: VIEWPORT,
+    boxRect: VIEWPORT,
+  } as unknown as AgNode
+  for (const c of children) (c as { parent: AgNode }).parent = root
+  return root
+}
+
+/** A FOCUSED declarative editable — its caret MUST composite. */
+function focusedEditableNode(x: number, y: number): AgNode {
+  return {
+    type: "silvery-box",
+    props: { focused: true, cursorOffset: { col: 0, row: 0, visible: true } },
+    children: [],
+    parent: null,
+    scrollRect: { x, y, width: 20, height: 1 },
+    boxRect: { x, y, width: 20, height: 1 },
+    interactiveState: { focused: true },
+  } as unknown as AgNode
+}
+
+/** A NON-focused declarative editable — its caret MUST be suppressed. */
+function unfocusedEditableNode(x: number, y: number): AgNode {
+  return {
+    type: "silvery-box",
+    props: { cursorOffset: { col: 0, row: 0, visible: true } },
+    children: [],
+    parent: null,
+    scrollRect: { x, y, width: 20, height: 1 },
+    boxRect: { x, y, width: 20, height: 1 },
+    interactiveState: { focused: false },
+  } as unknown as AgNode
+}
+
+/**
+ * A `cursorActive` island — its guest cursor MUST composite as the host caret,
+ * INDEPENDENT of input focus (the island is NOT silvery-focused). Mirrors the
+ * shape `findActiveCursorRect`'s island branch reads (layout-signals.ts):
+ * `node.type === "silvery-island"`, `islandState.cursorActive`,
+ * `islandState.handle.output.{cursor,cursorVisible}`, `screenRect ?? boxRect`.
+ */
+function cursorActiveIslandNode(
+  rect: Rect,
+  cursor: { col: number; row: number },
+  visible = true,
+): AgNode {
+  return {
+    type: "silvery-island",
+    props: {},
+    children: [],
+    parent: null,
+    scrollRect: rect,
+    boxRect: rect,
+    screenRect: rect,
+    islandState: {
+      cursorActive: true,
+      handle: {
+        output: {
+          cursor: { col: cursor.col, row: cursor.row, style: "block" },
+          cursorVisible: visible,
+        },
+      },
+    },
+  } as unknown as AgNode
+}
+
+function freshViewportBuffer(): TerminalBuffer {
+  const tb = new TerminalBuffer(VIEWPORT.width, VIEWPORT.height)
+  writeLine(tb, 0, "host chrome")
+  writeLine(tb, VIEWPORT.height - 1, "status bar")
+  return tb
+}
+
+describe("managed-caret provenance — suppress only non-focused declarative fallback", () => {
+  test("cursorActive island: guest cursor IS composited as the host caret (19426 regression)", () => {
+    const islandRect: Rect = { x: 4, y: 3, width: 20, height: 5 }
+    const root = rootWith([cursorActiveIslandNode(islandRect, { col: 3, row: 1 })])
+    const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen")
+
+    const expectedX = islandRect.x + 3
+    const expectedY = islandRect.y + 1
+    const inverse = bufferInverseCells(managed.presentationBuffer)
+    const report =
+      `compositorCaret=${JSON.stringify(managed.compositorCaret)}\n` +
+      `expectedCaret={x:${expectedX},y:${expectedY}}\n` +
+      `inverseCells=${JSON.stringify(inverse)}`
+
+    // The island caret must be composited into the presentation buffer.
+    expect(
+      managed.compositorCaret,
+      `island host-caret was NOT composited\n${report}`,
+    ).not.toBeNull()
+    expect(
+      managed.compositorCaret,
+      `island caret composited at the wrong cell\n${report}`,
+    ).toMatchObject({
+      x: expectedX,
+      y: expectedY,
+      visible: true,
+    })
+    expect(inverse, `island caret missing from the presentation buffer\n${report}`).toContainEqual({
+      row: expectedY,
+      col: expectedX,
+    })
+  })
+
+  test("focused declarative editable: caret IS composited", () => {
+    const root = rootWith([focusedEditableNode(6, 5)])
+    const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen")
+    expect(managed.compositorCaret, "focused declarative caret must composite").toMatchObject({
+      x: 6,
+      y: 5,
+      visible: true,
+    })
+  })
+
+  test("non-focused declarative fallback: caret is SUPPRESSED (19702)", () => {
+    const root = rootWith([unfocusedEditableNode(6, 5)])
+    const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen")
+    expect(
+      managed.compositorCaret,
+      "a non-focused declarative fallback must NOT composite a caret",
+    ).toBeNull()
+    expect(
+      bufferInverseCells(managed.presentationBuffer),
+      "no inverse cell may be painted",
+    ).toEqual([])
+  })
+
+  test("island wins even when an unfocused declarative fallback also exists", () => {
+    const islandRect: Rect = { x: 4, y: 3, width: 20, height: 5 }
+    const root = rootWith([
+      unfocusedEditableNode(2, 9), // a passive declarative fallback below
+      cursorActiveIslandNode(islandRect, { col: 2, row: 0 }),
+    ])
+    const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen")
+    // The island caret composites; the fallback does not strand anything.
+    const inverse = bufferInverseCells(managed.presentationBuffer)
+    expect(managed.compositorCaret, "island caret must composite").toMatchObject({
+      x: islandRect.x + 2,
+      y: islandRect.y + 0,
+      visible: true,
+    })
+    expect(inverse, "exactly one composited caret (the island's), no fallback residue").toEqual([
+      { row: islandRect.y, col: islandRect.x + 2 },
+    ])
+  })
+})
+
+/** Inverse-attribute cells read directly off a TerminalBuffer. */
+function bufferInverseCells(buffer: TerminalBuffer): Array<{ row: number; col: number }> {
+  const out: Array<{ row: number; col: number }> = []
+  for (let row = 0; row < buffer.height; row++) {
+    for (let col = 0; col < buffer.width; col++) {
+      if (buffer.getCell(col, row).attrs.inverse) out.push({ row, col })
+    }
+  }
+  return out
+}

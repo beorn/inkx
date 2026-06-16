@@ -211,6 +211,7 @@ export {
   computeAnchorRect,
   computeDecorationRects,
   findActiveCursorRect,
+  findActiveCursorRectWithProvenance,
   findActiveFocusedNodeId,
   findActiveSelectionFragments,
   findActiveDecorationRects,
@@ -218,6 +219,8 @@ export {
   type LayoutSignals,
   type ScrollStateSnapshot,
   type CursorRect,
+  type CursorProvenance,
+  type ActiveCursorResult,
   type DecorationRect,
 } from "./layout-signals"
 

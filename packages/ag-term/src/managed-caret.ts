@@ -2,7 +2,7 @@ import type { TerminalBuffer } from "./buffer"
 import {
   type CursorRect,
   computeContentRect,
-  findActiveCursorRect,
+  findActiveCursorRectWithProvenance,
 } from "@silvery/ag/layout-signals"
 import { findActiveCursorNode } from "./caret-style"
 import { ANSI } from "./output"
@@ -11,7 +11,7 @@ import type {
   OutputCursorBounds,
   OutputCursorTarget,
 } from "./cursor-diagnostics"
-import type { AgNode, BoxProps, Rect } from "@silvery/ag/types"
+import type { AgNode, Rect } from "@silvery/ag/types"
 
 export interface CompositedCaret {
   x: number
@@ -132,31 +132,6 @@ export function managedCursorSuffix(
 }
 
 /**
- * Is this the cursor of a FOCUSED editable?
- *
- * The composited (visible inverse) caret is an editing affordance — it belongs
- * to whatever the focus system says is focused. A non-focused cursor declarer
- * is one of two things, neither of which should paint a visible block into the
- * presentation buffer:
- *
- *   - an editable that LOST focus (e.g. silvery `TextInput` keeps
- *     `cursorOffset.visible = isActive`, and `isActive` defaults to `true`, so a
- *     mounted-but-unfocused composer/transcript input still declares a visible
- *     cursor while a turn runs); or
- *   - the Ink-compat / `useCursor()` fallback — which renders its OWN hardware
- *     cursor through `ink-render.ts`, NOT through `composeManagedCaret`.
- *
- * Mirrors `resolveCaretStyle`'s focus gate (caret-style.ts): a bar/I-beam shape
- * is emitted only for a focused owner; everything else defers. This keeps the
- * managed-frame visible caret and the DECSCUSR shape on the same focus rule.
- */
-function isFocusedCursorOwner(node: AgNode | null): boolean {
-  if (!node) return false
-  const props = node.props as BoxProps | undefined
-  return props?.focused === true || node.interactiveState?.focused === true
-}
-
-/**
  * The single source of truth for managed-frame cursor handling.
  *
  * Three render entry points (`scheduler.ts`, `runtime/create-runtime.ts`,
@@ -234,27 +209,42 @@ export function computeManagedFrame(
     }
   }
 
-  const treeCursor = findActiveCursorRect(root)
-  const activeNode = findActiveCursorNode(root)
+  // ONE tree walk resolves the active cursor rect AND its provenance. The
+  // suppression decision below reads that provenance — it does NOT re-derive
+  // focus from a second, divergent walk. (The earlier focus-gate used
+  // `findActiveCursorNode`, which matches only `props.cursorOffset` and is blind
+  // to `cursorActive` islands + the clip stack, so it suppressed island
+  // host-carets — an inner no-parallel-derivation bug, @km/silvery/19426.)
+  const active = findActiveCursorRectWithProvenance(root)
+  const treeCursor = active?.rect ?? null
 
   // Cursor resolution priority (mirrors the scheduler's resolveActiveCursor):
-  //   1. Layout-output cursor declared by a Box `cursorOffset` in the tree.
+  //   1. Layout-output cursor declared in the tree (Box cursorOffset OR island).
   //   2. Legacy/store cursor (useCursor() / Ink-compat) — only when the tree
   //      declares none.
   const legacyCursor = treeCursor ? null : (opts?.legacyCursor ?? null)
   const cursor = treeCursor ?? legacyCursor
+
+  // Park bounds still come from the node walk — `cursorOwnerBounds` needs the
+  // editable's content rect. This is a DIAGNOSTIC/PARK input only; it never
+  // gates the visible caret (that decision is provenance-driven below), so its
+  // island-blindness is harmless here.
+  const activeNode = findActiveCursorNode(root)
   const bounds = cursorOwnerBounds(activeNode, cursor)
 
-  // The @km/code/v0.2/19702 fix: composite the VISIBLE caret only for a focused
-  // editable. A non-focused declarative fallback (active-turn composer, passive
-  // transcript editable) must NOT strand an inverse cell in the transcript. An
-  // explicit legacy/store cursor is exempt — it is an imperative "show a caret
-  // here" request with no focus node (Ink-compat / useCursor). The hardware
-  // cursor is still parked at the editable's bounds below, so a dropped/
-  // overridden hide lands on a benign cell, never a dynamic transcript/chrome
-  // row.
+  // The @km/code/v0.2/19702 fix, now provenance-aware: composite the VISIBLE
+  // caret for everything EXCEPT a non-focused declarative fallback. Suppressing
+  // that one source removes the stranded inverse block several rows above the
+  // prompt (an active-turn composer / passive transcript editable still
+  // reporting `cursorOffset.visible`). Focused-declarative carets, `cursorActive`
+  // island host-carets (@km/silvery/19426), and explicit legacy/imperative
+  // cursors (useCursor / Ink-compat — no focus node) all still composite. The
+  // hardware cursor is parked at the editable's bounds below regardless, so a
+  // dropped/overridden hide lands on a benign cell, never a dynamic
+  // transcript/chrome row.
+  const suppressDeclarativeFallback = active?.provenance === "declarative-fallback"
   const compositeCursor =
-    legacyCursor !== null ? legacyCursor : isFocusedCursorOwner(activeNode) ? treeCursor : null
+    legacyCursor !== null ? legacyCursor : suppressDeclarativeFallback ? null : treeCursor
   const managed = composeManagedCaret(sourceBuffer, compositeCursor)
 
   // Hardware-cursor park target: always the editable's locus (caret cell when a
