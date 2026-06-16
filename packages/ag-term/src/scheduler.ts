@@ -32,7 +32,6 @@ import {
   findActiveCursorRect,
   type CursorRect,
 } from "@silvery/ag/layout-signals"
-import { findActiveCursorNode } from "./caret-style"
 import { createOsc52Backend } from "./clipboard"
 import {
   recordOutputCursorDiagnostics,
@@ -40,7 +39,7 @@ import {
   type OutputCursorTarget,
 } from "./cursor-diagnostics"
 import { ANSI, notify as notifyTerminal } from "./output"
-import { composeManagedCaret, cursorOwnerBounds, managedCursorSuffix } from "./managed-caret"
+import { computeManagedFrame } from "./managed-caret"
 import type { PipelineConfig } from "./pipeline"
 import {
   clearLastOutputPhaseDiagnostics,
@@ -615,7 +614,19 @@ export class RenderScheduler {
   private resolveActiveCursor(): CursorRect | null {
     const layoutCursor = findActiveCursorRect(this.root)
     if (layoutCursor) return layoutCursor
+    return this.getStoreCursor()
+  }
 
+  /**
+   * The legacy/store cursor (useCursor() / Ink-compat setCursorPosition()),
+   * projected into CursorRect shape, or null. This is the cursor source that
+   * has NO owning AgNode — `computeManagedFrame` composites it unconditionally
+   * (it is an explicit imperative request, not a focus-gated declarative
+   * fallback). Layout-output cursors are resolved by `findActiveCursorRect`
+   * inside `computeManagedFrame`, so this helper intentionally does NOT consult
+   * the tree.
+   */
+  private getStoreCursor(): CursorRect | null {
     const storeCursor = this.getCursorState()
     if (!storeCursor) return null
     // Project store CursorState into CursorRect shape (visible defaults to
@@ -678,12 +689,17 @@ export class RenderScheduler {
           prevBuffer: this.prevBuffer,
           postState: this.postState,
         })
-        const fullscreenCursor = this.mode === "fullscreen" ? this.resolveActiveCursor() : null
-        const managed =
-          this.mode === "fullscreen"
-            ? composeManagedCaret(buffer, fullscreenCursor)
-            : { buffer, compositorCaret: null }
-        const outputBuffer = managed.buffer
+        // Single source of truth for managed-frame cursor handling
+        // (managed-caret.ts). The scheduler's legacy/store cursor is threaded as
+        // `legacyCursor` so the Ink-compat `useCursor()` path still composites,
+        // while a declarative tree cursor is focus-gated (the
+        // @km/code/v0.2/19702 fix). The full ManagedFrame is reused by the
+        // cursor-suffix block below — no re-derivation.
+        const managed = computeManagedFrame(buffer, this.root, this.mode, {
+          legacyCursor: this.mode === "fullscreen" ? this.getStoreCursor() : null,
+        })
+        const fullscreenCursor = managed.cursorTarget
+        const outputBuffer = managed.presentationBuffer
 
         const start = performance.now()
         const outputFn = this.pipelineConfig?.outputPhaseFn ?? outputPhase
@@ -723,6 +739,7 @@ export class RenderScheduler {
           overlay,
           cursor: fullscreenCursor,
           compositorCaret: managed.compositorCaret,
+          managed,
         }
       }
       const {
@@ -730,8 +747,8 @@ export class RenderScheduler {
         buffer,
         outputBuffer,
         overlay: incrementalOverlay,
-        cursor: frameCursor,
         compositorCaret,
+        managed: managedFrame,
       } = measurer ? runWithMeasurer(measurer, doRender) : doRender()
 
       // Transform output based on non-TTY mode
@@ -749,44 +766,25 @@ export class RenderScheduler {
         this.prevLineCount = countLines(output)
       }
 
-      // Build managed-frame cursor controls. Fullscreen TTY frames paint the
-      // visible caret into the presentation buffer, then move and hide the
-      // hardware cursor at the same semantic location so late/hollow terminal
-      // cursors cannot appear in transcript or chrome rows.
-      //
-      // Cursor source priority — see resolveActiveCursor():
-      //   1. Layout-output cursor (BoxProps.cursorOffset → cursorRect signal)
-      //   2. Cursor store (legacy useCursor() / Ink-compat path)
-      //
+      // Managed-frame cursor controls come from the single computeManagedFrame
+      // call inside doRender (managed-caret.ts). Fullscreen TTY frames paint the
+      // visible caret into the presentation buffer ONLY for a focused editable
+      // (the @km/code/v0.2/19702 fix), then always park + hide the hardware
+      // cursor at the editable's bounds so late/hollow terminal cursors cannot
+      // appear in transcript or chrome rows. The suffix is consumed only on a
+      // real TTY — `managedFrame` was computed for mode === "fullscreen", which
+      // is exactly when `nonTTYMode === "tty"`.
       let cursorSuffix = ""
       let cursorTarget: OutputCursorTarget | null = null
       let expectedTerminal: OutputCursorTarget | null = null
       let promptBounds: OutputCursorBounds | null = null
       let composerBounds: OutputCursorBounds | null = null
       if (this.nonTTYMode === "tty") {
-        const cursor = frameCursor
-        const activeNode = findActiveCursorNode(this.root)
-        const bounds = cursorOwnerBounds(activeNode, cursor)
-        promptBounds = bounds.promptBounds
-        composerBounds = bounds.composerBounds
-        // Always park the hardware cursor at a safe cell, then hide it. When no
-        // caret is active, parking (vs a bare hide) keeps a dropped/overridden
-        // `?25l` from leaving the hardware cursor stranded on the bottom-most
-        // painted row (transcript/activity/chrome) — the @km/code/v0.2/19702
-        // signature. See managedCursorSuffix.
-        const managedCursor = managedCursorSuffix(cursor, bounds)
-        cursorSuffix = managedCursor.suffix
-        if (cursor) {
-          cursorTarget = {
-            x: cursor.x,
-            y: cursor.y,
-            visible: cursor.visible,
-            shape: cursor.shape,
-          }
-          expectedTerminal = { ...cursorTarget, visible: false }
-        } else if (managedCursor.parkTarget) {
-          expectedTerminal = { ...managedCursor.parkTarget, visible: false }
-        }
+        cursorSuffix = managedFrame.cursorSuffix
+        cursorTarget = managedFrame.cursorTarget
+        expectedTerminal = managedFrame.expectedTerminal
+        promptBounds = managedFrame.promptBounds
+        composerBounds = managedFrame.composerBounds
       }
 
       // Write output wrapped with synchronized update (DEC 2026) for TTY mode.

@@ -82,9 +82,8 @@ import {
 } from "../text-sizing"
 import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
 import { isStrictEnabled } from "../strict-mode.js"
-import { recordOutputCursorDiagnostics, type OutputCursorTarget } from "../cursor-diagnostics"
-import { findActiveCursorNode } from "../caret-style"
-import { cursorOwnerBounds, managedCursorSuffix } from "../managed-caret"
+import { recordOutputCursorDiagnostics } from "../cursor-diagnostics"
+import { computeManagedFrame } from "../managed-caret"
 import { createBytesOutMonitor } from "../bytes-out-monitor"
 import { createMemMonitor } from "../mem-monitor"
 import {
@@ -115,7 +114,6 @@ import {
   type NamespacedEvent,
 } from "./event-handlers"
 import { keyToAnsi, keyToKittyAnsi, isModifierOnlyEvent } from "@silvery/ag/keys"
-import { findActiveCursorRect } from "@silvery/ag/layout-signals"
 import { isAnyDirty } from "@silvery/ag/epoch"
 import { parseKey, type Key } from "./keys"
 import { ensureLayoutEngine } from "./layout"
@@ -1554,28 +1552,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   }
   const restoreFrameCursor = (): void => {
     if (!currentBuffer) return
-    const cursor = findActiveCursorRect(currentBuffer.nodes)
-    let target: OutputCursorTarget | null = null
-    let expectedTerminal: OutputCursorTarget | null = null
-    const activeNode = findActiveCursorNode(currentBuffer.nodes)
-    const bounds = cursorOwnerBounds(activeNode, cursor)
-    // Park-then-hide on every restore. A bare `?25l` (no move) leaves the
-    // hardware cursor at the last out-of-band write position; a dropped/
-    // overridden hide then strands a visible cursor in transcript/chrome rows
-    // (@km/code/v0.2/19702). See managedCursorSuffix.
-    const managedCursor = managedCursorSuffix(cursor, bounds)
-    const output = managedCursor.suffix
-    if (cursor) {
-      target = {
-        x: cursor.x,
-        y: cursor.y,
-        visible: cursor.visible,
-        shape: cursor.shape,
-      }
-      expectedTerminal = { ...target, visible: false }
-    } else if (managedCursor.parkTarget) {
-      expectedTerminal = { ...managedCursor.parkTarget, visible: false }
-    }
+    // Single source of truth for managed-frame cursor handling
+    // (managed-caret.ts). This is a post-paint, out-of-band cursor RESTORE — it
+    // emits only the park-then-hide suffix (the buffer was already composited by
+    // runtime.render). Using computeManagedFrame keeps the restore suffix
+    // identical to the frame's, and inherits the @km/code/v0.2/19702 focus-gate
+    // (a non-focused fallback caret strands nothing). A bare `?25l` (no move)
+    // would leave the hardware cursor at the last out-of-band write position; a
+    // dropped/overridden hide then strands a visible cursor in transcript/chrome
+    // rows. The presentation buffer is discarded — only the cursor controls are
+    // used out-of-band.
+    const managed = computeManagedFrame(currentBuffer._buffer, currentBuffer.nodes, "fullscreen")
+    const output = managed.cursorSuffix
     recordOutputCursorDiagnostics({
       reason: "post-paint-cursor-restore",
       mode: "fullscreen",
@@ -1583,10 +1571,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       height: currentDims.rows,
       termRows: currentDims.rows,
       output,
-      target,
-      expectedTerminal,
-      promptBounds: bounds.promptBounds,
-      composerBounds: bounds.composerBounds,
+      target: managed.cursorTarget,
+      expectedTerminal: managed.expectedTerminal,
+      promptBounds: managed.promptBounds,
+      composerBounds: managed.composerBounds,
     })
     writeOutOfBand(output)
   }

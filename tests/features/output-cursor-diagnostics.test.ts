@@ -41,6 +41,13 @@ function cursorNode(dims: Dims, cursor: { col: number; row: number; visible: boo
     children: [],
     parent: null,
     scrollRect: { x: 0, y: 0, width: dims.cols, height: dims.rows },
+    // These scenarios model the ACTIVE composer (command / queue / interject) —
+    // the editable the user is typing into. In the production tree that node is
+    // focused (`useFocusable`), so the managed frame composites its caret. The
+    // @km/code/v0.2/19702 fix only suppresses NON-focused fallback declarers
+    // (an unfocused-during-a-turn composer / passive transcript editable), so
+    // the focused active composer must carry focus state here.
+    interactiveState: { focused: true },
   } as unknown as AgNode
 }
 

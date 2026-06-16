@@ -25,8 +25,6 @@ import { createOutputPhase } from "../pipeline/output-phase"
 import { takeUntil } from "@silvery/create/streams"
 import { diff } from "./diff"
 import type { Buffer, Dims, Event, Runtime, RuntimeOptions } from "./types"
-import { findActiveCursorRect } from "@silvery/ag/layout-signals"
-import { findActiveCursorNode } from "../caret-style"
 import {
   recordOutputCursorDiagnostics,
   type OutputCompositorCaret,
@@ -34,7 +32,7 @@ import {
   type OutputCursorTarget,
 } from "../cursor-diagnostics"
 import { ANSI } from "../output"
-import { composeManagedCaret, cursorOwnerBounds, managedCursorSuffix } from "../managed-caret"
+import { computeManagedFrame } from "../managed-caret"
 // Side-effect import: install the terminal wrap-measurer adapter into
 // `@silvery/ag`'s registry the moment a runtime is constructed. The
 // registration itself is idempotent (see ./wrap-measurer-registration.ts);
@@ -347,36 +345,24 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       let promptBounds: OutputCursorBounds | null = null
       let composerBounds: OutputCursorBounds | null = null
       if (mode === "fullscreen") {
-        const cursor = findActiveCursorRect(buffer.nodes)
-        const activeNode = findActiveCursorNode(buffer.nodes)
-        const bounds = cursorOwnerBounds(activeNode, cursor)
-        promptBounds = bounds.promptBounds
-        composerBounds = bounds.composerBounds
-        const managed = composeManagedCaret(buffer._buffer, cursor)
+        // Single source of truth for managed-frame cursor handling
+        // (managed-caret.ts). It finds the active cursor, composites a visible
+        // caret ONLY for a focused editable (the @km/code/v0.2/19702 fix — a
+        // non-focused fallback declarer must not strand an inverse cell in the
+        // transcript), and parks+hides the hardware cursor regardless so a
+        // dropped/overridden `?25l` cannot leave a hollow cursor in
+        // transcript/chrome. All three render entry points call this — see
+        // `docs/lessons/no-parallel-derivation.md`.
+        const managed = computeManagedFrame(buffer._buffer, buffer.nodes, "fullscreen")
+        promptBounds = managed.promptBounds
+        composerBounds = managed.composerBounds
         compositorCaret = managed.compositorCaret
-        if (managed.buffer !== buffer._buffer) {
-          renderBuffer = { ...buffer, _buffer: managed.buffer }
+        if (managed.presentationBuffer !== buffer._buffer) {
+          renderBuffer = { ...buffer, _buffer: managed.presentationBuffer }
         }
-        // Move before hiding so ignored/late DECTCEM, unfocused-terminal hollow
-        // cursors, and visibility-blind emulators do not leave the hardware
-        // cursor at the last transcript write position. Managed frames paint the
-        // visible caret into the buffer instead of showing the terminal hardware
-        // cursor. When no caret is active we still park (vs a bare hide) so a
-        // dropped `?25l` cannot strand the cursor in transcript/chrome rows
-        // (@km/code/v0.2/19702). See managedCursorSuffix.
-        const managedCursor = managedCursorSuffix(cursor, bounds)
-        cursorSuffix = managedCursor.suffix
-        if (cursor) {
-          cursorTarget = {
-            x: cursor.x,
-            y: cursor.y,
-            visible: cursor.visible,
-            shape: cursor.shape,
-          }
-          expectedTerminal = { ...cursorTarget, visible: false }
-        } else if (managedCursor.parkTarget) {
-          expectedTerminal = { ...managedCursor.parkTarget, visible: false }
-        }
+        cursorSuffix = managed.cursorSuffix
+        cursorTarget = managed.cursorTarget
+        expectedTerminal = managed.expectedTerminal
       }
       if (
         prevBuffer &&
