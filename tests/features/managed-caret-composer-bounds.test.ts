@@ -54,7 +54,9 @@ afterEach(() => {
 
 /** Did the 19702 stranded-caret warning fire this test? */
 function warned19702(): boolean {
-  return warnSpy.mock.calls.some((args) => args.some((a) => String(a).includes("19702")))
+  return warnSpy.mock.calls.some((args: unknown[]) =>
+    args.some((a: unknown) => String(a).includes("19702")),
+  )
 }
 
 function enableCursorStrict(): void {
