@@ -176,6 +176,9 @@ const LARGE_FULLSCREEN_SYNC_BYTES = 2048
 export function createRuntime(options: RuntimeOptions): Runtime {
   const { target, signal: externalSignal, mode = "fullscreen" } = options
   const syncUpdate = mode === "fullscreen" && options.syncUpdate === true
+  // Window-focus reader (@km/code/v0.2/20082) — selects the caret shape each
+  // frame. Default focused (fail-safe) when the host doesn't wire it.
+  const readWindowFocused = options.windowFocused ?? (() => true)
 
   // Inline mode needs persistent cursor tracking across frames.
   // If no outputPhaseFn provided, create one so prevCursorRow/prevOutputLines
@@ -364,6 +367,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         // `docs/lessons/no-parallel-derivation.md`.
         const managed = computeManagedFrame(buffer._buffer, buffer.nodes, "fullscreen", {
           prevCaret: prevPresentation?.caret ?? null,
+          windowFocused: readWindowFocused(),
         })
         promptBounds = managed.promptBounds
         composerBounds = managed.composerBounds

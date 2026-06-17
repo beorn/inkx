@@ -106,6 +106,15 @@ export interface RuntimeOptions {
     scrollbackOffset?: number,
     termRows?: number,
   ) => string
+  /**
+   * Read the current terminal WINDOW focus state (@km/code/v0.2/20082). Called
+   * once per fullscreen frame and threaded into `computeManagedFrame` to select
+   * the caret SHAPE: focused → filled inverse block (the 19702 behavior),
+   * unfocused → hollow rectangle. Omitted/undefined → focused (the fail-safe
+   * default — a host that hasn't wired focus reporting always shows the filled
+   * block, never a hollow/hidden caret on unknown focus).
+   */
+  windowFocused?: () => boolean
 }
 
 /**

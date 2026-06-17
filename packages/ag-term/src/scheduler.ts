@@ -140,6 +140,13 @@ export interface SchedulerOptions {
    * ensure only silvery's render pipeline writes to stdout in alt screen mode.
    */
   writeOutput?: (data: string) => boolean
+  /**
+   * Read the terminal WINDOW focus state (@km/code/v0.2/20082). Called once per
+   * fullscreen frame and threaded into `computeManagedFrame` to select the caret
+   * SHAPE: focused → filled inverse block (the 19702 behavior), unfocused →
+   * hollow rectangle. Omitted → focused (the fail-safe default).
+   */
+  windowFocused?: () => boolean
 }
 
 export interface RenderStats {
@@ -188,6 +195,13 @@ export class RenderScheduler {
   private mode: "fullscreen" | "inline"
   private pipelineConfig?: PipelineConfig
   private getCursorState: () => import("@silvery/ag-react/hooks/useCursor").CursorState | null
+  /**
+   * Read the terminal WINDOW focus state (@km/code/v0.2/20082). Threaded into
+   * `computeManagedFrame` each frame to select the caret SHAPE (focused →
+   * filled block, unfocused → hollow). Defaults to `() => true` (the fail-safe
+   * focused default) when no reader is supplied.
+   */
+  private getWindowFocused: () => boolean
   private nonTTYMode: ResolvedMode
   private outputTransformer: (content: string, prevLineCount: number) => string
   private writeOutput: (data: string) => boolean
@@ -312,6 +326,8 @@ export class RenderScheduler {
     // km-silvery.delete-cursor-globals; callers wanting cursor visibility
     // must wire `cursorAccessors` explicitly via createCursorStore().
     this.getCursorState = options.cursorAccessors?.getCursorState ?? (() => null)
+    // @km/code/v0.2/20082 window-focus reader — default focused (fail-safe).
+    this.getWindowFocused = options.windowFocused ?? (() => true)
     // Subscribe to cursor-state changes so the scheduler re-renders when
     // useCursor's store updates land between render frames. The
     // `subscribeCursor` accessor was previously exported but never wired up
@@ -709,6 +725,7 @@ export class RenderScheduler {
         const managed = computeManagedFrame(buffer, this.root, this.mode, {
           legacyCursor: this.mode === "fullscreen" ? this.getStoreCursor() : null,
           prevCaret: this.prevPresentation?.caret ?? null,
+          windowFocused: this.getWindowFocused(),
         })
         const fullscreenCursor = managed.cursorTarget
         const outputBuffer = managed.presentationBuffer

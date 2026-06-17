@@ -15,11 +15,24 @@ import { isStrictEnabled } from "./strict-mode"
 import { IncrementalRenderMismatchError } from "./errors"
 import type { AgNode, Rect } from "@silvery/ag/types"
 
+/**
+ * Composited-caret shapes painted into the presentation buffer:
+ *   - `"block"`     — filled inverse block. The focused caret (and the default).
+ *   - `"underline"` — bottom rule only (a declared `cursorOffset.shape:
+ *     "underline"`). Distinct from the focus state — an underline-shaped caret
+ *     stays underline regardless of window focus.
+ *   - `"hollow"`    — top+bottom box edges (overline + underline), interior
+ *     unfilled. The UNFOCUSED-window caret (@km/code/v0.2/20082): a hollow
+ *     rectangle so focus state stays visible without a filled block. It is a
+ *     COMPOSITED overlay — the hardware cursor stays parked-and-hidden in this
+ *     state too, so a dropped/overridden `?25l` cannot strand a visible hardware
+ *     cursor (the 19702 strand class).
+ */
 export interface CompositedCaret {
   x: number
   y: number
   visible: boolean
-  style: "block" | "underline"
+  style: "block" | "underline" | "hollow"
 }
 
 export interface ManagedCaretFrame {
@@ -32,8 +45,42 @@ export interface CursorOwnerBounds {
   composerBounds: Rect | null
 }
 
-function caretStyle(cursor: CursorRect): "block" | "underline" {
-  return cursor.shape === "underline" ? "underline" : "block"
+/**
+ * Resolve the composited caret SHAPE from the cursor's declared shape AND the
+ * window-focus state.
+ *
+ * - A declared `shape: "underline"` always wins — an underline-shaped caret is
+ *   semantically distinct from the focus state and stays underline whether the
+ *   window is focused or not.
+ * - Otherwise (the default block caret): `"block"` when the window is FOCUSED,
+ *   `"hollow"` when it is UNFOCUSED (@km/code/v0.2/20082). Unknown focus → block
+ *   (the fail-safe default; see `composeManagedCaret`'s `windowFocused` doc).
+ */
+function caretStyle(cursor: CursorRect, windowFocused: boolean): CompositedCaret["style"] {
+  if (cursor.shape === "underline") return "underline"
+  return windowFocused ? "block" : "hollow"
+}
+
+/** Map a composited-caret style to the cell attributes that render it. */
+function caretCellAttrs(style: CompositedCaret["style"]): {
+  inverse?: boolean
+  underline?: boolean
+  overline?: boolean
+} {
+  switch (style) {
+    case "underline":
+      return { underline: true }
+    case "hollow":
+      // Top + bottom box edges, interior unfilled — a hollow rectangle.
+      // `overline` (SGR 53) draws the top rule, `underline` (SGR 4) the bottom;
+      // a space cell with both reads as an open box, distinct from the filled
+      // `inverse` block. Terminals without SGR 53 (the output phase skips it
+      // when the cap is absent) still show the underline edge.
+      return { overline: true, underline: true }
+    case "block":
+    default:
+      return { inverse: true }
+  }
 }
 
 /**
@@ -42,10 +89,21 @@ function caretStyle(cursor: CursorRect): "block" | "underline" {
  * The source buffer stays untouched. Runtime diff state stores the presentation
  * buffer so moving/hiding the caret clears the previous frame's overlay like any
  * other cell update.
+ *
+ * @param windowFocused - whether the terminal WINDOW is focused. Controls the
+ *   default caret SHAPE (@km/code/v0.2/20082): `true` → filled inverse block
+ *   (byte-identical to the 19702 behavior), `false` → hollow rectangle
+ *   (overline + underline). Defaults to `true` — a fail-safe so a single user
+ *   with a focused terminal (or any caller that hasn't wired focus reporting)
+ *   sees the filled block, never a hollow/hidden caret on unknown focus. The
+ *   hollow caret is a COMPOSITED overlay; the hardware cursor is parked-and-
+ *   hidden regardless of focus (see `managedCursorSuffix`), so the unfocused
+ *   shape never relies on — and never strands — the hardware cursor.
  */
 export function composeManagedCaret(
   buffer: TerminalBuffer,
   cursor: CursorRect | null,
+  windowFocused = true,
 ): ManagedCaretFrame {
   if (!cursor?.visible || !buffer.inBounds(cursor.x, cursor.y)) {
     return { buffer, compositorCaret: null }
@@ -56,14 +114,8 @@ export function composeManagedCaret(
   // compares this presentation buffer against the previous presentation buffer
   // and cannot skip unrelated app content that changed in the same frame.
   next.markAllRowsDirty()
-  const style = caretStyle(cursor)
-  next.mergeAttrsInRect(
-    cursor.x,
-    cursor.y,
-    1,
-    1,
-    style === "underline" ? { underline: true } : { inverse: true },
-  )
+  const style = caretStyle(cursor, windowFocused)
+  next.mergeAttrsInRect(cursor.x, cursor.y, 1, 1, caretCellAttrs(style))
   return {
     buffer: next,
     compositorCaret: {
@@ -269,6 +321,13 @@ export function managedCursorSuffix(
  *   overlay (the @km/code/v0.2/19702 fix — see `clearPriorCaretOverlay`). All
  *   three render entry points pass this; omitting it disables the overlay-clear
  *   (correct only for single-frame callers with no prev buffer).
+ * @param opts.windowFocused - whether the terminal WINDOW is focused
+ *   (@km/code/v0.2/20082). Selects the default caret SHAPE: `true`/omitted →
+ *   filled inverse block (byte-identical to the 19702 behavior), `false` →
+ *   hollow rectangle. The hardware cursor is parked-and-hidden in BOTH states,
+ *   so the unfocused shape comes purely from the composited overlay. All three
+ *   render entry points read their shared window-focus signal and pass it here;
+ *   omitting it is the fail-safe focused default.
  * @returns everything every call site needs: the presentation buffer to diff +
  *   store, the cursor-control suffix, and the full diagnostic payload. The
  *   caller stores `compositorCaret` and passes it back as `prevCaret` next frame.
@@ -299,7 +358,11 @@ export function computeManagedFrame(
   sourceBuffer: TerminalBuffer,
   root: AgNode,
   mode: "fullscreen" | "inline",
-  opts?: { legacyCursor?: CursorRect | null; prevCaret?: OutputCompositorCaret | null },
+  opts?: {
+    legacyCursor?: CursorRect | null
+    prevCaret?: OutputCompositorCaret | null
+    windowFocused?: boolean
+  },
 ): ManagedFrame {
   // Inline mode never paints a managed caret — the diff output positions the
   // cursor itself (see output-phase.ts inlineCursorSuffix).
@@ -351,7 +414,11 @@ export function computeManagedFrame(
   const suppressDeclarativeFallback = active?.provenance === "declarative-fallback"
   const compositeCursor =
     legacyCursor !== null ? legacyCursor : suppressDeclarativeFallback ? null : treeCursor
-  const managed = composeManagedCaret(sourceBuffer, compositeCursor)
+  // @km/code/v0.2/20082: the window-focus state selects the caret SHAPE (filled
+  // block when focused, hollow rectangle when unfocused). Default focused — the
+  // fail-safe so unknown focus never yields a hollow/hidden caret.
+  const windowFocused = opts?.windowFocused ?? true
+  const managed = composeManagedCaret(sourceBuffer, compositeCursor, windowFocused)
 
   // Clear a prior frame's composited-caret overlay from a static row. When the
   // caret left cell C (suppressed or moved) and C's row is clean in this
