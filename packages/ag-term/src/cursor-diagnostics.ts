@@ -49,6 +49,15 @@ export interface OutputCursorDiagnostics {
   compositorCaret: OutputCompositorCaret | null
   promptBounds: OutputCursorBounds | null
   composerBounds: OutputCursorBounds | null
+  /**
+   * Whether the VISIBLE composited caret landed inside the editable's content
+   * rect (`composerBounds`). The @km/code/v0.2/19702 stranded-caret invariant:
+   * a Silvery-owned composited caret several rows ABOVE the composer (on a
+   * transcript/chrome row) reads as `false` here. `null` when not checkable —
+   * no composited caret, or no known composer bounds (island / legacy cursor,
+   * where the caret's owner is a different node than `composerBounds`).
+   */
+  compositorCaretInComposerBounds: boolean | null
   finalCursorEscape: "show" | "hide" | null
   expectedTerminal: OutputCursorTarget | null
   terminal: OutputCursorTerminalState | null
@@ -181,6 +190,30 @@ function assertCursorMatches(diagnostics: OutputCursorDiagnostics): void {
   }
 }
 
+/**
+ * The @km/code/v0.2/19702 composited-caret-bounds invariant: a VISIBLE
+ * composited caret must land inside the editable's content rect. Returns:
+ *   - `true`  — caret is within `bounds`.
+ *   - `false` — caret is OUTSIDE `bounds` (the stranded-caret artifact: an
+ *     inverse cell painted on a transcript/chrome row above/below the composer).
+ *   - `null`  — not checkable (no visible composited caret, or no known
+ *     composer bounds — e.g. a `cursorActive` island / legacy cursor whose
+ *     owning node differs from `bounds`).
+ *
+ * Rows are half-open `[y, y+height)`. The end-of-line virtual column (where the
+ * next character would be typed) legitimately sits one past the content width,
+ * so the x upper bound is inclusive.
+ */
+function caretInComposerBounds(
+  caret: OutputCompositorCaret | null,
+  bounds: OutputCursorBounds | null,
+): boolean | null {
+  if (!caret || caret.visible === false || !bounds) return null
+  const inX = caret.x >= bounds.x && caret.x <= bounds.x + bounds.width
+  const inY = caret.y >= bounds.y && caret.y < bounds.y + bounds.height
+  return inX && inY
+}
+
 export function recordOutputCursorDiagnostics(opts: {
   reason: string
   mode: "fullscreen" | "inline"
@@ -223,11 +256,32 @@ export function recordOutputCursorDiagnostics(opts: {
     compositorCaret: opts.compositorCaret ? { ...opts.compositorCaret } : null,
     promptBounds: opts.promptBounds ? { ...opts.promptBounds } : null,
     composerBounds: opts.composerBounds ? { ...opts.composerBounds } : null,
+    compositorCaretInComposerBounds: caretInComposerBounds(
+      opts.compositorCaret ?? null,
+      opts.composerBounds ?? null,
+    ),
     finalCursorEscape,
     expectedTerminal,
     terminal,
   }
   lastOutputCursorDiagnostics = diagnostics
+
+  // NO SILENT ERRORS: a composited caret outside its composer bounds is the
+  // @km/code/v0.2/19702 stranded-caret artifact. Surface it LOUDLY rather than
+  // silently rendering an inverse cell on a transcript/chrome row. Recorded
+  // (not thrown) because an island host-caret legitimately composites outside
+  // the separate composer's bounds and the payload does not yet carry the
+  // caret's owning-node rect to disambiguate; upgrade to a throw scoped to
+  // `focused-declarative` provenance once the provenance walk returns
+  // `{node, rect, provenance}` (the noted 19702 follow-up).
+  if (diagnostics.compositorCaretInComposerBounds === false) {
+    log.warn?.(
+      `cursor ${opts.reason}: composited caret OUT OF composer bounds ` +
+        `(@km/code/v0.2/19702 stranded-caret) — ` +
+        `caret=${formatCompositorCaret(diagnostics.compositorCaret)} ` +
+        `composer=${formatBounds(diagnostics.composerBounds)}`,
+    )
+  }
 
   log.debug?.(
     `cursor ${opts.reason}: target=${formatTarget(diagnostics.target)} ` +
