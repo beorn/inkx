@@ -201,6 +201,13 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
   // Track previous buffer for diffing
   let prevBuffer: Buffer | null = null
+  // The composited caret painted into the PREVIOUS frame's presentation buffer
+  // (managed-caret.ts). Threaded back into `computeManagedFrame` so a caret that
+  // moves off / is suppressed on a static row gets that row marked dirty and the
+  // stale `inverse` overlay cleared — the @km/code/v0.2/19702 overlay-residue
+  // fix. Must be updated in lockstep with `prevBuffer` (including the zero-diff
+  // early-return, which stores a presentation buffer but emits nothing).
+  let prevCompositorCaret: OutputCompositorCaret | null = null
   let renderedOnce = false
   let lastRenderDims: Dims | null = null
   let lastCursorSuffix = ""
@@ -353,7 +360,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         // dropped/overridden `?25l` cannot leave a hollow cursor in
         // transcript/chrome. All three render entry points call this — see
         // `docs/lessons/no-parallel-derivation.md`.
-        const managed = computeManagedFrame(buffer._buffer, buffer.nodes, "fullscreen")
+        const managed = computeManagedFrame(buffer._buffer, buffer.nodes, "fullscreen", {
+          prevCaret: prevCompositorCaret,
+        })
         promptBounds = managed.promptBounds
         composerBounds = managed.composerBounds
         compositorCaret = managed.compositorCaret
@@ -386,6 +395,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         // old caret's inverse is never cleared. `buffer` and `renderBuffer` are
         // the same reference when no caret is active, so this is a no-op there.
         prevBuffer = renderBuffer
+        // Keep the prior-caret in lockstep with prevBuffer even on this no-op
+        // frame: the NEXT frame's overlay-clear baselines against THIS caret.
+        prevCompositorCaret = compositorCaret
         lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
         renderedOnce = true
         clearNextFullscreenRender = false
@@ -412,6 +424,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         patch = diff(clearFullscreen ? null : prevBuffer, renderBuffer, mode, offset, termRows)
       }
       prevBuffer = renderBuffer
+      // Keep the prior-caret in lockstep with prevBuffer so the next frame's
+      // overlay-clear knows where this frame painted the caret (or that it
+      // painted none). @km/code/v0.2/19702.
+      prevCompositorCaret = compositorCaret
 
       // Append Kitty graphics overlay (scrim placements for emoji in the
       // backdrop-fade region). The overlay is a self-contained save-cursor /
@@ -517,6 +533,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
     invalidate(options?: { clearScreen?: boolean }): void {
       prevBuffer = null
+      // No prev buffer ⇒ next frame is a full render; there is no stale overlay
+      // to clear, so drop the prior-caret in lockstep with prevBuffer.
+      prevCompositorCaret = null
       if (options?.clearScreen && mode === "fullscreen") {
         clearNextFullscreenRender = true
       }

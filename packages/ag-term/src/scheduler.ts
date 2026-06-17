@@ -35,6 +35,7 @@ import {
 import { createOsc52Backend } from "./clipboard"
 import {
   recordOutputCursorDiagnostics,
+  type OutputCompositorCaret,
   type OutputCursorBounds,
   type OutputCursorTarget,
 } from "./cursor-diagnostics"
@@ -210,6 +211,15 @@ export class RenderScheduler {
 
   /** Previous presentation buffer for terminal output diffing. */
   private prevOutputBuffer: TerminalBuffer | null = null
+
+  /**
+   * The composited caret painted into the PREVIOUS frame's presentation buffer.
+   * Threaded back into `computeManagedFrame` so a caret that moves off / is
+   * suppressed on a static row gets that row marked dirty and the stale
+   * `inverse` overlay cleared — the @km/code/v0.2/19702 overlay-residue fix.
+   * Updated in lockstep with `prevOutputBuffer`.
+   */
+  private prevCompositorCaret: OutputCompositorCaret | null = null
 
   /**
    * Cross-frame post-state carrier (outline snapshots, etc.).
@@ -484,6 +494,7 @@ export class RenderScheduler {
     // Reset buffer for full redraw (alt screen was switched)
     this.prevBuffer = null
     this.prevOutputBuffer = null
+    this.prevCompositorCaret = null // no prev buffer ⇒ no stale overlay to clear
     // Outline snapshots reference cells in the discarded buffer — reset together.
     this.postState = createRenderPostState()
 
@@ -513,6 +524,7 @@ export class RenderScheduler {
     // Reset buffer so next render outputs everything
     this.prevBuffer = null
     this.prevOutputBuffer = null
+    this.prevCompositorCaret = null // no prev buffer ⇒ no stale overlay to clear
     // Outline snapshots reference cells in the discarded buffer — reset together.
     this.postState = createRenderPostState()
   }
@@ -697,6 +709,7 @@ export class RenderScheduler {
         // cursor-suffix block below — no re-derivation.
         const managed = computeManagedFrame(buffer, this.root, this.mode, {
           legacyCursor: this.mode === "fullscreen" ? this.getStoreCursor() : null,
+          prevCaret: this.prevCompositorCaret,
         })
         const fullscreenCursor = managed.cursorTarget
         const outputBuffer = managed.presentationBuffer
@@ -864,6 +877,10 @@ export class RenderScheduler {
       // Save buffer for next diff
       this.prevBuffer = buffer
       this.prevOutputBuffer = outputBuffer
+      // Keep the prior-caret in lockstep with prevOutputBuffer so the next
+      // frame's overlay-clear knows where this frame painted the caret (or that
+      // it painted none). @km/code/v0.2/19702.
+      this.prevCompositorCaret = compositorCaret
 
       // Commit boundary — promote in-flight rect signals (just written by
       // ag.layout above) to their committed peers. Reactive
@@ -1008,6 +1025,7 @@ export class RenderScheduler {
         // Reset buffer to force full redraw
         this.prevBuffer = null
         this.prevOutputBuffer = null
+        this.prevCompositorCaret = null // no prev buffer ⇒ no stale overlay to clear
         // Outline snapshots are buffer-coordinate-bound; reset together so
         // post-resize clearPreviousOutlines doesn't write at out-of-bounds
         // coordinates from the old dimensions.

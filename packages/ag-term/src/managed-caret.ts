@@ -11,6 +11,8 @@ import type {
   OutputCursorBounds,
   OutputCursorTarget,
 } from "./cursor-diagnostics"
+import { isStrictEnabled } from "./strict-mode"
+import { IncrementalRenderMismatchError } from "./errors"
 import type { AgNode, Rect } from "@silvery/ag/types"
 
 export interface CompositedCaret {
@@ -71,6 +73,102 @@ export function composeManagedCaret(
       style,
     },
   }
+}
+
+/** SILVERY_STRICT slug for the managed-caret overlay-residue check. */
+export const CARET_OVERLAY_STRICT_SLUG = "cursor"
+export const CARET_OVERLAY_STRICT_MIN_TIER = 2
+
+/** Just the cell coordinates — all the overlay-clear logic needs. */
+type CaretCell = { x: number; y: number } | null
+
+function sameCaretCell(a: CaretCell, b: CaretCell): boolean {
+  if (a === null || b === null) return a === b
+  return a.x === b.x && a.y === b.y
+}
+
+/**
+ * Clear a prior frame's composited-caret overlay from a STATIC row.
+ *
+ * `composeManagedCaret`'s two paths are asymmetric about dirty rows: the PAINT
+ * path calls `markAllRowsDirty()` (so a freshly-painted caret is always
+ * diffed), but the NO-CARET early-return hands back the source buffer untouched.
+ * When a caret that was painted at cell C in frame N is suppressed or moves to a
+ * different cell in frame N+1, and C's ROW is otherwise static (clean in the
+ * incremental buffer — the reconciler only marks rows whose content changed),
+ * `diffBuffers` skips that row (`if (!next.isRowDirty(y)) continue`). The frame-N
+ * `inverse` cell is then never compared against the cleared frame-N+1 buffer, so
+ * the reverse-video block strands on screen with NO `?25h`/CUP — the
+ * @km/code/v0.2/19702 cursor-above-composer signature.
+ *
+ * Fix: mark EXACTLY the prior caret's row dirty in the presentation buffer the
+ * caller will diff+store, so `diffBuffers` re-scans it and emits the cleared
+ * cell. We never call `markAllRowsDirty` (that would re-diff every static
+ * transcript row each frame — the incremental-perf regression the dirty-row gate
+ * exists to prevent). We touch one row, only when the caret actually left it.
+ *
+ * Buffer ownership: when the current frame composited NO caret (or composited
+ * one on a DIFFERENT buffer), `presentationBuffer` may be the caller's untouched
+ * source buffer (the documented `composeManagedCaret` no-clone contract). To
+ * honour "the source buffer stays untouched", we clone before marking in that
+ * case and return the clone. When the PAINT path already cloned, we mutate that
+ * clone in place (it is already the caller's diff baseline).
+ */
+function clearPriorCaretOverlay(
+  presentationBuffer: TerminalBuffer,
+  sourceBuffer: TerminalBuffer,
+  currentCaret: CaretCell,
+  prevCaret: CaretCell,
+): TerminalBuffer {
+  // Nothing to clear: no prior caret, or the caret stayed on the same cell
+  // (the PAINT path's markAllRowsDirty already covers an in-place repaint).
+  if (prevCaret === null) return presentationBuffer
+  if (sameCaretCell(prevCaret, currentCaret)) return presentationBuffer
+  if (prevCaret.y < 0 || prevCaret.y >= presentationBuffer.height) return presentationBuffer
+
+  // If the prior caret's row is already dirty (e.g. the PAINT path marked all
+  // rows, or the app re-rendered that row), the diff will clear it for free.
+  if (presentationBuffer.isRowDirty(prevCaret.y)) return presentationBuffer
+
+  // The row is static (clean) — diffBuffers would skip it and strand the prior
+  // inverse cell. Make the row dirty so the diff re-scans and clears it.
+  const buf = presentationBuffer === sourceBuffer ? presentationBuffer.clone() : presentationBuffer
+  buf.markRowDirty(prevCaret.y)
+  return buf
+}
+
+/**
+ * STRICT (tier 2, slug `cursor`) — managed-caret overlay-residue invariant.
+ *
+ * After a frame whose composited caret left cell C (suppressed or moved), C's
+ * row in the presentation buffer the caller diffs MUST be dirty — otherwise
+ * `diffBuffers` skips it and the prior `inverse` overlay strands (the
+ * @km/code/v0.2/19702 signature). This is the overlay-layer analogue of
+ * `strict-residue.ts` (which runs BELOW the caret overlay, in the render phase,
+ * and so cannot see this). Fires only under `SILVERY_STRICT=cursor` / tier ≥ 2.
+ */
+function verifyNoCaretOverlayResidue(
+  presentationBuffer: TerminalBuffer,
+  currentCaret: CaretCell,
+  prevCaret: CaretCell,
+): void {
+  if (!isStrictEnabled(CARET_OVERLAY_STRICT_SLUG, CARET_OVERLAY_STRICT_MIN_TIER)) return
+  if (prevCaret === null) return
+  if (sameCaretCell(prevCaret, currentCaret)) return
+  if (prevCaret.y < 0 || prevCaret.y >= presentationBuffer.height) return
+  if (presentationBuffer.isRowDirty(prevCaret.y)) return
+
+  throw new IncrementalRenderMismatchError(
+    `STRICT caret-overlay residue: prior composited caret at (${prevCaret.x},${prevCaret.y}) ` +
+      `left the row, but row ${prevCaret.y} is CLEAN in the presentation buffer.\n` +
+      `  diffBuffers skips clean rows, so the prior frame's reverse-video (inverse)\n` +
+      `  overlay cell at (${prevCaret.x},${prevCaret.y}) will NOT be cleared — it strands\n` +
+      `  on screen with no ?25h/CUP. This is the @km/code/v0.2/19702\n` +
+      `  cursor-above-composer mechanism.\n` +
+      `  current caret: ${currentCaret ? `(${currentCaret.x},${currentCaret.y})` : "none (suppressed)"}\n` +
+      `  Fix: clearPriorCaretOverlay must mark the prior caret's row dirty.\n` +
+      `  Slug: SILVERY_STRICT=${CARET_OVERLAY_STRICT_SLUG} (tier ${CARET_OVERLAY_STRICT_MIN_TIER}+).`,
+  )
 }
 
 export function cursorOwnerBounds(
@@ -164,8 +262,16 @@ export function managedCursorSuffix(
  *   suppress passive declarative fallbacks, not explicit imperative cursors).
  *   The scheduler passes this; `createRuntime`/`createApp` do not (they have no
  *   store-cursor path).
+ * @param opts.prevCaret - the `compositorCaret` THIS function returned for the
+ *   PREVIOUS frame (the caller stores it across frames). When the caret leaves a
+ *   cell whose row is otherwise static, the prior cell's row is made dirty in the
+ *   returned `presentationBuffer` so `diffBuffers` clears the stale `inverse`
+ *   overlay (the @km/code/v0.2/19702 fix — see `clearPriorCaretOverlay`). All
+ *   three render entry points pass this; omitting it disables the overlay-clear
+ *   (correct only for single-frame callers with no prev buffer).
  * @returns everything every call site needs: the presentation buffer to diff +
- *   store, the cursor-control suffix, and the full diagnostic payload.
+ *   store, the cursor-control suffix, and the full diagnostic payload. The
+ *   caller stores `compositorCaret` and passes it back as `prevCaret` next frame.
  */
 export interface ManagedFrame {
   /**
@@ -193,7 +299,7 @@ export function computeManagedFrame(
   sourceBuffer: TerminalBuffer,
   root: AgNode,
   mode: "fullscreen" | "inline",
-  opts?: { legacyCursor?: CursorRect | null },
+  opts?: { legacyCursor?: CursorRect | null; prevCaret?: OutputCompositorCaret | null },
 ): ManagedFrame {
   // Inline mode never paints a managed caret — the diff output positions the
   // cursor itself (see output-phase.ts inlineCursorSuffix).
@@ -247,6 +353,24 @@ export function computeManagedFrame(
     legacyCursor !== null ? legacyCursor : suppressDeclarativeFallback ? null : treeCursor
   const managed = composeManagedCaret(sourceBuffer, compositeCursor)
 
+  // Clear a prior frame's composited-caret overlay from a static row. When the
+  // caret left cell C (suppressed or moved) and C's row is clean in this
+  // incremental buffer, diffBuffers would skip it and strand the frame-N inverse
+  // cell — the @km/code/v0.2/19702 mechanism. Mark exactly C's row dirty (never
+  // all rows — that's the incremental-perf regression the dirty-row gate
+  // prevents). ONE place; all three render entry points thread `prevCaret`.
+  const prevCaret = opts?.prevCaret ?? null
+  const presentationBuffer = clearPriorCaretOverlay(
+    managed.buffer,
+    sourceBuffer,
+    managed.compositorCaret,
+    prevCaret,
+  )
+  // STRICT (tier 2, slug `cursor`): the overlay-residue invariant. Verify on the
+  // FINAL presentation buffer — after the clear — so a green check proves the
+  // stale overlay will actually be diffed away.
+  verifyNoCaretOverlayResidue(presentationBuffer, managed.compositorCaret, prevCaret)
+
   // Hardware-cursor park target: always the editable's locus (caret cell when a
   // caret exists, else composer origin, else home), independent of whether we
   // composited a visible caret. Parking is a SAFETY net for dropped `?25l`, so
@@ -263,7 +387,7 @@ export function computeManagedFrame(
   }
 
   return {
-    presentationBuffer: managed.buffer,
+    presentationBuffer,
     cursorSuffix: managedCursor.suffix,
     compositorCaret: managed.compositorCaret,
     cursorTarget,

@@ -1483,6 +1483,24 @@ export class TerminalBuffer {
   }
 
   /**
+   * Mark a single row as dirty (no-op if out of bounds).
+   *
+   * Used by the managed-caret overlay-clear path: when a composited caret is
+   * suppressed or moves off a row whose CONTENT is otherwise static (and thus
+   * clean in this incremental buffer), the prior caret's row must be made dirty
+   * so `diffBuffers` re-scans it and clears the stale `inverse` overlay cell.
+   * Without this, the dirty-row gate (`diffBuffers`: `if (!next.isRowDirty(y))
+   * continue`) skips the row and the prior frame's reverse-video block strands
+   * on screen — the @km/code/v0.2/19702 cursor-above-composer signature.
+   */
+  markRowDirty(y: number): void {
+    if (y < 0 || y >= this.height) return
+    this._dirtyRows[y] = 1
+    if (this._minDirtyRow === -1 || y < this._minDirtyRow) this._minDirtyRow = y
+    if (y > this._maxDirtyRow) this._maxDirtyRow = y
+  }
+
+  /**
    * Check if two cells at given positions are equal.
    * Used for diffing.
    */
