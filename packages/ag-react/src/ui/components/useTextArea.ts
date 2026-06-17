@@ -322,6 +322,34 @@ export function useTextArea({
   )
 
   // =========================================================================
+  // Paste handling
+  //
+  // Bracketed/native paste arrives on the chain paste store as a single blob —
+  // NOT replayed as keystrokes — so the key handler below never sees it. The
+  // single-line `useTextInput` already inserts paste via `emitText`; without
+  // this handler a TextArea silently DROPPED every paste (bead
+  // silvercode-paste-composer: the Silver Code composer's command + queue
+  // regions are both `<TextArea>`, so paste was a no-op in both panes).
+  //
+  // Insert at the cursor, replacing any active selection, exactly once.
+  // Normalize CR / CRLF to LF — terminals deliver pasted line breaks as `\r`,
+  // but only `\n` is a logical newline for wrapping and cursor math.
+  // =========================================================================
+  const handlePaste = useCallback(
+    (pasted: string) => {
+      if (disabled) return
+      const text = pasted.replace(/\r\n?/g, "\n")
+      if (text.length === 0) return
+      stickyXRef.current = null
+      yankStateRef.current = null
+      if (replaceSelectionWith(text)) return
+      const { value: current, cursor } = stateRef.current
+      updateValue(current.slice(0, cursor) + text + current.slice(cursor), cursor + text.length)
+    },
+    [disabled, replaceSelectionWith, updateValue],
+  )
+
+  // =========================================================================
   // Input handling
   // =========================================================================
 
@@ -727,7 +755,7 @@ export function useTextArea({
         yankStateRef.current = result.yankState
       }
     },
-    { isActive },
+    { isActive, onPaste: handlePaste },
   )
 
   // =========================================================================
