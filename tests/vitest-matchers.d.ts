@@ -18,6 +18,10 @@ declare module "vitest" {
     toHaveFg(color: unknown): void
     toHaveBg(color: unknown): void
     toBeInMode(mode: string): void
+    toHaveCursor(
+      props: { x?: number; y?: number; visible?: boolean; style?: string },
+      options?: SilveryRetryOptions,
+    ): void
   }
 
   interface Matchers<T = any> {
@@ -33,5 +37,9 @@ declare module "vitest" {
     toHaveFg(color: unknown): void
     toHaveBg(color: unknown): void
     toBeInMode(mode: string): void
+    toHaveCursor(
+      props: { x?: number; y?: number; visible?: boolean; style?: string },
+      options?: SilveryRetryOptions,
+    ): void
   }
 }
