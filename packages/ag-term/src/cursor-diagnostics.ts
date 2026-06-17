@@ -34,6 +34,32 @@ export interface OutputCompositorCaret {
   style: string
 }
 
+/**
+ * The previous frame's presentation buffer bundled with the composited caret
+ * that was painted into it.
+ *
+ * These two values MUST move together: the buffer is the diff baseline the next
+ * frame renders against, and `caret` is where (or whether) this frame painted
+ * the managed inverse-caret overlay. The next frame's overlay-clear
+ * (`clearPriorCaretOverlay` in `managed-caret.ts`) reads `caret` to decide which
+ * row to re-mark dirty so a moved/removed caret's stale `inverse` cell is
+ * cleared. Storing a new buffer without the matching caret (or vice versa)
+ * reintroduces the @km/code/v0.2/19702 stranded-caret residue.
+ *
+ * Bundling them into one struct makes that desync impossible by construction —
+ * every assignment site sets both fields in a single object literal, so there is
+ * no way to advance the buffer baseline without also advancing the caret it was
+ * composited with. Generic over the buffer type because the scheduler tracks a
+ * raw `TerminalBuffer` while the runtime tracks its wrapped `Buffer`; both hold
+ * the same caret type.
+ */
+export interface PrevPresentation<TBuffer> {
+  /** The presentation buffer the terminal showed this frame (the next diff baseline). */
+  buffer: TBuffer
+  /** The composited caret painted into `buffer`, or null if none was painted. */
+  caret: OutputCompositorCaret | null
+}
+
 export interface OutputCursorDiagnostics {
   reason: string
   mode: "fullscreen" | "inline"
