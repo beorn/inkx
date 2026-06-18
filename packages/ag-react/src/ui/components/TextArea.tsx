@@ -103,6 +103,16 @@ export interface TextAreaProps {
   /** Whether input is focused/active (overrides focus system) */
   isActive?: boolean
   /**
+   * Called on mouse-down when this TextArea is clicked while INACTIVE
+   * (`isActive={false}`). Lets a parent that manages activation imperatively
+   * (e.g. silvercode's queue/command `focusedRegion`) move focus to this field
+   * on click, so a mouse click drives the SAME single focus owner that keyboard
+   * navigation (`onEdge`) drives. Without it, clicking an inactive field only
+   * repositions its internal cursor and never takes focus — the
+   * @km/code/v0.2/20079 click-to-focus seam (two focus owners diverging).
+   */
+  onActivate?: () => void
+  /**
    * CSS `field-sizing` analog. Controls how the TextArea computes its
    * visible row count.
    *
@@ -249,6 +259,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     submitKey = "ctrl+enter",
     placeholder = "",
     isActive: isActiveProp,
+    onActivate,
     fieldSizing = "content",
     rows = 1,
     minRows = 1,
@@ -374,6 +385,12 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const handleMouseDown = useCallback(
     (e: SilveryMouseEvent) => {
       if (e.button !== 0) return
+      // 20079: clicking an INACTIVE field requests activation so a parent that
+      // owns focus imperatively (e.g. focusedRegion) can move focus here — a
+      // click then drives the same single focus owner as keyboard onEdge. We
+      // still position the cursor below so the caret lands where the user clicked
+      // once the field activates.
+      if (!isActive) onActivate?.()
       const rect = e.currentTarget.scrollRect
       if (!rect) return
 
@@ -391,7 +408,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
       const offset = Math.min(Math.max(0, wl.startOffset + col), ta.value.length)
       ta.setCursor(offset)
     },
-    [ta],
+    [ta, isActive, onActivate],
   )
 
   // =========================================================================
