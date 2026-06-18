@@ -1,32 +1,34 @@
 /**
- * @km/code/v0.2/20082 — focus-aware caret shape (filled focused / hollow unfocused).
+ * @km/code/v0.2/20082 + @km/code/v0.2/19702 — focus-aware caret
+ * (filled focused / HIDDEN unfocused).
  *
  * FEATURE: the Silver Code managed caret renders as a FILLED inverse BLOCK only
- * when the terminal/window is FOCUSED. When the window is UNFOCUSED, it renders a
- * HOLLOW RECTANGLE at the same caret cell — not hidden, not filled — so focus
- * state stays visible.
+ * when the terminal/window is FOCUSED. When the window is UNFOCUSED, NO caret is
+ * composited at all — the pane shows nothing.
  *
- * DESIGN (grounded in the existing 19702 managed-caret policy + silvery's own
- * "fake cursor when unfocused" convention, docs/architecture.md:118):
+ * CONTRACT REFRAME (2026-06-18, user-explicit): the earlier 20082 design painted
+ * a HOLLOW box when unfocused. The product contract is now hide-the-cursor-
+ * COMPLETELY: a freshly-spawned, unfocused agent pane must show no caret. The
+ * `"hollow"` shape is removed so it cannot reassert.
  *
- *   - The hollow caret is a COMPOSITED buffer overlay (overline + underline on
- *     the caret cell → top+bottom box edges, interior unfilled), NOT the native
- *     hollow HARDWARE cursor. The hardware cursor stays parked-and-HIDDEN in BOTH
- *     focus states — byte-identical to the 19702 fix. Showing the hardware cursor
- *     when unfocused would re-introduce the 19702 strand class (a dropped/over-
- *     ridden `?25l` from cmux/Ghostty would leave a VISIBLE hardware cursor
- *     stranded in transcript/chrome).
+ * DESIGN:
+ *   - The hardware cursor stays parked-and-HIDDEN in BOTH focus states — byte-
+ *     identical to the 19702 fix. With no composited caret either, an unfocused
+ *     pane shows nothing, and a dropped/overridden `?25l` from cmux/Ghostty
+ *     cannot strand a visible hardware cursor (the 19702 strand class).
  *   - Focus state is a SINGLE param threaded into computeManagedFrame
- *     (`windowFocused`). Default/unknown → FOCUSED (filled block) — never regress
- *     to hidden/hollow when focus is simply unknown (a single user with a focused
- *     terminal must see the filled block).
+ *     (`windowFocused`, sourced from standard DEC `?1004` focus reporting).
+ *     Default/unknown → FOCUSED (filled block) — never vanish the caret when
+ *     focus is simply unknown (a single user with a focused terminal that never
+ *     emits focusIn must still see the caret). Making an unfocused MULTIPLEXED
+ *     pane report windowFocused=false is the host's job (deliver standard
+ *     focusOut), not a bespoke protocol — see @km/code/v0.2/19702.
  *
  * INVARIANT under test:
  *   - FOCUSED frame  → compositorCaret.style === "block", the caret cell carries
  *     `inverse` (and NOT overline/underline), hardware cursor hidden.
- *   - UNFOCUSED frame → compositorCaret.style === "hollow", the caret cell carries
- *     `overline` + `underline` (and NOT `inverse`), hardware cursor STILL hidden,
- *     and the caret is STILL present (not suppressed).
+ *   - UNFOCUSED frame → compositorCaret === null, the caret cell carries NO
+ *     overlay attrs (not inverse, not box edges), hardware cursor STILL hidden.
  *
  * These tests run at SILVERY_STRICT=2,cursor.
  */
@@ -129,27 +131,26 @@ describe("computeManagedFrame focus-aware caret shape (20082)", () => {
     expect(def.presentationBuffer.getCell(3, 5).attrs.inverse).toBe(true)
   })
 
-  test("WINDOW UNFOCUSED → hollow rectangle (overline+underline), NOT hidden, NOT filled", () => {
+  test("WINDOW UNFOCUSED → NO caret composited (hidden completely, not hollow)", () => {
     const src = new TerminalBuffer(SMALL.width, SMALL.height)
     writeLine(src, 5, "the composer prompt > ")
 
     const unfocused = computeManagedFrame(src, focusedComposerAt(3, 5), "fullscreen", {
       windowFocused: false,
     })
-    // Still composited — focus state is VISIBLE, the caret is not hidden.
-    expect(unfocused.compositorCaret, "unfocused caret must NOT be suppressed").not.toBeNull()
-    expect(unfocused.compositorCaret!.style, "unfocused window → hollow rectangle").toBe("hollow")
-    expect(unfocused.compositorCaret!.visible).toBe(true)
+    // @km/code/v0.2/19702 (reframed 2026-06-18): an unfocused agent pane HIDES
+    // the caret completely — no composited overlay at all (was 20082's hollow).
+    expect(unfocused.compositorCaret, "unfocused window → no composited caret").toBeNull()
 
-    // The composited cell carries the hollow-box edges (overline + underline)
-    // and NOT inverse (it is not filled).
+    // The caret cell carries NO overlay attrs — not inverse, not the old hollow
+    // box edges. The pane shows nothing.
     const cellAttrs = unfocused.presentationBuffer.getCell(3, 5).attrs
-    expect(cellAttrs.overline, "hollow caret must have a top box edge (overline)").toBe(true)
-    expect(cellAttrs.underline, "hollow caret must have a bottom box edge (underline)").toBe(true)
-    expect(cellAttrs.inverse, "hollow caret must NOT be filled (no inverse)").toBeFalsy()
+    expect(cellAttrs.inverse ?? false, "no filled block").toBe(false)
+    expect(cellAttrs.overline ?? false, "no top box edge (no hollow)").toBe(false)
+    expect(cellAttrs.underline ?? false, "no bottom box edge (no hollow)").toBe(false)
   })
 
-  test("UNFOCUSED still parks + HIDES the hardware cursor (does NOT show it — no 19702 strand)", () => {
+  test("UNFOCUSED still parks + HIDES the hardware cursor (no caret AND no 19702 strand)", () => {
     const src = new TerminalBuffer(SMALL.width, SMALL.height)
     writeLine(src, 5, "the composer prompt > ")
 
@@ -158,8 +159,7 @@ describe("computeManagedFrame focus-aware caret shape (20082)", () => {
     })
     // The hardware cursor MUST stay hidden in the unfocused state too. Showing it
     // would let a dropped `?25l` strand a visible hardware cursor (the 19702
-    // class). The hollow shape comes from the COMPOSITED overlay, not the
-    // hardware cursor.
+    // class). With no composited caret either, the unfocused pane shows nothing.
     expect(unfocused.cursorSuffix, "unfocused frame must STILL hide the hardware cursor").toContain(
       "\x1b[?25l",
     )
@@ -167,11 +167,11 @@ describe("computeManagedFrame focus-aware caret shape (20082)", () => {
       unfocused.cursorSuffix,
       "unfocused frame must NOT show the hardware cursor",
     ).not.toContain("\x1b[?25h")
-    // Parked at the caret cell (the editable locus), exactly like the focused path.
+    // Parked at the editable locus, exactly like the focused path.
     expect(unfocused.cursorSuffix).toContain("\x1b[6;4H") // 1-indexed (x=3,y=5)
   })
 
-  test("focus toggle reuses the overlay-clear path — no stranded inverse when block→hollow on a static row", () => {
+  test("focus toggle reuses the overlay-clear path — no stranded inverse when block→hidden on a static row", () => {
     // Frame N: focused (block) at (3,5) → PAINT path, all rows dirty.
     const srcN = new TerminalBuffer(SMALL.width, SMALL.height)
     writeLine(srcN, 5, "the composer prompt > ")
@@ -180,20 +180,20 @@ describe("computeManagedFrame focus-aware caret shape (20082)", () => {
     })
     expect(frameN.compositorCaret!.style).toBe("block")
 
-    // Frame N+1: window blurs (hollow) at the SAME cell on a CLONED (all-clean)
-    // buffer. The caret cell's row must be dirty so diffBuffers re-emits the cell
-    // with the new (hollow) attrs and clears the prior inverse — the 19702
-    // overlay-residue machinery, exercised by a shape change rather than a move.
+    // Frame N+1: window blurs → the caret is SUPPRESSED (hidden) on a CLONED
+    // (all-clean) buffer. The prior caret cell's row must be dirty so diffBuffers
+    // re-emits the cell WITHOUT the inverse — the 19702 overlay-residue machinery,
+    // exercised by suppression rather than a move.
     const srcN1 = srcN.clone()
     expect(srcN1.isRowDirty(5)).toBe(false)
     const frameN1 = computeManagedFrame(srcN1, focusedComposerAt(3, 5), "fullscreen", {
       windowFocused: false,
       prevCaret: frameN.compositorCaret,
     })
-    expect(frameN1.compositorCaret!.style).toBe("hollow")
+    expect(frameN1.compositorCaret, "blur suppresses the caret entirely").toBeNull()
     expect(
       frameN1.presentationBuffer.isRowDirty(5),
-      "the caret row must be dirty so the inverse→hollow shape change is diffed",
+      "the prior caret row must be dirty so the inverse→hidden change is diffed",
     ).toBe(true)
   })
 })
@@ -301,21 +301,21 @@ describe("focus-aware caret — xterm byte-replay (20082)", () => {
     ).toBe(true)
   })
 
-  test("UNFOCUSED frame paints a NON-filled caret cell (hollow box, underline edge visible to xterm)", () => {
+  test("UNFOCUSED frame paints NO caret cell — not filled, not a box edge (hidden)", () => {
     const { output } = renderFrames(
       dims,
       [{ tree: focusedComposerAt(caret.x, caret.y, viewport), windowFocused: false }],
       buildSource,
     )
     const scanned = scanCaretCell(output, dims, caret)
-    // xterm.js cannot read overline, but it CAN read underline + inverse. The
-    // hollow caret must NOT be a filled inverse block, and MUST carry the
-    // underline (bottom) box edge.
+    // @km/code/v0.2/19702 (reframed): an unfocused pane composites NO caret, so
+    // the cell is plain — not a filled inverse block AND not the old hollow box
+    // (no underline edge). xterm.js reads inverse + underline; both must be off.
     expect(scanned.inverse, "unfocused caret cell must NOT be a filled inverse block").toBe(false)
     expect(
       scanned.underline,
-      "unfocused caret cell must carry the bottom box edge (underline)",
-    ).toBe(true)
+      "unfocused caret cell must NOT carry a box edge (hidden, not hollow)",
+    ).toBe(false)
     // And the hardware cursor stays hidden (no ?25h emitted).
     expect(output, "unfocused frame must not show the hardware cursor").not.toContain("\x1b[?25h")
   })

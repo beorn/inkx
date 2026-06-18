@@ -1687,10 +1687,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     mode: alternateScreen ? "fullscreen" : "inline",
     syncUpdate: syncUpdateEnabled,
     outputPhaseFn: pipelineConfig?.outputPhaseFn,
-    // @km/code/v0.2/20082: focus-aware caret shape. The window-focus STATE is
-    // owned by the terminal chain (`chainApp.terminal.focused`, updated by the
-    // `term:focus` op from `input.onFocus`); the runtime reads it once per frame
-    // to select the caret shape (focused → filled block, unfocused → hollow).
+    // @km/code/v0.2/19702: focus-aware caret. The window-focus STATE is owned by
+    // the terminal chain (`chainApp.terminal.focused`, updated by the `term:focus`
+    // op from standard `?1004` focus events via `input.onFocus`); the runtime
+    // reads it once per frame: focused → filled block, unfocused → NO caret.
     // Lazy closure — `chainApp` is constructed below; the reader is only invoked
     // per-frame inside `runtime.render()`, well after construction, so there is
     // no TDZ hazard. Single source of truth: no parallel focus derivation.

@@ -107,12 +107,12 @@ export interface RuntimeOptions {
     termRows?: number,
   ) => string
   /**
-   * Read the current terminal WINDOW focus state (@km/code/v0.2/20082). Called
-   * once per fullscreen frame and threaded into `computeManagedFrame` to select
-   * the caret SHAPE: focused → filled inverse block (the 19702 behavior),
-   * unfocused → hollow rectangle. Omitted/undefined → focused (the fail-safe
-   * default — a host that hasn't wired focus reporting always shows the filled
-   * block, never a hollow/hidden caret on unknown focus).
+   * Read the current terminal WINDOW focus state (@km/code/v0.2/19702). Called
+   * once per fullscreen frame and threaded into `computeManagedFrame`: focused →
+   * filled inverse block; unfocused → NO caret (hidden completely). Omitted/
+   * undefined → focused (the fail-safe default — a host that hasn't wired
+   * standard `?1004` focus reporting always shows the caret, never vanishes it
+   * on unknown focus).
    */
   windowFocused?: () => boolean
 }

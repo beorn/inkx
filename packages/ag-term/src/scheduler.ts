@@ -141,10 +141,10 @@ export interface SchedulerOptions {
    */
   writeOutput?: (data: string) => boolean
   /**
-   * Read the terminal WINDOW focus state (@km/code/v0.2/20082). Called once per
-   * fullscreen frame and threaded into `computeManagedFrame` to select the caret
-   * SHAPE: focused → filled inverse block (the 19702 behavior), unfocused →
-   * hollow rectangle. Omitted → focused (the fail-safe default).
+   * Read the terminal WINDOW focus state (@km/code/v0.2/19702). Called once per
+   * fullscreen frame and threaded into `computeManagedFrame`: focused → filled
+   * inverse block; unfocused → NO caret (hidden completely). Omitted → focused
+   * (the fail-safe default).
    */
   windowFocused?: () => boolean
 }
@@ -196,10 +196,10 @@ export class RenderScheduler {
   private pipelineConfig?: PipelineConfig
   private getCursorState: () => import("@silvery/ag-react/hooks/useCursor").CursorState | null
   /**
-   * Read the terminal WINDOW focus state (@km/code/v0.2/20082). Threaded into
-   * `computeManagedFrame` each frame to select the caret SHAPE (focused →
-   * filled block, unfocused → hollow). Defaults to `() => true` (the fail-safe
-   * focused default) when no reader is supplied.
+   * Read the terminal WINDOW focus state (@km/code/v0.2/19702). Threaded into
+   * `computeManagedFrame` each frame: focused → filled block, unfocused → NO
+   * caret (hidden). Defaults to `() => true` (the fail-safe focused default)
+   * when no reader is supplied.
    */
   private getWindowFocused: () => boolean
   private nonTTYMode: ResolvedMode
