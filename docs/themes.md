@@ -1,6 +1,6 @@
 ---
-layout: page
 title: Theme Explorer
+description: Browse Silvery color schemes and preview the Sterling tokens they derive.
 ---
 
 <script setup>
@@ -9,10 +9,14 @@ import ThemeExplorer from './.vitepress/components/ThemeExplorer.vue'
 
 # Theme Explorer
 
-Browse 84 color schemes, preview how they look, or generate a custom theme from any color. Every theme on this page is a [Sterling](/reference/sterling) Theme — silvery's canonical design system as of 0.20.0.
+Browse built-in terminal color schemes, inspect the Sterling tokens they derive, and copy theme
+configuration.
 
-::: tip New in 0.20.0 — Sterling is THE Theme
-silvery 0.20.0 ships [Sterling](/reference/sterling) as the one-and-only Theme shape. Nested role objects (`theme.accent.bg`) plus flat hyphen-keys (`theme["bg-accent"]`) on the same frozen object. Full migration map for the legacy `$tokens` is in the [Sterling primer](/reference/sterling#migrating-from-pre-0-20-0).
+::: info New in 0.20.0
+Silvery uses the Sterling theme shape. Sterling exposes nested role objects such as
+`theme.accent.bg` and flat keys such as `theme["bg-accent"]` on the same object.
+
+See the [migration notes](/reference/sterling#migrating-from-pre-0-20-0) for legacy token mappings.
 :::
 
 <ThemeExplorer />

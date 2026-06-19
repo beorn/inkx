@@ -2043,30 +2043,33 @@ function selectPalette(name) {
 
 <style scoped>
 .theme-explorer {
-  margin: 1.5rem 0;
+  max-width: 1120px;
+  margin: 0 0 1.5rem;
 }
 
 /* ── Tabs ──────────────────────────────────────────────────────────── */
 .tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 2px solid var(--vp-c-divider);
-  margin-bottom: 1.25rem;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  margin-bottom: 1rem;
 }
 
 .tab {
-  padding: 0.6rem 1.25rem;
+  padding: 0.48rem 0.9rem;
   border: none;
-  background: none;
+  border-radius: 6px;
+  background: transparent;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--vp-c-text-2);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
   transition:
     color 0.2s,
-    border-color 0.2s;
+    background-color 0.2s;
 }
 
 .tab:hover {
@@ -2074,8 +2077,8 @@ function selectPalette(name) {
 }
 
 .tab.active {
-  color: var(--vp-c-brand-1);
-  border-bottom-color: var(--vp-c-brand-1);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
 }
 
 /* ── Detail tabs ─────────────────────────────────────────────────── */
@@ -2115,8 +2118,12 @@ function selectPalette(name) {
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  margin-bottom: 1rem;
   flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
 }
 
 .search-input {
@@ -2125,7 +2132,7 @@ function selectPalette(name) {
   padding: 0.4rem 0.75rem;
   border: 1px solid var(--vp-c-divider);
   border-radius: 6px;
-  background: var(--vp-c-bg-soft);
+  background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   font-size: 0.85rem;
   outline: none;
@@ -2147,7 +2154,7 @@ function selectPalette(name) {
 .filter-btn {
   padding: 0.35rem 0.75rem;
   border: none;
-  background: var(--vp-c-bg-soft);
+  background: var(--vp-c-bg);
   color: var(--vp-c-text-2);
   font-size: 0.8rem;
   cursor: pointer;
@@ -2189,6 +2196,7 @@ function selectPalette(name) {
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
   padding: 4px;
+  background: var(--vp-c-bg-soft);
 }
 
 .palette-list-item {
@@ -2199,7 +2207,7 @@ function selectPalette(name) {
   border: 2px solid transparent;
   border-radius: 6px;
   cursor: pointer;
-  background: none;
+  background: transparent;
   text-align: left;
   transition:
     background 0.15s,
@@ -2208,7 +2216,7 @@ function selectPalette(name) {
 }
 
 .palette-list-item:hover {
-  background: var(--vp-c-bg-soft);
+  background: var(--vp-c-bg);
 }
 
 .palette-list-item.selected {
@@ -2700,6 +2708,14 @@ function selectPalette(name) {
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  .tabs {
+    display: flex;
+  }
+
+  .tab {
+    flex: 1;
+  }
+
   .gallery-columns {
     grid-template-columns: 1fr;
   }
