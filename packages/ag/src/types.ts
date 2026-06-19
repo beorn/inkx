@@ -731,6 +731,24 @@ export interface BoxProps
   cursorOffset?: CursorOffset
 
   /**
+   * Component-relative HARDWARE-PARK cell. Declares where a managed terminal
+   * frame parks (then hides) the hardware cursor when this Box owns the frame —
+   * position-only (`col`/`row`; `visible`/`shape` are ignored — the visible
+   * caret is `cursorOffset`'s job).
+   *
+   * UNLIKE `cursorOffset`, park is **not focus-gated**: an editable declares its
+   * input cell here whether or not it (or the window) is focused, so a managed
+   * frame ALWAYS has a benign park cell. This is the structural fix for the
+   * recurring "hardware cursor parks one row above the prompt" bug
+   * (@km/code/v0.2/19702): with no park declaration the frame fell back to the
+   * box origin / `home(0,0)`, and a multiplexer that dropped the cursor-hide
+   * surfaced the parked cursor there. Resolved by `computeParkRect` + the
+   * non-focus-gated tree walk `findActiveParkRect`; consumed by
+   * `managedCursorSuffix`.
+   */
+  parkOffset?: CursorOffset
+
+  /**
    * Semantic selection intent — the user's selected substring within this
    * Box's text content, declared as character offsets `{ from, to }`. The
    * layout phase resolves this into a list of rectangles

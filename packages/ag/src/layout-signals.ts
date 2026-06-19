@@ -334,6 +334,19 @@ export interface LayoutSignals {
   readonly anchorRect: WritableSignal<Rect | null>
 
   /**
+   * Absolute terminal coordinates of the HARDWARE-PARK cell declared by this
+   * node's `BoxProps.parkOffset` — where a managed frame parks (then hides) the
+   * hardware cursor when this node owns the frame. Position-only (1×1 rect);
+   * null when the node has no `parkOffset` prop or before the first layout pass.
+   *
+   * Peer of `cursorRect`, but NON-focus-gated: the tree-walk lookup
+   * `findActiveParkRect(root)` picks the deepest declarer regardless of focus or
+   * visibility, so a managed frame always has a benign park cell and never falls
+   * back to the box origin / `home(0,0)` (@km/code/v0.2/19702).
+   */
+  readonly parkRect: WritableSignal<Rect | null>
+
+  /**
    * Geometric output of `BoxProps.decorations` — the resolved per-decoration
    * rect list this frame. Each entry carries the source kind, id, and rects
    * (popover/tooltip → one rect at the placed position; highlight → one rect
@@ -407,6 +420,7 @@ export function getLayoutSignals(node: AgNode): LayoutSignals {
       selectionFragments: signal<readonly Rect[]>(computeSelectionFragments(node)),
       scrollState: signal<ScrollStateSnapshot | null>(snapshotScrollState(node)),
       anchorRect: signal<Rect | null>(computeAnchorRect(node)),
+      parkRect: signal<Rect | null>(computeParkRect(node)),
       decorationRects: signal<readonly DecorationRect[]>(EMPTY_DECORATION_RECTS),
       textContent: signal<string | undefined>(node.textContent),
       focused: signal<boolean>(node.interactiveState?.focused ?? false),
@@ -555,6 +569,61 @@ export function computeAnchorRect(node: AgNode): Rect | null {
   const id = resolveAnchorId(node)
   if (id === null) return null
   return computeContentRect(node)
+}
+
+/**
+ * Compute the absolute HARDWARE-PARK rect for a node from its `parkOffset` prop
+ * and current `contentRect`. The park rect is the 1×1 cell where a managed
+ * terminal frame parks (then hides) the hardware cursor when this node owns the
+ * frame — position-only (the visible caret is `cursorOffset`/`computeCursorRect`'s
+ * job, so `visible`/`shape` on the offset are ignored here).
+ *
+ * UNLIKE `computeCursorRect`, this is consumed **non-focus-gated** (see
+ * `findActiveParkRect`): an editable declares its input cell whether or not it
+ * is focused, so a managed frame ALWAYS has a benign park cell and never falls
+ * back to the box origin or home (@km/code/v0.2/19702). Mirrors
+ * `computeAnchorRect`'s content-origin delegation.
+ *
+ * Returns null when the node has no `parkOffset` prop or `contentRect` is
+ * unavailable (pre-layout / clipped to zero size).
+ */
+export function computeParkRect(node: AgNode): Rect | null {
+  const props = node.props as BoxProps | undefined
+  const offset = props?.parkOffset
+  if (!offset) return null
+  const content = computeContentRect(node)
+  if (!content) return null
+  return { x: content.x + offset.col, y: content.y + offset.row, width: 1, height: 1 }
+}
+
+/**
+ * Walk the tree and return the deepest declared hardware-park rect, or null when
+ * no node declares `parkOffset`. Post-order deepest-wins (mirrors `findAnchor`),
+ * and deliberately **non-focus-gated and non-visibility-gated** — the park
+ * target exists regardless of focus so `managedCursorSuffix` always has a benign
+ * cell to park the hardware cursor at, never the box origin / `home(0,0)`
+ * (@km/code/v0.2/19702). Signal-or-compute per node so it works before signals
+ * are allocated (first frame after mount).
+ */
+export function findActiveParkRect(root: AgNode): Rect | null {
+  let result: Rect | null = null
+
+  function walk(node: AgNode): void {
+    for (const child of node.children) {
+      walk(child)
+    }
+    const props = node.props as BoxProps | undefined
+    if (!props?.parkOffset) return
+    const s = signalMap.get(node)
+    const rect = s ? s.parkRect() : computeParkRect(node)
+    if (rect) {
+      // Last-write-wins (deepest in post-order).
+      result = rect
+    }
+  }
+
+  walk(root)
+  return result
 }
 
 /**
@@ -1118,6 +1187,15 @@ export function syncRectSignals(node: AgNode): void {
   const nextAnchorRect = computeAnchorRect(node)
   if (!rectEqual(nextAnchorRect, s.anchorRect())) {
     s.anchorRect(nextAnchorRect)
+  }
+
+  // Sync parkRect — peer of anchorRect, driven by `node.props.parkOffset` +
+  // `contentRect`; null when the prop is absent or the content rect collapses.
+  // Non-focus-gated (see findActiveParkRect). Mirrors invariant 2 (prop-change
+  // recompute): toggling `parkOffset` clears/reinstates the rect in-frame.
+  const nextParkRect = computeParkRect(node)
+  if (!rectEqual(nextParkRect, s.parkRect())) {
+    s.parkRect(nextParkRect)
   }
 
   // Sync scrollState signal — projects AgNode.scrollState (layout-phase's
