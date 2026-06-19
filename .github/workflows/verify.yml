@@ -35,7 +35,12 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-      - run: bun install
+      - run: |
+          for attempt in 1 2 3; do
+            bun install && exit 0
+            sleep $((attempt * 10))
+          done
+          bun install
 
       - name: Verify publishable (verdaccio gate)
         run: bun run verify-publishable
