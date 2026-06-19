@@ -28,7 +28,7 @@ term.modes.rawMode(true)
 await render(<Counter />, term).run()
 ```
 
-![Silvery counter rendered in a terminal](docs/public/screenshots/counter-readme-frame.svg)
+![Silvery counter rendered in a terminal](docs/public/screenshots/counter-readme-static.svg)
 
 React 18 + 19 with concurrent mode, Suspense, and flexbox layout. [Drop-in Ink compatible](https://silvery.dev/guide/silvery-vs-ink#compatibility) ([`@silvery/ink`](https://silvery.dev/guide/silvery-vs-ink)) — same `Box`, `Text`, `useInput` API with 918/931 Ink 7.0 tests passing.
 

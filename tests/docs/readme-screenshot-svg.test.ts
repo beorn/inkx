@@ -11,9 +11,10 @@ describe("README screenshot SVGs", () => {
       "docs/public/screenshots/counter.svg",
       "docs/public/screenshots/counter-readme.svg",
       "docs/public/screenshots/counter-readme-frame.svg",
+      "docs/public/screenshots/counter-readme-static.svg",
     ]
 
-    expect(readme).toContain("docs/public/screenshots/counter-readme-frame.svg")
+    expect(readme).toContain("docs/public/screenshots/counter-readme-static.svg")
 
     for (const screenshotPath of screenshotPaths) {
       const svg = readFileSync(resolve(repoRoot, screenshotPath), "utf8")
@@ -23,7 +24,8 @@ describe("README screenshot SVGs", () => {
         '<rect x="0" y="0" width="260.4" height="72" rx="3" ry="3" fill="none" stroke="#e6edf3" stroke-width="1.5"/>',
       )
       expect(svg).toContain('<tspan x="81.2">to increment</tspan>')
-      expect(svg).toContain('<rect x="198" y="38" width="8.4" height="18"')
+      expect(svg).not.toContain('<rect x="198" y="38" width="8.4" height="18"')
+      expect(svg).not.toContain('opacity="0.5"')
       expect(svg).not.toContain("│")
       expect(svg).not.toContain("╭")
       expect(svg).not.toContain("╰")
