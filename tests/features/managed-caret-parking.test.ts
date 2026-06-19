@@ -28,7 +28,10 @@ import { afterEach, describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import { createOutputPhase } from "../../packages/ag-term/src/pipeline/output-phase"
 import { createRuntime } from "../../packages/ag-term/src/runtime/create-runtime"
-import { managedCursorSuffix } from "../../packages/ag-term/src/managed-caret"
+import {
+  managedCursorSuffix,
+  verifyParkHonorsDeclaredTarget,
+} from "../../packages/ag-term/src/managed-caret"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import type { Buffer, Dims } from "../../packages/ag-term/src/runtime/types"
@@ -154,5 +157,39 @@ describe("managed-caret hardware cursor parking (19702)", () => {
     const controls = managedCursorSuffix(null as CursorRect | null, null)
     expect(controls.parkTarget).toEqual({ x: 0, y: 0 })
     expect(controls.suffix).toContain("\x1b[1;1H\x1b[?25l")
+  })
+})
+
+describe("verifyParkHonorsDeclaredTarget — no-fallback park invariant (19702, STRICT=cursor)", () => {
+  const parkRect = { x: 5, y: 9, width: 1, height: 1 }
+
+  test("THROWS when a declared parkRect is not honored (simulated fallback to home) under STRICT=cursor", () => {
+    process.env.SILVERY_STRICT = "cursor"
+    // Simulated regression: park fell back to home(0,0) despite a declared park
+    // target + no caret. The invariant must catch the @km/code/v0.2/19702 class.
+    expect(() => verifyParkHonorsDeclaredTarget(null, parkRect, { x: 0, y: 0 })).toThrow(
+      /no-fallback park/u,
+    )
+  })
+
+  test("does NOT throw when the declared parkRect IS honored", () => {
+    process.env.SILVERY_STRICT = "cursor"
+    expect(() => verifyParkHonorsDeclaredTarget(null, parkRect, { x: 5, y: 9 })).not.toThrow()
+  })
+
+  test("does NOT throw when a caret owns the frame (park coincides with the caret)", () => {
+    process.env.SILVERY_STRICT = "cursor"
+    const cursor = { x: 3, y: 4, visible: true } as CursorRect
+    expect(() => verifyParkHonorsDeclaredTarget(cursor, null, { x: 3, y: 4 })).not.toThrow()
+  })
+
+  test("does NOT throw for an editable-less frame (no parkRect → home is legitimate)", () => {
+    process.env.SILVERY_STRICT = "cursor"
+    expect(() => verifyParkHonorsDeclaredTarget(null, null, { x: 0, y: 0 })).not.toThrow()
+  })
+
+  test("is a NO-OP when STRICT=cursor is disabled, even on a violation", () => {
+    delete process.env.SILVERY_STRICT
+    expect(() => verifyParkHonorsDeclaredTarget(null, parkRect, { x: 0, y: 0 })).not.toThrow()
   })
 })

@@ -216,6 +216,45 @@ function verifyNoCaretOverlayResidue(
   )
 }
 
+/**
+ * STRICT (tier 2, slug `cursor`) — no-fallback park invariant.
+ *
+ * When an editable declares a `parkOffset` (resolved to `parkRect`) and no
+ * visible caret owns the frame, the managed hardware cursor MUST park on that
+ * declared cell — never `home(0,0)` or a box-origin fallback. This pins that the
+ * @km/code/v0.2/19702 fix stays wired: a regression that re-introduces a
+ * fallback overriding the declared park target throws HERE instead of silently
+ * stranding the cursor above the prompt (the recurring #undead signature, where
+ * a dropped `?25l` surfaces the mis-parked cursor). The undeclared-editable case
+ * (an editable that declares NO park) has no generic runtime signal — it is
+ * pinned by the composer park-target contract + the parkOffset mutation test.
+ * Fires only under `SILVERY_STRICT=cursor` / tier ≥ 2.
+ *
+ * Exported for direct mutation-proof unit testing (the fault path can't arise
+ * from the correct `managedCursorSuffix`, so the test simulates a fallback park).
+ */
+export function verifyParkHonorsDeclaredTarget(
+  cursor: CursorRect | null,
+  parkRect: Rect | null,
+  parkTarget: { x: number; y: number } | null,
+): void {
+  if (!isStrictEnabled(CARET_OVERLAY_STRICT_SLUG, CARET_OVERLAY_STRICT_MIN_TIER)) return
+  // Only meaningful when no caret owns the frame and a park target was declared.
+  if (cursor !== null || parkRect === null) return
+  if (parkTarget !== null && parkTarget.x === parkRect.x && parkTarget.y === parkRect.y) return
+
+  throw new IncrementalRenderMismatchError(
+    `STRICT no-fallback park: parkOffset declared at (${parkRect.x},${parkRect.y}) and no caret ` +
+      `owns the frame, but the hardware cursor parked at ` +
+      `${parkTarget ? `(${parkTarget.x},${parkTarget.y})` : "none"} instead.\n` +
+      `  A managed frame MUST park on the editable's declared input cell — never a\n` +
+      `  box-origin / home(0,0) fallback. A dropped ?25l would then strand the cursor off\n` +
+      `  the prompt — the @km/code/v0.2/19702 cursor-above-composer mechanism.\n` +
+      `  Fix: managedCursorSuffix must honor findActiveParkRect's result.\n` +
+      `  Slug: SILVERY_STRICT=${CARET_OVERLAY_STRICT_SLUG} (tier ${CARET_OVERLAY_STRICT_MIN_TIER}+).`,
+  )
+}
+
 export function cursorOwnerBounds(
   activeNode: AgNode | null,
   cursor: CursorRect | null,
@@ -450,6 +489,9 @@ export function computeManagedFrame(
   // that stranded the cursor one row above the prompt).
   const parkRect = findActiveParkRect(root)
   const managedCursor = managedCursorSuffix(cursor, parkRect)
+  // STRICT (tier 2, slug `cursor`): the no-fallback park invariant — a declared
+  // parkOffset MUST be honored, never overridden by a box-origin/home fallback.
+  verifyParkHonorsDeclaredTarget(cursor, parkRect, managedCursor.parkTarget)
 
   let cursorTarget: OutputCursorTarget | null = null
   let expectedTerminal: OutputCursorTarget | null = null
