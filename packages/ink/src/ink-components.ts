@@ -125,12 +125,14 @@ export const Text = React.forwardRef<SilveryTextHandle, SilveryTextProps>(
             ...props,
             color: props.color,
             backgroundColor: effectiveBg,
+            truncateMarkerColor: props.truncateMarkerColor ?? "",
             ref,
             children: sanitizedChildren,
           }
         : {
             // Only pass layout-affecting props, not visual style props
             wrap: props.wrap,
+            truncateMarkerColor: props.truncateMarkerColor ?? "",
             ref,
             children: sanitizedChildren,
           }

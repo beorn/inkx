@@ -2,17 +2,14 @@ import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
 import "@termless/test/matchers"
 import { createTermless } from "@silvery/test"
-import { createTerm } from "@silvery/ag-term"
-import { createVtermBackend } from "@termless/vterm"
 import { Box, TextArea } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
 
 const settle = (ms = 40): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 describe("runtime input protocol routing", () => {
-  test("inline TextArea cursorStyle reaches the hardware cursor shape", async () => {
-    const backend = createVtermBackend()
-    using term = createTerm(backend, { cols: 40, rows: 6 })
+  test("inline TextArea cursorStyle reaches the composited caret cell", async () => {
+    using term = createTermless({ cols: 40, rows: 6 })
 
     const handle = await run(
       <Box width={40} height={6}>
@@ -22,7 +19,7 @@ describe("runtime input protocol routing", () => {
     )
     try {
       await settle()
-      expect(backend.getCursor().style).toBe("underline")
+      expect(term.cell(0, "Hello".length)).toHaveAttrs({ underline: true })
     } finally {
       handle.unmount()
     }
