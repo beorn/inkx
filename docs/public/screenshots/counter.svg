@@ -20,12 +20,13 @@
 <text x="0" y="32" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
 <tspan x="0">│ Count: </tspan>
 <tspan x="75.60000000000001" fill="#58a6ff">3</tspan>
-<tspan x="84">                      │ </tspan>
+<tspan x="260.4">│</tspan>
 </text>
 <text x="0" y="50" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
 <tspan x="0">│ Press </tspan>
 <tspan x="67.2" font-weight="bold">j</tspan>
-<tspan x="75.60000000000001"> to increment        │   </tspan>
+<tspan x="84">to increment</tspan>
+<tspan x="260.4">│</tspan>
 </text>
 <text x="0" y="68" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
 <tspan x="0">╰──────────────────────────────╯  </tspan>
