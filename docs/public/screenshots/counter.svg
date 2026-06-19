@@ -14,24 +14,17 @@
 <circle cx="60" cy="16" r="6" fill="#28c840"/>
 </g>
 <g transform="translate(16, 48)">
-<text x="0" y="14" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
-<tspan x="0">╭──────────────────────────────╮  </tspan>
+<rect x="0" y="0" width="260.4" height="72" rx="3" ry="3" fill="none" stroke="#e6edf3" stroke-width="1.5"/>
+<text x="14" y="31" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
+<tspan x="14">Count: </tspan>
+<tspan x="75.6" fill="#58a6ff">3</tspan>
 </text>
-<text x="0" y="32" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
-<tspan x="0">│ Count: </tspan>
-<tspan x="75.60000000000001" fill="#58a6ff">3</tspan>
-<tspan x="260.4">│</tspan>
+<text x="14" y="53" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
+<tspan x="14">Press </tspan>
+<tspan x="64.4" font-weight="bold">j</tspan>
+<tspan x="81.2">to increment</tspan>
 </text>
-<text x="0" y="50" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
-<tspan x="0">│ Press </tspan>
-<tspan x="67.2" font-weight="bold">j</tspan>
-<tspan x="84">to increment</tspan>
-<tspan x="260.4">│</tspan>
-</text>
-<text x="0" y="68" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#e6edf3">
-<tspan x="0">╰──────────────────────────────╯  </tspan>
-</text>
-<rect x="268.8" y="54" width="8.4" height="18" fill="#58a6ff" opacity="0.5"/>
+<rect x="198" y="38" width="8.4" height="18" fill="#58a6ff" opacity="0.5"/>
 </g>
 </g>
 </svg>
