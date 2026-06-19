@@ -13,9 +13,11 @@
  *
  * Live signature (user screenshot 2026-06-14): a reverse-video block on the
  * bottom status row, e.g. "Codex Done xhigh fast █", while no caret belongs
- * there. The fix parks the hardware cursor (composer origin, else home) before
- * hiding, so a dropped hide can only ever surface at a benign, predictable
- * cell — never in dynamic chrome.
+ * there. The fix parks the hardware cursor (the editable's DECLARED input-cell
+ * `parkOffset` via `findActiveParkRect`, else home for an editable-less frame)
+ * before hiding, so a dropped hide can only ever surface at a benign,
+ * predictable cell — never in dynamic chrome, and never the composer box-origin
+ * row above the prompt (the deleted @km/code/v0.2/19702 fallback).
  *
  * This in-process repro models a hide-ignoring terminal by stripping `?25l`
  * from the emitted stream and asserting the hardware cursor's resting row is
@@ -26,7 +28,7 @@ import { afterEach, describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import { createOutputPhase } from "../../packages/ag-term/src/pipeline/output-phase"
 import { createRuntime } from "../../packages/ag-term/src/runtime/create-runtime"
-import { managedCursorSuffix, cursorOwnerBounds } from "../../packages/ag-term/src/managed-caret"
+import { managedCursorSuffix } from "../../packages/ag-term/src/managed-caret"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import type { Buffer, Dims } from "../../packages/ag-term/src/runtime/types"
@@ -132,23 +134,25 @@ describe("managed-caret hardware cursor parking (19702)", () => {
     expect(cursor.x, "parked hardware cursor column").toBe(0)
   })
 
-  test("managedCursorSuffix parks at the composer origin when an editable owns the frame but its caret is hidden", () => {
-    // No caret rect (e.g. selection active), but an editable composer exists.
-    // computeContentRect resolves the content origin from scrollRect (+ border
-    // and padding), which is the park target when no caret is visible.
-    const composer = {
-      type: "silvery-box",
-      props: { cursorOffset: { col: 0, row: 0, visible: false } },
-      scrollRect: { x: 4, y: 9, width: 20, height: 1 },
-      children: [],
-      parent: null,
-      interactiveState: { focused: true },
-    } as unknown as AgNode
-    const bounds = cursorOwnerBounds(composer, null)
-    const controls = managedCursorSuffix(null as CursorRect | null, bounds)
+  test("managedCursorSuffix parks at the DECLARED park target when no caret is visible", () => {
+    // No caret rect (unfocused/idle composer), but the editable declared its
+    // input-cell park target (`parkOffset` → `findActiveParkRect` → parkRect).
+    // The hardware cursor parks THERE — not at the box origin (the deleted 19702
+    // fallback that stranded the cursor one row above the prompt) and not home.
+    const parkRect = { x: 4, y: 9, width: 1, height: 1 }
+    const controls = managedCursorSuffix(null as CursorRect | null, parkRect)
     expect(controls.parkTarget).not.toBeNull()
-    // Parks within the composer content rect, not at the last content write.
+    expect(controls.parkTarget!.x).toBe(4)
     expect(controls.parkTarget!.y).toBe(9)
     expect(controls.suffix).toContain("\x1b[?25l")
+  })
+
+  test("managedCursorSuffix parks at home ONLY when there is no caret and no park declarer", () => {
+    // An editable-less managed frame has no input locus, so home(0,0) is the
+    // legitimate park (nothing to be "above") — this is the ONE remaining
+    // home fallback, not a bug-masking degrade of a present editable.
+    const controls = managedCursorSuffix(null as CursorRect | null, null)
+    expect(controls.parkTarget).toEqual({ x: 0, y: 0 })
+    expect(controls.suffix).toContain("\x1b[1;1H\x1b[?25l")
   })
 })

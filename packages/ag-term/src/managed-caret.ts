@@ -3,6 +3,7 @@ import {
   type CursorRect,
   computeContentRect,
   findActiveCursorRectWithProvenance,
+  findActiveParkRect,
 } from "@silvery/ag/layout-signals"
 import { findActiveCursorNode } from "./caret-style"
 import { ANSI } from "./output"
@@ -252,20 +253,29 @@ export interface ManagedCursorControls {
  * Park priority:
  *   1. The active caret cell — when a caret exists, the hardware cursor and the
  *      composited caret coincide, so a dropped hide just overlaps the caret.
- *   2. The composer/editable content origin — when an editable owns the frame
- *      but its caret is hidden (selection active, disabled), park where a cursor
- *      conceptually belongs.
- *   3. Home (0,0) — last resort. Never a dynamic transcript/chrome row.
+ *   2. The editable's DECLARED input-cell park target (`parkOffset`, resolved by
+ *      `findActiveParkRect`) — present even when the editable is unfocused/idle,
+ *      so a dropped hide surfaces the cursor ON the prompt input cell.
+ *   3. Home (0,0) — last resort, ONLY for a frame with no editable/park declarer
+ *      at all (no input locus to be "above"). Never a dynamic transcript/chrome
+ *      row.
+ *
+ * The earlier composer-ORIGIN fallback (the editable's box top/border row — one
+ * cell ABOVE the `>` prompt) is DELETED: it was the @km/code/v0.2/19702
+ * bug-masking fallback (a multiplexer dropping `?25l` surfaced the parked cursor
+ * one row above the prompt). Per Fail-Loud / no-defensive-fallbacks, a present
+ * editable now declares its input cell via `parkOffset` instead of relying on a
+ * silent box-origin degrade.
  */
 export function managedCursorSuffix(
   cursor: CursorRect | null,
-  bounds: CursorOwnerBounds,
+  parkRect: Rect | null,
 ): ManagedCursorControls {
   const park =
     cursor !== null
       ? { x: cursor.x, y: cursor.y }
-      : bounds.composerBounds
-        ? { x: bounds.composerBounds.x, y: bounds.composerBounds.y }
+      : parkRect !== null
+        ? { x: parkRect.x, y: parkRect.y }
         : { x: 0, y: 0 }
   return {
     suffix: ANSI.moveCursor(park.x, park.y) + ANSI.CURSOR_HIDE,
@@ -431,11 +441,15 @@ export function computeManagedFrame(
   // stale overlay will actually be diffed away.
   verifyNoCaretOverlayResidue(presentationBuffer, managed.compositorCaret, prevCaret)
 
-  // Hardware-cursor park target: always the editable's locus (caret cell when a
-  // caret exists, else composer origin, else home), independent of whether we
-  // composited a visible caret. Parking is a SAFETY net for dropped `?25l`, so
-  // it must run even when the caret is suppressed.
-  const managedCursor = managedCursorSuffix(cursor, bounds)
+  // Hardware-cursor park target: caret cell when a caret exists, else the
+  // editable's DECLARED input-cell park (`parkOffset`, present even unfocused/
+  // idle), else home for an editable-less frame. Parking is a SAFETY net for a
+  // dropped `?25l`, so it runs even when the visible caret is suppressed. The
+  // park is resolved NON-focus-gated so an unfocused/idle composer still parks
+  // on its prompt cell (@km/code/v0.2/19702 — replaces the box-origin fallback
+  // that stranded the cursor one row above the prompt).
+  const parkRect = findActiveParkRect(root)
+  const managedCursor = managedCursorSuffix(cursor, parkRect)
 
   let cursorTarget: OutputCursorTarget | null = null
   let expectedTerminal: OutputCursorTarget | null = null
