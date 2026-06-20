@@ -354,16 +354,36 @@ export function renderScrollIndicators(
   layout: Rect,
   props: BoxProps,
   ss: NonNullable<AgNode["scrollState"]>,
+  inheritedBg?: Color,
   ctx?: PipelineContext,
 ): void {
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
 
-  // Inverse bar style: white text on dark background
+  // Default (inverse bar) style: white text on dark gray background.
   const indicatorStyle: Style = {
     fg: 15, // Bright white
     bg: 8, // Dark gray
     attrs: {},
   }
+
+  // Borderless on-surface style (opt-in via overflowIndicatorOnSurface): the
+  // ▲N/▼N glyphs sit on the container's inherited surface bg instead of the
+  // inverse bar, with a muted-but-legible fg. parseColor resolves the active
+  // theme's $muted token (the render phase pushed this node's context theme
+  // before rendering children, so the stack is correct here); when the token
+  // doesn't resolve (mono tier / no theme), fall back to fg=8 so the count is
+  // still a visible dim-gray glyph. bg=null means inherit/transparent so the
+  // glyph composites onto whatever surface the scroll content sits on.
+  const borderlessSurfaceStyle: Style | undefined =
+    props.overflowIndicatorOnSurface === true
+      ? { fg: parseColor("$muted") ?? 8, bg: inheritedBg ?? null, attrs: {} }
+      : undefined
+
+  // For the on-surface case, the row-clear must paint the inherited surface bg
+  // (not transparent), otherwise the blank cells flanking the centered glyph
+  // punch null-bg holes in the modal surface. Default path → null (transparent),
+  // byte-identical to today's behavior. See renderCenteredIndicator's clearBg.
+  const indicatorClearBg: Color = borderlessSurfaceStyle ? (inheritedBg ?? null) : null
 
   // Determine if we should show indicators for borderless containers
   const showBorderless = props.overflowIndicator === true
@@ -380,13 +400,26 @@ export function renderScrollIndicators(
       const maxCol = x + contentWidth
       renderCenteredIndicator(buffer, x, y, indicator, indicatorStyle, contentWidth, maxCol, ctx)
     } else if (showBorderless) {
-      // Borderless: render centered inverse indicator on first content row
+      // Borderless: render centered indicator on first content row. Use the
+      // on-surface style when overflowIndicatorOnSurface is set, else the
+      // default inverse bar.
       const padding = getPadding(props)
       const contentWidth = layout.width - padding.left - padding.right
       const x = layout.x + padding.left
       const y = layout.y + padding.top
       const maxCol = x + contentWidth
-      renderCenteredIndicator(buffer, x, y, indicator, indicatorStyle, contentWidth, maxCol, ctx)
+      const style = borderlessSurfaceStyle ?? indicatorStyle
+      renderCenteredIndicator(
+        buffer,
+        x,
+        y,
+        indicator,
+        style,
+        contentWidth,
+        maxCol,
+        ctx,
+        indicatorClearBg,
+      )
     }
   }
 
@@ -402,13 +435,26 @@ export function renderScrollIndicators(
       const maxCol = x + contentWidth
       renderCenteredIndicator(buffer, x, y, indicator, indicatorStyle, contentWidth, maxCol, ctx)
     } else if (showBorderless) {
-      // Borderless: render indicator flush to viewport bottom
+      // Borderless: render indicator flush to viewport bottom. Use the
+      // on-surface style when overflowIndicatorOnSurface is set, else the
+      // default inverse bar.
       const padding = getPadding(props)
       const contentWidth = layout.width - padding.left - padding.right
       const x = layout.x + padding.left
       const y = layout.y + layout.height - padding.bottom - 1
       const maxCol = x + contentWidth
-      renderCenteredIndicator(buffer, x, y, indicator, indicatorStyle, contentWidth, maxCol, ctx)
+      const style = borderlessSurfaceStyle ?? indicatorStyle
+      renderCenteredIndicator(
+        buffer,
+        x,
+        y,
+        indicator,
+        style,
+        contentWidth,
+        maxCol,
+        ctx,
+        indicatorClearBg,
+      )
     }
   }
 }
@@ -422,6 +468,12 @@ function renderCenteredIndicator(
   width: number,
   maxCol: number,
   ctx?: PipelineContext,
+  // Background for the row-clear that runs before the centered glyph. Default
+  // `null` (transparent) — byte-identical to the historical inverse-bar /
+  // bordered callers. The borderless on-surface path passes the inherited
+  // surface bg so the blank cells flanking the glyph stay on the surface
+  // instead of punching transparent holes.
+  clearBg: Color = null,
 ): void {
   if (width <= 0) return
   const text = indicator.length > width ? indicator.slice(0, width) : indicator
@@ -429,14 +481,15 @@ function renderCenteredIndicator(
   // Clear the whole indicator row first. The viewport window can replace an
   // item row with an overflow-indicator row after scrolling; without explicit
   // clears, incremental output leaves stale item glyphs around the centered
-  // token. Keep the clears unstyled so fresh and incremental buffers agree on
-  // the surrounding blank cells.
+  // token. The clear bg is `clearBg` (null = transparent for default callers;
+  // the inherited surface bg for the on-surface path) so fresh and incremental
+  // buffers agree on the surrounding blank cells.
   renderTextLine(
     buffer,
     x,
     y,
     " ".repeat(width),
-    { fg: null, bg: null, attrs: {} },
+    { fg: null, bg: clearBg, attrs: {} },
     maxCol,
     undefined,
     ctx,

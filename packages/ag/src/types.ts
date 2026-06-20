@@ -668,6 +668,20 @@ export interface BoxProps
   overflowIndicator?: boolean
 
   /**
+   * Paint borderless overflow indicators (▲N / ▼N) on the container's
+   * inherited surface background instead of the default inverse bar
+   * (white-on-gray). Use when the indicator overlays a themed surface — e.g.
+   * a modal body — where the gray pill reads as an artifact rather than
+   * affordance. The glyph foreground stays a muted, theme-resolved color so
+   * the count is still legible.
+   *
+   * Only applies to borderless containers with `overflowIndicator` and
+   * `overflow='scroll'`. Bordered containers (indicator on the border line)
+   * ignore this flag.
+   */
+  overflowIndicatorOnSurface?: boolean
+
+  /**
    * Declarative focus marker — "this Box is focused." When set on a Box, the
    * layout phase writes the node's id (or testID) to `LayoutSignals.focusedNodeId`
    * and the focus-renderer reads from that signal to paint the focus ring /

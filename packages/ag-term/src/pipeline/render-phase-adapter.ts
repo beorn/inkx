@@ -129,7 +129,9 @@ function renderNodeToBuffer(
 
     // Scroll indicators
     if (isScrollContainer && node.scrollState) {
-      renderScrollIndicators(node, buffer, layout, props, node.scrollState)
+      // Pass the nearest ancestor bg so overflowIndicatorOnSurface can paint the
+      // chevrons on the inherited surface bg. undefined → default gutter style.
+      renderScrollIndicators(node, buffer, layout, props, node.scrollState, findAncestorBg(node))
     }
   } else if (node.type === "silvery-text") {
     renderText(node, buffer, layout, props, scrollOffset, clipBounds)
@@ -892,6 +894,7 @@ function renderScrollIndicators(
   layout: Rect,
   props: BoxProps,
   scrollState: ScrollState,
+  inheritedBg?: string,
 ): void {
   const { x, width, height } = layout
   const y = layout.y
@@ -901,7 +904,13 @@ function renderScrollIndicators(
   const canScrollDown = scrollState.offset + scrollState.viewportHeight < scrollState.contentHeight
 
   const indicatorX = x + width - border.right - 1
-  const style: RenderStyle = { fg: props.borderColor ?? "#808080" }
+  // overflowIndicatorOnSurface: composite the chevron onto the inherited
+  // surface bg (mirrors render-box.ts's borderless on-surface path). Default
+  // keeps the bg-less gutter style so existing adapter output is unchanged.
+  const style: RenderStyle =
+    props.overflowIndicatorOnSurface === true
+      ? { fg: props.borderColor ?? "#808080", bg: inheritedBg ?? undefined }
+      : { fg: props.borderColor ?? "#808080" }
 
   // Up indicator
   if (canScrollUp) {
