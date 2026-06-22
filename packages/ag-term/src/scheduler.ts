@@ -15,6 +15,7 @@
 import { appendFileSync } from "node:fs"
 import { type Logger, createLogger } from "loggily"
 import { type BytesOutMonitor, createBytesOutMonitor } from "./bytes-out-monitor"
+import { type FlickerMonitor, createFlickerMonitor } from "./flicker-monitor"
 import { type MemMonitor, createMemMonitor } from "./mem-monitor"
 import { isStrictEnabled } from "./strict-mode"
 import { type TerminalBuffer, bufferToText, cellEquals } from "./buffer"
@@ -213,6 +214,15 @@ export class RenderScheduler {
    */
   private bytesOutMonitor: BytesOutMonitor | null = null
   /**
+   * Repaint-storm monitor — backs `SILVERY_STRICT=flicker`. Sibling of
+   * `bytesOutMonitor`; scans the SAME terminal-output bytes for destructive
+   * full-screen clears / scroll-region resets and PANICs when they repeat fast
+   * enough to constitute flicker (the `@ag/code/20297-pane-flicker-on-resize`
+   * class). Lazily constructed only when the slug is active. See
+   * `flicker-monitor.ts`.
+   */
+  private flickerMonitor: FlickerMonitor | null = null
+  /**
    * In-process heap-poll monitor — backs `SILVERY_STRICT=mem`. Sibling of
    * `bytesOutMonitor`; samples `process.memoryUsage()` on its own 30s
    * interval. See `mem-monitor.ts`.
@@ -343,6 +353,11 @@ export class RenderScheduler {
     // Opt out per session with SILVERY_STRICT=1,!bytes_out.
     if (isStrictEnabled("bytes_out", 1)) {
       this.bytesOutMonitor = createBytesOutMonitor()
+    }
+    // flicker is a tier-1 strict slug — repaint-storm sibling of bytes_out.
+    // Opt out per session with SILVERY_STRICT=1,!flicker.
+    if (isStrictEnabled("flicker", 1)) {
+      this.flickerMonitor = createFlickerMonitor()
     }
     // mem is a tier-1 strict slug — in-process heap-poll sibling of
     // bytes_out. Opt out per session with SILVERY_STRICT=1,!mem.
@@ -582,6 +597,12 @@ export class RenderScheduler {
     if (this.bytesOutMonitor) {
       this.bytesOutMonitor.dispose()
       this.bytesOutMonitor = null
+    }
+
+    // Stop the flicker repaint-storm monitor (if active).
+    if (this.flickerMonitor) {
+      this.flickerMonitor.dispose()
+      this.flickerMonitor = null
     }
 
     // Stop the mem heap-poll monitor (if active).
@@ -863,6 +884,15 @@ export class RenderScheduler {
           composerBounds,
         })
         this.writeOutput(fullOutput)
+        // flicker instrumentation — scan the SAME post-write bytes for
+        // destructive-clear / scroll-region repaint storms. Records the raw
+        // ANSI string (not just a byte count) so it can detect the bare-`2J`
+        // @ag/code/20297 signature. PANICs (throws) at the fixed
+        // clears-per-window threshold in `flicker-monitor.ts`.
+        if (this.flickerMonitor) {
+          const renderNumber = this.stats.renderCount + 1
+          this.flickerMonitor.recordFrame(renderNumber, fullOutput)
+        }
         // bytes_out instrumentation — record AFTER write so the monitor
         // accounts for what actually left the process. Fixed thresholds
         // (1 MB/s WARN × 10s, 100 MB/s PANIC × 2s) in `bytes-out-monitor.ts`.
