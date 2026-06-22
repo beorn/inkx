@@ -57,6 +57,13 @@ import type { Modes } from "./devices/modes"
 const BRACKETED_PASTE_ON = "\x1b[?2004h"
 const BRACKETED_PASTE_OFF = "\x1b[?2004l"
 const ESC_DISAMBIGUATION_MS = 25
+// Window after a bare-ESC disambiguation flush during which a chunk that begins
+// with a CSI body (`[…`) is treated as the orphaned continuation of that lost
+// `\x1b` and re-prefixed, rather than echoed as printable cells. Comfortably
+// larger than ESC_DISAMBIGUATION_MS so a tail that arrives a tick or two after
+// the flush is still recovered; small enough that a genuine user keystroke of
+// `[` typed > this many ms after pressing Escape is unaffected.
+const ESC_CONTINUATION_RECOVERY_MS = 75
 
 const log = createLogger("silvery:input-owner")
 
@@ -361,6 +368,17 @@ export function createInputOwner(
   let incompleteSequence: string | null = null
   let incompleteSequenceTimer: ReturnType<typeof setTimeout> | null = null
   let incompleteSequenceImmediate: ReturnType<typeof setImmediate> | null = null
+  // Timestamp (performance.now) of the last bare-ESC disambiguation flush. When
+  // a focus (`\x1b[I`/`\x1b[O`) or SGR-mouse (`\x1b[<…M`) sequence arrives split
+  // as `\x1b` then `[…]`, and the bracket tail lands AFTER the 25ms window has
+  // already committed the bare ESC as Escape, the orphaned `[…]` continuation
+  // would otherwise leak through `splitRawInput` as printable `[` + tail cells
+  // (the hab-deck "C2 focus-reporting bytes leak as cells" symptom — same class
+  // as the 19326 SGR-mouse-leak). We remember the flush and, if the very next
+  // chunk begins with a CSI body, re-prefix it with the lost `\x1b` so it
+  // reassembles into the intended protocol sequence. Sibling guard to the
+  // within-window `setImmediate` yield in scheduleIncompleteFlush.
+  let escFlushedAt = -1
   const probes: ProbeEntry[] = []
   const keyHandlers = new Set<(e: KeyEvent) => void>()
   const mouseHandlers = new Set<(e: ParsedMouse) => void>()
@@ -440,6 +458,7 @@ export function createInputOwner(
         incompleteSequenceImmediate = null
         if (disposed || incompleteSequence !== "\x1b") return
         incompleteSequence = null
+        escFlushedAt = performance.now()
         dispatchSequence("\x1b", receivedAt, inputBatchId)
       })
     }, ESC_DISAMBIGUATION_MS)
@@ -498,6 +517,22 @@ export function createInputOwner(
       chunk = incompleteSequence + chunk
       incompleteSequence = null
     }
+
+    // ESC-continuation recovery: when the previous bare ESC was flushed as
+    // Escape (window expired) and THIS chunk begins with a CSI body (`[…`), the
+    // leading `[…]` is the orphaned tail of that lost `\x1b` — recombine it so
+    // it parses as the intended protocol sequence (focus `[I`/`[O`, SGR mouse
+    // `[<…M`) instead of leaking as printable `[` + letter cells. Bounded to a
+    // brief window so a `[` the user genuinely types well after an Escape is
+    // left alone. See the C2 focus-reporting-leak regression.
+    if (
+      escFlushedAt >= 0 &&
+      performance.now() - escFlushedAt <= ESC_CONTINUATION_RECOVERY_MS &&
+      chunk.startsWith("[")
+    ) {
+      chunk = `\x1b${chunk}`
+    }
+    escFlushedAt = -1
 
     // Bracketed paste is detected before splitting into individual keys —
     // paste content is one logical event, not a stream of keystrokes.

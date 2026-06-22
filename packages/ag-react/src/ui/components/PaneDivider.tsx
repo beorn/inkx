@@ -82,6 +82,17 @@ export function PaneDivider({
   const visibleColor = armed ? activeColor : color
   const safeSize = Math.max(1, Math.floor(size))
 
+  // The fill `<Text wrap="wrap">{char.repeat(N)}</Text>` lays out at its full
+  // intrinsic extent (N rows for vertical, N cols for horizontal) because each
+  // repeated glyph is an unbreakable single-cell token — CSS §4.5 auto-min-size
+  // floors the Text's main-axis size at that intrinsic length. The fill Box is
+  // bounded by its flex parent, but WITHOUT `overflow="hidden"` the render phase
+  // paints the Text at its own (overflowing) rect, bleeding divider glyphs into
+  // sibling panes below/right of a bounded divider region. `overflow="hidden"`
+  // clips the fill to the Box — the canonical "clip without scroll indicators"
+  // pattern. Do NOT remove it: regressed as the hab-deck "C1 divider bleed".
+  // See tests/features/pane-divider-extent.test.tsx.
+
   if (orientation === "vertical") {
     return (
       <Box
@@ -96,7 +107,7 @@ export function PaneDivider({
         onMouseLeave={onMouseLeave}
         onMouseDown={handleMouseDown}
       >
-        <Box flexGrow={1} minWidth={0} minHeight={0}>
+        <Box flexGrow={1} minWidth={0} minHeight={0} overflow="hidden">
           <Text color={visibleColor} wrap="wrap" minWidth={0}>
             {verticalChar.repeat(VERTICAL_FILL_LENGTH)}
           </Text>
@@ -118,7 +129,7 @@ export function PaneDivider({
       onMouseLeave={onMouseLeave}
       onMouseDown={handleMouseDown}
     >
-      <Box flexGrow={1} minWidth={0} minHeight={0}>
+      <Box flexGrow={1} minWidth={0} minHeight={0} overflow="hidden">
         <Text color={visibleColor} wrap="wrap" minHeight={0}>
           {horizontalChar.repeat(HORIZONTAL_FILL_LENGTH)}
         </Text>
