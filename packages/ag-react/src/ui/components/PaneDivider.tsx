@@ -6,7 +6,7 @@
  * PaneDivider owns the reusable visible handle affordance.
  */
 
-import React, { useCallback } from "react"
+import React, { useCallback, useRef, useState } from "react"
 import type { SilveryMouseEvent } from "@silvery/ag/mouse-event-types"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
@@ -43,6 +43,16 @@ export interface PaneDividerProps {
   readonly horizontalChar?: string
   /** Fired on mouse-down so the parent split layout can begin a resize gesture. */
   readonly onResizeStart?: (event: PaneDividerResizeStartEvent) => void
+  /**
+   * Fired on each pointer move while a resize drag is active. `mouseCapture`
+   * routes move events to the divider for the whole press — even when the cursor
+   * leaves the one-cell hit box — so the parent can track the full gesture
+   * without owning a wrapper move/up handler. `coordinate` is x for vertical
+   * dividers, y for horizontal.
+   */
+  readonly onResizeMove?: (coordinate: number) => void
+  /** Fired on mouse-up (or cursor-leave-during-capture) ending the resize drag. */
+  readonly onResizeEnd?: () => void
 }
 
 const DEFAULT_SIZE = 1
@@ -59,15 +69,30 @@ export function PaneDivider({
   verticalChar = "│",
   horizontalChar = "─",
   onResizeStart,
+  onResizeMove,
+  onResizeEnd,
 }: PaneDividerProps): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const armed = !disabled && (active || isHovered)
+  // Internal drag flag: the ref guards the move/up handlers (synchronous, no
+  // stale closure); the state drives the active chrome during a drag.
+  const draggingRef = useRef(false)
+  const [dragging, setDragging] = useState(false)
+  const armed = !disabled && (active || isHovered || dragging)
   useMouseCursor(armed ? "move" : null)
+
+  const endDrag = useCallback((): void => {
+    if (!draggingRef.current) return
+    draggingRef.current = false
+    setDragging(false)
+    onResizeEnd?.()
+  }, [onResizeEnd])
 
   const handleMouseDown = useCallback(
     (event: SilveryMouseEvent): void => {
       if (disabled) return
       event.preventDefault()
+      draggingRef.current = true
+      setDragging(true)
       onResizeStart?.({
         orientation,
         coordinate: orientation === "vertical" ? event.x : event.y,
@@ -77,6 +102,16 @@ export function PaneDivider({
       })
     },
     [disabled, onResizeStart, orientation],
+  )
+
+  // `mouseCapture` (below) routes move/up here for the whole press, so a drag
+  // started on the sash keeps tracking even when the cursor leaves the 1-cell hit box.
+  const handleMouseMove = useCallback(
+    (event: SilveryMouseEvent): void => {
+      if (!draggingRef.current) return
+      onResizeMove?.(orientation === "vertical" ? event.x : event.y)
+    },
+    [onResizeMove, orientation],
   )
 
   const visibleColor = armed ? activeColor : color
@@ -95,6 +130,8 @@ export function PaneDivider({
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={endDrag}
       >
         <Box flexGrow={1} minWidth={0} minHeight={0}>
           <Text color={visibleColor} wrap="wrap" minWidth={0}>
@@ -117,6 +154,8 @@ export function PaneDivider({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={endDrag}
     >
       <Box flexGrow={1} minWidth={0} minHeight={0}>
         <Text color={visibleColor} wrap="wrap" minHeight={0}>
