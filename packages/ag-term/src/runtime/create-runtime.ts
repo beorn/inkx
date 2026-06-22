@@ -412,14 +412,21 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       // Use scoped output phase if provided (threads measurer/caps correctly),
       // otherwise fall back to raw diff() for backwards compatibility.
       //
-      // When `clearFullscreen` is set we emit a destructive `2J` prefix below,
-      // so the repaint BODY must be a FULL render of `next` — diffing against
-      // the (now-erased) prevBuffer would emit only the cells that differ from
-      // a screen that no longer exists. The critical case is a same-size
-      // terminal/emulator reflow where the shadow `prevBuffer` is byte-identical
-      // to `next`: a diff would be empty, so `2J` alone would clear the screen
-      // and leave it blank. Passing `null` as prev forces the output phase's
-      // first-render path (full `bufferToAnsi`). Bead: @km/code/v0.2/19604-focus-blank.
+      // When `clearFullscreen` is set the repaint BODY is a FULL render of
+      // `next` (NOT a diff): `bufferToAnsi` moves to `\x1b[H` and writes EVERY
+      // cell of EVERY row (`char || " "`) via absolute per-row CUP, so the
+      // repaint by itself overwrites the entire alt-screen viewport — including
+      // any multiplexer-injected residue (cmux dumping main-screen content on a
+      // workspace switch, @ag/code/19604). That is why no separate destructive
+      // `2J`/`ED` clear is needed (and why we no longer emit one — see the
+      // clear-frame framing block below; @ag/code/20297-pane-flicker-on-resize).
+      //
+      // The full render is also required for correctness: a same-size
+      // terminal/emulator reflow can blank/scramble the visible cells while the
+      // shadow `prevBuffer` stays byte-identical to `next`, so a diff would be
+      // empty and emit nothing → blank screen. Passing `null` as prev forces the
+      // output phase's first-render path (full `bufferToAnsi`).
+      // Beads: @ag/code/19604-focus-blank, @ag/code/20297-pane-flicker-on-resize.
       const diffPrev = clearFullscreen ? null : (prevPresentation?.buffer._buffer ?? null)
       let patch: string
       if (outputPhaseFn) {
@@ -460,16 +467,40 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       // already positions the cursor inside the diff output.
       patch += cursorSuffix
 
-      // The destructive fullscreen clear (2J) is emitted as a prefix that always
-      // stays OUTSIDE the DEC 2026 synchronized-output region (see the sync-wrap
-      // block below). `patch` from here on is the repaint BODY only.
-      const clearPrefix = clearFullscreen ? "\x1b[2J\x1b[H" : ""
+      // No destructive screen clear on a resize/focus/reflow frame.
+      //
+      // The clear-frame repaint above is a FULL `bufferToAnsi` render that opens
+      // with `\x1b[H` and overwrites every cell of every row, so it IS the clear
+      // — a separate `\x1b[2J` is redundant for our own content and, critically,
+      // a bare un-synchronized `2J` blanks the screen for one composited frame
+      // before the repaint lands (the visible flash the user reported on every
+      // resize). DEC 2026 only makes the REPAINT atomic; a `2J` outside the sync
+      // region flashes regardless. We therefore emit NO `2J` and let the
+      // sync-wrapped full repaint (below) do the clearing all-or-nothing.
+      // Bead: @ag/code/20297-pane-flicker-on-resize.
+      //
+      // Residue safety (@ag/code/19604): the full repaint writes a real char or
+      // a space to every cell of all `termRows`, so multiplexer-injected residue
+      // (cmux main-screen dump on a workspace switch) is overwritten by the
+      // repaint just as the old `2J` did. Ghostty safety: the old constraint was
+      // specifically "never perform `ED`/`2J` inside `?2026h…?2026l`" — with no
+      // `2J` anywhere that corruption mode cannot occur. Atomicity (19633) is
+      // preserved by the existing size-gated `wrapBody` below: a large clear
+      // repaint (a real Silver Code pane) is sync-wrapped so the whole-viewport
+      // overwrite composites all-or-nothing; a small full repaint stays
+      // unwrapped (still a single `target.write` with no interleaved `2J`, so
+      // nothing blank is ever composited).
+      const clearPrefix = ""
 
-      if (clearPrefix.length === 0 && patch.length === 0) {
+      if (patch.length === 0) {
         lastCursorSuffix = cursorSuffix
         lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
         renderedOnce = true
         clearNextFullscreenRender = false
+        // `resizePaintPending` deliberately stays set on this no-output frame —
+        // a clearFullscreen frame ALWAYS produces a full-repaint `patch` (diffPrev
+        // is null → first-render path), so an empty patch here means there was no
+        // content at all (degenerate 0-cell buffer), not a swallowed resize.
         return
       }
 
@@ -481,28 +512,31 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         } catch {}
       }
 
-      // DEC 2026 synchronized-output framing — two independent invariants that
-      // must BOTH hold (km beads 19604-focus-blank + 19633-output-flicker):
+      // DEC 2026 synchronized-output framing — the invariants that must hold
+      // (km beads 19604-focus-blank + 19633-output-flicker + 20297-pane-flicker):
       //
-      // 1. NEVER clear inside a sync region. Older Ghostty corrupts a 2J
-      //    performed inside `?2026h…?2026l`, which blanks the pane after a cmux
-      //    workspace focus switch (19604, original symptom). The 2J clear prefix
-      //    therefore stays OUTSIDE the sync region, always.
+      // 1. NEVER perform a destructive clear (`ED`/`2J`) inside — OR outside,
+      //    visibly — a sync region. Older Ghostty corrupts a `2J` performed
+      //    inside `?2026h…?2026l` (19604 original symptom). A `2J` performed
+      //    OUTSIDE the sync region instead blanks the pane for one composited
+      //    frame before the repaint lands (20297 flicker). Resolution: emit no
+      //    `2J` at all on a resize/focus frame — the full `bufferToAnsi` repaint
+      //    (forced via `diffPrev=null` above) overwrites every cell itself, so
+      //    it IS the clear. See the `clearPrefix = ""` block above.
       //
       // 2. DO swap a large repaint atomically. A large fullscreen repaint
       //    written un-synchronized tears under terminal/compositor load and can
-      //    drop cells — the focus-in `2J + repaint` then settles blank with
-      //    stray residue (19604 recurrence: the un-synced repaint was the second
-      //    failure mode, after clear-in-sync was ruled out). Wrapping the body
-      //    makes the terminal apply it all-or-nothing. Small incremental
-      //    cursor-positioned diffs stay unwrapped to avoid the older-Ghostty
-      //    incremental caveat (19633).
+      //    drop cells — a focus-in/resize repaint then settles blank with stray
+      //    residue (19604 recurrence: the un-synced repaint was the second
+      //    failure mode). Wrapping the body makes the terminal apply it
+      //    all-or-nothing. Small frames (incremental cursor-positioned diffs AND
+      //    small full repaints) stay unwrapped to avoid the older-Ghostty
+      //    incremental caveat (19633); a small full repaint can't flicker
+      //    anyway — it's one `target.write` with no interleaved `2J`.
       //
-      // Net for a focus-in/resize frame: emit `2J` un-synced, then a sync-wrapped
-      // repaint body — neither the clear-in-sync corruption nor the
-      // torn-unsynced-repaint blank can occur. The earlier fix excluded clear
-      // frames from wrapping entirely, which removed (1)'s corruption but
-      // re-exposed (2)'s tear.
+      // Net for a focus-in/resize frame: NO `2J`, then a (size-gated) sync-wrapped
+      // full repaint. Neither the clear-in-sync corruption, the unsynced-`2J`
+      // flash, nor the torn-unsynced-repaint blank can occur.
       const wrapBody =
         patch.length > 0 &&
         (syncUpdate ||

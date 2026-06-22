@@ -620,10 +620,21 @@ function withReflowResidue(
     feed: {
       value(data: Uint8Array) {
         const text = decoder.decode(data)
-        const cleared = text.includes("\x1b[2J")
-        if (cleared) armed = false
+        // Reflow residue (multiplexer main-screen dump) is defeated by a
+        // full-viewport repaint — a frame that homes the cursor and rewrites
+        // every cell. Historically silvery did that with a destructive
+        // `\x1b[2J` clear prefix; @ag/code/20297-pane-flicker-on-resize dropped
+        // the `2J` (it blank-flashed on every resize) in favour of relying on
+        // the homed full `bufferToAnsi` repaint, which overwrites every cell —
+        // including residue — by itself. Both shapes start by homing the cursor
+        // (`\x1b[H`); the bare-home sequence is the unambiguous full-render
+        // signature (incremental diffs use parameterized CUP `\x1b[row;colH`,
+        // never bare `\x1b[H`). So a frame that contains a destructive clear OR
+        // a homed full repaint defeats the residue.
+        const defeatsResidue = text.includes("\x1b[2J") || text.includes("\x1b[H")
+        if (defeatsResidue) armed = false
         backend.feed(data)
-        if (armed && !cleared) {
+        if (armed && !defeatsResidue) {
           backend.feed(encoder.encode(`\x1b[H${marker}`))
         }
       },
