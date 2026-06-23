@@ -816,7 +816,18 @@ function renderNodeToBuffer(
       // Render overflow indicators AFTER children so they survive viewport clear.
       // renderScrollContainerChildren may clear the viewport (Tier 2) which would
       // overwrite indicators drawn before children.
-      renderScrollIndicators(node, buffer, layout, props, node.scrollState!, ctx)
+      // childInheritedBg.color is the surface the scroll content sits on — pass
+      // it so overflowIndicatorOnSurface can paint the ▲N/▼N glyphs on that bg
+      // instead of the default inverse bar.
+      renderScrollIndicators(
+        node,
+        buffer,
+        layout,
+        props,
+        node.scrollState!,
+        childInheritedBg.color,
+        ctx,
+      )
     } else {
       renderNormalChildren(
         node,
