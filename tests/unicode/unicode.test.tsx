@@ -14,8 +14,8 @@
 
 import React from "react"
 import { describe, test, expect } from "vitest"
-import { createRenderer, normalizeFrame } from "@silvery/test"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { createRenderer } from "@silvery/test"
+import { Box, Text } from "@silvery/ag-react"
 import {
   displayWidth,
   splitGraphemes,
@@ -24,10 +24,12 @@ import {
   isWideGrapheme,
   isLikelyEmoji,
   truncateText,
+  wrapText,
   hasWideCharacters,
   hasZeroWidthCharacters,
   isZeroWidthGrapheme,
 } from "@silvery/ag-react"
+import { createMeasurer } from "@silvery/ag-term/unicode"
 
 // ============================================================================
 // CJK Wide Characters
@@ -246,6 +248,111 @@ describe("unicode: emoji", () => {
     const graphemes = splitGraphemes(family)
     // ZWJ sequence should be a single grapheme cluster
     expect(graphemes.length).toBe(1)
+  })
+
+  // Family-of-three: 👨‍👩‍👧 = man + ZWJ + woman + ZWJ + girl = 5 code points,
+  // string.length 8, but renders as ONE grapheme cluster. Width MUST be
+  // measured in grapheme clusters — not code-point count (5) and not JS
+  // string length (8). Pins the width-calc-in-grapheme-clusters invariant for
+  // the km-tui card-title / search-snippet / wikilink / body-reflow surfaces
+  // that route through these primitives. @km/storage/17995.
+  const ZWJ_FAMILY3 = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467)
+  const ZWJ_FAMILY4 = String.fromCodePoint(
+    0x1f468,
+    0x200d,
+    0x1f469,
+    0x200d,
+    0x1f467,
+    0x200d,
+    0x1f466,
+  )
+  const ZWJ = String.fromCodePoint(0x200d)
+
+  test("ZWJ family width equals single-emoji-grapheme width, not codepoint count or string length", () => {
+    // Ground truth: the family is 5 code points / 8 UTF-16 units / 1 grapheme.
+    // Count code points via the string iterator (Unicode-aware, by design —
+    // this is the very fragmentation grapheme segmentation must NOT use for
+    // width). lint:no-misused-spread is exactly that warning; intentional here.
+    const codePointCount = [...ZWJ_FAMILY3].length // eslint-disable-line no-misused-spread
+    expect(codePointCount).toBe(5) // code points
+    expect(ZWJ_FAMILY3.length).toBe(8) // JS string length (UTF-16 units)
+    expect(splitGraphemes(ZWJ_FAMILY3).length).toBe(1) // one grapheme cluster
+
+    // A single wide emoji is one grapheme, width 2 in a modern terminal.
+    const singleEmojiWidth = graphemeWidth(String.fromCodePoint(0x1f600)) // 😀
+    expect(singleEmojiWidth).toBe(2)
+
+    // The ZWJ family must measure as that SAME single-grapheme width — NOT 5
+    // (its code-point count) and NOT 8 (its JS string length).
+    expect(graphemeWidth(ZWJ_FAMILY3)).toBe(singleEmojiWidth)
+    expect(displayWidth(ZWJ_FAMILY3)).toBe(singleEmojiWidth)
+    expect(graphemeWidth(ZWJ_FAMILY3)).not.toBe(5)
+    expect(graphemeWidth(ZWJ_FAMILY3)).not.toBe(ZWJ_FAMILY3.length)
+
+    // The longer 4-person family (7 code points, 11 UTF-16 units) collapses to
+    // the same single-grapheme width — guards against per-codepoint summation.
+    expect(splitGraphemes(ZWJ_FAMILY4).length).toBe(1)
+    expect(displayWidth(ZWJ_FAMILY4)).toBe(singleEmojiWidth)
+  })
+
+  test("ZWJ family width inside a mixed string is measured per-grapheme", () => {
+    // "Hi 👨‍👩‍👧!" = 2 (Hi) + 1 (space) + 2 (family) + 1 (!) = 6.
+    // A code-point/string-length-based measurer would over-count the family.
+    expect(displayWidth("Hi " + ZWJ_FAMILY3 + "!")).toBe(6)
+  })
+
+  test("truncation never cuts mid-ZWJ-sequence", () => {
+    // A title with the family near a truncation boundary. truncateText must
+    // either keep the WHOLE family or drop it — never emit a partial cluster
+    // (e.g. a bare 👨 with a dangling ZWJ).
+    const title = "Fam " + ZWJ_FAMILY3 + " x" // displayWidth 8
+
+    for (let width = 1; width <= 10; width++) {
+      const result = truncateText(title, width)
+      // Width contract: never exceed the budget.
+      expect(displayWidth(result)).toBeLessThanOrEqual(width)
+      // Grapheme-integrity contract: the family appears whole or not at all.
+      // If any family code point survived, the FULL family must be present as
+      // one contiguous grapheme.
+      const hasAnyFamilyCp = /\u{1F468}|\u{1F469}|\u{1F467}/u.test(result)
+      if (hasAnyFamilyCp) {
+        expect(result).toContain(ZWJ_FAMILY3)
+        // And it must still segment as a single grapheme inside the result.
+        expect(splitGraphemes(result)).toContain(ZWJ_FAMILY3)
+      }
+      // A dangling ZWJ joiner (U+200D) at the cut edge is the failure
+      // signature of a code-point/string-index slice. Must never happen.
+      expect(result.endsWith(ZWJ)).toBe(false)
+    }
+  })
+
+  test("sliceByWidth keeps ZWJ family atomic at sub-emoji widths", () => {
+    const m = createMeasurer({})
+    // At width 1 there is no room for a width-2 emoji — slice yields nothing
+    // rather than half the cluster.
+    expect(m.sliceByWidth(ZWJ_FAMILY3, 1)).toBe("")
+    // At width 2 the whole cluster fits and is returned intact (all 8 units).
+    const w2 = m.sliceByWidth(ZWJ_FAMILY3, 2)
+    expect(w2).toBe(ZWJ_FAMILY3)
+    expect(splitGraphemes(w2).length).toBe(1)
+  })
+
+  test("wrapText keeps a ZWJ family on one line as an atomic grapheme", () => {
+    // Two families separated by a space, wrapped at width 3 (each family is
+    // width 2, so only one fits per line). Neither line may contain a partial
+    // family or a dangling ZWJ.
+    const lines = wrapText(ZWJ_FAMILY3 + " " + ZWJ_FAMILY4, 3)
+    for (const line of lines) {
+      expect(line.endsWith(ZWJ)).toBe(false)
+      // If a family-leading man emoji is on this line, a whole family cluster
+      // must be present (family3 or family4) — never a lone 👨 fragment.
+      if (/\u{1F468}/u.test(line)) {
+        expect(line.includes(ZWJ_FAMILY3) || line.includes(ZWJ_FAMILY4)).toBe(true)
+      }
+    }
+    // Every family is preserved across the wrap (nothing dropped/split).
+    expect(lines.join("")).toContain(ZWJ_FAMILY3)
+    expect(lines.join("")).toContain(ZWJ_FAMILY4)
   })
 
   test("flag emoji", () => {
