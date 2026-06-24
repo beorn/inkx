@@ -39,6 +39,8 @@ import type {
   IslandHandle,
   IslandHydrate,
   IslandPalettePolicy,
+  IslandReserveInput,
+  IslandReserveMouse,
   IslandSignal,
 } from "@silvery/ag/island-types"
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
@@ -102,6 +104,25 @@ export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
    */
   cursorActive?: boolean
   /**
+   * Host-reserved-input predicate (tmux-prefix model, @hab/.../20349). When the
+   * island is the focused input target, the host calls this for each key BEFORE
+   * forwarding to the guest; returning `true` reserves the key for the host —
+   * it falls through to the app's `useInput` instead of feeding the guest.
+   * Absent ⇒ the focused guest captures every key (default). Use to keep a few
+   * host keys (e.g. a `Ctrl-G` pane-switch prefix) while a full-screen guest
+   * owns the rest.
+   */
+  reserveInput?: IslandReserveInput
+  /**
+   * Host-reserved-mouse predicate (tmux-prefix model, @hab/.../20349). When the
+   * island is the focused input target, the host calls this for each mouse event
+   * within the island rect BEFORE SGR-encoding it for the guest; returning
+   * `true` reserves the event for the host — it reaches DOM `onClick` dispatch +
+   * app handlers (pane switching) instead of feeding the guest. Absent ⇒ clicks
+   * inside the island go to the guest (default).
+   */
+  reserveMouse?: IslandReserveMouse
+  /**
    * Palette ownership. Default: `"freeze"` when the guest doesn't declare
    * `capabilities.palette`, `"inherit"` when it does. The per-island prop
    * always wins. See {@link IslandPalettePolicy}.
@@ -163,6 +184,8 @@ export const Island = forwardRef(function Island(
     focusable = false,
     userSelect,
     cursorActive = false,
+    reserveInput,
+    reserveMouse,
     palettePolicy,
     hydrate = "load",
     capabilities,
@@ -413,6 +436,24 @@ export const Island = forwardRef(function Island(
       markNodeDirty(node)
     }
   }, [cursorActive, guest, hydrate])
+
+  // Host-reserved-input predicates (tmux-prefix model, @hab/.../20349). Mirror
+  // the latest predicate closures onto the reconciler node's islandState so the
+  // runtime's focused-island key/mouse routers
+  // (`routeKeyToFocusedIsland` / `routeMouseToFocusedIsland` in
+  // event-handlers.ts) can ask "should the host keep this event?" before
+  // forwarding to the guest. Unlike cursorActive these don't affect what is
+  // PAINTED — they're read live at event time — so no markNodeDirty. The
+  // predicates are typically inline arrows (fresh identity each render); writing
+  // them every render keeps the routed closure current and avoids a stale
+  // capture. Runs after the factory effect attaches islandState (effect order).
+  useEffect(() => {
+    const node = nodeRef.current
+    if (node?.islandState) {
+      node.islandState.reserveInput = reserveInput
+      node.islandState.reserveMouse = reserveMouse
+    }
+  }, [reserveInput, reserveMouse, guest, hydrate])
 
   // ── Imperative ref handle ────────────────────────────────────────────────
   // The user-facing ref resolves to the guest's IslandHandle (null until

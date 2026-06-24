@@ -15,6 +15,7 @@ import { createKeyEvent, dispatchKeyEvent } from "@silvery/ag/focus-events"
 import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findByTestID } from "@silvery/ag/focus-queries"
 import { keyToAnsi, keyToModifiers, keyToName } from "@silvery/ag/keys"
+import type { IslandReservedMouseData } from "@silvery/ag/island-types"
 import { type MouseEventProcessorState, processMouseEvent, hitTest } from "../mouse-events"
 import type { Container } from "@silvery/ag-react/reconciler"
 import { getContainerRoot } from "@silvery/ag-react/reconciler"
@@ -86,16 +87,10 @@ export function createHandlerContext<S>(
 // Focus Navigation
 // ============================================================================
 
-type RoutedMouseData = {
-  button: number
-  x: number
-  y: number
-  action: string
-  delta?: number
-  shift?: boolean
-  meta?: boolean
-  ctrl?: boolean
-}
+// The host-coordinate mouse event the focused-island router evaluates. This is
+// the same shape the host's `reserveMouse` predicate receives — kept canonical
+// in @silvery/ag/island-types so the public predicate and the runtime agree.
+type RoutedMouseData = IslandReservedMouseData
 
 function focusedIslandNode(focusManager: FocusManager): AgNode | null {
   let node: AgNode | null = focusManager.activeElement
@@ -132,7 +127,7 @@ function keyToIslandAnsi(input: string, key: Key): string {
 }
 
 export function canRouteKeyToFocusedIsland(
-  _input: string,
+  input: string,
   key: Key,
   focusManager: FocusManager,
 ): boolean {
@@ -140,7 +135,14 @@ export function canRouteKeyToFocusedIsland(
   const node = focusedIslandNode(focusManager)
   if (!node) return false
   const state = node.islandState
-  return Boolean(state?.capabilities.input && state.handle?.input?.feed)
+  if (!state?.capabilities.input || !state.handle?.input?.feed) return false
+  // Host-reserved-input (tmux-prefix model, @hab/.../20349): when the host
+  // reserves this key, it is NOT routed to the guest — it falls through to the
+  // app's `useInput`. This also correctly lets the runtime's Ctrl-C / Ctrl-Z
+  // interceptors fire (they gate on `!canRouteKeyToFocusedIsland`), since a
+  // reserved key is a host key.
+  if (state.reserveInput?.(input, key)) return false
+  return true
 }
 
 function routeKeyToFocusedIsland(input: string, key: Key, focusManager: FocusManager): boolean {
@@ -183,6 +185,11 @@ function routeMouseToFocusedIsland(event: NamespacedEvent, focusManager: FocusMa
   if (x < rect.x || x >= rect.x + rect.width || y < rect.y || y >= rect.y + rect.height) {
     return false
   }
+  // Host-reserved-mouse (tmux-prefix model, @hab/.../20349): when the host
+  // reserves this event (by absolute geometry / button / action), it is NOT
+  // SGR-fed to the guest — returning false lets it reach the host mouse path
+  // (DOM onClick dispatch + app handlers) for pane switching, title bars, etc.
+  if (node.islandState?.reserveMouse?.(data)) return false
   const encoded = encodeIslandMouse(data, x - rect.x, y - rect.y)
   if (!encoded) return false
   return feedIsland(node, encoded)

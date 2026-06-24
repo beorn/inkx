@@ -26,6 +26,7 @@
  * applied at every level.
  */
 
+import type { Key } from "./keys"
 import type { CellBuffer, ViewportPalette, ViewportRect } from "./viewport-types"
 
 // ============================================================================
@@ -254,6 +255,52 @@ export interface IslandMouseEvent {
   shift?: boolean
   alt?: boolean
 }
+
+// ============================================================================
+// Host-reserved input (tmux-prefix model)
+// ============================================================================
+
+/**
+ * The host-coordinate mouse event the host evaluates BEFORE deciding whether
+ * to SGR-encode it for the focused guest. Coordinates are absolute terminal
+ * cells (NOT island-local) so a host can reserve by geometry (e.g. "a click on
+ * my pane's title row switches panes"). This is the same shape the runtime's
+ * focused-island mouse router sees — see {@link IslandNodeState.reserveMouse}.
+ */
+export interface IslandReservedMouseData {
+  /** Mouse button (0 = left, 1 = middle, 2 = right; wheel reported via action). */
+  button: number
+  /** Absolute terminal column (0-indexed). */
+  x: number
+  /** Absolute terminal row (0-indexed). */
+  y: number
+  /** Event action. */
+  action: "down" | "up" | "move" | "wheel"
+  /** Wheel delta for scroll events. */
+  delta?: number
+  shift?: boolean
+  meta?: boolean
+  ctrl?: boolean
+}
+
+/**
+ * Host predicate: should this key be RESERVED for the host instead of fed to
+ * the focused guest? Returning `true` makes the key fall through to the host's
+ * own `useInput` / app handlers (the tmux prefix key). Returning `false` (or an
+ * absent predicate) keeps the current behavior — the focused guest captures the
+ * key. See {@link IslandNodeState.reserveInput}.
+ */
+export type IslandReserveInput = (input: string, key: Key) => boolean
+
+/**
+ * Host predicate: should this mouse event be RESERVED for the host instead of
+ * SGR-fed to the focused guest? Returning `true` lets the event reach the host
+ * mouse path (DOM `onClick` dispatch + app handlers) for pane switching, title
+ * bars, etc. Returning `false` (or an absent predicate) keeps the current
+ * behavior — clicks within the island rect go to the guest. See
+ * {@link IslandNodeState.reserveMouse}.
+ */
+export type IslandReserveMouse = (data: IslandReservedMouseData) => boolean
 
 /**
  * Modes owner — host queries which protocol modes the guest currently wants
@@ -522,6 +569,27 @@ export interface IslandNodeState {
    * focus (which would route keys away from the host's own input handler).
    */
   cursorActive?: boolean
+  /**
+   * Host-reserved-input predicate (tmux-prefix model, @hab/.../20349). When set
+   * and this island is the focused input target, the runtime calls it for each
+   * key BEFORE forwarding to the guest; returning `true` reserves the key for
+   * the host (it falls through to the app's `useInput`) instead of feeding the
+   * guest. Absent ⇒ the guest captures every key (default behavior). Lets a host
+   * keep a few keys (e.g. a `Ctrl-G` pane-switch prefix) while a full-screen
+   * guest owns the rest. Set by `<Island reserveInput={…}>`.
+   */
+  reserveInput?: IslandReserveInput
+  /**
+   * Host-reserved-mouse predicate (tmux-prefix model, @hab/.../20349). When set
+   * and this island is the focused input target, the runtime calls it for each
+   * mouse event within the island rect BEFORE SGR-encoding it for the guest;
+   * returning `true` reserves the event for the host (it reaches DOM `onClick`
+   * dispatch + app handlers) instead of feeding the guest. Absent ⇒ clicks
+   * inside the island go to the guest (default behavior). Lets a host switch
+   * panes on click without giving up guest mouse interaction. Set by
+   * `<Island reserveMouse={…}>`.
+   */
+  reserveMouse?: IslandReserveMouse
   /**
    * Effective palette policy. Frozen palette: snapshot held in
    * `frozenPalette`. Inherit: `null` (host theme cascades).
