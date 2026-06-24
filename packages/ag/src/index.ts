@@ -133,9 +133,7 @@ export type {
   IslandKeyEvent,
   IslandMouseEvent,
   IslandInputEvent,
-  IslandReservedMouseData,
-  IslandReserveInput,
-  IslandReserveMouse,
+  IslandCommandPrefix,
 } from "./island-types"
 
 // Layout Types

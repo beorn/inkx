@@ -1,30 +1,28 @@
 /**
- * <Island> host-reserved-input (tmux-prefix model).
+ * <Island> host command-prefix + mode-aware mouse routing.
  *
- * A focused input-capable island forwards EVERY key/mouse event to its guest
- * (see `routeKeyToFocusedIsland` / `routeMouseToFocusedIsland` in
- * `packages/ag-term/src/runtime/event-handlers.ts`). That is correct for a
- * full-screen guest, but a multi-pane host (e.g. the hab "deck" shell pane)
- * needs to RESERVE a few keys/mouse events for itself — the tmux `Ctrl-b`
- * prefix, a pane-switch click — so they reach the host's own `useInput` /
- * mouse handling instead of being swallowed by the guest.
+ * A focused input-capable island forwards keys/mouse to its guest (see
+ * `routeKeyToFocusedIsland` / `routeMouseToFocusedIsland` in
+ * `packages/ag-term/src/runtime/event-handlers.ts`). Two host needs:
  *
- * This suite pins the additive, opt-in `reserveInput` / `reserveMouse`
- * predicates on `<Island>`:
+ * 1. COMMAND PREFIX (tmux model). A multi-pane host (e.g. the hab "deck" shell
+ *    pane) reserves a single prefix hotkey — `Ctrl-G` — plus, while it is
+ *    mid-command (a chord is pending), the immediate follow-up keys. Those keys
+ *    must reach the host's own `useInput` instead of the guest.
+ *    `<Island commandPrefix={{ hotkey, capturing }}>`:
+ *      - `hotkey` — the always-reserved prefix (matched via `matchHotkey`).
+ *      - `capturing` — host is mid-command; route ALL keys to the host until it
+ *        clears (the deck passes its `chordPending` flag).
  *
- *   - reserveInput(input, key) => true  → key is NOT fed to the guest; it
- *     falls through to the app's `useInput`.
- *   - reserveMouse(data)       => true  → mouse event is NOT SGR-fed to the
- *     guest; it reaches the host mouse path (DOM dispatch + app handlers).
- *
- * When the predicates are absent, the guest captures everything (current
- * behavior — the regression guards below prove it).
+ * 2. MODE-AWARE MOUSE. A guest that has NOT enabled mouse reporting (no DECSET
+ *    1000/1002/1003) does not want mouse events — forwarding SGR to it just
+ *    makes it echo garbage. The host should only feed mouse to the guest when
+ *    the guest's island mode state requests mouse tracking; otherwise the event
+ *    falls through to the host mouse path (DOM `onClick` + app handlers) for
+ *    pane switching. This is a correctness fix, not a public API.
  *
  * Harness mirrors islands-input-routing.test.tsx: the REAL `run()` runtime over
- * `createTermless`, keys via `handle.press()` (routes through
- * `withFocusChain → handleFocusNavigation → routeKeyToFocusedIsland` — the same
- * path the batched event loop uses) and mouse via `term.mouse.click()` (the
- * real terminal mouse-parse path).
+ * `createTermless`, keys via `handle.press()`, mouse via `term.mouse.click()`.
  *
  * Bead @hab/19797-hab-master/20349-shell-input-trap.
  */
@@ -38,20 +36,28 @@ import type {
   IslandGuest,
   IslandHandle,
   IslandInputOwner,
+  IslandModesOwner,
   IslandOutputOwner,
+  IslandProtocolModes,
   IslandSizeOwner,
 } from "@silvery/ag/island-types"
 import { run } from "../../packages/ag-term/src/runtime/run"
 
 // ---------------------------------------------------------------------------
-// Input-capable guest that records the raw bytes it is fed
+// Input-capable guest that records the raw bytes it is fed. Optionally declares
+// a fixed mouse-tracking mode via the IslandModesOwner (capabilities.modes).
 // ---------------------------------------------------------------------------
 
-function createInputRecorderGuest(): { guest: IslandGuest; feeds: string[] } {
+function createInputRecorderGuest(opts: { modes?: IslandProtocolModes } = {}): {
+  guest: IslandGuest
+  feeds: string[]
+} {
   const feeds: string[] = []
   const decoder = new TextDecoder()
+  const declaresModes = opts.modes !== undefined
+  const modes = opts.modes ?? {}
   const guest: IslandGuest = {
-    capabilities: { input: true },
+    capabilities: { input: true, modes: declaresModes },
     init(ctx) {
       const size: IslandSizeOwner = {
         get cols() {
@@ -76,7 +82,19 @@ function createInputRecorderGuest(): { guest: IslandGuest; feeds: string[] } {
           feeds.push(decoder.decode(bytes))
         },
       }
-      const handle: IslandHandle = { size, output, input, dispose: () => {} }
+      const modesOwner: IslandModesOwner = {
+        get modes() {
+          return modes
+        },
+        subscribe: () => () => {},
+      }
+      const handle: IslandHandle = {
+        size,
+        output,
+        input,
+        ...(declaresModes ? { modes: modesOwner } : {}),
+        dispose: () => {},
+      }
       ctx.emit({ type: "ready" })
       return Promise.resolve(handle)
     },
@@ -89,11 +107,11 @@ async function settle(ms = 30): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Key reservation
+// Command prefix (keyboard)
 // ---------------------------------------------------------------------------
 
-describe("island reserved input — keys", () => {
-  test("reserveInput=Ctrl-G: the key falls through to the host useInput; the guest never sees it", async () => {
+describe("island command prefix — keys", () => {
+  test("commandPrefix=ctrl+g (capturing=false): the prefix falls through to the host; the guest never sees it; other keys still feed the guest", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
     const recorder = createInputRecorderGuest()
     const hostKeys: string[] = []
@@ -101,6 +119,7 @@ describe("island reserved input — keys", () => {
     function App(): React.ReactElement {
       useInput((input, key) => {
         if (key.ctrl && input === "g") hostKeys.push("ctrl-g")
+        else hostKeys.push(input)
       })
       return (
         <Box flexDirection="column">
@@ -109,7 +128,7 @@ describe("island reserved input — keys", () => {
             cols={10}
             rows={2}
             focusable
-            reserveInput={(input, key) => key.ctrl && input === "g"}
+            commandPrefix={{ hotkey: "ctrl+g", capturing: false }}
           />
           <Text>after</Text>
         </Box>
@@ -121,12 +140,14 @@ describe("island reserved input — keys", () => {
       // Tab → focus the island. From here the island captures input.
       await handle.press("Tab")
 
-      // A normal key is forwarded to the guest (passthrough still works).
+      // A normal key is forwarded to the guest (passthrough still works) and
+      // does NOT reach the host (the guest owns it).
       await handle.press("a")
       await settle()
       expect(recorder.feeds).toEqual(["a"])
+      expect(hostKeys).toEqual([])
 
-      // The reserved key must NOT reach the guest …
+      // The prefix must NOT reach the guest …
       await handle.press("Control+g")
       await settle()
       expect(recorder.feeds).toEqual(["a"])
@@ -137,7 +158,44 @@ describe("island reserved input — keys", () => {
     }
   })
 
-  test("no reserveInput: every key (including Ctrl-G) is forwarded to the guest (regression guard)", async () => {
+  test("commandPrefix capturing=true: while mid-command, even a normal key routes to the host", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+    const hostKeys: string[] = []
+
+    function App(): React.ReactElement {
+      useInput((input) => {
+        hostKeys.push(input)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island
+            guest={recorder.guest}
+            cols={10}
+            rows={2}
+            focusable
+            commandPrefix={{ hotkey: "ctrl+g", capturing: true }}
+          />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab")
+      // capturing=true: the host is mid-chord, so a plain "x" reaches the host
+      // and is NOT fed to the guest.
+      await handle.press("x")
+      await settle()
+      expect(recorder.feeds).toEqual([])
+      expect(hostKeys).toEqual(["x"])
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("no commandPrefix: every key (including Ctrl-G) is forwarded to the guest (regression guard)", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
     const recorder = createInputRecorderGuest()
     const hostKeys: string[] = []
@@ -169,20 +227,21 @@ describe("island reserved input — keys", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Mouse reservation
+// Mode-aware mouse routing
 // ---------------------------------------------------------------------------
 
-describe("island reserved input — mouse", () => {
-  test("reserveMouse: a click inside the island rect is NOT SGR-fed to the guest; the host onClick still fires", async () => {
+describe("island mode-aware mouse routing", () => {
+  test("guest mouse mode OFF: a click inside the island is NOT fed to the guest; the host onClick fires", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
-    const recorder = createInputRecorderGuest()
+    // Guest declares modes but does NOT request mouse tracking → mouse OFF.
+    const recorder = createInputRecorderGuest({ modes: { mouseTracking: "off" } })
     const clicks: Array<{ x: number; y: number }> = []
 
     const handle = await run(
       // The wrapper's onClick is the host's pane-switch seam: DOM dispatch
       // bubbles the click target→root, so a click on an island cell fires it.
       <Box onClick={(e) => clicks.push({ x: e.x, y: e.y })}>
-        <Island guest={recorder.guest} cols={10} rows={3} focusable reserveMouse={() => true} />
+        <Island guest={recorder.guest} cols={10} rows={3} focusable />
       </Box>,
       term,
       { mouse: true } as never,
@@ -192,7 +251,7 @@ describe("island reserved input — mouse", () => {
       await term.mouse.click(3, 1) // inside the 10x3 island at the origin
       await settle()
 
-      // Guest must NOT have been SGR-fed the click …
+      // Guest must NOT have been SGR-fed the click (no mouse mode) …
       expect(recorder.feeds.join("")).not.toContain("\x1b[<")
       // … and the host's onClick must have fired.
       expect(clicks.length).toBeGreaterThan(0)
@@ -201,9 +260,10 @@ describe("island reserved input — mouse", () => {
     }
   })
 
-  test("no reserveMouse: a click inside the island rect IS SGR-fed to the guest (regression guard)", async () => {
+  test("guest mouse mode ON: a click inside the island IS fed to the guest", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
-    const recorder = createInputRecorderGuest()
+    // Guest requests "any" mouse tracking → mouse ON.
+    const recorder = createInputRecorderGuest({ modes: { mouseTracking: "any" } })
 
     const handle = await run(
       <Box flexDirection="column">

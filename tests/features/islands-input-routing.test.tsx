@@ -16,16 +16,27 @@ import type {
   IslandGuest,
   IslandHandle,
   IslandInputOwner,
+  IslandModesOwner,
   IslandOutputOwner,
+  IslandProtocolModes,
   IslandSizeOwner,
 } from "@silvery/ag/island-types"
 import { run } from "../../packages/ag-term/src/runtime/run"
 
-function createInputRecorderGuest(): { guest: IslandGuest; feeds: string[] } {
+// `opts.modes` lets a guest declare its desired protocol modes (e.g. mouse
+// tracking). The runtime only forwards mouse events to a guest that has ENABLED
+// mouse reporting via this mode state (@hab/.../20349), so the mouse test below
+// must model a guest that requested it.
+function createInputRecorderGuest(opts: { modes?: IslandProtocolModes } = {}): {
+  guest: IslandGuest
+  feeds: string[]
+} {
   const feeds: string[] = []
   const decoder = new TextDecoder()
+  const declaresModes = opts.modes !== undefined
+  const modes = opts.modes ?? {}
   const guest: IslandGuest = {
-    capabilities: { input: true },
+    capabilities: { input: true, modes: declaresModes },
     init(ctx) {
       const size: IslandSizeOwner = {
         get cols() {
@@ -50,10 +61,17 @@ function createInputRecorderGuest(): { guest: IslandGuest; feeds: string[] } {
           feeds.push(decoder.decode(bytes))
         },
       }
+      const modesOwner: IslandModesOwner = {
+        get modes() {
+          return modes
+        },
+        subscribe: () => () => {},
+      }
       const handle: IslandHandle = {
         size,
         output,
         input,
+        ...(declaresModes ? { modes: modesOwner } : {}),
         dispose: () => {},
       }
       ctx.emit({ type: "ready" })
@@ -100,7 +118,8 @@ describe("focused Island input routing", () => {
 
   test("mouse reports feed focused island with island-local SGR coordinates", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
-    const recorder = createInputRecorderGuest()
+    // The guest enabled mouse reporting → the host forwards mouse to it.
+    const recorder = createInputRecorderGuest({ modes: { mouseTracking: "any" } })
 
     const handle = await run(
       <Box flexDirection="column">
