@@ -103,7 +103,10 @@ type RoutedMouseData = {
 function focusedIslandNode(focusManager: FocusManager): AgNode | null {
   let node: AgNode | null = focusManager.activeElement
   while (node) {
-    if (node.type === "silvery-island") return node
+    if (node.type === "silvery-island") {
+      const props = node.props as { focusable?: boolean; inputActive?: boolean }
+      return props.focusable === true && props.inputActive !== false ? node : null
+    }
     node = node.parent
   }
   return null

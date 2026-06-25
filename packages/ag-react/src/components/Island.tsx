@@ -44,6 +44,7 @@ import type {
 } from "@silvery/ag/island-types"
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
 import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
+import type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 import type { AgNode, UserSelect } from "@silvery/ag/types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
 import type { IslandLayoutProps } from "../reconciler/nodes"
@@ -80,7 +81,7 @@ import { useScopeEffect } from "../hooks/useScopeEffect"
  * MAY make them optional — see `@km/silvery/15646-islands` Phase 2 hydration
  * scheduler.
  */
-export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
+export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows">, MouseEventProps {
   /** Guest contract — provides cells + optional input/modes/signals/palette. */
   guest: IslandGuest
   /** Initial guest cell-grid width. Required (see {@link IslandLayoutProps}). */
@@ -89,6 +90,13 @@ export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
   rows: number
   /** Whether the island can receive focus. Default: `false`. */
   focusable?: boolean
+  /**
+   * Whether a focused island may receive guest input right now. Default:
+   * `true`. Hosts with their own selection/focus model can keep the island
+   * focusable for click targeting while disabling guest input when another
+   * pane is active.
+   */
+  inputActive?: boolean
   /**
    * CSS user-select equivalent for the guest cell grid. Defaults to inherited
    * selectability; islands always clamp an active host selection to their rect.
@@ -172,6 +180,7 @@ export const Island = forwardRef(function Island(
     cols,
     rows,
     focusable = false,
+    inputActive = true,
     userSelect,
     cursorActive = false,
     commandPrefix,
@@ -195,6 +204,7 @@ export const Island = forwardRef(function Island(
     minHeight,
     maxWidth,
     maxHeight,
+    ...mouseProps
   } = props
 
   const nodeRef = useRef<AgNode | null>(null)
@@ -470,6 +480,7 @@ export const Island = forwardRef(function Island(
       cols={cols}
       rows={rows}
       focusable={focusable}
+      inputActive={inputActive}
       userSelect={userSelect}
       width={width}
       height={height}
@@ -481,6 +492,7 @@ export const Island = forwardRef(function Island(
       minHeight={minHeight}
       maxWidth={maxWidth}
       maxHeight={maxHeight}
+      {...mouseProps}
     />
   )
 })

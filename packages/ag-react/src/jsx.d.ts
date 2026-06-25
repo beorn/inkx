@@ -7,6 +7,7 @@
 
 import type { ReactNode, Ref } from "react"
 import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
+import type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 import type { ViewportProps } from "@silvery/ag/viewport-types"
 
 declare module "react" {
@@ -21,7 +22,8 @@ declare module "react" {
       // grid, plus width/height/flex* for the layout slot — see
       // IslandLayoutProps docstring for the decoupling rationale). The
       // React-facing <Island> wraps this with the full guest contract.
-      "silvery-island": import("./reconciler/nodes").IslandLayoutProps & { ref?: Ref<AgNode> }
+      "silvery-island": import("./reconciler/nodes").IslandLayoutProps &
+        MouseEventProps & { inputActive?: boolean; ref?: Ref<AgNode> }
     }
   }
 }
