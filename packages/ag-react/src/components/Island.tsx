@@ -45,6 +45,7 @@ import type {
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
 import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
 import type { AgNode, UserSelect } from "@silvery/ag/types"
+import type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
 import type { IslandLayoutProps } from "../reconciler/nodes"
 import { useScopeEffect } from "../hooks/useScopeEffect"
@@ -80,7 +81,7 @@ import { useScopeEffect } from "../hooks/useScopeEffect"
  * MAY make them optional — see `@km/silvery/15646-islands` Phase 2 hydration
  * scheduler.
  */
-export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
+export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows">, MouseEventProps {
   /** Guest contract — provides cells + optional input/modes/signals/palette. */
   guest: IslandGuest
   /** Initial guest cell-grid width. Required (see {@link IslandLayoutProps}). */
@@ -195,6 +196,7 @@ export const Island = forwardRef(function Island(
     minHeight,
     maxWidth,
     maxHeight,
+    ...mouseProps
   } = props
 
   const nodeRef = useRef<AgNode | null>(null)
@@ -481,6 +483,7 @@ export const Island = forwardRef(function Island(
       minHeight={minHeight}
       maxWidth={maxWidth}
       maxHeight={maxHeight}
+      {...mouseProps}
     />
   )
 })
