@@ -20,6 +20,7 @@
 import React from "react"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
+import { useTheme } from "../../ThemeContext"
 
 // =============================================================================
 // Types
@@ -74,6 +75,20 @@ export interface ModalDialogProps extends Omit<BoxProps, "children" | "flexDirec
 }
 
 const DEFAULT_FADE = 0.25
+
+function themeToken(theme: unknown, key: string): string | undefined {
+  const value = (theme as Record<string, unknown>)[key]
+  return typeof value === "string" ? value : undefined
+}
+
+function raisedSurfaceBackground(theme: unknown): string {
+  return (
+    themeToken(theme, "bg-surface-raised") ||
+    themeToken(theme, "bg-surface-overlay") ||
+    themeToken(theme, "bg-muted") ||
+    "blackBright"
+  )
+}
 
 // =============================================================================
 // Helpers
@@ -160,6 +175,7 @@ export function ModalDialog({
   children,
   ...boxProps
 }: ModalDialogProps): React.ReactElement {
+  const theme = useTheme()
   const effectiveTitleColor = titleColor ?? "$fg-accent"
   // When titleRight is provided, use space-between layout for the title bar
   const effectiveTitleAlign = titleRight ? "space-between" : titleAlign
@@ -176,7 +192,7 @@ export function ModalDialog({
       width={width ?? "snug-content"}
       height={height}
       borderColor={borderColor}
-      backgroundColor={"$bg-surface-raised"}
+      backgroundColor={raisedSurfaceBackground(theme)}
       paddingX={2}
       paddingY={1}
       userSelect="contain"
