@@ -27,7 +27,7 @@
 
 import { readFileSync } from "node:fs"
 import { type JSX, useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { StdoutContext } from "../../context"
+import { StdoutContext, TermContext } from "../../context"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useBoxSize, useScreenRect } from "../../hooks/useLayout"
@@ -85,21 +85,36 @@ export interface ImageProps {
 // Protocol Detection
 // ============================================================================
 
+/** Graphics caps as the consumer needs them — the kitty/sixel subset of `term.caps`. */
+type GraphicsCaps = { readonly kittyGraphics: boolean; readonly sixel: boolean }
+
 /**
  * Determine the best available image protocol.
+ *
+ * When `caps` is supplied (the caps of the Term we are actually rendering INTO,
+ * read from {@link TermContext}), the decision is gated on THOSE — a terminal
+ * whose own caps report no Kitty/Sixel support must never receive graphics
+ * escape bytes, even if the ambient `process.stdout`/`TERM_PROGRAM` claims
+ * support (a piped sink, a non-Kitty emulator, a proxied/cmux PTY). km bead
+ * 19668: the welcome-bitmap escape-flood came from consulting ambient stdout
+ * instead of the render term.
+ *
+ * When `caps` is absent (no TermContext — a standalone/unit render), it falls
+ * back to the ambient profile, preserving the historical behavior.
+ *
  * Returns null if no image protocol is available.
  */
-function detectProtocol(preferred: ImageProtocol): "kitty" | "sixel" | null {
-  if (preferred === "kitty") {
-    return isKittyGraphicsSupported() ? "kitty" : null
-  }
-  if (preferred === "sixel") {
-    return isSixelSupported() ? "sixel" : null
-  }
-
-  // Auto-detect: prefer Kitty, fall back to Sixel
-  if (isKittyGraphicsSupported()) return "kitty"
-  if (isSixelSupported()) return "sixel"
+export function detectProtocol(
+  preferred: ImageProtocol,
+  caps?: GraphicsCaps,
+): "kitty" | "sixel" | null {
+  const kitty = caps ? caps.kittyGraphics : isKittyGraphicsSupported()
+  const sixel = caps ? caps.sixel : isSixelSupported()
+  if (preferred === "kitty") return kitty ? "kitty" : null
+  if (preferred === "sixel") return sixel ? "sixel" : null
+  // Auto-detect: prefer Kitty, fall back to Sixel.
+  if (kitty) return "kitty"
+  if (sixel) return "sixel"
   return null
 }
 
@@ -221,6 +236,12 @@ function ImagePlacement({
   // pass `width`/`height` to skip the auto-fill read.
   const boxRect = useScreenRect()
   const stdoutCtx = useContext(StdoutContext)
+  // 19668: gate protocol detection on the caps of the Term we are rendering
+  // into — not ambient process.stdout. A null Term (standalone/unit render with
+  // no TermContext) falls back to the ambient profile inside detectProtocol.
+  const term = useContext(TermContext)
+  const termKittyGraphics = term?.caps.kittyGraphics
+  const termSixel = term?.caps.sixel
   const { columns: viewportWidth, rows: viewportHeight } = useWindowSize()
   const viewport = { width: viewportWidth, height: viewportHeight }
   const imageIdRef = useRef<number | null>(null)
@@ -259,8 +280,16 @@ function ImagePlacement({
 
   const decodedImage = useMemo(() => (pngData ? decodePngToRgba(pngData) : null), [pngData])
 
-  // Detect protocol support
-  const activeProtocol = useMemo(() => detectProtocol(preferredProtocol), [preferredProtocol])
+  // Detect protocol support against the render term's caps (19668). Reactive in
+  // termKittyGraphics/termSixel so a later runtime caps correction re-detects.
+  const activeProtocol = useMemo(
+    () =>
+      detectProtocol(
+        preferredProtocol,
+        term ? { kittyGraphics: term.caps.kittyGraphics, sixel: term.caps.sixel } : undefined,
+      ),
+    [preferredProtocol, term, termKittyGraphics, termSixel],
+  )
 
   // Assign a stable image ID for Kitty (for cleanup on unmount)
   if (activeProtocol === "kitty" && imageIdRef.current == null) {
