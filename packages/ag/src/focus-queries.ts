@@ -13,7 +13,7 @@ import type { AgNode, Rect } from "./types"
 // ============================================================================
 
 /** Check if a node has the focusable prop set to true (or truthy). */
-function isFocusable(node: AgNode): boolean {
+export function isFocusable(node: AgNode): boolean {
   if (node.hidden) return false
   const props = node.props as Record<string, unknown>
   return Boolean(props.focusable) && props.display !== "none"

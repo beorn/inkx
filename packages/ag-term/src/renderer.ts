@@ -60,6 +60,7 @@ import {
   reconciler,
   releaseContainer,
   setOnNodeRemoved,
+  setOnNodeUpdated,
 } from "@silvery/ag-react/reconciler"
 import { ScopeProvider } from "@silvery/ag-react/ScopeProvider"
 import { createScope, reportDisposeError } from "@silvery/scope"
@@ -596,8 +597,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Focus manager (tree-based focus system)
   const focusManager = createFocusManager()
 
-  // Wire up focus cleanup on node removal
+  // Wire up focus cleanup on node removal and focusability updates.
   setOnNodeRemoved((removedNode) => focusManager.handleSubtreeRemoved(removedNode))
+  setOnNodeUpdated((updatedNode) => focusManager.handleNodeUpdated(updatedNode))
 
   // Per-instance cursor state (replaces module-level globals)
   const cursorStore = createCursorStore()
@@ -1589,8 +1591,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       stdinOnReadable = undefined
     }
 
-    // Unregister node removal hook
+    // Unregister node lifecycle hooks
     setOnNodeRemoved(null)
+    setOnNodeUpdated(null)
 
     // Untrack this render
     activeRenders.delete(renderRef)

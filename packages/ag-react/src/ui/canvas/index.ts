@@ -39,6 +39,7 @@ import {
   reconciler,
   runWithDiscreteEvent,
   setOnNodeRemoved,
+  setOnNodeUpdated,
   unmountFiberRoot,
 } from "../../reconciler/index"
 import {
@@ -339,6 +340,7 @@ export function renderToCanvas(
   if (inputEnabled) {
     focusManager = createFocusManager()
     setOnNodeRemoved((removedNode) => focusManager!.handleSubtreeRemoved(removedNode))
+    setOnNodeUpdated((updatedNode) => focusManager!.handleNodeUpdated(updatedNode))
 
     // Child apply-chain BaseApp — the ChainAppContext surface for hooks
     // inside this canvas render tree (TEA Phase 2). Canvas input flows
@@ -510,6 +512,7 @@ export function renderToCanvas(
     reconciler.updateContainerSync(null, fiberRoot, null, null)
     reconciler.flushSyncWork()
     setOnNodeRemoved(null)
+    setOnNodeUpdated(null)
   }
   doUnmount = unmount
 

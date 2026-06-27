@@ -43,6 +43,7 @@ import {
   reconciler,
   runWithDiscreteEvent,
   setOnNodeRemoved,
+  setOnNodeUpdated,
 } from "@silvery/ag-react/reconciler"
 import type { RenderBuffer } from "../render-adapter"
 import { setRenderAdapter } from "../render-adapter"
@@ -304,8 +305,9 @@ export function renderToXterm(
     provider = createXtermProvider(terminal)
     focusManager = createFocusManager()
 
-    // Wire up focus cleanup on node removal
+    // Wire up focus cleanup on node removal and focusability updates.
     setOnNodeRemoved((removedNode) => focusManager!.handleSubtreeRemoved(removedNode))
+    setOnNodeUpdated((updatedNode) => focusManager!.handleNodeUpdated(updatedNode))
 
     // Child apply-chain BaseApp — the ChainAppContext surface for hooks
     // inside this xterm render tree (TEA Phase 2). xterm input flows
@@ -491,8 +493,9 @@ export function renderToXterm(
     // before returning, preventing stale renders to the same terminal.
     reconciler.updateContainerSync(null, fiberRoot, null, null)
     reconciler.flushSyncWork()
-    // Unregister node removal hook
+    // Unregister node lifecycle hooks
     setOnNodeRemoved(null)
+    setOnNodeUpdated(null)
     // Show cursor on unmount
     terminal.write(CURSOR_SHOW)
   }

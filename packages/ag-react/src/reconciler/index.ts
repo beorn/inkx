@@ -22,6 +22,7 @@ export {
   _resetBoxInsideTextWarning,
   setInkStrictValidation,
   setOnNodeRemoved,
+  setOnNodeUpdated,
   attachNodeScope,
   detachNodeScope,
   getNodeScope,

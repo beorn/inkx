@@ -68,6 +68,7 @@ import {
   reconciler,
   runWithDiscreteEvent,
   setOnNodeRemoved,
+  setOnNodeUpdated,
   unmountFiberRoot,
 } from "./reconciler"
 import { renderStringSync } from "./render-string"
@@ -528,7 +529,11 @@ function SilveryApp({
   // Wire up focus cleanup on node removal
   useEffect(() => {
     setOnNodeRemoved((removedNode) => focusManager.handleSubtreeRemoved(removedNode))
-    return () => setOnNodeRemoved(null)
+    setOnNodeUpdated((updatedNode) => focusManager.handleNodeUpdated(updatedNode))
+    return () => {
+      setOnNodeRemoved(null)
+      setOnNodeUpdated(null)
+    }
   }, [focusManager])
 
   return (

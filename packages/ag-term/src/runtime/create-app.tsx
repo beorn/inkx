@@ -102,6 +102,7 @@ import {
   getContainerRoot,
   reconciler,
   setOnNodeRemoved,
+  setOnNodeUpdated,
 } from "@silvery/ag-react/reconciler"
 import { map, merge, takeUntil } from "@silvery/create/streams"
 import { createRuntime } from "./create-runtime"
@@ -2357,6 +2358,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     focusManager.handleSubtreeRemoved(removedNode)
     applyFocusedIslandProtocolModes("subtree-removed")
   })
+  setOnNodeUpdated((updatedNode) => focusManager.handleNodeUpdated(updatedNode))
 
   // Per-instance cursor state (replaces module-level globals)
   const cursorStore = createCursorStore()
@@ -2455,8 +2457,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       reportDisposeError(error, { phase: "app-exit", scope: appScope }),
     )
 
-    // Unregister node removal hook
+    // Unregister node lifecycle hooks
     setOnNodeRemoved(null)
+    setOnNodeUpdated(null)
 
     // Unsubscribe from store
     if (storeUnsubscribeFn) {

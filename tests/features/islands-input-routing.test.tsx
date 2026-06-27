@@ -116,6 +116,51 @@ describe("focused Island input routing", () => {
     }
   })
 
+  test("focused island stops owning input when it becomes non-focusable", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+    const hostInputs: string[] = []
+    let setIslandFocusableForTest: React.Dispatch<React.SetStateAction<boolean>> | null = null
+
+    function App(): React.ReactElement {
+      const [islandFocusable, setIslandFocusable] = React.useState(true)
+      React.useEffect(() => {
+        setIslandFocusableForTest = setIslandFocusable
+        return () => {
+          setIslandFocusableForTest = null
+        }
+      }, [setIslandFocusable])
+      useInput((input) => {
+        hostInputs.push(input)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorder.guest} cols={10} rows={2} focusable={islandFocusable} />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab")
+      await handle.press("a")
+      await settle()
+      expect(recorder.feeds).toEqual(["a"])
+      expect(hostInputs).toEqual([])
+
+      setIslandFocusableForTest?.(false)
+      await settle()
+      await handle.press("b")
+      await settle()
+
+      expect(recorder.feeds).toEqual(["a"])
+      expect(hostInputs).toEqual(["b"])
+    } finally {
+      handle.unmount()
+    }
+  })
+
   test("mouse reports feed focused island with island-local SGR coordinates", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
     // The guest enabled mouse reporting → the host forwards mouse to it.

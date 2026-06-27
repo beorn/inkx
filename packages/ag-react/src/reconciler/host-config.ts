@@ -166,7 +166,7 @@ function normalizeNodeType(type: string): AgNodeType {
 }
 
 // ============================================================================
-// Node Removal Hook
+// Node Lifecycle Hooks
 // ============================================================================
 
 /**
@@ -176,6 +176,7 @@ function normalizeNodeType(type: string): AgNodeType {
  * references and broken navigation (indexOf → -1, hasFocusWithin lies).
  */
 let onNodeRemovedCallback: ((removedNode: AgNode) => void) | null = null
+let onNodeUpdatedCallback: ((updatedNode: AgNode) => void) | null = null
 
 /**
  * Register a callback to be called when any node is removed from the tree.
@@ -183,6 +184,15 @@ let onNodeRemovedCallback: ((removedNode: AgNode) => void) | null = null
  */
 export function setOnNodeRemoved(callback: ((removedNode: AgNode) => void) | null): void {
   onNodeRemovedCallback = callback
+}
+
+/**
+ * Register a callback to be called after any mounted node's props are updated.
+ * The app layer uses this for focus cleanup when an active node remains mounted
+ * but stops being focusable.
+ */
+export function setOnNodeUpdated(callback: ((updatedNode: AgNode) => void) | null): void {
+  onNodeUpdatedCallback = callback
 }
 
 // ============================================================================
@@ -854,6 +864,7 @@ export const hostConfig = {
 
     instance.props = newProps
     logNodeLifecycle("update", instance)
+    onNodeUpdatedCallback?.(instance)
 
     // Only mark subtree/ancestor dirty when visual changes were detected.
     // Data attributes (data-*), event handlers, and other non-visual props
