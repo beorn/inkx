@@ -161,6 +161,73 @@ describe("focused Island input routing", () => {
     }
   })
 
+  test("focusability updates clean up the owning render root only", async () => {
+    using termA = createTermless({ cols: 40, rows: 8 })
+    using termB = createTermless({ cols: 40, rows: 8 })
+    const recorderA = createInputRecorderGuest()
+    const recorderB = createInputRecorderGuest()
+    const hostInputsA: string[] = []
+    const hostInputsB: string[] = []
+    let setFocusableA: React.Dispatch<React.SetStateAction<boolean>> | null = null
+
+    function AppA(): React.ReactElement {
+      const [islandFocusable, setIslandFocusable] = React.useState(true)
+      React.useEffect(() => {
+        setFocusableA = setIslandFocusable
+        return () => {
+          setFocusableA = null
+        }
+      }, [setIslandFocusable])
+      useInput((input) => {
+        hostInputsA.push(input)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorderA.guest} cols={10} rows={2} focusable={islandFocusable} />
+          <Text>after-a</Text>
+        </Box>
+      )
+    }
+
+    function AppB(): React.ReactElement {
+      useInput((input) => {
+        hostInputsB.push(input)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorderB.guest} cols={10} rows={2} focusable />
+          <Text>after-b</Text>
+        </Box>
+      )
+    }
+
+    const handleA = await run(<AppA />, termA)
+    const handleB = await run(<AppB />, termB)
+    try {
+      await handleA.press("Tab")
+      await handleB.press("Tab")
+      await handleA.press("a")
+      await handleB.press("b")
+      await settle()
+      expect(recorderA.feeds).toEqual(["a"])
+      expect(recorderB.feeds).toEqual(["b"])
+
+      setFocusableA?.(false)
+      await settle()
+      await handleA.press("c")
+      await handleB.press("d")
+      await settle()
+
+      expect(recorderA.feeds).toEqual(["a"])
+      expect(hostInputsA).toEqual(["c"])
+      expect(recorderB.feeds).toEqual(["b", "d"])
+      expect(hostInputsB).toEqual([])
+    } finally {
+      handleB.unmount()
+      handleA.unmount()
+    }
+  })
+
   test("mouse reports feed focused island with island-local SGR coordinates", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
     // The guest enabled mouse reporting → the host forwards mouse to it.

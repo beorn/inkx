@@ -18,11 +18,23 @@ import { INITIAL_EPOCH } from "@silvery/ag/epoch"
 // ============================================================================
 
 /** Create a minimal AgNode stub for focus manager tests. */
-function stubNode(testID: string, opts?: { focusable?: boolean; children?: AgNode[] }): AgNode {
+function stubNode(
+  testID: string,
+  opts?: {
+    focusable?: boolean
+    children?: AgNode[]
+    display?: BoxProps["display"]
+    hidden?: boolean
+  },
+): AgNode {
   const children = opts?.children ?? []
   const node: AgNode = {
     type: "silvery-box",
-    props: { testID, focusable: opts?.focusable ?? true } as BoxProps,
+    props: {
+      testID,
+      focusable: opts?.focusable ?? true,
+      ...(opts?.display ? { display: opts.display } : {}),
+    } as BoxProps,
     children,
     parent: null,
     layoutNode: {} as any,
@@ -35,6 +47,7 @@ function stubNode(testID: string, opts?: { focusable?: boolean; children?: AgNod
     layoutChangedThisFrame: INITIAL_EPOCH,
     dirtyBits: 0,
     dirtyEpoch: INITIAL_EPOCH,
+    hidden: opts?.hidden,
   }
   for (const child of children) {
     child.parent = node
@@ -275,6 +288,97 @@ describe("handleSubtreeRemoved", () => {
     other.parent = null
     fm.handleSubtreeRemoved(other)
 
+    expect(listener).not.toHaveBeenCalled()
+  })
+})
+
+// ============================================================================
+// Focus cleanup on node update
+// ============================================================================
+
+describe("handleNodeUpdated", () => {
+  test("blurs when the focused node stops being focusable", () => {
+    const fm = createFocusManager()
+    const focused = stubNode("focused", { focusable: true })
+
+    fm.focus(focused)
+    expect(fm.activeElement).toBe(focused)
+
+    focused.props = { ...focused.props, focusable: false } as BoxProps
+    fm.handleNodeUpdated(focused)
+
+    expect(fm.activeElement).toBeNull()
+    expect(fm.activeId).toBeNull()
+  })
+
+  test("blurs when the focused node becomes display none", () => {
+    const fm = createFocusManager()
+    const focused = stubNode("focused", { focusable: true })
+
+    fm.focus(focused)
+    focused.props = { ...focused.props, display: "none" } as BoxProps
+    fm.handleNodeUpdated(focused)
+
+    expect(fm.activeElement).toBeNull()
+    expect(fm.activeId).toBeNull()
+  })
+
+  test("blurs when an updated ancestor hides the focused node", () => {
+    const fm = createFocusManager()
+    const focused = stubNode("focused", { focusable: true })
+    const container = stubNode("container", { focusable: false, children: [focused] })
+
+    fm.focus(focused)
+    container.props = { ...container.props, display: "none" } as BoxProps
+    fm.handleNodeUpdated(container)
+
+    expect(fm.activeElement).toBeNull()
+    expect(fm.activeId).toBeNull()
+  })
+
+  test("clears previousElement when an update invalidates it", () => {
+    const fm = createFocusManager()
+    const previous = stubNode("previous", { focusable: true })
+    const active = stubNode("active", { focusable: true })
+
+    fm.focus(previous)
+    fm.focus(active)
+    expect(fm.previousElement).toBe(previous)
+
+    previous.props = { ...previous.props, focusable: false } as BoxProps
+    fm.handleNodeUpdated(previous)
+
+    expect(fm.activeElement).toBe(active)
+    expect(fm.previousElement).toBeNull()
+  })
+
+  test("notifies subscribers when focus is cleared by an update", () => {
+    const fm = createFocusManager()
+    const focused = stubNode("focused", { focusable: true })
+    const listener = vi.fn()
+
+    fm.focus(focused)
+    fm.subscribe(listener)
+
+    focused.props = { ...focused.props, focusable: false } as BoxProps
+    fm.handleNodeUpdated(focused)
+
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  test("does not notify when an unrelated update does not affect focus", () => {
+    const fm = createFocusManager()
+    const focused = stubNode("focused", { focusable: true })
+    const unrelated = stubNode("unrelated", { focusable: true })
+    const listener = vi.fn()
+
+    fm.focus(focused)
+    fm.subscribe(listener)
+
+    unrelated.props = { ...unrelated.props, focusable: false } as BoxProps
+    fm.handleNodeUpdated(unrelated)
+
+    expect(fm.activeElement).toBe(focused)
     expect(listener).not.toHaveBeenCalled()
   })
 })

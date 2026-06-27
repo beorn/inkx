@@ -12,7 +12,13 @@
 // @ts-expect-error - react-reconciler has no type declarations
 import Reconciler from "react-reconciler"
 import type { AgNode } from "@silvery/ag/types"
-import { type Container, disposeSubtreeScopes, hostConfig } from "./host-config"
+import {
+  type Container,
+  disposeSubtreeScopes,
+  hostConfig,
+  registerContainer,
+  releaseContainerLifecycle,
+} from "./host-config"
 import { createRootNode } from "./nodes"
 
 // Re-export only what's needed by render.tsx and testing/index.tsx
@@ -21,8 +27,7 @@ export {
   runWithDiscreteEvent,
   _resetBoxInsideTextWarning,
   setInkStrictValidation,
-  setOnNodeRemoved,
-  setOnNodeUpdated,
+  setContainerNodeLifecycle,
   attachNodeScope,
   detachNodeScope,
   getNodeScope,
@@ -43,7 +48,9 @@ export const reconciler = Reconciler(hostConfig)
  */
 export function createContainer(onRender: () => void): Container {
   const root = createRootNode()
-  return { root, onRender }
+  const container = { root, onRender, nodeLifecycle: null }
+  registerContainer(container)
+  return container
 }
 
 /**
@@ -159,6 +166,7 @@ export function releaseContainer(container: Container): void {
   // unavoidable — there is no path that swallows the slot without
   // disposing." Bead: km-silvery.scope-phase-1.
   disposeSubtreeScopes(container.root)
+  releaseContainerLifecycle(container)
 
   // Break FiberRoot → containerInfo → onRender → enclosing-instance retention.
   container.onRender = () => {}

@@ -101,8 +101,7 @@ import {
   createFiberRoot,
   getContainerRoot,
   reconciler,
-  setOnNodeRemoved,
-  setOnNodeUpdated,
+  setContainerNodeLifecycle,
 } from "@silvery/ag-react/reconciler"
 import { map, merge, takeUntil } from "@silvery/create/streams"
 import { createRuntime } from "./create-runtime"
@@ -2351,15 +2350,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     assertNoIslandModeLeak(desired, reason)
   }
 
-  // Wire up focus cleanup on node removal — when React unmounts a subtree,
-  // the host-config calls this to clear focus if the active element was removed.
-  setOnNodeRemoved((removedNode) => {
-    releaseIslandModeSubscriptionsInSubtree(removedNode)
-    focusManager.handleSubtreeRemoved(removedNode)
-    applyFocusedIslandProtocolModes("subtree-removed")
-  })
-  setOnNodeUpdated((updatedNode) => focusManager.handleNodeUpdated(updatedNode))
-
   // Per-instance cursor state (replaces module-level globals)
   const cursorStore = createCursorStore()
 
@@ -2458,8 +2448,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     )
 
     // Unregister node lifecycle hooks
-    setOnNodeRemoved(null)
-    setOnNodeUpdated(null)
+    setContainerNodeLifecycle(container, null)
 
     // Unsubscribe from store
     if (storeUnsubscribeFn) {
@@ -2810,6 +2799,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         void renderStandaloneFrame()
       })
     }
+  })
+
+  // Wire up focus cleanup for this render root — when React unmounts a subtree,
+  // the host-config calls this to clear focus if the active element was removed.
+  setContainerNodeLifecycle(container, {
+    onNodeRemoved: (removedNode) => {
+      releaseIslandModeSubscriptionsInSubtree(removedNode)
+      focusManager.handleSubtreeRemoved(removedNode)
+      applyFocusedIslandProtocolModes("subtree-removed")
+    },
+    onNodeUpdated: (updatedNode) => focusManager.handleNodeUpdated(updatedNode),
   })
 
   // Create React fiber root.

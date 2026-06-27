@@ -14,6 +14,7 @@ import {
   getTabOrder,
   findSpatialTarget,
   getExplicitFocusLink,
+  isFocusHidden,
   isFocusable,
 } from "./focus-queries"
 import { setFocused } from "./interactive-signals"
@@ -428,18 +429,12 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return false
   }
 
-  function nodeHidden(node: AgNode): boolean {
-    if (node.hidden) return true
-    const props = node.props as Record<string, unknown>
-    return props.display === "none"
-  }
-
   function updateInvalidatesFocusedNode(updatedNode: AgNode, focusedNode: AgNode): boolean {
     if (!subtreeContains(updatedNode, focusedNode)) return false
 
     let current: AgNode | null = focusedNode
     while (current) {
-      if (nodeHidden(current)) return true
+      if (isFocusHidden(current)) return true
       if (current === updatedNode) break
       current = current.parent
     }

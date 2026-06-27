@@ -170,29 +170,72 @@ function normalizeNodeType(type: string): AgNodeType {
 // ============================================================================
 
 /**
- * Callback invoked when a node is removed from the tree.
- * Used by the app layer to coordinate focus cleanup — if the focused element
- * is within a removed subtree, focus must be cleared to prevent dangling
- * references and broken navigation (indexOf → -1, hasFocusWithin lies).
+ * Per-container observer for node lifecycle changes. Render roots own their
+ * focus manager independently; lifecycle notifications must route to the
+ * container that owns the updated/removed node, not to a process-wide callback.
  */
-let onNodeRemovedCallback: ((removedNode: AgNode) => void) | null = null
-let onNodeUpdatedCallback: ((updatedNode: AgNode) => void) | null = null
-
-/**
- * Register a callback to be called when any node is removed from the tree.
- * Returns a cleanup function to unregister. Only one callback at a time.
- */
-export function setOnNodeRemoved(callback: ((removedNode: AgNode) => void) | null): void {
-  onNodeRemovedCallback = callback
+export interface NodeLifecycleObserver {
+  onNodeRemoved?: (removedNode: AgNode) => void
+  onNodeUpdated?: (updatedNode: AgNode) => void
 }
 
-/**
- * Register a callback to be called after any mounted node's props are updated.
- * The app layer uses this for focus cleanup when an active node remains mounted
- * but stops being focusable.
- */
-export function setOnNodeUpdated(callback: ((updatedNode: AgNode) => void) | null): void {
-  onNodeUpdatedCallback = callback
+// Module-instance-shared via globalThis for the same reason as nodeScopes
+// below: tests and renderers may import this file through different module
+// specifiers, but AgNode ownership must be shared across those copies.
+const NODE_CONTAINERS_KEY = Symbol.for("@silvery/ag-react/reconciler/nodeContainers")
+type NodeContainersRegistry = WeakMap<AgNode, Container>
+const nodeContainers: NodeContainersRegistry =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis registry
+  (globalThis as any)[NODE_CONTAINERS_KEY] ??
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ((globalThis as any)[NODE_CONTAINERS_KEY] = new WeakMap<AgNode, Container>())
+
+function bindSubtreeToContainer(node: AgNode, container: Container): void {
+  nodeContainers.set(node, container)
+  for (const child of node.children) {
+    bindSubtreeToContainer(child, container)
+  }
+}
+
+function unbindSubtreeFromContainer(node: AgNode): void {
+  nodeContainers.delete(node)
+  for (const child of node.children) {
+    unbindSubtreeFromContainer(child)
+  }
+}
+
+function getOwningContainer(node: AgNode): Container | undefined {
+  let current: AgNode | null = node
+  while (current) {
+    const container = nodeContainers.get(current)
+    if (container) return container
+    current = current.parent
+  }
+  return undefined
+}
+
+export function registerContainer(container: Container): void {
+  bindSubtreeToContainer(container.root, container)
+}
+
+export function releaseContainerLifecycle(container: Container): void {
+  container.nodeLifecycle = null
+  unbindSubtreeFromContainer(container.root)
+}
+
+export function setContainerNodeLifecycle(
+  container: Container,
+  observer: NodeLifecycleObserver | null,
+): void {
+  container.nodeLifecycle = observer
+}
+
+function notifyNodeRemoved(container: Container | undefined, removedNode: AgNode): void {
+  container?.nodeLifecycle?.onNodeRemoved?.(removedNode)
+}
+
+function notifyNodeUpdated(updatedNode: AgNode): void {
+  getOwningContainer(updatedNode)?.nodeLifecycle?.onNodeUpdated?.(updatedNode)
 }
 
 // ============================================================================
@@ -379,6 +422,7 @@ export function setInkStrictValidation(enabled: boolean): void {
 export interface Container {
   root: AgNode
   onRender: () => void
+  nodeLifecycle: NodeLifecycleObserver | null
 }
 
 /**
@@ -535,6 +579,8 @@ export const hostConfig = {
     }
     child.parent = parentInstance
     parentInstance.children.push(child)
+    const container = getOwningContainer(parentInstance)
+    if (container) bindSubtreeToContainer(child, container)
     // Only add to layout tree if both nodes have layout nodes
     if (parentInstance.layoutNode && child.layoutNode) {
       // Count non-raw-text children for proper layout index
@@ -557,6 +603,8 @@ export const hostConfig = {
   appendInitialChild(parentInstance: AgNode, child: AgNode) {
     child.parent = parentInstance
     parentInstance.children.push(child)
+    const container = getOwningContainer(parentInstance)
+    if (container) bindSubtreeToContainer(child, container)
     // Only add to layout tree if both nodes have layout nodes
     if (parentInstance.layoutNode && child.layoutNode) {
       const layoutIndex = parentInstance.children.filter((c) => c.layoutNode !== null).length - 1
@@ -575,6 +623,7 @@ export const hostConfig = {
     }
     child.parent = container.root
     container.root.children.push(child)
+    bindSubtreeToContainer(child, container)
     if (container.root.layoutNode && child.layoutNode) {
       const layoutIndex = container.root.children.filter((c) => c.layoutNode !== null).length - 1
       container.root.layoutNode.insertChild(child.layoutNode, layoutIndex)
@@ -595,7 +644,8 @@ export const hostConfig = {
     const index = parentInstance.children.indexOf(child)
     if (index !== -1) {
       // Notify focus manager before detaching (needs parent chain intact for subtree check)
-      onNodeRemovedCallback?.(child)
+      const container = getOwningContainer(parentInstance) ?? getOwningContainer(child)
+      notifyNodeRemoved(container, child)
       logUnmountSubtree(child)
       // Dispose any fiber-local scopes in the doomed subtree. Must happen
       // before we splice — disposeSubtreeScopes walks `child.children`,
@@ -607,6 +657,7 @@ export const hostConfig = {
         parentInstance.layoutNode.removeChild(child.layoutNode)
         child.layoutNode.free()
       }
+      unbindSubtreeFromContainer(child)
       child.parent = null
       {
         const epoch = getRenderEpoch()
@@ -626,7 +677,7 @@ export const hostConfig = {
     const index = container.root.children.indexOf(child)
     if (index !== -1) {
       // Notify focus manager before detaching
-      onNodeRemovedCallback?.(child)
+      notifyNodeRemoved(container, child)
       logUnmountSubtree(child)
       disposeSubtreeScopes(child)
       container.root.children.splice(index, 1)
@@ -634,6 +685,7 @@ export const hostConfig = {
         container.root.layoutNode.removeChild(child.layoutNode)
         child.layoutNode.free()
       }
+      unbindSubtreeFromContainer(child)
       child.parent = null
       {
         const epoch = getRenderEpoch()
@@ -662,6 +714,8 @@ export const hostConfig = {
     if (beforeIndex !== -1) {
       child.parent = parentInstance
       parentInstance.children.splice(beforeIndex, 0, child)
+      const container = getOwningContainer(parentInstance)
+      if (container) bindSubtreeToContainer(child, container)
       if (parentInstance.layoutNode && child.layoutNode) {
         // Count non-raw-text children before this position for proper layout index
         const layoutIndex = parentInstance.children
@@ -696,6 +750,7 @@ export const hostConfig = {
     if (beforeIndex !== -1) {
       child.parent = container.root
       container.root.children.splice(beforeIndex, 0, child)
+      bindSubtreeToContainer(child, container)
       if (container.root.layoutNode && child.layoutNode) {
         const layoutIndex = container.root.children
           .slice(0, beforeIndex)
@@ -864,7 +919,7 @@ export const hostConfig = {
 
     instance.props = newProps
     logNodeLifecycle("update", instance)
-    onNodeUpdatedCallback?.(instance)
+    notifyNodeUpdated(instance)
 
     // Only mark subtree/ancestor dirty when visual changes were detected.
     // Data attributes (data-*), event handlers, and other non-visual props
@@ -962,7 +1017,7 @@ export const hostConfig = {
   clearContainer(container: Container) {
     // Notify focus manager before clearing — any child subtree may contain focus
     for (const child of container.root.children) {
-      onNodeRemovedCallback?.(child)
+      notifyNodeRemoved(container, child)
       logUnmountSubtree(child)
     }
     // Dispose any fiber-local scopes in the cleared subtrees, plus any
@@ -974,6 +1029,7 @@ export const hostConfig = {
         container.root.layoutNode.removeChild(child.layoutNode)
         child.layoutNode.free()
       }
+      unbindSubtreeFromContainer(child)
     }
     container.root.children = []
     // Must invalidate dirty flags — same as removeChildFromContainer.
@@ -1032,6 +1088,7 @@ export const hostConfig = {
     // Idempotent: disposeSubtreeScopes detaches before disposing, so a
     // node that's already been processed becomes a no-op.
     disposeSubtreeScopes(node)
+    unbindSubtreeFromContainer(node)
   },
 
   // React 19 / react-reconciler 0.33+ required methods
