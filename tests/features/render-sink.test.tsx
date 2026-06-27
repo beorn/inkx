@@ -106,6 +106,38 @@ describe("RenderSink", () => {
     expect(plan.postStateOps[0]?.kind).toBe("setRowMeta")
   })
 
+  test("PlanSink: fadeRegion is paint-ordered so later sibling paint stays crisp", () => {
+    const sink = new PlanSink(3, 1)
+    const backdropOptions = {
+      colorLevel: "truecolor",
+      defaultBg: "#000000",
+      defaultFg: "#ffffff",
+      scrimColor: "#000000",
+    } as const
+
+    sink.emitSetCell(0, 0, { char: "A", fg: 15, bg: 0 })
+    sink.emitSetCell(1, 0, { char: "B", fg: 15, bg: 0 })
+    sink.emitFadeRegion(0, 0, 2, 1, 0.5, backdropOptions)
+    sink.emitSetCell(1, 0, { char: "C", fg: 15, bg: 0 })
+
+    const plan = sink.toPlan()
+    expect(plan.paintOps.map((op) => op.kind)).toEqual([
+      "setCell",
+      "setCell",
+      "fadeRegion",
+      "setCell",
+    ])
+    expect(plan.overlayOps).toHaveLength(0)
+
+    const replayed = new TerminalBuffer(3, 1)
+    commitSectionedPlan(replayed, plan)
+
+    expect(replayed.getCell(0, 0).char).toBe("A")
+    expect(replayed.getCell(0, 0).fg).not.toBe(15)
+    expect(replayed.getCell(1, 0).char).toBe("C")
+    expect(replayed.getCell(1, 0).fg).toBe(15)
+  })
+
   test("PlanSink + commitSectionedPlan: replay matches BufferSink output (non-overlapping ops)", () => {
     // The L4 round-trip on non-overlapping ops: when ops don't overlap,
     // BufferSink (walk-order direct mutation) and PlanSink + sectioned

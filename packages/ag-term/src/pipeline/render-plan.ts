@@ -41,6 +41,7 @@
 
 import type { CellAttrs, CellPatch, Color, Style } from "../buffer"
 import { TerminalBuffer } from "../buffer"
+import { buildRectPlan, realizeToBuffer, type BackdropOptions } from "./backdrop"
 
 export type SelectableCellPatch = CellPatch
 
@@ -527,6 +528,15 @@ export type PaintOp =
       height: number
       style: Style
     }
+  | {
+      kind: "fadeRegion"
+      x: number
+      y: number
+      width: number
+      height: number
+      amount: number
+      options: BackdropOptions
+    }
 
 /**
  * A transfer op. Lives in `transferOps`. Shifts existing prev-frame
@@ -774,6 +784,15 @@ function applyPaint(buffer: TerminalBuffer, op: PaintOp): void {
     case "restyleRegion":
       buffer.restyleRegion(op.x, op.y, op.width, op.height, op.style)
       return
+    case "fadeRegion": {
+      const plan = buildRectPlan(
+        [{ x: op.x, y: op.y, width: op.width, height: op.height }],
+        op.amount,
+        op.options,
+      )
+      realizeToBuffer(plan, buffer)
+      return
+    }
   }
 }
 

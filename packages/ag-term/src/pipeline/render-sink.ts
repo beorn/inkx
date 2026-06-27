@@ -58,6 +58,7 @@ import type {
   SectionedRenderPlan,
   TransferOp,
 } from "./render-plan"
+import { buildRectPlan, realizeToBuffer, type BackdropOptions } from "./backdrop"
 
 function cloneCellPatch(cell: SelectableCellPatch): SelectableCellPatch {
   const out: SelectableCellPatch = { ...cell }
@@ -197,6 +198,21 @@ export interface RenderSink {
     underlineColor?: Color,
   ): void
 
+  /**
+   * Apply a backdrop-style cell fade to an already-painted region. Lives in
+   * `paintOps` because tree-scoped fade must preserve emission order: it runs
+   * after the marked subtree's own paint, but before later siblings paint over
+   * the same cells.
+   */
+  emitFadeRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    amount: number,
+    options: BackdropOptions,
+  ): void
+
   // -- post state -----------------------------------------------------------
 
   /**
@@ -322,6 +338,18 @@ export class BufferSink implements RenderSink {
     this.buffer.mergeAttrsInRect(x, y, width, height, attrs, underlineColor)
   }
 
+  emitFadeRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    amount: number,
+    options: BackdropOptions,
+  ): void {
+    const plan = buildRectPlan([{ x, y, width, height }], amount, options)
+    realizeToBuffer(plan, this.buffer)
+  }
+
   setRowMeta(
     row: number,
     meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
@@ -444,6 +472,18 @@ export class TeeSink implements RenderSink {
   ): void {
     this.primary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
     this.secondary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
+  }
+
+  emitFadeRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    amount: number,
+    options: BackdropOptions,
+  ): void {
+    this.primary.emitFadeRegion(x, y, width, height, amount, options)
+    this.secondary.emitFadeRegion(x, y, width, height, amount, options)
   }
 
   setRowMeta(
@@ -647,6 +687,25 @@ export class PlanSink implements RenderSink {
     })
   }
 
+  emitFadeRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    amount: number,
+    options: BackdropOptions,
+  ): void {
+    this.paintOps.push({
+      kind: "fadeRegion",
+      x,
+      y,
+      width,
+      height,
+      amount,
+      options: cloneBackdropOptions(options),
+    })
+  }
+
   setRowMeta(
     row: number,
     meta: { softWrapped?: boolean; lastContentCol?: number; wrapJoinSpace?: boolean },
@@ -682,4 +741,15 @@ export class PlanSink implements RenderSink {
       postStateOps: this.postStateOps.slice(),
     }
   }
+}
+
+function cloneBackdropOptions(options: BackdropOptions): BackdropOptions {
+  const cloned: BackdropOptions = {}
+  if (options.colorLevel !== undefined) cloned.colorLevel = options.colorLevel
+  if (options.scrimColor !== undefined) cloned.scrimColor = options.scrimColor
+  if (options.defaultBg !== undefined) cloned.defaultBg = options.defaultBg
+  if (options.defaultFg !== undefined) cloned.defaultFg = options.defaultFg
+  if (options.palette !== undefined) cloned.palette = options.palette.map((rgb) => ({ ...rgb }))
+  if (options.kittyGraphics !== undefined) cloned.kittyGraphics = options.kittyGraphics
+  return cloned
 }

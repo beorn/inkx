@@ -378,6 +378,50 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): TerminalPlan
   const excludeAmounts: number[] = []
   collectBackdropMarkers(root, includes, excludes, includeAmounts, excludeAmounts)
 
+  return buildPlanFromCollected(includes, excludes, includeAmounts, excludeAmounts, options)
+}
+
+/**
+ * Build a backdrop plan over explicit rects.
+ *
+ * This is used by render-phase subtree effects that need the SAME color model
+ * as the backdrop pass but already know the exact visible rect they own. It
+ * intentionally emits include rects only; modal/outside fade semantics remain
+ * the responsibility of `data-backdrop-fade-excluded`.
+ */
+export function buildRectPlan(
+  rects: readonly Rect[],
+  amount: number,
+  options?: BackdropOptions,
+): TerminalPlan {
+  const colorLevel: ColorLevel = options?.colorLevel ?? "truecolor"
+  if (colorLevel === "mono") return INACTIVE_PLAN
+
+  const includes: PlanRect[] = []
+  const includeAmounts: number[] = []
+  for (const rect of rects) {
+    if (rect.width <= 0 || rect.height <= 0) continue
+    includes.push({
+      rect: {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      },
+    })
+    includeAmounts.push(amount)
+  }
+
+  return buildPlanFromCollected(includes, [], includeAmounts, [], options)
+}
+
+function buildPlanFromCollected(
+  includes: PlanRect[],
+  excludes: PlanRect[],
+  includeAmounts: number[],
+  excludeAmounts: number[],
+  options?: BackdropOptions,
+): TerminalPlan {
   if (includes.length === 0 && excludes.length === 0) return INACTIVE_PLAN
 
   // Resolve the three color inputs. Every user-provided hex is normalized

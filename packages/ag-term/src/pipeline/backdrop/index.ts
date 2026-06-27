@@ -95,6 +95,7 @@ import { realizeToKitty } from "./realize-kitty"
 export {
   buildCorePlan,
   buildPlan,
+  buildRectPlan,
   DEFAULT_AMOUNT,
   hasBackdropMarkers,
   INACTIVE_PLAN,

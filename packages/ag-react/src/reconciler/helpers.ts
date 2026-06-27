@@ -107,6 +107,10 @@ const STYLE_PROPS = new Set([
   "outlineBottom",
   "outlineLeft",
   "outlineRight",
+  // Render-phase subtree fade. Data attrs are usually metadata, but this one
+  // mutates cell colors after descendants paint, so focus/visibility flips
+  // must invalidate the visual subtree.
+  "data-subtree-fade",
   "userSelect",
   "theme",
 ])
