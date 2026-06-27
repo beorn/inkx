@@ -75,13 +75,12 @@ function expectedOutputs(i: CascadeInputs): CascadeOutputs {
   const contentRegionCleared =
     (i.hasPrevBuffer || i.ancestorCleared) && contentAreaAffected && !i.hasBgColor
 
-  const skipBgFill =
-    i.hasPrevBuffer && !i.ancestorCleared && !contentAreaAffected && !bgRefillNeeded
+  const skipBgFill = i.hasPrevBuffer && !i.ancestorCleared && !contentAreaAffected
+
+  const bgFillPreservesCells = bgOnlyChange
 
   const childrenNeedFreshRender =
-    (i.hasPrevBuffer || i.ancestorCleared) &&
-    (contentAreaAffected || bgRefillNeeded) &&
-    !bgOnlyChange
+    (i.hasPrevBuffer || i.ancestorCleared) && contentAreaAffected && !bgOnlyChange
 
   return {
     canSkipEntireSubtree,
@@ -89,6 +88,7 @@ function expectedOutputs(i: CascadeInputs): CascadeOutputs {
     bgRefillNeeded,
     contentRegionCleared,
     skipBgFill,
+    bgFillPreservesCells,
     childrenNeedFreshRender,
     bgOnlyChange,
   }
@@ -238,12 +238,12 @@ describe("cascade predicates — structural invariants (2^14 = 16384 cases)", ()
     expect(violations).toEqual([])
   })
 
-  test("childrenNeedFreshRender implies contentAreaAffected or bgRefillNeeded", () => {
+  test("childrenNeedFreshRender implies contentAreaAffected", () => {
     const violations: string[] = []
     for (let bits = 0; bits < TOTAL; bits++) {
       const inputs = bitsToInputs(bits)
       const out = computeCascade(inputs)
-      if (out.childrenNeedFreshRender && !out.contentAreaAffected && !out.bgRefillNeeded) {
+      if (out.childrenNeedFreshRender && !out.contentAreaAffected) {
         violations.push(`bits=${bits} [${formatInputs(inputs)}]`)
       }
     }
@@ -369,7 +369,7 @@ describe("cascade predicates — named scenarios", () => {
     expect(out.canSkipEntireSubtree).toBe(false) // still not skipped (stylePropsDirty)
   })
 
-  test("subtree dirty with bg color — forces bg refill, children re-render", () => {
+  test("subtree dirty with bg color — ancestor bg fill skipped, clean children can skip", () => {
     const out = computeCascade({
       ...allFalse(),
       hasPrevBuffer: true,
@@ -378,8 +378,9 @@ describe("cascade predicates — named scenarios", () => {
     })
     expect(out.contentAreaAffected).toBe(false)
     expect(out.bgRefillNeeded).toBe(true)
-    expect(out.childrenNeedFreshRender).toBe(true)
-    expect(out.skipBgFill).toBe(false)
+    expect(out.bgFillPreservesCells).toBe(false)
+    expect(out.childrenNeedFreshRender).toBe(false)
+    expect(out.skipBgFill).toBe(true)
   })
 
   test("subtree dirty without bg color — no special handling", () => {

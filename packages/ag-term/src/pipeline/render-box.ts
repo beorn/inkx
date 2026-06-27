@@ -49,7 +49,7 @@ export function renderBox(
   nodeState: NodeRenderState,
   skipBgFill = false,
   inheritedBg?: Color | null,
-  bgOnlyChange = false,
+  bgFillPreservesCells = false,
   inheritedFg?: Color | null,
 ): void {
   // Phase 2 Step 4b: paint emissions route through a RenderSink so the
@@ -77,10 +77,8 @@ export function renderBox(
   // (only subtreeDirty). The cloned buffer already has the correct bg fill,
   // and re-filling would destroy child pixels that won't be repainted.
   //
-  // bgOnlyChange: when ONLY backgroundColor changed (no content/layout/children
-  // changes), use fillBg() which updates bg without overwriting chars. This
-  // preserves child content from the cloned buffer, enabling the cascade
-  // optimization where clean children are skipped entirely.
+  // bgFillPreservesCells: use fillBg() when the parent only needs to refresh
+  // background metadata while preserving cloned child chars/fg/attrs.
   const effectiveBgStr = getEffectiveBg(props)
   if (effectiveBgStr && !skipBgFill) {
     const bg = parseColor(effectiveBgStr)
@@ -95,14 +93,14 @@ export function renderBox(
         clippedWidth = Math.min(x + width, clipBounds.right) - clippedX
       }
       if (clippedHeight > 0 && clippedWidth > 0) {
-        if (bgOnlyChange) {
+        if (bgFillPreservesCells) {
           sink.emitFillBg(clippedX, clippedY, clippedWidth, clippedHeight, bg)
         } else {
           sink.emitPaintFill(clippedX, clippedY, clippedWidth, clippedHeight, { bg })
         }
       }
     } else {
-      if (bgOnlyChange) {
+      if (bgFillPreservesCells) {
         sink.emitFillBg(x, y, width, height, bg)
       } else {
         sink.emitPaintFill(x, y, width, height, { bg })

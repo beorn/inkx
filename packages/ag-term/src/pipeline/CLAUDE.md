@@ -161,7 +161,9 @@ Tells descendants that an ancestor's layout position/size changed this frame. Pr
 
 ### The Critical Formulas
 
-These five computed values (plus two intermediates: `textPaintDirty`, `bgRefillNeeded`) in `renderNodeToBuffer` control the entire incremental cascade:
+These cascade values (plus intermediates such as `textPaintDirty` and
+`bgRefillNeeded`) in `renderNodeToBuffer` control the entire incremental
+cascade:
 
 ```typescript
 // Did this node's layout position/size change?
@@ -198,12 +200,12 @@ contentRegionCleared =
 
 // Can we skip the bg fill? Only when clone has correct bg already
 // bgRefillNeeded: a descendant changed inside a Box with backgroundColor.
-// The bg fill must re-run to clear stale child pixels (e.g., trailing chars from
-// a shrunk Text). Only applies to bg-bearing boxes when contentAreaAffected is false.
+// The ancestor bg stays cloned; dirty descendants repaint/clear their own cells.
+// Only applies to bg-bearing boxes when contentAreaAffected is false.
 bgRefillNeeded =
   hasPrevBuffer && !contentAreaAffected && node.subtreeDirty && !!props.backgroundColor
 
-skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !bgRefillNeeded
+skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
 
 // bgOnlyChange: bgDirty is the ONLY trigger for contentAreaAffected, node has bg,
 // no ancestor changes. Uses fillBg() to preserve child chars — children skip.
@@ -219,12 +221,12 @@ bgOnlyAffected =
 bgOnlyChange =
   hasPrevBuffer && bgOnlyAffected && hasBgColor && !ancestorLayoutChanged && !ancestorCleared
 
-// Must children re-render? (content area was modified OR bg needs refresh on a cloned buffer)
-// bgRefillNeeded triggers this because bg refill overwrites child pixels — children
-// must re-render on top of the fresh fill.
+// Must children re-render? Parent content area modification forces child repaint.
+// bgRefillNeeded is descendant-only dirtiness: clean children keep cloned cells,
+// dirty descendants repaint/clear their own regions.
 // Exception: bgOnlyChange uses fillBg() which preserves chars, so children skip.
 childrenNeedFreshRender =
-  (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || bgRefillNeeded) && !bgOnlyChange
+  (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !bgOnlyChange
 ```
 
 ## Style-Only Fast Paths

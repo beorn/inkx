@@ -105,9 +105,11 @@ bgRefillNeeded    = hasPrevBuffer && !contentAreaAffected && subtreeDirty && has
 
 contentRegionCleared   = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !hasBgColor
 
-skipBgFill            = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !bgRefillNeeded
+skipBgFill            = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
 
-childrenNeedFreshRender   = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || bgRefillNeeded)
+bgFillPreservesCells  = bgOnlyChange
+
+childrenNeedFreshRender   = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
 ```
 
 Invariants: (1) contentAreaAffected ∧ bgRefillNeeded → ⊥, (2) contentRegionCleared ∧ skipBgFill → ⊥, (3-4) ¬hasPrevBuffer ∧ ¬ancestorCleared → contentRegionCleared=⊥ ∧ childrenNeedFreshRender=⊥, (5) canSkipEntireSubtree → hasPrevBuffer.

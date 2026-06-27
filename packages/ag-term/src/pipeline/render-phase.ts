@@ -645,14 +645,20 @@ function renderNodeToBuffer(
       cascade = computeCascade(cascadeInputs)
     }
 
-    // bgOnlyChange safety check: fillBg updates ALL cells in the region, which
-    // would incorrectly overwrite children with their own explicit backgroundColor.
+    // Preserving bg fill safety check: fillBg updates ALL cells in the region,
+    // which would incorrectly overwrite children with their own explicit
+    // backgroundColor.
     // Fall back to the full path when any descendant has its own bg.
     if (cascade.bgOnlyChange && hasDescendantWithBg(node)) {
       const childrenNeedFreshRender =
         (hasPrevBuffer || ancestorCleared) &&
         (cascade.contentAreaAffected || cascade.bgRefillNeeded)
-      cascade = { ...cascade, bgOnlyChange: false, childrenNeedFreshRender }
+      cascade = {
+        ...cascade,
+        bgOnlyChange: false,
+        bgFillPreservesCells: false,
+        childrenNeedFreshRender,
+      }
     }
 
     // Box attr-overlay safety: when stylePropsDirty on a silvery-box and the
@@ -785,7 +791,7 @@ function renderNodeToBuffer(
           instr.enabled,
           instr.stats,
           ctx,
-          cascade.bgOnlyChange,
+          cascade.bgFillPreservesCells,
           useTextStyleFastPath,
         )
       } finally {
@@ -1163,7 +1169,7 @@ function renderOwnContent(
   instrumentEnabled: boolean,
   stats: RenderPhaseStats,
   ctx?: PipelineContext,
-  bgOnlyChange = false,
+  bgFillPreservesCells = false,
   useTextStyleFastPath = false,
 ): Color | undefined {
   // O(1) inherited bg/fg from nodeState — threaded top-down, no parent chain walks.
@@ -1181,7 +1187,7 @@ function renderOwnContent(
       nodeState,
       skipBgFill,
       boxInheritedBg,
-      bgOnlyChange,
+      bgFillPreservesCells,
       nodeState.inheritedFg,
     )
   } else if (node.type === "silvery-viewport") {
@@ -1556,7 +1562,7 @@ export interface ScrollPlanInputs {
   descendantDirty: boolean
   /** Scroll container has sticky children. */
   hasStickyChildren: boolean
-  /** Parent cascade: children need fresh render (contentAreaAffected || bgRefillNeeded). */
+  /** Parent cascade: children need fresh render because the parent content area changed. */
   childrenNeedFreshRender: boolean
   /** Node has restructured children (added/removed/reordered). */
   childrenDirty: boolean
@@ -2126,8 +2132,8 @@ function renderNormalChildren(
   let childHasPrev = childrenNeedRepaint ? false : hasPrevBuffer
   // childAncestorCleared: tells descendants that STALE pixels exist in the buffer.
   // Only contentRegionCleared (no bg fill → stale pixels remain) propagates this.
-  // childrenNeedFreshRender WITHOUT contentRegionCleared means the parent filled its bg,
-  // so children's positions have correct bg — NOT stale. Setting ancestorCleared
+  // childrenNeedFreshRender WITHOUT contentRegionCleared means the parent content area
+  // was repainted without leaving stale pixels for descendants. Setting ancestorCleared
   // there would cause children to re-fill, overwriting border cells at boundaries.
   // When this node has backgroundColor, its renderBox fill covers any stale
   // pixels from ancestor clears — so children don't need ancestorCleared.

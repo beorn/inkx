@@ -83,6 +83,7 @@ describe("reactive cascade — exhaustive oracle equivalence (2^14 = 16384 cases
       "bgRefillNeeded",
       "contentRegionCleared",
       "skipBgFill",
+      "bgFillPreservesCells",
       "childrenNeedFreshRender",
       "bgOnlyChange",
     ]

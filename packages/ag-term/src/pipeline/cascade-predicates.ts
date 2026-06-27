@@ -40,7 +40,8 @@
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ bgRefillNeeded                                                         │
  * │   = hasPrevBuffer && !contentAreaAffected && subtreeDirty && hasBgColor    │
- * │   Descendant changed inside a bg-bearing Box. Forces bg refill.           │
+ * │   Descendant changed inside a bg-bearing Box. The ancestor bg is left     │
+ * │   cloned; dirty descendants repaint/clear their own cells.                │
  * │   Mutually exclusive with contentAreaAffected (gated on !contentAreaAffected).│
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ contentRegionCleared                                                        │
@@ -51,13 +52,13 @@
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ skipBgFill                                                                 │
  * │   = hasPrevBuffer && !ancestorCleared && !contentAreaAffected              │
- * │     && !bgRefillNeeded                                                 │
  * │   Clone already has correct bg. Skip redundant fill.                       │
  * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ childrenNeedFreshRender                                                        │
- * │   = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected             │
- * │     || bgRefillNeeded)                                                 │
- * │   Children must re-render (childHasPrev=false).                            │
+ * │ childrenNeedFreshRender                                                    │
+ * │   = (hasPrevBuffer || ancestorCleared) && contentAreaAffected              │
+ * │   Children must re-render (childHasPrev=false). bgRefillNeeded is          │
+ * │   descendant-only dirtiness; clean children keep their cloned cells while  │
+ * │   dirty descendants repaint/clear their own regions.                       │
  * │   False when hasPrevBuffer=false AND ancestorCleared=false (fresh buffer). │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
@@ -515,6 +516,11 @@ export interface CascadeOutputs {
   bgRefillNeeded: boolean
   contentRegionCleared: boolean
   skipBgFill: boolean
+  /**
+   * True when renderBox must refresh only cell backgrounds and preserve cloned
+   * glyphs, foregrounds, attrs, hyperlinks, and selection metadata.
+   */
+  bgFillPreservesCells: boolean
   childrenNeedFreshRender: boolean
   /**
    * True when bgDirty is the ONLY reason contentAreaAffected is true, and the
@@ -605,7 +611,8 @@ export function computeCascade(inputs: CascadeInputs): CascadeOutputs {
   // (fg colors lost on child nodes). Needs investigation before re-enabling.
   const bgOnlyChange = false
 
-  // Descendant changed inside a bg-bearing Box (forces bg refill).
+  // Descendant changed inside a bg-bearing Box. The ancestor bg did not
+  // change, so leave cloned cells in place and let dirty descendants repaint.
   const bgRefillNeeded = hasPrevBuffer && !contentAreaAffected && subtreeDirty && hasBgColor
 
   // Clear region with inherited bg when content changed but no own bg fill.
@@ -614,13 +621,16 @@ export function computeCascade(inputs: CascadeInputs): CascadeOutputs {
     (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !hasBgColor
 
   // Skip bg fill when clone already has correct bg at this position.
-  const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !bgRefillNeeded
+  // bgRefillNeeded is descendant-only dirtiness: the ancestor bg did not
+  // change, and dirty descendants are responsible for their own repaint/clear.
+  const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
 
-  // Children must re-render (content area modified OR bg needs refresh).
-  // Exception: bgOnlyChange uses fillBg() which preserves chars, so children
-  // don't need fresh render — they keep their correct chars from the clone.
+  const bgFillPreservesCells = bgOnlyChange
+
+  // Children must re-render when the parent's content area was modified.
+  // bgRefillNeeded is excluded because it is descendant-only dirtiness.
   const childrenNeedFreshRender =
-    (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || bgRefillNeeded) && !bgOnlyChange
+    (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !bgOnlyChange
 
   return {
     canSkipEntireSubtree,
@@ -628,6 +638,7 @@ export function computeCascade(inputs: CascadeInputs): CascadeOutputs {
     bgRefillNeeded,
     contentRegionCleared,
     skipBgFill,
+    bgFillPreservesCells,
     childrenNeedFreshRender,
     bgOnlyChange,
   }

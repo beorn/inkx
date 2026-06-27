@@ -77,6 +77,7 @@ export interface ReactiveNodeState {
   readonly bgRefillNeeded: Computed<boolean>
   readonly contentRegionCleared: Computed<boolean>
   readonly skipBgFill: Computed<boolean>
+  readonly bgFillPreservesCells: Computed<boolean>
   readonly childrenNeedFreshRender: Computed<boolean>
   readonly bgOnlyChange: Computed<boolean>
 }
@@ -151,15 +152,12 @@ export function createReactiveNodeState(): ReactiveNodeState {
     () => (hasPrevBuffer() || ancestorCleared()) && contentAreaAffected() && !hasBgColor(),
   )
 
-  const skipBgFill = computed(
-    () => hasPrevBuffer() && !ancestorCleared() && !contentAreaAffected() && !bgRefillNeeded(),
-  )
+  const skipBgFill = computed(() => hasPrevBuffer() && !ancestorCleared() && !contentAreaAffected())
+
+  const bgFillPreservesCells = computed(() => bgOnlyChange())
 
   const childrenNeedFreshRender = computed(
-    () =>
-      (hasPrevBuffer() || ancestorCleared()) &&
-      (contentAreaAffected() || bgRefillNeeded()) &&
-      !bgOnlyChange(),
+    () => (hasPrevBuffer() || ancestorCleared()) && contentAreaAffected() && !bgOnlyChange(),
   )
 
   return {
@@ -183,6 +181,7 @@ export function createReactiveNodeState(): ReactiveNodeState {
     bgRefillNeeded,
     contentRegionCleared,
     skipBgFill,
+    bgFillPreservesCells,
     childrenNeedFreshRender,
     bgOnlyChange,
   }
@@ -248,6 +247,7 @@ export function readReactiveCascade(state: ReactiveNodeState): CascadeOutputs {
     bgRefillNeeded: state.bgRefillNeeded(),
     contentRegionCleared: state.contentRegionCleared(),
     skipBgFill: state.skipBgFill(),
+    bgFillPreservesCells: state.bgFillPreservesCells(),
     childrenNeedFreshRender: state.childrenNeedFreshRender(),
     bgOnlyChange: state.bgOnlyChange(),
   }
@@ -274,6 +274,7 @@ export function assertReactiveMatchesOracle(
     "bgRefillNeeded",
     "contentRegionCleared",
     "skipBgFill",
+    "bgFillPreservesCells",
     "childrenNeedFreshRender",
     "bgOnlyChange",
   ]
