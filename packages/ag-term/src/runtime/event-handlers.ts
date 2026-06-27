@@ -103,10 +103,18 @@ type RoutedMouseData = {
 function focusedIslandNode(focusManager: FocusManager): AgNode | null {
   let node: AgNode | null = focusManager.activeElement
   while (node) {
-    if (node.type === "silvery-island") return node
+    if (node.type === "silvery-island") {
+      return nodeCanOwnFocus(node) ? node : null
+    }
     node = node.parent
   }
   return null
+}
+
+function nodeCanOwnFocus(node: AgNode): boolean {
+  if (node.hidden) return false
+  const props = node.props as Record<string, unknown>
+  return Boolean(props.focusable) && props.display !== "none"
 }
 
 function feedIsland(node: AgNode, data: string): boolean {

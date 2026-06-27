@@ -195,6 +195,60 @@ describe("island command prefix — keys", () => {
     }
   })
 
+  test("focusable=false severs stale focused-island keyboard routing after a host focus handoff", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+    const hostKeys: string[] = []
+
+    function App(): React.ReactElement {
+      const [shellFocused, setShellFocused] = React.useState(true)
+      useInput((input, key) => {
+        if (key.ctrl && input === "g") {
+          hostKeys.push("ctrl-g")
+          setShellFocused(false)
+          return
+        }
+        hostKeys.push(input)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island
+            guest={recorder.guest}
+            cols={10}
+            rows={2}
+            focusable={shellFocused}
+            commandPrefix={{ hotkey: "ctrl+g", capturing: false }}
+          />
+          <Text>host pane</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab")
+
+      await handle.press("a")
+      await settle()
+      expect(recorder.feeds).toEqual(["a"])
+      expect(hostKeys).toEqual([])
+
+      await handle.press("Control+g")
+      await settle()
+      expect(hostKeys).toEqual(["ctrl-g"])
+
+      await handle.press("b")
+      await settle()
+      expect(
+        recorder.feeds,
+        "a stale active island whose focusable prop is now false must not receive keys",
+      ).toEqual(["a"])
+      expect(hostKeys).toEqual(["ctrl-g", "b"])
+    } finally {
+      handle.unmount()
+    }
+  })
+
   test("no commandPrefix: every key (including Ctrl-G) is forwarded to the guest (regression guard)", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
     const recorder = createInputRecorderGuest()
