@@ -771,11 +771,11 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
       }
     }
 
-    // For tiny lists (≤ visible + overscan), render everything.
-    // This bypass applies in both modes (steady-state and bootstrap) —
-    // nothing to virtualize when the list already fits.
+    // For tiny lists (≤ visible + overscan), render everything, but only
+    // while honoring the caller's item budget. Some consumers have expensive
+    // rows where "fits in the viewport" still does not mean "cheap to mount".
     const minWindowSize = estimatedVisibleCount + 2 * overscan
-    if (count <= minWindowSize) {
+    if (count <= minWindowSize && count <= maxRendered) {
       return {
         startIndex: 0,
         endIndex: count,

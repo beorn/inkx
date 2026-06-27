@@ -77,4 +77,31 @@ describe("useVirtualizer", () => {
     expect(latest.leadingHeight).toBe(50)
     expect(latest.trailingHeight).toBe(95)
   })
+
+  test("tiny-list fast path respects maxRendered", () => {
+    let latest!: VirtualizerResult
+
+    function Harness() {
+      const virtualizer = useVirtualizer({
+        count: 20,
+        estimateHeight: 1,
+        viewportHeight: 100,
+        overscan: 5,
+        maxRendered: 8,
+        getItemKey: (index) => `row-${index}`,
+      })
+      latest = virtualizer
+      return (
+        <Text>
+          range:{virtualizer.range.startIndex}-{virtualizer.range.endIndex}
+        </Text>
+      )
+    }
+
+    const render = createRenderer({ cols: 40, rows: 4 })
+    const app = render(<Harness />)
+
+    expect(stripAnsi(app.text)).toContain("range:0-8")
+    expect(latest.range).toEqual({ startIndex: 0, endIndex: 8 })
+  })
 })
