@@ -225,8 +225,7 @@ bgOnlyChange =
 // bgRefillNeeded is descendant-only dirtiness: clean children keep cloned cells,
 // dirty descendants repaint/clear their own regions.
 // Exception: bgOnlyChange uses fillBg() which preserves chars, so children skip.
-childrenNeedFreshRender =
-  (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !bgOnlyChange
+childrenNeedFreshRender = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !bgOnlyChange
 ```
 
 ## Style-Only Fast Paths
