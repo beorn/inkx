@@ -323,6 +323,19 @@ export function managedCursorSuffix(
 }
 
 /**
+ * Transport-safe managed cursor delivery.
+ *
+ * The semantic suffix is still "park then hide" (`managedCursorSuffix` above).
+ * Output paths append this idempotent SGR reset after it so the managed cursor
+ * controls are not the literal trailing run of cursor-control bytes. That keeps
+ * multiplexers that drop a trailing cursor-control tail from peeling the park
+ * move away from the content frame that required it.
+ */
+export function protectManagedCursorSuffix(cursorSuffix: string): string {
+  return cursorSuffix.length === 0 ? "" : cursorSuffix + ANSI.RESET
+}
+
+/**
  * The single source of truth for managed-frame cursor handling.
  *
  * Three render entry points (`scheduler.ts`, `runtime/create-runtime.ts`,

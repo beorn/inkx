@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, test } from "vitest"
+import { createTerminal } from "@termless/core"
+import { createXtermBackend } from "@termless/xtermjs"
 import { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import {
   clearLastOutputCursorDiagnostics,
@@ -13,6 +15,12 @@ import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
 import type { AgNode } from "../../packages/ag/src/types"
 
 const originalStrict = process.env.SILVERY_STRICT
+const ESC_RE = "\\u001b"
+const TRAILING_CURSOR_CONTROL_RE = new RegExp(
+  `(?:${ESC_RE}\\[\\?2026[hl]|${ESC_RE}\\[\\d+;\\d+H|${ESC_RE}\\[\\?25[lh]|${ESC_RE}\\[H)+$`,
+  "g",
+)
+const INVERSE_SGR_RE = new RegExp(`${ESC_RE}\\[7m`, "g")
 
 afterEach(() => {
   if (originalStrict === undefined) delete process.env.SILVERY_STRICT
@@ -24,6 +32,28 @@ afterEach(() => {
 function enableCursorStrict(): void {
   process.env.SILVERY_STRICT = "cursor"
   resetStrictCache()
+}
+
+function replayCursor(
+  output: string,
+  dims: Dims,
+): { x: number; y: number; visible: boolean | null } {
+  const terminal = createTerminal({
+    backend: createXtermBackend(),
+    cols: dims.cols,
+    rows: dims.rows,
+  })
+  try {
+    terminal.feed(output)
+    const cursor = terminal.getCursor()
+    return { x: cursor.x, y: cursor.y, visible: cursor.visible }
+  } finally {
+    void terminal.close()
+  }
+}
+
+function stripTrailingCursorControl(output: string): string {
+  return output.replace(TRAILING_CURSOR_CONTROL_RE, "")
 }
 
 function writeLine(buffer: TerminalBuffer, row: number, text: string): void {
@@ -92,6 +122,27 @@ function managedComposerBuffer(
   writeLine(terminalBuffer, 1, "activity: still running")
   writeLine(terminalBuffer, opts.cursorRow - 1, "---- Interject now ----")
   writeLine(terminalBuffer, opts.cursorRow, opts.prompt)
+  writeLine(terminalBuffer, dims.rows - 1, "Silver Code status")
+  return {
+    text: "",
+    ansi: "",
+    nodes: cursorNode(dims, {
+      col: opts.cursorCol,
+      row: opts.cursorRow,
+      visible: true,
+    }),
+    _buffer: terminalBuffer,
+  }
+}
+
+function managedActivityBuffer(
+  dims: Dims,
+  opts: { activity: string; cursorRow: number; cursorCol: number },
+): Buffer {
+  const terminalBuffer = new TerminalBuffer(dims.cols, dims.rows)
+  writeLine(terminalBuffer, 0, "transcript: already rendered")
+  writeLine(terminalBuffer, 1, opts.activity)
+  writeLine(terminalBuffer, opts.cursorRow, "> ")
   writeLine(terminalBuffer, dims.rows - 1, "Silver Code status")
   return {
     text: "",
@@ -279,7 +330,7 @@ describe("output cursor diagnostics", () => {
       const frame = writes[0]!
       expect(frame, scenario.name).toContain("\x1b[?25l")
       expect(frame, scenario.name).not.toContain("\x1b[?25h")
-      expect((frame.match(/\x1b\[7m/g) ?? []).length, scenario.name).toBe(1)
+      expect((frame.match(INVERSE_SGR_RE) ?? []).length, scenario.name).toBe(1)
 
       const diagnostics = getLastOutputCursorDiagnostics()
       expect(diagnostics, scenario.name).toMatchObject({
@@ -308,5 +359,47 @@ describe("output cursor diagnostics", () => {
         },
       })
     }
+  })
+
+  test("managed fullscreen runtime cursor delivery survives a stripped trailing cursor-control tail", () => {
+    enableCursorStrict()
+
+    const dims: Dims = { cols: 36, rows: 10 }
+    const cursorRow = 7
+    const cursorCol = 2
+    const writes: string[] = []
+    using runtime = createRuntime({
+      mode: "fullscreen",
+      outputPhaseFn: createOutputPhase({}),
+      target: {
+        write(frame) {
+          writes.push(frame)
+        },
+        getDims() {
+          return dims
+        },
+        onResize() {
+          return () => {}
+        },
+      },
+    })
+
+    runtime.render(
+      managedActivityBuffer(dims, { activity: "activity: Working 1", cursorRow, cursorCol }),
+    )
+    runtime.render(
+      managedActivityBuffer(dims, { activity: "activity: Working 2", cursorRow, cursorCol }),
+    )
+
+    expect(writes).toHaveLength(2)
+    const frame = writes[1]!
+    expect(frame).toContain("\x1b[?2026h")
+    expect(frame).toContain("\x1b[?2026l")
+    expect(frame).toContain("\x1b[8;3H\x1b[?25l\x1b[0m")
+
+    const cursor = replayCursor(stripTrailingCursorControl(frame), dims)
+    expect(cursor.y).toBe(cursorRow)
+    expect(cursor.x).toBe(cursorCol)
+    expect(cursor.y, "tail-stripped cursor must not strand on the activity update row").not.toBe(1)
   })
 })

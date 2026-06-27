@@ -33,7 +33,7 @@ import {
   type PrevPresentation,
 } from "../cursor-diagnostics"
 import { ANSI } from "../output"
-import { computeManagedFrame } from "../managed-caret"
+import { computeManagedFrame, protectManagedCursorSuffix } from "../managed-caret"
 // Side-effect import: install the terminal wrap-measurer adapter into
 // `@silvery/ag`'s registry the moment a runtime is constructed. The
 // registration itself is idempotent (see ./wrap-measurer-registration.ts);
@@ -465,7 +465,15 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       //
       // Inline mode skips this — `inlineCursorSuffix` (in output-phase.ts)
       // already positions the cursor inside the diff output.
-      patch += cursorSuffix
+      //
+      // `protectManagedCursorSuffix` appends an idempotent non-cursor SGR reset
+      // after the park+hide controls. Small frames whose managed cursor parks
+      // away from home are then wrapped in DEC 2026 below, with content+park+hide
+      // in the same frame but no peelable cursor-control tail at the byte
+      // stream end. Home-only no-cursor frames keep the historical small-frame
+      // unwrapped contract.
+      const cursorDelivery = protectManagedCursorSuffix(cursorSuffix)
+      patch += cursorDelivery
 
       // No destructive screen clear on a resize/focus/reflow frame.
       //
@@ -537,9 +545,15 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       // Net for a focus-in/resize frame: NO `2J`, then a (size-gated) sync-wrapped
       // full repaint. Neither the clear-in-sync corruption, the unsynced-`2J`
       // flash, nor the torn-unsynced-repaint blank can occur.
+      const cursorDeliveryNeedsSync =
+        mode === "fullscreen" &&
+        cursorSuffix.length > 0 &&
+        expectedTerminal !== null &&
+        (expectedTerminal.x !== 0 || expectedTerminal.y !== 0)
       const wrapBody =
         patch.length > 0 &&
         (syncUpdate ||
+          cursorDeliveryNeedsSync ||
           (mode === "fullscreen" && Buffer.byteLength(patch) >= LARGE_FULLSCREEN_SYNC_BYTES))
       const body = wrapBody ? `${ANSI.SYNC_BEGIN}${patch}${ANSI.SYNC_END}` : patch
       const frameOutput = clearPrefix + body

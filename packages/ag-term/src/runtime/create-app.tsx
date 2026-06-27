@@ -83,7 +83,7 @@ import {
 import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
 import { isStrictEnabled } from "../strict-mode.js"
 import { recordOutputCursorDiagnostics } from "../cursor-diagnostics"
-import { computeManagedFrame } from "../managed-caret"
+import { computeManagedFrame, protectManagedCursorSuffix } from "../managed-caret"
 import { createBytesOutMonitor } from "../bytes-out-monitor"
 import { createMemMonitor } from "../mem-monitor"
 import {
@@ -1565,7 +1565,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     const managed = computeManagedFrame(currentBuffer._buffer, currentBuffer.nodes, "fullscreen", {
       windowFocused: chainApp.terminal.focused,
     })
-    const output = managed.cursorSuffix
+    const output = protectManagedCursorSuffix(managed.cursorSuffix)
     recordOutputCursorDiagnostics({
       reason: "post-paint-cursor-restore",
       mode: "fullscreen",

@@ -41,7 +41,7 @@ import {
   type PrevPresentation,
 } from "./cursor-diagnostics"
 import { ANSI, notify as notifyTerminal } from "./output"
-import { computeManagedFrame } from "./managed-caret"
+import { computeManagedFrame, protectManagedCursorSuffix } from "./managed-caret"
 import type { PipelineConfig } from "./pipeline"
 import {
   clearLastOutputPhaseDiagnostics,
@@ -840,11 +840,17 @@ export class RenderScheduler {
       // Write output wrapped with synchronized update (DEC 2026) for TTY mode.
       // This tells the terminal to batch the output and paint atomically,
       // preventing tearing during rapid screen updates.
-      if (transformedOutput.length > 0 || cursorSuffix.length > 0) {
+      const cursorDelivery = protectManagedCursorSuffix(cursorSuffix)
+      if (transformedOutput.length > 0 || cursorDelivery.length > 0) {
+        const cursorDeliveryNeedsSync =
+          this.nonTTYMode === "tty" &&
+          cursorSuffix.length > 0 &&
+          expectedTerminal !== null &&
+          (expectedTerminal.x !== 0 || expectedTerminal.y !== 0)
         const fullOutput =
-          this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED
-            ? `${ANSI.SYNC_BEGIN}${transformedOutput}${cursorSuffix}${ANSI.SYNC_END}`
-            : transformedOutput + cursorSuffix
+          this.nonTTYMode === "tty" && (SYNC_UPDATE_ENABLED || cursorDeliveryNeedsSync)
+            ? `${ANSI.SYNC_BEGIN}${transformedOutput}${cursorDelivery}${ANSI.SYNC_END}`
+            : transformedOutput + cursorDelivery
 
         // Debug: log output sizes to detect potential pipe buffer splits
         if (log.debug) {
@@ -903,8 +909,9 @@ export class RenderScheduler {
           const diagnostics = {
             ...outputDiagnostics,
             outputChars: transformedOutput.length,
-            cursorChars: cursorSuffix.length,
-            syncWrapped: this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED,
+            cursorChars: cursorDelivery.length,
+            syncWrapped:
+              this.nonTTYMode === "tty" && (SYNC_UPDATE_ENABLED || cursorDeliveryNeedsSync),
           }
           const renderNumber = this.stats.renderCount + 1
           this.bytesOutMonitor?.recordWrite(renderNumber, bytes, diagnostics)
