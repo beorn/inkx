@@ -67,8 +67,9 @@ import {
   getContainerRoot,
   reconciler,
   runWithDiscreteEvent,
-  setOnNodeRemoved,
+  setContainerNodeLifecycle,
   unmountFiberRoot,
+  type Container,
 } from "./reconciler"
 import { renderStringSync } from "./render-string"
 import { RenderScheduler } from "@silvery/ag-term/scheduler"
@@ -272,6 +273,7 @@ async function ensureLayoutEngineInitialized(engineType?: LayoutEngineType): Pro
 // ============================================================================
 
 interface AppProps {
+  container: Container
   children: ReactNode
   /** Subscribe to raw input chunks. Returns cleanup. Called by setRawMode. */
   onInputSubscribe?: (handler: (chunk: string) => void) => () => void
@@ -313,6 +315,7 @@ interface AppProps {
  * provides `onInputSubscribe` which connects the input source.
  */
 function SilveryApp({
+  container,
   children,
   onInputSubscribe,
   exitOnCtrlC,
@@ -525,11 +528,16 @@ function SilveryApp({
   // Store in ref so the stable input handler closure can access it
   focusManagerRef.current = focusManager
 
-  // Wire up focus cleanup on node removal
+  // Wire up focus cleanup for this render root.
   useEffect(() => {
-    setOnNodeRemoved((removedNode) => focusManager.handleSubtreeRemoved(removedNode))
-    return () => setOnNodeRemoved(null)
-  }, [focusManager])
+    setContainerNodeLifecycle(container, {
+      onNodeRemoved: (removedNode) => focusManager.handleSubtreeRemoved(removedNode),
+      onNodeUpdated: (updatedNode) => focusManager.handleNodeUpdated(updatedNode),
+    })
+    return () => {
+      setContainerNodeLifecycle(container, null)
+    }
+  }, [container, focusManager])
 
   return (
     <StdoutContext.Provider value={stdoutContextValue}>
@@ -693,12 +701,13 @@ class SilveryInstance {
     log.debug?.("SilveryInstance.render() start")
     const startTime = Date.now()
 
-    if (this.isUnmounted || !this.fiberRoot) return
+    if (this.isUnmounted || !this.fiberRoot || !this.container) return
     this.lastElement = element
 
     const tree = (
       <CursorProvider store={this.cursorStore}>
         <SilveryApp
+          container={this.container}
           onInputSubscribe={this.subscribeToInput}
           exitOnCtrlC={this.exitOnCtrlC}
           stdoutWrite={(data: string) => {

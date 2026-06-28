@@ -14,6 +14,8 @@ import {
   getTabOrder,
   findSpatialTarget,
   getExplicitFocusLink,
+  isFocusHidden,
+  isFocusable,
 } from "./focus-queries"
 import { setFocused } from "./interactive-signals"
 import { syncFocusedSignal } from "./layout-signals"
@@ -128,6 +130,13 @@ export interface FocusManager {
    * clear the reference to prevent dead node retention and broken navigation.
    */
   handleSubtreeRemoved(removedRoot: AgNode): void
+
+  /**
+   * Handle a mounted node's props/state being updated.
+   * If the active focus target is no longer focusable or has become hidden,
+   * clear focus so focused-element input dispatch falls back to host handlers.
+   */
+  handleNodeUpdated(updatedNode: AgNode): void
 
   /** Push a focus scope onto the stack */
   enterScope(scopeId: string): void
@@ -420,6 +429,19 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return false
   }
 
+  function updateInvalidatesFocusedNode(updatedNode: AgNode, focusedNode: AgNode): boolean {
+    if (!subtreeContains(updatedNode, focusedNode)) return false
+
+    let current: AgNode | null = focusedNode
+    while (current) {
+      if (isFocusHidden(current)) return true
+      if (current === updatedNode) break
+      current = current.parent
+    }
+
+    return updatedNode === focusedNode && !isFocusable(focusedNode)
+  }
+
   /**
    * Handle a subtree being removed from the tree. If the active or previous
    * element lives within the removed subtree, clear the dangling reference.
@@ -443,6 +465,39 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     }
 
     if (previousElement && subtreeContains(removedRoot, previousElement)) {
+      previousElement = null
+      previousId = null
+      changed = true
+    }
+
+    if (changed) {
+      notify()
+    }
+  }
+
+  /**
+   * Handle a mounted node update. React can update a focused node from
+   * `focusable` to non-focusable without unmounting it; leaving that node as
+   * `activeElement` keeps the focused dispatch lane alive and routes later keys
+   * into an input owner the app has already deactivated.
+   */
+  function handleNodeUpdated(updatedNode: AgNode): void {
+    let changed = false
+
+    if (activeElement && updateInvalidatesFocusedNode(updatedNode, activeElement)) {
+      const oldElement = activeElement
+      setFocused(oldElement, false)
+      syncFocusedSignal(oldElement, false)
+      previousElement = activeElement
+      previousId = activeId
+      activeElement = null
+      activeId = null
+      focusOrigin = null
+      changed = true
+      onFocusChange?.(oldElement, null, null)
+    }
+
+    if (previousElement && updateInvalidatesFocusedNode(updatedNode, previousElement)) {
       previousElement = null
       previousId = null
       changed = true
@@ -713,6 +768,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     focusVirtualId,
     blur,
     handleSubtreeRemoved,
+    handleNodeUpdated,
 
     enterScope,
     exitScope,

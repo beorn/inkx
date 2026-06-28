@@ -12,11 +12,17 @@ import type { AgNode, Rect } from "./types"
 // Focusable Detection
 // ============================================================================
 
-/** Check if a node has the focusable prop set to true (or truthy). */
-function isFocusable(node: AgNode): boolean {
-  if (node.hidden) return false
+/** Check if a node or subtree is hidden from the focus tree. */
+export function isFocusHidden(node: AgNode): boolean {
+  if (node.hidden) return true
   const props = node.props as Record<string, unknown>
-  return Boolean(props.focusable) && props.display !== "none"
+  return props.display === "none"
+}
+
+/** Check if a node has the focusable prop set to true (or truthy). */
+export function isFocusable(node: AgNode): boolean {
+  const props = node.props as Record<string, unknown>
+  return Boolean(props.focusable) && !isFocusHidden(node)
 }
 
 /** Check if a node creates a focus scope (isolated Tab cycle). */
@@ -56,9 +62,7 @@ export function getTabOrder(root: AgNode, scope?: AgNode): AgNode[] {
 
   function walk(node: AgNode): void {
     // Skip hidden nodes (Suspense) and display: none — entire subtree is excluded
-    if (node.hidden) return
-    const props = node.props as Record<string, unknown>
-    if (props.display === "none") return
+    if (isFocusHidden(node)) return
 
     // If this node is a focusScope boundary and it's NOT the walk root,
     // skip its children — they belong to a different Tab cycle.

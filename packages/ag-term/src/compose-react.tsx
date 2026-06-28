@@ -28,6 +28,7 @@ import {
   createFiberRoot,
   getContainerRoot,
   reconciler,
+  setContainerNodeLifecycle,
   unmountFiberRoot,
 } from "@silvery/ag-react/reconciler"
 import { TermContext, RuntimeContext, FocusManagerContext } from "@silvery/ag-react/context"
@@ -72,6 +73,10 @@ export function withReact(element: ReactElement) {
       if (mounted) {
         app.render()
       }
+    })
+    setContainerNodeLifecycle(container, {
+      onNodeRemoved: (removedNode) => focusManager.handleSubtreeRemoved(removedNode),
+      onNodeUpdated: (updatedNode) => focusManager.handleNodeUpdated(updatedNode),
     })
 
     const fiberRoot = createFiberRoot(container)
