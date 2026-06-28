@@ -52,6 +52,7 @@ import { withPlanCapture } from "./pipeline/render-sink"
 import { createRenderPostState, type RenderPostState } from "./pipeline/render-post-state"
 export { createRenderPostState, type RenderPostState } from "./pipeline/render-post-state"
 import { applyBackdrop, hasBackdropMarkers, type ColorLevel } from "./pipeline/backdrop"
+import { applySubtreeFade, hasSubtreeFadeMarkers } from "./pipeline/subtree-fade"
 import { CURSOR_RESTORE, CURSOR_SAVE, kittyDeleteAllScrimPlacements } from "@silvery/ansi"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
 import type { PipelineContext } from "./pipeline/types"
@@ -560,7 +561,13 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     let carryForwardBuffer: TerminalBuffer
     let overlay = ""
     const backdropActive = hasBackdropMarkers(root)
-    if (backdropActive) {
+    // Tree-scoped subtree fade (the unfocused-pane dim) shares the backdrop
+    // pass's PRE-fade carry-forward invariant: it is a NON-IDEMPOTENT post-
+    // content transform, so the carried buffer MUST be the pre-fade clone or a
+    // dimmed pane's blank cells compound one extra dim per frame
+    // (@si/render/20517). See ./pipeline/subtree-fade.ts.
+    const subtreeFadeActive = hasSubtreeFadeMarkers(root)
+    if (backdropActive || subtreeFadeActive) {
       carryForwardBuffer = buffer.clone()
       if (!opts?.fresh) {
         _prevBuffer = carryForwardBuffer
@@ -569,13 +576,20 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       // Theme ANSI-16 palette so palette-indexed chrome (parsed agent terminal
       // cyan etc.) fades toward the theme's color, not VGA teal (@km 19764).
       const palette = findRootThemeAnsi16(root) ?? undefined
-      const result = applyBackdrop(root, buffer, {
-        colorLevel,
-        defaultBg,
-        palette,
-        kittyGraphics,
-      })
-      overlay = result.overlay
+      // Subtree fade runs FIRST — it historically ran during the content walk,
+      // before the post-content backdrop pass painted the modal scrim on top.
+      if (subtreeFadeActive) {
+        applySubtreeFade(root, buffer, { colorLevel, defaultBg, palette })
+      }
+      if (backdropActive) {
+        const result = applyBackdrop(root, buffer, {
+          colorLevel,
+          defaultBg,
+          palette,
+          kittyGraphics,
+        })
+        overlay = result.overlay
+      }
     } else {
       carryForwardBuffer = buffer
       if (!opts?.fresh) {

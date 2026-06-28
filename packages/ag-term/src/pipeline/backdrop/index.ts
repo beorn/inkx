@@ -107,7 +107,7 @@ export {
   type TerminalPlan,
 } from "./plan"
 export { type HexColor, normalizeHex } from "./color"
-export { realizeToBuffer } from "./realize-buffer"
+export { realizeSubtreeFadeToBuffer, realizeToBuffer } from "./realize-buffer"
 export { realizeToKitty } from "./realize-kitty"
 
 /**

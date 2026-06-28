@@ -38,6 +38,7 @@
  */
 
 import { mixSrgb, relativeLuminance } from "@silvery/color"
+import type { Rect } from "@silvery/ag/types"
 import type { TerminalBuffer } from "../../buffer"
 import { isLikelyEmoji } from "../../unicode"
 import { colorToHex, type HexColor, hexToRgb } from "./color"
@@ -181,6 +182,82 @@ export function realizeToBuffer(plan: Plan, buffer: TerminalBuffer): boolean {
   forEachBackdropCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
     if (fadeCell(buffer, x, y, plan, regionTarget)) modified = true
   })
+  return modified
+}
+
+/**
+ * Stage 2a (subtree-fade variant) — fade cells INSIDE the plan's include rects
+ * but OUTSIDE the supplied `excludes`, deduping overlapping/nested includes so
+ * each cell is faded at most once.
+ *
+ * This differs from `realizeToBuffer` in its exclude semantics. The backdrop
+ * pass's `forEachBackdropCell` treats `excludes` as the modal "cut a hole"
+ * pattern — fade everything OUTSIDE the exclude union. Tree-scoped subtree fade
+ * (the unfocused-pane dim, `data-subtree-fade`) needs the OPPOSITE: fade the
+ * marked pane's rect MINUS the regions a FOREIGN overlay (a node outside the
+ * faded subtree — a root-level dialog/popover) painted on top, so a dialog
+ * crossing an unfocused pane keeps its own bg/fg. So `excludes` here are
+ * SUBTRACTED from the include region (fade ⇔ inside-any-include ∧ inside-no-
+ * exclude), not unioned as holes.
+ *
+ * Like `realizeToBuffer`, this trusts the plan (built by `buildRectPlan`) for
+ * the color model and reuses the same `fadeCell` transform — so a subtree-fade
+ * cell and a backdrop cell at the same amount land at identical colors.
+ *
+ * Returns `true` when at least one buffer cell was mutated.
+ */
+export function realizeSubtreeFadeToBuffer(
+  plan: Plan,
+  buffer: TerminalBuffer,
+  excludes: readonly Rect[],
+): boolean {
+  if (!plan.active) return false
+  if (plan.amount <= 0) return false
+
+  const W = buffer.width
+  const H = buffer.height
+  if (W <= 0 || H <= 0) return false
+
+  const regionTarget = plan.scrim === null ? sampleRegionScrimTarget(plan, buffer) : null
+
+  // Rasterize the foreign-overlay exclude rects into a "blocked" bitset so the
+  // cells they painted stay crisp. Allocated lazily — most frames have no
+  // overlay crossing a faded pane.
+  let blocked: Uint8Array | null = null
+  for (const r of excludes) {
+    const x0 = Math.max(0, r.x)
+    const y0 = Math.max(0, r.y)
+    const x1 = Math.min(W, r.x + r.width)
+    const y1 = Math.min(H, r.y + r.height)
+    if (x0 >= x1 || y0 >= y1) continue
+    if (blocked === null) blocked = new Uint8Array(W * H)
+    for (let y = y0; y < y1; y++) {
+      const row = y * W
+      for (let x = x0; x < x1; x++) blocked[row + x] = 1
+    }
+  }
+
+  // `seen` dedups overlapping/nested include rects (two tiled dimmed panes, or a
+  // marker nested under another) so a cell is never faded twice in one frame.
+  const seen = new Uint8Array(W * H)
+  let modified = false
+  for (const { rect } of plan.includes) {
+    const x0 = Math.max(0, rect.x)
+    const y0 = Math.max(0, rect.y)
+    const x1 = Math.min(W, rect.x + rect.width)
+    const y1 = Math.min(H, rect.y + rect.height)
+    if (x0 >= x1 || y0 >= y1) continue
+    for (let y = y0; y < y1; y++) {
+      const row = y * W
+      for (let x = x0; x < x1; x++) {
+        const i = row + x
+        if (seen[i] !== 0) continue
+        seen[i] = 1
+        if (blocked !== null && blocked[i] !== 0) continue
+        if (fadeCell(buffer, x, y, plan, regionTarget)) modified = true
+      }
+    }
+  }
   return modified
 }
 

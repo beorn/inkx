@@ -80,6 +80,19 @@ For STRICT comparisons, the fresh-render path must NOT read from or write to the
 
 Orchestrated by `createAg()` in `ag.ts`. Callers (scheduler, renderer, create-app) use `createAg` directly — `ag.layout()` + `ag.render()` — then run the output phase separately.
 
+## Post-Content Fade Passes (backdrop + subtree)
+
+Two fade passes run in `ag.ts` doRender AFTER the content + decoration phases, BEFORE output — NOT inside the render walk:
+
+| Pass          | Marker               | Geometry                                                                     | Module                     |
+| ------------- | -------------------- | ---------------------------------------------------------------------------- | -------------------------- |
+| backdrop fade | `data-backdrop-fade` | final-buffer rectangle; `data-backdrop-fade-excluded` cuts a modal hole      | `pipeline/backdrop/`       |
+| subtree fade  | `data-subtree-fade`  | tree-scoped (the marked subtree's `screenRect`); foreign overlays stay crisp | `pipeline/subtree-fade.ts` |
+
+**The load-bearing invariant: the carry-forward buffer must be captured PRE-fade.** Both passes are NON-IDEMPOTENT cell transforms (`fadeCell` darkens again on a second application). `ag.ts` snapshots `carryForwardBuffer = buffer.clone()` BEFORE applying either pass and stores it as `_prevBuffer`, so the next incremental frame clones pre-fade pixels and the pass recomputes a single fade. If the carry-forward were post-fade, a dimmed cell that fast-path skips (or a multi-pass convergence iteration) would re-fade the already-faded clone and compound one dim per frame — the `@si/render/20517` signature (STRICT `incremental≠fresh` at a dimmed blank cell). The pass is decoupled from the walk: it runs over tree-collected geometry EVERY frame regardless of which nodes the incremental walk rendered, so skip asymmetry can't make it diverge.
+
+**Why subtree fade is NOT a during-walk paint op (history):** it used to run inside the walk via `sink.emitFadeRegion`, which forced the non-backdrop `else` branch to capture the carry-forward POST-fade. It was reworked into a backdrop-style post-content pass in 20517. Subtree fade's exclude semantics are the INVERSE of backdrop's (`realizeSubtreeFadeToBuffer` SUBTRACTS foreign-overlay painted regions from the pane, vs `forEachBackdropCell` fading OUTSIDE the exclude union). A root overlay crossing a dimmed pane stays crisp because only its PAINTED nodes (bg boxes + text) are excluded — a transparent wrapper paints nothing, so the pane still fades behind it.
+
 ## Dirty Flags
 
 The reconciler sets flags on nodes when props/children change. The render phase reads them to decide what to re-render. All are cleared by the render phase after processing.

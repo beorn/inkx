@@ -1287,22 +1287,6 @@ export interface AgNode {
   hadBoxAttrOverlay?: boolean
 
   /**
-   * Render-phase flag: "did this Box apply a subtree fade in the previous
-   * frame?" Written after `applySubtreeFade`. Read next frame to decide
-   * whether a style/subtree mutation must force a fresh descendant render
-   * before fading again.
-   *
-   * Subtree fade mutates rendered cells in-place. A cloned previous buffer may
-   * therefore contain already-faded descendants; when the faded subtree is
-   * visited again, descendants must repaint crisp first so the fade does not
-   * compound or leave stale faded pixels after removal.
-   *
-   * Only meaningful for silvery-box nodes. Defaults to undefined / false.
-   * @internal
-   */
-  hadSubtreeFade?: boolean
-
-  /**
    * Interactive state signals — written by pointer/selection/focus state machines,
    * read by theme/render for automatic styling (hover highlights, focus rings, etc.).
    *

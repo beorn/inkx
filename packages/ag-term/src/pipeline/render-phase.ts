@@ -27,16 +27,14 @@ import { clearPreviousOutlines, renderDecorationPass } from "./decoration-phase"
 import { getTextStyle, parseColor } from "./render-helpers"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text"
 import { createFrameSink, type RenderSink } from "./render-sink"
-import { DEFAULT_AMOUNT, type BackdropOptions } from "./backdrop"
 import {
   popRenderingNode,
   pushRenderingNode,
   resetBorderedRectClipCache,
 } from "../strict-bordered-rect.js"
 import { type RenderPostState, createRenderPostState } from "./render-post-state"
-import { getActiveColorLevel, getActiveTheme, pushContextTheme, popContextTheme } from "./state"
+import { pushContextTheme, popContextTheme } from "./state"
 import type { Theme } from "@silvery/ansi"
-import type { RGB } from "@silvery/ag/text-frame"
 // cascade-predicates is the imperative oracle — used for STRICT verification
 // and as the fallback when SILVERY_REACTIVE=0 (bench only).
 import { computeCascade } from "./cascade-predicates"
@@ -73,7 +71,6 @@ import { isStrictEnabled } from "../strict-mode"
 const contentLog = createLogger("silvery:content")
 const traceLog = createLogger("silvery:content:trace")
 const cellLog = createLogger("silvery:content:cell")
-const SUBTREE_FADE_ATTR = "data-subtree-fade"
 
 /**
  * Render all nodes to a terminal buffer.
@@ -690,25 +687,10 @@ function renderNodeToBuffer(
       }
     }
 
-    // Tree-scoped fade safety: subtree fade mutates descendant cells after
-    // they paint. If this node is visited again while the clone may already
-    // contain faded pixels, force a crisp repaint of the node and descendants
-    // before applying the fade once. Entire-subtree skip above remains valid:
-    // when nothing changed, the cloned faded pixels are already correct.
-    if (
-      node.type === "silvery-box" &&
-      (computeSubtreeFadeAmount(props as BoxProps) !== null || node.hadSubtreeFade)
-    ) {
-      const contentRegionCleared = (hasPrevBuffer || ancestorCleared) && !getEffectiveBg(props)
-      const childrenNeedFreshRender = hasPrevBuffer || ancestorCleared
-      cascade = {
-        ...cascade,
-        contentAreaAffected: true,
-        bgOnlyChange: false,
-        contentRegionCleared,
-        childrenNeedFreshRender,
-      }
-    }
+    // NOTE: subtree fade (`data-subtree-fade`) is NO LONGER applied during the
+    // content walk. It is a post-content pass (see ../subtree-fade.ts), applied
+    // in ag.ts after the pre-fade carry-forward snapshot, so a dimmed pane's
+    // cells can fast-path skip without compounding the fade (@si/render/20517).
     const { contentRegionCleared, skipBgFill, childrenNeedFreshRender } = cascade
 
     // DIAG: Per-node trace, cascade tracking, and cell debug
@@ -873,7 +855,6 @@ function renderNodeToBuffer(
     if (node.type === "silvery-box") {
       const applied = applyBoxAttrOverlay(buffer, sink, layout, props, scrollOffset, clipBounds)
       node.hadBoxAttrOverlay = applied
-      node.hadSubtreeFade = applySubtreeFade(buffer, sink, layout, props, scrollOffset, clipBounds)
     }
 
     // Outlines are NOT rendered here — the decoration phase (post-content)
@@ -1257,122 +1238,6 @@ function renderOwnContent(
   }
 
   return boxInheritedBg
-}
-
-// ============================================================================
-// Subtree Fade
-// ============================================================================
-
-function computeSubtreeFadeAmount(props: BoxProps): number | null {
-  const raw = (props as Record<string, unknown>)[SUBTREE_FADE_ATTR]
-  if (raw === undefined || raw === null || raw === false) return null
-  let amount: number
-  if (raw === true || raw === "") {
-    amount = DEFAULT_AMOUNT
-  } else if (typeof raw === "number") {
-    amount = raw
-  } else if (typeof raw === "string") {
-    amount = Number(raw)
-  } else {
-    return null
-  }
-  if (!Number.isFinite(amount) || amount <= 0) return null
-  return Math.min(1, amount)
-}
-
-function applySubtreeFade(
-  buffer: TerminalBuffer,
-  sink: RenderSink,
-  layout: NonNullable<AgNode["boxRect"]>,
-  props: BoxProps,
-  scrollOffset: number,
-  clipBounds: ClipBounds | undefined,
-): boolean {
-  const amount = computeSubtreeFadeAmount(props)
-  if (amount === null) return false
-
-  const rect = clipRenderedRect(
-    {
-      x: layout.x,
-      y: layout.y - scrollOffset,
-      width: layout.width,
-      height: layout.height,
-    },
-    buffer,
-    clipBounds,
-  )
-  if (!rect) return false
-
-  const options = subtreeFadeBackdropOptions()
-  if (options.colorLevel === "mono") return false
-  sink.emitFadeRegion(rect.x, rect.y, rect.width, rect.height, amount, options)
-  return true
-}
-
-function clipRenderedRect(
-  rect: Rect,
-  buffer: TerminalBuffer,
-  clipBounds: ClipBounds | undefined,
-): Rect | null {
-  let x0 = Math.max(0, rect.x)
-  let y0 = Math.max(0, rect.y)
-  let x1 = Math.min(buffer.width, rect.x + rect.width)
-  let y1 = Math.min(buffer.height, rect.y + rect.height)
-
-  if (clipBounds) {
-    y0 = Math.max(y0, clipBounds.top)
-    y1 = Math.min(y1, clipBounds.bottom)
-    if (clipBounds.left !== undefined && clipBounds.right !== undefined) {
-      x0 = Math.max(x0, clipBounds.left)
-      x1 = Math.min(x1, clipBounds.right)
-    }
-  }
-
-  if (x0 >= x1 || y0 >= y1) return null
-  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
-}
-
-function subtreeFadeBackdropOptions(): BackdropOptions {
-  const theme = getActiveTheme()
-  const options: BackdropOptions = { colorLevel: getActiveColorLevel() }
-  const defaultBg = themeDefaultBg(theme)
-  if (defaultBg !== undefined) options.defaultBg = defaultBg
-  const palette = themeAnsi16Palette(theme)
-  if (palette !== undefined) options.palette = palette
-  return options
-}
-
-function themeDefaultBg(theme: Theme): string | undefined {
-  const record = theme as unknown as Record<string, unknown>
-  const sterlingBg = record["bg-surface-default"]
-  if (typeof sterlingBg === "string") return sterlingBg
-  const legacyBg = record["bg"]
-  return typeof legacyBg === "string" ? legacyBg : undefined
-}
-
-function themeAnsi16Palette(theme: Theme): readonly RGB[] | undefined {
-  const palette = (theme as unknown as Record<string, unknown>)["palette"]
-  if (!Array.isArray(palette) || palette.length < 16) return undefined
-  const rgb: RGB[] = []
-  for (let i = 0; i < 16; i++) {
-    const slot = palette[i]
-    const parsed = typeof slot === "string" ? parseHexToRgb(slot) : null
-    if (parsed === null) return undefined
-    rgb.push(parsed)
-  }
-  return rgb
-}
-
-function parseHexToRgb(hex: string): RGB | null {
-  let s = hex.trim().toLowerCase()
-  if (s.startsWith("#")) s = s.slice(1)
-  if (s.length === 3) s = s[0]! + s[0]! + s[1]! + s[1]! + s[2]! + s[2]!
-  if (!/^[0-9a-f]{6}$/.test(s)) return null
-  return {
-    r: parseInt(s.slice(0, 2), 16),
-    g: parseInt(s.slice(2, 4), 16),
-    b: parseInt(s.slice(4, 6), 16),
-  }
 }
 
 // ============================================================================
