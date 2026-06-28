@@ -16,7 +16,7 @@ import {
 import { buildTextAnalysis, shrinkwrapWidth } from "./pretext"
 import { getBorderSize, getPadding } from "./helpers"
 import type { PipelineContext } from "./types"
-import { INSTRUMENT, logPass } from "../runtime/pass-cause"
+import { INSTRUMENT, logPass, recordPassRing } from "../runtime/pass-cause"
 
 /**
  * Handle fit-content nodes by measuring their intrinsic content size.
@@ -73,6 +73,10 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
         // Flexily's UNIT_SNUG_CONTENT handles the shrink-wrap + available clamping.
         const prevWidth = node.boxRect?.width
         node.layoutNode.setMaxWidth(shrunkWidth)
+        if (prevWidth !== undefined && prevWidth !== shrunkWidth) {
+          // Always-on violation ring (cheap; rare fit-content measure feedback).
+          recordPassRing("intrinsic-shrinkwrap", "snug-content:width")
+        }
         if (INSTRUMENT && prevWidth !== undefined && prevWidth !== shrunkWidth) {
           // Width changed since last frame's layout — this measure-phase pass
           // produced a different intrinsic size. That's a feedback edge: a
@@ -89,6 +93,10 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
         const intrinsicSize = measureIntrinsicSize(node, ctx, availableWidth)
         const prevHeight = node.boxRect?.height
         node.layoutNode.setHeight(intrinsicSize.height)
+        if (prevHeight !== undefined && prevHeight !== intrinsicSize.height) {
+          // Always-on violation ring (cheap; rare fit-content measure feedback).
+          recordPassRing("intrinsic-shrinkwrap", "fit-content:height")
+        }
         if (INSTRUMENT && prevHeight !== undefined && prevHeight !== intrinsicSize.height) {
           logPass({
             cause: "intrinsic-shrinkwrap",

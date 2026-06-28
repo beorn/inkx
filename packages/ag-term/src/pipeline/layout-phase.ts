@@ -26,7 +26,7 @@ import {
   hasLayoutSignals,
   hasObservedLayoutSignal,
 } from "@silvery/ag/layout-signals"
-import { logPass, INSTRUMENT } from "../runtime/pass-cause"
+import { logPass, recordPassRing, INSTRUMENT } from "../runtime/pass-cause"
 
 const log = createLogger("silvery:layout")
 
@@ -645,6 +645,24 @@ export function notifyLayoutSubscribers(node: AgNode): void {
   // measures actual subscriber-driven feedback that bounded-convergence
   // (C3b) needs to bound.
   //
+  // Always-on lightweight capture for the bounded-convergence violation ring
+  // (independent of INSTRUMENT, so a production violation names its cause). Uses
+  // the cheap `explicitIdent` (named id or bare type) — NOT the ancestor-walk
+  // `nodeIdent`, which stays INSTRUMENT-only below. Only changed-rect SUBSCRIBED
+  // nodes pay (hasLayoutSignals gate); records the single dominant edge.
+  if ((contentChanged || screenChanged || renderChanged) && hasLayoutSignals(node)) {
+    const ringId = explicitIdent(node) ?? node.type
+    if (sizeChanged && hasObservedLayoutSignal(node, "boxSize")) {
+      recordPassRing("layout-invalidate", "boxSize", ringId)
+    } else if (contentChanged && hasObservedLayoutSignal(node, "boxRect")) {
+      recordPassRing("layout-invalidate", "boxRect", ringId)
+    } else if (screenChanged && hasObservedLayoutSignal(node, "scrollRect")) {
+      recordPassRing("layout-invalidate", "scrollRect", ringId)
+    } else if (renderChanged && hasObservedLayoutSignal(node, "screenRect")) {
+      recordPassRing("layout-invalidate", "screenRect", ringId)
+    }
+  }
+
   // Gated on INSTRUMENT (module-level constant) so V8/JSC fold the entire
   // block out of the hot path when SILVERY_INSTRUMENT is unset.
   if (INSTRUMENT) {
@@ -1028,10 +1046,13 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
       // scrollTo settle: an offset adjustment may shift child layout, which
       // in turn may invalidate rect signals for descendants. Attribute to
       // the originating scrollTo prop so C3b can bound this edge.
+      const scrollEdge = targetCompletelyOffscreen ? "scrollTo:recovery" : "scrollTo:newIntent"
+      // Always-on violation ring (cheap id; rare path — one record per settle).
+      recordPassRing("scrollto-settle", scrollEdge, explicitIdent(node) ?? node.type)
       if (INSTRUMENT) {
         logPass({
           cause: "scrollto-settle",
-          edge: targetCompletelyOffscreen ? "scrollTo:recovery" : "scrollTo:newIntent",
+          edge: scrollEdge,
           nodeId: nodeIdent(node),
           producerPhase: "scroll",
           detail: `target=${scrollTo}`,
@@ -1540,6 +1561,8 @@ export function stickyPhase(root: AgNode): void {
       } else {
         node.dirtyBits |= SUBTREE_BIT
       }
+      // Always-on violation ring (cheap id; rare path — one record per resettle).
+      recordPassRing("sticky-resettle", "stickyChildren", explicitIdent(node) ?? node.type)
       if (INSTRUMENT) {
         // Sticky child offsets changed since last frame — the parent is now
         // marked dirty and a follow-on layout pass will reflow children.

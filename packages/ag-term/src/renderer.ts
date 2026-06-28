@@ -80,6 +80,7 @@ import {
   beginPass,
   notePassCommit,
   logPass,
+  recordPassRing,
   assertBoundedConvergence,
   MAX_CONVERGENCE_PASSES,
   INSTRUMENT,
@@ -898,6 +899,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         break
       }
       invalidateRootAfterLayoutFeedback(getContainerRoot(instance.container))
+      // Always-on exhaustion marker → guarantees the violation ring is never
+      // empty when this loop runs to cap, so the breakdown is never silent.
+      if (pass === cap - 1) recordPassRing("unknown", "layout-pass-exhaustion")
       if (INSTRUMENT) {
         notePassCommit(pass)
         if (pass === cap - 1) {
@@ -1462,6 +1466,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
           })
         })
         if (!hadReactCommit) break
+        // Always-on exhaustion marker → never-empty violation ring.
+        if (flush === MAX_CONVERGENCE_PASSES - 1)
+          recordPassRing("unknown", "effect-flush-exhaustion")
         if (INSTRUMENT) {
           notePassCommit(flush)
           if (flush === MAX_CONVERGENCE_PASSES - 1) {

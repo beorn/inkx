@@ -20,6 +20,11 @@ import {
   MAX_CONVERGENCE_PASSES,
   INITIAL_RENDER_MAX_PASSES,
   assertBoundedConvergence,
+  recordPassRing,
+  resetPassRing,
+  passRingSize,
+  formatPassRingBreakdown,
+  describeConvergenceCauses,
   type PassCause,
   type ConvergenceLoopName,
 } from "@silvery/ag-term/runtime/pass-cause"
@@ -172,6 +177,93 @@ describe("bounded-convergence: assertion behaviour", () => {
           MAX_CONVERGENCE_PASSES,
         ),
       ).not.toThrow()
+    })
+  })
+})
+
+// =============================================================================
+// Always-on violation breakdown (@si/render/19436) — a bounded-convergence
+// VIOLATION must name its cause WITHOUT SILVERY_INSTRUMENT. These tests run with
+// INSTRUMENT off (the vendor test runner does not set SILVERY_INSTRUMENT=1), so
+// they exercise exactly the production default. RED before the fix: the message
+// read "Per-cause breakdown: (no records — INSTRUMENT off)"; the ring did not
+// exist. GREEN after: the always-on ring supplies cause+edge+node.
+// =============================================================================
+describe("bounded-convergence: always-on violation breakdown (INSTRUMENT off)", () => {
+  const ORIGINAL_STRICT = process.env.SILVERY_STRICT
+
+  function withStrict2<T>(fn: () => T): T {
+    process.env.SILVERY_STRICT = "2"
+    try {
+      return fn()
+    } finally {
+      if (ORIGINAL_STRICT === undefined) delete process.env.SILVERY_STRICT
+      else process.env.SILVERY_STRICT = ORIGINAL_STRICT
+    }
+  }
+
+  test("ring records cause+edge+node and aggregates them (no INSTRUMENT needed)", () => {
+    resetPassRing()
+    expect(passRingSize()).toBe(0)
+    recordPassRing("layout-invalidate", "boxSize", "ListView")
+    recordPassRing("layout-invalidate", "boxSize", "ListView")
+    recordPassRing("layout-invalidate", "boxRect", "main")
+    recordPassRing("scrollto-settle", "scrollTo:newIntent", "ListView")
+    expect(passRingSize()).toBe(4)
+    const breakdown = formatPassRingBreakdown()
+    expect(breakdown).toContain("layout-invalidate=3")
+    expect(breakdown).toContain("boxSize×2")
+    expect(breakdown).toContain("ListView×2")
+    expect(breakdown).toContain("scrollto-settle=1")
+  })
+
+  test("describeConvergenceCauses uses the ring when INSTRUMENT is off (RED before fix)", () => {
+    resetPassRing()
+    recordPassRing("layout-invalidate", "boxSize", "ListView")
+    const summary = describeConvergenceCauses()
+    // Before the fix this was "(no records — INSTRUMENT off)"; now it names the cause.
+    expect(summary).toContain("layout-invalidate")
+    expect(summary).toContain("boxSize")
+    expect(summary).not.toContain("(no records — INSTRUMENT off)")
+  })
+
+  test("assertBoundedConvergence throws WITH a per-cause breakdown, never the silent string", () => {
+    withStrict2(() => {
+      resetPassRing()
+      recordPassRing("layout-invalidate", "boxSize", "ListView")
+      let msg = ""
+      expect(() => {
+        try {
+          assertBoundedConvergence(
+            MAX_CONVERGENCE_PASSES + 1,
+            "production-flush",
+            MAX_CONVERGENCE_PASSES,
+          )
+        } catch (e) {
+          msg = (e as Error).message
+          throw e
+        }
+      }).toThrow(/convergence bound exceeded in production-flush/)
+      // The thrown message carries the real cause — RED before the fix.
+      expect(msg).toContain("layout-invalidate")
+      expect(msg).toContain("boxSize")
+      // The historical silent breakdown is impossible now.
+      expect(msg).not.toContain("(no records — INSTRUMENT off)")
+    })
+  })
+
+  test("'(no records — INSTRUMENT off)' is gone even with an empty ring", () => {
+    withStrict2(() => {
+      resetPassRing()
+      let msg = ""
+      try {
+        assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "layout-pass", MAX_CONVERGENCE_PASSES)
+      } catch (e) {
+        msg = (e as Error).message
+      }
+      expect(msg).not.toContain("(no records — INSTRUMENT off)")
+      // Empty-ring fallback names the structural cause, not silence.
+      expect(msg).toMatch(/no feedback-edge records captured|=\d+\(bound=/)
     })
   })
 })

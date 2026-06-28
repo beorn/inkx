@@ -201,6 +201,8 @@ import {
   beginPass,
   notePassCommit,
   logPass,
+  recordPassRing,
+  formatPassRingBreakdown,
   printPassHistogram,
   appendHistogramJson,
   resetPassHistogram,
@@ -3394,6 +3396,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // unbounded loop the cap exists to prevent) — the follow-up frame is
         // the bounded, self-limiting continuation.
         pendingRerender = false
+        // Mark the standalone-drain exhaustion in the always-on ring so the
+        // breakdown below names a cause even with SILVERY_INSTRUMENT off.
+        recordPassRing("unknown", "standalone-flush-exhaustion")
         currentBuffer = doRender()
         commitRerenders++
         standaloneCapExceedCount++
@@ -3410,8 +3415,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           `standalone convergence cap (${MAX_CONVERGENCE_PASSES}) hit with rerender still ` +
             `pending (occurrence ${standaloneCapExceedCount}); painting latest committed ` +
             `frame + scheduling one follow-up frame (non-lossy — no dropped paint). ` +
-            `Likely a re-measuring boxSize subscriber (e.g. a growing ListView item). ` +
-            `SILVERY_INSTRUMENT=1 for the per-cause breakdown. Bead: @km/silvercode/19383.`,
+            `Per-cause breakdown: ${formatPassRingBreakdown() || "(ring empty)"}. ` +
+            `(SILVERY_INSTRUMENT=1 adds the full per-node histogram.) ` +
+            `Bead: @km/silvercode/19383.`,
         )
         scheduleFollowupStandaloneFrame()
         return commitRerenders
@@ -4370,6 +4376,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       if (!pendingRerender) break
       pendingRerender = false
       isRendering = true
+      // Always-on exhaustion marker → never-empty violation ring.
+      if (flushCount === MAX_CONVERGENCE_PASSES - 1) {
+        recordPassRing("unknown", "production-flush-exhaustion")
+      }
       if (INSTRUMENT) {
         notePassCommit(flushCount)
         if (flushCount === MAX_CONVERGENCE_PASSES - 1) {

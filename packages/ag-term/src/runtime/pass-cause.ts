@@ -606,6 +606,118 @@ export const MAX_CONVERGENCE_PASSES =
  */
 export const INITIAL_RENDER_MAX_PASSES = 5
 
+// =============================================================================
+// Always-on violation ring (independent of INSTRUMENT)
+// =============================================================================
+//
+// The histogram above is INSTRUMENT-gated (zero overhead when unset) — great for
+// profiling, but it means a bounded-convergence VIOLATION in production (where
+// SILVERY_INSTRUMENT is off by default) had NO data to explain "what looped",
+// producing the silent "(no records — INSTRUMENT off)" breakdown. That violates
+// the NO-SILENT-ERRORS rule: a convergence failure must always name its cause.
+//
+// This ring is the always-on, hot-path-safe complement. It is NOT the histogram:
+// - zero-allocation writes (parallel arrays, no per-record object, no Map),
+// - bounded FIFO (capacity below), so memory is fixed,
+// - read ONLY on the rare violation / standalone-cap-recovery path.
+//
+// Feeders are lightweight always-on captures at the convergence feedback sites
+// (layout-invalidate / scrollto-settle / sticky-resettle / intrinsic-shrinkwrap /
+// viewport-resize) plus the per-loop exhaustion markers. They pass `node.id`
+// (cheap field read) rather than the heavy `nodeIdent()` ancestor-walk, which
+// stays INSTRUMENT-only. The heavy loggily + histogram path (`logPass`) is
+// untouched.
+//
+// Scoping: no per-loop reset (that would require touching every nested loop and
+// risks the inner-loop-clears-outer-history bug). The bounded FIFO IS the
+// scoping — a violating loop emits many records that dominate the tail, so the
+// breakdown reflects "the most recent pass-causes", which on a violation are the
+// offending loop's. Tests call `resetPassRing()` for determinism.
+
+const RING_CAPACITY = 256
+// Parallel slot arrays grow to RING_CAPACITY on first fill (index writes), then
+// wrap — no preallocation, no per-write allocation.
+const ringCause: (PassCause | undefined)[] = []
+const ringEdge: (string | undefined)[] = []
+const ringNode: (string | number | undefined)[] = []
+let ringWrite = 0
+let ringCount = 0
+
+/**
+ * Record one feedback-edge occurrence into the always-on violation ring.
+ * Hot-path-safe: three slot assignments + an index bump, no allocation, no Map.
+ * Called unconditionally from the convergence feedback sites.
+ */
+export function recordPassRing(cause: PassCause, edge?: string, nodeId?: string | number): void {
+  ringCause[ringWrite] = cause
+  ringEdge[ringWrite] = edge
+  ringNode[ringWrite] = nodeId
+  ringWrite = (ringWrite + 1) % RING_CAPACITY
+  if (ringCount < RING_CAPACITY) ringCount += 1
+}
+
+/** Clear the violation ring. Used by tests for deterministic assertions. */
+export function resetPassRing(): void {
+  ringWrite = 0
+  ringCount = 0
+}
+
+/** Number of records currently held in the ring (for tests). */
+export function passRingSize(): number {
+  return ringCount
+}
+
+/**
+ * Aggregate the ring into a per-cause breakdown string for the violation
+ * message. Read-only, allocates only on the (rare) violation path. Returns ""
+ * when the ring is empty (caller decides the fallback wording).
+ */
+export function formatPassRingBreakdown(): string {
+  if (ringCount === 0) return ""
+  const byCause = new Map<
+    PassCause,
+    { count: number; edges: Map<string, number>; nodes: Map<string | number, number> }
+  >()
+  for (let i = 0; i < ringCount; i++) {
+    // Walk valid slots oldest→newest. When the ring has wrapped
+    // (ringCount === CAPACITY) every slot is valid starting at ringWrite;
+    // otherwise slots [0, ringCount) hold the records.
+    const idx = ringCount === RING_CAPACITY ? (ringWrite + i) % RING_CAPACITY : i
+    const cause = ringCause[idx]
+    if (cause === undefined) continue
+    let entry = byCause.get(cause)
+    if (!entry) {
+      entry = { count: 0, edges: new Map(), nodes: new Map() }
+      byCause.set(cause, entry)
+    }
+    entry.count += 1
+    const edge = ringEdge[idx]
+    if (edge) entry.edges.set(edge, (entry.edges.get(edge) ?? 0) + 1)
+    const node = ringNode[idx]
+    if (node !== undefined) entry.nodes.set(node, (entry.nodes.get(node) ?? 0) + 1)
+  }
+  const parts: string[] = []
+  const sorted = [...byCause.entries()].sort((a, b) => b[1].count - a[1].count)
+  for (const [cause, entry] of sorted) {
+    const topEdges = [...entry.edges.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([e, c]) => `${e}×${c}`)
+      .join(",")
+    const topNodes = [...entry.nodes.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([n, c]) => `${n}×${c}`)
+      .join(",")
+    let part = `${cause}=${entry.count}(bound=${PASS_CAUSE_BOUNDS[cause]}`
+    if (topEdges) part += `; edges: ${topEdges}`
+    if (topNodes) part += `; nodes: ${topNodes}`
+    part += ")"
+    parts.push(part)
+  }
+  return parts.join(", ")
+}
+
 /**
  * Loops that wrap their iterations in the bound assertion. Used as the
  * `loopName` argument to `assertBoundedConvergence` so an over-budget
@@ -631,16 +743,35 @@ export function assertBoundedConvergence(
   if (passCount <= cap) return
   const strict = process?.env?.SILVERY_STRICT
   if (!strict || strict === "0") return
-  const h = getPassHistogram()
-  const breakdown = h.byCause
-    .map((e) => `${e.cause}=${e.count}(bound=${PASS_CAUSE_BOUNDS[e.cause]})`)
-    .join(", ")
   const msg =
     `convergence bound exceeded in ${loopName}: ${passCount} passes ran ` +
     `but cap=${cap} (default MAX_CONVERGENCE_PASSES=${MAX_CONVERGENCE_PASSES}). ` +
-    `Per-cause breakdown: ${breakdown || "(no records — INSTRUMENT off)"}. ` +
+    `Per-cause breakdown: ${describeConvergenceCauses()}. ` +
     `Either a feedback edge broke its per-cause invariant, or a new edge ` +
     `needs a PassCause category in pass-cause.ts.`
   if (strict === "2") throw new Error(msg)
   process.stderr.write(`[silvery] ${msg}\n`)
+}
+
+/**
+ * Per-cause breakdown for a bounded-convergence VIOLATION, always-on. Prefers
+ * the rich INSTRUMENT histogram when available (per-node `nodeIdent`, full
+ * counts); falls back to the always-on ring (cheap `node.id`, recent FIFO) so a
+ * violation in production — where SILVERY_INSTRUMENT is off by default — still
+ * names what looped. The historical "(no records — INSTRUMENT off)" silent path
+ * is gone: the per-loop exhaustion markers feed the ring unconditionally, so a
+ * violation always carries at least the offending loop name as a cause.
+ */
+export function describeConvergenceCauses(): string {
+  if (instrumentEnabled) {
+    const h = getPassHistogram()
+    const breakdown = h.byCause
+      .map((e) => `${e.cause}=${e.count}(bound=${PASS_CAUSE_BOUNDS[e.cause]})`)
+      .join(", ")
+    if (breakdown) return breakdown
+  }
+  const ring = formatPassRingBreakdown()
+  if (ring)
+    return `${ring} [recent always-on ring; set SILVERY_INSTRUMENT=1 for full per-node histogram]`
+  return "(no feedback-edge records captured — likely a pure-React update loop with no layout/scroll/sticky cause)"
 }
