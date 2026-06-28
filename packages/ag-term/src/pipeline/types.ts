@@ -68,6 +68,12 @@ export interface RenderPhaseStats {
   textNodes: number
   boxNodes: number
   clearOps: number
+  /**
+   * Count of text nodes that took the per-segment style-only restyle fast path
+   * (skips collectTextWithBg→formatTextLines→renderGraphemes; restyles existing
+   * cells in place per child span). See render-text.ts `restyleTextSegments`.
+   */
+  textRestyleFastPath: number
   // Per-flag breakdown: why nodes weren't skipped
   noPrevBuffer: number
   flagContentDirty: number

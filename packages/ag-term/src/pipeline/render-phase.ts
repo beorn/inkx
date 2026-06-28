@@ -24,8 +24,9 @@ import { getBorderSize, getPadding } from "./helpers"
 import { renderBox, renderScrollIndicators, getEffectiveBg } from "./render-box"
 import { renderIsland, renderViewport } from "./render-viewport"
 import { clearPreviousOutlines, renderDecorationPass } from "./decoration-phase"
-import { getTextStyle, parseColor } from "./render-helpers"
+import { parseColor } from "./render-helpers"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text"
+import { collectPlainText } from "./collect-text"
 import { createFrameSink, type RenderSink } from "./render-sink"
 import {
   popRenderingNode,
@@ -268,6 +269,7 @@ const _renderPhaseStats: RenderPhaseStats = {
   textNodes: 0,
   boxNodes: 0,
   clearOps: 0,
+  textRestyleFastPath: 0,
   noPrevBuffer: 0,
   flagContentDirty: 0,
   flagStylePropsDirty: 0,
@@ -296,6 +298,16 @@ const _renderPhaseStats: RenderPhaseStats = {
 }
 
 let _renderPhaseCallCount = 0
+
+/**
+ * Per-text-node plain-text signature from the previous render, keyed weakly so
+ * unmounted nodes are GC'd. Drives the style-only restyle fast path: when the
+ * current plain text equals the stored one (and layout is unchanged), the
+ * cloned buffer's chars are correct, so a per-segment restyle is sound. Dirty
+ * bits can't be used here — the reconciler re-dirties virtual text children on
+ * a parent style change even when the text is byte-identical.
+ */
+const _textContentSigs = new WeakMap<AgNode, string>()
 
 /** Module-level node trace (fallback when ctx.nodeTrace is not provided) */
 const _nodeTrace: NodeTraceEntry[] = []
@@ -717,9 +729,62 @@ function renderNodeToBuffer(
       )
     }
 
-    // DISABLED: text style-only fast path causes incremental rendering mismatches
-    // (fg colors lost). Needs investigation before re-enabling.
-    const useTextStyleFastPath = false
+    // Text style-only restyle fast path (coarse gate). When a Text node's
+    // visual style props changed but nothing content/structural did, the cloned
+    // buffer holds correct chars — so renderText can restyle existing cells in
+    // place PER CHILD SPAN (see render-text.ts `restyleTextSegments`) instead of
+    // re-running the renderGraphemes pipeline. The fine eligibility checks
+    // (nested runs present, no nested/own bg, no transform hooks) live in
+    // renderText, which falls back to the full render when ineligible. Both
+    // produce identical chars for a style-only change, so suppressing the region
+    // clear below is safe regardless of which branch renderText takes.
+    //
+    // The old WHOLE-RECT path was disabled because one style clobbered nested
+    // run colors; the per-segment path resolves each run's style identically to
+    // the full path, preserving SILVERY_STRICT incremental≡fresh.
+    // The reconciler re-creates virtual text children on a parent style change
+    // (sets CHILDREN/SUBTREE + per-child CONTENT bits) even when the text is
+    // byte-identical — so dirty bits CANNOT distinguish a style-only re-render
+    // from a real content change. The reliable signal is a CONTENT COMPARISON:
+    // the style-independent plain text. When it matches the previous frame's
+    // (and layout is unchanged, so wrapping is identical), the cloned buffer's
+    // chars are correct and the per-segment restyle is sound.
+    //
+    // collectPlainText is a cheap string concat (no Intl.Segmenter, no per-cell
+    // work) and only runs for the FEW text nodes actually re-rendered this frame
+    // (clean ones are fast-path-skipped before reaching here).
+    let useTextStyleFastPath = false
+    if (
+      node.type === "silvery-text" &&
+      hasPrevBuffer &&
+      !ancestorCleared &&
+      !ancestorLayoutChanged &&
+      !layoutChanged &&
+      !isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT) &&
+      // A truncate hook / internal_transform produces rendered chars that are
+      // NOT reflected in the plain-text signature (their output can change with
+      // identical raw text), so neither the sig nor the cloned chars are a sound
+      // basis for restyle. Exclude them so the region clear is not suppressed.
+      !(props as TextProps).truncate &&
+      !(props as TextProps).internal_transform
+    ) {
+      const sig = collectPlainText(node)
+      const prevSig = _textContentSigs.get(node)
+      // A style change is the only thing left that re-rendered this node with
+      // identical content — exactly the restyle case.
+      if (
+        prevSig !== undefined &&
+        prevSig === sig &&
+        isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)
+      ) {
+        useTextStyleFastPath = true
+      }
+      _textContentSigs.set(node, sig)
+    } else if (node.type === "silvery-text") {
+      // Keep the signature current for every other text render so the NEXT
+      // frame's comparison reflects the chars actually in the (cloned) buffer.
+      _textContentSigs.set(node, collectPlainText(node))
+    }
 
     // Clear stale regions in the cloned buffer before rendering content.
     // Suppress clearing when using the text style-only fast path — chars are
@@ -1202,39 +1267,26 @@ function renderOwnContent(
     const textInheritedBg = nodeState.inheritedBg.color
     const textInheritedFg = nodeState.inheritedFg
 
-    // Style-only fast path for text nodes: when only visual style props changed
-    // (color, bold, dim, inverse, etc.) but text content is identical, skip the
+    // Style-only restyle fast path for text nodes: when only visual style props
+    // changed (color, bold, dim, inverse, etc.) but text content is identical,
+    // renderText restyles existing cells in place PER CHILD SPAN, skipping the
     // expensive collectTextWithBg → formatTextLines → renderGraphemes pipeline.
-    // Instead, restyle existing cells in-place with the new style.
-    //
-    // Conditions (pre-computed as useTextStyleFastPath):
-    // 1. hasPrevBuffer: cloned buffer has correct chars from previous frame
-    // 2. isStyleOnlyDirty: only style props changed (no content, bg, or children)
-    // 3. No nested children with bg: restyleRegion would overwrite their bg
-    // 4. Not ancestorCleared/ancestorLayoutChanged: cells are at correct positions
-    //
-    // This avoids O(text_length) text processing for the common case of
-    // cursor/selection styling (just color/bold/inverse changes on text nodes).
-    if (useTextStyleFastPath) {
-      const style = getTextStyle(props)
-      if (style.fg === null && textInheritedFg !== undefined) {
-        style.fg = textInheritedFg
-      }
-      const effectiveBg = style.bg !== null ? style.bg : (textInheritedBg ?? null)
-      const { x, width, height } = layout
-      const y = layout.y - nodeState.scrollOffset
-      // Phase 2 Step 4d: text style-only fast path → sink.emitRestyleRegion
-      // (paint op — restyles existing cells in place). Smell #2: routes
-      // through the frame-shared `sink` rather than fabricating a local one.
-      sink.emitRestyleRegion(x, y, width, height, {
-        fg: style.fg,
-        bg: effectiveBg,
-        underlineColor: style.underlineColor ?? null,
-        attrs: style.attrs,
-      })
-    } else {
-      renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
-    }
+    // `useTextStyleFastPath` is the coarse gate (style-only dirty, hasPrevBuffer,
+    // no ancestor clear/layout change); renderText does the fine eligibility
+    // checks (nested runs, no nested/own bg, no transform hooks) and falls back
+    // to the full render when ineligible — returning true iff the fast path ran.
+    const tookFastPath = renderText(
+      node,
+      buffer,
+      layout,
+      props,
+      nodeState,
+      textInheritedBg,
+      textInheritedFg,
+      ctx,
+      useTextStyleFastPath,
+    )
+    if (tookFastPath && instrumentEnabled) stats.textRestyleFastPath++
   }
 
   return boxInheritedBg

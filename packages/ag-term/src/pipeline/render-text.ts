@@ -52,7 +52,7 @@ import {
 } from "./prepared-text"
 import { buildTextAnalysis, balancedWidth as computeBalancedWidth, optimalWrap } from "./pretext"
 import { createFrameSink, type RenderSink } from "./render-sink"
-import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types"
+import type { BgConflictMode, ClipBounds, NodeRenderState, PipelineContext } from "./types"
 import { isStrictAnyEnabled } from "../strict-mode"
 import { createLogger } from "loggily"
 
@@ -382,6 +382,13 @@ interface ChildSpan {
   start: number
   /** End display-width offset in the collected text (exclusive) */
   end: number
+  /**
+   * The child's fully-merged style context (parent context ⊕ child props), as
+   * computed during collection. Used by the style-only restyle fast path to
+   * resolve this run's fg/attrs identically to the full render path (the cells
+   * the full path paints get `mergeAnsiStyle(baseStyle, parse(styleToAnsi(ctx)))`).
+   */
+  context: StyleContext
 }
 
 /**
@@ -503,12 +510,15 @@ function collectTextWithBg(
         })
       }
 
-      // Track child span for inlineRects computation
+      // Track child span for inlineRects computation + style-only restyle.
+      // `childContext` is the fully-merged context — the same value
+      // applyTextStyleAnsi uses to emit this child's inline ANSI.
       if (childResult.plainLen > 0) {
         childSpans.push({
           node: child,
           start: currentOffset,
           end: currentOffset + childResult.plainLen,
+          context: childContext,
         })
       }
 
@@ -1886,7 +1896,15 @@ export function renderText(
   inheritedBg?: Color,
   inheritedFg?: Color,
   ctx?: PipelineContext,
-): void {
+  /**
+   * Style-only restyle hint. When true AND the node is eligible (nested colored
+   * runs, no nested bg, no own Text bg, no transform/truncate hook), the
+   * per-segment restyle fast path updates existing cells in place and skips the
+   * renderGraphemes loop. Falls back to the full render path when ineligible.
+   * Returns true iff the fast path was taken (for instrumentation).
+   */
+  styleOnly = false,
+): boolean {
   // Phase 2 Step 6.1: dimension reads route through sink instead of
   // buffer (buffer.width / buffer.height eliminated).
   const sink: RenderSink = createFrameSink(buffer)
@@ -1909,11 +1927,11 @@ export function renderText(
   // Clip to bounds if specified
   if (clipBounds) {
     if (y + height <= clipBounds.top || y >= clipBounds.bottom) {
-      return // Completely outside vertical clip bounds
+      return false // Completely outside vertical clip bounds
     }
     if (clipBounds.left !== undefined && clipBounds.right !== undefined) {
       if (x + width <= clipBounds.left || x >= clipBounds.right) {
-        return // Completely outside horizontal clip bounds
+        return false // Completely outside horizontal clip bounds
       }
     }
   }
@@ -2089,6 +2107,62 @@ export function renderText(
     }
   }
 
+  // ── Style-only restyle fast path ──────────────────────────────────────────
+  // When only visual style props changed (styleOnly) and the node is a nested
+  // colored run with no nested bg and no own Text bg, restyle existing cells in
+  // place PER CHILD SPAN instead of running the renderGraphemes loop. The cloned
+  // buffer already holds the correct chars (content is identical on a style-only
+  // change). Each child span's resolved style is computed the SAME way the full
+  // path resolves its cells, so SILVERY_STRICT incremental≡fresh holds.
+  //
+  // Gated to childSpans.length > 0 (nested runs): plain text has no child spans,
+  // and its base cells go through renderGraphemes (which keeps base transform
+  // attrs like `inverse`) rather than mergeAnsiStyle (which drops them) — so a
+  // plain-text restyle would diverge from fresh. Nested runs always render via
+  // the ANSI path, where gap + run cells both go through mergeAnsiStyle.
+  // Truncation inserts a colored elision marker ("…") as a CONTENT cell (not a
+  // child span). The per-segment restyle would recolor it as base text, so skip
+  // the fast path whenever an ellipsis-inserting wrap mode actually overflowed.
+  // `clip`/`hard` slice without a marker, so they are always safe.
+  const ellipsisMode =
+    props.wrap === false ||
+    props.wrap === "truncate" ||
+    props.wrap === "truncate-end" ||
+    props.wrap === "truncate-start" ||
+    props.wrap === "truncate-middle" ||
+    props.wrap === "wrap-truncate"
+  const mayHaveMarker = ellipsisMode && getTextWidth(text, ctx) > width
+  if (
+    styleOnly &&
+    childSpans.length > 0 &&
+    bgSegments.length === 0 &&
+    style.bg === null &&
+    props.backgroundColor !== "" &&
+    !internalTransform &&
+    !truncateHook &&
+    !mayHaveMarker &&
+    lineOffsets.length > 0
+  ) {
+    restyleTextSegments(
+      sink,
+      x,
+      y,
+      width,
+      Math.min(lines.length, height),
+      style,
+      inheritedBg,
+      childSpans,
+      lineOffsets,
+      clipBounds,
+    )
+    // inlineRects geometry is unchanged on a style-only render, but recompute so
+    // hit-testing stays consistent with the full path.
+    if (lineOffsets.length > 0) {
+      computeInlineRects(childSpans, lineOffsets, x, y, lines.length, height)
+    }
+    return true
+  }
+
   // Render each line
   for (let lineIdx = 0; lineIdx < lines.length && lineIdx < height; lineIdx++) {
     const lineY = y + lineIdx
@@ -2224,6 +2298,137 @@ export function renderText(
   // accounting for text wrapping (one rect per line fragment).
   if (childSpans.length > 0 && lineOffsets.length > 0) {
     computeInlineRects(childSpans, lineOffsets, x, y, lines.length, height)
+  }
+  return false
+}
+
+/**
+ * Empty ANSI segment — `mergeAnsiStyle(base, EMPTY)` yields the style the full
+ * render path gives a NON-styled run (parent's own text / gap cells): emphasis
+ * + decorations preserved from base, transform attrs (inverse/hidden/blink)
+ * dropped. This matches `renderAnsiTextLineReturn`'s treatment of an
+ * unstyled segment, which is what the gap cells go through when childSpans>0.
+ */
+const EMPTY_ANSI_SEGMENT: StyledSegment = { text: "" }
+
+/** All-false attrs, matching the trailing clear-cell written by renderText. */
+const CLEAR_ATTRS: CellAttrs = {
+  bold: false,
+  dim: false,
+  italic: false,
+  underline: false,
+  overline: false,
+  inverse: false,
+  strikethrough: false,
+  blink: false,
+  hidden: false,
+}
+
+/**
+ * Resolve a child run's final cell style EXACTLY as the full render path does:
+ * `mergeAnsiStyle(baseStyle, parse(styleToAnsi(childContext)))`. The full path
+ * wraps the child's text in `styleToAnsi(childContext)` (applyTextStyleAnsi),
+ * parseAnsiText turns it into a StyledSegment, and renderAnsiTextLineReturn
+ * merges it over baseStyle. We reproduce that per span (once, not per grapheme).
+ */
+function resolveSpanStyle(baseStyle: Style, context: StyleContext): Style {
+  const ansi = styleToAnsi(context)
+  if (!ansi) return mergeAnsiStyle(baseStyle, EMPTY_ANSI_SEGMENT)
+  // Append a sentinel char so parseAnsiText emits a segment carrying the SGR.
+  const segs = parseAnsiText(ansi + " ")
+  return mergeAnsiStyle(baseStyle, segs[0] ?? EMPTY_ANSI_SEGMENT)
+}
+
+/**
+ * Per-segment style-only restyle. Updates fg/attrs of existing cells in place
+ * (chars/wide/continuation/hyperlink/selectable preserved by restyleRegion),
+ * skipping collectTextWithBg→formatTextLines→renderGraphemes.
+ *
+ * Three cell categories, matching what the full render path paints:
+ *   1. parent's own text + interior spaces → `contentStyle` (base ⊕ empty seg)
+ *   2. trailing pad after a line's content  → `trailingStyle` (base fg, no attrs)
+ *   3. each nested run's cells              → `resolveSpanStyle(base, ctx)`
+ *
+ * Applied in z-order: content fill first, then trailing, then runs on top
+ * (outer-before-inner, the childSpans array order from collectTextWithBg).
+ *
+ * Caller guarantees: style.bg === null and bgSegments empty, so bg is uniform
+ * (`effectiveBg`) across every cell.
+ */
+function restyleTextSegments(
+  sink: RenderSink,
+  x: number,
+  y: number,
+  width: number,
+  rowCount: number,
+  baseStyle: Style,
+  inheritedBg: Color | undefined,
+  childSpans: ChildSpan[],
+  lineOffsets: Array<{ start: number; end: number }>,
+  clipBounds?: ClipBounds,
+): void {
+  const effectiveBg: Color = baseStyle.bg !== null ? baseStyle.bg : (inheritedBg ?? null)
+  const contentStyle = mergeAnsiStyle(baseStyle, EMPTY_ANSI_SEGMENT)
+  const layoutRight = x + width
+  // Horizontal clip mirrors renderText's maxCol/minCol.
+  const maxCol =
+    clipBounds && clipBounds.right !== undefined
+      ? Math.min(layoutRight, clipBounds.right)
+      : layoutRight
+  const minCol = clipBounds && clipBounds.left !== undefined ? clipBounds.left : undefined
+  const leftClip = minCol !== undefined ? Math.max(minCol, 0) : 0
+
+  // Route through the sink (not buffer) so the op is captured into the render
+  // plan under SILVERY_RENDER_PLAN — a direct buffer write is dropped when
+  // commitSectionedPlan replays the plan onto a fresh frame buffer.
+  const restyle = (col: number, row: number, w: number, s: Style): void => {
+    const left = Math.max(col, leftClip)
+    const right = Math.min(col + w, maxCol)
+    if (right > left) sink.emitRestyleRegion(left, row, right - left, 1, s)
+  }
+
+  for (let row = 0; row < rowCount; row++) {
+    const lineY = y + row
+    if (clipBounds && (lineY < clipBounds.top || lineY >= clipBounds.bottom)) continue
+    const lo = lineOffsets[row]
+    if (!lo) continue
+    const contentRight = x + (lo.end - lo.start)
+    // 1. content fill (parent's own text + interior spaces)
+    restyle(x, lineY, contentRight - x, {
+      fg: contentStyle.fg,
+      bg: effectiveBg,
+      underlineColor: contentStyle.underlineColor ?? null,
+      attrs: contentStyle.attrs,
+    })
+    // 2. trailing pad → base fg, no attrs (matches renderText's clear cell)
+    restyle(contentRight, lineY, maxCol - contentRight, {
+      fg: baseStyle.fg,
+      bg: effectiveBg,
+      underlineColor: null,
+      attrs: CLEAR_ATTRS,
+    })
+  }
+
+  // 3. nested runs on top (outer-before-inner)
+  for (const span of childSpans) {
+    const runStyle = resolveSpanStyle(baseStyle, span.context)
+    const applied: Style = {
+      fg: runStyle.fg,
+      bg: effectiveBg,
+      underlineColor: runStyle.underlineColor ?? null,
+      attrs: runStyle.attrs,
+    }
+    for (let row = 0; row < rowCount; row++) {
+      const lineY = y + row
+      if (clipBounds && (lineY < clipBounds.top || lineY >= clipBounds.bottom)) continue
+      const lo = lineOffsets[row]
+      if (!lo) continue
+      const overlapStart = Math.max(span.start, lo.start)
+      const overlapEnd = Math.min(span.end, lo.end)
+      if (overlapStart >= overlapEnd) continue
+      const sx = x + (overlapStart - lo.start)
+      restyle(sx, lineY, overlapEnd - overlapStart, applied)
+    }
   }
 }
 

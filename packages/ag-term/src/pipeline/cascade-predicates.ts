@@ -479,15 +479,20 @@
 //   - !ancestorCleared: parent cleared stale pixels, children must re-render
 //
 // useTextStyleFastPath (render-phase.ts):
-//   DISABLED — hardcoded `const useTextStyleFastPath = false`.
-//   When only visual style props changed on a Text node (isStyleOnlyDirty),
-//   buffer.restyleRegion() would update fg/bg/attrs in-place without re-
-//   collecting text. Disabled because it causes incremental rendering mismatches
-//   (fg colors lost). Additional safety conditions:
-//   - !contentDirty, !childrenDirty, !bgDirty
-//   - !ancestorCleared, !ancestorLayoutChanged
-//   - !hasChildWithBg (nested children with own bg)
-//   - hasPrevBuffer=true
+//   ENABLED as a PER-SEGMENT restyle (@si/render/20532). The old whole-rect
+//   `restyleRegion(x,y,w,h, oneStyle)` was disabled because one style clobbered
+//   nested per-run fg colors. The replacement (render-text.ts `restyleTextSegments`)
+//   restyles each child span's resolved fg/attrs onto its cell range and the
+//   parent/base style onto the gaps, matching the full render path cell-for-cell.
+//   The gate cannot use dirty bits to detect "content unchanged": the reconciler
+//   re-dirties virtual text children (CHILDREN/SUBTREE/per-child CONTENT) on a
+//   parent style change even when the text is byte-identical. Instead it compares
+//   a per-node plain-text signature (`_textContentSigs`). Conditions:
+//   - hasPrevBuffer, !ancestorCleared, !ancestorLayoutChanged, !layoutChanged
+//   - !bgDirty, no truncate-hook / internal_transform (output not in the sig)
+//   - plain text == previous frame's AND stylePropsDirty (the restyle trigger)
+//   renderText then requires nested runs (childSpans>0), no nested/own Text bg,
+//   and no inserted truncation marker; else it falls back to the full render.
 //
 // ============================================================================
 

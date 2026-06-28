@@ -260,21 +260,39 @@ When ONLY `backgroundColor` changed on a Box node (no content, layout, or childr
 - `ancestorLayoutChanged` or `ancestorCleared` (children positions may be wrong)
 - Other `contentAreaAffected` triggers (content, layout, children, etc.)
 
-### 2. Text Style-Only Restyle
+### 2. Text Style-Only Restyle (per-segment)
 
-When ONLY visual style props changed on a Text node (color, bold, dim, inverse — no content or bg):
+When a Text node's visual style changed but its rendered content is identical
+(cursor/selection color toggle on a colored title), `renderText(styleOnly=true)`
+restyles existing cells in place PER CHILD SPAN instead of re-running the
+pipeline:
 
-- Uses `buffer.restyleRegion()` instead of full `renderText()` pipeline
-- Skips `collectTextWithBg → formatTextLines → renderGraphemes` entirely
-- Updates fg, bg, attrs on existing cells in-place
+- `restyleTextSegments` (render-text.ts): fills the content region with the
+  base style (`mergeAnsiStyle(base, ∅)` — parent's own text + gaps), the
+  trailing pad with the clear-cell style, then each nested run's resolved style
+  (`mergeAnsiStyle(base, parse(styleToAnsi(span.context)))`) over its cell range.
+  Skips `renderGraphemes` (the Intl.Segmenter + per-cell emit). Routes through
+  `sink.emitRestyleRegion` so the op is captured by the render plan.
+- Each run's resolved style reproduces the full path's `mergeAnsiStyle` exactly,
+  so SILVERY_STRICT incremental≡fresh holds — including nested per-run colors,
+  which the OLD whole-rect `restyleRegion` clobbered (why it was disabled).
 
-**Disabled when:**
+**Why dirty bits can't gate it:** the reconciler re-dirties virtual text
+children (CHILDREN + SUBTREE + per-child CONTENT) on a parent style change even
+when the text is byte-identical. The gate instead compares a per-node plain-text
+signature (`_textContentSigs` in render-phase.ts) to the previous frame's; equal
 
-- `contentDirty` is true (text content changed)
-- `childrenDirty` or `bgDirty` is true
-- `ancestorCleared` or `ancestorLayoutChanged` (cells at wrong positions)
-- Nested children have explicit `backgroundColor`
-- `!hasPrevBuffer` (no previous frame to preserve chars from)
+- `stylePropsDirty` ⇒ a pure restyle.
+
+**Disabled when (falls back to full renderText):**
+
+- Plain text content changed (signature differs) or `!hasPrevBuffer`
+- `bgDirty`, `ancestorCleared`, `ancestorLayoutChanged`, or own `layoutChanged`
+- A truncate hook / `internal_transform` is present (output not in the signature)
+- No nested runs (`childSpans.length === 0`) — plain text keeps base transform
+  attrs (`inverse`) via `renderGraphemes`, which `mergeAnsiStyle` would drop
+- Nested children with `backgroundColor`, or the Text has its own `backgroundColor`
+- An ellipsis truncation marker was inserted (a content cell with a special color)
 
 ### How the cascade propagates to children
 
