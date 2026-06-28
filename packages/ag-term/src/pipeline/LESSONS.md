@@ -193,3 +193,37 @@ const childClipBounds =
 **Why STRICT didn't catch it**: The bug produces identical incremental and fresh renders (both wrong in the same way — both call `renderScrollIndicators` on top of children). STRICT verifies incremental==fresh, not incremental==intended.
 
 **Lesson**: `scrollPhase` state (visibleTop/visibleBottom, indicatorReserve) and `render-phase`'s child clip bounds must agree on the reserved area. When adding or changing indicator logic, verify that the clip passed to child renders matches the intended content area, not the raw viewport rect.
+
+## Descendant Overflow into a Bordered Ancestor's Border Column (2026-06-28)
+
+**Symptom** (`@si/render/20529-rapid-border`): a Hab deck pane's right border `║` dropped on the interior rows of an incremental render. STRICT `MISMATCH at (149,2): incremental=" " vs fresh="║"` on a render where the prevBuffer was cloned. A one-chord rapid split+rename hit it; the two-step (settle between) path did not, because the settle let the split's border commit before the descendant retreated.
+
+**Root cause** — a sibling of the 2026-03-12 "Descendant Overflow Clearing" lesson, one level subtler. The pane tree was:
+
+```
+outer box (double border, rect 27,0 123×40)   — right border `║` at col 149, nodeRight=150
+└─ content box (transparent, rect 28,2 121×37) — nodeRight=149
+   └─ agent-content child                       — prevRight=150 last frame (painted OVER col 149), then shrank
+```
+
+When the child retreats, the **content box** (`nodeRight=149`) sees the child's `prevRight=150 > 149`, so `clearDescendantOverflowRegions` clears the overflow strip at col 149 — which is the OUTER box's right-border column. But the **outer border box** (`nodeRight=150`) ran `_checkDescendantOverflow` against its FULL rect: `prevRight (150) > nodeRight (150)` is `false`, so it never flagged `contentAreaAffected`, never repainted its border, and `needsOwnRepaint` stayed false (clean subtree). The cloned buffer held the child's old content at col 149 (not the border), the content box cleared it to blank, and nothing repainted `║`. The descendant sat EXACTLY on the ancestor's border column — invisible to a strict-`>` full-rect check.
+
+**Fix** (`_hasDescendantOverflowChanged` in `layout-phase.ts`): compare descendants against the node's **content area** (rect minus border + padding), not its full rect:
+
+```typescript
+const border = getBorderSize(props)
+const padding = getPadding(props)
+_checkDescendantOverflow(
+  node.children,
+  rect.x + border.left + padding.left,
+  rect.y + border.top + padding.top,
+  rect.x + rect.width - border.right - padding.right,
+  rect.y + rect.height - border.bottom - padding.bottom,
+)
+```
+
+Now the bordered ancestor detects a descendant that reached into its own border/padding ring (`prevRight=150 > contentRight=149`), flags `contentAreaAffected`, repaints its border, and cascades `childrenNeedFreshRender`. The content box then renders fresh (`hasPrevBuffer=false`), so `buildCascadeInputs` returns `descendantOverflowChanged=false` and it does NOT run a second overflow clear over the freshly-painted border. This is exactly the 2026-03-12 design — "the bordered ancestor detects, redraws its border, and the child renders fresh (no overflow clearing needed)" — extended to the case where the overflow lands on the ancestor's OWN border rather than strictly beyond its rect. Borderless, unpadded nodes inset by 0, so the change is a no-op for them (full features suite: 2804 STRICT tests unchanged).
+
+**Test**: `tests/features/descendant-overflow-border-clear.test.tsx` — a height-pinned 52-node subtree whose child reaches the border column then shrinks horizontally; the clearing node keeps `hasPrevBuffer=true` (no ancestor cascade-fresh), mirroring the deck's content box at (28,2). Asserts the right border survives on every interior row AND relies on STRICT's incremental≡fresh auto-check.
+
+**Lesson**: descendant-overflow detection is about which cells a retreating descendant leaves stale. A descendant that painted into an ancestor's **border/padding ring** (not just beyond its rect) leaves stale pixels the ancestor OWNS — so the ancestor must detect it against its CONTENT area, not its full rect. A strict-`>` full-rect check has an off-by-the-border blind spot exactly when a descendant sits on the ancestor's edge.

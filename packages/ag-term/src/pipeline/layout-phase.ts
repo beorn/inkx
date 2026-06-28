@@ -526,12 +526,32 @@ function _prevHasResidueOutside(
  * touches < 10 nodes before terminating.
  */
 function _hasDescendantOverflowChanged(node: AgNode, rect: Rect): boolean {
+  // Compare descendants against this node's CONTENT area (rect minus border +
+  // padding), not its full rect. A descendant whose prev rect reached into the
+  // node's own border/padding ring — e.g. a child that painted over the node's
+  // border column — and then retreats leaves stale pixels on cells the node
+  // OWNS (its border glyphs / padding bg). Those cells must be repainted by THIS
+  // node, so the node must flag contentAreaAffected.
+  //
+  // The full-rect check (`prevRight > nodeRight`) misses the descendant that sat
+  // EXACTLY on the border (prevRight === nodeRight): a transparent inner content
+  // box (nodeRight = borderCol) detects + clears the border column as "its"
+  // overflow strip, but the bordered ancestor (nodeRight = borderCol + 1) saw
+  // the descendant as fitting inside and never repainted its border — the
+  // @si/render/20529-rapid-border deck-pane border drop. Insetting by the
+  // border/padding ring makes the bordered ancestor detect it, repaint its
+  // border, and cascade childrenNeedFreshRender so the inner box renders fresh
+  // (no second overflow clear). Borderless, unpadded nodes inset by 0 — their
+  // content area equals their full rect, so this is a no-op for them.
+  const props = node.props as BoxProps
+  const border = getBorderSize(props)
+  const padding = getPadding(props)
   return _checkDescendantOverflow(
     node.children,
-    rect.x,
-    rect.y,
-    rect.x + rect.width,
-    rect.y + rect.height,
+    rect.x + border.left + padding.left,
+    rect.y + border.top + padding.top,
+    rect.x + rect.width - border.right - padding.right,
+    rect.y + rect.height - border.bottom - padding.bottom,
   )
 }
 
