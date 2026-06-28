@@ -3368,7 +3368,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // pass N can discover a measurement that only becomes readable after
       // the next commit boundary. Painting between those passes is the
       // visible no-input bounce seen during resumed transcript startup.
-      renderer.commitLayout()
+      const committedAdvanced = renderer.commitLayout()
       // Layout-signal subscribers (useScrollState/useBoxRect/etc.) schedule
       // React work synchronously during commitLayout(), but the container
       // onRender flag is raised only when that React work is flushed. Flush
@@ -3379,7 +3379,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // eslint-disable-next-line no-await-in-loop -- each iteration is one layout-commit boundary
       await Promise.resolve()
       reconciler.flushSyncWork()
-      if (!pendingRerender) return commitRerenders
+      // `committedAdvanced` covers deferred-lane subscriber forceUpdates that
+      // commitLayout fired but neither set `pendingRerender` nor surfaced via
+      // flushSyncWork — draining on it too keeps the standalone path from
+      // painting a stale pre-subscriber frame (the @si/render/19436 signature)
+      // when a board action / store update resizes a measured node.
+      if (!pendingRerender && !committedAdvanced) return commitRerenders
       if (commitRerenders >= MAX_CONVERGENCE_PASSES) {
         // Cap hit with a React-requested rerender STILL pending. The committed
         // React tree is ahead of `currentBuffer` by one pass. Historically we
@@ -4408,8 +4413,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // render runs in EXACTLY ONE additional pass below (it cannot reopen
     // the convergence loop because committed == in-flight after this call).
     // See bead `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
-    renderer.commitLayout()
-    if (pendingRerender) {
+    // `commitLayout` returns whether it advanced any committed rect — i.e.
+    // fired a useBoxRect/useScrollRect/useScreenRect subscriber forceUpdate.
+    // Those forceUpdates are React-SCHEDULED (deferred-lane): they do NOT set
+    // the runtime `pendingRerender` flag and are NOT drained by
+    // `flushSyncWork()`; only a doRender() (updateContainerSync) processes them.
+    // Gating the post-commit pass on `pendingRerender` alone therefore leaked
+    // the converged frame past the event boundary — this batch painted the
+    // pre-commit (stale) frame and the new committed rect surfaced ~1 macrotask
+    // later via the standalone fallback (the @si/render/19436 boxSize
+    // signature). Run the documented "exactly one additional pass" whenever the
+    // commit advanced a subscribed rect (or a normal pendingRerender is set).
+    const committedAdvanced = renderer.commitLayout()
+    await Promise.resolve()
+    reconciler.flushSyncWork()
+    if (pendingRerender || committedAdvanced) {
       // The commit fired a useBoxRect/useScrollRect/useScreenRect reactive
       // subscriber → forceUpdate → React queued a re-render. Drain it once;
       // do NOT loop again — any further in-flight rect changes produced by
@@ -4423,9 +4441,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       } finally {
         isRendering = false
       }
-      // Discard any further pendingRerender flag set during this final pass —
-      // honoring it would cascade right back into a feedback loop.
+      // Non-lossy tail (NO SILENT ERRORS). The drain doRender's OWN commit
+      // re-raises `pendingRerender` via onRender — that is a self-induced flag,
+      // not residual work, so clear it. The genuine residual to recover is a
+      // DEEPER measurement layer: a SECOND commit that still advances a
+      // subscribed rect means a multi-layer useBoxRect chain the single drain
+      // didn't reach. Per the one-frame-late contract we do NOT loop in-event;
+      // instead recover it non-lossily on ONE follow-up frame (fresh budget) +
+      // record the edge, rather than stranding the buffer behind committed
+      // state (the defect the standalone path fixed in @km/silvercode/19383).
       pendingRerender = false
+      if (renderer.commitLayout()) {
+        recordPassRing("unknown", "production-flush-exhaustion")
+        scheduleFollowupStandaloneFrame()
+      }
     }
 
     // The render phase's dirty rows are relative to the Ag's internal prevBuffer.
@@ -4932,9 +4961,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       for (let pass = 0; pass < maxPasses; pass++) {
         if (performance.now() - start >= timeoutMs) return
         pendingRerender = false
-        renderer.commitLayout()
+        // `commitLayout` returns whether it advanced a committed rect — those
+        // subscriber forceUpdates are deferred-lane and do NOT set
+        // `pendingRerender` nor drain via `flushSyncWork`, so a stable check on
+        // `pendingRerender` alone would return one pass too early and leave the
+        // subscriber update unpainted (the @si/render/19436 boxSize signature).
+        // Drain another pass when the commit advanced a subscribed rect.
+        const committedAdvanced = renderer.commitLayout()
         await Promise.resolve()
-        if (!pendingRerender) {
+        reconciler.flushSyncWork()
+        if (!pendingRerender && !committedAdvanced) {
           // Also verify no node is epoch-dirty — a render could be pending
           // outside React's commit pipeline (e.g., signal subscribers that
           // forceUpdate after the microtask drained).
@@ -5074,8 +5110,23 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // rationale. Promotes in-flight rect signals to committed; reactive
       // useBoxRect/useScrollRect/useScreenRect consumers see one stable
       // value across all passes within this press cycle.
-      renderer.commitLayout()
-      if (pendingRerender) {
+      // The commit promotes in-flight rect signals to committed; that write
+      // fires layout-signal subscribers (useBoxRect/useScrollRect/useScreenRect)
+      // whose forceUpdate is a React-SCHEDULED (deferred-lane) update — it does
+      // NOT set the runtime `pendingRerender` flag and is NOT drained by
+      // `reconciler.flushSyncWork()`. Only a subsequent doRender()
+      // (updateContainerSync) processes it. So gating the post-commit pass on
+      // `pendingRerender` alone leaks the converged frame past the press
+      // boundary: this press paints the pre-commit (stale) frame and the new
+      // committed rect only surfaces ~1 macrotask later via the standalone
+      // fallback. That is the @si/render/19436 boxSize signature. `commitLayout`
+      // now reports whether it advanced any committed rect; run the documented
+      // "exactly one additional pass" whenever it did (or a normal pendingRerender
+      // is set) so the subscriber update is painted in THIS event.
+      const committedAdvanced = renderer.commitLayout()
+      await Promise.resolve()
+      reconciler.flushSyncWork()
+      if (pendingRerender || committedAdvanced) {
         pendingRerender = false
         isRendering = true
         try {
@@ -5084,8 +5135,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         } finally {
           isRendering = false
         }
-        pendingRerender = false
         flushCount++
+        // Non-lossy tail (NO SILENT ERRORS). The drain doRender's OWN commit
+        // re-raises `pendingRerender` via onRender — a self-induced flag, not
+        // residual work, so clear it. The genuine residual to recover is a
+        // DEEPER measurement layer: a SECOND commit that still advances a
+        // subscribed rect means a multi-layer useBoxRect chain the single drain
+        // didn't reach. Per the one-frame-late contract we do NOT loop in-event;
+        // recover it non-lossily on ONE follow-up frame (fresh budget) + record
+        // the edge, rather than stranding the buffer behind committed state (the
+        // defect the standalone path fixed in @km/silvercode/19383).
+        pendingRerender = false
+        if (renderer.commitLayout()) {
+          recordPassRing("unknown", "press-flush-exhaustion")
+          scheduleFollowupStandaloneFrame()
+        }
       }
       // Mark all rows dirty — same safety net as processEventBatch. The render
       // phase's dirty rows are relative to Ag's internal prevBuffer, while

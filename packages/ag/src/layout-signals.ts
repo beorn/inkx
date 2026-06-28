@@ -1282,23 +1282,51 @@ export function syncDecorationRects(root: AgNode): void {
  * (i.e. nodes with at least one consumer); a tree with no rect subscribers
  * pays only the WeakMap probe per node.
  *
+ * **Return value**: `true` when the commit promoted at least one committed
+ * rect signal — i.e. it fired at least one reactive subscriber's forceUpdate.
+ * Those forceUpdates are React-scheduled (deferred-lane) updates that do NOT
+ * surface as the runtime's `pendingRerender` flag and are NOT drained by
+ * `reconciler.flushSyncWork()`; only a subsequent `doRender()`
+ * (`updateContainerSync`) processes them. The runtime's post-commit drain uses
+ * this return so it can run the documented "exactly one additional pass" that
+ * paints the subscriber update WITHIN the same event — instead of leaking a
+ * stale frame to a later macrotask (the @si/render/19436 boxSize signature).
+ *
  * See bead `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
  */
-export function commitLayoutSnapshot(root: AgNode): void {
+export function commitLayoutSnapshot(root: AgNode): boolean {
+  // `promoted` reports whether a committed rect that has an actual reactive
+  // SUBSCRIBER advanced — i.e. whether a `useBoxRect()` / `useBoxSize()` /
+  // `useScrollRect()` / `useScreenRect()` effect will forceUpdate. The runtime
+  // uses this to run the documented "one additional pass" that PAINTS the
+  // subscriber update within the same event (those forceUpdates are
+  // deferred-lane — they do not set `pendingRerender` nor drain via
+  // `flushSyncWork`). The signal WRITE is unconditional (a subscriber can mount
+  // later and must read the current committed value); only the re-render SIGNAL
+  // is gated on an observed subscriber, so prop-as-output nodes (cursorOffset /
+  // focused / anchorRef / decorations) that move but have no `use*Rect`
+  // subscriber do NOT trigger a wasted extra render on every cursor / scroll
+  // navigation. See @si/render/19436.
+  let promoted = false
   function walk(node: AgNode): void {
     const s = signalMap.get(node)
     if (s) {
       const nextBox = s.boxRect()
       if (!rectEqual(nextBox, s.boxRectCommitted())) {
         s.boxRectCommitted(nextBox)
+        if (hasObservedLayoutSignal(node, "boxRect") || hasObservedLayoutSignal(node, "boxSize")) {
+          promoted = true
+        }
       }
       const nextScroll = s.scrollRect()
       if (!rectEqual(nextScroll, s.scrollRectCommitted())) {
         s.scrollRectCommitted(nextScroll)
+        if (hasObservedLayoutSignal(node, "scrollRect")) promoted = true
       }
       const nextScreen = s.screenRect()
       if (!rectEqual(nextScreen, s.screenRectCommitted())) {
         s.screenRectCommitted(nextScreen)
+        if (hasObservedLayoutSignal(node, "screenRect")) promoted = true
       }
     }
     for (const child of node.children) {
@@ -1306,6 +1334,7 @@ export function commitLayoutSnapshot(root: AgNode): void {
     }
   }
   walk(root)
+  return promoted
 }
 
 // ============================================================================

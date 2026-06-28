@@ -129,8 +129,15 @@ export interface Renderer {
    * AFTER the in-flight convergence loop has drained — so reactive consumers
    * see one stable value across every pass within a batch. See bead
    * `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
+   *
+   * Returns `true` when at least one committed rect advanced — i.e. it fired
+   * at least one reactive subscriber forceUpdate. The runtime's post-commit
+   * drain uses this to decide whether the documented "one additional pass"
+   * must run to paint the subscriber update within the same event (those
+   * forceUpdates are deferred-lane and do not set `pendingRerender` nor drain
+   * via `flushSyncWork`). See @si/render/19436.
    */
-  commitLayout(): void
+  commitLayout(): boolean
 }
 
 /**
@@ -585,13 +592,13 @@ export function createRenderer(opts: RendererOptions): Renderer {
     return buf
   }
 
-  function commitLayout(): void {
+  function commitLayout(): boolean {
     // No-op when Ag hasn't been initialized yet (no render has run). Any
     // attempt to walk the tree before the first layout is harmless but
     // pointless — there are no committed signals to advance.
-    if (!_ag) return
+    if (!_ag) return false
     const rootNode = getContainerRoot(opts.container)
-    commitLayoutSnapshot(rootNode)
+    return commitLayoutSnapshot(rootNode)
   }
 
   return {
