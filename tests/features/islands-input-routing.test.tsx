@@ -120,14 +120,18 @@ describe("focused Island input routing", () => {
     using term = createTermless({ cols: 40, rows: 8 })
     const recorder = createInputRecorderGuest()
     const hostInputs: string[] = []
-    let setIslandFocusableForTest: React.Dispatch<React.SetStateAction<boolean>> | null = null
+    // Ref-like holder: a closure-assigned `let` narrows to `null` (CFA never) at
+    // the call site, so capture the setter through a typed holder property.
+    const islandFocusableSetter: {
+      current: React.Dispatch<React.SetStateAction<boolean>> | null
+    } = { current: null }
 
     function App(): React.ReactElement {
       const [islandFocusable, setIslandFocusable] = React.useState(true)
       React.useEffect(() => {
-        setIslandFocusableForTest = setIslandFocusable
+        islandFocusableSetter.current = setIslandFocusable
         return () => {
-          setIslandFocusableForTest = null
+          islandFocusableSetter.current = null
         }
       }, [setIslandFocusable])
       useInput((input) => {
@@ -149,7 +153,7 @@ describe("focused Island input routing", () => {
       expect(recorder.feeds).toEqual(["a"])
       expect(hostInputs).toEqual([])
 
-      setIslandFocusableForTest?.(false)
+      islandFocusableSetter.current?.(false)
       await settle()
       await handle.press("b")
       await settle()
@@ -168,14 +172,17 @@ describe("focused Island input routing", () => {
     const recorderB = createInputRecorderGuest()
     const hostInputsA: string[] = []
     const hostInputsB: string[] = []
-    let setFocusableA: React.Dispatch<React.SetStateAction<boolean>> | null = null
+    // Ref-like holder (see the single-root test above) for root A's setter.
+    const focusableSetterA: { current: React.Dispatch<React.SetStateAction<boolean>> | null } = {
+      current: null,
+    }
 
     function AppA(): React.ReactElement {
       const [islandFocusable, setIslandFocusable] = React.useState(true)
       React.useEffect(() => {
-        setFocusableA = setIslandFocusable
+        focusableSetterA.current = setIslandFocusable
         return () => {
-          setFocusableA = null
+          focusableSetterA.current = null
         }
       }, [setIslandFocusable])
       useInput((input) => {
@@ -212,7 +219,7 @@ describe("focused Island input routing", () => {
       expect(recorderA.feeds).toEqual(["a"])
       expect(recorderB.feeds).toEqual(["b"])
 
-      setFocusableA?.(false)
+      focusableSetterA.current?.(false)
       await settle()
       await handleA.press("c")
       await handleB.press("d")

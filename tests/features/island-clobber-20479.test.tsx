@@ -125,14 +125,19 @@ describe("island focusable flip clears focus + releases protocol modes (20479)",
     const { stream: stdin } = createFakeTtyStdin()
     const stdout = createFakeTtyStdout()
     const modeGuest = createModeGuest({ mouseTracking: "any", focusReporting: true })
-    let setFocusable: React.Dispatch<React.SetStateAction<boolean>> | null = null
+    // Ref-like holder so the test body can drive the component's setter. A plain
+    // closure-assigned `let` narrows to `null` at the call site (CFA never), so
+    // capture through a holder whose property carries the union type.
+    const focusableSetter: { current: React.Dispatch<React.SetStateAction<boolean>> | null } = {
+      current: null,
+    }
 
     function App(): React.ReactElement {
       const [focusable, setF] = React.useState(true)
       React.useEffect(() => {
-        setFocusable = setF
+        focusableSetter.current = setF
         return () => {
-          setFocusable = null
+          focusableSetter.current = null
         }
       }, [setF])
       return (
@@ -169,7 +174,7 @@ describe("island focusable flip clears focus + releases protocol modes (20479)",
       // handleNodeUpdated must clear the now-non-focusable island's focus so the
       // host re-aggregates and RELEASES the island-only protocol modes.
       clearWrites(stdout)
-      setFocusable?.(false)
+      focusableSetter.current?.(false)
       await new Promise<void>((r) => setTimeout(r, 30))
       const afterFlip = stdout.written.join("")
       expect(
@@ -199,14 +204,17 @@ describe("island focusable flip clears focus + releases protocol modes (20479)",
     const stdoutB = createFakeTtyStdout()
     const guestA = createModeGuest({ mouseTracking: "any", focusReporting: true })
     const guestB = createModeGuest({ mouseTracking: "any", focusReporting: true })
-    let setFocusableA: React.Dispatch<React.SetStateAction<boolean>> | null = null
+    // Ref-like holder (see test 1) so the body can flip root A's island.
+    const focusableSetterA: { current: React.Dispatch<React.SetStateAction<boolean>> | null } = {
+      current: null,
+    }
 
     function AppA(): React.ReactElement {
       const [focusable, setF] = React.useState(true)
       React.useEffect(() => {
-        setFocusableA = setF
+        focusableSetterA.current = setF
         return () => {
-          setFocusableA = null
+          focusableSetterA.current = null
         }
       }, [setF])
       return (
@@ -229,16 +237,18 @@ describe("island focusable flip clears focus + releases protocol modes (20479)",
       )
     }
 
+    // `as const` keeps the literal types (notably `input: false`, which
+    // RunOptionsCommon types as the literal `false`, not `boolean`) when spread.
     const baseOpts = {
       cols: 80,
       rows: 24,
-      mode: "inline" as const,
+      mode: "inline",
       input: false,
       kitty: false,
       mouse: false,
       focusReporting: false,
       selection: false,
-    }
+    } as const
     // Mount A first, then B — B's render() clobbers A's process-global lifecycle
     // callback under the unfixed model.
     const handleA = await run(<AppA />, { stdin: stdinA, stdout: stdoutA, ...baseOpts })
@@ -256,7 +266,7 @@ describe("island focusable flip clears focus + releases protocol modes (20479)",
       // Flip ONLY root A's island non-focusable.
       clearWrites(stdoutA)
       clearWrites(stdoutB)
-      setFocusableA?.(false)
+      focusableSetterA.current?.(false)
       await new Promise<void>((r) => setTimeout(r, 30))
 
       const afterA = stdoutA.written.join("")

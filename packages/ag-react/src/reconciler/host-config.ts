@@ -422,7 +422,10 @@ export function setInkStrictValidation(enabled: boolean): void {
 export interface Container {
   root: AgNode
   onRender: () => void
-  nodeLifecycle: NodeLifecycleObserver | null
+  // Optional: createContainer() always sets this (to null until registerContainer
+  // attaches an observer), but bare test fixtures construct a minimal Container
+  // without it, and every read site is optional-chained (`?.nodeLifecycle?.`).
+  nodeLifecycle?: NodeLifecycleObserver | null
 }
 
 /**
