@@ -152,9 +152,12 @@ function collectSubtreeFade(
         out.amounts.push(amount)
       }
       insideFade = true
-    } else if (!insideForeign && isOverlayNode(props)) {
+    } else if (!insideForeign && isOverlayNode(props) && !hasSubtreeFadeMarkers(node)) {
       // A root-level overlay outside every faded subtree. Its painted cells
       // (collected below) stay crisp where it crosses a dimmed pane.
+      // Absolute positioner wrappers that CONTAIN a faded subtree are layout
+      // hosts, not foreign overlays; excluding them would subtract their own
+      // dimmed descendants from the fade plan.
       insideForeign = true
     }
   }

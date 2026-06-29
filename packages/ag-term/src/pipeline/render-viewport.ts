@@ -2,11 +2,11 @@
  * Render a `silvery-viewport` node into the parent {@link TerminalBuffer}.
  *
  * A viewport is an OPAQUE blit: the foreign cell domain owned by the viewport's
- * {@link ViewportNodeState} is copied 1:1 into the parent buffer at the node's
- * `boxRect`. The viewport does NOT participate in bg-coherence with the parent
- * — the bg-conflict throw in `render-text.ts` is structurally side-stepped
- * because viewport cells route through the render-sink directly, never through
- * {@link renderText}.
+ * {@link ViewportNodeState} is copied into the parent buffer at the node's
+ * `boxRect`, with source gaps painted as blanks. The viewport does NOT
+ * participate in bg-coherence with the parent — the bg-conflict throw in
+ * `render-text.ts` is structurally side-stepped because viewport cells route
+ * through the render-sink directly, never through {@link renderText}.
  *
  * IMPORTANT: writes go through {@link RenderSink.emitSetCell}, NOT
  * `buffer.setCell`. Under `SILVERY_RENDER_PLAN` (default ON) the silvery
@@ -21,6 +21,7 @@
 
 import type { TerminalBuffer, CellPatch, Color } from "../buffer"
 import type { AgNode, Cell, Rect } from "@silvery/ag/types"
+import type { CellBuffer } from "@silvery/ag/viewport-types"
 import type { RenderSink } from "./render-sink"
 import { parseColor } from "./render-helpers"
 import { assertIslandRenderInvariants, ensureIslandStrictInstrumentation } from "../strict-island"
@@ -28,9 +29,10 @@ import { assertIslandRenderInvariants, ensureIslandStrictInstrumentation } from 
 /**
  * Blit the foreign cell buffer at `node.viewportState.buffer` into `buffer`
  * (via `sink.emitSetCell`) at `layout` (the viewport's content rect in
- * absolute parent-buffer coordinates). Cells outside `buffer`'s bounds are
- * silently clipped — the Viewport rect's right/bottom may extend off-screen
- * and that's fine.
+ * absolute parent-buffer coordinates). The full layout rect is painted so
+ * cloned parent buffers cannot retain stale cells where the source is smaller.
+ * Cells outside `buffer`'s bounds are silently clipped — the Viewport rect's
+ * right/bottom may extend off-screen and that's fine.
  */
 export function renderViewport(
   node: AgNode,
@@ -40,28 +42,7 @@ export function renderViewport(
   scrollOffset: number,
 ): void {
   const state = node.viewportState
-  if (!state) return
-  const src = state.buffer
-  const baseX = layout.x
-  const baseY = layout.y - scrollOffset
-
-  // Clip blit region to the intersection of the viewport rect and the
-  // foreign buffer's grid. We don't enlarge to the foreign buffer's
-  // dimensions if the layout rect is smaller — the parent layout decides
-  // visible bounds.
-  const drawW = Math.min(layout.width, src.cols)
-  const drawH = Math.min(layout.height, src.rows)
-
-  for (let r = 0; r < drawH; r++) {
-    const dstY = baseY + r
-    if (dstY < 0 || dstY >= buffer.height) continue
-    for (let c = 0; c < drawW; c++) {
-      const dstX = baseX + c
-      if (dstX < 0 || dstX >= buffer.width) continue
-      const cell = src.getCell(c, r)
-      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell))
-    }
-  }
+  emitOpaqueBlit(state?.buffer ?? null, buffer, sink, layout, scrollOffset)
 }
 
 /**
@@ -86,6 +67,48 @@ function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
   }
 }
 
+function blankCellToPatch(inheritedBg: Color = null): CellPatch {
+  return {
+    char: " ",
+    fg: null,
+    bg: inheritedBg,
+    attrs: {},
+    wide: false,
+    continuation: false,
+  }
+}
+
+function emitOpaqueBlit(
+  src: CellBuffer | null,
+  buffer: TerminalBuffer,
+  sink: RenderSink,
+  layout: Rect,
+  scrollOffset: number,
+  inheritedBg: Color = null,
+  selectableMode = false,
+): void {
+  const baseX = layout.x
+  const baseY = layout.y - scrollOffset
+  const blank = blankCellToPatch(inheritedBg)
+
+  // Viewports and islands are opaque cell domains. Paint the whole layout
+  // rect, not just the currently available source grid, so cloned host buffers
+  // cannot retain stale cells after a guest resize, deferred init, or remount.
+  for (let r = 0; r < layout.height; r++) {
+    const dstY = baseY + r
+    if (dstY < 0 || dstY >= buffer.height) continue
+    for (let c = 0; c < layout.width; c++) {
+      const dstX = baseX + c
+      if (dstX < 0 || dstX >= buffer.width) continue
+      const cell =
+        src && r < src.rows && c < src.cols
+          ? viewportCellToPatch(src.getCell(c, r), inheritedBg)
+          : blank
+      sink.emitSetCell(dstX, dstY, cell, selectableMode)
+    }
+  }
+}
+
 /**
  * Blit a `silvery-island` node's guest cell buffer into the parent buffer.
  *
@@ -96,11 +119,11 @@ function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
  * `emitSetCell`, not direct buffer writes — so the cells survive
  * `commitSectionedPlan` under `SILVERY_RENDER_PLAN`.
  *
- * Bails when the host node has no `islandState` (factory still mounting) or
- * the guest's `init()` hasn't resolved yet (`handle === null`, lifecycle
- * `"pending"` / `"errored"` / `"disposed"`). In that case the parent's
- * `clearNodeRegion` (or inherited bg fill) has already painted blanks at
- * the island's rect, so we paint nothing and the host chrome shows through.
+ * When the host node has no `islandState` (factory still mounting) or the
+ * guest's `init()` hasn't resolved yet (`handle === null`, lifecycle
+ * `"pending"` / `"errored"` / `"disposed"`), the island still paints its full
+ * rect as inherited-background blanks. The host region is opaque even when no
+ * guest frame is ready.
  *
  * Cursor handling: `IslandOutputOwner.cursor` is the guest's internal
  * cursor descriptor. v1 (Phase 1) does NOT render the guest cursor into the
@@ -127,35 +150,20 @@ export function renderIsland(
   selectableMode = false,
 ): void {
   const state = node.islandState
-  if (!state) return
+  if (!state) {
+    emitOpaqueBlit(null, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode)
+    return
+  }
   const handle = state.handle
-  // Deferred-hydrate or async-init islands have no handle until the
-  // guest's `init()` resolves. STRICT slug `island-paint-oob` (tier 2)
-  // would catch a guest writing past its rect; the null-handle bail is a
-  // structural guard that runs at every paint regardless of STRICT.
-  if (!handle) return
+  // Deferred-hydrate or async-init islands have no handle until the guest's
+  // `init()` resolves. The island rect is still opaque, so emit blank cells
+  // instead of letting cloned parent-buffer content survive under it.
+  if (!handle) {
+    emitOpaqueBlit(null, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode)
+    return
+  }
   ensureIslandStrictInstrumentation(node)
   assertIslandRenderInvariants(node, layout)
   const src = handle.output.buffer
-  const baseX = layout.x
-  const baseY = layout.y - scrollOffset
-
-  // Clip blit region to the intersection of the island rect and the guest's
-  // current cell grid. We don't enlarge to the guest's dimensions if the
-  // layout rect is smaller — the parent layout decides visible bounds (the
-  // two-phase resize protocol means the guest may temporarily lag the
-  // host's reported cols/rows after a resize).
-  const drawW = Math.min(layout.width, src.cols)
-  const drawH = Math.min(layout.height, src.rows)
-
-  for (let r = 0; r < drawH; r++) {
-    const dstY = baseY + r
-    if (dstY < 0 || dstY >= buffer.height) continue
-    for (let c = 0; c < drawW; c++) {
-      const dstX = baseX + c
-      if (dstX < 0 || dstX >= buffer.width) continue
-      const cell = src.getCell(c, r)
-      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell, inheritedBg), selectableMode)
-    }
-  }
+  emitOpaqueBlit(src, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode)
 }
