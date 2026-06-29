@@ -309,6 +309,7 @@ export interface ManagedCursorControls {
 export function managedCursorSuffix(
   cursor: CursorRect | null,
   parkRect: Rect | null,
+  opts?: { visible?: boolean },
 ): ManagedCursorControls {
   const park =
     cursor !== null
@@ -316,8 +317,13 @@ export function managedCursorSuffix(
       : parkRect !== null
         ? { x: parkRect.x, y: parkRect.y }
         : { x: 0, y: 0 }
+  // Default: park-then-HIDE (@km/code/v0.2/19702 anti-stranding). A `cursorActive`
+  // island host-caret (@km/silvery/19426) instead parks-then-SHOWS — the focused
+  // guest terminal's real cursor is the one hardware cursor we deliberately leave
+  // visible. Parking first means a shown cursor lands exactly on the guest cell.
+  const tail = opts?.visible === true ? ANSI.CURSOR_SHOW : ANSI.CURSOR_HIDE
   return {
-    suffix: ANSI.moveCursor(park.x, park.y) + ANSI.CURSOR_HIDE,
+    suffix: ANSI.moveCursor(park.x, park.y) + tail,
     parkTarget: park,
   }
 }
@@ -467,12 +473,37 @@ export function computeManagedFrame(
   // dropped/overridden hide lands on a benign cell, never a dynamic
   // transcript/chrome row.
   const suppressDeclarativeFallback = active?.provenance === "declarative-fallback"
-  const compositeCursor =
-    legacyCursor !== null ? legacyCursor : suppressDeclarativeFallback ? null : treeCursor
   // @km/code/v0.2/20082: the window-focus state selects the caret SHAPE (filled
-  // block when focused, hollow rectangle when unfocused). Default focused — the
-  // fail-safe so unknown focus never yields a hollow/hidden caret.
+  // block when focused, hidden when unfocused). Default focused — the fail-safe so
+  // unknown focus never yields a hidden caret.
   const windowFocused = opts?.windowFocused ?? true
+
+  // @km/silvery/19426 / @hab/.../20398 — island host-caret. A `cursorActive`
+  // island is a REAL guest terminal (a shell PTY, an embedded app) whose guest
+  // cursor must render as the host HARDWARE caret: a real, VISIBLE cursor at the
+  // guest cell (like the focused pane of a terminal multiplexer). The 19702
+  // managed model — composite an inverse block + park-and-HIDE the hardware cursor
+  // (`?25l`) — is correct for silvery's OWN declarative editables, whose "caret" is
+  // painted content with no real hardware cursor to show. Lumping islands into it
+  // published the focused shell's guest cursor as a HIDDEN hardware cursor — the
+  // "focused shell has no cursor" recurrence (20398). So an island host-caret is
+  // shown as the hardware cursor instead, gated on window focus (an unfocused
+  // window shows nothing). The island block in `findActiveCursorRect` already
+  // gates on the guest's own `cursorVisible`, so an island provenance here means
+  // the guest wants its cursor shown.
+  const islandHardwareCursor =
+    active?.provenance === "island" && windowFocused && treeCursor?.visible === true
+
+  // Composite the VISIBLE inverse caret for everything EXCEPT (a) a non-focused
+  // declarative fallback (@km/code/v0.2/19702) and (b) an island host-caret, which
+  // is shown as a real hardware cursor below — compositing an inverse block on top
+  // of it would double the caret.
+  const compositeCursor =
+    legacyCursor !== null
+      ? legacyCursor
+      : islandHardwareCursor || suppressDeclarativeFallback
+        ? null
+        : treeCursor
   const managed = composeManagedCaret(sourceBuffer, compositeCursor, windowFocused)
 
   // Clear a prior frame's composited-caret overlay from a static row. When the
@@ -501,7 +532,11 @@ export function computeManagedFrame(
   // on its prompt cell (@km/code/v0.2/19702 — replaces the box-origin fallback
   // that stranded the cursor one row above the prompt).
   const parkRect = findActiveParkRect(root)
-  const managedCursor = managedCursorSuffix(cursor, parkRect)
+  // Island host-caret → park at the guest cell and leave the hardware cursor
+  // VISIBLE (`?25h`): the focused guest terminal's real cursor is the one hardware
+  // cursor we deliberately show. Every other managed frame parks-then-HIDES
+  // (`?25l`) — the 19702 anti-stranding safety net.
+  const managedCursor = managedCursorSuffix(cursor, parkRect, { visible: islandHardwareCursor })
   // STRICT (tier 2, slug `cursor`): the no-fallback park invariant — a declared
   // parkOffset MUST be honored, never overridden by a box-origin/home fallback.
   verifyParkHonorsDeclaredTarget(cursor, parkRect, managedCursor.parkTarget)
@@ -510,7 +545,9 @@ export function computeManagedFrame(
   let expectedTerminal: OutputCursorTarget | null = null
   if (cursor) {
     cursorTarget = { x: cursor.x, y: cursor.y, visible: cursor.visible, shape: cursor.shape }
-    expectedTerminal = { ...cursorTarget, visible: false }
+    // The island host-caret is the one managed frame that leaves the hardware
+    // cursor VISIBLE; every other managed frame hides it.
+    expectedTerminal = { ...cursorTarget, visible: islandHardwareCursor }
   } else if (managedCursor.parkTarget) {
     expectedTerminal = { ...managedCursor.parkTarget, visible: false }
   }

@@ -315,7 +315,7 @@ function freshViewportBuffer(): TerminalBuffer {
 }
 
 describe("managed-caret provenance — suppress only non-focused declarative fallback", () => {
-  test("cursorActive island: guest cursor IS composited as the host caret (19426 regression)", () => {
+  test("cursorActive island: guest cursor IS published as the host HARDWARE caret (19426 intent / 20398)", () => {
     const islandRect: Rect = { x: 4, y: 3, width: 20, height: 5 }
     const root = rootWith([cursorActiveIslandNode(islandRect, { col: 3, row: 1 })])
     const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen")
@@ -325,26 +325,64 @@ describe("managed-caret provenance — suppress only non-focused declarative fal
     const inverse = bufferInverseCells(managed.presentationBuffer)
     const report =
       `compositorCaret=${JSON.stringify(managed.compositorCaret)}\n` +
+      `cursorSuffix=${JSON.stringify(managed.cursorSuffix)}\n` +
+      `expectedTerminal=${JSON.stringify(managed.expectedTerminal)}\n` +
       `expectedCaret={x:${expectedX},y:${expectedY}}\n` +
       `inverseCells=${JSON.stringify(inverse)}`
 
-    // The island caret must be composited into the presentation buffer.
+    // @hab/.../20398: an island is a REAL guest terminal (a shell PTY) — its guest
+    // cursor renders as the host HARDWARE caret (a real, VISIBLE cursor at the
+    // guest cell), NOT a composited inverse block. So NOTHING is composited into
+    // the presentation buffer...
     expect(
       managed.compositorCaret,
-      `island host-caret was NOT composited\n${report}`,
-    ).not.toBeNull()
+      `island host-caret must NOT composite an inverse block — it is shown as the real hardware cursor\n${report}`,
+    ).toBeNull()
+    expect(inverse, `no inverse cell may be painted for an island host-caret\n${report}`).toEqual(
+      [],
+    )
+    // ...and the hardware cursor is SHOWN (`?25h`), parked on the guest cell.
     expect(
-      managed.compositorCaret,
-      `island caret composited at the wrong cell\n${report}`,
+      managed.cursorSuffix,
+      `island host-caret must SHOW the hardware cursor at the guest cell (?25h)\n${report}`,
+    ).toContain(`\x1b[${expectedY + 1};${expectedX + 1}H\x1b[?25h`)
+    expect(
+      managed.expectedTerminal,
+      `the terminal cursor must end VISIBLE at the guest cell\n${report}`,
     ).toMatchObject({
       x: expectedX,
       y: expectedY,
       visible: true,
     })
-    expect(inverse, `island caret missing from the presentation buffer\n${report}`).toContainEqual({
-      row: expectedY,
-      col: expectedX,
+  })
+
+  test("cursorActive island in an UNFOCUSED window: hardware cursor stays HIDDEN (20398 gating)", () => {
+    // The island host-caret is shown as a real hardware cursor ONLY when the
+    // terminal WINDOW is focused. An unfocused window shows nothing — the cursor
+    // is parked-and-hidden like any other managed frame, so it can't strand a
+    // visible cursor in a backgrounded pane.
+    const islandRect: Rect = { x: 4, y: 3, width: 20, height: 5 }
+    const root = rootWith([cursorActiveIslandNode(islandRect, { col: 3, row: 1 })])
+    const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen", {
+      windowFocused: false,
     })
+    const report =
+      `compositorCaret=${JSON.stringify(managed.compositorCaret)}\n` +
+      `cursorSuffix=${JSON.stringify(managed.cursorSuffix)}\n` +
+      `expectedTerminal=${JSON.stringify(managed.expectedTerminal)}`
+    expect(managed.compositorCaret, `unfocused window composites nothing\n${report}`).toBeNull()
+    expect(
+      bufferInverseCells(managed.presentationBuffer),
+      `unfocused window paints no caret cell\n${report}`,
+    ).toEqual([])
+    expect(
+      managed.cursorSuffix,
+      `unfocused window must HIDE the hardware cursor (?25l), never show it\n${report}`,
+    ).toContain("\x1b[?25l")
+    expect(
+      managed.cursorSuffix,
+      `unfocused window must NOT show the hardware cursor\n${report}`,
+    ).not.toContain("\x1b[?25h")
   })
 
   test("focused declarative editable: caret IS composited", () => {
@@ -370,23 +408,30 @@ describe("managed-caret provenance — suppress only non-focused declarative fal
     ).toEqual([])
   })
 
-  test("island wins even when an unfocused declarative fallback also exists", () => {
+  test("island wins even when an unfocused declarative fallback also exists (hardware caret, no residue)", () => {
     const islandRect: Rect = { x: 4, y: 3, width: 20, height: 5 }
     const root = rootWith([
       unfocusedEditableNode(2, 9), // a passive declarative fallback below
       cursorActiveIslandNode(islandRect, { col: 2, row: 0 }),
     ])
     const managed = computeManagedFrame(freshViewportBuffer(), root, "fullscreen")
-    // The island caret composites; the fallback does not strand anything.
-    const inverse = bufferInverseCells(managed.presentationBuffer)
-    expect(managed.compositorCaret, "island caret must composite").toMatchObject({
-      x: islandRect.x + 2,
-      y: islandRect.y + 0,
-      visible: true,
-    })
-    expect(inverse, "exactly one composited caret (the island's), no fallback residue").toEqual([
-      { row: islandRect.y, col: islandRect.x + 2 },
-    ])
+    const expectedX = islandRect.x + 2
+    const expectedY = islandRect.y + 0
+    // The island is shown as the hardware cursor; the unfocused fallback is
+    // suppressed — so NOTHING is composited (no island inverse, no fallback residue).
+    expect(
+      managed.compositorCaret,
+      "island host-caret shows as the hardware cursor, not a composited block",
+    ).toBeNull()
+    expect(
+      bufferInverseCells(managed.presentationBuffer),
+      "no composited caret residue (island shown as hardware cursor, fallback suppressed)",
+    ).toEqual([])
+    // The hardware cursor is shown on the island's guest cell.
+    expect(managed.cursorSuffix, "hardware cursor shown on the island guest cell").toContain(
+      `\x1b[${expectedY + 1};${expectedX + 1}H\x1b[?25h`,
+    )
+    expect(managed.expectedTerminal).toMatchObject({ x: expectedX, y: expectedY, visible: true })
   })
 })
 
