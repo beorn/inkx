@@ -86,9 +86,12 @@ function caretCellAttrs(style: CompositedCaret["style"]): {
  *   the cursor COMPLETELY, replacing 20082's hollow box). Defaults to `true` —
  *   a fail-safe so a single user with a focused terminal (or any caller that
  *   hasn't wired standard `?1004` focus reporting) still sees the filled block,
- *   never a vanished caret on unknown focus. The hardware cursor is parked-and-
- *   hidden regardless of focus (see `managedCursorSuffix`), so an unfocused pane
- *   shows nothing at all — and a dropped `?25l` cannot strand a hardware cursor.
+ *   never a vanished caret on unknown focus. For a composited caret the hardware
+ *   cursor is parked-and-hidden regardless of focus (see `managedCursorSuffix`),
+ *   so an unfocused pane shows nothing at all — and a dropped `?25l` cannot
+ *   strand a hardware cursor. The one exception is a `cursorActive` island
+ *   host-caret, shown as the real hardware cursor when the window is focused
+ *   (see `computeManagedFrame` / @hab 20398).
  */
 export function composeManagedCaret(
   buffer: TerminalBuffer,
