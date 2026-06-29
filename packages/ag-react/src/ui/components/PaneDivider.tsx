@@ -122,8 +122,8 @@ export function PaneDivider({
       <Box
         flexShrink={0}
         flexGrow={0}
-        flexBasis={safeSize}
         width={safeSize}
+        height="100%"
         flexDirection="column"
         userSelect="none"
         mouseCapture={!disabled}
@@ -146,7 +146,7 @@ export function PaneDivider({
     <Box
       flexShrink={0}
       flexGrow={0}
-      flexBasis={safeSize}
+      width="100%"
       height={safeSize}
       flexDirection="row"
       userSelect="none"

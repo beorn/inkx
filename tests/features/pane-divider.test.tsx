@@ -80,6 +80,58 @@ describe("PaneDivider", () => {
     }
   })
 
+  test("absolute-layout vertical hitbox spans the divider height", async () => {
+    using term = createTermless({ cols: 16, rows: 6 })
+    const starts: PaneDividerResizeStartEvent[] = []
+    const onResizeStart = vi.fn((event: PaneDividerResizeStartEvent) => {
+      starts.push(event)
+    })
+    const handle = await run(
+      <Box width={16} height={6} position="relative">
+        <Box position="absolute" top={0} left={3} width={1} height="100%">
+          <PaneDivider orientation="vertical" onResizeStart={onResizeStart} />
+        </Box>
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    try {
+      await term.mouse.down(3, 5)
+      await waitFor(() => starts.length === 1)
+
+      expect(starts[0]).toMatchObject({ orientation: "vertical", coordinate: 3, x: 3, y: 5 })
+    } finally {
+      await term.mouse.up(3, 5)
+      handle.unmount()
+    }
+  })
+
+  test("absolute-layout horizontal hitbox spans the divider width", async () => {
+    using term = createTermless({ cols: 16, rows: 6 })
+    const starts: PaneDividerResizeStartEvent[] = []
+    const onResizeStart = vi.fn((event: PaneDividerResizeStartEvent) => {
+      starts.push(event)
+    })
+    const handle = await run(
+      <Box width={16} height={6} position="relative">
+        <Box position="absolute" top={4} left={0} width="100%" height={1}>
+          <PaneDivider orientation="horizontal" onResizeStart={onResizeStart} />
+        </Box>
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    try {
+      await term.mouse.down(12, 4)
+      await waitFor(() => starts.length === 1)
+
+      expect(starts[0]).toMatchObject({ orientation: "horizontal", coordinate: 4, x: 12, y: 4 })
+    } finally {
+      await term.mouse.up(12, 4)
+      handle.unmount()
+    }
+  })
+
   test("tracks move + end through a captured drag (onResizeMove / onResizeEnd)", async () => {
     using term = createTermless({ cols: 16, rows: 6 })
     const moves: number[] = []
