@@ -106,6 +106,22 @@ function cloneRect(rect: Rect): Rect {
   return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
 }
 
+function intersectRect(a: Rect, b: Rect): Rect | null {
+  const x0 = Math.max(a.x, b.x)
+  const y0 = Math.max(a.y, b.y)
+  const x1 = Math.min(a.x + a.width, b.x + b.width)
+  const y1 = Math.min(a.y + a.height, b.y + b.height)
+  if (x0 >= x1 || y0 >= y1) return null
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+}
+
+function pushForeignPaintExcludes(out: Collected, paintedRect: Rect): void {
+  for (const include of out.includes) {
+    const intersection = intersectRect(paintedRect, include)
+    if (intersection !== null) out.excludes.push(intersection)
+  }
+}
+
 /** A node that lifts out of normal flow and can paint over a sibling pane. */
 function isOverlayNode(props: Record<string, unknown>): boolean {
   return props.position === "absolute"
@@ -129,11 +145,15 @@ interface Collected {
 /**
  * Walk the tree collecting fade-include rects (the dimmed panes) and
  * foreign-overlay exclude rects (painted regions of overlays outside any faded
- * subtree). `insideFade` tracks whether we are within a marked subtree (its
- * descendants are part of the fade — including the pane's own absolute
- * composer — and are never treated as foreign overlays). `insideForeign`
- * tracks whether we are within a foreign overlay subtree (its painted nodes
- * become excludes).
+ * subtree). Excludes are paint-order aware: a foreign overlay can only keep
+ * itself crisp over fade regions that were already encountered earlier in the
+ * tree walk. Earlier absolute clearing layers that sit behind a pane's own
+ * faded content must not subtract that future pane from the fade plan.
+ *
+ * `insideFade` tracks whether we are within a marked subtree (its descendants
+ * are part of the fade — including the pane's own absolute composer — and are
+ * never treated as foreign overlays). `insideForeign` tracks whether we are
+ * within a foreign overlay subtree (its painted nodes become excludes).
  */
 function collectSubtreeFade(
   node: AgNode,
@@ -163,7 +183,7 @@ function collectSubtreeFade(
   }
 
   if (insideForeign && rect !== null && (node.type === "silvery-text" || paintsBackground(props))) {
-    out.excludes.push(cloneRect(rect))
+    pushForeignPaintExcludes(out, rect)
   }
 
   for (const child of node.children) {

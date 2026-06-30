@@ -35,6 +35,38 @@ describe("render-phase subtree fade", () => {
     expectWhite(overlay)
   })
 
+  test("absolute clearing layers before faded content do not cancel the fade", () => {
+    const render = createRenderer({ cols: 24, rows: 3 })
+
+    const app = render(
+      <Box backgroundColor="#000000" position="relative" width={24} height={3}>
+        <Box position="absolute" top={0} left={0} width={12} height={2} overflow="hidden">
+          <Box
+            position="absolute"
+            top={0}
+            left={0}
+            width="100%"
+            height="100%"
+            overflow="hidden"
+            flexDirection="column"
+          >
+            <Text> </Text>
+            <Text> </Text>
+          </Box>
+          <Box position="absolute" top={0} left={0} width={12} height={2}>
+            <Box width={12} height={2} data-subtree-fade={0.5}>
+              <Text color="#FFFFFF">pane</Text>
+            </Box>
+          </Box>
+        </Box>
+      </Box>,
+    )
+
+    const faded = app.cell(0, 0)
+    expect(faded.char).toBe("p")
+    expect(faded.fg).not.toEqual({ r: 255, g: 255, b: 255 })
+  })
+
   test("does not compound when faded descendants repaint, and removal restores crisp cells", () => {
     const render = createRenderer({ cols: 20, rows: 3 })
 
