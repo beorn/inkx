@@ -214,13 +214,14 @@ import {
 const log = createLogger("silvery:app")
 const traceLog = createLogger("silvery:trace")
 
-// Above this many standalone convergence cap-exceeds in one app session, the
-// teardown summary escalates from debug to a loud warn — a persistent edge is
-// being papered over by the non-lossy recovery (one extra frame per batch)
-// instead of bounded at the source. A handful is the expected transient regime
-// (a growing ListView item settling its ±1 viewport oscillation). Bead:
+// Above this many consecutive standalone frames that hit the convergence cap,
+// the teardown summary escalates from debug to a loud warn: the follow-up-frame
+// recovery is repeatedly exhausting its fresh budget, which indicates a feedback
+// edge that still needs bounding at the source. Total lifetime hits are kept as
+// debug telemetry because long streams can legitimately produce many separate
+// recovered ListView size changes without being one persistent loop. Bead:
 // @km/silvercode/19383.
-const STANDALONE_CAP_EXCEED_WARN_THRESHOLD = 8
+const STANDALONE_CAP_EXCEED_WARN_STREAK_THRESHOLD = 8
 
 // ============================================================================
 // Feature-detection flags — hoisted to module scope.
@@ -1298,11 +1299,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let followupFrameScheduled = false
   // Lifetime count of standalone convergence cap-exceeds for this app session.
   // The per-occurrence breadcrumb is debug-level (DEBUG_LOG-routed, see
-  // drainStandaloneCommitRerenders); the teardown summary escalates to a loud
-  // warn past STANDALONE_CAP_EXCEED_WARN_THRESHOLD. Together with the STRICT
-  // assert these are the three NO-SILENT-ERRORS rails for the dropped-paint
-  // class. Bead: @km/silvercode/19383.
+  // drainStandaloneCommitRerenders). The teardown summary escalates to a loud
+  // warn only when cap-exceeds are consecutive, because the total lifetime count
+  // grows during legitimate streaming ListView measurement updates too. Together
+  // with the STRICT assert these are the NO-SILENT-ERRORS rails for the
+  // dropped-paint class. Bead: @km/silvercode/19383.
   let standaloneCapExceedCount = 0
+  let standaloneCapExceedStreak = 0
+  let standaloneCapExceedMaxStreak = 0
+  let standaloneCapExceededThisFrame = false
 
   // ========================================================================
   // ANSI Trace: SILVERY_TRACE=1 logs all stdout writes with decoded sequences
@@ -2383,21 +2388,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Log keypress performance summary before teardown (only emits when TRACE was active)
     logExitSummary()
 
-    // Surface the lifetime count of standalone convergence cap-exceeds at
-    // teardown so it never goes silent (NO SILENT ERRORS). A small number is
-    // the expected handled-transient regime (a growing ListView item settling
-    // its ±1 viewport oscillation across follow-up frames). A PERSISTENT count
-    // means a feedback edge is being papered over by the non-lossy recovery on
-    // every batch — that is worth a loud warn so it gets bounded at the source.
+    // Surface recovered standalone convergence cap-exceeds at teardown so they
+    // never go silent (NO SILENT ERRORS). A high lifetime total can be normal
+    // for long streams: each token batch can legitimately grow a ListView row,
+    // then recover non-lossily via one follow-up frame. A high CONSECUTIVE
+    // streak means the fresh follow-up budget keeps exhausting frame after
+    // frame — that is the persistent feedback edge worth a loud warn.
     // Routed through loggily (DEBUG_LOG file in fullscreen).
     if (standaloneCapExceedCount > 0) {
       const summary =
         `standalone convergence cap exceeded ${standaloneCapExceedCount}× this session ` +
-        `(each handled non-lossily via a follow-up frame — no dropped paint). ` +
+        `(max consecutive streak ${standaloneCapExceedMaxStreak}×; each handled non-lossily ` +
+        `via a follow-up frame — no dropped paint). ` +
         `Bead: @km/silvercode/19383.`
-      if (standaloneCapExceedCount >= STANDALONE_CAP_EXCEED_WARN_THRESHOLD) {
+      if (standaloneCapExceedMaxStreak >= STANDALONE_CAP_EXCEED_WARN_STREAK_THRESHOLD) {
         log.warn?.(
-          `${summary} This count is high enough to indicate a feedback edge that needs ` +
+          `${summary} This consecutive streak is high enough to indicate a feedback edge that needs ` +
             `bounding at the source (re-run with SILVERY_INSTRUMENT=1 for the breakdown).`,
         )
       } else {
@@ -3407,6 +3413,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         currentBuffer = doRender()
         commitRerenders++
         standaloneCapExceedCount++
+        standaloneCapExceededThisFrame = true
+        standaloneCapExceedStreak++
+        standaloneCapExceedMaxStreak = Math.max(
+          standaloneCapExceedMaxStreak,
+          standaloneCapExceedStreak,
+        )
         // Per-occurrence breadcrumb, routed through loggily at DEBUG level so it
         // lands in DEBUG_LOG (never raw stdout in fullscreen) and is visible via
         // `DEBUG=silvery:app`. This is a HANDLED, RECOVERED condition (the
@@ -3441,6 +3453,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
 
     isRendering = true
+    standaloneCapExceededThisFrame = false
     try {
       let rerenderedBeforePaint = false
       currentBuffer = doRender()
@@ -3477,6 +3490,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       const clsDims = target.getDims()
       clsMonitor.onCommit(container.root, clsDims.cols, clsDims.rows, false)
     } finally {
+      if (!standaloneCapExceededThisFrame) standaloneCapExceedStreak = 0
       isRendering = false
     }
   }
