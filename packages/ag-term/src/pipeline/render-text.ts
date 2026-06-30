@@ -35,6 +35,7 @@ import {
   sliceByWidth,
   sliceByWidthFromEnd,
   splitGraphemes,
+  splitGraphemesAnsiAware,
   wrapText,
 } from "../unicode"
 import { collectPlainText } from "./collect-text"
@@ -865,6 +866,46 @@ function classifyLineBreaks(originalText: string, formattedLines: string[]): Lin
 // Text Formatting
 // ============================================================================
 
+function hardWrapTextLines(text: string, width: number, ctx?: PipelineContext): string[] {
+  const inputLines = text.split("\n")
+  const out: string[] = []
+  const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
+
+  for (const line of inputLines) {
+    if (line === "") {
+      out.push("")
+      continue
+    }
+
+    let current = ""
+    let currentWidth = 0
+    for (const grapheme of splitGraphemesAnsiAware(line)) {
+      const gWidth = hasAnsi(grapheme) ? 0 : gWidthFn(grapheme)
+      if (gWidth > 0 && currentWidth + gWidth > width && current.length > 0) {
+        out.push(current)
+        current = ""
+        currentWidth = 0
+      }
+
+      current += grapheme
+      currentWidth += gWidth
+    }
+
+    if (current.length > 0) {
+      out.push(current)
+    }
+  }
+
+  if (text.includes("\x1b]8;;")) {
+    fixOsc8AcrossWrappedLines(out)
+  }
+  if (out.length > 1 && text.includes("\x1b[")) {
+    fixSgrAcrossWrappedLines(out)
+  }
+
+  return out
+}
+
 /**
  * Format text into lines based on wrap mode.
  *
@@ -910,26 +951,7 @@ export function formatTextLines(
   // mid-word rather than at the space. Multi-line input is hard-wrapped
   // line-by-line; each line is repeatedly sliced by display width.
   if (wrap === "hard") {
-    const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
-    const out: string[] = []
-    for (const line of lines) {
-      if (line === "") {
-        out.push("")
-        continue
-      }
-      let remaining = line
-      // Guard against infinite loops when sliceByWidth cannot advance
-      // (e.g., a single grapheme wider than `width`). In that case, push
-      // the remaining text as-is and break.
-      while (getTextWidth(remaining, ctx) > width) {
-        const head = sliceFn(remaining, width)
-        if (head.length === 0) break
-        out.push(head)
-        remaining = remaining.slice(head.length)
-      }
-      out.push(remaining)
-    }
-    return out
+    return hardWrapTextLines(normalizedText, width, ctx)
   }
 
   // No wrapping, just truncate at end. The truncate hook (when present) is
@@ -2238,15 +2260,14 @@ export function renderText(
     //
     // Phase 2 Step 4c: routes through sink.emitClearCells (intent: clear stale
     // pixels in the trailing cells of a shrunk text node — destructive).
-    // Uses emitClearCells (not emitClearRect) because it preserves fg/attrs
-    // shape; the existing logic writes a fully-shaped cell with explicit
-    // attrs that emitClearRect's `{char:" ", bg}` would normalize away.
+    // Cleared whitespace is background-only: fresh renders get these cells from
+    // ancestor background fills, which have no foreground.
     const clearStart = minCol !== undefined ? Math.max(endCol, minCol) : endCol
     if (clearStart < maxCol) {
       const clearBg = inheritedBg ?? null
       const clearCell = {
         char: " ",
-        fg: style.fg,
+        fg: null,
         bg: clearBg,
         underlineColor: null,
         attrs: {
@@ -2346,7 +2367,7 @@ function resolveSpanStyle(baseStyle: Style, context: StyleContext): Style {
  *
  * Three cell categories, matching what the full render path paints:
  *   1. parent's own text + interior spaces → `contentStyle` (base ⊕ empty seg)
- *   2. trailing pad after a line's content  → `trailingStyle` (base fg, no attrs)
+ *   2. trailing pad after a line's content  → background-only, no attrs
  *   3. each nested run's cells              → `resolveSpanStyle(base, ctx)`
  *
  * Applied in z-order: content fill first, then trailing, then runs on top
@@ -2400,9 +2421,9 @@ function restyleTextSegments(
       underlineColor: contentStyle.underlineColor ?? null,
       attrs: contentStyle.attrs,
     })
-    // 2. trailing pad → base fg, no attrs (matches renderText's clear cell)
+    // 2. trailing pad → background-only, no attrs (matches renderText's clear cell)
     restyle(contentRight, lineY, maxCol - contentRight, {
-      fg: baseStyle.fg,
+      fg: null,
       bg: effectiveBg,
       underlineColor: null,
       attrs: CLEAR_ATTRS,
