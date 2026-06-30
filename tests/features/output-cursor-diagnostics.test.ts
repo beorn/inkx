@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, test } from "vitest"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
+import {
+  addWriter,
+  getDebugFilter,
+  getLogLevel,
+  setDebugFilter,
+  setLogLevel,
+  setSuppressConsole,
+  type Event,
+  type LogEvent,
+  type LogLevel,
+} from "loggily"
 import { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import {
   clearLastOutputCursorDiagnostics,
@@ -15,6 +26,7 @@ import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
 import type { AgNode } from "../../packages/ag/src/types"
 
 const originalStrict = process.env.SILVERY_STRICT
+const originalDebug = process.env.DEBUG
 const ESC_RE = "\\u001b"
 const TRAILING_CURSOR_CONTROL_RE = new RegExp(
   `(?:${ESC_RE}\\[\\?2026[hl]|${ESC_RE}\\[\\d+;\\d+H|${ESC_RE}\\[\\?25[lh]|${ESC_RE}\\[H)+$`,
@@ -25,6 +37,8 @@ const INVERSE_SGR_RE = new RegExp(`${ESC_RE}\\[7m`, "g")
 afterEach(() => {
   if (originalStrict === undefined) delete process.env.SILVERY_STRICT
   else process.env.SILVERY_STRICT = originalStrict
+  if (originalDebug === undefined) delete process.env.DEBUG
+  else process.env.DEBUG = originalDebug
   resetStrictCache()
   clearLastOutputCursorDiagnostics()
 })
@@ -32,6 +46,34 @@ afterEach(() => {
 function enableCursorStrict(): void {
   process.env.SILVERY_STRICT = "cursor"
   resetStrictCache()
+}
+
+function enableCursorPositionStrict(): void {
+  process.env.SILVERY_STRICT = "cursor-position"
+  resetStrictCache()
+}
+
+function withCursorLogging<T>(run: (events: LogEvent[]) => T): T {
+  const prevDebugFilter = getDebugFilter()
+  const prevLogLevel: LogLevel = getLogLevel()
+  const events: LogEvent[] = []
+  setDebugFilter(["silvery:cursor"])
+  setLogLevel("debug")
+  setSuppressConsole(true)
+  const unsubscribe = addWriter(
+    { ns: "silvery:cursor", level: "debug" },
+    (_formatted: string, _level: string, _namespace: string, event: Event) => {
+      if (event.kind === "log") events.push(event)
+    },
+  )
+  try {
+    return run(events)
+  } finally {
+    unsubscribe()
+    setDebugFilter(prevDebugFilter)
+    setLogLevel(prevLogLevel)
+    setSuppressConsole(false)
+  }
 }
 
 function replayCursor(
@@ -170,9 +212,43 @@ describe("output cursor diagnostics", () => {
     resetStrictCache()
     expect(isCursorStrictEnabled()).toBe(true)
 
+    process.env.SILVERY_STRICT = "cursor-position"
+    resetStrictCache()
+    expect(isCursorStrictEnabled()).toBe(true)
+
     process.env.SILVERY_STRICT = "2"
     resetStrictCache()
     expect(isCursorStrictEnabled()).toBe(true)
+
+    process.env.SILVERY_STRICT = "2,!cursor-position"
+    resetStrictCache()
+    expect(isCursorStrictEnabled()).toBe(false)
+
+    process.env.SILVERY_STRICT = "2,!cursor"
+    resetStrictCache()
+    expect(isCursorStrictEnabled()).toBe(false)
+  })
+
+  test("SILVERY_STRICT=cursor-position logs a literal cursor row/column breadcrumb", () => {
+    enableCursorPositionStrict()
+
+    const events = withCursorLogging((logged) => {
+      const buffer = new TerminalBuffer(24, 5)
+      writeLine(buffer, 0, "completed step")
+      writeLine(buffer, 2, "> ")
+
+      const cursor = { x: 2, y: 2, visible: true }
+      outputPhase(null, buffer, "inline", 0, 5, cursor)
+
+      return [...logged]
+    })
+
+    const diagnostics = getLastOutputCursorDiagnostics()
+    expect(diagnostics?.terminal).toMatchObject({ x: 2, y: 2, visible: true })
+    expect(
+      events.some((event) => event.message.includes("cursor:row=2,col=2")),
+      events.map((event) => event.message).join("\n"),
+    ).toBe(true)
   })
 
   test("SILVERY_STRICT=cursor records the replayed inline hardware cursor row", () => {

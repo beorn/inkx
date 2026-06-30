@@ -4,6 +4,7 @@ import { createLogger } from "loggily"
 const log = createLogger("silvery:cursor")
 
 export const CURSOR_STRICT_SLUG = "cursor"
+export const CURSOR_POSITION_STRICT_SLUG = "cursor-position"
 export const CURSOR_STRICT_MIN_TIER = 2
 
 export interface OutputCursorTarget {
@@ -104,8 +105,24 @@ let lastOutputCursorDiagnostics: OutputCursorDiagnostics | null = null
 let _createTerminal: typeof import("@termless/core").createTerminal | null = null
 let _createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend | null = null
 
+function isCursorStrictDisabled(): boolean {
+  const raw = process.env.SILVERY_STRICT
+  if (!raw) return false
+  for (const part of raw.split(",")) {
+    const slug = part.trim()
+    if (slug === `!${CURSOR_STRICT_SLUG}` || slug === `!${CURSOR_POSITION_STRICT_SLUG}`) {
+      return true
+    }
+  }
+  return false
+}
+
 export function isCursorStrictEnabled(): boolean {
-  return isStrictEnabled(CURSOR_STRICT_SLUG, CURSOR_STRICT_MIN_TIER)
+  if (isCursorStrictDisabled()) return false
+  return (
+    isStrictEnabled(CURSOR_STRICT_SLUG, CURSOR_STRICT_MIN_TIER) ||
+    isStrictEnabled(CURSOR_POSITION_STRICT_SLUG, CURSOR_STRICT_MIN_TIER)
+  )
 }
 
 export function getLastOutputCursorDiagnostics(): OutputCursorDiagnostics | null {
@@ -310,7 +327,8 @@ export function recordOutputCursorDiagnostics(opts: {
   }
 
   log.debug?.(
-    `cursor ${opts.reason}: target=${formatTarget(diagnostics.target)} ` +
+    `cursor ${opts.reason}: cursor:row=${terminal.y},col=${terminal.x} ` +
+      `target=${formatTarget(diagnostics.target)} ` +
       `expected=${formatTarget(diagnostics.expectedTerminal)} ` +
       `terminal=x=${terminal.x} y=${terminal.y} visible=${terminal.visible} ` +
       `compositor=${formatCompositorCaret(diagnostics.compositorCaret)} ` +
