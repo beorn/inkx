@@ -11,6 +11,7 @@
  *    must reach the host's own `useInput` instead of the guest.
  *    `<Island commandPrefix={{ hotkey, capturing }}>`:
  *      - `hotkey` — the always-reserved prefix (matched via `matchHotkey`).
+ *      - `reservedHotkeys` — additional always-reserved direct host hotkeys.
  *      - `capturing` — host is mid-command; route ALL keys to the host until it
  *        clears (the deck passes its `chordPending` flag).
  *
@@ -190,6 +191,59 @@ describe("island command prefix — keys", () => {
       await settle()
       expect(recorder.feeds).toEqual([])
       expect(hostKeys).toEqual(["x"])
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("commandPrefix reservedHotkeys: direct host shortcuts fall through while other keys still feed the guest", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+    const hostKeys: string[] = []
+
+    function App(): React.ReactElement {
+      useInput((input, key) => {
+        if (key.meta && input === "h") hostKeys.push("meta-h")
+        else if (key.meta && key.leftArrow) hostKeys.push("meta-left")
+        else hostKeys.push(input)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island
+            guest={recorder.guest}
+            cols={10}
+            rows={2}
+            focusable
+            commandPrefix={{
+              hotkey: "ctrl+g",
+              capturing: false,
+              reservedHotkeys: ["Meta+h", "Meta+ArrowLeft"],
+            }}
+          />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab")
+
+      await handle.press("a")
+      await settle()
+      expect(recorder.feeds).toEqual(["a"])
+      expect(hostKeys).toEqual([])
+
+      await handle.press("Meta+h")
+      await handle.press("Meta+ArrowLeft")
+      await settle()
+      expect(recorder.feeds, "reserved direct host hotkeys do not feed the guest").toEqual(["a"])
+      expect(hostKeys).toEqual(["meta-h", "meta-left"])
+
+      await handle.press("b")
+      await settle()
+      expect(recorder.feeds, "non-reserved keys still feed the focused island").toEqual(["a", "b"])
+      expect(hostKeys).toEqual(["meta-h", "meta-left"])
     } finally {
       handle.unmount()
     }
