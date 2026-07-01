@@ -19,7 +19,7 @@ import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
 import { Box, Image, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
-import { createTerm } from "../../packages/ag-term/src/ansi"
+import { createTerm, createTerminalProfile } from "../../packages/ag-term/src/ansi"
 import { TermContext } from "../../packages/ag-react/src/context"
 import "@termless/test/matchers"
 
@@ -40,12 +40,17 @@ function CapsProbe(): React.ReactElement {
 
 async function termContextKittyFor(kittyGraphics: boolean): Promise<unknown> {
   observedKitty = "unset"
+  const profile = createTerminalProfile({
+    env: {},
+    stdout: { isTTY: false },
+    caps: { kittyGraphics, sixel: false } as never,
+  })
   const handle = await run(
     <Box>
       <CapsProbe />
     </Box>,
     {
-      caps: { kittyGraphics, sixel: false } as never,
+      profile,
       cols: 40,
       rows: 6,
       writable: { write: () => true } as never,

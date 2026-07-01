@@ -49,8 +49,6 @@ vi.mock("../../packages/ag-term/src/mem-monitor.ts", () => ({
 }))
 
 import { Box, Text } from "../../src/index.js"
-import { run } from "../../packages/ag-term/src/runtime/run"
-import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
 
 function makeWritable() {
   let output = ""
@@ -67,6 +65,18 @@ function makeWritable() {
 }
 
 const settle = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// Root km's vendor project may preload Silvery through setup files before this
+// spec runs. Reset and import the runtime per test so the monitor mocks above
+// bind to createApp's imports in both standalone and root-project runs.
+async function importRuntime() {
+  const [{ run }, { resetStrictCache }] = await Promise.all([
+    import("../../packages/ag-term/src/runtime/run"),
+    import("../../packages/ag-term/src/strict-mode"),
+  ])
+  resetStrictCache()
+  return { run, resetStrictCache }
+}
 
 function UpdatingTraceFixture() {
   const [n, setN] = useState(0)
@@ -89,20 +99,21 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
     delete process.env.DEBUG
     monitorState.bytesOut.length = 0
     monitorState.mem.length = 0
-    resetStrictCache()
+    vi.resetModules()
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     if (originalStrict === undefined) delete process.env.SILVERY_STRICT
     else process.env.SILVERY_STRICT = originalStrict
     if (savedEnv.DEBUG === undefined) delete process.env.DEBUG
     else process.env.DEBUG = savedEnv.DEBUG
+    const { resetStrictCache } = await importRuntime()
     resetStrictCache()
   })
 
   test("bytes_out monitor records frames and disposes on unmount", async () => {
     process.env.SILVERY_STRICT = "bytes_out"
-    resetStrictCache()
+    const { run } = await importRuntime()
 
     const sink = makeWritable()
     const handle = await run(<Text>observable frame</Text>, {
@@ -132,7 +143,7 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
 
   test("mem monitor is constructed at the mem slug and disposes on unmount", async () => {
     process.env.SILVERY_STRICT = "mem"
-    resetStrictCache()
+    const { run } = await importRuntime()
 
     const sink = makeWritable()
     const handle = await run(<Text>memory probe</Text>, {
@@ -148,7 +159,7 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
 
   test("per-slug opt-outs suppress monitor construction", async () => {
     process.env.SILVERY_STRICT = "1,!bytes_out,!mem"
-    resetStrictCache()
+    const { run } = await importRuntime()
 
     const sink = makeWritable()
     const handle = await run(<Text>no probes</Text>, {
@@ -168,8 +179,7 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
     delete process.env.SILVERY_TRACE_FRAMES
     delete process.env.SILVERY_INSTRUMENT
     delete process.env.SILVERY_CELL_DEBUG
-    resetStrictCache()
-    vi.resetModules()
+    const { run } = await importRuntime()
 
     const g = globalThis as {
       __silvery_node_trace?: unknown
@@ -180,9 +190,8 @@ describe("createApp/run SILVERY_STRICT observability monitors", () => {
     delete g.__silvery_content_all
     delete g.__silvery_content_detail
 
-    const runtime = await import("../../packages/ag-term/src/runtime/run")
     const sink = makeWritable()
-    const handle = await runtime.run(<UpdatingTraceFixture />, {
+    const handle = await run(<UpdatingTraceFixture />, {
       writable: sink.writable,
       cols: 40,
       rows: 6,
