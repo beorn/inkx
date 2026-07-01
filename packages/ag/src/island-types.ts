@@ -266,9 +266,9 @@ export interface IslandMouseEvent {
  * instead of feeding the guest — letting a multi-pane host (e.g. a deck shell
  * pane) keep a command prefix while a full-screen guest owns every other key.
  *
- * This is a deliberately NARROW concept — it names "the host's command prefix",
- * not arbitrary key reservation. A key is reserved for the host iff it matches
- * `hotkey` OR `capturing` is true.
+ * This is a deliberately NARROW concept — it names host-owned deck/control keys,
+ * not arbitrary interception. A key is reserved for the host iff it matches
+ * `hotkey`, one of `reservedHotkeys`, OR `capturing` is true.
  */
 export interface IslandCommandPrefix {
   /**
@@ -279,11 +279,18 @@ export interface IslandCommandPrefix {
    */
   hotkey: string
   /**
+   * Additional single-step host hotkeys reserved even when the host is not
+   * mid-command. Use this for direct deck navigation shortcuts that must not
+   * leak into a focused full-screen guest (for example Option+h/j/k/l pane
+   * focus). These keys fall through to host `useInput` just like `hotkey`.
+   */
+  reservedHotkeys?: readonly string[]
+  /**
    * Host is mid-command (a chord/menu is pending). While `true`, EVERY key is
    * reserved for the host (routed to `useInput`, not the guest) so multi-key
    * chord follow-ups reach the host until it clears the flag. A deck typically
    * binds this to its `chordPending` state. Default behavior when omitted:
-   * `false` — only the `hotkey` itself is reserved.
+   * `false` — only the `hotkey` and `reservedHotkeys` are reserved.
    */
   capturing?: boolean
 }
@@ -559,10 +566,11 @@ export interface IslandNodeState {
    * Host command prefix (tmux model, @hab/.../20349). When set and this island
    * is the focused input target, the runtime reserves a matching key for the
    * host — it falls through to the app's `useInput` instead of feeding the
-   * guest. A key is reserved iff it matches `commandPrefix.hotkey` OR
-   * `commandPrefix.capturing` is true. Absent ⇒ the guest captures every key
-   * (default behavior). Lets a host keep a command prefix (e.g. `Ctrl-G`) while
-   * a full-screen guest owns the rest. Set by `<Island commandPrefix={…}>`.
+   * guest. A key is reserved iff it matches `commandPrefix.hotkey`, one of
+   * `commandPrefix.reservedHotkeys`, OR `commandPrefix.capturing` is true.
+   * Absent ⇒ the guest captures every key (default behavior). Lets a host keep
+   * command keys (e.g. `Ctrl-G`, Option pane navigation) while a full-screen
+   * guest owns the rest. Set by `<Island commandPrefix={…}>`.
    */
   commandPrefix?: IslandCommandPrefix
   /**

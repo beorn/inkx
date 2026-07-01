@@ -169,8 +169,9 @@ export function canRouteKeyToFocusedIsland(
 
 /**
  * A focused island with a {@link IslandCommandPrefix} reserves a key for the
- * host iff the key matches `hotkey` OR the host is `capturing` (mid-command).
- * Reserved keys fall through to the app's `useInput` instead of the guest.
+ * host iff the key matches `hotkey`, one of `reservedHotkeys`, OR the host is
+ * `capturing` (mid-command). Reserved keys fall through to the app's `useInput`
+ * instead of the guest.
  */
 function isHostCommandPrefixKey(
   prefix: IslandCommandPrefix | undefined,
@@ -179,7 +180,10 @@ function isHostCommandPrefixKey(
 ): boolean {
   if (!prefix) return false
   if (prefix.capturing) return true
-  return matchHotkey(parseHotkey(prefix.hotkey), key, input)
+  if (matchHotkey(parseHotkey(prefix.hotkey), key, input)) return true
+  return (prefix.reservedHotkeys ?? []).some((hotkey) =>
+    matchHotkey(parseHotkey(hotkey), key, input),
+  )
 }
 
 /**
