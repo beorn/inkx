@@ -27,6 +27,7 @@ import {
   type ForwardedRef,
   type JSX,
   forwardRef,
+  useContext,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -47,6 +48,7 @@ import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/e
 import type { AgNode, UserSelect } from "@silvery/ag/types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
 import type { IslandLayoutProps } from "../reconciler/nodes"
+import { FocusManagerContext } from "../context"
 import { useScopeEffect } from "../hooks/useScopeEffect"
 
 // The `silvery-island` JSX intrinsic is declared in `@silvery/ag-react/jsx.d.ts`
@@ -89,6 +91,8 @@ export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
   rows: number
   /** Whether the island can receive focus. Default: `false`. */
   focusable?: boolean
+  /** Focus this Island's AgNode after mount or when it becomes focusable. */
+  autoFocus?: boolean
   /**
    * CSS user-select equivalent for the guest cell grid. Defaults to inherited
    * selectability; islands always clamp an active host selection to their rect.
@@ -172,6 +176,7 @@ export const Island = forwardRef(function Island(
     cols,
     rows,
     focusable = false,
+    autoFocus = false,
     userSelect,
     cursorActive = false,
     commandPrefix,
@@ -198,6 +203,7 @@ export const Island = forwardRef(function Island(
   } = props
 
   const nodeRef = useRef<AgNode | null>(null)
+  const focusManager = useContext(FocusManagerContext)
 
   // The factory result — created once per hydrate / guest identity (and on
   // cols/rows change so the guest sees the right initial dims). Kept in a
@@ -224,6 +230,12 @@ export const Island = forwardRef(function Island(
   // (`ref={(h) => …}`, e.g. silvermux pane registration) would be invoked once
   // at mount with `null` and never again. @km/silvery/19426.
   const [handleEpoch, setHandleEpoch] = useState(0)
+
+  useEffect(() => {
+    const node = nodeRef.current
+    if (!autoFocus || !focusable || !node || !focusManager) return
+    focusManager.focus(node, "programmatic")
+  }, [autoFocus, focusManager, focusable, handleEpoch])
 
   // ── Lifecycle: build factory + attach state, dispose on unmount ──────────
   // The factory's `node` (hand-rolled in @silvery/ag/island, no layoutNode)

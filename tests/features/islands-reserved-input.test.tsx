@@ -111,6 +111,31 @@ async function settle(ms = 30): Promise<void> {
 // Command prefix (keyboard)
 // ---------------------------------------------------------------------------
 
+describe("island autofocus — keys", () => {
+  test("autoFocus focuses the Island node so the first plain key feeds the guest", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+
+    function App(): React.ReactElement {
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorder.guest} cols={10} rows={2} focusable autoFocus />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await settle()
+      await handle.press("A")
+      expect(recorder.feeds.join("")).toBe("A")
+    } finally {
+      handle.unmount()
+    }
+  })
+})
+
 describe("island command prefix — keys", () => {
   test("commandPrefix=ctrl+g (capturing=false): the prefix falls through to the host; the guest never sees it; other keys still feed the guest", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
