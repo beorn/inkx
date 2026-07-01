@@ -158,6 +158,12 @@ export function canRouteKeyToFocusedIsland(
   // interceptors fire (they gate on `!canRouteKeyToFocusedIsland`), since a
   // reserved key is a host key.
   if (isHostCommandPrefixKey(state.commandPrefix, input, key)) return false
+  // Cmd/Super + C/V/X are host-level clipboard chords (copy/cut/paste), not
+  // terminal-guest input — a real terminal intercepts them for the OS clipboard
+  // and never forwards them to the pty. Reserve them for the host so the app's
+  // selection/clipboard handlers fire instead of the guest re-encoding them as
+  // Kitty CSI-u bytes into the shell.
+  if (isHostClipboardChord(input, key)) return false
   return true
 }
 
@@ -178,6 +184,17 @@ function isHostCommandPrefixKey(
   return (prefix.reservedHotkeys ?? []).some((hotkey) =>
     matchHotkey(parseHotkey(hotkey), key, input),
   )
+}
+
+/**
+ * Cmd/Super + C/V/X are host clipboard chords (macOS copy/cut/paste). A terminal
+ * guest never wants them as pty input, so they are reserved for the host and fall
+ * through to the app's `useInput` (mirroring {@link isHostCommandPrefixKey}).
+ */
+function isHostClipboardChord(input: string, key: Key): boolean {
+  if (!keyToModifiers(key).super) return false
+  const main = (keyToName(key) || input || "").toLowerCase()
+  return main === "c" || main === "v" || main === "x"
 }
 
 function routeKeyToFocusedIsland(input: string, key: Key, focusManager: FocusManager): boolean {

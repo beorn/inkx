@@ -332,6 +332,51 @@ describe("island command prefix — keys", () => {
       handle.unmount()
     }
   })
+
+  test("Cmd/Super + C/V/X are host clipboard chords: reserved for the host, never re-encoded to the guest pty", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+    const hostKeys: string[] = []
+    const sendInput = (s: string): void => (term as unknown as { sendInput: (s: string) => void }).sendInput(s)
+
+    function App(): React.ReactElement {
+      useInput((input, key) => {
+        hostKeys.push(key.super ? `super-${input}` : input)
+      })
+      // No commandPrefix: only the universal clipboard-chord reservation applies.
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorder.guest} cols={10} rows={2} focusable />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab") // focus the island
+      await handle.press("a")
+      await settle()
+      expect(recorder.feeds, "a normal key still feeds the focused guest").toEqual(["a"])
+
+      // Cmd-C (99), Cmd-V (118), Cmd-X (120): Kitty CSI-u, modifier 9 = super(8)+1.
+      // A real terminal intercepts these for the OS clipboard and never forwards
+      // them to the pty, so they must be reserved for the host.
+      sendInput("\x1b[99;9u")
+      sendInput("\x1b[118;9u")
+      sendInput("\x1b[120;9u")
+      await settle()
+
+      expect(recorder.feeds, "Cmd-C/V/X must NOT be re-encoded to the guest pty").toEqual(["a"])
+      expect(hostKeys, "clipboard chords fall through to the host useInput").toEqual([
+        "super-c",
+        "super-v",
+        "super-x",
+      ])
+    } finally {
+      handle.unmount()
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------
