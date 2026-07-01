@@ -283,7 +283,8 @@ describe("island command prefix — keys", () => {
     using term = createTermless({ cols: 40, rows: 8 })
     const recorder = createInputRecorderGuest()
     const hostKeys: string[] = []
-    const sendInput = (s: string): void => (term as unknown as { sendInput: (s: string) => void }).sendInput(s)
+    const sendInput = (s: string): void =>
+      (term as unknown as { sendInput: (s: string) => void }).sendInput(s)
 
     function App(): React.ReactElement {
       useInput((input, key) => {
@@ -319,6 +320,83 @@ describe("island command prefix — keys", () => {
         "super-v",
         "super-x",
       ])
+    } finally {
+      handle.unmount()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Bracketed-paste routing to the focused guest
+// ---------------------------------------------------------------------------
+
+describe("island bracketed-paste routing", () => {
+  test("bracketed-paste ON: pasted text routes to the focused guest re-wrapped in \\x1b[200~/\\x1b[201~", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    // Guest enables bracketed-paste mode (DECSET 2004), exactly as a shell line
+    // editor (zsh/bash readline) does at its prompt.
+    const recorder = createInputRecorderGuest({ modes: { bracketedPaste: true } })
+    const sendInput = (s: string): void =>
+      (term as unknown as { sendInput: (s: string) => void }).sendInput(s)
+
+    function App(): React.ReactElement {
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorder.guest} cols={10} rows={2} focusable />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab") // focus the island
+      // The terminal's own Cmd-V emits bracketed-paste bytes; the host parser
+      // strips the markers, and the runtime re-wraps them for a guest that
+      // enabled DECSET 2004 so its line editor sees one atomic paste.
+      sendInput("\x1b[200~PASTED\x1b[201~")
+      await settle()
+      expect(
+        recorder.feeds.join(""),
+        "a focused guest with bracketed-paste ON must receive the paste wrapped in DECSET 2004 markers",
+      ).toBe("\x1b[200~PASTED\x1b[201~")
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test("bracketed-paste OFF: pasted text routes to the focused guest as raw text (no markers)", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    // Guest declares modes but has NOT enabled bracketed paste → raw feed,
+    // mirroring a terminal that forwards a paste as plain typed input to a pty
+    // whose app never requested DECSET 2004.
+    const recorder = createInputRecorderGuest({ modes: { bracketedPaste: false } })
+    const sendInput = (s: string): void =>
+      (term as unknown as { sendInput: (s: string) => void }).sendInput(s)
+
+    function App(): React.ReactElement {
+      return (
+        <Box flexDirection="column">
+          <Island guest={recorder.guest} cols={10} rows={2} focusable />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab")
+      sendInput("\x1b[200~PASTED\x1b[201~")
+      await settle()
+      const fed = recorder.feeds.join("")
+      expect(
+        fed,
+        "a focused guest with bracketed-paste OFF still receives the paste as raw typed text",
+      ).toContain("PASTED")
+      expect(
+        fed,
+        "bracketed-paste markers must NOT be sent to a guest that did not enable DECSET 2004",
+      ).not.toContain("\x1b[200~")
     } finally {
       handle.unmount()
     }

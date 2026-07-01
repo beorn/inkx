@@ -200,6 +200,46 @@ function routeKeyToFocusedIsland(input: string, key: Key, focusManager: FocusMan
   return feedIsland(node, keyToIslandAnsi(input, key))
 }
 
+/**
+ * Does the focused island's guest currently have bracketed-paste mode enabled?
+ * Reads the same island mode state the protocol-mode aggregator uses
+ * (`handle.modes.modes.bracketedPaste`), mirroring {@link islandWantsMouse}. A
+ * guest that enabled DECSET 2004 (a shell line editor at its prompt) wants
+ * pasted text wrapped in `\x1b[200~`/`\x1b[201~` so it treats the paste as one
+ * atomic block instead of interpreting embedded newlines/control bytes as
+ * keystrokes; absent modes owner ⇒ OFF.
+ */
+function islandWantsBracketedPaste(node: AgNode): boolean {
+  return node.islandState?.handle?.modes?.modes.bracketedPaste === true
+}
+
+/**
+ * Route pasted text to the focused input-capable island's guest — the paste
+ * sibling of {@link routeKeyToFocusedIsland}. Keys have this routing; paste did
+ * not, so a focused shell guest (e.g. a hab deck pane) never received Cmd-V.
+ *
+ * The runtime `term:paste` event carries the DECODED paste content — the host's
+ * bracketed-paste parser already stripped the `\x1b[200~`/`\x1b[201~` markers.
+ * When the guest has enabled bracketed-paste mode we re-wrap the text in those
+ * markers (mode-aware, exactly like {@link routeMouseToFocusedIsland} gates on
+ * the guest's mouse-tracking mode) so the guest's line editor sees one atomic
+ * paste; otherwise we feed the raw text, matching a terminal that forwards a
+ * paste as plain typed input to a pty whose app hasn't requested DECSET 2004.
+ *
+ * Returns true when a focused input-capable guest consumed the paste. The caller
+ * then skips the app-level React `term:paste` dispatch, so shells get paste and
+ * React apps without a focused island still get their `usePaste` event.
+ */
+export function routePasteToFocusedIsland(text: string, focusManager: FocusManager): boolean {
+  if (!text) return false
+  const node = focusedIslandNode(focusManager)
+  if (!node) return false
+  const state = node.islandState
+  if (!state?.capabilities.input || !state.handle?.input?.feed) return false
+  const payload = islandWantsBracketedPaste(node) ? `\x1b[200~${text}\x1b[201~` : text
+  return feedIsland(node, payload)
+}
+
 function encodeIslandMouse(
   data: RoutedMouseData,
   localCol: number,

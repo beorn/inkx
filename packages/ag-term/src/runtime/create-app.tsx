@@ -111,6 +111,7 @@ import {
   dispatchKeyToHandlers,
   handleFocusNavigation,
   invokeEventHandler,
+  routePasteToFocusedIsland,
   type NamespacedEvent,
 } from "./event-handlers"
 import { keyToAnsi, keyToKittyAnsi, isModifierOnlyEvent } from "@silvery/ag/keys"
@@ -4305,8 +4306,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
       } else if (event.type === "term:paste") {
         const { text } = event.data as { text: string }
-        chainApp.dispatch({ type: "term:paste", text })
-        chainApp.drainEffects()
+        // Route paste to the focused input-capable island's guest FIRST — the
+        // paste sibling of routeKeyToFocusedIsland. A focused shell pane's pty
+        // must receive Cmd-V paste (bracketed-paste re-wrapped when the guest
+        // enabled DECSET 2004). Only when NO focused island consumes it do we
+        // dispatch the app-level React `term:paste` event, so React apps
+        // without a focused island still get their `usePaste` handlers.
+        if (!routePasteToFocusedIsland(text, focusManager)) {
+          chainApp.dispatch({ type: "term:paste", text })
+          chainApp.drainEffects()
+        }
       } else if (event.type === "term:focus") {
         const { focused } = event.data as { focused: boolean }
         chainApp.dispatch({ type: "term:focus", focused })
