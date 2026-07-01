@@ -90,6 +90,7 @@ export { usePasteEvents } from "./usePasteEvents"
 
 // Selection (capability-based — reads from CapabilityRegistry)
 export { useSelection } from "./useSelection"
+export { useSelectionActions, type SelectionActions } from "./useSelectionActions"
 
 // Find State (capability-based — reads from CapabilityRegistry)
 export { useFindState } from "./useFindState"
