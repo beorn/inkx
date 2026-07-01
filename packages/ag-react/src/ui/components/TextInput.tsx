@@ -296,6 +296,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
         borderColor={isActive ? focusBorderColor : borderColorProp}
         paddingX={1}
         cursorOffset={cursorOffset}
+        mouseCursor="text"
         onMouseDown={handleMouseDown}
       >
         {inputContent}
@@ -310,6 +311,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
       testID={testID}
       flexDirection="column"
       cursorOffset={cursorOffset}
+      mouseCursor="text"
       onMouseDown={handleMouseDown}
     >
       {inputContent}

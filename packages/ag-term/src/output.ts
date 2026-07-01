@@ -368,6 +368,12 @@ export type MouseCursorShape =
   | "not-allowed"
   | "wait"
   | "help"
+  | "grab"
+  | "grabbing"
+  | "col-resize"
+  | "row-resize"
+  | "ew-resize"
+  | "ns-resize"
 
 /**
  * Generate OSC 22 sequence to set the mouse cursor shape.

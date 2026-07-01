@@ -25,7 +25,6 @@ import type { TextProps } from "./Text"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { Text } from "./Text"
 import { useModifierKeys } from "../hooks/useModifierKeys"
-import { useMouseCursor } from "../hooks/useMouseCursor"
 import { ChainAppContext } from "../context"
 
 // ============================================================================
@@ -89,8 +88,6 @@ export function Link({
   // Determine armed state based on variant
   const armed = hovered && (needsModifier ? cmdHeld : true)
   if (armed) rest.underline = true
-  // Pointer cursor when armed
-  useMouseCursor(armed ? "pointer" : null)
 
   // Click emits "link:open" when armed. For arm-on-cmd-hover, e.metaKey is accurate
   // thanks to keyboard modifier tracking merged into mouse events by silvery's runtime.
@@ -109,6 +106,7 @@ export function Link({
   return (
     <Text
       color={color}
+      mouseCursor={armed ? "pointer" : undefined}
       {...rest}
       onClick={handleClick}
       onMouseEnter={(e: SilveryMouseEvent) => {

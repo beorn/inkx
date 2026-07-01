@@ -30,6 +30,29 @@ import type { MouseEventProps } from "./mouse-event-types"
  */
 export type UserSelect = "auto" | "none" | "text" | "contain"
 
+/**
+ * Semantic mouse pointer intent for the region occupied by a Box.
+ *
+ * Terminal renderers map this to OSC 22 cursor names; DOM/canvas targets can
+ * map the same vocabulary to CSS cursor values. Unsupported terminal targets
+ * silently ignore the emitted OSC sequence.
+ */
+export type MouseCursorShape =
+  | "default"
+  | "text"
+  | "pointer"
+  | "crosshair"
+  | "move"
+  | "not-allowed"
+  | "wait"
+  | "help"
+  | "grab"
+  | "grabbing"
+  | "col-resize"
+  | "row-resize"
+  | "ew-resize"
+  | "ns-resize"
+
 // ============================================================================
 // Layout Types
 // ============================================================================
@@ -655,6 +678,17 @@ export interface BoxProps
    */
   mouseCapture?: boolean
 
+  /**
+   * Semantic mouse cursor for this hit-test region.
+   *
+   * The deepest hovered node with a cursor wins; if the deepest hit node has no
+   * cursor, the resolver walks ancestors so a parent region can provide the
+   * default affordance for its children. During `mouseCapture`, the capture
+   * target owns the cursor so drags keep their grab/resize shape outside the
+   * original one-cell hit box.
+   */
+  mouseCursor?: MouseCursorShape
+
   onLayout?: (layout: Rect) => void
 
   /**
@@ -1137,6 +1171,14 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
    * global mode (`SILVERY_BG_CONFLICT`, default `"throw"`).
    */
   bgConflict?: "ignore" | "warn" | "throw"
+
+  /**
+   * Semantic mouse cursor for this text hit-test region.
+   *
+   * Uses the same resolver as `BoxProps.mouseCursor`: the deepest hovered
+   * region wins, with ancestor fallback and terminal OSC 22 output.
+   */
+  mouseCursor?: MouseCursorShape
 }
 
 /**

@@ -11,7 +11,6 @@ import type { SilveryMouseEvent } from "@silvery/ag/mouse-event-types"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useHover } from "../../hooks/useHover"
-import { useMouseCursor } from "../../hooks/useMouseCursor"
 
 export type PaneDividerOrientation = "vertical" | "horizontal"
 
@@ -78,7 +77,11 @@ export function PaneDivider({
   const draggingRef = useRef(false)
   const [dragging, setDragging] = useState(false)
   const armed = !disabled && (active || isHovered || dragging)
-  useMouseCursor(armed ? "move" : null)
+  const mouseCursor = disabled
+    ? undefined
+    : orientation === "vertical"
+      ? "col-resize"
+      : "row-resize"
 
   const endDrag = useCallback((): void => {
     if (!draggingRef.current) return
@@ -127,6 +130,7 @@ export function PaneDivider({
         flexDirection="column"
         userSelect="none"
         mouseCapture={!disabled}
+        mouseCursor={mouseCursor}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onMouseDown={handleMouseDown}
@@ -151,6 +155,7 @@ export function PaneDivider({
       flexDirection="row"
       userSelect="none"
       mouseCapture={!disabled}
+      mouseCursor={mouseCursor}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onMouseDown={handleMouseDown}

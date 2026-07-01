@@ -260,6 +260,7 @@ export function Scrollbar({
       // fire.
       userSelect="none"
       mouseCapture
+      mouseCursor={isDragging ? "grabbing" : "grab"}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

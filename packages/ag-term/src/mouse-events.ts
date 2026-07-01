@@ -14,7 +14,7 @@ import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findFocusableAncestor } from "@silvery/ag/focus-queries"
 import type { ParsedMouse } from "./mouse"
 import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
-import type { AgNode, Rect, TextProps, UserSelect } from "@silvery/ag/types"
+import type { AgNode, BoxProps, Rect, TextProps, UserSelect } from "@silvery/ag/types"
 import type { SelectionScope } from "@silvery/headless/selection"
 import { setHovered, setArmed } from "@silvery/ag/interactive-signals"
 import { displayWidthAnsi, wrapText } from "./unicode"
@@ -906,6 +906,11 @@ export interface MouseEventProcessorOptions {
   /** Optional focus manager — enables click-to-focus behavior.
    *  On mousedown, the deepest focusable ancestor of the hit target is focused. */
   focusManager?: FocusManager
+  /**
+   * Called when the semantic cursor resolved from the hit-test region changes.
+   * `null` means reset to the default target cursor.
+   */
+  onMouseCursorChange?: (shape: BoxProps["mouseCursor"] | null) => void
 }
 
 /**
@@ -951,6 +956,10 @@ export interface MouseEventProcessorState {
    *  null means the pointer has left the terminal bounds (clearHoverPath
    *  ran) or no mouse event has arrived yet. */
   lastPointer: { x: number; y: number } | null
+  /** Last emitted semantic mouse cursor shape. */
+  lastMouseCursor: BoxProps["mouseCursor"] | null
+  /** Optional callback for terminal/canvas/DOM cursor sinks. */
+  onMouseCursorChange?: (shape: BoxProps["mouseCursor"] | null) => void
 }
 
 export function createMouseEventProcessor(
@@ -967,6 +976,8 @@ export function createMouseEventProcessor(
     keyboardModifiers: { super: false, hyper: false, capsLock: false, numLock: false },
     lastClickPrevented: false,
     lastPointer: null,
+    lastMouseCursor: null,
+    onMouseCursorChange: options?.onMouseCursorChange,
   }
 }
 
@@ -978,6 +989,24 @@ function findMouseCaptureTarget(node: AgNode | null): AgNode | null {
     current = current.parent
   }
   return null
+}
+
+function resolveMouseCursor(node: AgNode | null): BoxProps["mouseCursor"] | null {
+  let current = node
+  while (current) {
+    const shape = (current.props as BoxProps).mouseCursor
+    if (shape) return shape
+    current = current.parent
+  }
+  return null
+}
+
+function updateMouseCursor(state: MouseEventProcessorState, target: AgNode | null): void {
+  const cursorTarget = state.mouseCaptureTarget ?? target
+  const next = resolveMouseCursor(cursorTarget)
+  if (next === state.lastMouseCursor) return
+  state.lastMouseCursor = next
+  state.onMouseCursorChange?.(next)
 }
 
 const MOUSE_CAPTURE_OUTSIDE_GRACE_MS = 2000
@@ -1040,6 +1069,7 @@ function releaseMousePress(state: MouseEventProcessorState, parsed: ParsedMouse)
   state.lastClickPrevented = false
   state.mouseDownTarget = null
   state.mouseCaptureTarget = null
+  updateMouseCursor(state, null)
   return defaultPrevented
 }
 
@@ -1079,6 +1109,7 @@ function clearHoverPath(state: MouseEventProcessorState, parsed: ParsedMouse): v
   // Pointer has left the terminal bounds — refreshHoverPath becomes a
   // no-op until a fresh in-bounds event arrives.
   state.lastPointer = null
+  updateMouseCursor(state, null)
 }
 
 /**
@@ -1108,6 +1139,7 @@ export function refreshHoverPath(state: MouseEventProcessorState, root: AgNode):
   if (state.mouseCaptureTarget) return
   const { x, y } = state.lastPointer
   const target = hitTest(root, x, y)
+  updateMouseCursor(state, target)
   const newPath = target ? getAncestorPath(target) : []
   const { entered, left } = computeEnterLeave(state.hoverPath, newPath)
   if (entered.length === 0 && left.length === 0) return
@@ -1160,6 +1192,7 @@ export function processMouseEvent(
   // pointer leaves the terminal bounds.
   state.lastPointer = { x, y }
   const target = hitTest(root, x, y)
+  updateMouseCursor(state, target)
   if (action === "move") {
     const nodeType = target?.type ?? "null"
     const nodeId = target ? ((target.props as Record<string, unknown>).id ?? "") : ""
@@ -1203,6 +1236,7 @@ export function processMouseEvent(
   if (action === "down") {
     state.mouseDownTarget = target
     state.mouseCaptureTarget = findMouseCaptureTarget(target)
+    updateMouseCursor(state, target)
 
     // Set armed state on the target node
     setArmed(target, true)
@@ -1291,6 +1325,7 @@ export function processMouseEvent(
 
     state.mouseDownTarget = null
     state.mouseCaptureTarget = null
+    updateMouseCursor(state, target)
   } else if (action === "move") {
     const dispatchTarget = state.mouseCaptureTarget ?? target
     const event = createMouseEvent(

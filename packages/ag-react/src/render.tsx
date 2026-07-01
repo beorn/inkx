@@ -53,6 +53,8 @@ import {
   enableMouse,
   disableMouse,
   resetWindowTitle,
+  setMouseCursorShape,
+  resetMouseCursorShape,
 } from "@silvery/ag-term/output"
 import { parseMouseSequence, isMouseSequence, type ParseMouseOptions } from "@silvery/ag-term/mouse"
 import {
@@ -647,7 +649,11 @@ class SilveryInstance {
     // mounts so the first mouse sequence on stdin has somewhere to dispatch.
     if (this.mouseEnabled) {
       this.stdout.write(enableMouse({ pixels: this.mouseParseOptions?.coordinateMode === "pixel" }))
-      this.mouseState = createMouseEventProcessor()
+      this.mouseState = createMouseEventProcessor({
+        onMouseCursorChange: (shape) => {
+          this.stdout.write(shape ? setMouseCursorShape(shape) : resetMouseCursorShape())
+        },
+      })
     }
 
     // Per-instance cursor state (replaces module-level globals)
@@ -802,6 +808,7 @@ class SilveryInstance {
     // bytes are routed to /dev/null rather than the shell prompt.
     if (this.stdout.isTTY) {
       if (this.mouseEnabled) {
+        this.stdout.write(resetMouseCursorShape())
         this.stdout.write(disableMouse())
       }
       disableBracketedPaste(this.stdout)
