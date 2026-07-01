@@ -51,6 +51,7 @@ import {
   type ParsedMouse,
 } from "../mouse"
 import { parseBracketedPaste } from "../bracketed-paste"
+import { parseClipboardResponse } from "../clipboard"
 import { parseFocusEvent } from "../focus-reporting"
 import type { Modes } from "./devices/modes"
 
@@ -523,6 +524,23 @@ export function createInputOwner(
     }
     if (pasteResult) {
       fire(pasteHandlers, { text: pasteResult.content })
+      return
+    }
+
+    let clipboardText: string | null = null
+    try {
+      clipboardText = parseClipboardResponse(chunk)
+    } catch (err) {
+      if (isProtocolError(err)) {
+        log?.debug?.(
+          `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
+        )
+      } else {
+        log?.warn?.(`clipboard parser threw: ${String(err)}`)
+      }
+    }
+    if (clipboardText !== null) {
+      fire(pasteHandlers, { text: clipboardText })
       return
     }
 

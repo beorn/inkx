@@ -74,6 +74,7 @@ import { splitRawInput, parseKey } from "@silvery/ag/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
 import { parseFocusEvent } from "../focus-reporting"
 import { parseBracketedPaste } from "../bracketed-paste"
+import { parseClipboardResponse } from "../clipboard"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
 
 export type { OutputOptions } from "../runtime/devices/output"
@@ -1189,6 +1190,11 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
       const pasteResult = parseBracketedPaste(data)
       if (pasteResult) {
         input.sendPaste({ text: pasteResult.content })
+        return
+      }
+      const clipboardText = parseClipboardResponse(data)
+      if (clipboardText !== null) {
+        input.sendPaste({ text: clipboardText })
         return
       }
       for (const raw of splitRawInput(data)) {
