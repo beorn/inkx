@@ -723,7 +723,14 @@ export function formatPassRingBreakdown(): string {
  * `loopName` argument to `assertBoundedConvergence` so an over-budget
  * regression names the offending loop.
  */
-export type ConvergenceLoopName = "layout-pass" | "effect-flush" | "production-flush"
+export const CONVERGENCE_LOOP_NAMES = [
+  "layout-pass",
+  "effect-flush",
+  "production-flush",
+  "standalone-flush",
+] as const
+
+export type ConvergenceLoopName = (typeof CONVERGENCE_LOOP_NAMES)[number]
 
 /**
  * Assert the convergence loop did not exceed its cap. Called from the

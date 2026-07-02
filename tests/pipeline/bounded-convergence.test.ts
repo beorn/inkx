@@ -17,6 +17,7 @@
 import { describe, test, expect } from "vitest"
 import {
   PASS_CAUSE_BOUNDS,
+  CONVERGENCE_LOOP_NAMES,
   MAX_CONVERGENCE_PASSES,
   INITIAL_RENDER_MAX_PASSES,
   assertBoundedConvergence,
@@ -28,6 +29,13 @@ import {
   type PassCause,
   type ConvergenceLoopName,
 } from "@silvery/ag-term/runtime/pass-cause"
+
+const EXPECTED_CONVERGENCE_LOOPS = [
+  "layout-pass",
+  "effect-flush",
+  "production-flush",
+  "standalone-flush",
+] as const satisfies readonly ConvergenceLoopName[]
 
 describe("bounded-convergence: per-cause bound model", () => {
   test("PASS_CAUSE_BOUNDS covers every PassCause category", () => {
@@ -77,6 +85,10 @@ describe("bounded-convergence: per-cause bound model", () => {
     expect(MAX_CONVERGENCE_PASSES).toBeLessThan(5)
   })
 
+  test("ConvergenceLoopName exposes every named loop, including standalone flush", () => {
+    expect(CONVERGENCE_LOOP_NAMES).toEqual(EXPECTED_CONVERGENCE_LOOPS)
+  })
+
   test("MAX_CONVERGENCE_PASSES = 1 + 1 + sum of per-cause bounds", () => {
     const sum =
       PASS_CAUSE_BOUNDS["layout-invalidate"] +
@@ -119,8 +131,7 @@ describe("bounded-convergence: assertion behaviour", () => {
 
   test("at-bound passCount does not assert (boundary is inclusive of the bound)", () => {
     withStrict("2", () => {
-      const loops: ConvergenceLoopName[] = ["layout-pass", "effect-flush", "production-flush"]
-      for (const loop of loops) {
+      for (const loop of CONVERGENCE_LOOP_NAMES) {
         expect(() =>
           assertBoundedConvergence(MAX_CONVERGENCE_PASSES, loop, MAX_CONVERGENCE_PASSES),
         ).not.toThrow()
@@ -130,8 +141,7 @@ describe("bounded-convergence: assertion behaviour", () => {
 
   test("STRICT=2 throws when passCount exceeds the bound", () => {
     withStrict("2", () => {
-      const loops: ConvergenceLoopName[] = ["layout-pass", "effect-flush", "production-flush"]
-      for (const loop of loops) {
+      for (const loop of CONVERGENCE_LOOP_NAMES) {
         expect(() =>
           assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, loop, MAX_CONVERGENCE_PASSES),
         ).toThrow(new RegExp(`convergence bound exceeded in ${loop}`))

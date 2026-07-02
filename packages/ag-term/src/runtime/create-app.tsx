@@ -1311,7 +1311,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // stranding the buffer behind committed React state. The flag dedupes so a
   // burst of cap-exceeds within one frame schedules only one follow-up.
   let followupFrameScheduled = false
-  // Lifetime count of standalone convergence cap-exceeds for this app session.
+  // Lifetime count of standalone-flush convergence cap-exceeds for this app session.
   // The per-occurrence breadcrumb is debug-level (DEBUG_LOG-routed, see
   // drainStandaloneCommitRerenders). The teardown summary escalates to a loud
   // warn only when cap-exceeds are consecutive, because the total lifetime count
@@ -2408,7 +2408,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Log keypress performance summary before teardown (only emits when TRACE was active)
     logExitSummary()
 
-    // Surface recovered standalone convergence cap-exceeds at teardown so they
+    // Surface recovered standalone-flush convergence cap-exceeds at teardown so they
     // never go silent (NO SILENT ERRORS). A high lifetime total can be normal
     // for long streams: each token batch can legitimately grow a ListView row,
     // then recover non-lossily via one follow-up frame. A high CONSECUTIVE
@@ -2417,7 +2417,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Routed through loggily (DEBUG_LOG file in fullscreen).
     if (standaloneCapExceedCount > 0) {
       const summary =
-        `standalone convergence cap exceeded ${standaloneCapExceedCount}× this session ` +
+        `standalone-flush convergence cap exceeded ${standaloneCapExceedCount}× this session ` +
         `(max consecutive streak ${standaloneCapExceedMaxStreak}×; each handled non-lossily ` +
         `via a follow-up frame — no dropped paint). ` +
         `Bead: @km/silvercode/19383.`
@@ -3451,7 +3451,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // the condition is observable without using the generic strict warning
         // path reserved for unhandled bounded-convergence failures.
         log.debug?.(
-          `standalone convergence cap (${MAX_CONVERGENCE_PASSES}) hit with rerender still ` +
+          `standalone-flush convergence cap (${MAX_CONVERGENCE_PASSES}) hit with rerender still ` +
             `pending (occurrence ${standaloneCapExceedCount}); painting latest committed ` +
             `frame + scheduling one follow-up frame (non-lossy — no dropped paint). ` +
             `Per-cause breakdown: ${formatPassRingBreakdown() || "(ring empty)"}. ` +
