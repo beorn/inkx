@@ -19,9 +19,6 @@
  * must still hold with tracing on.
  */
 
-// Kitty graphics must be ON for these assertions — CI runners do not
-// export SILVERY_KITTY_GRAPHICS; see images-first.ts (ESM-hoisting pattern).
-import "../features/images-first.ts"
 import React, { useEffect, useState } from "react"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs"
@@ -430,7 +427,7 @@ function createMockStdin(): NodeJS.ReadStream {
 describe("render-trace: end-to-end via run()", () => {
   test("a real app emits RENDER_DISPATCHED events at render-pass boundaries", async () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
-    using term = createTermless({ cols: 30, rows: 6 })
+    using term = createTermless({ cols: 30, rows: 6, caps: { kittyGraphics: true } })
     const handle = await run(<CounterApp />, term)
 
     // Let the effect-driven re-renders settle.
@@ -476,7 +473,7 @@ describe("render-trace: end-to-end via run()", () => {
   test("SILVERY_SYNC_UPDATE=1 marks output frames as sync-wrapped", async () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
     process.env.SILVERY_SYNC_UPDATE = "1"
-    using term = createTermless({ cols: 30, rows: 6 })
+    using term = createTermless({ cols: 30, rows: 6, caps: { kittyGraphics: true } })
     const handle = await run(<CounterApp />, term)
 
     await new Promise((r) => setTimeout(r, 30))
@@ -493,7 +490,7 @@ describe("render-trace: end-to-end via run()", () => {
   test("terminal image artifacts are traced by owner", async () => {
     process.env.SILVERY_TRACE_FRAMES = traceDir
     process.env.SILVERY_KITTY_GRAPHICS = "1"
-    using term = createTermless({ cols: 30, rows: 8 })
+    using term = createTermless({ cols: 30, rows: 8, caps: { kittyGraphics: true } })
     const handle = await run(<Image src={TINY_PNG} width={4} height={2} protocol="kitty" />, term)
 
     await new Promise((r) => setTimeout(r, 30))

@@ -471,6 +471,15 @@ export async function run(
         guardOutput: false, // Don't monkeypatch process.stdout in test/emulator context
         cols: term.cols ?? 80,
         rows: term.rows ?? 24,
+        // 19668 doctrine, harness side: thread the RENDER TARGET's caps into
+        // the app so TermContext consumers (Image protocol detection, OSC
+        // gates) see the emulator term's declared capabilities. Without this,
+        // createApp builds an autoTerm from the internal (non-TTY) stream —
+        // default caps, no graphics — and `createTermless({ caps })`
+        // declarations silently never reach components (image tests then
+        // pass/fail on AMBIENT terminal identity: green under a local
+        // Ghostty-flavored env, red on CI runners).
+        caps: term.caps,
         mouse: emulatorMouseOption,
         // Emulator-backed runs drive resize explicitly via `term.resize(...)`,
         // not via real-terminal SIGWINCH. The autoTerm's `createSize` defaults
