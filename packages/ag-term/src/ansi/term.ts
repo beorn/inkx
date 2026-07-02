@@ -36,11 +36,13 @@ import {
   createStyle,
   createTerminalProfile,
   detectColorFromEnv,
+  isProtocolError,
   type Style,
   type TerminalProfile,
   type TerminalEmulator,
 } from "@silvery/ansi"
 import { createTerminal } from "@termless/core"
+import { createLogger } from "loggily"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -80,6 +82,8 @@ import { parseClipboardResponse } from "../clipboard"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
 
 export type { OutputOptions } from "../runtime/devices/output"
+
+const log = createLogger("silvery:input-owner")
 
 // =============================================================================
 // ANSI Utilities
@@ -1198,7 +1202,18 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
         input.sendPaste({ text: pasteResult.content })
         return
       }
-      const clipboardText = parseClipboardResponse(data)
+      let clipboardText: string | null = null
+      try {
+        clipboardText = parseClipboardResponse(data)
+      } catch (err) {
+        if (isProtocolError(err)) {
+          log?.debug?.(
+            `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
+          )
+        } else {
+          log?.warn?.(`clipboard parser threw: ${String(err)}`)
+        }
+      }
       if (clipboardText !== null) {
         input.sendPaste({ text: clipboardText })
         return

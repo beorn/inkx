@@ -7,7 +7,36 @@ import { run } from "../../packages/ag-term/src/runtime/run"
 
 const settle = (ms = 40): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
+function osc52ClipboardResponse(text: string): string {
+  return `\x1b]52;c;${Buffer.from(text).toString("base64")}\x07`
+}
+
 describe("runtime input protocol routing", () => {
+  test("sendInput decodes OSC52 clipboard responses into paste events", () => {
+    using term = createTermless({ cols: 40, rows: 6 })
+    const input = term.input
+    const pastes: string[] = []
+    input?.onPaste((event) => pastes.push(event.text))
+
+    const sender = term as unknown as { sendInput(data: string): void }
+    sender.sendInput(osc52ClipboardResponse("FROM_CLIPBOARD"))
+
+    expect(pastes).toEqual(["FROM_CLIPBOARD"])
+  })
+
+  test("sendInput ignores malformed OSC52 clipboard responses", () => {
+    using term = createTermless({ cols: 40, rows: 6 })
+    const input = term.input
+    const pastes: string[] = []
+    input?.onPaste((event) => pastes.push(event.text))
+
+    const sender = term as unknown as { sendInput(data: string): void }
+    const unterminatedClipboardResponse = `\x1b]52;c;${Buffer.from("broken").toString("base64")}`
+
+    expect(() => sender.sendInput(unterminatedClipboardResponse)).not.toThrow()
+    expect(pastes).toEqual([])
+  })
+
   test("inline TextArea cursorStyle reaches the composited caret cell", async () => {
     using term = createTermless({ cols: 40, rows: 6 })
 
