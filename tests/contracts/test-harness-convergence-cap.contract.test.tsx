@@ -178,11 +178,13 @@ describe("contract: waitForLayoutStable bounds infinite-feedback gracefully", ()
     const elapsed = performance.now() - start
 
     // Resolves — no throw. The exact elapsed time is jittery in full-suite
-    // runs (worker contention can push a 30ms-budgeted wait to 60-80ms),
-    // so we assert a generous upper bound that proves the method DID
-    // return rather than running unbounded. The contract is "best effort
-    // within budget"; the budget is advisory, not load-bearing.
-    expect(elapsed).toBeLessThan(200)
+    // runs (worker contention pushed a 30ms-budgeted wait to 227ms on a
+    // 2-core CI runner, 2026-07-02), so we assert a generous upper bound
+    // that proves the method DID return rather than running unbounded.
+    // The contract is "best effort within budget"; the budget is advisory,
+    // not load-bearing — a genuine wedge fails via the await never
+    // resolving (test timeout), not via this bound.
+    expect(elapsed).toBeLessThan(2000)
     app.unmount()
   })
 })

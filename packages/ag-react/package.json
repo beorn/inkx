@@ -263,6 +263,7 @@
   },
   "dependencies": {
     "@silvery/ag": "0.21.0",
+    "@silvery/ag-term": "0.21.0",
     "@silvery/create": "0.21.0",
     "@silvery/headless": "0.21.0",
     "@silvery/scope": "0.21.0",

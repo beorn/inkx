@@ -55,7 +55,7 @@
     "@silvery/ag-term": "0.21.0",
     "@silvery/create": "0.21.0",
     "@termless/core": "^0.8.1",
-    "@termless/ghostty": "^0.8.1",
+    "@termless/ghostty": "^0.8.2",
     "@termless/ghostty-native": "^0.8.1",
     "@termless/xtermjs": "^0.8.1"
   },

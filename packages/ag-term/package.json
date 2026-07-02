@@ -381,10 +381,18 @@
     "@silvery/test": "0.21.0",
     "@silvery/theme": "0.21.0",
     "@termless/core": "^0.8.1",
-    "@termless/ghostty": "^0.8.1",
+    "@termless/ghostty": "^0.8.2",
     "@termless/xtermjs": "^0.8.1",
     "flexily": "0.7.1",
     "loggily": "^0.10.0"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "tsdown": {
     "clean": true,

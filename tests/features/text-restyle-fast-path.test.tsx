@@ -120,7 +120,10 @@ describe("feature: per-segment text restyle preserves nested run colors", () => 
     expect(app.cell(LABEL_COL, 1).fg).toEqual(rgb(LABEL_RED))
   })
 
-  test("SELECT then DESELECT sweep keeps incremental≡fresh AND restores per-run colors", () => {
+  // 50 rerenders × STRICT incremental≡fresh full-buffer verification is
+  // CPU-heavy: ~43s on a 2-core CI runner (timed out at the 30s default,
+  // 2026-07-02). The sweep IS the coverage — keep it, budget for it.
+  test("SELECT then DESELECT sweep keeps incremental≡fresh AND restores per-run colors", { timeout: 120_000 }, () => {
     const render = createRenderer({ cols: CARD_W, rows: 60 })
     const cards = buildCards(50)
     const app = render(<Board cards={cards} selectedId={-1} />)

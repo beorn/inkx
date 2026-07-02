@@ -133,9 +133,10 @@ describe("SearchProvider", () => {
 
     ctx!.open()
     ctx!.input("f")
-    await flush()
-
-    expect(reveal).toHaveBeenCalledWith({ row: 5, startCol: 0, endCol: 2 })
+    // Poll instead of a fixed flush: the input → setState → effect →
+    // search → reveal chain is React-scheduled, and a fixed 10ms sleep
+    // flakes under CI worker contention (2026-07-02 ubuntu red).
+    await vi.waitFor(() => expect(reveal).toHaveBeenCalledWith({ row: 5, startCol: 0, endCol: 2 }), { timeout: 5000 })
   })
 
   test("next() calls reveal() with next match", async () => {
@@ -166,12 +167,10 @@ describe("SearchProvider", () => {
 
     ctx!.open()
     ctx!.input("q")
-    await flush()
-    expect(reveal).toHaveBeenCalledWith({ row: 5, startCol: 0, endCol: 2 })
+    await vi.waitFor(() => expect(reveal).toHaveBeenCalledWith({ row: 5, startCol: 0, endCol: 2 }), { timeout: 5000 })
 
     ctx!.next()
-    await flush()
-    expect(reveal).toHaveBeenCalledWith({ row: 10, startCol: 0, endCol: 2 })
+    await vi.waitFor(() => expect(reveal).toHaveBeenCalledWith({ row: 10, startCol: 0, endCol: 2 }), { timeout: 5000 })
   })
 
   test("setFocused routes to correct searchable", async () => {
