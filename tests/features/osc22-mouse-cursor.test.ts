@@ -19,12 +19,6 @@ describe("OSC 22 mouse cursor", () => {
     expect(setMouseCursorShape("not-allowed")).toBe("\x1b]22;not-allowed\x07")
     expect(setMouseCursorShape("wait")).toBe("\x1b]22;wait\x07")
     expect(setMouseCursorShape("help")).toBe("\x1b]22;help\x07")
-    expect(setMouseCursorShape("grab")).toBe("\x1b]22;grab\x07")
-    expect(setMouseCursorShape("grabbing")).toBe("\x1b]22;grabbing\x07")
-    expect(setMouseCursorShape("col-resize")).toBe("\x1b]22;col-resize\x07")
-    expect(setMouseCursorShape("row-resize")).toBe("\x1b]22;row-resize\x07")
-    expect(setMouseCursorShape("ew-resize")).toBe("\x1b]22;ew-resize\x07")
-    expect(setMouseCursorShape("ns-resize")).toBe("\x1b]22;ns-resize\x07")
   })
 
   test("resetMouseCursorShape generates default sequence", () => {

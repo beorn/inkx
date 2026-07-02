@@ -101,7 +101,7 @@ export function Button({
 
   if (legacyColorMode) {
     return (
-      <Box focusable mouseCursor="pointer" {...rest}>
+      <Box focusable {...rest}>
         <Text color={color} inverse={active}>
           {" "}
           {label}{" "}
@@ -115,7 +115,7 @@ export function Button({
   // press state reads as a visible affordance.
   const bg = active ? tokens.bgActive : tokens.bg
   return (
-    <Box focusable mouseCursor="pointer" backgroundColor={bg} {...rest}>
+    <Box focusable backgroundColor={bg} {...rest}>
       <Text color={tokens.fgOn} bold>
         {" "}
         {label}{" "}

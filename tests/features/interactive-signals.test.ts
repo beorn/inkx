@@ -39,7 +39,6 @@ function stubNode(
   opts?: {
     children?: AgNode[]
     mouseCapture?: boolean
-    mouseCursor?: BoxProps["mouseCursor"]
     rect?: { x: number; y: number; width: number; height: number }
   },
 ): AgNode {
@@ -47,12 +46,7 @@ function stubNode(
   const rect = opts?.rect ?? null
   const node: AgNode = {
     type: "silvery-box",
-    props: {
-      testID: id,
-      focusable: true,
-      mouseCapture: opts?.mouseCapture,
-      mouseCursor: opts?.mouseCursor,
-    } as BoxProps,
+    props: { testID: id, focusable: true, mouseCapture: opts?.mouseCapture } as BoxProps,
     children,
     parent: null,
     layoutNode: {} as any,
@@ -226,86 +220,6 @@ describe("hover tracking via processMouseEvent", () => {
     processMouseEvent(state, makeParsedMouse("move", 90, 30), root)
     expect(child.interactiveState?.hovered).toBe(false)
     expect(state.hoverPath).toEqual([])
-  })
-})
-
-// ============================================================================
-// Semantic mouse cursor resolution
-// ============================================================================
-
-describe("semantic mouse cursor via processMouseEvent", () => {
-  test("deepest hovered cursor region wins and leaving resets", () => {
-    const child = stubNode("child", {
-      mouseCursor: "text",
-      rect: { x: 5, y: 5, width: 5, height: 5 },
-    })
-    const parent = stubNode("parent", {
-      children: [child],
-      mouseCursor: "pointer",
-      rect: { x: 4, y: 4, width: 20, height: 10 },
-    })
-    const root = stubNode("root", {
-      children: [parent],
-      rect: { x: 0, y: 0, width: 80, height: 24 },
-    })
-    const changes: Array<BoxProps["mouseCursor"] | null> = []
-    const state = createMouseEventProcessor({
-      onMouseCursorChange: (shape) => changes.push(shape),
-    })
-
-    processMouseEvent(state, makeParsedMouse("move", 6, 6), root)
-    processMouseEvent(state, makeParsedMouse("move", 20, 6), root)
-    processMouseEvent(state, makeParsedMouse("move", 79, 23), root)
-
-    expect(changes).toEqual(["text", "pointer", null])
-  })
-
-  test("same resolved cursor shape is not emitted again", () => {
-    const first = stubNode("first", {
-      mouseCursor: "pointer",
-      rect: { x: 1, y: 1, width: 5, height: 5 },
-    })
-    const second = stubNode("second", {
-      mouseCursor: "pointer",
-      rect: { x: 10, y: 1, width: 5, height: 5 },
-    })
-    const root = stubNode("root", {
-      children: [first, second],
-      rect: { x: 0, y: 0, width: 80, height: 24 },
-    })
-    const changes: Array<BoxProps["mouseCursor"] | null> = []
-    const state = createMouseEventProcessor({
-      onMouseCursorChange: (shape) => changes.push(shape),
-    })
-
-    processMouseEvent(state, makeParsedMouse("move", 2, 2), root)
-    processMouseEvent(state, makeParsedMouse("move", 3, 2), root)
-    processMouseEvent(state, makeParsedMouse("move", 11, 2), root)
-
-    expect(changes).toEqual(["pointer"])
-  })
-
-  test("captured drag keeps the capture target cursor outside the hit tree", () => {
-    const handle = stubNode("handle", {
-      mouseCapture: true,
-      mouseCursor: "grab",
-      rect: { x: 5, y: 5, width: 2, height: 5 },
-    })
-    const root = stubNode("root", {
-      children: [handle],
-      rect: { x: 0, y: 0, width: 80, height: 24 },
-    })
-    const changes: Array<BoxProps["mouseCursor"] | null> = []
-    const state = createMouseEventProcessor({
-      onMouseCursorChange: (shape) => changes.push(shape),
-    })
-
-    processMouseEvent(state, makeParsedMouse("down", 5, 6), root)
-    handle.props = { ...handle.props, mouseCursor: "grabbing" } as BoxProps
-    processMouseEvent(state, makeParsedMouse("move", 90, 30), root)
-    processMouseEvent(state, makeParsedMouse("up", 90, 30), root)
-
-    expect(changes).toEqual(["grab", "grabbing", null])
   })
 })
 

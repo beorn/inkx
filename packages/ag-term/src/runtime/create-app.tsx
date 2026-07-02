@@ -139,8 +139,6 @@ import {
   KittyFlags,
   enableMouse,
   disableMouse,
-  setMouseCursorShape,
-  resetMouseCursorShape,
   resetCursorStyle,
   enterAlternateScreen,
   leaveAlternateScreen,
@@ -1056,17 +1054,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let output: Output | null = null
   let ownsOutput = false
 
-  const writeTerminalControl = (data: string): void => {
-    if (headless) return
-    try {
-      if (output && output.active()) output.write(data)
-      else stdout.write(data)
-    } catch (error) {
-      if (error instanceof Error && error.message === "Terminal is closed") return
-      throw error
-    }
-  }
-
   const modes =
     injectedTerm?.modes ??
     createModes({
@@ -1890,7 +1877,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // `@km/termless/15586-rec-mouse-garble` (mouse + focus).
     const earlyDisable = [
       kittyEnabled ? disableKittyKeyboard() : "", // Stop Kitty release events when enabled.
-      resetMouseCursorShape(), // Reset semantic mouse cursor shape before disabling mouse events.
       mouseEnabled ? disableMouse() : "", // Stop mouse events when enabled.
       focusReportingEnabled ? "\x1b[?1004l" : "", // Stop focus reporting when enabled.
     ].join("")
@@ -2376,12 +2362,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const cursorStore = createCursorStore()
 
   // Mouse event processor for DOM-level dispatch (with click-to-focus)
-  const mouseEventState = createMouseEventProcessor({
-    focusManager,
-    onMouseCursorChange: (shape) => {
-      writeTerminalControl(shape ? setMouseCursorShape(shape) : resetMouseCursorShape())
-    },
-  })
+  const mouseEventState = createMouseEventProcessor({ focusManager })
 
   // Layout-shift (CLS) monitor — runs post-paintFrame to detect
   // unstable layout (rect changes without scroll/resize cause) and
@@ -2535,7 +2516,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // authority; the mode state is.
       const sequences = [
         focusReportingEnabled ? "\x1b[?1004l" : "", // Disable focus reporting if enabled.
-        resetMouseCursorShape(), // Reset semantic mouse cursor shape.
         mouseEnabled ? disableMouse() : "", // Disable SGR mouse tracking if enabled.
         kittyEnabled ? disableKittyKeyboard() : "", // Pop Kitty keyboard protocol if enabled.
         "\x1b[?2004l", // Disable bracketed paste
@@ -2585,7 +2565,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Non-TTY cleanup: just send disable sequences
       const sequences = [
         focusReportingEnabled ? "\x1b[?1004l" : "",
-        resetMouseCursorShape(),
         mouseEnabled ? disableMouse() : "",
         kittyEnabled ? disableKittyKeyboard() : "",
         "\x1b[?2004l",
