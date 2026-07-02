@@ -24,6 +24,7 @@
  * short-circuit at this layer, this test catches it before `run()` does.
  */
 
+import { Readable, Writable } from "node:stream"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { createTerm } from "../../packages/ag-term/src/ansi/term"
 
@@ -113,6 +114,52 @@ describe("contract: createTerm({ caps }) overrides detection", () => {
     const term = createTerm({
       caps: { colorLevel: "mono" } as any,
     })
+    expect(term.caps.colorLevel).toBe("mono")
+  })
+})
+
+// ============================================================================
+// Node-backed createTerm with non-TTY streams (piped / scripted / CI)
+// ============================================================================
+//
+// no-color.org contract: when stdout is not a TTY (piped, redirected, or a
+// test-capture stream) and no env override applies, the Term must not emit
+// styled output. The deterministic non-TTY caps base may not force a color
+// tier — the tier resolves through the same env+stdout chain as everything
+// else, so FORCE_COLOR can still opt back in. This is the headless-mono
+// contract (above) applied to the Node path: deterministic defaults never
+// claim color the attached stream can't justify. Regression seed: `km list`
+// piped into a file emitted truecolor ANSI because `defaultCaps()`
+// (colorLevel: "truecolor") was used verbatim as the non-TTY caps base.
+
+function pipeStreams(): { stdout: NodeJS.WriteStream; stdin: NodeJS.ReadStream } {
+  const stdout = new Writable({ write: (_c, _e, cb) => cb() }) as unknown as NodeJS.WriteStream
+  const stdin = new Readable({ read: () => undefined }) as unknown as NodeJS.ReadStream
+  return { stdout, stdin }
+}
+
+describe("contract: createTerm({ stdout, stdin }) with non-TTY streams", () => {
+  test("contract: piped stdout resolves colorLevel 'mono' (no-color.org)", () => {
+    const { stdout, stdin } = pipeStreams()
+    const term = createTerm({ stdout, stdin })
+    expect(term.caps.colorLevel).toBe("mono")
+    // Styling methods must pass text through unstyled — this is the exact
+    // byte-level behavior scripted consumers (pipes, mdspec capture) see.
+    expect(term.dim("X")).toBe("X")
+    expect(term.bold("X")).toBe("X")
+  })
+
+  test("contract: FORCE_COLOR wins over the piped-mono default", () => {
+    process.env.FORCE_COLOR = "3"
+    const { stdout, stdin } = pipeStreams()
+    const term = createTerm({ stdout, stdin })
+    expect(term.caps.colorLevel).toBe("truecolor")
+  })
+
+  test("contract: NO_COLOR stays mono for non-TTY streams", () => {
+    process.env.NO_COLOR = "1"
+    const { stdout, stdin } = pipeStreams()
+    const term = createTerm({ stdout, stdin })
     expect(term.caps.colorLevel).toBe("mono")
   })
 })

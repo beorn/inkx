@@ -35,6 +35,7 @@ import {
   createMixedStyle,
   createStyle,
   createTerminalProfile,
+  detectColorFromEnv,
   type Style,
   type TerminalProfile,
   type TerminalEmulator,
@@ -737,13 +738,23 @@ function createNodeTerm(options: CreateTermOptions): Term {
   //     explicit caps.
   //   - `options.colorLevel` (`ColorLevel | null`) → thread through
   //     profile `colorLevel` so it participates in the normal precedence chain.
-  //   - non-TTY Node terms → `defaultCaps()` base + no caller override.
+  //   - non-TTY Node terms → `defaultCaps()` base, but the COLOR TIER still
+  //     resolves through the env+stdout chain (`detectColorFromEnv`): mono
+  //     when stdout is piped/redirected (no-color.org), FORCE_COLOR opts back
+  //     in at the factory's env rung. The deterministic base may not claim a
+  //     tier the attached stream can't justify — `defaultCaps()` hardcodes
+  //     `truecolor`, which made every scripted/piped `km` invocation emit
+  //     ANSI to non-TTY stdout (contract: create-term-defaults, non-TTY
+  //     streams block). Matches the headless-mono defaults contract.
   //   - TTY Node terms → full env-based auto-detection.
   const profileCapsBase: Partial<TerminalCaps> | undefined = options.caps
     ? options.caps
     : stdin.isTTY
       ? undefined // let profile factory run full env detection
-      : defaultCaps() // non-TTY: deterministic defaults, skip env probe
+      : {
+          ...defaultCaps(), // non-TTY: deterministic caps, skip env caps probe
+          colorLevel: detectColorFromEnv(process.env as Record<string, string | undefined>, stdout),
+        }
   const explicitColor =
     options.colorLevel === undefined ? undefined : (options.colorLevel ?? "mono")
   // Explicit caps override the env chain — tests and adapters that pass
