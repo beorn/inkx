@@ -15,9 +15,6 @@
  * exactly one transmission.
  */
 
-// Kitty graphics must be ON for these assertions — CI runners do not
-// export SILVERY_KITTY_GRAPHICS; see images-first.ts (ESM-hoisting pattern).
-import "./images-first.ts"
 import React, { useEffect, useState } from "react"
 import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
@@ -92,7 +89,7 @@ function StableImageWithUnrelatedTicks({ ticks }: { ticks: number }): React.Reac
 
 describe("Image: scrolling/moving does not re-transmit the PNG", () => {
   test("re-positioning emits one transmission and N placements", async () => {
-    using term = createTermless({ cols: 40, rows: 24 })
+    using term = createTermless({ cols: 40, rows: 24, caps: { kittyGraphics: true } })
 
     const writes: string[] = []
     const internal = getInternalStreams(term).stdout as unknown as {
@@ -124,7 +121,7 @@ describe("Image: scrolling/moving does not re-transmit the PNG", () => {
   })
 
   test("stable images are not re-placed on unrelated rerenders", async () => {
-    using term = createTermless({ cols: 40, rows: 24 })
+    using term = createTermless({ cols: 40, rows: 24, caps: { kittyGraphics: true } })
 
     const writes: string[] = []
     const internal = getInternalStreams(term).stdout as unknown as {
