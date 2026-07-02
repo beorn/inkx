@@ -1,7 +1,7 @@
 {
   "name": "silvery",
   "version": "0.21.0",
-  "description": "React for modern terminal apps \u2014 powerful apps, polished UIs, proudly terminal",
+  "description": "React for modern terminal apps — powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
     "chalk",
@@ -25,7 +25,7 @@
     "url": "https://github.com/beorn/silvery/issues"
   },
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git"
@@ -121,6 +121,11 @@
     "@silvery/ag-term": "0.21.0",
     "@silvery/ansi": "0.21.0",
     "@silvery/theme": "0.21.0",
+    "@termless/core": "^0.7.0",
+    "@termless/ghostty": "^0.4.0",
+    "@termless/ghostty-native": "^0.4.0",
+    "@termless/test": "^0.4.0",
+    "@termless/xtermjs": "^0.4.0",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
     "@vue/server-renderer": "^3.5.31",
@@ -151,10 +156,7 @@
     "vitepress-plugin-mermaid": "^2.0.17",
     "vitest": "^4.0.18",
     "vue": "^3.5.31",
-    "yoga-wasm-web": "^0.3.3",
-    "@termless/core": "^0.7.0",
-    "@termless/xtermjs": "^0.4.0",
-    "@termless/ghostty": "^0.4.0"
+    "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
