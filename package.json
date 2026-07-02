@@ -109,7 +109,7 @@
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
     "flexily": "0.7.3",
-    "loggily": "^0.10.0",
+    "loggily": "^0.10.2",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^8.0.0",
     "string-width": "^8.2.0"
@@ -163,7 +163,7 @@
   },
   "overrides": {
     "flexily": "github:beorn/flexily",
-    "loggily": "github:beorn/loggily"
+    "loggily": "^0.10.2"
   },
   "tsdown": {
     "clean": true,
