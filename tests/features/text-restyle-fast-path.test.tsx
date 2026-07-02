@@ -123,43 +123,47 @@ describe("feature: per-segment text restyle preserves nested run colors", () => 
   // 50 rerenders × STRICT incremental≡fresh full-buffer verification is
   // CPU-heavy: ~43s on a 2-core CI runner (timed out at the 30s default,
   // 2026-07-02). The sweep IS the coverage — keep it, budget for it.
-  test("SELECT then DESELECT sweep keeps incremental≡fresh AND restores per-run colors", { timeout: 120_000 }, () => {
-    const render = createRenderer({ cols: CARD_W, rows: 60 })
-    const cards = buildCards(50)
-    const app = render(<Board cards={cards} selectedId={-1} />)
+  test(
+    "SELECT then DESELECT sweep keeps incremental≡fresh AND restores per-run colors",
+    { timeout: 120_000 },
+    () => {
+      const render = createRenderer({ cols: CARD_W, rows: 60 })
+      const cards = buildCards(50)
+      const app = render(<Board cards={cards} selectedId={-1} />)
 
-    // Each card occupies 3 rows: top border, title, bottom border.
-    const titleRow = (id: number) => id * 3 + 1
+      // Each card occupies 3 rows: top border, title, bottom border.
+      const titleRow = (id: number) => id * 3 + 1
 
-    resetRestyleLog()
+      resetRestyleLog()
 
-    // Sweep selection across all 50 cards. SILVERY_STRICT=1 auto-checks
-    // incremental == fresh on every rerender; a whole-rect restyle throws here.
-    for (let id = 0; id < 50; id++) {
-      app.rerender(<Board cards={cards} selectedId={id} />)
+      // Sweep selection across all 50 cards. SILVERY_STRICT=1 auto-checks
+      // incremental == fresh on every rerender; a whole-rect restyle throws here.
+      for (let id = 0; id < 50; id++) {
+        app.rerender(<Board cards={cards} selectedId={id} />)
 
-      const row = titleRow(id)
-      // SELECT leg: parent base color became yellow, but nested runs keep theirs.
-      expect(app.cell(ICON_COL, row).fg).toEqual(rgb(ICON_CYAN))
-      expect(app.cell(LABEL_COL, row).fg).toEqual(rgb(LABEL_RED))
-      // The gap cell (space between icon and label) takes the parent base color.
-      expect(app.cell(ICON_COL + 1, row).char).toBe(" ")
-      expect(app.cell(ICON_COL + 1, row).fg).toEqual(rgb(SEL_YELLOW))
-    }
+        const row = titleRow(id)
+        // SELECT leg: parent base color became yellow, but nested runs keep theirs.
+        expect(app.cell(ICON_COL, row).fg).toEqual(rgb(ICON_CYAN))
+        expect(app.cell(LABEL_COL, row).fg).toEqual(rgb(LABEL_RED))
+        // The gap cell (space between icon and label) takes the parent base color.
+        expect(app.cell(ICON_COL + 1, row).char).toBe(" ")
+        expect(app.cell(ICON_COL + 1, row).fg).toEqual(rgb(SEL_YELLOW))
+      }
 
-    // DESELECT everything — the previously-selected runs must restore their colors,
-    // and the gap reverts to the deselected base color.
-    app.rerender(<Board cards={cards} selectedId={-1} />)
-    for (let id = 0; id < 50; id++) {
-      const row = titleRow(id)
-      expect(app.cell(ICON_COL, row).fg).toEqual(rgb(ICON_CYAN))
-      expect(app.cell(LABEL_COL, row).fg).toEqual(rgb(LABEL_RED))
-      expect(app.cell(ICON_COL + 1, row).fg).toEqual(rgb(DESEL_GREY))
-    }
+      // DESELECT everything — the previously-selected runs must restore their colors,
+      // and the gap reverts to the deselected base color.
+      app.rerender(<Board cards={cards} selectedId={-1} />)
+      for (let id = 0; id < 50; id++) {
+        const row = titleRow(id)
+        expect(app.cell(ICON_COL, row).fg).toEqual(rgb(ICON_CYAN))
+        expect(app.cell(LABEL_COL, row).fg).toEqual(rgb(LABEL_RED))
+        expect(app.cell(ICON_COL + 1, row).fg).toEqual(rgb(DESEL_GREY))
+      }
 
-    // The fast path must actually be exercised, not silently bypassed.
-    expect(maxRestyleCount()).toBeGreaterThan(0)
-  })
+      // The fast path must actually be exercised, not silently bypassed.
+      expect(maxRestyleCount()).toBeGreaterThan(0)
+    },
+  )
 
   test("repeated SELECT/DESELECT toggle on one card round-trips colors", () => {
     const render = createRenderer({ cols: CARD_W, rows: 60 })
