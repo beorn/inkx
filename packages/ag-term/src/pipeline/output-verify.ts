@@ -14,12 +14,18 @@ import type { TerminalBuffer } from "../buffer"
 import { IncrementalRenderMismatchError } from "../errors"
 import { graphemeWidth, isTextPresentationEmoji } from "../unicode"
 import { createLogger } from "loggily"
-import { createTerminal as createTermlessTerminal } from "@termless/core"
-import { createGhosttyBackend, initGhostty } from "@termless/ghostty"
-import { createXtermBackend as createTermlessXtermBackend } from "@termless/xtermjs"
+import { createRequire } from "node:module"
 import type { OutputContext } from "./output-phase"
 
 const log = createLogger("silvery:output")
+
+/**
+ * @termless/* backends are optional peer dependencies of the umbrella package,
+ * externalized at publish time. Load them lazily via createRequire so importing
+ * this module never evaluates the specifiers for consumers that don't use
+ * SILVERY_STRICT_TERMINAL verification.
+ */
+const requireBackend = createRequire(import.meta.url)
 
 const _env =
   typeof process !== "undefined" ? process.env : ({} as Record<string, string | undefined>)
@@ -1185,19 +1191,32 @@ export function verifyAccumulatedOutput(
 
 let _ghosttyInitPromise: Promise<void> | null = null
 
+let _termlessCore: typeof import("@termless/core") | null = null
+let _termlessXterm: typeof import("@termless/xtermjs") | null = null
+let _termlessGhostty: typeof import("@termless/ghostty") | null = null
+
 function loadTermless(): {
   createTerminal: typeof import("@termless/core").createTerminal
   createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
 } {
-  return { createTerminal: createTermlessTerminal, createXtermBackend: createTermlessXtermBackend }
+  const core = (_termlessCore ??= requireBackend(
+    "@termless/core",
+  ) as typeof import("@termless/core"))
+  const xtermjs = (_termlessXterm ??= requireBackend(
+    "@termless/xtermjs",
+  ) as typeof import("@termless/xtermjs"))
+  return { createTerminal: core.createTerminal, createXtermBackend: xtermjs.createXtermBackend }
 }
 
 function loadGhosttyBackend(): typeof import("@termless/ghostty").createGhosttyBackend {
+  const ghostty = (_termlessGhostty ??= requireBackend(
+    "@termless/ghostty",
+  ) as typeof import("@termless/ghostty"))
   // Start async WASM init — first call may block on this
   if (!_ghosttyInitPromise) {
-    _ghosttyInitPromise = initGhostty().then(() => undefined)
+    _ghosttyInitPromise = ghostty.initGhostty().then(() => undefined)
   }
-  return createGhosttyBackend
+  return ghostty.createGhosttyBackend
 }
 
 /**

@@ -32,5 +32,20 @@ export default defineConfig({
     testTimeout: 30_000,
     maxWorkers: Math.max(availableParallelism() - 1, 1),
     server: { deps: { inline: ["zod"] } },
+    // vitest-worker infra race, seen only on loaded 2-core CI runners: a
+    // console log is still in flight over the worker RPC when the test
+    // environment tears down ("Closing rpc while 'onUserConsoleLog' was
+    // pending"). All tests have already passed when it fires — it is
+    // harness noise, and it failed otherwise-green Tests runs on
+    // 2026-07-02 (d53acf56, 960a0a05). ONLY this exact shape is ignored;
+    // every other unhandled error stays fatal.
+    onUnhandledError(error) {
+      if (
+        error.name === "EnvironmentTeardownError" &&
+        String(error.message).includes("onUserConsoleLog")
+      ) {
+        return false
+      }
+    },
   },
 })

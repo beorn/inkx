@@ -106,6 +106,7 @@
     "@chenglou/pretext": "^0.0.7",
     "@silvery/color": "0.21.0",
     "@silvery/commander": "0.21.0",
+    "@termless/core": "^0.8.1",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
     "flexily": "0.7.3",
@@ -159,7 +160,6 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {
-    "@termless/core": "^0.8.1",
     "@termless/ghostty": "^0.8.2",
     "@termless/ghostty-native": "^0.8.1",
     "@termless/test": "^0.8.1",
@@ -168,9 +168,6 @@
     "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "@termless/core": {
-      "optional": true
-    },
     "@termless/ghostty": {
       "optional": true
     },
