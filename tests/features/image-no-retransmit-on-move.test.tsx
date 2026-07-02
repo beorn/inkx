@@ -15,6 +15,9 @@
  * exactly one transmission.
  */
 
+// Kitty graphics must be ON for these assertions — CI runners do not
+// export SILVERY_KITTY_GRAPHICS; see images-first.ts (ESM-hoisting pattern).
+import "./images-first.ts"
 import React, { useEffect, useState } from "react"
 import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"

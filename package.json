@@ -109,7 +109,7 @@
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
     "flexily": "0.7.3",
-    "loggily": "^0.10.0",
+    "loggily": "^0.10.2",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^8.0.0",
     "string-width": "^8.2.0"
@@ -121,11 +121,11 @@
     "@silvery/ag-term": "0.21.0",
     "@silvery/ansi": "0.21.0",
     "@silvery/theme": "0.21.0",
-    "@termless/core": "^0.7.0",
-    "@termless/ghostty": "^0.4.0",
-    "@termless/ghostty-native": "^0.4.0",
-    "@termless/test": "^0.4.0",
-    "@termless/xtermjs": "^0.4.0",
+    "@termless/core": "^0.8.1",
+    "@termless/ghostty": "^0.8.2",
+    "@termless/ghostty-native": "^0.8.1",
+    "@termless/test": "^0.8.1",
+    "@termless/xtermjs": "^0.8.1",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
     "@vue/server-renderer": "^3.5.31",
@@ -163,7 +163,7 @@
   },
   "overrides": {
     "flexily": "github:beorn/flexily",
-    "loggily": "github:beorn/loggily"
+    "loggily": "^0.10.2"
   },
   "tsdown": {
     "clean": true,

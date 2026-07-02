@@ -19,6 +19,9 @@
  * must still hold with tracing on.
  */
 
+// Kitty graphics must be ON for these assertions — CI runners do not
+// export SILVERY_KITTY_GRAPHICS; see images-first.ts (ESM-hoisting pattern).
+import "../features/images-first.ts"
 import React, { useEffect, useState } from "react"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs"
