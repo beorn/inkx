@@ -17,6 +17,7 @@ import { findByTestID } from "@silvery/ag/focus-queries"
 import { keyToAnsi, keyToModifiers, keyToName, matchHotkey, parseHotkey } from "@silvery/ag/keys"
 import type { IslandCommandPrefix } from "@silvery/ag/island-types"
 import { type MouseEventProcessorState, processMouseEvent, hitTest } from "../mouse-events"
+import { PASTE_START, PASTE_END } from "../bracketed-paste"
 import type { Container } from "@silvery/ag-react/reconciler"
 import { getContainerRoot } from "@silvery/ag-react/reconciler"
 import type { AgNode } from "@silvery/ag/types"
@@ -240,8 +241,49 @@ export function routePasteToFocusedIsland(text: string, focusManager: FocusManag
   if (!node) return false
   const state = node.islandState
   if (!state?.capabilities.input || !state.handle?.input?.feed) return false
-  const payload = islandWantsBracketedPaste(node) ? `\x1b[200~${text}\x1b[201~` : text
+  // Security: the paste text is attacker-influenceable (the OSC 52 clipboard
+  // response path decodes arbitrary UTF-8 and fires it as a paste). Wrapping it
+  // verbatim in PASTE_START/PASTE_END lets an embedded PASTE_END break out of
+  // the envelope into a focused shell guest's line editor. Strip any inner
+  // markers before re-wrapping so the guest sees exactly one atomic paste. Only
+  // the bracketed branch needs this: the raw branch feeds the guest the bytes a
+  // real terminal (bracketed-paste OFF) would forward verbatim.
+  const payload = islandWantsBracketedPaste(node)
+    ? `${PASTE_START}${stripBracketedPasteMarkers(text)}${PASTE_END}`
+    : text
   return feedIsland(node, payload)
+}
+
+/**
+ * Remove every embedded bracketed-paste marker (PASTE_START / PASTE_END) from
+ * paste content — the neutralization behind {@link routePasteToFocusedIsland}'s
+ * envelope. Inner DECSET paste markers have no legitimate meaning in literal
+ * paste content, so removing them is safe and it closes the envelope-breakout
+ * hole.
+ *
+ * Handles markers that would be *reconstructed* when a removal joins the
+ * surrounding fragments (e.g. `"\x1b[20" + "\x1b[201~" + "1~"` rebuilds a
+ * PASTE_END if you only pass once). This is a linear-time stack scan: we build
+ * the output one code point at a time and drop the tail the instant it completes
+ * a marker, so the output never contains a marker as a substring at any point
+ * and no fragment join can survive. Both markers are 6 ASCII bytes sharing the
+ * `"\x1b[20"` prefix and `"~"` suffix, so we test both after each append.
+ */
+export function stripBracketedPasteMarkers(text: string): string {
+  // Fast path: no marker present ⇒ return as-is (the common plain-text paste).
+  if (!text.includes(PASTE_START) && !text.includes(PASTE_END)) return text
+  const markerLen = PASTE_END.length // === PASTE_START.length
+  const out: string[] = []
+  for (const ch of text) {
+    out.push(ch)
+    if (out.length >= markerLen) {
+      const tail = out.slice(out.length - markerLen).join("")
+      if (tail === PASTE_START || tail === PASTE_END) {
+        out.length -= markerLen
+      }
+    }
+  }
+  return out.join("")
 }
 
 function encodeIslandMouse(

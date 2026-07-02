@@ -226,6 +226,20 @@ const traceLog = createLogger("silvery:trace")
 // @km/silvercode/19383.
 const STANDALONE_CAP_EXCEED_WARN_STREAK_THRESHOLD = 8
 
+// STRICT-only fail-loud bound on CONSECUTIVE standalone convergence cap-exceeds.
+// A handful of consecutive cap-exceeds is a legit growing-stream transient (a
+// ListView re-measuring a steadily-growing assistant block frame after frame).
+// An UNBOUNDED streak is a perpetual feedback edge the non-lossy follow-up-frame
+// recovery would otherwise paper over forever — so under SILVERY_STRICT
+// (incremental tier >=2) we escalate past this bound to the SAME hard
+// `assertBoundedConvergence` fail-loud the press/event-batch production-flush
+// loop uses. Set below the teardown WARN threshold (8) so STRICT surfaces the
+// edge sooner and louder (throw) than the production telemetry (warn). Non-STRICT
+// runs are unaffected: `assertBoundedConvergence` is a no-op outside STRICT, so
+// the follow-up-frame recovery stays the production safety net.
+// Bead: @km/silvercode/19383.
+const STANDALONE_CAP_STREAK_LIMIT = 5
+
 // ============================================================================
 // Feature-detection flags — hoisted to module scope.
 //
@@ -876,6 +890,55 @@ export function useAppShallow<S, T>(selector: (state: S) => T): T {
 // ============================================================================
 // Implementation
 // ============================================================================
+
+/**
+ * Snapshot of the five terminal protocol modes that the focused-island
+ * aggregation must keep the real terminal in sync with. `actual` is read from
+ * the live `modes` store; `desired` is `resolveDesiredProtocolModes(...)`.
+ */
+export interface ProtocolModeSnapshot {
+  altScreen: boolean
+  bracketedPaste: boolean
+  kittyKeyboard: number | false
+  mouse: MouseTrackingMode
+  focusReporting: boolean
+}
+
+/**
+ * Pure comparison body of `assertNoIslandModeLeak`: returns one descriptor
+ * string per protocol mode whose ACTUAL terminal state diverges from the
+ * DESIRED state derived from the focused island subtree. Empty array === no
+ * leak. Extracted so the island-mode-leak FIRE case is unit-testable without
+ * standing up a full app + terminal (bead: island-mode-leak STRICT seam). The
+ * descriptor strings are the exact wording `assertNoIslandModeLeak` joins into
+ * its thrown message, so its external behavior is unchanged.
+ */
+export function collectProtocolModeLeaks(
+  actual: ProtocolModeSnapshot,
+  desired: ProtocolModeSnapshot,
+): string[] {
+  const leaks: string[] = []
+  if (actual.altScreen !== desired.altScreen) {
+    leaks.push(`altScreen=${String(actual.altScreen)}, wanted ${String(desired.altScreen)}`)
+  }
+  if (actual.bracketedPaste !== desired.bracketedPaste) {
+    leaks.push(
+      `bracketedPaste=${String(actual.bracketedPaste)}, wanted ${String(desired.bracketedPaste)}`,
+    )
+  }
+  if (actual.kittyKeyboard !== desired.kittyKeyboard) {
+    leaks.push(`kittyKeyboard=${String(actual.kittyKeyboard)}, wanted ${desired.kittyKeyboard}`)
+  }
+  if (actual.mouse !== desired.mouse) {
+    leaks.push(`mouse=${String(actual.mouse)}, wanted ${String(desired.mouse)}`)
+  }
+  if (actual.focusReporting !== desired.focusReporting) {
+    leaks.push(
+      `focusReporting=${String(actual.focusReporting)}, wanted ${String(desired.focusReporting)}`,
+    )
+  }
+  return leaks
+}
 
 /**
  * Create an app with Zustand store and provider integration.
@@ -2326,30 +2389,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     reason: string,
   ): void {
     if (!isStrictEnabled("island-mode-leak", 2)) return
-    const leaks: string[] = []
-    if (modes.altScreen() !== desired.altScreen) {
-      leaks.push(`altScreen=${String(modes.altScreen())}, wanted ${String(desired.altScreen)}`)
+    const actual: ProtocolModeSnapshot = {
+      altScreen: modes.altScreen(),
+      bracketedPaste: modes.bracketedPaste(),
+      kittyKeyboard: modes.kittyKeyboard(),
+      mouse: modes.mouse(),
+      focusReporting: modes.focusReporting(),
     }
-    if (modes.bracketedPaste() !== desired.bracketedPaste) {
-      leaks.push(
-        `bracketedPaste=${String(modes.bracketedPaste())}, wanted ${String(
-          desired.bracketedPaste,
-        )}`,
-      )
-    }
-    if (modes.kittyKeyboard() !== desired.kittyKeyboard) {
-      leaks.push(`kittyKeyboard=${String(modes.kittyKeyboard())}, wanted ${desired.kittyKeyboard}`)
-    }
-    if (modes.mouse() !== desired.mouse) {
-      leaks.push(`mouse=${String(modes.mouse())}, wanted ${String(desired.mouse)}`)
-    }
-    if (modes.focusReporting() !== desired.focusReporting) {
-      leaks.push(
-        `focusReporting=${String(modes.focusReporting())}, wanted ${String(
-          desired.focusReporting,
-        )}`,
-      )
-    }
+    const leaks = collectProtocolModeLeaks(actual, desired)
     if (leaks.length === 0) return
     throw new Error(
       `[SILVERY_STRICT=island-mode-leak] terminal protocol mode mismatch after ${reason}: ${leaks.join(
@@ -3458,6 +3505,30 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             `(SILVERY_INSTRUMENT=1 adds the full per-node histogram.) ` +
             `Bead: @km/silvercode/19383.`,
         )
+        // A handful of consecutive cap-exceeds is a legit growing-stream
+        // transient; an UNBOUNDED streak is a perpetual feedback edge the
+        // non-lossy recovery above would otherwise paper over frame after frame.
+        // Under SILVERY_STRICT (incremental tier >=2) escalate past a small
+        // bound to the SAME hard `assertBoundedConvergence` fail-loud the
+        // press/event-batch production-flush loop uses (see its call in
+        // processEventBatch) — STRICT must gate this edge, not silently
+        // soft-recover it forever. `assertBoundedConvergence` is a no-op outside
+        // STRICT, so production keeps the follow-up-frame recovery below
+        // unchanged. `loopName` reuses "production-flush" (the standalone drain
+        // is that loop's standalone sibling; the ConvergenceLoopName union lives
+        // in pass-cause.ts, outside this scoped change) — the thrown message's
+        // per-cause breakdown still names "standalone-flush-exhaustion" from the
+        // ring recorded above.
+        if (
+          isStrictEnabled("incremental", 2) &&
+          standaloneCapExceedStreak > STANDALONE_CAP_STREAK_LIMIT
+        ) {
+          assertBoundedConvergence(
+            standaloneCapExceedStreak,
+            "production-flush",
+            STANDALONE_CAP_STREAK_LIMIT,
+          )
+        }
         scheduleFollowupStandaloneFrame()
         return commitRerenders
       }

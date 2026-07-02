@@ -91,6 +91,37 @@ const BEL = "\x07"
 /** OSC 52 response prefix */
 const OSC52_PREFIX = `${ESC}]52;c;`
 
+/**
+ * Upper bound on the decoded size of an OSC 52 clipboard payload.
+ *
+ * OSC 52 responses are attacker-influenceable: a hostile program on the far end
+ * of an SSH session, or a malicious terminal emulator, can emit an arbitrary
+ * base64 blob that arrives on stdin and is decoded here (see the
+ * `input-owner.ts` clipboard-response path that fires it as a paste). Node's
+ * base64 decoder never throws and imposes no size limit, so without a cap a
+ * single response could force an arbitrarily large allocation and then be fed
+ * into a focused guest as pasted input. Real clipboards are small — terminals
+ * themselves cap OSC 52 payloads around ~100 KB (see the `createOsc52Backend`
+ * quirks note) — so 1 MiB sits comfortably above any legitimate clipboard while
+ * keeping the decode bounded.
+ */
+export const MAX_OSC52_PAYLOAD_BYTES = 1024 * 1024
+
+/**
+ * Base64 encodes 3 bytes as 4 chars, so the encoded form of the byte cap is
+ * `ceil(bytes / 3) * 4`. We compare the base64 length against this to reject
+ * oversize payloads before decoding (never allocating the decoded buffer).
+ */
+const MAX_OSC52_BASE64_LENGTH = Math.ceil(MAX_OSC52_PAYLOAD_BYTES / 3) * 4
+
+/**
+ * Standard base64 alphabet with optional `=` padding. Node's decoder silently
+ * drops out-of-alphabet bytes instead of failing, so we validate shape first
+ * and reject anything that isn't well-formed base64 rather than best-effort
+ * decoding garbage into a paste.
+ */
+const OSC52_BASE64_SHAPE = /^[A-Za-z0-9+/]*={0,2}$/
+
 // ============================================================================
 // OSC 52 Backend
 // ============================================================================
@@ -259,6 +290,28 @@ export function parseClipboardResponse(input: string): string | null {
     })
   }
 
+  // OSC 52 responses are attacker-influenceable and Node's base64 decoder is
+  // lenient (never throws, silently drops invalid bytes) and unbounded. Reject
+  // oversize or malformed payloads LOUDLY instead of decoding garbage into a
+  // paste (NO SILENT ERRORS). The dispatch caller catches ProtocolError and
+  // drops the paste with a debug-log breadcrumb. The length check runs on the
+  // index delta so we never slice a giant substring just to measure it.
+  if (contentEnd - contentStart > MAX_OSC52_BASE64_LENGTH) {
+    throw new ProtocolError({
+      parser: "parseClipboardResponse",
+      input,
+      reason: `OSC 52 base64 payload exceeds ${MAX_OSC52_PAYLOAD_BYTES}-byte cap (got ${contentEnd - contentStart} base64 chars)`,
+    })
+  }
+
   const base64 = input.slice(contentStart, contentEnd)
+  if (!OSC52_BASE64_SHAPE.test(base64)) {
+    throw new ProtocolError({
+      parser: "parseClipboardResponse",
+      input,
+      reason: "OSC 52 payload is not valid base64",
+    })
+  }
+
   return Buffer.from(base64, "base64").toString("utf-8")
 }
