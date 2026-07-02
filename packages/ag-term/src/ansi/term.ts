@@ -40,6 +40,7 @@ import {
   type TerminalProfile,
   type TerminalEmulator,
 } from "@silvery/ansi"
+import { createTerminal } from "@termless/core"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -661,18 +662,12 @@ export function createTerm(
   // Two-arg: createTerm(backend, { cols, rows, caps? }) — raw backend + dims
   if (second && first && isTermBackend(first)) {
     const dims = second as { cols: number; rows: number; caps?: Partial<TerminalCaps> }
-    // Lazy require — @termless/core is an optional dependency, only needed
-    // for emulator backends. Using a variable prevents static analysis from
-    // trying to resolve it at bundle/parse time.
-    const mod = "@termless/core"
-    const { createTerminal } = require(mod) as {
-      createTerminal: (opts: {
-        backend: TermEmulatorBackend
-        cols: number
-        rows: number
-      }) => TermEmulator
-    }
-    const emulator = createTerminal({
+    const createTermlessTerminal = createTerminal as unknown as (opts: {
+      backend: TermEmulatorBackend
+      cols: number
+      rows: number
+    }) => TermEmulator
+    const emulator = createTermlessTerminal({
       backend: first as TermEmulatorBackend,
       cols: dims.cols,
       rows: dims.rows,

@@ -14,6 +14,9 @@ import type { TerminalBuffer } from "../buffer"
 import { IncrementalRenderMismatchError } from "../errors"
 import { graphemeWidth, isTextPresentationEmoji } from "../unicode"
 import { createLogger } from "loggily"
+import { createTerminal as createTermlessTerminal } from "@termless/core"
+import { createGhosttyBackend, initGhostty } from "@termless/ghostty"
+import { createXtermBackend as createTermlessXtermBackend } from "@termless/xtermjs"
 import type { OutputContext } from "./output-phase"
 
 const log = createLogger("silvery:output")
@@ -1180,33 +1183,21 @@ export function verifyAccumulatedOutput(
 // SILVERY_STRICT_TERMINAL: Independent xterm.js emulator verification
 // =============================================================================
 
-/** Lazily loaded termless factories — avoids import cost when STRICT_TERMINAL is off. */
-let _createTerminal: typeof import("@termless/core").createTerminal | null = null
-let _createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend | null = null
-let _createGhosttyBackend: typeof import("@termless/ghostty").createGhosttyBackend | null = null
 let _ghosttyInitPromise: Promise<void> | null = null
 
 function loadTermless(): {
   createTerminal: typeof import("@termless/core").createTerminal
   createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
 } {
-  if (!_createTerminal || !_createXtermBackend) {
-    _createTerminal = require("@termless/core").createTerminal
-    _createXtermBackend = require("@termless/xtermjs").createXtermBackend
-  }
-  return { createTerminal: _createTerminal!, createXtermBackend: _createXtermBackend! }
+  return { createTerminal: createTermlessTerminal, createXtermBackend: createTermlessXtermBackend }
 }
 
 function loadGhosttyBackend(): typeof import("@termless/ghostty").createGhosttyBackend {
-  if (!_createGhosttyBackend) {
-    const mod = require("@termless/ghostty")
-    _createGhosttyBackend = mod.createGhosttyBackend
-    // Start async WASM init — first call may block on this
-    if (!_ghosttyInitPromise) {
-      _ghosttyInitPromise = mod.initGhostty()
-    }
+  // Start async WASM init — first call may block on this
+  if (!_ghosttyInitPromise) {
+    _ghosttyInitPromise = initGhostty().then(() => undefined)
   }
-  return _createGhosttyBackend!
+  return createGhosttyBackend
 }
 
 /**

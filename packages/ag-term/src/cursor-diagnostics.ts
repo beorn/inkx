@@ -1,5 +1,7 @@
 import { isStrictEnabled } from "./strict-mode"
 import { createLogger } from "loggily"
+import { createTerminal as createTermlessTerminal } from "@termless/core"
+import { createXtermBackend as createTermlessXtermBackend } from "@termless/xtermjs"
 
 const log = createLogger("silvery:cursor")
 
@@ -102,9 +104,6 @@ export class OutputCursorMismatchError extends Error {
 
 let lastOutputCursorDiagnostics: OutputCursorDiagnostics | null = null
 
-let _createTerminal: typeof import("@termless/core").createTerminal | null = null
-let _createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend | null = null
-
 function isCursorStrictDisabled(): boolean {
   const raw = process.env.SILVERY_STRICT
   if (!raw) return false
@@ -165,11 +164,7 @@ function loadTermless(): {
   createTerminal: typeof import("@termless/core").createTerminal
   createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
 } {
-  if (!_createTerminal || !_createXtermBackend) {
-    _createTerminal = require("@termless/core").createTerminal
-    _createXtermBackend = require("@termless/xtermjs").createXtermBackend
-  }
-  return { createTerminal: _createTerminal!, createXtermBackend: _createXtermBackend! }
+  return { createTerminal: createTermlessTerminal, createXtermBackend: createTermlessXtermBackend }
 }
 
 function replayCursor(output: string, cols: number, rows: number): OutputCursorTerminalState {

@@ -53,7 +53,11 @@
     "@silvery/ag": "0.21.0",
     "@silvery/ag-react": "0.21.0",
     "@silvery/ag-term": "0.21.0",
-    "@silvery/create": "0.21.0"
+    "@silvery/create": "0.21.0",
+    "@termless/core": "^0.7.0",
+    "@termless/ghostty": "^0.4.0",
+    "@termless/ghostty-native": "^0.4.0",
+    "@termless/xtermjs": "^0.4.0"
   },
   "tsdown": {
     "clean": true,

@@ -174,6 +174,9 @@ import {
   type TermEmulatorBackend,
 } from "@silvery/ag-term"
 import { warnOnce } from "@silvery/ansi"
+import { createGhosttyBackend } from "@termless/ghostty"
+import { createGhosttyNativeBackend } from "@termless/ghostty-native"
+import { createXtermBackend } from "@termless/xtermjs"
 
 /**
  * Live-termless tracker. Each `createTermless()` registers a WeakRef to the
@@ -736,19 +739,10 @@ export function createTermless(
 
   let backend: import("@silvery/ag-term").TermEmulatorBackend
   if (choice === "ghostty") {
-    const { createGhosttyBackend } = require("@termless/ghostty") as {
-      createGhosttyBackend: () => import("@silvery/ag-term").TermEmulatorBackend
-    }
     backend = createGhosttyBackend()
   } else if (choice === "ghostty-native") {
-    const { createGhosttyNativeBackend } = require("@termless/ghostty-native") as {
-      createGhosttyNativeBackend: () => import("@silvery/ag-term").TermEmulatorBackend
-    }
     backend = createGhosttyNativeBackend()
   } else if (choice === "xterm") {
-    const { createXtermBackend } = require("@termless/xtermjs") as {
-      createXtermBackend: () => import("@silvery/ag-term").TermEmulatorBackend
-    }
     backend = createXtermBackend()
   } else {
     throw new Error(
