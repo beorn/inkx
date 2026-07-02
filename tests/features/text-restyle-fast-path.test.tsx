@@ -24,6 +24,12 @@
  *    silently falling back to full renderText.
  */
 
+// This suite is meaningless without strict incremental verification: the
+// incremental≡fresh comparison AND the textRestyleFastPath stat counter only
+// run under SILVERY_STRICT. km's vendor project sets it globally; silvery's
+// own root config does not — strict-first.ts pins it BEFORE the framework
+// module graph loads (ESM hoists imports; see its docstring).
+import "./strict-first.ts"
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"

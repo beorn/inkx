@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Superseded runs on the same ref are wasted minutes — cancel them.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Registry flakes are the #1 cause of false-red CI on small repos —
+      # retry install up to 3x with backoff (same idiom as verify.yml).
+      - name: Install dependencies
+        run: |
+          for attempt in 1 2 3; do
+            bun install && exit 0
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Run tests
+        run: bun run test
