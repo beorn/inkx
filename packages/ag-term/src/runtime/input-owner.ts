@@ -510,10 +510,10 @@ export function createInputOwner(
     //
     // The parser may throw ProtocolError when PASTE_START is found but no
     // PASTE_END follows in this chunk. That commonly indicates a stream-
-    // split paste (the rest arrives in the next TTY read), so we log and
-    // fall through to splitRawInput — preserving the prior "best-effort"
-    // behavior while still emitting a debug-log breadcrumb so chronic
-    // protocol-format problems become visible. Bead reference:
+    // split paste (the rest arrives in the next TTY read), so we buffer and
+    // retry before splitting into key events. This preserves paste atomicity
+    // while still emitting a debug-log breadcrumb so chronic protocol-format
+    // problems become visible. Bead reference:
     // @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
     let pasteResult: ReturnType<typeof parseBracketedPaste> = null
     try {
