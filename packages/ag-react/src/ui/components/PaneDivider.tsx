@@ -32,6 +32,21 @@ export interface PaneDividerProps {
   readonly color?: string
   /** Hover/drag divider glyph color. Defaults to the accent foreground token. */
   readonly activeColor?: string
+  /**
+   * Strip background — painted across the whole sash (idle and hover). Lets a
+   * split host blend the divider into the panes on either side (e.g. the deck
+   * passes the focused pane's surface so an idle divider is invisible). Default
+   * `undefined` keeps the sash transparent so it inherits whatever is behind it.
+   */
+  readonly backgroundColor?: string
+  /**
+   * How the sash reads at rest.
+   * - `"line"` (default) — always shows the solid `│`/`─` rule (classic sash).
+   * - `"hidden"` — no glyph at rest (background only); the dotted sash appears
+   *   only on hover/drag. Pair with {@link backgroundColor} to blend into the
+   *   surrounding panes so the divider is invisible until pointed at.
+   */
+  readonly idleStyle?: "line" | "hidden"
   /** Force active chrome while the parent is processing a drag. */
   readonly active?: boolean
   /** Disable hover cursor and resize-start events while preserving layout. */
@@ -40,6 +55,10 @@ export interface PaneDividerProps {
   readonly verticalChar?: string
   /** Override the visible glyph for horizontal dividers. */
   readonly horizontalChar?: string
+  /** Hover sash glyph for vertical dividers. Defaults to the dotted rule `┆`. */
+  readonly hoverVerticalChar?: string
+  /** Hover sash glyph for horizontal dividers. Defaults to the dotted rule `┄`. */
+  readonly hoverHorizontalChar?: string
   /** Fired on mouse-down so the parent split layout can begin a resize gesture. */
   readonly onResizeStart?: (event: PaneDividerResizeStartEvent) => void
   /**
@@ -63,10 +82,14 @@ export function PaneDivider({
   size = DEFAULT_SIZE,
   color = "$border-default",
   activeColor = "$fg-accent",
+  backgroundColor,
+  idleStyle = "line",
   active = false,
   disabled = false,
   verticalChar = "│",
   horizontalChar = "─",
+  hoverVerticalChar = "┆",
+  hoverHorizontalChar = "┄",
   onResizeStart,
   onResizeMove,
   onResizeEnd,
@@ -76,7 +99,6 @@ export function PaneDivider({
   // stale closure); the state drives the active chrome during a drag.
   const draggingRef = useRef(false)
   const [dragging, setDragging] = useState(false)
-  const armed = !disabled && (active || isHovered || dragging)
   const mouseCursor = disabled
     ? undefined
     : orientation === "vertical"
@@ -117,8 +139,23 @@ export function PaneDivider({
     [onResizeMove, orientation],
   )
 
-  const visibleColor = armed ? activeColor : color
+  // Sash rendering state machine:
+  //  - drag/active     → SOLID rule in the accent color (drag affordance kept)
+  //  - hover (no drag) → the DOTTED reveal when the sash is otherwise hidden;
+  //                      the classic SOLID accent rule when it is always shown
+  //  - idle            → SOLID rule in the idle color, OR nothing when
+  //                      `idleStyle="hidden"` (background-only; invisible sash)
+  //
+  // The dotted glyph is the reveal for the hidden sash; a `"line"` sash keeps its
+  // classic solid-accent hover so existing consumers are unchanged.
+  const isDragging = active || dragging
+  const isHoverArmed = !disabled && isHovered && !isDragging
+  const showGlyph = isDragging || isHoverArmed || idleStyle === "line"
+  const glyphColor = isDragging || isHoverArmed ? activeColor : color
   const safeSize = Math.max(1, Math.floor(size))
+  const dottedHover = isHoverArmed && idleStyle === "hidden"
+  const verticalGlyph = dottedHover ? hoverVerticalChar : verticalChar
+  const horizontalGlyph = dottedHover ? hoverHorizontalChar : horizontalChar
 
   if (orientation === "vertical") {
     return (
@@ -128,6 +165,7 @@ export function PaneDivider({
         width={safeSize}
         height="100%"
         flexDirection="column"
+        backgroundColor={backgroundColor}
         userSelect="none"
         mouseCapture={!disabled}
         mouseCursor={mouseCursor}
@@ -138,9 +176,11 @@ export function PaneDivider({
         onMouseUp={endDrag}
       >
         <Box flexGrow={1} minWidth={0} minHeight={0}>
-          <Text color={visibleColor} wrap="wrap" minWidth={0}>
-            {verticalChar.repeat(VERTICAL_FILL_LENGTH)}
-          </Text>
+          {showGlyph ? (
+            <Text color={glyphColor} wrap="wrap" minWidth={0}>
+              {verticalGlyph.repeat(VERTICAL_FILL_LENGTH)}
+            </Text>
+          ) : null}
         </Box>
       </Box>
     )
@@ -153,6 +193,7 @@ export function PaneDivider({
       width="100%"
       height={safeSize}
       flexDirection="row"
+      backgroundColor={backgroundColor}
       userSelect="none"
       mouseCapture={!disabled}
       mouseCursor={mouseCursor}
@@ -163,9 +204,11 @@ export function PaneDivider({
       onMouseUp={endDrag}
     >
       <Box flexGrow={1} minWidth={0} minHeight={0}>
-        <Text color={visibleColor} wrap="wrap" minHeight={0}>
-          {horizontalChar.repeat(HORIZONTAL_FILL_LENGTH)}
-        </Text>
+        {showGlyph ? (
+          <Text color={glyphColor} wrap="wrap" minHeight={0}>
+            {horizontalGlyph.repeat(HORIZONTAL_FILL_LENGTH)}
+          </Text>
+        ) : null}
       </Box>
     </Box>
   )
