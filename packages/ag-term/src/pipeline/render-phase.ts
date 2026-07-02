@@ -2553,6 +2553,23 @@ function computeChildClipBounds(
  * Clears each child's overflow extent, clipped to buffer bounds.
  */
 /**
+ * Does this node paint pixels of its OWN that can go stale when its prevLayout
+ * overflowed an ancestor and then retreated?
+ *
+ * Only a bg-less, theme-less box paints nothing — everything else (text glyphs,
+ * bg/themed boxes, viewport, island) fills cells. The descendant-overflow clear
+ * writes `clearBg` into a retreating descendant's vacated overflow cells; that is
+ * only correct where THIS subtree actually painted them. A transparent box's
+ * overflow cells show whatever a sibling/ancestor painted (the clone already
+ * holds it), so gating the clear on this predicate stops the clear from nulling a
+ * sibling's bg. See `clearDescendantOverflowRegions` and @si/render/20598.
+ */
+function nodeEmitsOwnPixels(node: AgNode): boolean {
+  if (node.type === "silvery-box") return !!getEffectiveBg(node.props as BoxProps)
+  return true
+}
+
+/**
  * Clear areas where descendants' previous layouts overflowed beyond THIS node's rect.
  * Only clears OUTSIDE the node's rect — interior clearing is handled by clearNodeRegion
  * and renderBox. Recursive: follows subtreeDirty paths to find all overflowing descendants.
@@ -2599,7 +2616,19 @@ function _clearDescendantOverflow(
   clearBg: Color,
 ): void {
   for (const child of children) {
-    if (child.prevLayout && isCurrentEpoch(child.layoutChangedThisFrame)) {
+    // Gate the emit on nodeEmitsOwnPixels: only clear the vacated overflow of a
+    // descendant that actually PAINTED it. A transparent box's overflow region
+    // holds a sibling's/ancestor's painted cells (the clone already has them
+    // correct), so clearing it to `clearBg` would stomp that sibling — the
+    // @si/render/20598 pane-rebalance signature. Painter descendants under a
+    // transparent box are still reached by the subtree-dirty recursion below, so
+    // a real own-overflow (e.g. a pre-wrap TextArea line vacating cells past the
+    // box edge) is still cleared.
+    if (
+      child.prevLayout &&
+      isCurrentEpoch(child.layoutChangedThisFrame) &&
+      nodeEmitsOwnPixels(child)
+    ) {
       const prev = child.prevLayout
       const prevRight = prev.x + prev.width
       const prevBottom = prev.y - scrollOffset + prev.height
