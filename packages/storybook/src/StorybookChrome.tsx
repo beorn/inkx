@@ -11,12 +11,16 @@ import {
 } from "@silvery/ag-react"
 import { useStorybookHostInjection } from "./host-injection.tsx"
 
-export const STORYBOOK_CHROME_BG = "#102124"
-export const STORYBOOK_CHROME_FG = "#8fcfca"
-export const STORYBOOK_CHROME_MUTED_FG = "#5f9893"
-export const STORYBOOK_CHROME_ACTIVE_FG = "#ffffff"
-export const STORYBOOK_CHROME_HOVER_BG = "#13282b"
-export const STORYBOOK_CHROME_SELECTED_BG = "#173033"
+// Sterling semantic tokens (see docs/guide/styling.md) — resolved per the
+// active theme via parseColor()/resolveThemeColor(), never raw hex. Keep
+// these as $tokens so the storybook chrome follows the host app's theme
+// instead of pinning a fixed look.
+export const STORYBOOK_CHROME_BG = "$bg"
+export const STORYBOOK_CHROME_FG = "$fg"
+export const STORYBOOK_CHROME_MUTED_FG = "$fg-muted"
+export const STORYBOOK_CHROME_ACTIVE_FG = "$fg-accent"
+export const STORYBOOK_CHROME_HOVER_BG = "$bg-surface-hover"
+export const STORYBOOK_CHROME_SELECTED_BG = "$bg-selected"
 
 export type StoryLane = "full" | "none" | "prose"
 export type StoryPadding = "none" | "standard"
