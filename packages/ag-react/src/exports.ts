@@ -689,6 +689,7 @@ export {
   type UseResponsiveValueOptions,
 } from "./hooks/useResponsiveValue"
 export { useResponsiveBoxProps, type Responsive } from "./hooks/useResponsiveBoxProps"
+export { densityForWidth, DEFAULT_COMPACT_MAX_WIDTH, type Density } from "./ui/density"
 export { useWindowSize } from "./hooks/useWindowSize"
 export { useHover } from "./hooks/useHover"
 export type { UseHoverReturn } from "./hooks/useHover"
