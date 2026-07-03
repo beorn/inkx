@@ -173,10 +173,20 @@ import {
   type TerminalCaps,
   type TermEmulatorBackend,
 } from "@silvery/ag-term"
+import { preloadStrictTerminalBackends } from "@silvery/ag-term/strict-terminal-backends"
 import { warnOnce } from "@silvery/ansi"
 import { createGhosttyBackend } from "@termless/ghostty"
 import { createGhosttyNativeBackend } from "@termless/ghostty-native"
 import { createXtermBackend } from "@termless/xtermjs"
+
+// Preload the @termless emulator backends into ag-term's strict-verify cache so
+// the SYNCHRONOUS SILVERY_STRICT_TERMINAL / cursor verifiers (output-verify.ts,
+// cursor-diagnostics.ts) resolve them mid-frame WITHOUT createRequire — the
+// 2026-07-02 Ghostty-WASM singleton-split fix. The backends are already statically
+// imported just above, so this is a free ESM-graph re-resolve; ghostty WASM init
+// stays deferred to each ghostty test's own `await initGhostty()` (initGhosttyWasm:
+// false) so non-ghostty suites don't pay the WASM load.
+await preloadStrictTerminalBackends({ ghostty: true, initGhosttyWasm: false })
 
 /**
  * Live-termless tracker. Each `createTermless()` registers a WeakRef to the

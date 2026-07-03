@@ -27,7 +27,7 @@
 import { openSync, writeSync, closeSync } from "node:fs"
 import { createLogger } from "loggily"
 import { signal, type ReadSignal } from "@silvery/signals"
-import type { ConsoleRouter } from "./console-router"
+import { createConsoleRouter, type ConsoleRouter } from "./console-router"
 
 const log = createLogger("silvery:guard")
 
@@ -102,12 +102,10 @@ export function createOutput(defaultOptions?: OutputOptions, router?: ConsoleRou
   // Router is the canonical patcher for console.*. `unregisterSink` holds
   // the disposer for the sink policy we registered in activate().
   const ownsRouter = !router
-  const _router: ConsoleRouter =
-    router ??
-    // Lazy local-router import to avoid a circular dep between console.ts
-    // and output.ts. `require` is safe here (node runtime) and dev-only.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require("./console-router") as typeof import("./console-router")).createConsoleRouter()
+  // console-router.ts imports nothing from output.ts, so the historical cycle
+  // that motivated a lazy require no longer exists — a static import is safe and
+  // ESM-legal (createConsoleRouter is only called here at factory time).
+  const _router: ConsoleRouter = router ?? createConsoleRouter()
   let unregisterSink: (() => void) | null = null
 
   // Route flag — when true, stdout.write(…) inside the intercept forwards to the

@@ -12,20 +12,12 @@
 
 import type { TerminalBuffer } from "../buffer"
 import { IncrementalRenderMismatchError } from "../errors"
+import { getTermlessCore, getTermlessGhostty, getTermlessXterm } from "../strict-terminal-backends"
 import { graphemeWidth, isTextPresentationEmoji } from "../unicode"
 import { createLogger } from "loggily"
-import { createRequire } from "node:module"
 import type { OutputContext } from "./output-phase"
 
 const log = createLogger("silvery:output")
-
-/**
- * @termless/* backends are optional peer dependencies of the umbrella package,
- * externalized at publish time. Load them lazily via createRequire so importing
- * this module never evaluates the specifiers for consumers that don't use
- * SILVERY_STRICT_TERMINAL verification.
- */
-const requireBackend = createRequire(import.meta.url)
 
 const _env =
   typeof process !== "undefined" ? process.env : ({} as Record<string, string | undefined>)
@@ -860,8 +852,12 @@ export function captureStrictFailureArtifacts(opts: {
   renderFull?: BufferToAnsiFn
 }): string {
   try {
-    const fs = require("fs")
-    const path = require("path")
+    // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+    // captureStrictFailureArtifacts is a synchronous diagnostic (returns the artifact
+    // dir for the thrown error message), so it can't await import(); getBuiltinModule
+    // keeps node:fs/node:path out of browser/canvas bundles while staying sync.
+    const fs = process.getBuiltinModule("node:fs")
+    const path = process.getBuiltinModule("node:path")
     const timestamp = Date.now()
     const dir = `/tmp/silvery-strict-failure-${timestamp}`
     fs.mkdirSync(dir, { recursive: true })
@@ -1189,34 +1185,25 @@ export function verifyAccumulatedOutput(
 // SILVERY_STRICT_TERMINAL: Independent xterm.js emulator verification
 // =============================================================================
 
-let _ghosttyInitPromise: Promise<void> | null = null
-
-let _termlessCore: typeof import("@termless/core") | null = null
-let _termlessXterm: typeof import("@termless/xtermjs") | null = null
-let _termlessGhostty: typeof import("@termless/ghostty") | null = null
-
 function loadTermless(): {
   createTerminal: typeof import("@termless/core").createTerminal
   createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
 } {
-  const core = (_termlessCore ??= requireBackend(
-    "@termless/core",
-  ) as typeof import("@termless/core"))
-  const xtermjs = (_termlessXterm ??= requireBackend(
-    "@termless/xtermjs",
-  ) as typeof import("@termless/xtermjs"))
+  // ESM-graph load (never createRequire) so this verifier shares the single
+  // @termless instance with createTermless / createGhosttyBackend / the tests'
+  // own imports — the 2026-07-02 Ghostty-WASM singleton-split fix. Preloaded by
+  // @silvery/test's top-level await / run()'s setup; see strict-terminal-backends.ts.
+  const core = getTermlessCore()
+  const xtermjs = getTermlessXterm()
   return { createTerminal: core.createTerminal, createXtermBackend: xtermjs.createXtermBackend }
 }
 
 function loadGhosttyBackend(): typeof import("@termless/ghostty").createGhosttyBackend {
-  const ghostty = (_termlessGhostty ??= requireBackend(
-    "@termless/ghostty",
-  ) as typeof import("@termless/ghostty"))
-  // Start async WASM init — first call may block on this
-  if (!_ghosttyInitPromise) {
-    _ghosttyInitPromise = ghostty.initGhostty().then(() => undefined)
-  }
-  return ghostty.createGhosttyBackend
+  // WASM readiness (initGhostty) is a PRELOAD precondition — the ghostty tests
+  // await initGhostty() in setup and the live run() path preloads with WASM, so
+  // by the time this synchronous mid-frame call runs the shared sharedGhostty is
+  // populated. No fire-and-forget init here (that was the null-WASM race window).
+  return getTermlessGhostty().createGhosttyBackend
 }
 
 /**

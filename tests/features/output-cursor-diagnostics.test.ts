@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest"
+import { afterEach, beforeAll, describe, expect, test } from "vitest"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import {
@@ -23,7 +23,14 @@ import { createRuntime } from "../../packages/ag-term/src/runtime/create-runtime
 import type { Buffer, Dims } from "../../packages/ag-term/src/runtime/types"
 import { isCursorStrictEnabled } from "../../packages/ag-term/src/cursor-diagnostics"
 import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
+import { preloadStrictTerminalBackends } from "../../packages/ag-term/src/strict-terminal-backends"
 import type { AgNode } from "../../packages/ag/src/types"
+
+// The cursor verifier replays output through xterm.js synchronously; its
+// @termless ESM-graph load (post wave-3, not createRequire) must be preloaded.
+beforeAll(async () => {
+  await preloadStrictTerminalBackends()
+})
 
 const originalStrict = process.env.SILVERY_STRICT
 const originalDebug = process.env.DEBUG

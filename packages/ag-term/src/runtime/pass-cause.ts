@@ -335,8 +335,7 @@ export function createPassCauseAggregator(): PassCauseAggregator {
   function appendJson(file: string): void {
     const h = getHistogram()
     if (h.totalRecords === 0) return
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require("node:fs") as typeof import("node:fs")
+    const fs = process.getBuiltinModule("node:fs") as typeof import("node:fs")
     fs.appendFileSync(file, JSON.stringify(h) + "\n")
   }
 
@@ -494,8 +493,7 @@ export function printPassHistogram(): void {
   const formatted = passAggregator.formatSummary()
   const file = process.env.SILVERY_INSTRUMENT_FILE
   if (file) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require("node:fs") as typeof import("node:fs")
+    const fs = process.getBuiltinModule("node:fs") as typeof import("node:fs")
     fs.appendFileSync(file, "\n" + formatted + "\n")
     return
   }
@@ -771,7 +769,8 @@ export function describeConvergenceCauses(): string {
     if (breakdown) return breakdown
   }
   const ring = formatPassRingBreakdown()
-  if (ring)
+  if (ring) {
     return `${ring} [recent always-on ring; set SILVERY_INSTRUMENT=1 for full per-node histogram]`
+  }
   return "(no feedback-edge records captured — likely a pure-React update loop with no layout/scroll/sticky cause)"
 }

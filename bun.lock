@@ -227,11 +227,33 @@
       "name": "@silvery/scope",
       "version": "0.21.0",
     },
+    "packages/selection": {
+      "name": "@silvery/selection",
+      "version": "0.1.0",
+      "dependencies": {
+        "alien-signals": "^3.1.2",
+      },
+      "devDependencies": {
+        "tsdown": "^0.21.7",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/signals": {
       "name": "@silvery/signals",
       "version": "0.21.0",
       "dependencies": {
         "alien-signals": "~3.1.2",
+      },
+    },
+    "packages/storybook": {
+      "name": "@silvery/storybook",
+      "version": "0.21.0",
+      "dependencies": {
+        "@silvery/ag-react": "0.21.0",
+        "@silvery/ag-term": "0.21.0",
+      },
+      "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0",
       },
     },
     "packages/syntax": {
@@ -677,7 +699,11 @@
 
     "@silvery/scope": ["@silvery/scope@workspace:packages/scope"],
 
+    "@silvery/selection": ["@silvery/selection@workspace:packages/selection"],
+
     "@silvery/signals": ["@silvery/signals@workspace:packages/signals"],
+
+    "@silvery/storybook": ["@silvery/storybook@workspace:packages/storybook"],
 
     "@silvery/syntax": ["@silvery/syntax@workspace:packages/syntax"],
 
@@ -1586,6 +1612,8 @@
     "@babel/generator/@babel/parser": ["@babel/parser@8.0.0", "", { "dependencies": { "@babel/types": "^8.0.0" }, "bin": "./bin/babel-parser.js" }, "sha512-aLxAE+imI9bCcyaPrUDjBv3uSkWieifjLe0kuFOZF0zli0L6GCsTmsePnTr55adbIAgYz2zhN1vnFimCBUYcRQ=="],
 
     "@mermaid-js/mermaid-mindmap/@braintree/sanitize-url": ["@braintree/sanitize-url@6.0.4", "", {}, "sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A=="],
+
+    "@silvery/ag-term/flexily": ["flexily@github:beorn/flexily#aa0f3df", {}, "beorn-flexily-aa0f3df", "sha512-le3P6Jn2Y2TRbc535Qp0RRZzrhr4xOz/DJxRohUAmvo1UZLWJW7xVWsCwK3S77dmPP00VnDW6p5UiOgMEVEx8g=="],
 
     "@ts-morph/common/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 

@@ -15,7 +15,6 @@
  * layout info.
  */
 
-import type { createWriteStream as createWriteStreamType } from "node:fs"
 import type { RenderStats } from "./scheduler"
 import type { AgNode } from "@silvery/ag/types"
 import {
@@ -57,8 +56,9 @@ let inspectorOutput: NodeJS.WritableStream = process.stderr
 export function enableInspector(options?: InspectorOptions): void {
   inspectorEnabled = true
   if (options?.logFile) {
-    // Dynamic require to avoid pulling in fs for non-inspector users
-    const fs: { createWriteStream: typeof createWriteStreamType } = require("node:fs")
+    // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+    // Avoids pulling node:fs into browser/canvas bundles for non-inspector users.
+    const fs = process.getBuiltinModule("node:fs")
     inspectorOutput = fs.createWriteStream(options.logFile, { flags: "a" })
   } else if (options?.output) {
     inspectorOutput = options.output

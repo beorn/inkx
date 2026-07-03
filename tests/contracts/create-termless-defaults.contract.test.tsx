@@ -17,11 +17,10 @@
  * pin the API shape even when the behavior is "obvious".
  */
 
-import { createRequire } from "node:module"
 import { afterEach, beforeAll, describe, expect, test } from "vitest"
+import { initGhostty } from "@termless/ghostty"
 import { createTermless, getActiveTermlessCount } from "../../packages/test/src/index.js"
 
-const requireForGhostty = createRequire(import.meta.url)
 const originalTermlessBackend = process.env.TERMLESS_BACKEND
 const originalStrictTerminal = process.env.SILVERY_STRICT_TERMINAL
 
@@ -141,9 +140,12 @@ describe("contract: createTermless mouse wheel bytes", () => {
 // @termless-backend: ghostty
 describe("contract: createTermless backend selection", () => {
   beforeAll(async () => {
-    const { initGhostty } = requireForGhostty(
-      "@termless/ghostty",
-    ) as typeof import("@termless/ghostty")
+    // Load the shared Ghostty WASM via the SAME ESM `@termless/ghostty` module
+    // instance that `createTermless` → `createGhosttyBackend()` imports. A
+    // `createRequire()` load here escapes vitest's module runner and creates a
+    // SECOND copy of the backend module, so its `sharedGhostty` singleton is
+    // invisible to the ESM `createGhosttyBackend()` — the "Ghostty WASM not
+    // loaded" failure this test used to hit.
     await initGhostty()
   })
 

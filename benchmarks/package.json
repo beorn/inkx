@@ -2,6 +2,7 @@
   "name": "silvery-benchmarks",
   "private": true,
   "description": "Head-to-head benchmarks: Silvery vs Ink 7.0",
+  "type": "module",
   "scripts": {
     "bench": "SILVERY_STRICT=0 bunx --bun vitest bench",
     "bench:compare": "SILVERY_STRICT=0 bunx --bun vitest bench --reporter=verbose"

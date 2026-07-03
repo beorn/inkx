@@ -290,12 +290,12 @@ function defaultWriteHeapSnapshot(path: string): string | void {
 }
 
 function defaultWriteFile(path: string, contents: string): void {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require("node:fs") as typeof import("node:fs")
+  // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+  const fs = process.getBuiltinModule("node:fs")
   fs.writeFileSync(path, contents)
 }
 
 function loadV8(): typeof import("node:v8") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require("node:v8") as typeof import("node:v8")
+  // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+  return process.getBuiltinModule("node:v8")
 }

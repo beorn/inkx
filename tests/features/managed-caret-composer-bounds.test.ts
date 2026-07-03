@@ -24,13 +24,21 @@
  * scoped to `focused-declarative` provenance.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest"
 import {
   clearLastOutputCursorDiagnostics,
   getLastOutputCursorDiagnostics,
   recordOutputCursorDiagnostics,
 } from "../../packages/ag-term/src/cursor-diagnostics"
 import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
+import { preloadStrictTerminalBackends } from "../../packages/ag-term/src/strict-terminal-backends"
+
+// The cursor verifier replays output through an xterm.js terminal synchronously
+// (post wave-3 it loads @termless via the ESM graph, not createRequire). That
+// load must be awaited before any synchronous recordOutputCursorDiagnostics call.
+beforeAll(async () => {
+  await preloadStrictTerminalBackends()
+})
 
 const originalStrict = process.env.SILVERY_STRICT
 

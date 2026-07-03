@@ -1177,7 +1177,8 @@ export function outputPhase(
     }
     if (CAPTURE_RAW) {
       try {
-        const fs = require("fs")
+        // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+        const fs = process.getBuiltinModule("node:fs")
         _captureRawFrameCount = 0
         // Write initial render with frame separator
         fs.writeFileSync("/tmp/silvery-raw.ansi", firstOutput)
@@ -1385,7 +1386,8 @@ export function outputPhase(
   if (DEBUG_OUTPUT || isStrictAccumulate()) {
     const bytes = Buffer.byteLength(incrOutput)
     try {
-      const fs = require("fs")
+      // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+      const fs = process.getBuiltinModule("node:fs")
       fs.appendFileSync(
         "/tmp/silvery-sizes.log",
         `changesToAnsi: ${count} changes, ${bytes} bytes\n`,
@@ -1397,7 +1399,8 @@ export function outputPhase(
   if (DEBUG_CAPTURE) {
     _debugFrameCount++
     try {
-      const fs = require("fs")
+      // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+      const fs = process.getBuiltinModule("node:fs")
       const freshOutput = bufferToAnsi(next, ctx)
       const freshPrev = prev ? bufferToAnsi(prev, ctx) : ""
       // Replay incremental on top of fresh prev
@@ -1439,10 +1442,10 @@ export function outputPhase(
       }
     } catch (e) {
       try {
-        require("fs").appendFileSync(
-          "/tmp/silvery-capture.log",
-          `Frame ${_debugFrameCount}: ERROR ${e}\n`,
-        )
+        // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+        process
+          .getBuiltinModule("node:fs")
+          .appendFileSync("/tmp/silvery-capture.log", `Frame ${_debugFrameCount}: ERROR ${e}\n`)
       } catch {}
     }
   }
@@ -1509,7 +1512,8 @@ export function outputPhase(
 
   if (CAPTURE_RAW) {
     try {
-      const fs = require("fs")
+      // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+      const fs = process.getBuiltinModule("node:fs")
       _captureRawFrameCount++
       // Append output to cumulative ANSI file
       fs.appendFileSync("/tmp/silvery-raw.ansi", incrOutput)

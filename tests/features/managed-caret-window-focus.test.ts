@@ -33,16 +33,23 @@
  * These tests run at SILVERY_STRICT=2,cursor.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import { createOutputPhase } from "../../packages/ag-term/src/pipeline/output-phase"
 import { createRuntime } from "../../packages/ag-term/src/runtime/create-runtime"
 import { computeManagedFrame } from "../../packages/ag-term/src/managed-caret"
 import { resetStrictCache } from "../../packages/ag-term/src/strict-mode"
+import { preloadStrictTerminalBackends } from "../../packages/ag-term/src/strict-terminal-backends"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import type { Buffer, Dims } from "../../packages/ag-term/src/runtime/types"
 import type { AgNode, Rect } from "../../packages/ag/src/types"
+
+// The cursor verifier replays output through xterm.js synchronously; its
+// @termless ESM-graph load (post wave-3, not createRequire) must be preloaded.
+beforeAll(async () => {
+  await preloadStrictTerminalBackends()
+})
 
 const originalStrict = process.env.SILVERY_STRICT
 beforeEach(() => {

@@ -515,7 +515,8 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       // Debug: capture raw ANSI output that's actually written to the terminal
       if (process.env.SILVERY_CAPTURE_RAW) {
         try {
-          const fs = require("fs")
+          // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+          const fs = process.getBuiltinModule("node:fs")
           fs.appendFileSync("/tmp/silvery-runtime-raw.ansi", clearPrefix + patch)
         } catch {}
       }

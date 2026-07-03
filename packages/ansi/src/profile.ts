@@ -692,7 +692,8 @@ let cachedMacOSDarkMode: boolean | undefined
 function detectMacOSDarkMode(): boolean {
   if (cachedMacOSDarkMode !== undefined) return cachedMacOSDarkMode
   try {
-    const { spawnSync } = require("child_process") as typeof import("child_process")
+    // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+    const { spawnSync } = process.getBuiltinModule("node:child_process")
     const result = spawnSync("defaults", ["read", "-g", "AppleInterfaceStyle"], {
       encoding: "utf-8",
       timeout: 500,
