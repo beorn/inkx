@@ -6,9 +6,7 @@ import { Box, Text } from "../src"
 function frame(text: string): React.ReactElement {
   return (
     <Box width={12} height={1} backgroundColor="#102124" color="#d8dee9">
-      <Text width={12} wrap={false}>
-        {text}
-      </Text>
+      <Text wrap="clip">{text}</Text>
     </Box>
   )
 }

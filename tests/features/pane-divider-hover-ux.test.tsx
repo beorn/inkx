@@ -41,16 +41,23 @@ function createMockStdout(cols = 24, rows = 6) {
 /** Mock ReadStream we can push raw input (SGR mouse) bytes into. */
 function createMockStdin() {
   const emitter = new EventEmitter()
-  const mock = Object.create(emitter) as NodeJS.ReadStream & { push: (s: string) => void }
+  const mock = Object.create(emitter) as NodeJS.ReadStream & { push: (s: string) => boolean }
   Object.assign(mock, { isTTY: true, isRaw: false, fd: 0 })
   mock.setRawMode = (() => mock) as NodeJS.ReadStream["setRawMode"]
   ;(mock as unknown as { resume: () => void }).resume = () => {}
   ;(mock as unknown as { pause: () => void }).pause = () => {}
   ;(mock as unknown as { setEncoding: () => void }).setEncoding = () => {}
+  mock.on = emitter.on.bind(emitter) as NodeJS.ReadStream["on"]
+  mock.off = emitter.off.bind(emitter) as NodeJS.ReadStream["off"]
+  mock.once = emitter.once.bind(emitter) as NodeJS.ReadStream["once"]
+  mock.emit = emitter.emit.bind(emitter) as NodeJS.ReadStream["emit"]
+  mock.removeListener = emitter.removeListener.bind(emitter) as NodeJS.ReadStream["removeListener"]
+  mock.addListener = emitter.addListener.bind(emitter) as NodeJS.ReadStream["addListener"]
   mock.push = (s: string) => {
     emitter.emit("data", Buffer.from(s, "utf8"))
+    return true
   }
-  return mock as NodeJS.ReadStream & { push: (s: string) => void }
+  return mock as NodeJS.ReadStream & { push: (s: string) => boolean }
 }
 
 /** SGR motion sequence (button 32 = move-without-press), 1-based coords. */
