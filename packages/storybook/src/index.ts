@@ -46,4 +46,10 @@ export {
   stopHotStorybookRuntime,
   getHotStorybookRuntime,
 } from "./StorybookApp.tsx"
-export type { AppProps, RunStorybookOptions, HotStorybookRuntime } from "./StorybookApp.tsx"
+export type {
+  AppProps,
+  RunStorybookOptions,
+  HotStorybookRuntime,
+  StorybookRuntime,
+  StorybookRuntimeHandle,
+} from "./StorybookApp.tsx"

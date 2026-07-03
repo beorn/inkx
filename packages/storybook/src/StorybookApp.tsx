@@ -38,7 +38,6 @@ import {
   type Key,
   type ListViewHandle,
 } from "@silvery/ag-react"
-import { run } from "@silvery/ag-term/runtime"
 import {
   StorybookHostInjectionProvider,
   useStorybookHostInjection,
@@ -470,10 +469,31 @@ interface HotStorybookViewState {
   previewScrollByStory: Record<string, number>
 }
 
+/**
+ * Minimal handle shape the hot-reload runtime depends on — structurally
+ * satisfied by ag-term's `RunHandle` (the return value of `run()`) but kept
+ * intentionally decoupled from it so this file never has to import the
+ * terminal runtime module. Any mount implementation (terminal, canvas, DOM,
+ * test harness) can supply this shape.
+ */
+export interface StorybookRuntimeHandle {
+  /** Resolves when the mounted app exits (quit, unmount, or host-driven). */
+  waitUntilExit(): Promise<void>
+  /** Unmount and release the mounted app's resources. */
+  unmount(): void
+}
+
+/**
+ * Injectable mount function — same call shape as ag-term's `run(element)`.
+ * `runStorybook()` defaults this to ag-term's terminal `run` when the caller
+ * doesn't supply one; canvas/DOM/embedding hosts pass their own.
+ */
+export type StorybookRuntime = (element: React.ReactElement) => Promise<StorybookRuntimeHandle>
+
 export interface HotStorybookRuntime {
   store: HotStorybookStore
   viewState: HotStorybookViewState
-  handle?: Awaited<ReturnType<typeof run>>
+  handle?: StorybookRuntimeHandle
   runToken?: symbol
   stopping?: Promise<void>
 }
@@ -537,13 +557,14 @@ export function HotStorybookApp({
 }
 
 export async function startHotStorybookRuntime(
+  mount: StorybookRuntime,
   initialStoryId?: string,
   injection?: StorybookHostInjection,
 ): Promise<"exited" | "replaced"> {
   const runtime = getHotStorybookRuntime()
   const runToken = Symbol("storybook-run")
   runtime.runToken = runToken
-  const handle = await run(
+  const handle = await mount(
     <HotStorybookApp initialStoryId={initialStoryId} injection={injection} />,
   )
   runtime.handle = handle
@@ -597,6 +618,18 @@ export interface RunStorybookOptions {
    * Defaults to plain silvery layout when omitted.
    */
   injection?: StorybookHostInjection
+  /**
+   * Mount function used to run the host — same call shape as ag-term's
+   * `run(element)`, resolving to a handle with `waitUntilExit()`. Defaults to
+   * ag-term's terminal `run` (dynamically imported only when this option is
+   * omitted, so terminal callers stay zero-config and non-terminal builds
+   * never pull in the terminal runtime).
+   *
+   * Supply this to target canvas, DOM, or an embedding host instead of a
+   * real terminal. When supplied, `runStorybook` does NOT force-exit the
+   * process on exit — the caller owns its own process lifecycle.
+   */
+  runtime?: StorybookRuntime
 }
 
 /**
@@ -606,6 +639,13 @@ export interface RunStorybookOptions {
  * place (list cursor, focus, and preview scroll are preserved). Stops any prior
  * hot runtime, publishes `stories`, starts a fresh run, and exits the process
  * on a clean quit.
+ *
+ * Zero-config (`runStorybook(stories)`) mounts via ag-term's terminal `run`,
+ * dynamically imported right here so the rest of this package — the host
+ * components, chrome, story model, and hot-reload runtime — never depends on
+ * the terminal runtime and stays usable for canvas/DOM targets. Pass
+ * `options.runtime` to mount elsewhere; in that case this function returns
+ * without force-exiting the process, leaving process lifecycle to the caller.
  */
 export async function runStorybook(
   stories: readonly StoryDef[],
@@ -615,6 +655,8 @@ export async function runStorybook(
   await stopHotStorybookRuntime(runtime)
   runtime.store.publish(stories)
   const initial = options.initialStoryId ?? runtime.viewState.selectedStoryId ?? undefined
-  const result = await startHotStorybookRuntime(initial, options.injection)
-  if (result === "exited") process.exit(0)
+  const mount: StorybookRuntime =
+    options.runtime ?? (await import("@silvery/ag-term/runtime")).run
+  const result = await startHotStorybookRuntime(mount, initial, options.injection)
+  if (!options.runtime && result === "exited") process.exit(0)
 }
