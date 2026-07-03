@@ -11,6 +11,7 @@
  */
 
 import { describe, expect, test } from "vitest"
+import { EventEmitter } from "node:events"
 import { createTerm } from "@silvery/ag-react"
 
 describe("createTerm({ input: false })", () => {
@@ -23,7 +24,7 @@ describe("createTerm({ input: false })", () => {
     // Mock TTY-shaped streams so the would-otherwise-be-constructed
     // owner branch is entered. Without the flag, getInput() would
     // construct the owner; with the flag, it must short-circuit.
-    const mockStdin = Object.assign(Object.create(require("node:events").EventEmitter.prototype), {
+    const mockStdin = Object.assign(Object.create(EventEmitter.prototype), {
       isTTY: true,
       isRaw: false,
       fd: 0,

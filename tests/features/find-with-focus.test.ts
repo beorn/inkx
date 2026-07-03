@@ -13,6 +13,7 @@ import {
   SELECTION_CAPABILITY,
   CLIPBOARD_CAPABILITY,
 } from "../../packages/create/src/internal/capabilities"
+import { createCapabilityRegistry } from "../../packages/create/src/internal/capability-registry"
 
 // ============================================================================
 // Helpers
@@ -64,9 +65,6 @@ describe("capability symbols", () => {
 
 describe("FindFeature with CapabilityRegistry", () => {
   test("FindFeature can be registered and retrieved from a registry", () => {
-    const {
-      createCapabilityRegistry,
-    } = require("../../packages/create/src/internal/capability-registry")
     const registry = createCapabilityRegistry()
 
     const buffer = createTestBuffer(["hello world"])

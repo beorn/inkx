@@ -11,6 +11,17 @@ import { describe, test, expect } from "vitest"
 import { createTerm } from "@silvery/ag-term"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
 
+// Conditionally load @silvery/test — may not be available in all environments.
+// Top-level `await import` keeps this in the ESM module graph (no require());
+// emulator tests skip when it is absent.
+let testModule: typeof import("@silvery/test") | null = null
+try {
+  testModule = await import("@silvery/test")
+} catch {
+  testModule = null
+}
+const createTermless = testModule?.createTermless
+
 describe("Term.paint()", () => {
   // Helper: create a buffer with some content
   function makeBuffer(cols: number, rows: number, text: string): TerminalBuffer {
@@ -137,16 +148,6 @@ describe("Term.paint()", () => {
   })
 
   describe("emulator term (termless)", () => {
-    // Conditionally load @silvery/test — may not be available in all environments
-    const testModule = (() => {
-      try {
-        return require("@silvery/test") as typeof import("@silvery/test")
-      } catch {
-        return null
-      }
-    })()
-    const createTermless = testModule?.createTermless
-
     test.skipIf(!createTermless)("paint exists and returns ANSI string", () => {
       using term = createTermless!({ cols: 40, rows: 10 })
       expect(term.paint).toBeDefined()

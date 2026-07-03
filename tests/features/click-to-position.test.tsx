@@ -10,6 +10,7 @@
 import React, { useRef, useState } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
+import { getWrappedLines } from "@silvery/create/text-cursor"
 import { Box, Text } from "@silvery/ag-react"
 import { EditContextDisplay } from "@silvery/ag-react/ui/components/EditContextDisplay"
 import { CursorLine } from "@silvery/ag-react/ui/components/CursorLine"
@@ -314,17 +315,16 @@ describe("click offset calculation logic", () => {
     const wrapWidth = 40
 
     // Import getWrappedLines to test offset calculation
-    const { getWrappedLines } = require("@silvery/create/text-cursor")
     const lines = getWrappedLines(value, wrapWidth)
     expect(lines.length).toBe(1)
-    expect(lines[0].startOffset).toBe(0)
+    expect(lines[0]!.startOffset).toBe(0)
 
     // Simulate click at column 5, row 0 (relative to component)
     const relativeY = 0
     const scroll = 0
     const row = relativeY + scroll
     const clampedRow = Math.min(Math.max(0, row), lines.length - 1)
-    const wl = lines[clampedRow]
+    const wl = lines[clampedRow]!
     const relativeX = 5
     const col = Math.min(Math.max(0, relativeX), wl.line.length)
     const offset = Math.min(Math.max(0, wl.startOffset + col), value.length)
@@ -336,7 +336,6 @@ describe("click offset calculation logic", () => {
     // Text wraps at width 10
     const value = "hello world foo"
     const wrapWidth = 10
-    const { getWrappedLines } = require("@silvery/create/text-cursor")
     const lines = getWrappedLines(value, wrapWidth)
     expect(lines.length).toBeGreaterThan(1)
 
@@ -345,25 +344,24 @@ describe("click offset calculation logic", () => {
     const scroll = 0
     const row = relativeY + scroll
     const clampedRow = Math.min(Math.max(0, row), lines.length - 1)
-    const wl = lines[clampedRow]
+    const wl = lines[clampedRow]!
     const relativeX = 3
     const col = Math.min(Math.max(0, relativeX), wl.line.length)
     const offset = wl.startOffset + col
 
     // The offset should be startOffset of line 1 + 3
-    expect(offset).toBe(lines[1].startOffset + 3)
+    expect(offset).toBe(lines[1]!.startOffset + 3)
   })
 
   test("EditContextDisplay offset: click past end of line clamps to line length", () => {
     const value = "hi"
     const wrapWidth = 40
-    const { getWrappedLines } = require("@silvery/create/text-cursor")
     const lines = getWrappedLines(value, wrapWidth)
 
     // Click at column 20 (past end of "hi" which is 2 chars)
     const relativeX = 20
-    const col = Math.min(Math.max(0, relativeX), lines[0].line.length)
-    const offset = Math.min(Math.max(0, lines[0].startOffset + col), value.length)
+    const col = Math.min(Math.max(0, relativeX), lines[0]!.line.length)
+    const offset = Math.min(Math.max(0, lines[0]!.startOffset + col), value.length)
 
     expect(offset).toBe(2) // clamped to end of text
   })
@@ -371,12 +369,11 @@ describe("click offset calculation logic", () => {
   test("EditContextDisplay offset: click at negative column clamps to 0", () => {
     const value = "hello"
     const wrapWidth = 40
-    const { getWrappedLines } = require("@silvery/create/text-cursor")
     const lines = getWrappedLines(value, wrapWidth)
 
     const relativeX = -3
-    const col = Math.min(Math.max(0, relativeX), lines[0].line.length)
-    const offset = lines[0].startOffset + col
+    const col = Math.min(Math.max(0, relativeX), lines[0]!.line.length)
+    const offset = lines[0]!.startOffset + col
 
     expect(offset).toBe(0)
   })
@@ -422,7 +419,6 @@ describe("click offset calculation logic", () => {
   test("TextArea offset: multi-line with scroll", () => {
     const value = "line1\nline2\nline3\nline4\nline5"
     const wrapWidth = 40
-    const { getWrappedLines } = require("@silvery/create/text-cursor")
     const lines = getWrappedLines(value, wrapWidth)
 
     // 5 lines total
@@ -436,7 +432,7 @@ describe("click offset calculation logic", () => {
     const clampedRow = Math.min(Math.max(0, row), lines.length - 1)
     expect(clampedRow).toBe(3)
 
-    const wl = lines[clampedRow]
+    const wl = lines[clampedRow]!
     expect(wl.line).toBe("line4")
 
     // Click at col 3
