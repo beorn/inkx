@@ -763,6 +763,7 @@ Users install and import from these packages:
 | `@silvery/commander` | Type-safe Commander.js with colorized help, Standard Schema                                                             |
 | `@silvery/ansi`      | Everything terminal — styling, ANSI primitives, detection, theme derivation                                             |
 | `@silvery/color`     | Color math — OKLCH-native blend, brighten, darken, complement, contrast (hex public API, re-exported by @silvery/theme) |
+| `@silvery/selection` | Pure selection state machine — node selection, sub-selection, pointer gestures                                          |
 
 Subpath imports available from `silvery`:
 
@@ -790,7 +791,7 @@ These are workspace packages for development. Users do not import from them dire
 
 | Directory   | What                                                                              |
 | ----------- | --------------------------------------------------------------------------------- |
-| `packages/` | Internal workspace packages (ag, ag-react, ag-term, tea, test, theme, ink)        |
+| `packages/` | Workspace packages (public helpers plus internal ag, ag-react, ag-term, test, theme, ink) |
 | `src/`      | Public barrel + subpath re-exports (index.ts, runtime.ts, theme.ts, ui.ts, ui/\*) |
 | `docs/`     | VitePress documentation site (silvery.dev)                                        |
 | `examples/` | Interactive demos, web showcases, playground                                      |
