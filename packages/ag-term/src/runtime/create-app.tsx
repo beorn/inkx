@@ -1396,9 +1396,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let _origStdoutWrite: typeof process.stdout.write | undefined
 
   if (_ansiTrace) {
-    const fs =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs") as typeof import("node:fs")
+    const fs = process.getBuiltinModule("node:fs") as typeof import("node:fs")
     fs.writeFileSync("/tmp/silvery-trace.log", `=== SILVERY TRACE START ===\n`)
 
     _origStdoutWrite = stdout.write.bind(stdout) as typeof stdout.write
@@ -1561,16 +1559,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     : {
         write(frame: string): void {
           if (_perfLog) {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            require("node:fs").appendFileSync(
-              "/tmp/silvery-perf.log",
-              `TARGET.write: ${frame.length} bytes (paused=${renderPaused})\n`,
-            )
+            process
+              .getBuiltinModule("node:fs")
+              .appendFileSync(
+                "/tmp/silvery-perf.log",
+                `TARGET.write: ${frame.length} bytes (paused=${renderPaused})\n`,
+              )
           }
           if (_captureFile) {
             _captureFrame += 1
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const fs = require("node:fs")
+            const fs = process.getBuiltinModule("node:fs")
             fs.appendFileSync(
               _captureFile,
               `--- FRAME ${_captureFrame} (${Buffer.byteLength(frame)} bytes) ---\n`,
@@ -2010,8 +2008,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   function setAltScreenMode(enabled: boolean, phase: TerminalProtocolPhase = "runtime"): void {
     const changed = modes.altScreen() !== enabled
     modes.altScreen(enabled)
-    if (changed)
+    if (changed) {
       recordTerminalProtocolWrite(enabled ? "\x1b[?1049h" : "\x1b[?1049l", "mode:alt-screen", phase)
+    }
   }
 
   function setBracketedPasteMode(enabled: boolean, phase: TerminalProtocolPhase = "runtime"): void {
@@ -3312,11 +3311,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // raw escape sequences to the screen.
     }
     if (_ansiTrace) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync(
-        "/tmp/silvery-trace.log",
-        "=== RUNTIME.RENDER (initial) ===\n",
-      )
+      process
+        .getBuiltinModule("node:fs")
+        .appendFileSync("/tmp/silvery-trace.log", "=== RUNTIME.RENDER (initial) ===\n")
     }
     // Settle the deferred-rect convergence BEFORE the first user-visible
     // paintFrame. Each iteration:
@@ -3363,11 +3360,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   }
   paintFrame()
   if (_perfLog) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("node:fs").appendFileSync(
-      "/tmp/silvery-perf.log",
-      `STARTUP: initial render done (render #${renderer.renderCount()}, incremental=${!renderer.isIncrementalOff()})\n`,
-    )
+    process
+      .getBuiltinModule("node:fs")
+      .appendFileSync(
+        "/tmp/silvery-perf.log",
+        `STARTUP: initial render done (render #${renderer.renderCount()}, incremental=${!renderer.isIncrementalOff()})\n`,
+      )
   }
 
   // (Output owner is now activated earlier — before alt-screen entry — so
@@ -3602,11 +3600,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (_ansiTrace) {
       const _case = inEventHandler ? "1:event" : isRendering ? "2:rendering" : "3:standalone"
       const stack = new Error().stack?.split("\n").slice(1, 5).join("\n") ?? ""
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync(
-        "/tmp/silvery-trace.log",
-        `=== SUBSCRIPTION (case ${_case}, render #${renderer.renderCount() + 1}) ===\n${stack}\n`,
-      )
+      process
+        .getBuiltinModule("node:fs")
+        .appendFileSync(
+          "/tmp/silvery-trace.log",
+          `=== SUBSCRIPTION (case ${_case}, render #${renderer.renderCount() + 1}) ===\n${stack}\n`,
+        )
     }
     if (inEventHandler) {
       // During processEvent/press: just flag, caller's flush loop handles it.
@@ -3623,11 +3622,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           pendingRerender = false
           if (!shouldExit && !isRendering) {
             if (_perfLog) {
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              require("node:fs").appendFileSync(
-                "/tmp/silvery-perf.log",
-                `SUBSCRIPTION: deferred microtask render (case 2, render #${renderer.renderCount() + 1})\n`,
-              )
+              process
+                .getBuiltinModule("node:fs")
+                .appendFileSync(
+                  "/tmp/silvery-perf.log",
+                  `SUBSCRIPTION: deferred microtask render (case 2, render #${renderer.renderCount() + 1})\n`,
+                )
             }
             void renderStandaloneFrame()
           }
@@ -3636,11 +3636,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       return
     }
     if (_perfLog) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync(
-        "/tmp/silvery-perf.log",
-        `SUBSCRIPTION: immediate render (case 3, render #${renderer.renderCount() + 1})\n`,
-      )
+      process
+        .getBuiltinModule("node:fs")
+        .appendFileSync(
+          "/tmp/silvery-perf.log",
+          `SUBSCRIPTION: immediate render (case 3, render #${renderer.renderCount() + 1})\n`,
+        )
     }
     void renderStandaloneFrame()
   })
@@ -4601,11 +4602,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     const runtimeMs = performance.now() - runtimeStart
     if (_perfLog) {
       const totalMs = performance.now() - _eventStart
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync(
-        "/tmp/silvery-perf.log",
-        `EVENT batch(${events.length} ${events[0]?.type}): ${totalMs.toFixed(1)}ms total, ${renderer.renderCount()} doRender() calls, runtime.render=${runtimeMs.toFixed(1)}ms\n---\n`,
-      )
+      process
+        .getBuiltinModule("node:fs")
+        .appendFileSync(
+          "/tmp/silvery-perf.log",
+          `EVENT batch(${events.length} ${events[0]?.type}): ${totalMs.toFixed(1)}ms total, ${renderer.renderCount()} doRender() calls, runtime.render=${runtimeMs.toFixed(1)}ms\n---\n`,
+        )
     }
     // Budget check — warn if batch took longer than one frame (16ms)
     if (_perfSpan) {
@@ -4941,11 +4943,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           }
         }
         if (_perfLog) {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          require("node:fs").appendFileSync(
-            "/tmp/silvery-perf.log",
-            `DRAIN: spins=${drainSpins}, batch=${eventQueue.length}\n`,
-          )
+          process
+            .getBuiltinModule("node:fs")
+            .appendFileSync(
+              "/tmp/silvery-perf.log",
+              `DRAIN: spins=${drainSpins}, batch=${eventQueue.length}\n`,
+            )
         }
         // Expose diagnostic counters on globalThis for test assertions.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

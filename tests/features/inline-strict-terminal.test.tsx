@@ -27,9 +27,16 @@
  * dedicated VT screen simulator.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest"
+import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest"
 import { createBuffer, type TerminalBuffer } from "@silvery/ag-term/buffer"
 import { createOutputPhase } from "@silvery/ag-term/pipeline/output-phase"
+import { preloadStrictTerminalBackends } from "@silvery/ag-term/strict-terminal-backends"
+
+// SILVERY_STRICT_TERMINAL=xterm replays output through xterm.js synchronously;
+// its @termless ESM-graph load (post wave-3, not createRequire) must be preloaded.
+beforeAll(async () => {
+  await preloadStrictTerminalBackends()
+})
 
 let origStrictTerminal: string | undefined
 let origStrictAccumulate: string | undefined

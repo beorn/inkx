@@ -49,6 +49,10 @@ import type { Buffer, Dims, RenderTarget } from "./types"
 import type { PipelineConfig } from "../pipeline"
 import type { createVirtualScrollback } from "../virtual-scrollback"
 import type { TerminalBuffer } from "../buffer"
+// cellEquals/bufferToText are used only on the SILVERY_STRICT trace path below.
+// buffer.ts imports nothing from the runtime, so a static value import is
+// cycle-free and ESM-legal (was a lazy require to defer node:fs-free buffer code).
+import { cellEquals, bufferToText } from "../buffer"
 import type { createFiberRoot, createContainer } from "@silvery/ag-react/reconciler"
 import type { TerminalSelectionState } from "@silvery/headless/selection"
 import type { Theme } from "@silvery/ansi"
@@ -155,11 +159,12 @@ export function createRenderer(opts: RendererOptions): Renderer {
   function doRender(): Buffer {
     _renderCount++
     if (opts.ansiTrace) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync(
-        "/tmp/silvery-trace.log",
-        `--- doRender #${_renderCount} (ag=${_ag ? "reuse" : "create"}, incremental=${!opts.noIncremental}) ---\n`,
-      )
+      process
+        .getBuiltinModule("node:fs")
+        .appendFileSync(
+          "/tmp/silvery-trace.log",
+          `--- doRender #${_renderCount} (ag=${_ag ? "reuse" : "create"}, incremental=${!opts.noIncremental}) ---\n`,
+        )
     }
     const renderStart = performance.now()
 
@@ -374,9 +379,6 @@ export function createRenderer(opts: RendererOptions): Renderer {
       const { buffer: freshBuffer } = measurer
         ? runWithMeasurer(measurer, doFreshRender)
         : doFreshRender()
-      const { cellEquals, bufferToText } =
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require("../buffer") as typeof import("../buffer")
       for (let y = 0; y < termBuffer.height; y++) {
         for (let x = 0; x < termBuffer.width; x++) {
           const a = termBuffer.getCell(x, y)
@@ -505,11 +507,12 @@ export function createRenderer(opts: RendererOptions): Renderer {
         }
       }
       if (opts.perfLog) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require("node:fs").appendFileSync(
-          "/tmp/silvery-perf.log",
-          `SILVERY_STRICT (createApp): render #${_renderCount} OK\n`,
-        )
+        process
+          .getBuiltinModule("node:fs")
+          .appendFileSync(
+            "/tmp/silvery-perf.log",
+            `SILVERY_STRICT (createApp): render #${_renderCount} OK\n`,
+          )
       }
     }
 
@@ -548,11 +551,12 @@ export function createRenderer(opts: RendererOptions): Renderer {
       const detailStr = detail
         ? ` {visited=${detail.nodesVisited} rendered=${detail.nodesRendered} skipped=${detail.nodesSkipped} noPrev=${detail.noPrevBuffer ?? 0} dirty=${detail.flagContentDirty ?? 0} paint=${detail.flagStylePropsDirty ?? 0} layoutChg=${detail.flagLayoutChanged ?? 0} subtree=${detail.flagSubtreeDirty ?? 0} children=${detail.flagChildrenDirty ?? 0} childPos=${detail.flagChildPositionChanged ?? 0} scroll=${detail.scrollContainerCount ?? 0}/${detail.scrollViewportCleared ?? 0}${detail.scrollClearReason ? `(${detail.scrollClearReason})` : ""}}${detail.cascadeNodes ? ` CASCADE[minDepth=${detail.cascadeMinDepth} ${detail.cascadeNodes}]` : ""}`
         : ""
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync(
-        "/tmp/silvery-perf.log",
-        `doRender #${_renderCount}: ${renderDuration.toFixed(1)}ms (reconcile=${reconcileMs.toFixed(1)}ms pipeline=${pipelineMs.toFixed(1)}ms ${dims.cols}x${dims.rows})${phaseStr}${detailStr}\n`,
-      )
+      process
+        .getBuiltinModule("node:fs")
+        .appendFileSync(
+          "/tmp/silvery-perf.log",
+          `doRender #${_renderCount}: ${renderDuration.toFixed(1)}ms (reconcile=${reconcileMs.toFixed(1)}ms pipeline=${pipelineMs.toFixed(1)}ms ${dims.cols}x${dims.rows})${phaseStr}${detailStr}\n`,
+        )
     }
 
     // Phase 4 (Visual Eyes epic): emit a RENDER_DISPATCHED event at the

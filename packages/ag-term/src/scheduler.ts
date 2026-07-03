@@ -868,7 +868,8 @@ export class RenderScheduler {
         // Capture raw ANSI output to file for debugging garbled rendering
         const captureFile = process.env.SILVERY_CAPTURE_OUTPUT
         if (captureFile) {
-          const fs = require("fs")
+          // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+          const fs = process.getBuiltinModule("node:fs")
           fs.appendFileSync(
             captureFile,
             `--- FRAME ${this.stats.renderCount + 1} (${Buffer.byteLength(fullOutput)} bytes) ---\n`,

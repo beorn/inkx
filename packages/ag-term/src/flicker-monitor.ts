@@ -326,7 +326,7 @@ function countMatches(haystack: string, re: RegExp): number {
 }
 
 function defaultWriteFile(path: string, contents: string): void {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require("node:fs") as typeof import("node:fs")
+  // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
+  const fs = process.getBuiltinModule("node:fs")
   fs.writeFileSync(path, contents)
 }

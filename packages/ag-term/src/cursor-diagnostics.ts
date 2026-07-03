@@ -1,12 +1,6 @@
 import { isStrictEnabled } from "./strict-mode"
+import { getTermlessCore, getTermlessXterm } from "./strict-terminal-backends"
 import { createLogger } from "loggily"
-import { createRequire } from "node:module"
-
-// @termless/* are OPTIONAL peers of the published umbrella — a static import
-// here would evaluate them for every consumer at module load and break
-// installs without the peers (verify-publishable probe, 2026-07-02). The
-// diagnostics path lazy-requires them on first use instead.
-const requireBackend = createRequire(import.meta.url)
 
 const log = createLogger("silvery:cursor")
 
@@ -169,8 +163,11 @@ function loadTermless(): {
   createTerminal: typeof import("@termless/core").createTerminal
   createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
 } {
-  const core = requireBackend("@termless/core") as typeof import("@termless/core")
-  const xtermjs = requireBackend("@termless/xtermjs") as typeof import("@termless/xtermjs")
+  // ESM-graph load (never createRequire) so the cursor replay terminal shares
+  // the single @termless instance — see strict-terminal-backends.ts for the
+  // Ghostty-WASM singleton-split rationale. Preloaded by @silvery/test / run().
+  const core = getTermlessCore()
+  const xtermjs = getTermlessXterm()
   return { createTerminal: core.createTerminal, createXtermBackend: xtermjs.createXtermBackend }
 }
 
