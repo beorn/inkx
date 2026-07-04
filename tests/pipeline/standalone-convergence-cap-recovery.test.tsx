@@ -314,5 +314,6 @@ describe("@si/silvercode/19383 — standalone convergence cap recovers non-lossi
         `cap-exceed streak exceeded STANDALONE_CAP_STREAK_LIMIT (= 5). captured ` +
         `convergence throws: ${convergenceThrows.map(String).join(" | ") || "(none)"}`,
     ).toBeGreaterThan(0)
+    expect(String(convergenceThrows[0])).toContain("convergence bound exceeded in standalone-flush")
   })
 })

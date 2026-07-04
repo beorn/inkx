@@ -119,7 +119,12 @@ describe("bounded-convergence: assertion behaviour", () => {
 
   test("at-bound passCount does not assert (boundary is inclusive of the bound)", () => {
     withStrict("2", () => {
-      const loops: ConvergenceLoopName[] = ["layout-pass", "effect-flush", "production-flush"]
+      const loops: ConvergenceLoopName[] = [
+        "layout-pass",
+        "effect-flush",
+        "production-flush",
+        "standalone-flush",
+      ]
       for (const loop of loops) {
         expect(() =>
           assertBoundedConvergence(MAX_CONVERGENCE_PASSES, loop, MAX_CONVERGENCE_PASSES),
@@ -130,7 +135,12 @@ describe("bounded-convergence: assertion behaviour", () => {
 
   test("STRICT=2 throws when passCount exceeds the bound", () => {
     withStrict("2", () => {
-      const loops: ConvergenceLoopName[] = ["layout-pass", "effect-flush", "production-flush"]
+      const loops: ConvergenceLoopName[] = [
+        "layout-pass",
+        "effect-flush",
+        "production-flush",
+        "standalone-flush",
+      ]
       for (const loop of loops) {
         expect(() =>
           assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, loop, MAX_CONVERGENCE_PASSES),

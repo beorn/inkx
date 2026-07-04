@@ -3507,23 +3507,19 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // transient; an UNBOUNDED streak is a perpetual feedback edge the
         // non-lossy recovery above would otherwise paper over frame after frame.
         // Under SILVERY_STRICT (incremental tier >=2) escalate past a small
-        // bound to the SAME hard `assertBoundedConvergence` fail-loud the
-        // press/event-batch production-flush loop uses (see its call in
-        // processEventBatch) — STRICT must gate this edge, not silently
-        // soft-recover it forever. `assertBoundedConvergence` is a no-op outside
-        // STRICT, so production keeps the follow-up-frame recovery below
-        // unchanged. `loopName` reuses "production-flush" (the standalone drain
-        // is that loop's standalone sibling; the ConvergenceLoopName union lives
-        // in pass-cause.ts, outside this scoped change) — the thrown message's
-        // per-cause breakdown still names "standalone-flush-exhaustion" from the
-        // ring recorded above.
+        // bound to the same hard `assertBoundedConvergence` fail-loud used by
+        // the press/event-batch production-flush loop. STRICT must gate this
+        // edge, not silently soft-recover it forever. `assertBoundedConvergence`
+        // is a no-op outside STRICT, so production keeps the follow-up-frame
+        // recovery below unchanged. The standalone drain has its own loop name
+        // so diagnostics identify the exact loop that exhausted its streak.
         if (
           isStrictEnabled("incremental", 2) &&
           standaloneCapExceedStreak > STANDALONE_CAP_STREAK_LIMIT
         ) {
           assertBoundedConvergence(
             standaloneCapExceedStreak,
-            "production-flush",
+            "standalone-flush",
             STANDALONE_CAP_STREAK_LIMIT,
           )
         }
