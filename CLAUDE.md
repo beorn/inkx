@@ -36,7 +36,7 @@ try {
 
 `Term` wires them as `readonly input | output | console: … | undefined` (undefined on headless / emulator-backed terms) and `readonly modes | size: …` (always present — headless gets a no-op variant).
 
-**Still banned**: calling `stdin.setRawMode` / `stdin.on("data", …)` / `stdout.write(…)` directly from app or runtime code. If the sub-owners don't cover what you need, grow the sub-owner — don't punch through it.
+**Still banned**: calling `stdin.setRawMode` / `stdin.on("data", …)` / `stdout.write(…)` directly from app or runtime code. If the sub-owners don't cover what you need, grow the sub-owner — don't punch through it. The grep gate at [`scripts/lint-no-raw-mode.ts`](scripts/lint-no-raw-mode.ts) fails CI on any direct `.setRawMode(` call outside the owner system + the probe/ink/theme-CLI perimeters; raw mode arbitrates across overlapping owners via a per-stream refcount in `devices/modes.ts`.
 
 ## Anti-pattern: async reconciler unmount on `ConcurrentRoot`
 

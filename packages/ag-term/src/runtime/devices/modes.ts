@@ -37,6 +37,11 @@
  * permitted (e.g. suspend/resume flows need to drop protocols before SIGTSTP),
  * but MUST go through the owner so state stays consistent.
  *
+ * Standalone CLI flows (prompts, pickers) outside a Term session construct
+ * their own short-lived `createModes()`. Raw mode is arbitrated across ALL
+ * owners on one stdin via a per-stream reference count (see below), so a
+ * transient owner's dispose never cooks a stream another owner still holds.
+ *
  * Signals reflect the last value *this owner* wrote. They are the app's
  * source of truth — the terminal has no query-for-current-mode protocol for
  * most of these.
