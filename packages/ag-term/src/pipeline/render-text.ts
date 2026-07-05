@@ -55,6 +55,7 @@ import { buildTextAnalysis, balancedWidth as computeBalancedWidth, optimalWrap }
 import { createFrameSink, type RenderSink } from "./render-sink"
 import type { BgConflictMode, ClipBounds, NodeRenderState, PipelineContext } from "./types"
 import { isStrictAnyEnabled } from "../strict-mode"
+import { assertBgCellHasTextPaint, isClipParityEnabled } from "../strict-clip-parity.js"
 import { createLogger } from "loggily"
 
 const log = createLogger("silvery:content")
@@ -590,6 +591,11 @@ function applyBgSegmentsToLine(
   // Reusable cell for readCellInto to avoid per-character allocation
   const bgCell = createMutableCell()
   const gWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
+  const clipParityTextColumns = isClipParityEnabled()
+    ? collectClipParityTextColumns(lineText, x, leftClip, rightClip, gWidthFn)
+    : null
+  const clipParityLinePreview =
+    clipParityTextColumns === null ? undefined : previewClipParityLine(lineText)
 
   // For each bg segment that overlaps this line's character range,
   // calculate the screen columns and fill the bg
@@ -625,10 +631,32 @@ function applyBgSegmentsToLine(
           // Use readCellInto to avoid allocating a new Cell per iteration.
           // Note: this is a paint (bg overlay on existing chars). The read
           // is an intra-frame buffer read that Phase 2 Step 6 will eliminate.
+          if (clipParityTextColumns !== null) {
+            assertBgCellHasTextPaint({
+              x: col,
+              y,
+              textPaintColumns: clipParityTextColumns,
+              leftClip,
+              rightClip,
+              bg: seg.bg,
+              lineTextPreview: clipParityLinePreview,
+            })
+          }
           buffer.readCellInto(col, y, bgCell)
           bgCell.bg = seg.bg
           sink.emitSetCell(col, y, bgCell, selectable)
           if (gWidth === 2 && col + 1 < sink.width && col + 1 < rightClip) {
+            if (clipParityTextColumns !== null) {
+              assertBgCellHasTextPaint({
+                x: col + 1,
+                y,
+                textPaintColumns: clipParityTextColumns,
+                leftClip,
+                rightClip,
+                bg: seg.bg,
+                lineTextPreview: clipParityLinePreview,
+              })
+            }
             buffer.readCellInto(col + 1, y, bgCell)
             bgCell.bg = seg.bg
             sink.emitSetCell(col + 1, y, bgCell, selectable)
@@ -641,6 +669,56 @@ function applyBgSegmentsToLine(
       if (col >= rightClip) break
     }
   }
+}
+
+function collectClipParityTextColumns(
+  lineText: string,
+  startCol: number,
+  leftClip: number,
+  rightClip: number,
+  graphemeWidthFn: (grapheme: string) => number,
+): Set<number> {
+  const columns = new Set<number>()
+  let col = startCol
+  const graphemes = splitGraphemes(hasAnsi(lineText) ? stripAnsiForBg(lineText) : lineText)
+
+  for (const grapheme of graphemes) {
+    if (col >= rightClip) break
+
+    const width = graphemeWidthFn(grapheme)
+    if (width === 0) continue
+
+    if (col + width <= leftClip) {
+      col += width
+      continue
+    }
+
+    if (col < leftClip) {
+      col = leftClip
+      continue
+    }
+
+    if (width === 2 && col + 1 >= rightClip) {
+      columns.add(col)
+      col += 1
+      continue
+    }
+
+    columns.add(col)
+    if (width === 2 && col + 1 < rightClip) {
+      columns.add(col + 1)
+      col += 2
+    } else {
+      col += width
+    }
+  }
+
+  return columns
+}
+
+function previewClipParityLine(lineText: string): string {
+  const plain = hasAnsi(lineText) ? stripAnsiForBg(lineText) : lineText
+  return plain.length > 80 ? `${plain.slice(0, 80)}…` : plain
 }
 
 /**
