@@ -182,6 +182,48 @@ export interface CreateModesOptions {
   stdin: NodeJS.ReadStream
 }
 
+// ---------------------------------------------------------------------------
+// Cross-owner raw-mode arbitration
+//
+// Termios raw mode is process-global per stream, but more than one Modes
+// owner can legitimately coexist on one stdin — a long-lived session owner
+// plus a transient CLI prompt (withSelect / withTextInput), or nested
+// sessions in tests. A plain per-owner toggle lets the transient owner's
+// dispose cook the stream out from under the still-active owner — the
+// 2026-04-22 wasRaw race, one level up (owner-vs-owner instead of
+// tenant-vs-tenant). Arbitrate with a per-stream reference count: only the
+// 0→1 acquire and the 1→0 release touch termios.
+// ---------------------------------------------------------------------------
+const rawModeHolds = new WeakMap<NodeJS.ReadStream, number>()
+
+function acquireRawMode(stdin: NodeJS.ReadStream): void {
+  const holds = rawModeHolds.get(stdin) ?? 0
+  rawModeHolds.set(stdin, holds + 1)
+  if (holds === 0 && stdin.isTTY) {
+    try {
+      stdin.setRawMode(true)
+    } catch {
+      // stdin may be closed mid-call — ignore, hold count still tracked
+    }
+  }
+}
+
+function releaseRawMode(stdin: NodeJS.ReadStream): void {
+  const holds = rawModeHolds.get(stdin) ?? 0
+  // Unreachable from Modes instances (each releases at most the one hold it
+  // acquired, guarded by its holdsRaw flag) — kept as a defensive floor so a
+  // future bug cannot wedge the count negative and swallow later acquires.
+  if (holds <= 0) return
+  rawModeHolds.set(stdin, holds - 1)
+  if (holds === 1 && stdin.isTTY) {
+    try {
+      stdin.setRawMode(false)
+    } catch {
+      // stdin may be closed mid-call — ignore, hold count still tracked
+    }
+  }
+}
+
 /**
  * Create a `Modes` sub-owner. Does not emit any ANSI at construction — all
  * sequences are written lazily on the first change to a mode signal.
@@ -216,6 +258,11 @@ export function createModes(opts: CreateModesOptions): Modes {
   // Each effect reads its signal once, which seeds the dependency. The first
   // firing is the "seed" read (value=false) — we skip emitting ANSI there so
   // construction stays free, matching the previous lazy-first-write contract.
+  // This owner contributes at most ONE hold to the per-stream refcount,
+  // tracked by holdsRaw — repeated `rawMode(true)` writes are same-value
+  // no-ops at the signal layer anyway, and dispose/idempotence guarantees
+  // the release runs at most once.
+  let holdsRaw = false
   let rawSeeded = false
   const stopRawEffect = effect(() => {
     const on = rawMode()
@@ -225,12 +272,15 @@ export function createModes(opts: CreateModesOptions): Modes {
     }
     if (disposed && !disposing) return
     if (on) touchedRawMode = true
-    if (stdin.isTTY) {
-      try {
-        stdin.setRawMode(on)
-      } catch {
-        // stdin may be closed mid-call — ignore, signal value still tracked
-      }
+    // Route through the cross-owner refcount — never toggle termios
+    // directly. Overlapping owners on one stdin compose: only the first
+    // acquire and the last release reach `stdin.setRawMode`.
+    if (on && !holdsRaw) {
+      holdsRaw = true
+      acquireRawMode(stdin)
+    } else if (!on && holdsRaw) {
+      holdsRaw = false
+      releaseRawMode(stdin)
     }
   })
 

@@ -14,6 +14,7 @@
 import process from "node:process"
 import { createLogger } from "loggily"
 import { type Term, createTerm } from "@silvery/ag-term/ansi"
+import { createModes } from "@silvery/ag-term"
 import React, {
   useCallback,
   useEffect,
@@ -969,7 +970,7 @@ class SilveryInstance {
    * into the platform-agnostic callback that SilveryApp expects.
    */
   private subscribeToInput = (handler: (chunk: string) => void): (() => void) => {
-    const { stdin } = this
+    const { stdin, stdout } = this
     const isRawModeSupported = stdin.isTTY === true
 
     log.debug?.(
@@ -990,15 +991,20 @@ class SilveryInstance {
       }
     }
 
+    // Raw mode goes through a Modes owner — its per-stream refcount composes
+    // with any other live owner on this stdin, so tearing down this render
+    // can never cook a stream a host session still holds. Never call
+    // stdin.setRawMode directly (CLAUDE.md "Anti-pattern: wasRaw").
+    const modes = createModes({ write: (data) => void stdout.write(data), stdin })
     stdin.setEncoding("utf8")
     stdin.ref()
-    stdin.setRawMode(true)
+    modes.rawMode(true)
     stdin.on("readable", handleReadable)
     log.debug?.(`subscribeToInput: enabled raw mode, stdin.isRaw=${stdin.isRaw}`)
 
     return () => {
-      log.debug?.("subscribeToInput: cleanup — disabling raw mode")
-      stdin.setRawMode(false)
+      log.debug?.("subscribeToInput: cleanup — releasing raw-mode hold")
+      modes[Symbol.dispose]()
       stdin.off("readable", handleReadable)
       stdin.unref()
     }

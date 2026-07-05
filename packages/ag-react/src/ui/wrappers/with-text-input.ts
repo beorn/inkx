@@ -3,6 +3,7 @@
  */
 
 import chalk from "@silvery/ink/chalk"
+import { createModes } from "@silvery/ag-term"
 import type { TextInputOptions } from "../types.js"
 import {
   CURSOR_HIDE,
@@ -48,10 +49,11 @@ export async function withTextInput(
   let cursorPosition = value.length
   let errorMessage: string | undefined
 
-  // Setup raw mode for character-by-character input
-  if (inputStream.isTTY) {
-    inputStream.setRawMode(true)
-  }
+  // Raw mode via the Modes owner — its per-stream refcount composes with
+  // any host session owner on this stdin (TTY-guarded internally); never
+  // inputStream.setRawMode directly (CLAUDE.md "Anti-pattern: wasRaw").
+  const modes = createModes({ write: (data) => write(data, stream), stdin: inputStream })
+  modes.rawMode(true)
   inputStream.resume()
 
   // Render the current state
@@ -93,9 +95,7 @@ export async function withTextInput(
     const cleanup = () => {
       inputStream.removeListener("data", onData)
       inputStream.removeListener("error", onError)
-      if (inputStream.isTTY) {
-        inputStream.setRawMode(false)
-      }
+      modes[Symbol.dispose]()
       inputStream.pause()
       if (isTty) {
         write(CURSOR_SHOW, stream)

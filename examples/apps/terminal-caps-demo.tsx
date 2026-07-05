@@ -33,6 +33,7 @@ import {
   detectKittyFromStdio,
 } from "@silvery/ag-term"
 import { createBgModeDetector, type BgMode } from "@silvery/ag-term/ansi"
+import { createModes } from "@silvery/ag-term"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -277,7 +278,14 @@ export async function main() {
   } = { colorScheme: "unknown", widthConfig: null, kittyDetected: null }
 
   if (process.stdin.isTTY) {
-    process.stdin.setRawMode(true)
+    // Raw mode via the Modes owner (`using` releases it at block exit) —
+    // never process.stdin.setRawMode directly. The owner's per-stream
+    // refcount composes with any other owner on this stdin.
+    using modes = createModes({
+      write: (data) => void process.stdout.write(data),
+      stdin: process.stdin,
+    })
+    modes.rawMode(true)
     process.stdin.resume()
 
     const write = (data: string) => process.stdout.write(data)
@@ -316,7 +324,6 @@ export async function main() {
       kittyDetected: kittyResult.status === "fulfilled" ? kittyResult.value : false,
     }
 
-    process.stdin.setRawMode(false)
     process.stdin.pause()
   }
 
