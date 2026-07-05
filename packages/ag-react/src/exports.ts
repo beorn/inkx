@@ -270,6 +270,23 @@ export type { HeadingProps, HeadingLevel } from "./ui/components"
 export { Prose } from "./ui/components"
 export type { ProseProps, ProseHandle } from "./ui/components"
 
+// Content — shared document/transcript lane layout primitive.
+export {
+  Content,
+  MeasuredPaneScope,
+  PaneSize,
+  useContentLayout,
+  useContentRowWidth,
+  useHasContentLayout,
+  useResponsiveContent,
+} from "./ui/components"
+export type {
+  ContentBodyProps,
+  ContentBodyWidth,
+  ContentLayoutContextValue,
+  WidthValue,
+} from "./ui/components"
+
 // Focusable Controls
 export { Toggle } from "./ui/components"
 export type { ToggleProps } from "./ui/components"

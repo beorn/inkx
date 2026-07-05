@@ -179,6 +179,23 @@ export type { TypographyProps } from "./components/Typography"
 export { Prose } from "./components/Prose"
 export type { ProseProps, ProseHandle } from "./components/Prose"
 
+// Content — document/transcript layout lanes (prose/wide/full/auto)
+export {
+  Content,
+  MeasuredPaneScope,
+  PaneSize,
+  useContentLayout,
+  useContentRowWidth,
+  useHasContentLayout,
+  useResponsiveContent,
+} from "./components/Content"
+export type {
+  ContentBodyProps,
+  ContentBodyWidth,
+  ContentLayoutContextValue,
+  WidthValue,
+} from "./components/Content"
+
 // Heading (OSC 66 text sizing)
 export { Heading } from "./components/Heading"
 export type { HeadingProps, HeadingLevel } from "./components/Heading"
