@@ -1,7 +1,35 @@
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import React from "react"
 import { Box, Text } from "silvery"
 import { createRenderer } from "@silvery/test"
+import {
+  ClipParityError,
+  CLIP_PARITY_MIN_TIER,
+  CLIP_PARITY_SLUG,
+  assertBgCellHasTextPaint,
+  isClipParityEnabled,
+} from "@silvery/ag-term/strict-clip-parity"
+import { resetStrictCache } from "@silvery/ag-term/strict-mode"
+
+function withStrict<T>(value: string | undefined, fn: () => T): T {
+  const saved = process.env.SILVERY_STRICT
+  if (value === undefined) {
+    delete process.env.SILVERY_STRICT
+  } else {
+    process.env.SILVERY_STRICT = value
+  }
+  resetStrictCache()
+  try {
+    return fn()
+  } finally {
+    if (saved === undefined) delete process.env.SILVERY_STRICT
+    else process.env.SILVERY_STRICT = saved
+    resetStrictCache()
+  }
+}
+
+beforeEach(() => resetStrictCache())
+afterEach(() => resetStrictCache())
 
 /**
  * Regression: applyBgSegmentsToLine must clip bg paint to the parent's
@@ -86,5 +114,60 @@ describe("regression: applyBgSegmentsToLine clips bg paint to parent's visible r
     // bg should still be applied to the "code" chars (within the visible area).
     const cellAtCode = app.cell(6, 0)
     expect(cellAtCode.char).toBe("c")
+  })
+})
+
+describe("clip-parity strict gate (SILVERY_STRICT)", () => {
+  test("constants: slug='clip-parity', tier=2", () => {
+    expect(CLIP_PARITY_SLUG).toBe("clip-parity")
+    expect(CLIP_PARITY_MIN_TIER).toBe(2)
+  })
+
+  test("tier semantics and per-check opt-out", () => {
+    expect(withStrict(undefined, () => isClipParityEnabled())).toBe(false)
+    expect(withStrict("0", () => isClipParityEnabled())).toBe(false)
+    expect(withStrict("1", () => isClipParityEnabled())).toBe(false)
+    expect(withStrict("2", () => isClipParityEnabled())).toBe(true)
+    expect(withStrict("clip-parity", () => isClipParityEnabled())).toBe(true)
+    expect(withStrict("2,!clip-parity", () => isClipParityEnabled())).toBe(false)
+  })
+
+  test("detector trips when bg overlay paints a cell text rendering did not paint", () => {
+    expect(() => {
+      withStrict("clip-parity", () => {
+        assertBgCellHasTextPaint({
+          x: 22,
+          y: 0,
+          textPaintColumns: new Set([18, 19]),
+          leftClip: 0,
+          rightClip: 20,
+          bg: "cyan",
+          lineTextPreview: "inline-code",
+        })
+      })
+    }).toThrow(ClipParityError)
+  })
+
+  test("current overflow-hidden inline-bg scenario passes under clip-parity strict mode", () => {
+    const render = createRenderer({ cols: 80, rows: 4 })
+    expect(() => {
+      withStrict("clip-parity", () => {
+        render(
+          <Box width={80} flexDirection="row">
+            <Box width={20} overflow="hidden" flexShrink={0}>
+              <Box flexShrink={0}>
+                <Text wrap={false}>
+                  {"x".repeat(60)}
+                  <Text backgroundColor="cyan">CODE</Text>tail
+                </Text>
+              </Box>
+            </Box>
+            <Box flexGrow={1}>
+              <Text>RIGHT</Text>
+            </Box>
+          </Box>,
+        )
+      })
+    }).not.toThrow()
   })
 })
