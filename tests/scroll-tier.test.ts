@@ -328,7 +328,10 @@ describe("scroll tier planner — exhaustive table (2^10 × scrollBg)", () => {
   test("all 2,048 combinations match the restated spec and are deterministic", () => {
     let checked = 0
     for (let mask = 0; mask < 1 << BOOL_KEYS.length; mask++) {
-      for (const scrollBg of [null, "#123456"] as const) {
+      // Buffer-level Color is `number | {r,g,b} | null` (buffer.ts) — a
+      // RESOLVED cell color, never a hex string (the km 20835 integrate
+      // bounce: '#123456' fails the clean-root typecheck).
+      for (const scrollBg of [null, { r: 0x12, g: 0x34, b: 0x56 }] as const) {
         const inputs = defaults()
         inputs.scrollBg = scrollBg
         BOOL_KEYS.forEach((key, bit) => {
@@ -343,7 +346,7 @@ describe("scroll tier planner — exhaustive table (2^10 × scrollBg)", () => {
           childAncestorCleared: actual.childAncestorCleared,
           stickyForceRefresh: actual.stickyForceRefresh,
         }
-        expect(actualCore, `mask=${mask} scrollBg=${String(scrollBg)}`).toEqual(expected)
+        expect(actualCore, `mask=${mask} scrollBg=${JSON.stringify(scrollBg)}`).toEqual(expected)
         // Reasons invariants: SHIFT marker ⟺ shift tier; sticky marker ⟺ flag.
         expect(actual.reasons.includes("SHIFT"), `SHIFT reason mask=${mask}`).toBe(expected.tier === "shift")
         expect(actual.reasons.includes("stickyForceRefresh"), `sticky reason mask=${mask}`).toBe(
