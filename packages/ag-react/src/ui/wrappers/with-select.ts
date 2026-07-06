@@ -3,6 +3,7 @@
  */
 
 import chalk from "@silvery/ink/chalk"
+import { createModes } from "@silvery/ag-term"
 import type { SelectOption, WithSelectOptions } from "../types.js"
 import {
   CURSOR_HIDE,
@@ -52,8 +53,11 @@ export async function withSelect<T>(
     let highlightIndex = Math.min(Math.max(0, initial), options.length - 1)
     let linesRendered = 0
 
-    // Enable raw mode for character-by-character input
-    stdin.setRawMode(true)
+    // Raw mode via the Modes owner — its per-stream refcount composes with
+    // any host session owner on this stdin; never stdin.setRawMode directly
+    // (CLAUDE.md "Anti-pattern: wasRaw").
+    const modes = createModes({ write: (data) => write(data, stream), stdin })
+    modes.rawMode(true)
     stdin.resume()
     stdin.setEncoding("utf8")
 
@@ -110,7 +114,7 @@ export async function withSelect<T>(
     }
 
     function cleanup() {
-      stdin.setRawMode(false)
+      modes[Symbol.dispose]()
       stdin.pause()
       stdin.removeListener("data", onKeypress)
       write(CURSOR_SHOW, stream)

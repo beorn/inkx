@@ -62,10 +62,47 @@ export function assertIslandRenderInvariants(node: AgNode, layout: Rect): void {
 
   const source = handle.output.buffer
   assertResizeRace(handle, source)
+  assertHostFrameContract(handle, layout)
   assertPaintBudget(source, layout)
   assertGraphemeWidth(source)
   assertCursorBoundary(handle)
   assertNoDisposedRender(state)
+}
+
+/**
+ * island-host-frame (20831) — the pane-host frame contract.
+ *
+ * The Island residue class (20625 herdr-Island residue; same family as the
+ * 19406 swallowed same-size SIGWINCH) is a HOST frame that diverges from the
+ * guest's belief: the host re-framed the pane but the guest size-owner never
+ * acknowledged, so stale-dim paints blit into a different-sized rect and
+ * leave residual cells. One frame of divergence is legal — the resize-ack
+ * window ("guest acknowledges via next paint"). The SAME divergent host frame
+ * surviving a second render is the desync signature: nobody asked the guest
+ * to follow, or its size subscription never fired.
+ *
+ * Streak state is per-handle and per-target-frame: a match resets it, and a
+ * different host frame restarts the window (a live drag-resize is a sequence
+ * of one-frame windows, never a violation).
+ */
+const hostFrameMismatchStreak = new WeakMap<IslandHandle, { cols: number; rows: number; frames: number }>()
+
+function assertHostFrameContract(handle: IslandHandle, layout: Rect): void {
+  if (!isStrictEnabled("island-host-frame", 2)) return
+  if (handle.size.cols === layout.width && handle.size.rows === layout.height) {
+    hostFrameMismatchStreak.delete(handle)
+    return
+  }
+  const prev = hostFrameMismatchStreak.get(handle)
+  const frames = prev !== undefined && prev.cols === layout.width && prev.rows === layout.height ? prev.frames + 1 : 1
+  hostFrameMismatchStreak.set(handle, { cols: layout.width, rows: layout.height, frames })
+  if (frames < 2) return
+  throw new Error(
+    `[SILVERY_STRICT=island-host-frame] host frame ${layout.width}x${layout.height} unacknowledged by ` +
+      `guest size-owner ${handle.size.cols}x${handle.size.rows} for ${frames} consecutive renders — ` +
+      `pane-host/guest frame desync (the Island residue class). The host must requestResize() on ` +
+      `reframe and the guest's size subscription must fire; see 20831 / 20625 / 19406.`,
+  )
 }
 
 function wrapWriteCells(handle: IslandHandle): void {

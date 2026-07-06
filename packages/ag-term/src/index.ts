@@ -363,6 +363,18 @@ export { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "./
 
 export { queryMode, queryModes, DecMode } from "./mode-query"
 
+// =============================================================================
+// Protocol-Modes Owner
+// =============================================================================
+
+// The single owner for raw mode / alt screen / bracketed paste / kitty /
+// mouse / focus-reporting. Exposed for standalone CLI flows (prompts,
+// pickers) that run outside a `Term` session — inside a session, use
+// `term.modes`. Raw mode arbitrates through a per-stream refcount so
+// overlapping owners compose. See CLAUDE.md "Anti-pattern: wasRaw".
+export { createModes } from "./runtime/devices/modes"
+export type { Modes, CreateModesOptions, ModeName } from "./runtime/devices/modes"
+
 // DEC Width Mode Detection additional exports (WidthMode, WidthDetectorOptions)
 export { WidthMode } from "./ansi/width-detection"
 export type { WidthDetectorOptions } from "./ansi/width-detection"

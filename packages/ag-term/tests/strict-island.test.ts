@@ -384,3 +384,66 @@ describe("island-dispose-leak slug", () => {
     expect(ran).toBe(true)
   })
 })
+
+// ---------------------------------------------------------------------------
+// island-host-frame (20831) — the pane-host frame contract. The Island residue
+// class (20625 herdr-Island residue, 19406 swallowed same-size SIGWINCH) is a
+// HOST frame that diverges from what the guest believes: the host re-framed
+// the pane but the guest size-owner never acknowledged, so stale-dim paints
+// blit into a different-sized rect. One frame of divergence is legal (the
+// resize-ack window: "guest acknowledges via next paint"); a PERSISTENT
+// divergence is the desync signature and must fail loud under STRICT.
+// ---------------------------------------------------------------------------
+
+describe("island-host-frame (20831 — pane-host frame contract)", () => {
+  it("fires when the host layout persistently diverges from the size-owner (two consecutive renders)", () => {
+    strict("island-host-frame")
+    const fake = fakeHandle({ size: { cols: 80, rows: 24 } })
+    const node = islandNode({ handle: fake.handle })
+    // Frame 1: divergence tolerated — the resize-ack window.
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
+    // Frame 2: still divergent — the host reframed but the guest never followed.
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).toThrow(/island-host-frame/)
+  })
+
+  it("names both sides of the contract in the violation", () => {
+    strict("island-host-frame")
+    const fake = fakeHandle({ size: { cols: 80, rows: 24 } })
+    const node = islandNode({ handle: fake.handle })
+    assertIslandRenderInvariants(node, rect(0, 0, 100, 30))
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).toThrow(/100x30[\s\S]*80x24/)
+  })
+
+  it("stays quiet for a one-frame transient (guest catches up on next paint)", () => {
+    strict("island-host-frame")
+    const fake = fakeHandle({ size: { cols: 80, rows: 24 } })
+    const node = islandNode({ handle: fake.handle })
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
+    // Guest acknowledged: size owner now matches the host frame.
+    const size = fake.handle.size as { cols: number; rows: number }
+    size.cols = 100
+    size.rows = 30
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
+    // A later re-divergence starts a FRESH tolerance window (streak reset on match).
+    size.cols = 80
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
+  })
+
+  it("a divergence to a DIFFERENT host frame restarts the tolerance window", () => {
+    strict("island-host-frame")
+    const fake = fakeHandle({ size: { cols: 80, rows: 24 } })
+    const node = islandNode({ handle: fake.handle })
+    assertIslandRenderInvariants(node, rect(0, 0, 100, 30))
+    // Host frame changed AGAIN before the guest could answer — new window.
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 120, 40))).not.toThrow()
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 120, 40))).toThrow(/island-host-frame/)
+  })
+
+  it("does nothing when the slug is off (tier 1 only)", () => {
+    strict("1")
+    const fake = fakeHandle({ size: { cols: 80, rows: 24 } })
+    const node = islandNode({ handle: fake.handle })
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
+  })
+})

@@ -71,10 +71,10 @@ Because the owner itself installs one effect per mode to emit ANSI, subscribers 
 
 Toggles stdin termios raw mode. Uses the stdin stream passed at construction (normally `process.stdin`).
 
-- TTY stdin: calls `stdin.setRawMode(on)`.
+- TTY stdin: arbitrated through a **per-stream reference count** shared by all `Modes` owners — only the first acquire calls `stdin.setRawMode(true)` and only the last release calls `stdin.setRawMode(false)`. Overlapping owners (a host session plus a transient CLI prompt on the same stdin) therefore compose: the prompt's dispose cannot cook a stream the session still holds.
 - Non-TTY stdin: no-op on the stream; the signal still reflects the intent (useful for tests).
 
-Prefer a single `modes.rawMode(true)` at session start. Do not capture-and-restore around async work — see [the `wasRaw` anti-pattern note](/reference/term#anti-patterns).
+Prefer a single `modes.rawMode(true)` at session start. Do not capture-and-restore around async work — see [the `wasRaw` anti-pattern note](/reference/term#anti-patterns). Never call `stdin.setRawMode` directly — `scripts/lint-no-raw-mode.ts` gates it in CI.
 
 ### `altScreen`
 
