@@ -112,7 +112,7 @@ Silvery's theme-aware components (`Text`, `Box`, etc.) resolve `$tokens` automat
 </ThemeProvider>
 ```
 
-Note: `ThemeProvider`'s `customTokens` prop wiring is currently part of the design system roadmap. See the [implementation status](https://github.com/beorn/silvery/issues/km-silvery.theme-custom) for progress; today, resolve manually via `resolveCustomToken()` in your component code.
+Note: `ThemeProvider`'s `customTokens` prop wiring is currently part of the design system roadmap. Today, resolve manually via `resolveCustomToken()` in your component code.
 
 ## Anti-patterns
 

@@ -61,7 +61,7 @@ const columns = computed(() => Math.floor(term.size.cols() / 20))
 
 ## Resize coalescing
 
-Multiplexers (tmux, cmux, Ghostty tabs) can emit multiple `SIGWINCH` bursts as the PTY re-syncs. Without coalescing, each burst triggers a layout pass at an intermediate size and the user sees visible multi-phase layout shift.
+Multiplexers (tmux, Ghostty tabs, other pane hosts) can emit multiple `SIGWINCH` bursts as the PTY re-syncs. Without coalescing, each burst triggers a layout pass at an intermediate size and the user sees visible multi-phase layout shift.
 
 The owner coalesces bursts within a single 60 Hz frame (16 ms). Within that window, only the **final** geometry is delivered to `computed` / `effect` dependents:
 

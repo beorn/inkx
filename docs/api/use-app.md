@@ -88,7 +88,7 @@ function FatalInvariant({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     panic(new Error("subagent activity invariant failed"), {
-      title: "silvercode",
+      title: "my-app",
       details: [`session ${sessionId}`],
       exitCode: 1,
     })

@@ -154,4 +154,4 @@ await runEventBatch(app, events, {
 
 ### Relation to the event-handling doc
 
-The public hooks (`useInput`, `usePaste`, `useExit`, `useModifierKeys`) are documented in [Event Handling](../guide/event-handling.md). The staged migration from `RuntimeContext.on("input"|"paste"|"focus")` to the apply-chain plugin stores is tracked in bead `km-silvery.tea-useinput` (Phase 2 of the `km-silvery.tea` epic). The substrate (`base-app`, four plugins, event-loop, lifecycle-effects) has shipped with 90 passing tests; the `processEventBatch` wiring and ag-react hook repoint are staged follow-ups so behavioural equivalence tests stay green at every step.
+The public hooks (`useInput`, `usePaste`, `useExit`, `useModifierKeys`) are documented in [Event Handling](../guide/event-handling.md). The staged migration from `RuntimeContext.on("input"|"paste"|"focus")` to the apply-chain plugin stores is a staged Phase 2 follow-up. The substrate (`base-app`, four plugins, event-loop, lifecycle-effects) has shipped with 90 passing tests; the `processEventBatch` wiring and ag-react hook repoint are staged follow-ups so behavioural equivalence tests stay green at every step.

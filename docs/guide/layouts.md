@@ -384,10 +384,10 @@ Silvery adds these capabilities, inspired by [Pretext](https://chenglou.me/prete
 `fit-content` wraps text, then sizes the box to the widest line. When the last line is short, the box has dead space:
 
 ```
-┌──────────────────┐
+┌───────────────────┐
 │ Hello world, this │  ← widest line sets the width
-│ is a test         │  ← wasted space ──────────→
-└──────────────────┘
+│ is a test         │  ← wasted space ─────────→
+└───────────────────┘
 ```
 
 `snug-content` finds the _narrowest_ width that still produces the same number of lines. Pretext calls this ["shrinkwrap"](https://chenglou.me/pretext/bubbles/) — it uses [`walkLineRanges()`](https://github.com/chenglou/pretext) to binary-search over widths, comparing line counts at each candidate. Silvery uses the same algorithm adapted for terminal character-cell grids:

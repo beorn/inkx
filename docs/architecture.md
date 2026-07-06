@@ -117,7 +117,7 @@ Core principle: **always use canonical high-level components, never manual low-l
 
 Cursor convention (WIDGET focus): TextInput/TextArea use the real terminal cursor when the widget is focused, a fake (inverse/underline) cell when a sibling widget holds focus. No `realCursor` prop — this is just how it works.
 
-Cursor convention (WINDOW focus, @km/code/v0.2/19702): when the terminal WINDOW/pane itself is unfocused, the managed caret is **hidden completely** — no composited overlay (`computeManagedFrame` with `windowFocused=false` returns a null caret). This is distinct from the widget-focus axis above: a freshly-spawned, window-unfocused agent pane shows no caret at all. Unknown focus defaults to focused (fail-safe for plain terminals that never emit DEC `?1004` focus events).
+Cursor convention (window focus): when the terminal WINDOW/pane itself is unfocused, the managed caret is **hidden completely** — no composited overlay (`computeManagedFrame` with `windowFocused=false` returns a null caret). This is distinct from the widget-focus axis above: a freshly-spawned, window-unfocused agent pane shows no caret at all. Unknown focus defaults to focused (fail-safe for plain terminals that never emit DEC `?1004` focus events).
 
 ## App Composition Layers
 

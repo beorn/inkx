@@ -559,7 +559,7 @@ Terminal scheme file (Ghostty, Kitty, etc.)
            │
            ▼
     ┌──────────────┐
-    │ ColorScheme │  22 hex colors — universal pivot format
+    │ ColorScheme  │  22 hex colors — universal pivot format
     │   (Layer 1)  │
     └──────┬───────┘
            │

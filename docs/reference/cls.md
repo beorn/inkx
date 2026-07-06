@@ -33,7 +33,7 @@ const report = app.endCLSCapture()
 expect(report.unexpectedShifts).toEqual([])
 ```
 
-That's the canonical close-gate shape for a visual-bug bead: capture across the interaction, assert no unexpected shifts. If shifts appear, `report.shifts` carries the offending blocks (`blockId`, `fromRect` → `toRect`) so the failure points at the bug.
+That's the canonical regression-gate shape for a visual bug: capture across the interaction, assert no unexpected shifts. If shifts appear, `report.shifts` carries the offending blocks (`blockId`, `fromRect` → `toRect`) so the failure points at the bug.
 
 ## Capture API
 
@@ -147,10 +147,10 @@ CLS: <termless test path> | unexpectedShifts: 0 | cumulativeScore: <n>
 Example close-reason for a fixed code-fence-flush-left bug:
 
 ```
-Fixed: apps/silvercode/src/components/Markdown.tsx:142
-Test: apps/silvercode/tests/visual/codeblock-flush-left-not-centered.test.tsx
-CLS: apps/silvercode/tests/visual/codeblock-flush-left-not-centered.test.tsx | unexpectedShifts: 0 | cumulativeScore: 0.0
-Verified: km view screenshot (/tmp/codeblock-fixed.png) + termless integration test + user confirmed
+Fixed: src/components/Markdown.tsx:142
+Test: tests/visual/codeblock-flush-left-not-centered.test.tsx
+CLS: tests/visual/codeblock-flush-left-not-centered.test.tsx | unexpectedShifts: 0 | cumulativeScore: 0.0
+Verified: screenshot + termless integration test
 ```
 
 CLS evidence is only valid when the test mounts the production component tree. Mounting `<MarkdownView>` in isolation produces a meaningless CLS report — the bug class CLS catches lives at the composition layer.

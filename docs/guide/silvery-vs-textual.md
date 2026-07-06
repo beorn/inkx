@@ -92,7 +92,7 @@ class MainApp(App):
 
 TCSS supports type selectors, ID selectors (`#id`), class selectors (`.class`), pseudo-classes (`:focus`, `:hover`, `:disabled`), and combinators. Properties include `dock`, `width`, `height`, `margin`, `padding`, `background`, `color`, `border`, `display`, `visibility`, `overflow`, and layout-specific properties like `grid-size-columns` and `grid-size-rows`.
 
-The separation of styling from code is a strength -- you can restyle widgets without changing Python code, and TCSS hot-reloads during development.
+The separation of styling from code is a strength — you can restyle widgets without changing Python code, and TCSS hot-reloads during development.
 
 ### Silvery's Flexbox Props
 
@@ -114,7 +114,7 @@ function App() {
 }
 ```
 
-Layout is CSS flexbox via the Flexily engine -- `flexDirection`, `flexGrow`, `flexShrink`, `flexWrap`, `gap`, `alignItems`, `justifyContent`, `padding`, `margin`, and `border` all work as they do in browser CSS.
+Layout is CSS flexbox via the Flexily engine — `flexDirection`, `flexGrow`, `flexShrink`, `flexWrap`, `gap`, `alignItems`, `justifyContent`, `padding`, `margin`, and `border` all work as they do in browser CSS.
 
 Silvery does not have external stylesheet files. Styling is inline (props) or via theme tokens (`$primary`, `$muted`, `$border`). This is closer to React Native or Tailwind than traditional CSS.
 
@@ -126,10 +126,10 @@ Silvery does not have external stylesheet files. Styling is inline (props) or vi
 
 Textual offers several layout systems:
 
-- **Vertical** -- stack widgets top-to-bottom (default)
-- **Horizontal** -- arrange widgets left-to-right
-- **Grid** -- CSS Grid-style rows and columns
-- **Dock** -- pin widgets to screen edges (top, bottom, left, right)
+- **Vertical** — stack widgets top-to-bottom (default)
+- **Horizontal** — arrange widgets left-to-right
+- **Grid** — CSS Grid-style rows and columns
+- **Dock** — pin widgets to screen edges (top, bottom, left, right)
 
 ```python
 class MyApp(App):
@@ -167,9 +167,9 @@ Silvery uses CSS flexbox exclusively:
 </Box>
 ```
 
-No grid layout, no dock. Everything is flexbox. This is limiting compared to Textual's layout variety, but flexbox handles most TUI layouts well -- and if you know CSS flexbox from web development, there is nothing new to learn.
+No grid layout, no dock. Everything is flexbox. This is limiting compared to Textual's layout variety, but flexbox handles most TUI layouts well — and if you know CSS flexbox from web development, there is nothing new to learn.
 
-Silvery's key layout advantage is `useBoxRect()` -- components know their dimensions during render, not after. Textual widgets can query their size via `self.size` but this is set during the layout phase, similar to how web components work.
+Silvery's key layout advantage is `useBoxRect()` — components know their dimensions during render, not after. Textual widgets can query their size via `self.size` but this is set during the layout phase, similar to how web components work.
 
 ## Widget Libraries
 
@@ -227,7 +227,7 @@ Textual's widget library is more mature, with some unique components (DataTable 
 
 ### Textual
 
-Textual uses reactive attributes -- decorated properties that automatically trigger UI updates:
+Textual uses reactive attributes — decorated properties that automatically trigger UI updates:
 
 ```python
 class Counter(Widget):
@@ -334,11 +334,11 @@ This is where the frameworks diverge significantly.
 
 Silvery's terminal protocol coverage is broader, particularly for Kitty keyboard (important for distinguishing Ctrl+I from Tab, Ctrl+M from Enter), synchronized output (eliminates flicker in terminal multiplexers), and image rendering.
 
-Textual compensates with its web target -- Textual Web can serve any Textual app in a browser, which is a different kind of cross-platform story.
+Textual compensates with its web target — Textual Web can serve any Textual app in a browser, which is a different kind of cross-platform story.
 
 ## Performance
 
-Python and TypeScript are both interpreted languages, so neither has Go or Rust-level raw speed. In practice, terminal rendering is rarely the bottleneck -- network I/O, file access, and computation dominate.
+Python and TypeScript are both interpreted languages, so neither has Go or Rust-level raw speed. In practice, terminal rendering is rarely the bottleneck — network I/O, file access, and computation dominate.
 
 **Textual** uses asyncio and careful caching. Widget rendering is optimized with Rich's rendering pipeline. Large DataTables use virtual scrolling for 1000+ rows.
 
@@ -348,7 +348,7 @@ For most applications, both are fast enough. If you're building an app with thou
 
 ## Web Target
 
-**Textual Web** can serve any Textual app as a web application -- users access it via a browser with no installation. This is a genuine differentiator for deployment scenarios (internal tools, dashboards, remote access):
+**Textual Web** can serve any Textual app as a web application — users access it via a browser with no installation. This is a genuine differentiator for deployment scenarios (internal tools, dashboards, remote access):
 
 ```bash
 textual serve myapp.py
@@ -362,20 +362,20 @@ Both are good tools. The right choice depends primarily on your language ecosyst
 
 ### Choose Textual when:
 
-- **Your project is in Python** -- Textual integrates naturally with Python data science, web, and automation ecosystems
-- **You want CSS-like styling** -- separate stylesheet files with selectors, pseudo-classes, and hot-reload during development
-- **Web deployment matters** -- Textual Web serves TUI apps in the browser with no client installation
-- **Rich widget library** -- dozens of built-in widgets with consistent styling and behavior
-- **Data-oriented apps** -- DataTable, Sparkline, RichLog, and Rich formatting are well-suited for dashboards and data tools
-- **Grid layout** -- TCSS supports CSS Grid-style layouts alongside flexbox and dock
+- **Your project is in Python** — Textual integrates naturally with Python data science, web, and automation ecosystems
+- **You want CSS-like styling** — separate stylesheet files with selectors, pseudo-classes, and hot-reload during development
+- **Web deployment matters** — Textual Web serves TUI apps in the browser with no client installation
+- **Rich widget library** — dozens of built-in widgets with consistent styling and behavior
+- **Data-oriented apps** — DataTable, Sparkline, RichLog, and Rich formatting are well-suited for dashboards and data tools
+- **Grid layout** — TCSS supports CSS Grid-style layouts alongside flexbox and dock
 
 ### Choose Silvery when:
 
-- **Your project is in TypeScript/JavaScript** -- React components, npm packages, TypeScript type safety
-- **Complex interactive UIs** -- kanban boards, text editors, multi-pane dashboards where layout-aware rendering matters
-- **React ecosystem** -- hooks, context, component composition, Suspense, and the full React mental model
-- **Terminal protocol depth** -- Kitty keyboard, synchronized output, image rendering, clipboard over SSH, terminal capability detection
-- **Testing terminal output** -- Termless verifies actual ANSI sequences and resolved colors across 10+ real terminal parsers, not just widget state
-- **TEA state machines** -- `@silvery/create` provides pure `(action, state) -> [state, effects]` reducers alongside React
-- **Input isolation** -- InputLayerProvider with DOM-style bubbling and `stopPropagation` for modal dialogs and layered UIs
-- **Dynamic scrollback** -- inline mode with cell-level incremental rendering and scrollback graduation; fullscreen mode with app-managed history
+- **Your project is in TypeScript/JavaScript** — React components, npm packages, TypeScript type safety
+- **Complex interactive UIs** — kanban boards, text editors, multi-pane dashboards where layout-aware rendering matters
+- **React ecosystem** — hooks, context, component composition, Suspense, and the full React mental model
+- **Terminal protocol depth** — Kitty keyboard, synchronized output, image rendering, clipboard over SSH, terminal capability detection
+- **Testing terminal output** — Termless verifies actual ANSI sequences and resolved colors across 10+ real terminal parsers, not just widget state
+- **TEA state machines** — `@silvery/create` provides pure `(action, state) -> [state, effects]` reducers alongside React
+- **Input isolation** — InputLayerProvider with DOM-style bubbling and `stopPropagation` for modal dialogs and layered UIs
+- **Dynamic scrollback** — inline mode with cell-level incremental rendering and scrollback graduation; fullscreen mode with app-managed history

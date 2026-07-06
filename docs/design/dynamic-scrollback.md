@@ -109,15 +109,15 @@ The key operation in dynamic scrollback is a **full redraw**: clear all scrollba
 
 ```
 Before:                          After redraw:
-┌──────────────────┐             ┌──────────────────┐
-│ Static scrollback│             │ (destroyed by ED3)│
-├ ─ ─ ─ ─ ─ ─ ─ ─ ┤             ├ ─ ─ ─ ─ ─ ─ ─ ─ ┤
-│ Dynamic item A   │             │ Dynamic item A'  │ ← re-emitted
-│ Dynamic item B   │             │ Dynamic item B'  │ ← re-emitted
-│ Dynamic item C   │             │ Dynamic item C'  │ ← re-emitted
-├──────────────────┤             ├──────────────────┤
-│ Live content     │             │ Live content'    │ ← re-rendered
-└──────────────────┘             └──────────────────┘
+┌──────────────────┐             ┌────────────────────┐
+│ Static scrollback│             │ (destroyed by ED3) │
+├─ ─ ─ ─ ─ ─ ─ ─ ─ ┤             ├─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤
+│ Dynamic item A   │             │ Dynamic item A'    │ ← re-emitted
+│ Dynamic item B   │             │ Dynamic item B'    │ ← re-emitted
+│ Dynamic item C   │             │ Dynamic item C'    │ ← re-emitted
+├──────────────────┤             ├────────────────────┤
+│ Live content     │             │ Live content'      │ ← re-rendered
+└──────────────────┘             └────────────────────┘
 ```
 
 The sequence:

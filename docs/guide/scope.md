@@ -648,6 +648,8 @@ child.defer(async () => await flushBuffer())
 
 Disposing a child _early_ (before its parent disposes) is fine — the child detaches itself from the parent's child set on completion. That's the use case for nested `await using` inside a longer-lived parent scope.
 
+:::
+
 ### `SuppressedError` aggregates multi-throw
 
 When multiple disposers throw during a single `[Symbol.asyncDispose]()` call, the errors aggregate via `SuppressedError` — a TC39 standard error type with `.error` (the most recent) and `.suppressed` (the previous, possibly itself a `SuppressedError`). One thrown error rethrows directly; many chain.
