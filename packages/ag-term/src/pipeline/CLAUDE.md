@@ -14,7 +14,7 @@ Read this before modifying render-phase.ts, render-text.ts, render-box.ts, or la
 **Verification has two layers:**
 
 1. STRICT vendor tests pass (including the realistic-scale fixture)
-2. `SILVERY_STRICT=2 bun apps/km-cli/src/index.ts view` runs without crashes for 5+ seconds
+2. `SILVERY_STRICT=2 bun km view <vault>` (from the host repo root) runs without crashes for 5+ seconds
 
 Skipping layer 2 ships bugs that synthetic tests miss. Both layers are required.
 
