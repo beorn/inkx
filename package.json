@@ -80,6 +80,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "prepack": "tsdown",
     "build:all": "tsdown && tsdown -W -F '@silvery/ag' -F '@silvery/ag-react' -F '@silvery/ag-term' -F '@silvery/ansi' -F '@silvery/color' -F '@silvery/commander' -F '@silvery/commands' -F '@silvery/config' -F '@silvery/create' -F '@silvery/headless' -F '@silvery/ink' -F '@silvery/model' -F '@silvery/scope' -F '@silvery/selection' -F '@silvery/signals' -F '@silvery/syntax' -F '@silvery/theme'",
     "test": "bunx --bun vitest run",
     "test:fast": "bunx --bun vitest run --reporter=dot",
