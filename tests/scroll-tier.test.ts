@@ -276,3 +276,87 @@ describe("scroll tier planner — reasons", () => {
     expect(plan.reasons).toContain("stickyForceRefresh")
   })
 })
+
+// ---------------------------------------------------------------------------
+// Exhaustive enumeration (km 20835 slice 1, cascade-predicates pattern).
+//
+// All 2^10 boolean-input combinations × {null, set} scrollBg = 2,048 cases,
+// asserted against a RESTATED reference model. The restatement below is the
+// human-auditable spec of the tier decision; any divergence between it and
+// planScrollRender is the alarm (either the impl regressed or the spec moved
+// — both demand a deliberate commit updating BOTH sides).
+// ---------------------------------------------------------------------------
+
+describe("scroll tier planner — exhaustive table (2^10 × scrollBg)", () => {
+  const BOOL_KEYS = [
+    "scrollOffsetChanged",
+    "visibleRangeChanged",
+    "descendantDirty",
+    "hasStickyChildren",
+    "childrenNeedFreshRender",
+    "childrenDirty",
+    "hasPrevBuffer",
+    "ancestorCleared",
+    "contentRegionCleared",
+    "hasOverlappingAbsoluteSibling",
+  ] as const
+
+  /** The restated decision spec (mirror of the documented three-tier strategy). */
+  function referenceModel(i: ScrollPlanInputs): Omit<ScrollPlan, "reasons"> {
+    const shift =
+      i.hasPrevBuffer &&
+      i.scrollOffsetChanged &&
+      !i.descendantDirty &&
+      !i.childrenDirty &&
+      !i.childrenNeedFreshRender &&
+      !i.hasStickyChildren &&
+      !(i.hasOverlappingAbsoluteSibling ?? false)
+    const clear =
+      i.hasPrevBuffer &&
+      !shift &&
+      (i.scrollOffsetChanged || i.childrenDirty || i.childrenNeedFreshRender || i.visibleRangeChanged)
+    const tier = shift ? "shift" : clear ? "clear" : "subtree-only"
+    return {
+      tier,
+      clearBg: shift || clear ? i.scrollBg : null,
+      childHasPrev: clear ? false : i.hasPrevBuffer,
+      childAncestorCleared: clear ? true : i.ancestorCleared || i.contentRegionCleared,
+      stickyForceRefresh: i.hasStickyChildren && i.hasPrevBuffer && !clear,
+    }
+  }
+
+  test("all 2,048 combinations match the restated spec and are deterministic", () => {
+    let checked = 0
+    for (let mask = 0; mask < 1 << BOOL_KEYS.length; mask++) {
+      // Buffer-level Color is `number | {r,g,b} | null` (buffer.ts) — a
+      // RESOLVED cell color, never a hex string (the km 20835 integrate
+      // bounce: '#123456' fails the clean-root typecheck).
+      for (const scrollBg of [null, { r: 0x12, g: 0x34, b: 0x56 }] as const) {
+        const inputs = defaults()
+        inputs.scrollBg = scrollBg
+        BOOL_KEYS.forEach((key, bit) => {
+          inputs[key] = (mask & (1 << bit)) !== 0
+        })
+        const expected = referenceModel(inputs)
+        const actual = planScrollRender(inputs)
+        const actualCore = {
+          tier: actual.tier,
+          clearBg: actual.clearBg,
+          childHasPrev: actual.childHasPrev,
+          childAncestorCleared: actual.childAncestorCleared,
+          stickyForceRefresh: actual.stickyForceRefresh,
+        }
+        expect(actualCore, `mask=${mask} scrollBg=${JSON.stringify(scrollBg)}`).toEqual(expected)
+        // Reasons invariants: SHIFT marker ⟺ shift tier; sticky marker ⟺ flag.
+        expect(actual.reasons.includes("SHIFT"), `SHIFT reason mask=${mask}`).toBe(expected.tier === "shift")
+        expect(actual.reasons.includes("stickyForceRefresh"), `sticky reason mask=${mask}`).toBe(
+          expected.stickyForceRefresh,
+        )
+        // Determinism: a second call with identical inputs is deep-equal.
+        expect(planScrollRender(inputs)).toEqual(actual)
+        checked++
+      }
+    }
+    expect(checked).toBe(2048)
+  })
+})
