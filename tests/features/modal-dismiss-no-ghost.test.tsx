@@ -23,6 +23,11 @@
  *      output diff surface as visible drift even when the buffer is
  *      correct.
  *   3. Repeated open/close cycles to catch cumulative artifacts.
+ *   4. In-flow BG-residue check: bg colors the modal INTRODUCED must not
+ *      survive dismiss on any cell (bg-only residue is invisible to the
+ *      char-plane snapshot — the popover-unmount shape, 12378 finding).
+ *   5. Terminal focus-out/in round-trip after dismiss (12378 acceptance
+ *      item 4): the focus-restore repaint must not resurrect modal cells.
  *
  * Load-bearing layout details (mirroring silvercode's App.tsx):
  *   - Right column has its OWN backgroundColor — without this, the ghost
@@ -154,6 +159,24 @@ function snapshotCells(
   return lines
 }
 
+/** Every distinct non-null bg color present in the frame, as "r,g,b" keys. */
+function collectBgSet(
+  app: {
+    cell: (col: number, row: number) => { bg: { r: number; g: number; b: number } | null }
+  },
+  cols: number,
+  rows: number,
+): Set<string> {
+  const set = new Set<string>()
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const bg = app.cell(x, y).bg
+      if (bg) set.add(`${bg.r},${bg.g},${bg.b}`)
+    }
+  }
+  return set
+}
+
 describe("modal dismiss: no ghost cells", () => {
   test("dismissing HistoryDialog leaves no leftover border or duplicate sidebar text", () => {
     const render = createRenderer({ cols: COLS, rows: ROWS })
@@ -161,6 +184,7 @@ describe("modal dismiss: no ghost cells", () => {
     // Frame 1: closed — establish the baseline.
     const app = render(<App open={false} />)
     const baseline = snapshotCells(app, COLS, ROWS)
+    const baselineBgs = collectBgSet(app, COLS, ROWS)
 
     // Sanity check the baseline contains the SidePanel text exactly once on its row.
     const baselineSidebarRows = baseline.filter((line) => line.includes("SilverCode v0.1.0"))
@@ -170,6 +194,17 @@ describe("modal dismiss: no ghost cells", () => {
     app.rerender(<App open={true} />)
     expect(app.text).toContain("History")
     expect(app.text).toContain("session-id-aaaa")
+
+    // Bg colors the modal INTRODUCED (raised surface, input/list chrome).
+    // Self-validating: the modal must introduce at least one new bg, or
+    // this residue check would be vacuous.
+    const modalOnlyBgs = new Set(
+      [...collectBgSet(app, COLS, ROWS)].filter((c) => !baselineBgs.has(c)),
+    )
+    expect(
+      modalOnlyBgs.size,
+      "modal introduced no new bg color — residue check vacuous",
+    ).toBeGreaterThan(0)
 
     // Frame 3: closed again — modal unmounts.
     app.rerender(<App open={false} />)
@@ -198,6 +233,20 @@ describe("modal dismiss: no ghost cells", () => {
       expect(line, "leftover double-border top-left char").not.toContain("╔")
       expect(line, "leftover double-border bottom-left char").not.toContain("╚")
     }
+
+    // In-flow BG residue: no cell may retain a bg color that only the modal
+    // introduced. Char-plane equality above cannot see this shape (bg-only
+    // cells with a baseline-matching character, e.g. a space).
+    const staleBgCells: string[] = []
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const bg = app.cell(x, y).bg
+        if (bg && modalOnlyBgs.has(`${bg.r},${bg.g},${bg.b}`)) {
+          staleBgCells.push(`(${x},${y})=${bg.r},${bg.g},${bg.b}`)
+        }
+      }
+    }
+    expect(staleBgCells, "cells retaining modal-only bg after dismiss").toEqual([])
   })
 
   test("ANSI output through xterm.js: no ghost cells after dismiss", async () => {
@@ -248,6 +297,21 @@ describe("modal dismiss: no ghost cells", () => {
       expect(line, "leftover double-border horizontal char").not.toContain("═")
       expect(line, "leftover double-border bottom-right char").not.toContain("╝")
     }
+
+    // 12378 acceptance item 4: a terminal focus-out → focus-in round-trip
+    // after dismiss must not resurrect any modal cells — the focus-restore
+    // repaint replays from the runtime's model, never from stale buffer
+    // state. (Raw focus-report bytes; same sendInput cast used by the
+    // fullscreen-reflow-residue and input-routing suites.)
+    const raw = term as unknown as { sendInput(data: string): void }
+    raw.sendInput("\x1b[O")
+    await new Promise((r) => setTimeout(r, 60))
+    raw.sendInput("\x1b[I")
+    await new Promise((r) => setTimeout(r, 60))
+    expect(
+      term.screen!.getText(),
+      "screen changed after focus-out/in round-trip (stale-cell resurrection)",
+    ).toBe(afterDismiss)
 
     handle.unmount()
   })

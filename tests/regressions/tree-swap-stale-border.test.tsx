@@ -80,11 +80,22 @@ function TreeB(): React.ReactElement {
   )
 }
 
-/** Taller tree: shrink-on-swap must clear the rows the new tree no longer covers. */
+/**
+ * Taller tree: shrink-on-swap must clear the rows the new tree no longer
+ * covers. Carries an explicit backgroundColor so the bg-plane oracle
+ * exercises IN-FLOW bg-only residue (the shape a char-plane compare cannot
+ * see; adversarial-verify finding on 12378).
+ */
 function TreeTall(): React.ReactElement {
   return (
     <Box flexDirection="column" width={COLS} height={ROWS}>
-      <Box borderStyle="double" flexDirection="column" width={50} height={12}>
+      <Box
+        borderStyle="double"
+        flexDirection="column"
+        width={50}
+        height={12}
+        backgroundColor="#34384a"
+      >
         <Text>Tall double-border tree</Text>
         <Text>row 2</Text>
         <Text>row 3</Text>
