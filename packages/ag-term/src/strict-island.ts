@@ -6,6 +6,7 @@
  * target-agnostic while the terminal renderer can still enforce the contract.
  */
 
+import { appendFileSync } from "node:fs"
 import { isStrictEnabled } from "./strict-mode"
 import { graphemeWidth } from "./unicode"
 import type { AgNode, Rect } from "@silvery/ag/types"
@@ -90,12 +91,32 @@ const hostFrameMismatchStreak = new WeakMap<
   { cols: number; rows: number; frames: number }
 >()
 
+// Both-side dimension logging (km 20831 half a) — DEBUG_LOG-gated trace of
+// every host-frame/guest-size divergence, independent of the STRICT slug so a
+// live pane's desync is observable without enabling panics. Guest-side mirror:
+// runtime/devices/size.ts `logSize` (install/resize/publish). Convention per
+// scheduler.ts / size.ts: appendFileSync, never crash the runtime.
+function logIslandFrame(message: string): void {
+  const path = process.env.DEBUG_LOG
+  if (!path) return
+  if (process.env.DEBUG && !/silvery(:island|:\*|^)/.test(process.env.DEBUG)) return
+  try {
+    appendFileSync(path, `[silvery:island ${new Date().toISOString()}] ${message}\n`)
+  } catch {
+    // Ignore — instrumentation must never crash the runtime.
+  }
+}
+
 function assertHostFrameContract(handle: IslandHandle, layout: Rect): void {
-  if (!isStrictEnabled("island-host-frame", 2)) return
   if (handle.size.cols === layout.width && handle.size.rows === layout.height) {
     hostFrameMismatchStreak.delete(handle)
     return
   }
+  logIslandFrame(
+    `host-frame divergence: host ${layout.width}x${layout.height} vs guest size-owner ` +
+      `${handle.size.cols}x${handle.size.rows} (buffer ${handle.output.buffer.cols}x${handle.output.buffer.rows})`,
+  )
+  if (!isStrictEnabled("island-host-frame", 2)) return
   const prev = hostFrameMismatchStreak.get(handle)
   const frames =
     prev !== undefined && prev.cols === layout.width && prev.rows === layout.height
