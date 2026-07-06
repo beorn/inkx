@@ -133,6 +133,7 @@ export function getWrappedLines(
 
   for (let li = 0; li < logicalLines.length; li++) {
     const line = logicalLines[li]!
+    const logicalLineEnd = offset + line.length
     // Use trim=true to match the renderer's wrapping behavior.
     // The renderer uses wrapText(text, width, true, true), so cursor math
     // must produce the same visual lines to keep positions synchronized.
@@ -154,9 +155,21 @@ export function getWrappedLines(
       result.push({ line: wLine, startOffset: offset })
       offset += wLine.length
     }
-    // Skip any remaining trailing spaces before the newline
-    while (offset < text.length && text[offset] === " ") {
+    // Text editing cannot drop trailing spaces the way prose rendering can:
+    // the caret must advance through spaces typed at a soft-wrap boundary.
+    // Materialize any spaces that wrapText consumed as editable cells.
+    while (offset < logicalLineEnd && text[offset] === " ") {
+      const last = result[result.length - 1]
+      if (!last || displayWidth(last.line, measurer) >= wrapWidth) {
+        result.push({ line: text[offset]!, startOffset: offset })
+      } else {
+        last.line += text[offset]!
+      }
       offset++
+    }
+    const last = result[result.length - 1]
+    if (li === logicalLines.length - 1 && last && displayWidth(last.line, measurer) >= wrapWidth) {
+      result.push({ line: "", startOffset: offset })
     }
     offset++ // for \n
   }

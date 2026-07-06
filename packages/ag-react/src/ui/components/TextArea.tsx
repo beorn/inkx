@@ -461,6 +461,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         testID={testID}
         flexDirection="column"
         width="100%"
+        minWidth={0}
         height={outerHeight}
         cursorOffset={cursorOffset}
         {...borderProps}
@@ -484,6 +485,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
       key={ta.scrollOffset}
       flexDirection="column"
       width="100%"
+      minWidth={0}
       height={outerHeight}
       cursorOffset={cursorOffset}
       {...borderProps}
