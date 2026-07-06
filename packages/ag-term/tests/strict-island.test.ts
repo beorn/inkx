@@ -403,7 +403,9 @@ describe("island-host-frame (20831 — pane-host frame contract)", () => {
     // Frame 1: divergence tolerated — the resize-ack window.
     expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).not.toThrow()
     // Frame 2: still divergent — the host reframed but the guest never followed.
-    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).toThrow(/island-host-frame/)
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).toThrow(
+      /island-host-frame/,
+    )
   })
 
   it("names both sides of the contract in the violation", () => {
@@ -411,7 +413,9 @@ describe("island-host-frame (20831 — pane-host frame contract)", () => {
     const fake = fakeHandle({ size: { cols: 80, rows: 24 } })
     const node = islandNode({ handle: fake.handle })
     assertIslandRenderInvariants(node, rect(0, 0, 100, 30))
-    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).toThrow(/100x30[\s\S]*80x24/)
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 100, 30))).toThrow(
+      /100x30[\s\S]*80x24/,
+    )
   })
 
   it("stays quiet for a one-frame transient (guest catches up on next paint)", () => {
@@ -436,7 +440,9 @@ describe("island-host-frame (20831 — pane-host frame contract)", () => {
     assertIslandRenderInvariants(node, rect(0, 0, 100, 30))
     // Host frame changed AGAIN before the guest could answer — new window.
     expect(() => assertIslandRenderInvariants(node, rect(0, 0, 120, 40))).not.toThrow()
-    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 120, 40))).toThrow(/island-host-frame/)
+    expect(() => assertIslandRenderInvariants(node, rect(0, 0, 120, 40))).toThrow(
+      /island-host-frame/,
+    )
   })
 
   it("does nothing when the slug is off (tier 1 only)", () => {

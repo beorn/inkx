@@ -85,7 +85,10 @@ export function assertIslandRenderInvariants(node: AgNode, layout: Rect): void {
  * different host frame restarts the window (a live drag-resize is a sequence
  * of one-frame windows, never a violation).
  */
-const hostFrameMismatchStreak = new WeakMap<IslandHandle, { cols: number; rows: number; frames: number }>()
+const hostFrameMismatchStreak = new WeakMap<
+  IslandHandle,
+  { cols: number; rows: number; frames: number }
+>()
 
 function assertHostFrameContract(handle: IslandHandle, layout: Rect): void {
   if (!isStrictEnabled("island-host-frame", 2)) return
@@ -94,7 +97,10 @@ function assertHostFrameContract(handle: IslandHandle, layout: Rect): void {
     return
   }
   const prev = hostFrameMismatchStreak.get(handle)
-  const frames = prev !== undefined && prev.cols === layout.width && prev.rows === layout.height ? prev.frames + 1 : 1
+  const frames =
+    prev !== undefined && prev.cols === layout.width && prev.rows === layout.height
+      ? prev.frames + 1
+      : 1
   hostFrameMismatchStreak.set(handle, { cols: layout.width, rows: layout.height, frames })
   if (frames < 2) return
   throw new Error(
