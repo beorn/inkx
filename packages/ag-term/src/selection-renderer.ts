@@ -94,6 +94,13 @@ export function composeSelectionCells(
   for (let row = startRow; row <= endRow; row++) {
     let colStart = row === startRow ? startCol : 0
     let colEnd = row === endRow ? endCol : buffer.width - 1
+
+    const rowMeta = buffer.getRowMeta(row)
+    if (rowMeta.lastContentCol >= 0) {
+      colEnd = Math.min(colEnd, rowMeta.lastContentCol)
+    }
+    if (colStart > colEnd) continue
+
     // Clip to contain scope on every row so selection highlight never paints
     // outside a `userSelect="contain"` ancestor, even on interior rows.
     if (scope) {
@@ -101,6 +108,9 @@ export function composeSelectionCells(
       colEnd = Math.min(colEnd, scope.right)
       if (colStart > colEnd) continue
     }
+    const firstContentCol = findFirstContentCol(buffer, row, colStart, colEnd, respectSelectableFlag)
+    if (firstContentCol === null) continue
+    colStart = Math.max(colStart, firstContentCol)
 
     for (let col = colStart; col <= colEnd; col++) {
       // Skip continuation cells (second half of wide chars)
@@ -144,6 +154,21 @@ export function composeSelectionCells(
   }
 
   return changes
+}
+
+function findFirstContentCol(
+  buffer: TerminalBuffer,
+  row: number,
+  colStart: number,
+  colEnd: number,
+  respectSelectableFlag: boolean,
+): number | null {
+  for (let col = colStart; col <= colEnd; col++) {
+    if (buffer.isCellContinuation(col, row)) continue
+    if (respectSelectableFlag && !buffer.isCellSelectable(col, row)) continue
+    if (buffer.getCell(col, row).char.trim().length > 0) return col
+  }
+  return null
 }
 
 /**

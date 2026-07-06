@@ -94,6 +94,22 @@ describe("useTextArea hook", () => {
     expect(app.text).toContain("value:controlled")
   })
 
+  test("controlled initial cursor starts at end of initial value", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function TestApp() {
+      const ta = useTextArea({
+        value: "controlled",
+        height: 5,
+        wrapWidth: 40,
+      })
+      return <Text>cursor:{ta.cursor}</Text>
+    }
+
+    const app = r(<TestApp />)
+    expect(app.text).toContain("cursor:10")
+  })
+
   test("computes wrapped lines", () => {
     const r = createRenderer({ cols: 40, rows: 10 })
 
