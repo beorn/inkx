@@ -1,13 +1,25 @@
 import { describe, it, expect } from "vitest"
 import { z } from "zod"
-import { Command } from "../src/index.ts"
+import { Command, colorizeHelp, shouldColorize } from "../src/index.ts"
 
 describe("Command subclass", () => {
-  it("creates a command with colorized help", () => {
+  it("constructor help follows color detection — plain when the environment has no color", () => {
+    // The test environment is non-TTY, so shouldColorize() is false and the
+    // constructor's AUTO colorization must stay plain (NO_COLOR/pipes were
+    // getting ANSI before this contract existed).
     const cmd = new Command("test-app").description("A test app")
     const help = cmd.helpInformation()
-    // Should contain ANSI escape codes (from colorizeHelp in constructor)
-    expect(help).toContain("\x1b[")
+    if (shouldColorize()) {
+      expect(help).toContain("\x1b[")
+    } else {
+      expect(help).not.toContain("\x1b[")
+    }
+  })
+
+  it("explicit colorizeHelp() forces color regardless of detection", () => {
+    const cmd = new Command("test-app").description("A test app")
+    colorizeHelp(cmd)
+    expect(cmd.helpInformation()).toContain("\x1b[")
   })
 
   it("is an instance of Commander's Command", () => {
@@ -72,14 +84,12 @@ describe("Command subclass", () => {
     expect(opts.dryRun).toBe(true)
   })
 
-  it("subcommands also get colorized help", () => {
+  it("explicit colorizeHelp() colorizes subcommands too", () => {
     const cmd = new Command("test").description("Main app")
     cmd.command("serve").option("-p, --port <number>", "Port")
-
-    // Subcommand should also have colorized help
+    colorizeHelp(cmd)
     const sub = cmd.commands.find((c) => c.name() === "serve")!
-    const subHelp = sub.helpInformation()
-    expect(subHelp).toContain("\x1b[")
+    expect(sub.helpInformation()).toContain("\x1b[")
   })
 
   it("chains fluently", () => {
