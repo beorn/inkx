@@ -474,7 +474,12 @@ class _CommandBase extends BaseCommand {
 
   constructor(name?: string) {
     super(name)
-    colorizeHelp(this as any)
+    // Auto-colorize only when color detection says the output supports it.
+    // Unconditional colorization here shipped ANSI codes to pipes and ignored
+    // NO_COLOR (found by gitbay's CLI tests, 2026-07-07): colorizeHelp() is
+    // the explicit "force color" path, so the AUTO path must gate on the same
+    // detection shouldColorize() already exposes.
+    if (shouldColorize()) colorizeHelp(this as any)
     this._capitalizeBuiltinDescriptions()
   }
 
