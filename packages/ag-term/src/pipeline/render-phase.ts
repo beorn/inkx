@@ -2085,16 +2085,19 @@ function renderNormalChildren(
   // Sibling-overlap dirtying. CSS paint order is DOM order: sibling N's
   // pixels appear ON TOP of sibling N-1's pixels at any overlap. Fresh
   // renders preserve this naturally because every child paints. Incremental
-  // renders break it when sibling N is clean (skipped) but sibling N-1
-  // re-renders — sibling N-1's painting wipes sibling N's pixels in the
-  // cloned buffer, and the (skipped) sibling N never restores them.
+  // renders break it when any overlapping sibling is clean (skipped) while
+  // another sibling re-renders or clears in the same pixel region.
   //
-  // The fix: pre-scan the first-pass children. Any child whose rect
-  // intersects an EARLIER first-pass child that will re-render must also
-  // re-render. We propagate this forward in a single linear pass: if child
-  // i will render, every later j>i with overlapping rect is forced to
-  // render too. (Transitive: if j is forced and k>j overlaps j, k is also
-  // forced — handled by checking all earlier-rendered indices.)
+  // The original fix only propagated forward: an earlier rendered sibling
+  // forced later overlapping siblings to repaint. That covered paint-over-paint
+  // cases, but missed the inverse: a later transparent sibling can emit cleanup
+  // over an earlier clean sibling. With SILVERY_RENDER_PLAN's sectioned commit,
+  // that cleanup is intentionally applied before paint; the earlier sibling
+  // still needs to render so its paint op exists after the cleanup section.
+  //
+  // The fix: compute the set of first-pass children that must render to a
+  // fixed point. If any rendered child's paint/cleanup extent overlaps a clean
+  // sibling's current rect, force that sibling too, regardless of DOM order.
   //
   // Real-world repro: km-tui Board layout where the column container
   // (overflow="scroll" with bottom scroll indicator at row N) ends up 1
@@ -2131,26 +2134,41 @@ function renderNormalChildren(
     // beyond its parent's rect into a great-aunt's territory. We compute
     // paint extent lazily and only for children that will render — clean
     // skipped children don't need the walk.
-    for (let i = 0; i < firstPassChildren.length; i++) {
-      if (!willRender[i]) continue
-      const childI = firstPassChildren[i]!
-      const ei = computeSubtreePaintExtent(childI)
-      if (!ei || ei.width <= 0 || ei.height <= 0) continue
-      for (let j = i + 1; j < firstPassChildren.length; j++) {
-        if (willRender[j]) continue
-        // Use the later sibling's boxRect (cheap) for the receiver side —
-        // any descendant of j inside its boxRect is at risk of being
-        // overwritten by i's paint extent. Descendants of j that overflow
-        // j wouldn't be at the row painted by i unless they're also inside
-        // ei — and our recursion-from-i covers any descendant of j that ALSO
-        // happens to fall within ei. We don't need j's full subtree extent.
-        const rj = firstPassChildren[j]!.boxRect
-        if (!rj || rj.width <= 0 || rj.height <= 0) continue
-        const overlapX = ei.x < rj.x + rj.width && rj.x < ei.x + ei.width
-        const overlapY = ei.y < rj.y + rj.height && rj.y < ei.y + ei.height
-        if (overlapX && overlapY) {
-          willRender[j] = true
-          if (instr.enabled) instr.stats.siblingOverlapForced++
+    const paintExtents: (NonNullable<AgNode["boxRect"]> | null | undefined)[] = []
+    const paintExtent = (index: number): NonNullable<AgNode["boxRect"]> | null => {
+      const cached = paintExtents[index]
+      if (cached !== undefined) return cached
+      const child = firstPassChildren[index]
+      if (!child) return null
+      const extent = computeSubtreePaintExtent(child)
+      paintExtents[index] = extent
+      return extent
+    }
+
+    let changed = true
+    while (changed) {
+      changed = false
+      for (let i = 0; i < firstPassChildren.length; i++) {
+        if (!willRender[i]) continue
+        const ei = paintExtent(i)
+        if (!ei || ei.width <= 0 || ei.height <= 0) continue
+        for (let j = 0; j < firstPassChildren.length; j++) {
+          if (i === j || willRender[j]) continue
+          // Use the receiver sibling's boxRect (cheap) for the area it must
+          // restore. Descendant overflow from the rendered side is already
+          // included in `ei`; if that can touch the receiver's current rect,
+          // the receiver must contribute its own final-frame paint ops.
+          const receiver = firstPassChildren[j]
+          if (!receiver) continue
+          const rj = receiver.boxRect
+          if (!rj || rj.width <= 0 || rj.height <= 0) continue
+          const overlapX = ei.x < rj.x + rj.width && rj.x < ei.x + ei.width
+          const overlapY = ei.y < rj.y + rj.height && rj.y < ei.y + ei.height
+          if (overlapX && overlapY) {
+            willRender[j] = true
+            changed = true
+            if (instr.enabled) instr.stats.siblingOverlapForced++
+          }
         }
       }
     }
@@ -2162,7 +2180,8 @@ function renderNormalChildren(
       if (instr.enabled) instr.stats.nodesSkipped++
       continue
     }
-    const child = firstPassChildren[i]!
+    const child = firstPassChildren[i]
+    if (!child) continue
 
     // For overlap-forced children (clean by their own flags but overlapped
     // by an earlier-rendered sibling) we must NOT trust the cloned buffer

@@ -187,4 +187,42 @@ describe("sibling overlap: incremental repaints overlapped later siblings", () =
     app.rerender(<App paintedByA="A row 2 NEW" />)
     expect(app.text).toContain("BOTTOM_BAR_TEXT")
   })
+
+  test("clean earlier sibling repaints when later transparent sibling clears over it", () => {
+    const render = createRenderer({ cols: 12, rows: 5 })
+
+    function Separator() {
+      return (
+        <Box width={1} height={5} flexShrink={0} flexDirection="column">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Text key={i}>│</Text>
+          ))}
+        </Box>
+      )
+    }
+
+    function LaterTransparentOverlay({ expanded }: { expanded: boolean }) {
+      return (
+        <Box width={6} height={5} flexShrink={0} marginLeft={-1} flexDirection="column">
+          <Text>{expanded ? "aa" : "a"}</Text>
+          {expanded ? <Text>bb</Text> : null}
+        </Box>
+      )
+    }
+
+    function App({ expanded }: { expanded: boolean }) {
+      return (
+        <Box width={12} height={5} flexDirection="row">
+          <Separator />
+          <LaterTransparentOverlay expanded={expanded} />
+        </Box>
+      )
+    }
+
+    const app = render(<App expanded={false} />)
+    expect(app.cell(0, 4).char).toBe("│")
+
+    app.rerender(<App expanded={true} />)
+    expect(app.cell(0, 4).char).toBe("│")
+  })
 })
