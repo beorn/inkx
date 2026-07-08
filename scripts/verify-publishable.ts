@@ -385,6 +385,57 @@ import('${entry.name}').then(m => {
   return { name: entry.name, version: pkg.version, ok: true, message: r.stdout.trim() }
 }
 
+// Tarball-size regression gate. A published package that exceeds this almost
+// certainly inlined a native-binary transitive tree (skia/resvg pulled in via an
+// UNDECLARED workspace dep that tsdown then bundled) — the 0.21.0 leak that packed
+// 54-100 MB unpacked, ~8x the legit ~12 MB umbrella. `npm pack` honours `files`/dist,
+// so the dry-run unpacked size ≈ the published size. Ref @silvery/release verdaccio-413.
+const MAX_UNPACKED_BYTES = 25 * 1024 * 1024
+
+async function checkPackSizes() {
+  console.log(
+    "\nTarball-size gate (regression backstop for the 0.21.0 native-binary bundle leak)...",
+  )
+  const oversized: string[] = []
+  for (const entry of PACKAGES) {
+    // Pack the package dir directly, NOT the workspace root — a root pack can hit
+    // npm's overrides-vs-direct-dep conflict, and per-dir matches what publishes anyway.
+    const r = spawnSync("npm", ["pack", "--dry-run", "--json"], {
+      cwd: join(ROOT, entry.dir),
+      encoding: "utf-8",
+      env: { ...process.env, npm_config_registry: "https://registry.npmjs.org/" },
+    })
+    if (r.status !== 0) {
+      console.warn(
+        `  ⚠ ${entry.name}: npm pack --dry-run failed — size not checked (${(r.stderr || "").split("\n")[0]})`,
+      )
+      continue
+    }
+    let unpacked = 0
+    try {
+      const parsed = JSON.parse(r.stdout) as Array<{ unpackedSize?: number }>
+      unpacked = parsed[0]?.unpackedSize ?? 0
+    } catch {
+      console.warn(`  ⚠ ${entry.name}: could not parse npm pack --json — size not checked`)
+      continue
+    }
+    const mb = (unpacked / 1024 / 1024).toFixed(1)
+    if (unpacked > MAX_UNPACKED_BYTES) {
+      oversized.push(
+        `${entry.name}: ${mb} MB unpacked (limit ${(MAX_UNPACKED_BYTES / 1024 / 1024).toFixed(0)} MB)`,
+      )
+      console.error(`  ✗ ${entry.name}: ${mb} MB`)
+    } else {
+      console.log(`  ✓ ${entry.name}: ${mb} MB`)
+    }
+  }
+  if (oversized.length > 0) {
+    fail(
+      `tarball size regression — an undeclared workspace dependency is pulling native binaries into the bundle:\n  - ${oversized.join("\n  - ")}\n  Fix: declare the offending @silvery/* or @termless/* dep so tsdown externalizes it instead of inlining.`,
+    )
+  }
+}
+
 // --- main ---
 
 async function main() {
@@ -392,6 +443,9 @@ async function main() {
   console.log("===========================================\n")
 
   await buildAll()
+
+  // Fail-fast size gate BEFORE the slow verdaccio publish/probe flow.
+  await checkPackSizes()
 
   // Storage / npmrc — fresh tmpdir per run so verdaccio starts empty
   const storage = mkdtempSync(join(tmpdir(), "silvery-verdaccio-"))
