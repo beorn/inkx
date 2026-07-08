@@ -60,6 +60,43 @@ export const SCROLL_INVARIANTS_STRICT_SLUG = "scroll-invariants"
 export const SCROLL_INVARIANTS_STRICT_MIN_TIER = 2
 
 /**
+ * `fresh-layout` (tier 2): the STRICT incremental oracle's fresh-render baseline
+ * force-recomputes layout from scratch (see markLayoutTreeDirty) instead of
+ * sharing the incremental path's cleaned flexily tree. Catches a stale rect from
+ * a layout-affecting change that failed to markDirty flexily — invisible to the
+ * plain `incremental` check because its fresh path skips calculateLayout via the
+ * ag.ts layout-on-demand gate. Tier 2: it doubles the fresh-render layout cost,
+ * and flexily determinism (expectRelayoutMatchesFresh fuzz) keeps it false-
+ * positive-free on clean code. Consumed by scheduler.ts / renderer.ts fresh paths.
+ */
+export const FRESH_LAYOUT_STRICT_SLUG = "fresh-layout"
+export const FRESH_LAYOUT_STRICT_MIN_TIER = 2
+
+/**
+ * Force every layout node in the tree dirty so the next `calculateLayout()`
+ * recomputes every node from its current style/measure inputs — defeating both
+ * the ag.ts layout-on-demand skip gate AND flexily's per-node fingerprint cache.
+ *
+ * Root-first traversal: each non-root `markDirty()` hits an already-dirty
+ * ancestor and stops propagating immediately, so the whole walk is O(N).
+ *
+ * Used ONLY by the `fresh-layout` STRICT slug to build an independent
+ * from-scratch layout baseline for the incremental-vs-fresh comparison. On clean
+ * code the recompute is bit-identical to the cached layout (flexily's
+ * expectRelayoutMatchesFresh fuzz guarantees incremental≡fresh), so this neither
+ * false-positives nor drifts the shared tree; a genuine stale rect surfaces as a
+ * buffer mismatch and the frame throws before a next frame observes the tree.
+ */
+export function markLayoutTreeDirty(root: AgNode): void {
+  const stack: AgNode[] = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()!
+    node.layoutNode?.markDirty()
+    for (const child of node.children) stack.push(child)
+  }
+}
+
+/**
  * Explicit identity props (testid / id / name / nodeId) when present.
  * Returns undefined for anonymous nodes so callers can decide how to
  * disambiguate (structural tag, named-ancestor walk).
@@ -175,7 +212,12 @@ function normalizeScrollOffset(offset: number): number {
  * @param width Terminal width in columns
  * @param height Terminal height in rows
  */
-export function layoutPhase(root: AgNode, width: number, height: number): void {
+export function layoutPhase(
+  root: AgNode,
+  width: number,
+  height: number,
+  forceFullPropagate = false,
+): void {
   // Check if dimensions changed from previous layout
   const prevLayout = root.boxRect
   const dimensionsChanged =
@@ -213,7 +255,13 @@ export function layoutPhase(root: AgNode, width: number, height: number): void {
   // entirely (O(1) rect comparison prunes O(subtree) walk).
   // On dimension change, the root constraint changed so all nodes may get
   // new results — skip nothing, propagate the full tree.
-  const incrementalSkip = !dimensionsChanged
+  //
+  // `forceFullPropagate` (the `fresh-layout` STRICT slug's independent baseline)
+  // also disables the skip: after markLayoutTreeDirty forces a from-scratch
+  // recompute, a stale rect appears as a CHANGED child under an UNCHANGED
+  // ancestor (e.g. a resized item in a fixed-width row), which the parent-match
+  // prune would otherwise drop — leaving boxRect stale and hiding the divergence.
+  const incrementalSkip = !dimensionsChanged && !forceFullPropagate
   propagateLayout(root, 0, 0, incrementalSkip)
 
   // NOTE: Subscribers are NOT notified here anymore.

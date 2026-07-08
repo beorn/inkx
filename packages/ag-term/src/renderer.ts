@@ -49,6 +49,11 @@ import {
 } from "./pipeline/strict-residue.js"
 import { outputPhase } from "./pipeline/output-phase.js"
 import {
+  markLayoutTreeDirty,
+  FRESH_LAYOUT_STRICT_SLUG,
+  FRESH_LAYOUT_STRICT_MIN_TIER,
+} from "./pipeline/layout-phase.js"
+import {
   CURSOR_SAVE as _CURSOR_SAVE,
   CURSOR_RESTORE as _CURSOR_RESTORE,
   kittyDeleteAllScrimPlacements as _kittyDeleteAllScrimPlacements,
@@ -754,6 +759,8 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
        * snapshot set captured by the previous incremental render.
        */
       fresh?: boolean
+      /** Disable propagateLayout's incremental skip — see AgLayoutOptions. */
+      forceFullPropagate?: boolean
     },
   ): {
     output: string
@@ -1067,6 +1074,18 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // backdrop-fade overlay byte-for-byte against the incremental render.
   function doFreshRenderFull(): { buffer: TerminalBuffer; overlay: string } {
     const root = getContainerRoot(instance.container)
+    // `fresh-layout` STRICT slug (tier 2): force an INDEPENDENT from-scratch
+    // layout for the comparison baseline. Without this the fresh render shares
+    // the incremental path's just-cleaned flexily tree — the ag.ts layout-on-
+    // demand gate skips calculateLayout, so a stale rect (a layout-affecting
+    // change that failed to markDirty flexily) is shared by both paths and the
+    // `incremental` check stays green while the layout is wrong. Deterministic
+    // on clean code (flexily expectRelayoutMatchesFresh fuzz) → no false
+    // positive, no shared-tree drift. See markLayoutTreeDirty.
+    const freshLayout = isStrictEnabled(FRESH_LAYOUT_STRICT_SLUG, FRESH_LAYOUT_STRICT_MIN_TIER)
+    if (freshLayout) {
+      markLayoutTreeDirty(root)
+    }
     const { buffer, overlay } = runPipeline(root, instance.columns, instance.rows, null, {
       skipLayoutNotifications: true,
       skipScrollStateUpdates: true,
@@ -1074,6 +1093,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       // observe or mutate `instance.postState` (which is owned by the
       // incremental path).
       fresh: true,
+      // fresh-layout baseline: write every recomputed rect to boxRect (the
+      // parent-match skip would otherwise drop a stale child under an unchanged
+      // ancestor and hide the divergence).
+      forceFullPropagate: freshLayout,
     })
     return { buffer, overlay }
   }
