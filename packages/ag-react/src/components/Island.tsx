@@ -231,6 +231,16 @@ export const Island = forwardRef(function Island(
   // at mount with `null` and never again. @km/silvery/19426.
   const [handleEpoch, setHandleEpoch] = useState(0)
 
+  // Latest grid dims for the handle-resolve reconcile below. The host-driven
+  // resize effect early-returns while `init()` is still in flight (no handle
+  // yet), so a cols/rows change landing in that window would otherwise be
+  // dropped — the guest would sit at its init-time dims until the NEXT host
+  // resize (20992 geometry law; hab reattach "keeps stale dims" symptom).
+  const colsRef = useRef(cols)
+  colsRef.current = cols
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
+
   useEffect(() => {
     const node = nodeRef.current
     if (!autoFocus || !focusable || !node || !focusManager) return
@@ -354,11 +364,19 @@ export const Island = forwardRef(function Island(
         }
 
         void handleReady.then(
-          () => {
+          (handle) => {
             queueMicrotask(subscribeWhenAttached)
             // Refresh the imperative ref now that the handle exists so
             // callback-ref consumers receive it. @km/silvery/19426.
             if (slot.alive) setHandleEpoch((e) => e + 1)
+            // Reconcile to the host's LATEST grid. The resize effect below
+            // no-ops while the handle is null, so any cols/rows change that
+            // landed during init would be dropped without this replay. Two-
+            // phase protocol: we only REQUEST; the guest acknowledges on its
+            // next paint.
+            if (slot.alive && (handle.size.cols !== colsRef.current || handle.size.rows !== rowsRef.current)) {
+              handle.size.requestResize(colsRef.current, rowsRef.current)
+            }
           },
           () => {
             // createIsland routes init failures through onError / ErrorBoundary.
