@@ -27,8 +27,37 @@ import {
   hasObservedLayoutSignal,
 } from "@silvery/ag/layout-signals"
 import { logPass, recordPassRing, INSTRUMENT } from "../runtime/pass-cause"
+import { isStrictEnabled } from "../strict-mode"
 
 const log = createLogger("silvery:layout")
+
+// ============================================================================
+// SILVERY_STRICT slugs for the layout-phase self-consistency invariants.
+//
+// These checks predated the slug system: they read `process.env.SILVERY_STRICT`
+// directly and gated `throw` on `strict === "2"` (exact string match), so any
+// compound tier spec (`incremental,2`, `1,2`, `2,3`) silently downgraded them to
+// warn-only. Routing through `isStrictEnabled(slug, minTier)` fixes composability
+// (they now throw under any tier >= their minTier, and honor `!slug` disables)
+// WITHOUT changing plain tier-1 / tier-2 default behavior.
+//
+// Tiers match each check's historical effective tier:
+//   - layout-flag       tier 1 — always threw at any truthy SILVERY_STRICT
+//   - layout-overflow   tier 2 — threw only at "2", warned otherwise
+//   - scroll-invariants tier 2 — threw only at "2", warned otherwise
+// ============================================================================
+
+/** layoutChangedThisFrame vs prevLayout!=boxRect consistency (throws on violation). */
+export const LAYOUT_FLAG_STRICT_SLUG = "layout-flag"
+export const LAYOUT_FLAG_STRICT_MIN_TIER = 1
+
+/** Child overflows parent inner width (warn at tier 1, throw at tier 2). */
+export const LAYOUT_OVERFLOW_STRICT_SLUG = "layout-overflow"
+export const LAYOUT_OVERFLOW_STRICT_MIN_TIER = 2
+
+/** Scroll/sticky offset + visibility invariants (warn at tier 1, throw at tier 2). */
+export const SCROLL_INVARIANTS_STRICT_SLUG = "scroll-invariants"
+export const SCROLL_INVARIANTS_STRICT_MIN_TIER = 2
 
 /**
  * Explicit identity props (testid / id / name / nodeId) when present.
@@ -311,7 +340,10 @@ function propagateLayout(
   // STRICT invariant: if layoutChangedThisFrame is current epoch, prevLayout must differ from boxRect.
   // This validates that the flag is consistent with the actual rect comparison. A violation
   // would mean the flag is set spuriously, causing unnecessary re-renders and cascade propagation.
-  if (process?.env?.SILVERY_STRICT && isCurrentEpoch(node.layoutChangedThisFrame)) {
+  if (
+    isStrictEnabled(LAYOUT_FLAG_STRICT_SLUG, LAYOUT_FLAG_STRICT_MIN_TIER) &&
+    isCurrentEpoch(node.layoutChangedThisFrame)
+  ) {
     if (rectEqual(node.prevLayout, node.boxRect)) {
       const props = node.props as BoxProps
       throw new Error(
@@ -748,10 +780,10 @@ export function notifyLayoutSubscribers(node: AgNode): void {
  * - Child has position: "absolute" (absolute nodes can overflow)
  */
 export function strictLayoutOverflowCheck(root: AgNode): void {
-  const strict = process?.env?.SILVERY_STRICT
-  if (!strict) return
+  // Runs at tier 1 (warn) and above; throws at the slug's min-tier (2) and above.
+  if (!isStrictEnabled(LAYOUT_OVERFLOW_STRICT_SLUG, 1)) return
 
-  const shouldThrow = strict === "2"
+  const shouldThrow = isStrictEnabled(LAYOUT_OVERFLOW_STRICT_SLUG, LAYOUT_OVERFLOW_STRICT_MIN_TIER)
 
   function walk(node: AgNode): void {
     for (const child of node.children) {
@@ -1372,10 +1404,13 @@ function strictScrollInvariants(
   lastVisible: number,
   stickyChildren: NonNullable<AgNode["scrollState"]>["stickyChildren"] & object,
 ): void {
-  const strict = process?.env?.SILVERY_STRICT
-  if (!strict) return
+  // Runs at tier 1 (warn) and above; throws at the slug's min-tier (2) and above.
+  if (!isStrictEnabled(SCROLL_INVARIANTS_STRICT_SLUG, 1)) return
 
-  const shouldThrow = strict === "2"
+  const shouldThrow = isStrictEnabled(
+    SCROLL_INVARIANTS_STRICT_SLUG,
+    SCROLL_INVARIANTS_STRICT_MIN_TIER,
+  )
   const nodeId = (props as any).id ?? node.type
   const report = (msg: string): void => {
     const full = `[SILVERY_STRICT] ${msg} (node: ${nodeId})`

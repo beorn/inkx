@@ -17,6 +17,14 @@
  * pick a slug + a tier and inherit the umbrella behavior — `bun run
  * test:fast` (which sets `SILVERY_STRICT=1` by default) gets every new
  * check without anyone touching env config.
+ *
+ * Slug + min-tier constants live BESIDE each check (the codebase convention),
+ * never in a central registry here. Examples: `RESIDUE_STRICT_SLUG` in
+ * pipeline/strict-residue.ts; `LAYOUT_FLAG_STRICT_SLUG` (tier 1),
+ * `LAYOUT_OVERFLOW_STRICT_SLUG` (tier 2), and `SCROLL_INVARIANTS_STRICT_SLUG`
+ * (tier 2) in pipeline/layout-phase.ts. Because they all route through
+ * `isStrictEnabled`, a compound spec (`incremental,2`) throws every tier-2
+ * check and a `!slug` suffix (`2,!layout-overflow`) disables exactly one.
  */
 
 export interface StrictModeQuery {
