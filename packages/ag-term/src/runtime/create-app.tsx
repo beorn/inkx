@@ -2886,6 +2886,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       applyFocusedIslandProtocolModes("subtree-removed")
     },
     onNodeUpdated: (updatedNode) => focusManager.handleNodeUpdated(updatedNode),
+    onSubtreeAttached: (attachedRoot) => focusManager.handleSubtreeAttached(attachedRoot),
   })
 
   // Create React fiber root.

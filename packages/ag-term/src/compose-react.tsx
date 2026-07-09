@@ -77,6 +77,7 @@ export function withReact(element: ReactElement) {
     setContainerNodeLifecycle(container, {
       onNodeRemoved: (removedNode) => focusManager.handleSubtreeRemoved(removedNode),
       onNodeUpdated: (updatedNode) => focusManager.handleNodeUpdated(updatedNode),
+      onSubtreeAttached: (attachedRoot) => focusManager.handleSubtreeAttached(attachedRoot),
     })
 
     const fiberRoot = createFiberRoot(container)

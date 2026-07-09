@@ -177,6 +177,14 @@ function normalizeNodeType(type: string): AgNodeType {
 export interface NodeLifecycleObserver {
   onNodeRemoved?: (removedNode: AgNode) => void
   onNodeUpdated?: (updatedNode: AgNode) => void
+  /**
+   * A subtree was attached during the commit phase (fresh mount or keyed
+   * move). React attaches a mounted subtree via ONE parent-level operation —
+   * descendants never pass through the attach hooks individually — so
+   * observers that react to node arrival (e.g. virtual-focus promotion,
+   * 20992 f2) receive the subtree ROOT and search within it.
+   */
+  onSubtreeAttached?: (attachedRoot: AgNode) => void
 }
 
 // Module-instance-shared via globalThis for the same reason as nodeScopes
@@ -236,6 +244,10 @@ function notifyNodeRemoved(container: Container | undefined, removedNode: AgNode
 
 function notifyNodeUpdated(updatedNode: AgNode): void {
   getOwningContainer(updatedNode)?.nodeLifecycle?.onNodeUpdated?.(updatedNode)
+}
+
+function notifySubtreeAttached(container: Container | undefined, attachedRoot: AgNode): void {
+  container?.nodeLifecycle?.onSubtreeAttached?.(attachedRoot)
 }
 
 // ============================================================================
@@ -601,6 +613,7 @@ export const hostConfig = {
     trackContentDirty(parentInstance)
     markLayoutAncestorDirty(parentInstance)
     markSubtreeDirty(parentInstance)
+    notifySubtreeAttached(container, child)
   },
 
   appendInitialChild(parentInstance: AgNode, child: AgNode) {
@@ -641,6 +654,7 @@ export const hostConfig = {
     container.root.layoutNode?.markDirty()
     trackContentDirty(container.root)
     markSubtreeDirty(container.root)
+    notifySubtreeAttached(container, child)
   },
 
   removeChild(parentInstance: AgNode, child: AgNode) {
@@ -737,6 +751,7 @@ export const hostConfig = {
       trackContentDirty(parentInstance)
       markLayoutAncestorDirty(parentInstance)
       markSubtreeDirty(parentInstance)
+      notifySubtreeAttached(container, child)
     }
   },
 
@@ -770,6 +785,7 @@ export const hostConfig = {
       container.root.layoutNode?.markDirty()
       trackContentDirty(container.root)
       markSubtreeDirty(container.root)
+      notifySubtreeAttached(container, child)
     }
   },
 

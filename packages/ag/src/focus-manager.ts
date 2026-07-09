@@ -135,8 +135,21 @@ export interface FocusManager {
    * Handle a mounted node's props/state being updated.
    * If the active focus target is no longer focusable or has become hidden,
    * clear focus so focused-element input dispatch falls back to host handlers.
+   * Symmetrically, if VIRTUAL focus is pending (`activeId` set, no
+   * `activeElement`) and this update made the matching node focusable, promote
+   * it to real focus (Law 3 — looks-focused ≡ receives-input; 20992 f2).
    */
   handleNodeUpdated(updatedNode: AgNode): void
+
+  /**
+   * Handle a subtree being ATTACHED to the tree (commit-phase mount or move).
+   * If virtual focus is pending and the subtree carries a focusable node whose
+   * testID matches `activeId`, promote it to real focus — the intent landed
+   * before the node existed, and no consumer retry should be needed (the hab
+   * 20989 looks-focused-but-no-input class; 20992 f2). O(1) unless virtual
+   * focus is actually pending.
+   */
+  handleSubtreeAttached(attachedRoot: AgNode): void
 
   /** Push a focus scope onto the stack */
   enterScope(scopeId: string): void
@@ -506,6 +519,33 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     if (changed) {
       notify()
     }
+
+    // Promotion window (b): the node existed when focus was requested but was
+    // not focusable yet (e.g. a gated `focusable` prop committing later), so
+    // the request fell into the virtual arm. This update may have flipped it.
+    maybePromoteVirtualFocus(updatedNode)
+  }
+
+  /**
+   * Promote pending VIRTUAL focus (activeId set, activeElement null) to the
+   * real node when a matching focusable target exists under `searchRoot`.
+   * Never steals: a real activeElement short-circuits immediately. Resolution
+   * mirrors focusById exactly (findByTestID + nearest focusable ancestor), so
+   * promoted focus is indistinguishable from a direct hit.
+   */
+  function maybePromoteVirtualFocus(searchRoot: AgNode): void {
+    if (activeId === null || activeElement !== null) return
+    const node = findByTestID(searchRoot, activeId)
+    if (!node) return
+    const focusable = findFocusableAncestor(node)
+    if (!focusable) return
+    focus(focusable, focusOrigin ?? "programmatic")
+  }
+
+  function handleSubtreeAttached(attachedRoot: AgNode): void {
+    // Promotion window (a): the focus intent landed before the subtree carrying
+    // the target was committed. O(1) early-exit unless virtual focus is pending.
+    maybePromoteVirtualFocus(attachedRoot)
   }
 
   // ---- Scope management ----
@@ -769,6 +809,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     blur,
     handleSubtreeRemoved,
     handleNodeUpdated,
+    handleSubtreeAttached,
 
     enterScope,
     exitScope,

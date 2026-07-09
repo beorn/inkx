@@ -606,6 +606,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   setContainerNodeLifecycle(instance.container, {
     onNodeRemoved: (removedNode) => focusManager.handleSubtreeRemoved(removedNode),
     onNodeUpdated: (updatedNode) => focusManager.handleNodeUpdated(updatedNode),
+    onSubtreeAttached: (attachedRoot) => focusManager.handleSubtreeAttached(attachedRoot),
   })
 
   // Per-instance cursor state (replaces module-level globals)
