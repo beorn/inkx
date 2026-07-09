@@ -133,6 +133,24 @@ function keyToIslandAnsi(input: string, key: Key): string {
   const main = name || input
   if (!main) return ""
   const modifiers = keyToModifiers(key)
+  // Plain printable key — no named special key AND no ctrl/meta/super/hyper
+  // chord — feeds the guest the ACTUAL typed character. parseKey normalizes
+  // shifted punctuation to its base key in `input` for keybinding matching
+  // (`$` → input="4", key.shift=true) while preserving the real char in
+  // `key.text` (silvery's two-layer contract; @silvery/ag/keys). Rebuilding
+  // guest bytes from `input` would send "4" to the shell for a typed "$" — the
+  // A4 shift-strip regression. Shift stays on this path (it's already baked
+  // into key.text); meta/alt deliberately does NOT — a meta flag means the
+  // terminal sent an Option-as-Meta ESC-prefixed sequence, and a shell needs
+  // that ESC prefix (Alt+b/Alt+f readline word motion), which the chord path
+  // below emits via keyToAnsi("Meta+…"). Option-as-compose produces its
+  // composed char with NO meta flag, so it already flows through here as
+  // key.text. This mirrors the TextInput/useTextInput text-insertion contract
+  // (`key.text ?? input`, ctrl/super/hyper suppressed); `?? input` is the safe
+  // fallback for any printable whose key.text wasn't populated.
+  if (!name && !modifiers.ctrl && !modifiers.meta && !modifiers.super && !modifiers.hyper) {
+    return key.text ?? input
+  }
   const parts: string[] = []
   if (modifiers.ctrl) parts.push("Control")
   if (modifiers.meta) parts.push("Meta")

@@ -11,6 +11,7 @@ import React from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Island, Text, useInput } from "@silvery/ag-react"
 import { createCellBuffer } from "@silvery/ag/viewport-buffer"
+import { keyToAnsi, parseKey } from "@silvery/ag/keys"
 import { createTermless } from "@silvery/test"
 import type {
   IslandGuest,
@@ -259,4 +260,70 @@ describe("focused Island input routing", () => {
       handle.unmount()
     }
   })
+})
+
+// All 21 US-QWERTY shifted-punctuation pairs: [base key, shifted char]. Typing
+// the shifted char emits silvery's two-layer key event (keys.ts): `input` is
+// normalized to the BASE key for keybinding matching (`$` → "4", key.shift),
+// while `key.text` carries the REAL typed character (`$`). A focused terminal
+// guest must be fed the real character — feeding the normalized base key sends
+// "4" to the shell for a typed "$" (the A4 shift-strip regression).
+const SHIFTED_PUNCT_PAIRS: ReadonlyArray<readonly [base: string, shifted: string]> = [
+  ["1", "!"],
+  ["2", "@"],
+  ["3", "#"],
+  ["4", "$"],
+  ["5", "%"],
+  ["6", "^"],
+  ["7", "&"],
+  ["8", "*"],
+  ["9", "("],
+  ["0", ")"],
+  ["-", "_"],
+  ["=", "+"],
+  ["`", "~"],
+  ["[", "{"],
+  ["]", "}"],
+  ["\\", "|"],
+  [";", ":"],
+  ["'", '"'],
+  [",", "<"],
+  [".", ">"],
+  ["/", "?"],
+]
+
+describe("focused Island shifted-punctuation feed (A4 shift-strip)", () => {
+  test.each(SHIFTED_PUNCT_PAIRS)(
+    "typing Shift+%s feeds the real char %s to the guest, not the base key",
+    async (base, shifted) => {
+      // Pressing Shift+<base> is the physically faithful, mode-independent way
+      // to type the shifted char: it parses to the two-layer event in BOTH the
+      // legacy and kitty harnesses (input=base, key.text=shifted). Guard that
+      // the routing precondition holds before asserting the guest feed — this
+      // is the exact keyToAnsi→parseKey path the legacy press() harness runs.
+      const [parsedInput, parsedKey] = parseKey(keyToAnsi(`Shift+${base}`))
+      expect(parsedInput).toBe(base)
+      expect(parsedKey.text).toBe(shifted)
+
+      using term = createTermless({ cols: 40, rows: 8 })
+      const recorder = createInputRecorderGuest()
+
+      const handle = await run(
+        <Box flexDirection="column">
+          <Island guest={recorder.guest} cols={10} rows={2} focusable />
+          <Text>after</Text>
+        </Box>,
+        term,
+      )
+      try {
+        await handle.press("Tab")
+        await handle.press(`Shift+${base}`)
+        await settle()
+
+        expect(recorder.feeds).toEqual([shifted])
+      } finally {
+        handle.unmount()
+      }
+    },
+  )
 })
