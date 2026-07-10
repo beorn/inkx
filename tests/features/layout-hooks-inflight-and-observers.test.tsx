@@ -355,3 +355,32 @@ describe("integration: in-flight + observer can coexist", () => {
     expect(app.text).toContain("combo-w=25")
   })
 })
+
+describe("observer-driven React state (waitForLayoutStable contract)", () => {
+  // Regression: the commit-boundary observer fires during the initial render's
+  // settle pass, but a setState made INSIDE that observer lands in React's
+  // concurrent queue, whose scheduler callback posts on a MACROTASK. The
+  // waitForLayoutStable drain awaited only microtasks, so it declared the tree
+  // "stable" while the update sat unflushed forever — consumers that lift the
+  // committed rect into React state (e.g. a measure-probe feeding a positioned
+  // overlay) stayed on the empty-rect fallback for the test's whole lifetime.
+  test("an observer callback that drives React state materializes by waitForLayoutStable", async () => {
+    const r = createRenderer({ cols: 60, rows: 4 })
+
+    function MeasuredLabel() {
+      const [size, setSize] = React.useState({ w: 0, h: 0 })
+      useOnBoxRectCommitted((rect) =>
+        setSize((prev) => (prev.w === rect.width && prev.h === rect.height ? prev : { w: rect.width, h: rect.height })),
+      )
+      return <Text>{`measured ${size.w}x${size.h}`}</Text>
+    }
+
+    const app = r(
+      <Box width={40} height={3} flexDirection="column">
+        <MeasuredLabel />
+      </Box>,
+    )
+    await app.waitForLayoutStable()
+    expect(app.text).toContain("measured 40x3")
+  })
+})
