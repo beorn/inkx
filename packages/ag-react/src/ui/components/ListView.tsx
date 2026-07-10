@@ -315,7 +315,7 @@ function resolveTailReserveMaxRows(baseRows: number, viewportHeight: number): nu
 
 export interface ListViewProps<T> {
   /** Array of items to render */
-  items: T[]
+  items: readonly T[]
 
   /**
    * Height of the viewport in rows.

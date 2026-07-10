@@ -302,9 +302,10 @@ export class DOMRenderBuffer implements RenderBuffer {
       const sortedRuns = runs.sort((a, b) => a.x - b.x)
 
       for (const run of sortedRuns) {
-        const span = document.createElement("span")
+        const span = document.createElement(run.style.hyperlink === undefined ? "span" : "a")
         span.className = `${this.config.classPrefix}-text`
         span.textContent = run.text
+        if (run.style.hyperlink !== undefined) span.setAttribute("href", run.style.hyperlink)
 
         // Apply styles (convert cell x to pixel x)
         const styles: string[] = [`position: absolute`, `left: ${run.x * cw}px`]

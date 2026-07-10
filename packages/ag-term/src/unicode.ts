@@ -162,13 +162,69 @@ export interface Measurer {
   sliceByWidthFromEnd(text: string, maxWidth: number): string
 }
 
-/**
- * Strip OSC 8 hyperlink sequences before passing to slice-ansi.
- * slice-ansi doesn't understand OSC sequences and corrupts them.
- */
-const OSC8_RE = /\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)/g
+// eslint-disable-next-line no-control-regex -- OSC 8 is a terminal control sequence.
+const OSC8_RE = /\x1b\]8;;([^\x07\x1b]*)(?:\x07|\x1b\\)/g
+const OSC8_CLOSE = "\x1b]8;;\x1b\\"
+
 function stripOsc8ForSlice(text: string): string {
   return text.replace(OSC8_RE, "")
+}
+
+type HyperlinkRange = Readonly<{ start: number; end: number; href: string }>
+
+/** Find hyperlink ranges in visible columns without asking slice-ansi to parse OSC. */
+function hyperlinkRanges(text: string, measure: (value: string) => number): HyperlinkRange[] {
+  const ranges: HyperlinkRange[] = []
+  let cursor = 0
+  let column = 0
+  let active: { href: string; start: number } | undefined
+
+  for (const match of text.matchAll(OSC8_RE)) {
+    const index = match.index
+    column += measure(text.slice(cursor, index))
+    if (active !== undefined) ranges.push({ ...active, end: column })
+    const href = match[1]!
+    active = href === "" ? undefined : { href, start: column }
+    cursor = index + match[0].length
+  }
+
+  column += measure(text.slice(cursor))
+  if (active !== undefined) ranges.push({ ...active, end: column })
+  return ranges.filter((range) => range.end > range.start)
+}
+
+/** Slice ANSI text by columns while retaining OSC 8 on the visible linked runs. */
+function sliceAnsiWithHyperlinks(
+  text: string,
+  start: number,
+  end: number | undefined,
+  measure: (value: string) => number,
+): string {
+  const cleaned = stripOsc8ForSlice(text)
+  const from = Math.max(0, start)
+  const to = Math.min(measure(cleaned), end ?? Number.POSITIVE_INFINITY)
+  if (to <= from) return ""
+
+  const ranges = hyperlinkRanges(text, measure)
+  if (ranges.length === 0) return sliceAnsi(cleaned, from, to)
+
+  const boundaries = new Set([from, to])
+  for (const range of ranges) {
+    if (range.end <= from || range.start >= to) continue
+    boundaries.add(Math.max(from, range.start))
+    boundaries.add(Math.min(to, range.end))
+  }
+
+  const points = [...boundaries].sort((left, right) => left - right)
+  let result = ""
+  for (let index = 0; index < points.length - 1; index++) {
+    const left = points[index]!
+    const right = points[index + 1]!
+    const content = sliceAnsi(cleaned, left, right)
+    const range = ranges.find((candidate) => candidate.start <= left && candidate.end > left)
+    result += range === undefined ? content : `\x1b]8;;${range.href}\x1b\\${content}${OSC8_CLOSE}`
+  }
+  return result
 }
 
 /**
@@ -219,7 +275,9 @@ export function createMeasurer(
 
   function measuredSliceByWidth(text: string, maxWidth: number): string {
     if (hasAnsi(text)) {
-      return sliceAnsi(stripOsc8ForSlice(text), 0, maxWidth)
+      return text.includes("\x1b]8;;")
+        ? sliceAnsiWithHyperlinks(text, 0, maxWidth, measuredDisplayWidthAnsi)
+        : sliceAnsi(text, 0, maxWidth)
     }
     let width = 0
     let result = ""
@@ -237,10 +295,10 @@ export function createMeasurer(
     const totalWidth = measuredDisplayWidthAnsi(text)
     if (totalWidth <= maxWidth) return text
     if (hasAnsi(text)) {
-      const cleaned = stripOsc8ForSlice(text)
-      const cleanedWidth = measuredDisplayWidthAnsi(cleaned)
-      const startIndex = cleanedWidth - maxWidth
-      return sliceAnsi(cleaned, startIndex)
+      const startIndex = totalWidth - maxWidth
+      return text.includes("\x1b]8;;")
+        ? sliceAnsiWithHyperlinks(text, startIndex, undefined, measuredDisplayWidthAnsi)
+        : sliceAnsi(text, startIndex)
     }
     const graphemes = splitGraphemes(text)
     let width = 0
