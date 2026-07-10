@@ -145,6 +145,7 @@ export function clearBgConflictWarnings(): void {
  * Tracks cumulative styles through the tree to enable proper push/pop behavior.
  */
 interface StyleContext {
+  hyperlink?: string
   color?: string
   backgroundColor?: string
   bold?: boolean
@@ -231,6 +232,12 @@ function styleToAnsi(style: StyleContext): string {
   return `\x1b[${parts.join(";")}m`
 }
 
+function hyperlinkOpen(href: string): string {
+  return `\x1b]8;;${href}\x1b\\`
+}
+
+const HYPERLINK_CLOSE = "\x1b]8;;\x1b\\"
+
 /**
  * Merge child props into parent context.
  * Child values override parent values when specified.
@@ -262,6 +269,7 @@ function mergeStyleContext(parent: StyleContext, childProps: TextProps): StyleCo
   }
 
   return {
+    hyperlink: childProps.internal_hyperlink ?? parent.hyperlink,
     color: effectiveChildColor ?? parent.color,
     backgroundColor: childProps.backgroundColor ?? parent.backgroundColor,
     bold: childProps.bold ?? parent.bold,
@@ -295,15 +303,25 @@ function applyTextStyleAnsi(
 
   const childAnsi = styleToAnsi(childStyle)
   const parentAnsi = styleToAnsi(parentStyle)
+  const linkChanged = childStyle.hyperlink !== parentStyle.hyperlink
 
   // If child has no style changes, just return text
-  if (!childAnsi) {
+  if (!childAnsi && !linkChanged) {
     return text
   }
 
-  // Apply child style, then reset and re-apply parent style
-  // We use \x1b[0m to reset, then re-apply parent styles
-  return `${childAnsi}${text}\x1b[0m${parentAnsi}`
+  const openLink = !linkChanged
+    ? ""
+    : childStyle.hyperlink === undefined
+      ? HYPERLINK_CLOSE
+      : hyperlinkOpen(childStyle.hyperlink)
+  const restoreLink = !linkChanged
+    ? ""
+    : parentStyle.hyperlink === undefined
+      ? HYPERLINK_CLOSE
+      : hyperlinkOpen(parentStyle.hyperlink)
+  const restoreStyle = childAnsi === "" ? "" : `\x1b[0m${parentAnsi}`
+  return `${openLink}${childAnsi}${text}${restoreStyle}${restoreLink}`
 }
 
 /**
@@ -1865,6 +1883,7 @@ export function mergeStyles(
   attrs.blink = overlayAttrs.blink
 
   return {
+    hyperlink: overlay.hyperlink ?? base.hyperlink,
     // Container/Text: overlay wins if specified
     fg: overlay.fg ?? base.fg,
     bg: overlay.bg ?? base.bg,
@@ -2094,6 +2113,7 @@ export function renderText(
   }
 
   const rootContext: StyleContext = {
+    hyperlink: props.internal_hyperlink,
     color: props.color,
     backgroundColor: props.backgroundColor,
     bold: props.bold,
@@ -2128,6 +2148,7 @@ export function renderText(
   // Get style for this Text node.
   // Inherit foreground from nearest ancestor Box with color prop (CSS semantics).
   const style = getTextStyle(props)
+  style.hyperlink = props.internal_hyperlink
   if (style.fg === null && inheritedFg !== undefined) {
     style.fg = inheritedFg
   }

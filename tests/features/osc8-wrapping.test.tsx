@@ -112,6 +112,22 @@ describe("Link component: OSC 8 wrapping in rendered output", () => {
     expect(text).not.toContain("\\")
     expect(text).toContain("Hello")
   })
+
+  test("truncated Link text retains its hyperlink target", () => {
+    const href = "file:///repo/.bays/B1"
+    const render = createRenderer({ cols: 8, rows: 2 })
+    const app = render(
+      <Box width={8} overflow="hidden">
+        <Text minWidth={0} maxWidth="100%" wrap="truncate">
+          <Link href={href}>/repo/.bays/B1</Link>
+        </Text>
+      </Box>,
+    )
+
+    expect(app.text).toContain("…")
+    expect(app.ansi).toContain(href)
+    expect(malformedOsc8(app.ansi)).toBe(0)
+  })
 })
 
 /**

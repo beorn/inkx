@@ -28,18 +28,6 @@ import { useModifierKeys } from "../hooks/useModifierKeys"
 import { ChainAppContext } from "../context"
 
 // ============================================================================
-// OSC 8 Escape Sequences
-// ============================================================================
-
-/** Open an OSC 8 hyperlink. Format: ESC ] 8 ; params ; URI ST */
-function osc8Open(href: string): string {
-  return `\x1b]8;;${href}\x1b\\`
-}
-
-/** Close an OSC 8 hyperlink. Format: ESC ] 8 ; ; ST */
-const OSC8_CLOSE = "\x1b]8;;\x1b\\"
-
-// ============================================================================
 // Props
 // ============================================================================
 
@@ -106,6 +94,7 @@ export function Link({
   return (
     <Text
       color={color}
+      internal_hyperlink={href}
       mouseCursor={armed ? "pointer" : undefined}
       {...rest}
       onClick={handleClick}
@@ -118,9 +107,7 @@ export function Link({
         onMouseLeave?.(e)
       }}
     >
-      {osc8Open(href)}
       {children}
-      {OSC8_CLOSE}
     </Text>
   )
 }

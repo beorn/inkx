@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, Table } from "silvery"
+import { Text, Table } from "silvery"
 
 const render = createRenderer({ cols: 80, rows: 20 })
 
@@ -17,7 +17,7 @@ const render = createRenderer({ cols: 80, rows: 20 })
 
 type Person = { name: string; age: number; city: string }
 
-const people: Person[] = [
+const people: readonly Person[] = [
   { name: "Alice", age: 30, city: "New York" },
   { name: "Bob", age: 25, city: "San Francisco" },
   { name: "Charlie", age: 35, city: "Chicago" },
@@ -165,6 +165,39 @@ describe("Table", () => {
     expect(app.text).toContain("junior")
   })
 
+  test("uses a rendered column's key for shared intrinsic sizing", () => {
+    const app = render(
+      <Table
+        columns={[
+          {
+            header: "STATE",
+            key: "state",
+            render: (item) => <Text color="$fg-success">{item.state}</Text>,
+          },
+          { header: "NEXT", key: "next" },
+        ]}
+        data={[{ state: "integrated", next: "visible" }]}
+      />,
+    )
+
+    expect(app.lines[0]!.indexOf("NEXT")).toBe("integrated".length + 2)
+  })
+
+  test("uses intrinsic content as the basis for growing columns", () => {
+    const narrow = createRenderer({ cols: 30, rows: 10 })
+    const app = narrow(
+      <Table
+        columns={[
+          { header: "A", key: "a", grow: true },
+          { header: "B", key: "b", grow: true },
+        ]}
+        data={[{ a: "substantive", b: "x" }]}
+      />,
+    )
+
+    expect(app.lines[0]!.indexOf("B")).toBeGreaterThan(15)
+  })
+
   test("showHeader=false hides header", () => {
     const app = render(
       <Table
@@ -256,5 +289,30 @@ describe("Table", () => {
     const headerLine = lines[0]!
     const bIndex = headerLine.indexOf("B")
     expect(bIndex).toBe(5)
+  })
+
+  test("flexes bounded columns and truncates content before hiding later columns", () => {
+    const narrow = createRenderer({ cols: 32, rows: 10 })
+    const app = narrow(
+      <Table
+        columns={[
+          { header: "PR", key: "pr" },
+          { header: "STATE", key: "state", maxWidth: 8 },
+          { header: "PATH", key: "path", grow: true, minWidth: 8 },
+        ]}
+        data={[
+          {
+            pr: "PR8",
+            state: "rejected:merge-command-failed",
+            path: "task/x",
+          },
+        ]}
+      />,
+    )
+
+    expect(app.lines[0]).toContain("PATH")
+    expect(app.lines[1]).toContain("task/x")
+    expect(app.lines[1]).toContain("…")
+    expect(app.lines[1]).toMatch(/… {2}task\/x/u)
   })
 })

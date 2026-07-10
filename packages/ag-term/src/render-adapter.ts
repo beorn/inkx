@@ -40,6 +40,8 @@ export interface TextMeasurer {
 // ============================================================================
 
 export interface RenderStyle {
+  /** Cross-target hyperlink carried by the rendered text cells. */
+  hyperlink?: string
   fg?: string
   bg?: string
   attrs?: {
