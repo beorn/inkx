@@ -53,9 +53,9 @@ export interface AccumulateState {
  *  across frames, enabling comparison against a fresh render in an independent emulator. */
 export interface TerminalVerifyState {
   /** The persistent xterm.js terminal accumulating incremental output */
-  terminal: import("@termless/core").Terminal | null
+  terminal: import("@termless/core").TestTerminal | null
   /** Optional persistent Ghostty terminal for cross-backend verification */
-  ghosttyTerminal: import("@termless/core").Terminal | null
+  ghosttyTerminal: import("@termless/core").TestTerminal | null
   /** Width of the terminal */
   width: number
   /** Height of the terminal */
