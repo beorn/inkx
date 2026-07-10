@@ -667,7 +667,7 @@ interface TextFrame {
 }
 ```
 
-`FrameCell` has resolved RGB colors (not raw palette indices), flattened boolean attributes (bold, dim, italic, etc.), underline style/color, wide character info, and hyperlink URL.
+`FrameCell` has resolved RGB colors, flattened boolean attributes (bold, dim, italic, etc.), underline style/color, wide character info, and hyperlink URL. Colors are **index-preserving**: a cell whose color originated from a 256-color palette slot (`ansi256(N)`, a named ANSI color, or an engine cell carrying identity color) resolves to `{ r, g, b, index }` — painters read `r`/`g`/`b` unconditionally, and identity-aware code (differs, comparators, re-emitters) reads `index` to round-trip it back to indexed SGR (`38;5;N`). Truecolor cells carry no `index`. This shape is structurally compatible with termless's `Color = { r, g, b, index? }` (compared by shape, never imported across the boundary), so the outer terminal receives `38;5;N` for palette colors rather than a truecolor bake.
 
 `App` structurally implements `TextFrame` — `app.text`, `app.ansi`, `app.lines`, `app.width`, `app.height`, `app.cell()`, `app.containsText()` all work directly. Internal pipeline code continues to use `TerminalBuffer`; `TextFrame` is the public read API.
 

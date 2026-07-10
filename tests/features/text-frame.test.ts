@@ -56,15 +56,16 @@ describe("createTextFrame", () => {
   // Cell access with different color types
   // ==========================================================================
 
-  test("cell() returns FrameCell with resolved RGB for 256-color index", () => {
-    // Color index 1 = red (128, 0, 0)
+  test("cell() returns FrameCell with resolved RGB + palette index for 256-color", () => {
+    // Color index 1 = red (128, 0, 0). RGB is resolved for painters; the
+    // originating palette slot is preserved as `index` for identity-aware code.
     const buf = makeBuffer(5, 1, [{ x: 0, y: 0, cell: { char: "R", fg: 1, bg: 2 } }])
     const frame = createTextFrame(buf)
     const c = frame.cell(0, 0)
 
     expect(c.char).toBe("R")
-    expect(c.fg).toEqual({ r: 128, g: 0, b: 0 }) // ANSI red
-    expect(c.bg).toEqual({ r: 0, g: 128, b: 0 }) // ANSI green
+    expect(c.fg).toEqual({ r: 128, g: 0, b: 0, index: 1 }) // ANSI red, provenance kept
+    expect(c.bg).toEqual({ r: 0, g: 128, b: 0, index: 2 }) // ANSI green, provenance kept
   })
 
   test("cell() returns FrameCell with passthrough RGB for true color", () => {
@@ -113,7 +114,7 @@ describe("createTextFrame", () => {
 
     // Frame must still reflect original values — snapshot is detached now.
     expect(frame.cell(0, 0).char).toBe("A")
-    expect(frame.cell(0, 0).fg).toEqual({ r: 128, g: 0, b: 0 }) // original ANSI red, not bright red (9)
+    expect(frame.cell(0, 0).fg).toEqual({ r: 128, g: 0, b: 0, index: 1 }) // original ANSI red, not bright red (9)
     expect(frame.containsText("A")).toBe(true)
     expect(frame.containsText("Z")).toBe(false)
   })
@@ -213,14 +214,26 @@ describe("cellToFrameCell", () => {
     continuation: false,
   }
 
-  test.each<{ label: string; input: Color; expected: { r: number; g: number; b: number } | null }>([
+  test.each<{
+    label: string
+    input: Color
+    expected: { r: number; g: number; b: number; index?: number } | null
+  }>([
     { label: "null → null", input: null, expected: null },
-    { label: "index 0 (black) → RGB", input: 0, expected: { r: 0, g: 0, b: 0 } },
-    { label: "index 1 (red) → RGB", input: 1, expected: { r: 128, g: 0, b: 0 } },
-    { label: "index 15 (bright white) → RGB", input: 15, expected: { r: 255, g: 255, b: 255 } },
-    { label: "index 232 (gray) → RGB", input: 232, expected: { r: 8, g: 8, b: 8 } },
+    { label: "index 0 (black) → RGB+index", input: 0, expected: { r: 0, g: 0, b: 0, index: 0 } },
+    { label: "index 1 (red) → RGB+index", input: 1, expected: { r: 128, g: 0, b: 0, index: 1 } },
     {
-      label: "true color RGB → passthrough",
+      label: "index 15 (bright white) → RGB+index",
+      input: 15,
+      expected: { r: 255, g: 255, b: 255, index: 15 },
+    },
+    {
+      label: "index 232 (gray) → RGB+index",
+      input: 232,
+      expected: { r: 8, g: 8, b: 8, index: 232 },
+    },
+    {
+      label: "true color RGB → passthrough (no index)",
       input: { r: 42, g: 84, b: 126 },
       expected: { r: 42, g: 84, b: 126 },
     },
@@ -235,11 +248,15 @@ describe("cellToFrameCell", () => {
     }
   })
 
-  test.each<{ label: string; input: Color; expected: { r: number; g: number; b: number } | null }>([
+  test.each<{
+    label: string
+    input: Color
+    expected: { r: number; g: number; b: number; index?: number } | null
+  }>([
     { label: "null → null", input: null, expected: null },
-    { label: "index 4 (blue) → RGB", input: 4, expected: { r: 0, g: 0, b: 128 } },
+    { label: "index 4 (blue) → RGB+index", input: 4, expected: { r: 0, g: 0, b: 128, index: 4 } },
     {
-      label: "true color RGB → passthrough",
+      label: "true color RGB → passthrough (no index)",
       input: { r: 1, g: 2, b: 3 },
       expected: { r: 1, g: 2, b: 3 },
     },
@@ -271,7 +288,7 @@ describe("cellToFrameCell", () => {
     const cell: Cell = { ...baseCell, underlineColor: 9 } // bright red
     const fc = cellToFrameCell(cell)
 
-    expect(fc.underlineColor).toEqual({ r: 255, g: 0, b: 0 })
+    expect(fc.underlineColor).toEqual({ r: 255, g: 0, b: 0, index: 9 })
   })
 
   test("hyperlink defaults to null when undefined", () => {
