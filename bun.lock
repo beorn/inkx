@@ -152,6 +152,10 @@
       "name": "@silvery/color",
       "version": "0.21.0",
     },
+    "packages/command": {
+      "name": "@silvery/command",
+      "version": "0.21.0",
+    },
     "packages/commander": {
       "name": "@silvery/commander",
       "version": "0.21.0",
@@ -166,6 +170,7 @@
       "version": "0.21.0",
       "dependencies": {
         "@silvery/ag": "0.21.0",
+        "@silvery/command": "0.21.0",
       },
     },
     "packages/config": {
@@ -682,6 +687,8 @@
     "@silvery/ansi": ["@silvery/ansi@workspace:packages/ansi"],
 
     "@silvery/color": ["@silvery/color@workspace:packages/color"],
+
+    "@silvery/command": ["@silvery/command@workspace:packages/command"],
 
     "@silvery/commander": ["@silvery/commander@workspace:packages/commander"],
 

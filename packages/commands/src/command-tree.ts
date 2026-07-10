@@ -6,7 +6,15 @@
  * flat registry remains supported; this model is the next surface.
  */
 
-const commandNodeMarker = Symbol.for("@silvery/commands/command-node")
+import {
+  command as serializableCommand,
+  defineCommands as defineSerializableCommands,
+  flattenCommandTree as flattenSerializableCommandTree,
+  isCommand as isSerializableCommand,
+  type Command as SerializableCommand,
+  type CommandMetadata as SerializableCommandMetadata,
+  type CommandTree as SerializableCommandTree,
+} from "@silvery/command"
 
 export interface ParseParamSchema<TParams> {
   parse(value: unknown): TParams
@@ -27,24 +35,18 @@ export interface StandardParamSchema<TParams> {
 
 export type ParamSchema<TParams> = ParseParamSchema<TParams> | StandardParamSchema<TParams>
 
-export interface CommandMetadata {
-  effects?: "read" | "write" | "destructive"
-  output?: "text" | "json" | "stream"
-  idempotent?: boolean
-  pagination?: { defaultLimit: number; maxLimit: number }
-  asyncJob?: boolean
-}
+export type CommandMetadata = SerializableCommandMetadata
 
 export type Availability = boolean | { available: boolean; reason?: string | undefined } | string
 
 export interface CommandNode<TContext = unknown, TParams = void, TResult = unknown> {
+  readonly kind: "command"
   title: string
   description?: string | undefined
   params?: ParamSchema<TParams> | undefined
   isAvailable?: ((ctx: TContext) => Availability) | undefined
   run: (ctx: TContext, params: TParams) => TResult | Promise<TResult>
   metadata?: CommandMetadata | undefined
-  readonly [commandNodeMarker]?: true
 }
 
 export type CommandTree<TContext = unknown> = {
@@ -65,49 +67,35 @@ export type Invocation<TParams = unknown> =
   | { state: "unknown" }
 
 export function command<TContext = unknown, TParams = void, TResult = unknown>(
-  node: Omit<CommandNode<TContext, TParams, TResult>, typeof commandNodeMarker>,
+  node: Omit<CommandNode<TContext, TParams, TResult>, "kind">,
 ): CommandNode<TContext, TParams, TResult> {
-  Object.defineProperty(node, commandNodeMarker, {
-    value: true,
-    enumerable: false,
-  })
-  return node as CommandNode<TContext, TParams, TResult>
+  const { params, isAvailable, run, ...definition } = node
+  return {
+    ...serializableCommand(definition),
+    ...(params === undefined ? {} : { params }),
+    ...(isAvailable === undefined ? {} : { isAvailable }),
+    run,
+  } as CommandNode<TContext, TParams, TResult>
 }
 
 export function defineCommands<TTree extends CommandTree<any>>(tree: TTree): TTree {
-  return tree
+  return defineSerializableCommands(tree as SerializableCommandTree) as TTree
 }
 
 export function isCommandNode(value: unknown): value is CommandNode<any, any, any> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    (value as { readonly [commandNodeMarker]?: true })[commandNodeMarker] === true
-  )
+  return isSerializableCommand(value) && typeof (value as { run?: unknown }).run === "function"
 }
 
 export function flattenCommandTree<TContext>(
   tree: CommandTree<TContext>,
 ): FlattenedCommand<TContext>[] {
-  const out: FlattenedCommand<TContext>[] = []
-
-  function walk(node: CommandTree<TContext>, path: string[]): void {
-    for (const [segment, value] of Object.entries(node)) {
-      const nextPath = [...path, segment]
-      if (isCommandNode(value)) {
-        out.push({
-          id: nextPath.join("."),
-          path: nextPath,
-          command: value,
-        })
-        continue
-      }
-      walk(value as CommandTree<TContext>, nextPath)
-    }
-  }
-
-  walk(tree, [])
-  return out
+  return flattenSerializableCommandTree(tree as SerializableCommandTree).map(
+    ({ op, path, command }) => ({
+      id: op,
+      path: [...path],
+      command: command as SerializableCommand<any> as CommandNode<TContext, any, any>,
+    }),
+  )
 }
 
 export function resolveInvocation<TContext, TParams>(

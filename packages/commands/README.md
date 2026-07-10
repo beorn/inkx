@@ -4,6 +4,10 @@ Command trees, keymaps, and invocation for silvery apps.
 
 Provides the infrastructure for keyboard-driven UIs and future multi-surface command projection: typed command trees, named commands with availability guards, context-dependent keybindings, and composable plugins.
 
+Serializable command metadata and `{ op, args }` live in the public
+`@silvery/command` package. This package is the runtime adapter that adds
+handlers, parameter parsing, availability, and keybindings.
+
 Part of the [Silvery](https://silvery.dev) ecosystem.
 
 ## Install
@@ -22,7 +26,7 @@ const commands = defineCommands({
     save: command({
       title: "Save File",
       run: (ctx: AppContext) => save(ctx),
-      metadata: { effects: "write", idempotent: true },
+      metadata: { access: "write", idempotent: true },
     }),
     open: command({
       title: "Open File",

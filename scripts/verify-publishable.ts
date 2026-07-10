@@ -44,6 +44,7 @@ interface PackageEntry {
 // Same publish order as release.yml. Internal packages are sandbox-published to
 // verdaccio so cross-deps resolve; only `expectPublic` ones are import-probed.
 const PACKAGES: PackageEntry[] = [
+  { dir: "packages/command", name: "@silvery/command", expectPublic: true },
   { dir: "packages/ag", name: "@silvery/ag", expectPublic: false },
   { dir: "packages/ag-react", name: "@silvery/ag-react", expectPublic: false },
   { dir: "packages/scope", name: "@silvery/scope", expectPublic: false },

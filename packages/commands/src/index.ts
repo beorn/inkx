@@ -27,6 +27,17 @@ export {
   type StandardParamSchema,
 } from "./command-tree"
 
+// Serializable, platform-neutral substrate used by this runtime adapter.
+export {
+  createCommandRegistry as createCommandTreeRegistry,
+  type Command as SerializableCommand,
+  type CommandEntry as SerializableCommandEntry,
+  type CommandRegistry as SerializableCommandRegistry,
+  type JsonObject,
+  type JsonValue,
+  type Operation,
+} from "@silvery/command"
+
 export {
   createCommandRegistry,
   type CommandDefInput,
