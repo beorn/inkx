@@ -108,6 +108,15 @@ input out of the box. `fieldSizing="fixed"` mirrors HTML
 `useTextArea(...)` (the headless hook) still takes `height: number` —
 consumers calling it directly choose the viewport height themselves.
 
+## 0.21.1 — Production imports and flexible tables
+
+- Load React through its namespace so production builds do not statically import
+  the development-only `act` export.
+- Let Table columns participate in flex layout with minimum and maximum widths,
+  automatic truncation, and preserved link metadata.
+- Run the publish-time import probe with `NODE_ENV=production` so this class of
+  package failure is caught before release.
+
 ## 0.21.0 — Purge legacy selection / inverse / link runtime emit (BREAKING)
 
 Companion to 0.20.0 ("Sterling is THE Theme"). 0.20.0 removed the legacy

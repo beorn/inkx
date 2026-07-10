@@ -6,6 +6,7 @@
  *   (a) wrong publishConfig.exports / missing dist entry
  *   (b) empty tarball / missing dist
  *   (c) EPRIVATE on accidentally-listed private packages
+ *   (d) production-only ESM export mismatches (for example React's dev-only act)
  *
  * The legacy verify.yml packed each tarball and ran `npm install <tgz>` in a
  * tmpdir — but the tarball's transitive deps reference @silvery/<dep>@<version>
@@ -356,7 +357,8 @@ async function importProbe(prepared: PreparedPkg, npmrc: string): Promise<ProbeR
     }
   }
 
-  // import probe — assert at least one named export
+  // Import under production conditions: React's development build exposes
+  // exports that its production build intentionally omits.
   const probeScript = `
 import('${entry.name}').then(m => {
   const keys = Object.keys(m).slice(0, 3)
@@ -372,7 +374,7 @@ import('${entry.name}').then(m => {
 `
   r = spawnSync("node", ["--input-type=module", "-e", probeScript], {
     cwd: probeDir,
-    env: { ...process.env, NPM_CONFIG_USERCONFIG: npmrc },
+    env: { ...process.env, NODE_ENV: "production", NPM_CONFIG_USERCONFIG: npmrc },
     encoding: "utf-8",
   })
   if (r.status !== 0) {
