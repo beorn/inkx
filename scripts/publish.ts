@@ -42,6 +42,7 @@ if (!version) {
 
 // All packages in publish order (dependency order)
 const packages = [
+  { dir: "packages/command", name: "@silvery/command" },
   { dir: "packages/ag", name: "@silvery/ag" },
   { dir: "packages/theme", name: "@silvery/theme" },
   { dir: "packages/ag-react", name: "@silvery/ag-react" },

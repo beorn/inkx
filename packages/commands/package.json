@@ -49,7 +49,8 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@silvery/ag": "0.21.0"
+    "@silvery/ag": "0.21.0",
+    "@silvery/command": "0.21.0"
   },
   "tsdown": {
     "clean": true,
