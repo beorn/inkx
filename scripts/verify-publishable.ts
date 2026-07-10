@@ -357,8 +357,6 @@ async function importProbe(prepared: PreparedPkg, npmrc: string): Promise<ProbeR
     }
   }
 
-  // Import under production conditions: React's development build exposes
-  // exports that its production build intentionally omits.
   const probeScript = `
 import('${entry.name}').then(m => {
   const keys = Object.keys(m).slice(0, 3)
@@ -372,20 +370,24 @@ import('${entry.name}').then(m => {
   process.exit(3)
 })
 `
-  r = spawnSync("node", ["--input-type=module", "-e", probeScript], {
-    cwd: probeDir,
-    env: { ...process.env, NODE_ENV: "production", NPM_CONFIG_USERCONFIG: npmrc },
-    encoding: "utf-8",
-  })
-  if (r.status !== 0) {
-    return {
-      name: entry.name,
-      version: pkg.version,
-      ok: false,
-      message: `import() failed:\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`,
+  const imports: string[] = []
+  for (const mode of ["development", "production"] as const) {
+    r = spawnSync("node", ["--input-type=module", "-e", probeScript], {
+      cwd: probeDir,
+      env: { ...process.env, NODE_ENV: mode, NPM_CONFIG_USERCONFIG: npmrc },
+      encoding: "utf-8",
+    })
+    if (r.status !== 0) {
+      return {
+        name: entry.name,
+        version: pkg.version,
+        ok: false,
+        message: `${mode} import() failed:\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`,
+      }
     }
+    imports.push(`${mode}: ${r.stdout.trim()}`)
   }
-  return { name: entry.name, version: pkg.version, ok: true, message: r.stdout.trim() }
+  return { name: entry.name, version: pkg.version, ok: true, message: imports.join("; ") }
 }
 
 // Tarball-size regression gate. A published package that exceeds this almost
