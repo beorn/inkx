@@ -2538,16 +2538,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
     })
 
-    // Dispose output owner BEFORE terminal protocol cleanup — restores original
-    // stdout/stderr write methods so the cleanup sequences go through unimpeded.
-    // Only dispose if we constructed it; an injected Term's Output is owned by
-    // the Term and will be disposed when the Term is.
-    if (output) {
-      if (ownsOutput) output.dispose()
-      else output.deactivate()
-      output = null
-    }
-
     // === Terminal protocol cleanup ===
     //
     // Order is critical to avoid escape sequence leaks on exit:
@@ -2599,7 +2589,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           writeSync((stdout as unknown as { fd: number }).fd, sequences)
         } catch {
           try {
-            stdout.write(sequences)
+            if (output) output.write(sequences)
+            else stdout.write(sequences)
           } catch {
             /* terminal may be gone */
           }
@@ -2641,7 +2632,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         alternateScreen ? "\x1b[?1049l" : "",
       ].join("")
       try {
-        stdout.write(sequences)
+        if (stdout === process.stdout && output) output.write(sequences)
+        else stdout.write(sequences)
       } catch {
         /* terminal may be gone */
       }
@@ -2721,6 +2713,19 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       } catch {
         // Diagnostic must never crash teardown
       }
+    }
+
+    // Restore guarded process output only AFTER leaving the alternate screen.
+    // Output.deactivate() replays buffered stderr/console lines through the
+    // original stderr; doing that before ?1049l writes the replay into the
+    // alternate buffer and erases it from the user's normal screen. Cleanup
+    // protocol bytes bypass the guard above via writeSync/output.write.
+    // Only dispose if we constructed the Output; an injected Term owns its
+    // final disposal, but this app still deactivates its interception cycle.
+    if (output) {
+      if (ownsOutput) output.dispose()
+      else output.deactivate()
+      output = null
     }
 
     // Flush explicit app panics after terminal cleanup so the diagnostic lands
