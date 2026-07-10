@@ -2,8 +2,9 @@
  * Command tree domain model.
  *
  * This is the platform-neutral command shape shared by runtime command
- * dispatch, keybindings, tests, and future CLI / MCP projection. The current
- * flat registry remains supported; this model is the next surface.
+ * dispatch, keybindings, tests, and future CLI / MCP projection. Nodes carry
+ * behavior (`run`, `isAvailable`) on top of the serializable substrate; the
+ * substrate itself stays pure data (see `serializable.ts`).
  */
 
 import {
@@ -14,7 +15,7 @@ import {
   type Command as SerializableCommand,
   type CommandMetadata as SerializableCommandMetadata,
   type CommandTree as SerializableCommandTree,
-} from "@silvery/command"
+} from "./serializable.ts"
 
 export interface ParseParamSchema<TParams> {
   parse(value: unknown): TParams
@@ -35,7 +36,7 @@ export interface StandardParamSchema<TParams> {
 
 export type ParamSchema<TParams> = ParseParamSchema<TParams> | StandardParamSchema<TParams>
 
-export type CommandMetadata = SerializableCommandMetadata
+type CommandMetadata = SerializableCommandMetadata
 
 export type Availability = boolean | { available: boolean; reason?: string | undefined } | string
 
@@ -49,8 +50,8 @@ export interface CommandNode<TContext = unknown, TParams = void, TResult = unkno
   metadata?: CommandMetadata | undefined
 }
 
-export type CommandTree<TContext = unknown> = {
-  readonly [segment: string]: CommandNode<TContext, any, any> | CommandTree<TContext>
+export type CommandNodeTree<TContext = unknown> = {
+  readonly [segment: string]: CommandNode<TContext, any, any> | CommandNodeTree<TContext>
 }
 
 export interface FlattenedCommand<TContext = unknown> {
@@ -66,7 +67,7 @@ export type Invocation<TParams = unknown> =
   | { state: "invalid"; error: unknown }
   | { state: "unknown" }
 
-export function command<TContext = unknown, TParams = void, TResult = unknown>(
+export function commandNode<TContext = unknown, TParams = void, TResult = unknown>(
   node: Omit<CommandNode<TContext, TParams, TResult>, "kind">,
 ): CommandNode<TContext, TParams, TResult> {
   const { params, isAvailable, run, ...definition } = node
@@ -78,7 +79,7 @@ export function command<TContext = unknown, TParams = void, TResult = unknown>(
   } as CommandNode<TContext, TParams, TResult>
 }
 
-export function defineCommands<TTree extends CommandTree<any>>(tree: TTree): TTree {
+export function defineCommandNodes<TTree extends CommandNodeTree<any>>(tree: TTree): TTree {
   return defineSerializableCommands(tree as SerializableCommandTree) as TTree
 }
 
@@ -86,8 +87,8 @@ export function isCommandNode(value: unknown): value is CommandNode<any, any, an
   return isSerializableCommand(value) && typeof (value as { run?: unknown }).run === "function"
 }
 
-export function flattenCommandTree<TContext>(
-  tree: CommandTree<TContext>,
+export function flattenCommandNodes<TContext>(
+  tree: CommandNodeTree<TContext>,
 ): FlattenedCommand<TContext>[] {
   return flattenSerializableCommandTree(tree as SerializableCommandTree).map(
     ({ op, path, command }) => ({

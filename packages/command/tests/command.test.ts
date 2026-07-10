@@ -4,7 +4,17 @@
  * @consumer Silvery command adapters and applications such as Hab and Yrd.
  */
 import { describe, expect, test } from "vitest"
-import { command, createCommandRegistry, defineCommands } from "../src/index.ts"
+import {
+  command,
+  commandNode,
+  createCommandRegistry,
+  defineCommandNodes,
+  defineCommands,
+  flattenCommandNodes,
+  isCommand,
+  isCommandNode,
+  resolveInvocation,
+} from "../src/index.ts"
 import type { JsonValue } from "../src/index.ts"
 
 describe("serializable command registry", () => {
@@ -78,5 +88,43 @@ describe("serializable command registry", () => {
     expect(() => createCommandRegistry(defineCommands({ first: run, second: run }))).toThrow(
       "already registered",
     )
+  })
+})
+
+describe("command nodes", () => {
+  test("carries behavior over the substrate and resolves invocations", () => {
+    const open = commandNode<{ allowed: boolean }, { branch: string }, string>({
+      title: "Open bay",
+      params: {
+        parse: (value) => value as { branch: string },
+        missing: (value) =>
+          typeof value === "object" && value !== null && "branch" in value ? [] : ["branch"],
+      },
+      isAvailable: (ctx) => ctx.allowed || "locked",
+      run: (_ctx, params) => `opened ${params.branch}`,
+    })
+
+    expect(isCommandNode(open)).toBe(true)
+    expect(isCommand(open)).toBe(true)
+    expect(isCommandNode(command({ title: "Data only" }))).toBe(false)
+
+    const tree = defineCommandNodes({ bay: { open } })
+    expect(flattenCommandNodes(tree)).toEqual([
+      { id: "bay.open", path: ["bay", "open"], command: open },
+    ])
+
+    expect(resolveInvocation(open, { allowed: false })).toEqual({
+      state: "unavailable",
+      reason: "locked",
+    })
+    expect(resolveInvocation(open, { allowed: true })).toEqual({
+      state: "prompt",
+      missing: ["branch"],
+    })
+    expect(resolveInvocation(open, { allowed: true }, { branch: "main" })).toEqual({
+      state: "ready",
+      params: { branch: "main" },
+    })
+    expect(resolveInvocation(undefined, { allowed: true })).toEqual({ state: "unknown" })
   })
 })
