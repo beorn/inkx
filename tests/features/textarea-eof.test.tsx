@@ -34,6 +34,7 @@ describe("TextArea EOF", () => {
 
     const app = render(<ControlledTextArea />)
 
+    await app.press("ctrl+a")
     await app.press("ctrl+d")
 
     expect(eofCount).toBe(0)

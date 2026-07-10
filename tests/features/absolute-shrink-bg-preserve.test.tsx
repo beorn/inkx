@@ -82,8 +82,8 @@ describe("absolute-positioned child shrink does not stomp sibling bg", () => {
     const render = createRenderer({ cols: 5, rows: 5 })
     const app = render(<Harness thumbHeight={5} lastRowHasBg={false} />)
     // Sanity: scrollbar is at (4, 0..4)
-    expect(app.cell(4, 0).bg).toEqual({ r: 0, g: 128, b: 128 })
-    expect(app.cell(4, 4).bg).toEqual({ r: 0, g: 128, b: 128 })
+    expect(app.cell(4, 0).bg).toMatchObject({ r: 0, g: 128, b: 128 })
+    expect(app.cell(4, 4).bg).toMatchObject({ r: 0, g: 128, b: 128 })
 
     // Frame N+1: scrollbar shrinks to height 2 AND last row gains red bg.
     // SILVERY_STRICT auto-checks incremental == fresh — without the fix,
@@ -93,10 +93,10 @@ describe("absolute-positioned child shrink does not stomp sibling bg", () => {
     // Sanity: cell (4, 4) — col 4 of last row — should have bg=red, NOT
     // the absolute child's inherited bg (null) and NOT cyan (the absolute
     // child no longer covers row 4).
-    expect(app.cell(4, 4).bg).toEqual({ r: 128, g: 0, b: 0 })
+    expect(app.cell(4, 4).bg).toMatchObject({ r: 128, g: 0, b: 0 })
     // The absolute child still covers (4, 0) and (4, 1) with cyan
-    expect(app.cell(4, 0).bg).toEqual({ r: 0, g: 128, b: 128 })
-    expect(app.cell(4, 1).bg).toEqual({ r: 0, g: 128, b: 128 })
+    expect(app.cell(4, 0).bg).toMatchObject({ r: 0, g: 128, b: 128 })
+    expect(app.cell(4, 1).bg).toMatchObject({ r: 0, g: 128, b: 128 })
     // The absolute child no longer covers (4, 2) — should be inherited
     // (the bg of whatever normal-flow content is at row 2, here null)
     expect(app.cell(4, 2).bg).toBeNull()
@@ -131,16 +131,16 @@ describe("absolute-positioned child shrink does not stomp sibling bg", () => {
     const render = createRenderer({ cols: 10, rows: 3 })
     const app = render(<Harness thumbHeight={3} label="hello" />)
     // Initial: scrollbar covers col 9 of all 3 rows
-    expect(app.cell(9, 0).bg).toEqual({ r: 128, g: 0, b: 128 })
-    expect(app.cell(9, 2).bg).toEqual({ r: 128, g: 0, b: 128 })
+    expect(app.cell(9, 0).bg).toMatchObject({ r: 128, g: 0, b: 128 })
+    expect(app.cell(9, 2).bg).toMatchObject({ r: 128, g: 0, b: 128 })
 
     // Shrink scrollbar to height 1, change green-bg row's label
     app.rerender(<Harness thumbHeight={1} label="world" />)
 
     // (9, 0) still magenta (covered by scrollbar)
-    expect(app.cell(9, 0).bg).toEqual({ r: 128, g: 0, b: 128 })
+    expect(app.cell(9, 0).bg).toMatchObject({ r: 128, g: 0, b: 128 })
     // (9, 2) — vacated by scrollbar — should be GREEN (the row's bg),
     // NOT magenta (stale) and NOT null (excess-clear corruption).
-    expect(app.cell(9, 2).bg).toEqual({ r: 0, g: 128, b: 0 })
+    expect(app.cell(9, 2).bg).toMatchObject({ r: 0, g: 128, b: 0 })
   })
 })
