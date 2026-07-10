@@ -333,6 +333,28 @@ test("useApp exit function", async () => {
 
 For tests that need to verify actual ANSI output, colors, cursor positioning, or scrollback behavior, use `createTermless()` which runs a real terminal emulator in-process. For more on headless terminal testing, see [termless.dev](https://termless.dev). For STRICT mode verification across terminal backends, see [Terminal Support Strategy](/design/terminal-support-strategy).
 
+### Palette provenance in cell assertions
+
+`app.cell(col, row).fg` / `.bg` resolve to `{ r, g, b }` and, for colors that came from a 256-color palette slot (`ansi256(N)`, a named ANSI color like `"red"`, or an engine cell carrying identity color), also carry the origin slot as `index`. Assert the resolved channels with `toMatchObject` when you don't care about provenance, or include `index` for an exact match:
+
+```tsx
+// Painters only care about the resolved RGB:
+expect(app.cell(0, 0).fg).toMatchObject({ r: 255, g: 0, b: 0 })
+// Identity-aware assertions can pin the palette slot:
+expect(app.cell(0, 0).fg?.index).toBe(196) // ansi256(196) survives as indexed SGR
+```
+
+Truecolor cells (`"#ff8800"`, `rgb(...)`) carry no `index`.
+
+### Differential comparison: render buffers vs terminal state
+
+Two different "are these the same?" questions use two different comparators:
+
+- **`compareBuffers(a, b)`** (from `@silvery/test`) compares two silvery `TerminalBuffer` render targets cell-by-cell and returns the first mismatch — the render-level check behind the `SILVERY_STRICT` `incremental ≡ fresh` invariant and render-plan replay parity. Use it when you're verifying silvery's own rendering pipeline produced identical buffers.
+- **termless `diffBuffers` / `terminalStateDigest`** compare terminal _state_ read through the `TerminalReadable` contract ("are these two terminals in the same observable state?"), across any backend. Use them for cross-backend / rehydration equivalence.
+
+These are deliberately distinct, not a duplicate pair: a silvery `TerminalBuffer` is the internal render target (with render-only semantics that never reach an emulator), not a `TerminalReadable`. See the header of `packages/test/src/compare-buffers.ts` for the full correspondence.
+
 ## Running Tests
 
 ```bash
