@@ -140,6 +140,7 @@
     "cytoscape-cose-bilkent": "^4.1.0",
     "dayjs": "^1.11.20",
     "fast-check": "^4.6.0",
+    "ink": "^7.1.0",
     "mermaid": "^11.14.0",
     "mitata": "^1.0.34",
     "oxfmt": "0.38.0",
