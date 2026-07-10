@@ -929,6 +929,17 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       buffer.markAllRowsDirty()
     }
 
+    // Observe the authoritative render before verification-only fresh passes
+    // mutate layout history. In particular, a tier-2 fresh-layout comparison
+    // advances prevScreenRect and would otherwise erase the shift CLS is meant
+    // to record.
+    clsMonitor.onCommit(
+      getContainerRoot(instance.container),
+      instance.columns,
+      instance.rows,
+      /*scrollOrResize*/ false,
+    )
+
     // SILVERY_STRICT: Compare incremental vs fresh on every render (like scheduler)
     //
     // Skip when:
@@ -1055,17 +1066,6 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         verifyNoResidueLeak(realPrev, sentinelResult.buffer, freshFromZero, instance.renderCount)
       }
     }
-
-    // CLS monitor: walk the post-commit tree, record screenRect shifts.
-    // Cheap when no capture is active and no DEBUG=silvery:cls env var set
-    // (single boolean compare per commit). Bead:
-    // @km/silvery/cls-instrumentation-primitive (Phase 9 Option C consolidation).
-    clsMonitor.onCommit(
-      getContainerRoot(instance.container),
-      instance.columns,
-      instance.rows,
-      /*scrollOrResize*/ false,
-    )
 
     return output!
   }
