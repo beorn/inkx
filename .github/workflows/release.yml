@@ -111,7 +111,17 @@ jobs:
           cd "$dir"
           npm init -y --silent
           echo "Installing silvery@$version from npm..."
-          npm install --no-package-lock "silvery@$version" 2>&1
+          for attempt in {1..12}; do
+            if npm install --no-package-lock "silvery@$version" 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo "silvery@$version did not propagate to the registry in time"
+              exit 1
+            fi
+            echo "Registry has not propagated silvery@$version yet; retrying in 5s..."
+            sleep 5
+          done
           echo "Verifying import..."
           node --experimental-strip-types -e "import 'silvery'" 2>&1
           echo "✅ Smoke test passed for silvery@$version"
