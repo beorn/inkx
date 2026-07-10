@@ -3,6 +3,41 @@
  *
  * Compares two terminal buffers cell-by-cell, returning the first
  * mismatch found (or null if buffers are identical).
+ *
+ * ## Documented-distinct from the termless comparator family
+ *
+ * The terminal-flow vertical slice (§7 "Comparator family") converges the
+ * ecosystem's differs — termless `diffBuffers`, `terminalStateDigest` /
+ * `diffTerminalStates`, and the restore-equivalence oracle's state digest — into
+ * ONE compare family in termless. `compareBuffers` here is deliberately **NOT** a
+ * member of that family, and NOT a duplicate of `diffBuffers`. It is a
+ * **render-level** check, kept distinct by design:
+ *
+ * - **Different input.** The termless family compares terminal *state* read
+ *   through the `TerminalReadable` contract ("are these two terminals in the same
+ *   observable state?"). `compareBuffers` compares two silvery `TerminalBuffer`s —
+ *   silvery's internal packed render target, which is NOT a `TerminalReadable` and
+ *   cannot be one: it carries render-only semantics (the `SELECTABLE_FLAG`, the
+ *   `DEFAULT_BG` sentinel, inheritedBg-resolved cells, `continuation` occupancy)
+ *   that exist only inside the render pipeline, before any emulator sees output.
+ * - **Different question.** Every caller (`with-diagnostics`'s `SILVERY_STRICT`
+ *   `incremental` check, the incremental-rendering fuzz, `render-plan-parity`)
+ *   asks "did silvery's incremental / replayed render path produce the identical
+ *   render buffer as a fresh / recorded render?" — the incremental≡fresh
+ *   invariant. That has no analog in the termless state-equivalence family.
+ * - **Non-temporal A/B framing.** `cellA`/`cellB` are two renders of the SAME
+ *   frame (incremental vs fresh, replayed vs recorded) — deliberately NOT the
+ *   `oldCell`/`newCell` temporal framing of `diffBuffers`, and it returns the
+ *   FIRST mismatch (fail-fast for an assertion) rather than every changed cell
+ *   (a differential corpus).
+ *
+ * Structural correspondence, for readers crossing between the two: this file's
+ * `{ x, y }` is `diffBuffers`'s `{ col, row }` (x=col, y=row); `cellA`/`cellB`
+ * carry silvery buffer `Cell`s (fg/bg = `number | { r, g, b, index? } | null`),
+ * whose color shape is index-preserving and thus structurally compatible with the
+ * termless `Cell`'s `Color = { r, g, b, index? }` — but the two types are never
+ * imported across the silvery↔termless boundary (compatible shapes, not shared
+ * imports; slice §9 rule 7).
  */
 
 import { type Cell, type TerminalBuffer, cellEquals } from "@silvery/ag-term/buffer"

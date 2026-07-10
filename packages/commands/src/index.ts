@@ -6,26 +6,41 @@
  * - Keymap resolution with context-dependent bindings
  * - Plugin composition (withCommands, withKeybindings)
  *
+ * The platform-neutral command model (substrate + nodes) lives in
+ * @silvery/command; this package re-exports it under its historical names and
+ * adds the silvery-app integration layer.
+ *
  * @packageDocumentation
  */
 
-// Command registry
+// Command model (canonical home: @silvery/command)
 export {
-  command,
-  defineCommands,
-  flattenCommandTree,
+  commandNode as command,
+  defineCommandNodes as defineCommands,
+  flattenCommandNodes as flattenCommandTree,
   isCommandNode,
   resolveInvocation,
   type Availability,
   type CommandMetadata,
   type CommandNode,
-  type CommandTree,
+  type CommandNodeTree as CommandTree,
   type FlattenedCommand,
   type Invocation,
   type ParamSchema,
   type ParseParamSchema,
   type StandardParamSchema,
-} from "./command-tree"
+} from "@silvery/command"
+
+// Serializable, platform-neutral substrate used by this runtime adapter.
+export {
+  createCommandRegistry as createCommandTreeRegistry,
+  type Command as SerializableCommand,
+  type CommandEntry as SerializableCommandEntry,
+  type CommandRegistry as SerializableCommandRegistry,
+  type JsonObject,
+  type JsonValue,
+  type Operation,
+} from "@silvery/command"
 
 export {
   createCommandRegistry,

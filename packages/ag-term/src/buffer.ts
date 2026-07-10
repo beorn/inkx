@@ -51,12 +51,15 @@ export interface CellAttrs {
 
 /**
  * Color representation.
- * - number: 256-color index (0-255)
- * - RGB object: true color
+ * - number: 256-color index (0-255) — silvery's compact indexed form
+ * - RGB object: true color; may carry `index` to preserve palette provenance
+ *   (identity-preserving color — the shape the terminal-flow engine produces).
+ *   When `index` is a valid 0-255 slot it is honored ahead of r/g/b, so the
+ *   color packs and re-emits as indexed SGR rather than a truecolor bake.
  * - null: default/inherit
  * - DEFAULT_BG: terminal's default background (SGR 49), opaque but uses terminal's own bg color
  */
-export type Color = number | { r: number; g: number; b: number } | null
+export type Color = number | { r: number; g: number; b: number; index?: number } | null
 
 /**
  * Sentinel color representing the terminal's default background (SGR 49).
@@ -337,23 +340,41 @@ export function numberToAttrs(n: number): CellAttrs {
 }
 
 /**
+ * The 256-color palette slot for a color, or `undefined` when the color is a
+ * genuine truecolor (RGB with no palette provenance) or null.
+ *
+ * A bare `number` IS its own palette slot. An RGB object may carry `index` to
+ * preserve the origin slot (identity-preserving color); when present and valid
+ * it wins over r/g/b, so an engine-produced indexed color survives the pack as
+ * indexed rather than baking to truecolor.
+ */
+function paletteIndex(color: Color): number | undefined {
+  if (color === null) return undefined
+  const idx = typeof color === "number" ? color : color.index
+  return typeof idx === "number" && idx >= 0 && idx <= 255 ? idx : undefined
+}
+
+/**
  * Convert a color to an index value for packing.
  * Returns 0 for null (default), or (index + 1) for 256-color.
  * This +1 offset allows distinguishing null from black (color index 0).
  * True color is handled separately via flags and auxiliary storage.
  */
 function colorToIndex(color: Color): number {
-  if (color === null) return 0
-  if (typeof color === "number") return (color & 0xff) + 1 // +1 to distinguish from null
-  // True color - return 0, handle via flag
-  return 0
+  const slot = paletteIndex(color)
+  if (slot === undefined) return 0 // null or true color (handled via flag)
+  return (slot & 0xff) + 1 // +1 to distinguish from null
 }
 
 /**
- * Check if a color is true color (RGB).
+ * Check if a color is true color (RGB with no palette provenance).
+ *
+ * An RGB object carrying a valid `index` is NOT true color — it packs into the
+ * index slot and re-emits as indexed SGR. Only palette-less RGB reaches the
+ * truecolor flag + auxiliary color storage.
  */
 function isTrueColor(color: Color): color is { r: number; g: number; b: number } {
-  return color !== null && typeof color === "object"
+  return color !== null && typeof color === "object" && paletteIndex(color) === undefined
 }
 
 /**
@@ -2537,10 +2558,17 @@ export function ansi256ToRgb(idx: number): RGB {
   return { r: v, g: v, b: v }
 }
 
-/** Resolve a buffer Color (number | RGB | null) to FrameCell RGB (RGB | null). */
+/**
+ * Resolve a buffer Color (number | RGB | null) to FrameCell RGB (RGB | null).
+ *
+ * Palette provenance is preserved: an indexed color resolves to its baked RGB
+ * PLUS the originating `index`, so identity-aware readers (differs, comparators,
+ * re-emitters) can round-trip it back to indexed SGR while painters still read
+ * r/g/b unconditionally.
+ */
 function resolveColor(color: Color): RGB | null {
   if (color === null) return null
-  if (typeof color === "number") return ansi256ToRgb(color)
+  if (typeof color === "number") return { ...ansi256ToRgb(color), index: color }
   // RGB object — check for DEFAULT_BG sentinel
   if (color.r === -1) return null
   return color

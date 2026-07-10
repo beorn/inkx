@@ -154,7 +154,9 @@ export class SilveryErrorBoundary extends Component<
       // Format: padding=1 column layout with ERROR label, location, code, and stack
       const children: React.ReactNode[] = []
 
-      // ERROR label + message
+      // ERROR label. Keep the potentially multiline message in its own
+      // block below; rendering it inline makes structured payloads run into
+      // the label (`ERROR [`), which is hard to scan in a terminal.
       children.push(
         React.createElement(
           "silvery-box",
@@ -164,7 +166,19 @@ export class SilveryErrorBoundary extends Component<
             { backgroundColor: "red", color: "white" },
             " ERROR ",
           ),
-          React.createElement("silvery-text", {}, ` ${err.message}`),
+        ),
+      )
+      children.push(
+        React.createElement(
+          "silvery-box",
+          { key: "message", marginTop: 1, flexDirection: "column" },
+          ...err.message.split("\n").map((line, i) =>
+            React.createElement(
+              "silvery-text",
+              { key: `message-${i}`, wrap: "wrap" },
+              line.length > 0 ? line : " ",
+            ),
+          ),
         ),
       )
 
@@ -231,8 +245,8 @@ export class SilveryErrorBoundary extends Component<
           const cleanFile = cleanupPath(parsed.file)
           return React.createElement(
             "silvery-box",
-            { key: `stack-${i}` },
-            React.createElement("silvery-text", { color: "$muted" }, "- "),
+            { key: `stack-${i}`, gap: 1 },
+            React.createElement("silvery-text", { color: "$muted" }, "-"),
             React.createElement(
               "silvery-text",
               { color: "$muted", bold: true },
@@ -241,7 +255,7 @@ export class SilveryErrorBoundary extends Component<
             React.createElement(
               "silvery-text",
               { color: "$muted" },
-              ` (${cleanFile ?? ""}:${parsed.line}:${parsed.column})`,
+              `(${cleanFile ?? ""}:${parsed.line}:${parsed.column})`,
             ),
           )
         })

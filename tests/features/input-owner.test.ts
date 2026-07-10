@@ -265,6 +265,46 @@ describe("InputOwner", () => {
     })
   })
 
+  it("buffers bracketed paste content split across stdin chunks", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+
+    const keys: string[] = []
+    const pastes: string[] = []
+    owner.onKey((e) => keys.push(e.input))
+    owner.onPaste((e) => pastes.push(e.text))
+
+    send("\x1b[200~alpha ")
+
+    expect(keys).toEqual([])
+    expect(pastes).toEqual([])
+
+    send("beta\x1b[201~")
+
+    expect(keys).toEqual([])
+    expect(pastes).toEqual(["alpha beta"])
+  })
+
+  it("buffers bracketed paste when the end marker is split across stdin chunks", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+
+    const keys: string[] = []
+    const pastes: string[] = []
+    owner.onKey((e) => keys.push(e.input))
+    owner.onPaste((e) => pastes.push(e.text))
+
+    send("\x1b[200~payload\x1b[201")
+
+    expect(keys).toEqual([])
+    expect(pastes).toEqual([])
+
+    send("~")
+
+    expect(keys).toEqual([])
+    expect(pastes).toEqual(["payload"])
+  })
+
   it("dispatches standalone Escape after the protocol disambiguation window", async () => {
     const { stdin, stdout, send } = createMockIO()
     using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })

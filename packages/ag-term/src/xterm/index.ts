@@ -308,6 +308,7 @@ export function renderToXterm(
     setContainerNodeLifecycle(container, {
       onNodeRemoved: (removedNode) => focusManager!.handleSubtreeRemoved(removedNode),
       onNodeUpdated: (updatedNode) => focusManager!.handleNodeUpdated(updatedNode),
+      onSubtreeAttached: (attachedRoot) => focusManager!.handleSubtreeAttached(attachedRoot),
     })
 
     // Child apply-chain BaseApp — the ChainAppContext surface for hooks

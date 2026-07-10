@@ -17,13 +17,14 @@ The canonical truth-of-render gate. Single env var that enables every runtime ch
 
 |             |                                                                                                                                                          |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Values**  | Comma-separated list of numeric tiers (`1`, `2`, `3`) and check slugs (`incremental`, `canary`, `residue`). `!slug` skips a check. `0` / unset disables. |
+| **Values**  | Comma-separated list of numeric tiers (`1`, `2`, `3`) and check slugs (`incremental`, `canary`, `residue`, `clip-parity`). `!slug` skips a check. `0` / unset disables. |
 | **Default** | Disabled                                                                                                                                                 |
 
 ```bash
 SILVERY_STRICT=1                # tier 1 — incremental ≡ fresh check (back-compat)
 SILVERY_STRICT=2                # tier 2 — tier 1 + canary + residue + every-action invariants
 SILVERY_STRICT=canary           # only the degenerate-frame canary (debugging isolate)
+SILVERY_STRICT=clip-parity      # only bg/text clip parity for nested Text backgrounds
 SILVERY_STRICT=residue,canary   # combine specific checks without going full-tier
 SILVERY_STRICT=2,!canary        # tier 2 minus canary (per-test escape hatch)
 ```
@@ -35,6 +36,7 @@ SILVERY_STRICT=2,!canary        # tier 2 minus canary (per-test escape hatch)
 | `incremental` | 1    | Incremental render phase produces the same buffer as a fresh redraw (the historical STRICT=1).                                                                                                   |
 | `canary`      | 2    | Degenerate frame: large buffer (≥ 4000 cells) where < 5% of cells are painted after first render — usually means the root component has no `<Screen>` or `<Box width height>` wrapper.           |
 | `residue`     | 2    | Stale-prev-cell carry-over: poisons the prev buffer with a sentinel, runs the regular incremental render, then compares against a fresh-from-zero render. Catches cyan-strip-class residue bugs. |
+| `clip-parity` | 2    | Background overlays from nested `<Text backgroundColor=...>` paint only cells that text rendering painted under the same min/max column clip. Catches bg-only cells past overflow-hidden clips.  |
 
 **Design contract: no other `SILVERY_*` enable env vars.** New checks pick a slug + a tier and inherit the umbrella. `bun run test:fast` (which sets `SILVERY_STRICT=1` by default) gets every new check without env config changes.
 

@@ -53,6 +53,9 @@ export {
   scrollrectPhaseSimple,
   notifyLayoutSubscribers,
   detectPipelineFeatures,
+  markLayoutTreeDirty,
+  FRESH_LAYOUT_STRICT_SLUG,
+  FRESH_LAYOUT_STRICT_MIN_TIER,
   type PipelineFeatures,
 } from "./layout-phase"
 export { renderPhase, clearBgConflictWarnings, setBgConflictMode } from "./render-phase"

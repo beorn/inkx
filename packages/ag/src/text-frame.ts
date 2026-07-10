@@ -13,12 +13,22 @@
 // ============================================================================
 
 /**
- * RGB color value (0-255 per channel).
+ * RGB color value (0-255 per channel), with optional palette provenance.
+ *
+ * `r`/`g`/`b` are always present and resolved — painters read them
+ * unconditionally. `index` optionally preserves the origin 256-color palette
+ * slot (0-255) when the color came from an indexed entry (`ansi256(N)`, or an
+ * engine cell carrying identity-preserving color); only identity-aware code
+ * (differs, re-emitters, comparators) touches it. This shape is structurally
+ * compatible with termless's `Color = { r, g, b, index? }` — the two are
+ * compared by shape, never imported across the silvery↔termless boundary.
  */
 export interface RGB {
   r: number
   g: number
   b: number
+  /** Origin 256-color palette slot (0-255), when the color was indexed. */
+  index?: number
 }
 
 // ============================================================================

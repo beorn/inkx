@@ -99,6 +99,8 @@ describe("Link", () => {
     const col = app.text.indexOf("Example")
     const cell = app.term.cell(col, 0)
     expect(cell.attrs.underline).toBeFalsy()
+    expect(cell.hyperlink).toBe("https://example.com")
+    expect(app.ansi).toContain("https://example.com")
   })
 
   test("renders link with explicit underline", () => {

@@ -81,7 +81,7 @@
   "scripts": {
     "build": "tsdown",
     "prepack": "tsdown",
-    "build:all": "tsdown && tsdown -W -F '@silvery/ag' -F '@silvery/ag-react' -F '@silvery/ag-term' -F '@silvery/ansi' -F '@silvery/color' -F '@silvery/commander' -F '@silvery/commands' -F '@silvery/config' -F '@silvery/create' -F '@silvery/headless' -F '@silvery/ink' -F '@silvery/model' -F '@silvery/scope' -F '@silvery/selection' -F '@silvery/signals' -F '@silvery/syntax' -F '@silvery/theme'",
+    "build:all": "tsdown && tsdown -W -F '@silvery/ag' -F '@silvery/ag-react' -F '@silvery/ag-term' -F '@silvery/ansi' -F '@silvery/color' -F '@silvery/command' -F '@silvery/commander' -F '@silvery/commands' -F '@silvery/config' -F '@silvery/create' -F '@silvery/headless' -F '@silvery/ink' -F '@silvery/model' -F '@silvery/scope' -F '@silvery/selection' -F '@silvery/signals' -F '@silvery/syntax' -F '@silvery/theme'",
     "test": "bunx --bun vitest run",
     "test:fast": "bunx --bun vitest run --reporter=dot",
     "typecheck": "tsc --noEmit",
@@ -140,6 +140,7 @@
     "cytoscape-cose-bilkent": "^4.1.0",
     "dayjs": "^1.11.20",
     "fast-check": "^4.6.0",
+    "ink": "^7.1.0",
     "mermaid": "^11.14.0",
     "mitata": "^1.0.34",
     "oxfmt": "0.38.0",

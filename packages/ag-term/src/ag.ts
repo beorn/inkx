@@ -67,6 +67,14 @@ const baseLog = createLogger("@silvery/ag-react")
 export interface AgLayoutOptions {
   skipLayoutNotifications?: boolean
   skipScrollStateUpdates?: boolean
+  /**
+   * Disable propagateLayout's parent-match incremental skip so EVERY node's
+   * freshly-computed rect is written to boxRect. Used with markLayoutTreeDirty by
+   * the `fresh-layout` STRICT slug to build an independent from-scratch layout
+   * baseline — otherwise a stale rect under an unchanged ancestor is pruned and
+   * the divergence stays hidden. Off (skip enabled) for the normal render path.
+   */
+  forceFullPropagate?: boolean
 }
 
 export interface AgRenderOptions {
@@ -405,7 +413,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     {
       using _l = render?.span("layout")
       const t = performance.now()
-      layoutPhase(root, cols, rows)
+      layoutPhase(root, cols, rows, opts?.forceFullPropagate)
       tLayout = performance.now() - t
       log.debug?.(`layout: ${tLayout.toFixed(2)}ms`)
     }

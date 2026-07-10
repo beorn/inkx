@@ -187,6 +187,7 @@ export class TerminalRenderBuffer implements RenderBuffer {
   }
 
   private convertStyle(style: RenderStyle): {
+    hyperlink?: string
     fg: Color
     bg: Color
     underlineColor: Color
@@ -201,6 +202,7 @@ export class TerminalRenderBuffer implements RenderBuffer {
     }
   } {
     return {
+      hyperlink: style.hyperlink,
       fg: this.parseColor(style.fg),
       bg: this.parseColor(style.bg),
       underlineColor: this.parseColor(style.attrs?.underlineColor),

@@ -48,18 +48,22 @@ interface MockGuestOptions {
   initError?: Error
   /** Synchronous override — if set, init returns immediately (not via Promise hop). */
   syncInit?: boolean
+  /** If set, `init()` awaits this gate before resolving the handle (resize-during-init race tests). */
+  deferInit?: Promise<void>
 }
 
 function mockGuest(opts: MockGuestOptions = {}) {
   let initCount = 0
   let disposeCount = 0
   let capturedHandle: IslandHandle | null = null
+  const resizeRequests: Array<{ cols: number; rows: number }> = []
 
   const guest: IslandGuest = {
     capabilities: opts.capabilities,
     async init(ctx) {
       initCount++
       if (opts.initError) throw opts.initError
+      if (opts.deferInit) await opts.deferInit
 
       let cols = ctx.cols
       let rows = ctx.rows
@@ -73,6 +77,7 @@ function mockGuest(opts: MockGuestOptions = {}) {
         },
         subscribe: () => () => {},
         requestResize(nextCols, nextRows) {
+          resizeRequests.push({ cols: nextCols, rows: nextRows })
           cols = nextCols
           rows = nextRows
         },
@@ -117,6 +122,7 @@ function mockGuest(opts: MockGuestOptions = {}) {
     get handle() {
       return capturedHandle
     },
+    resizeRequests,
   }
 }
 
@@ -383,6 +389,41 @@ describe("<Island> React binding — mount / unmount", () => {
     )
     await flushMicrotasks()
     expect(m.initCount).toBe(1)
+  })
+
+  test("cols/rows change while init is in flight reaches the guest once the handle resolves", async () => {
+    // The resize effect early-returns when the handle is not ready yet; a
+    // grid change landing in that window must be replayed on handle-resolve,
+    // or the guest sits at its init-time dims until the NEXT host resize
+    // (the hab reattach "keeps stale dims" symptom — 20992 geometry law).
+    let releaseInit: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      releaseInit = resolve
+    })
+    const m = mockGuest({ deferInit: gate })
+    const scope = createScope("islands-test-resize-race")
+    const tree = (cols: number, rows: number): ReactElement => (
+      <ScopeProvider scope={scope}>
+        <Box>
+          <Island guest={m.guest} cols={cols} rows={rows} />
+        </Box>
+      </ScopeProvider>
+    )
+    const app = render(tree(40, 10))
+    await flushMicrotasks()
+    expect(m.initCount).toBe(1)
+    expect(m.handle).toBeNull() // init still gated — the race window is open
+
+    app.rerender(tree(30, 8))
+    await flushMicrotasks()
+
+    releaseInit()
+    await flushMicrotasks()
+    await flushMicrotasks()
+
+    // Two-phase protocol: the host REQUESTS the latest grid; the guest
+    // acknowledges on its next paint. The request itself must not be dropped.
+    expect(m.resizeRequests).toContainEqual({ cols: 30, rows: 8 })
   })
 
   test("ref resolves to IslandHandle after init", async () => {

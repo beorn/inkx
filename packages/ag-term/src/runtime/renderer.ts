@@ -34,6 +34,12 @@ import {
 } from "@silvery/ag/epoch"
 import { commitLayoutSnapshot } from "@silvery/ag/layout-signals"
 import { IncrementalRenderMismatchError } from "../scheduler"
+import { isStrictEnabled } from "../strict-mode"
+import {
+  markLayoutTreeDirty,
+  FRESH_LAYOUT_STRICT_SLUG,
+  FRESH_LAYOUT_STRICT_MIN_TIER,
+} from "../pipeline"
 import { emitRenderDispatched, isRenderTraceEnabled } from "./render-trace"
 import { createSearchState, renderSearchBarPlain, type SearchMatch } from "../search-overlay"
 import {
@@ -367,11 +373,26 @@ export function createRenderer(opts: RendererOptions): Renderer {
     // createApp bypasses Scheduler/Renderer which have this check built-in,
     // so we add it here to catch incremental rendering bugs at runtime.
     if (opts.strictMode && wasIncremental) {
+      // fresh-layout STRICT slug (packet #2, @si/render/20985): the createApp
+      // path renders the follow-up standalone frame (scheduleFollowupStandaloneFrame
+      // in create-app.tsx), which is exactly where @si/render/19436 deferred-lane
+      // layout-feedback content lands. Force an INDEPENDENT from-scratch layout for
+      // the comparison baseline so a missed-dirty stale rect on that REAL frame
+      // surfaces as incremental≠fresh. The legitimate one-frame-late path renders
+      // its correct converged content on that same frame → incremental≡fresh →
+      // green BY CONSTRUCTION (no heuristic). Mirrors the renderer.ts / scheduler.ts
+      // fresh paths; see markLayoutTreeDirty + AgLayoutOptions.forceFullPropagate.
+      const freshLayout = isStrictEnabled(FRESH_LAYOUT_STRICT_SLUG, FRESH_LAYOUT_STRICT_MIN_TIER)
       const doFreshRender = () => {
         const freshAg = createAg(rootNode, { measurer: opts.pipelineConfig?.measurer })
+        if (freshLayout) markLayoutTreeDirty(rootNode)
         freshAg.layout(
           { cols: dims.cols, rows: dims.rows },
-          { skipLayoutNotifications: true, skipScrollStateUpdates: true },
+          {
+            skipLayoutNotifications: true,
+            skipScrollStateUpdates: true,
+            forceFullPropagate: freshLayout,
+          },
         )
         return freshAg.render()
       }

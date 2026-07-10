@@ -1148,6 +1148,8 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
    * @default "$fg-muted"
    */
   truncateMarkerColor?: string
+  /** @internal Hyperlink carried as cell metadata; use Link instead. */
+  internal_hyperlink?: string
   /** Internal transform function applied to each rendered line. Used by Transform component. */
   internal_transform?: (line: string, index: number) => string
   /**

@@ -27,8 +27,74 @@ import {
   hasObservedLayoutSignal,
 } from "@silvery/ag/layout-signals"
 import { logPass, recordPassRing, INSTRUMENT } from "../runtime/pass-cause"
+import { isStrictEnabled } from "../strict-mode"
 
 const log = createLogger("silvery:layout")
+
+// ============================================================================
+// SILVERY_STRICT slugs for the layout-phase self-consistency invariants.
+//
+// These checks predated the slug system: they read `process.env.SILVERY_STRICT`
+// directly and gated `throw` on `strict === "2"` (exact string match), so any
+// compound tier spec (`incremental,2`, `1,2`, `2,3`) silently downgraded them to
+// warn-only. Routing through `isStrictEnabled(slug, minTier)` fixes composability
+// (they now throw under any tier >= their minTier, and honor `!slug` disables)
+// WITHOUT changing plain tier-1 / tier-2 default behavior.
+//
+// Tiers match each check's historical effective tier:
+//   - layout-flag       tier 1 — always threw at any truthy SILVERY_STRICT
+//   - layout-overflow   tier 2 — threw only at "2", warned otherwise
+//   - scroll-invariants tier 2 — threw only at "2", warned otherwise
+// ============================================================================
+
+/** layoutChangedThisFrame vs prevLayout!=boxRect consistency (throws on violation). */
+export const LAYOUT_FLAG_STRICT_SLUG = "layout-flag"
+export const LAYOUT_FLAG_STRICT_MIN_TIER = 1
+
+/** Child overflows parent inner width (warn at tier 1, throw at tier 2). */
+export const LAYOUT_OVERFLOW_STRICT_SLUG = "layout-overflow"
+export const LAYOUT_OVERFLOW_STRICT_MIN_TIER = 2
+
+/** Scroll/sticky offset + visibility invariants (warn at tier 1, throw at tier 2). */
+export const SCROLL_INVARIANTS_STRICT_SLUG = "scroll-invariants"
+export const SCROLL_INVARIANTS_STRICT_MIN_TIER = 2
+
+/**
+ * `fresh-layout` (tier 2): the STRICT incremental oracle's fresh-render baseline
+ * force-recomputes layout from scratch (see markLayoutTreeDirty) instead of
+ * sharing the incremental path's cleaned flexily tree. Catches a stale rect from
+ * a layout-affecting change that failed to markDirty flexily — invisible to the
+ * plain `incremental` check because its fresh path skips calculateLayout via the
+ * ag.ts layout-on-demand gate. Tier 2: it doubles the fresh-render layout cost,
+ * and flexily determinism (expectRelayoutMatchesFresh fuzz) keeps it false-
+ * positive-free on clean code. Consumed by scheduler.ts / renderer.ts fresh paths.
+ */
+export const FRESH_LAYOUT_STRICT_SLUG = "fresh-layout"
+export const FRESH_LAYOUT_STRICT_MIN_TIER = 2
+
+/**
+ * Force every layout node in the tree dirty so the next `calculateLayout()`
+ * recomputes every node from its current style/measure inputs — defeating both
+ * the ag.ts layout-on-demand skip gate AND flexily's per-node fingerprint cache.
+ *
+ * Root-first traversal: each non-root `markDirty()` hits an already-dirty
+ * ancestor and stops propagating immediately, so the whole walk is O(N).
+ *
+ * Used ONLY by the `fresh-layout` STRICT slug to build an independent
+ * from-scratch layout baseline for the incremental-vs-fresh comparison. On clean
+ * code the recompute is bit-identical to the cached layout (flexily's
+ * expectRelayoutMatchesFresh fuzz guarantees incremental≡fresh), so this neither
+ * false-positives nor drifts the shared tree; a genuine stale rect surfaces as a
+ * buffer mismatch and the frame throws before a next frame observes the tree.
+ */
+export function markLayoutTreeDirty(root: AgNode): void {
+  const stack: AgNode[] = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()!
+    node.layoutNode?.markDirty()
+    for (const child of node.children) stack.push(child)
+  }
+}
 
 /**
  * Explicit identity props (testid / id / name / nodeId) when present.
@@ -146,7 +212,12 @@ function normalizeScrollOffset(offset: number): number {
  * @param width Terminal width in columns
  * @param height Terminal height in rows
  */
-export function layoutPhase(root: AgNode, width: number, height: number): void {
+export function layoutPhase(
+  root: AgNode,
+  width: number,
+  height: number,
+  forceFullPropagate = false,
+): void {
   // Check if dimensions changed from previous layout
   const prevLayout = root.boxRect
   const dimensionsChanged =
@@ -184,7 +255,13 @@ export function layoutPhase(root: AgNode, width: number, height: number): void {
   // entirely (O(1) rect comparison prunes O(subtree) walk).
   // On dimension change, the root constraint changed so all nodes may get
   // new results — skip nothing, propagate the full tree.
-  const incrementalSkip = !dimensionsChanged
+  //
+  // `forceFullPropagate` (the `fresh-layout` STRICT slug's independent baseline)
+  // also disables the skip: after markLayoutTreeDirty forces a from-scratch
+  // recompute, a stale rect appears as a CHANGED child under an UNCHANGED
+  // ancestor (e.g. a resized item in a fixed-width row), which the parent-match
+  // prune would otherwise drop — leaving boxRect stale and hiding the divergence.
+  const incrementalSkip = !dimensionsChanged && !forceFullPropagate
   propagateLayout(root, 0, 0, incrementalSkip)
 
   // NOTE: Subscribers are NOT notified here anymore.
@@ -311,7 +388,10 @@ function propagateLayout(
   // STRICT invariant: if layoutChangedThisFrame is current epoch, prevLayout must differ from boxRect.
   // This validates that the flag is consistent with the actual rect comparison. A violation
   // would mean the flag is set spuriously, causing unnecessary re-renders and cascade propagation.
-  if (process?.env?.SILVERY_STRICT && isCurrentEpoch(node.layoutChangedThisFrame)) {
+  if (
+    isStrictEnabled(LAYOUT_FLAG_STRICT_SLUG, LAYOUT_FLAG_STRICT_MIN_TIER) &&
+    isCurrentEpoch(node.layoutChangedThisFrame)
+  ) {
     if (rectEqual(node.prevLayout, node.boxRect)) {
       const props = node.props as BoxProps
       throw new Error(
@@ -748,10 +828,10 @@ export function notifyLayoutSubscribers(node: AgNode): void {
  * - Child has position: "absolute" (absolute nodes can overflow)
  */
 export function strictLayoutOverflowCheck(root: AgNode): void {
-  const strict = process?.env?.SILVERY_STRICT
-  if (!strict) return
+  // Runs at tier 1 (warn) and above; throws at the slug's min-tier (2) and above.
+  if (!isStrictEnabled(LAYOUT_OVERFLOW_STRICT_SLUG, 1)) return
 
-  const shouldThrow = strict === "2"
+  const shouldThrow = isStrictEnabled(LAYOUT_OVERFLOW_STRICT_SLUG, LAYOUT_OVERFLOW_STRICT_MIN_TIER)
 
   function walk(node: AgNode): void {
     for (const child of node.children) {
@@ -1372,10 +1452,13 @@ function strictScrollInvariants(
   lastVisible: number,
   stickyChildren: NonNullable<AgNode["scrollState"]>["stickyChildren"] & object,
 ): void {
-  const strict = process?.env?.SILVERY_STRICT
-  if (!strict) return
+  // Runs at tier 1 (warn) and above; throws at the slug's min-tier (2) and above.
+  if (!isStrictEnabled(SCROLL_INVARIANTS_STRICT_SLUG, 1)) return
 
-  const shouldThrow = strict === "2"
+  const shouldThrow = isStrictEnabled(
+    SCROLL_INVARIANTS_STRICT_SLUG,
+    SCROLL_INVARIANTS_STRICT_MIN_TIER,
+  )
   const nodeId = (props as any).id ?? node.type
   const report = (msg: string): void => {
     const full = `[SILVERY_STRICT] ${msg} (node: ${nodeId})`

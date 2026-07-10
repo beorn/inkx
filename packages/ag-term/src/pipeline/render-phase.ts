@@ -2636,8 +2636,13 @@ function _clearDescendantOverflow(
 
       // Clear overflow to the right of the ancestor
       if (prevRight > nodeRight) {
-        const overflowX = nodeRight
-        const overflowWidth = Math.min(prevRight, buffer.width) - overflowX
+        // Clamp horizontally to clipBounds (same discipline as the below/above
+        // branches). A clip narrower than the overflow means the descendant's
+        // paint was clipped there and it never painted those cells — clearing
+        // them would stomp whatever a clipping ancestor's sibling owns
+        // (@si/render/20989).
+        const overflowX = Math.max(nodeRight, clipBounds?.left ?? 0)
+        const overflowWidth = Math.min(prevRight, clipBounds?.right ?? buffer.width) - overflowX
         const overflowTop = Math.max(prevTop, clipBounds?.top ?? 0)
         const overflowBottom = Math.min(prevBottom, clipBounds?.bottom ?? buffer.height)
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
@@ -2668,8 +2673,13 @@ function _clearDescendantOverflow(
       }
       // Clear overflow to the left of the ancestor
       if (prev.x < nodeLeft) {
-        const overflowX = Math.max(prev.x, 0)
-        const overflowWidth = Math.min(nodeLeft, buffer.width) - overflowX
+        // Clamp horizontally to clipBounds (same discipline as the below/above
+        // branches). When a clipping ancestor's inner-content left edge is right
+        // of `prev.x`, the descendant's paint was clipped and never reached
+        // those cells — clearing them would stomp a sibling of the clip
+        // (@si/render/20989: the clipped status text over the sidebar divider).
+        const overflowX = Math.max(prev.x, clipBounds?.left ?? 0)
+        const overflowWidth = Math.min(nodeLeft, clipBounds?.right ?? buffer.width) - overflowX
         const overflowTop = Math.max(prevTop, clipBounds?.top ?? 0)
         const overflowBottom = Math.min(prevBottom, clipBounds?.bottom ?? buffer.height)
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
@@ -2701,6 +2711,30 @@ function _clearDescendantOverflow(
     }
     // Recurse into subtree-dirty children to find deeper overflows
     if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT) && child.children !== undefined) {
+      // Narrow the clip when descending through a clipping (`overflow: hidden`)
+      // child. Such a child bounds its descendants' PAINT to its content rect,
+      // so a descendant whose LAYOUT overflows the clearing node was actually
+      // clipped there and never painted the overflow cells. Intersecting the
+      // clear with the accumulated clip (mirrors renderNormalChildren's
+      // effectiveClipBounds) keeps the deeper clear from nulling cells a sibling
+      // of the clip owns — the @si/render/20989 divider-stomp signature, where a
+      // transparent deck (clipBounds=undefined) recursed through a pane's clip to
+      // an overflowing status `<Text>`. Current layout is used for the clip: a
+      // clipper that itself moved cleans its own vacated cells at its own level.
+      const childProps = child.props as BoxProps
+      const childClipX = (childProps.overflowX ?? childProps.overflow) === "hidden"
+      const childClipY = (childProps.overflowY ?? childProps.overflow) === "hidden"
+      const childClip =
+        (childClipX || childClipY) && child.boxRect
+          ? computeChildClipBounds(
+              child.boxRect,
+              childProps,
+              clipBounds,
+              scrollOffset,
+              childClipX,
+              childClipY,
+            )
+          : clipBounds
       _clearDescendantOverflow(
         child.children,
         buffer,
@@ -2710,7 +2744,7 @@ function _clearDescendantOverflow(
         nodeRight,
         nodeBottom,
         scrollOffset,
-        clipBounds,
+        childClip,
         clearBg,
       )
     }

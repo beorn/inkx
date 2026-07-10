@@ -13,8 +13,180 @@
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text, TextArea } from "silvery"
+import { useState } from "react"
 
 describe("TextArea cursor position", () => {
+  test("cursor advances through trailing spaces at a soft-wrap boundary", async () => {
+    const r = createRenderer({ cols: 80, rows: 8 })
+    let observedValue = ""
+    const input = "see screenshot - the text ajsfdlk ajsldk fajlksd fjlas df"
+
+    function App() {
+      const [value, setValue] = useState("")
+      observedValue = value
+      return (
+        <Box width={61} flexDirection="row">
+          <Text>{" > "}</Text>
+          <Box flexGrow={1} minWidth={0} paddingRight={1}>
+            <TextArea value={value} onChange={setValue} submitKey="enter" />
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    for (const ch of input) await app.press(ch)
+
+    const beforeSpaces = app.getCursorState()
+    expect(beforeSpaces).not.toBeNull()
+
+    for (const ch of "   ") await app.press(ch)
+
+    expect(observedValue).toBe(input + "   ")
+    const afterSpaces = app.getCursorState()
+    expect(afterSpaces).not.toBeNull()
+    expect(afterSpaces!.y).toBe(beforeSpaces!.y)
+    expect(afterSpaces!.x).toBe(beforeSpaces!.x + 3)
+  })
+
+  test("cursor follows a word that wraps after a consumed boundary space", async () => {
+    const r = createRenderer({ cols: 20, rows: 6 })
+    let observedValue = ""
+
+    function App() {
+      const [value, setValue] = useState("")
+      observedValue = value
+      return (
+        <Box width={6}>
+          <TextArea value={value} onChange={setValue} submitKey="enter" />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    for (const ch of "123456 789") await app.press(ch)
+
+    expect(observedValue).toBe("123456 789")
+    expect(app.lines[0]).toContain("123456")
+    expect(app.lines[1]).toContain("789")
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.y).toBe(1)
+    expect(cursor!.x).toBe(3)
+  })
+
+  test("cursor moves to the next visual row at an exact soft-wrap boundary", () => {
+    const r = createRenderer({ cols: 20, rows: 6 })
+
+    function App() {
+      return (
+        <Box width={10}>
+          <TextArea defaultValue={"x".repeat(10)} fieldSizing="fixed" rows={3} />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.y).toBe(1)
+    expect(cursor!.x).toBe(0)
+  })
+
+  test("controlled cursor remains at the insertion point after typing past an exact soft-wrap boundary", async () => {
+    const r = createRenderer({ cols: 20, rows: 6 })
+    let observedValue = ""
+
+    function App() {
+      const [value, setValue] = useState("")
+      observedValue = value
+      return (
+        <Box width={10}>
+          <TextArea value={value} onChange={setValue} submitKey="enter" fieldSizing="fixed" rows={3} />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    for (const ch of "x".repeat(10)) await app.press(ch)
+
+    const atBoundary = app.getCursorState()
+    expect(atBoundary).not.toBeNull()
+    expect(atBoundary!.y, app.text).toBe(1)
+    expect(atBoundary!.x, app.text).toBe(0)
+
+    await app.press("i")
+
+    expect(observedValue).toBe(`${"x".repeat(10)}i`)
+    expect(app.lines[1]![0], app.text).toBe("i")
+    const afterInsert = app.getCursorState()
+    expect(afterInsert).not.toBeNull()
+    expect(afterInsert!.y, app.text).toBe(1)
+    expect(afterInsert!.x, app.text).toBe(1)
+  })
+
+  test("cursor stays at insertion point after soft wrap in a row with prompt gutter", async () => {
+    const r = createRenderer({ cols: 36, rows: 8 })
+    let observedValue = ""
+
+    function App() {
+      const [value, setValue] = useState("")
+      observedValue = value
+      return (
+        <Box width={30} flexDirection="row">
+          <Text>{" > "}</Text>
+          <Box flexGrow={1} minWidth={0} paddingRight={1}>
+            <TextArea value={value} onChange={setValue} submitKey="enter" />
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const input = "see screenshots - the text is inserted offset vs where the cursor isafter a line wrap"
+    for (const ch of input) await app.press(ch)
+
+    expect(observedValue).toBe(input)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+
+    const rowsWithText = app.lines
+      .map((line, row) => ({ line, row }))
+      .filter(({ line }) => /[a-z0-9]/.test(line))
+
+    expect(rowsWithText.length, `Expected input to wrap.\n${app.text}`).toBeGreaterThan(1)
+    const last = rowsWithText[rowsWithText.length - 1]!
+    const lastTextEnd = last.line.search(/\s*$/)
+    expect(cursor!.y, app.text).toBe(last.row)
+    expect(cursor!.x, app.text).toBe(lastTextEnd)
+  })
+
+  test("controlled initial value starts with cursor at end and edits from there", async () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+    let observedValue = ""
+
+    function App() {
+      const [value, setValue] = useState("Hello")
+      observedValue = value
+      return (
+        <Box width={20}>
+          <TextArea value={value} onChange={setValue} fieldSizing="fixed" rows={1} />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+
+    expect(app.text).toContain("Hello")
+    expect(app.getCursorState()?.x).toBe(5)
+
+    await app.press("ArrowLeft")
+    await app.press("X")
+
+    expect(observedValue).toBe("HellXo")
+    expect(app.getCursorState()?.x).toBe(5)
+  })
+
   test("cursor is after last character without border (uncontrolled)", () => {
     const r = createRenderer({ cols: 40, rows: 10 })
 

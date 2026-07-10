@@ -185,8 +185,9 @@ export function useTextArea({
   onEdge,
 }: UseTextAreaOptions): UseTextAreaResult {
   const isControlled = controlledValue !== undefined
+  const initialValue = controlledValue ?? defaultValue
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
-  const [cursor, setCursor] = useState(defaultValue.length)
+  const [cursor, setCursor] = useState(initialValue.length)
   const [scrollOffset, setScrollOffset] = useState(0)
   const stickyXRef = useRef<number | null>(null)
 

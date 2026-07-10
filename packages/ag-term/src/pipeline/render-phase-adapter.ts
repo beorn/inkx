@@ -478,6 +478,7 @@ interface StyledSegment {
 
 /** Style context for nested Text style inheritance (mirrors render-text.ts StyleContext). */
 interface AdapterStyleContext {
+  hyperlink?: string
   color?: string
   bold?: boolean
   dim?: boolean
@@ -527,6 +528,7 @@ function mergeAdapterStyleContext(
     childProps.underlineStyle as "single" | "double" | "curly" | "dotted" | "dashed" | undefined,
   )
   return {
+    hyperlink: childProps.internal_hyperlink ?? parent.hyperlink,
     color: childProps.color ?? parent.color,
     bold: childProps.bold ?? parent.bold,
     dim: parent.dim,
@@ -543,6 +545,7 @@ function mergeAdapterStyleContext(
 /** Build a RenderStyle from a style context and inherited bg. */
 function contextToRenderStyle(ctx: AdapterStyleContext, bg?: string): RenderStyle {
   return {
+    hyperlink: ctx.hyperlink,
     fg: ctx.color ?? undefined,
     bg: bg ?? undefined,
     attrs: {
@@ -669,6 +672,7 @@ function renderText(
     props.underlineStyle as "single" | "double" | "curly" | "dotted" | "dashed" | undefined,
   )
   const rootContext: AdapterStyleContext = {
+    hyperlink: props.internal_hyperlink,
     color: props.color ?? undefined,
     bold: props.bold,
     italic: props.italic,

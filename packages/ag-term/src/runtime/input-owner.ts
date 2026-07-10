@@ -360,6 +360,7 @@ export function createInputOwner(
   // Per-owner state.
   let buffer = ""
   let incompleteSequence: string | null = null
+  let incompletePaste: string | null = null
   let incompleteSequenceTimer: ReturnType<typeof setTimeout> | null = null
   let incompleteSequenceImmediate: ReturnType<typeof setImmediate> | null = null
   const probes: ProbeEntry[] = []
@@ -499,25 +500,31 @@ export function createInputOwner(
       chunk = incompleteSequence + chunk
       incompleteSequence = null
     }
+    if (incompletePaste !== null) {
+      chunk = incompletePaste + chunk
+      incompletePaste = null
+    }
 
     // Bracketed paste is detected before splitting into individual keys —
     // paste content is one logical event, not a stream of keystrokes.
     //
     // The parser may throw ProtocolError when PASTE_START is found but no
     // PASTE_END follows in this chunk. That commonly indicates a stream-
-    // split paste (the rest arrives in the next TTY read), so we log and
-    // fall through to splitRawInput — preserving the prior "best-effort"
-    // behavior while still emitting a debug-log breadcrumb so chronic
-    // protocol-format problems become visible. Bead reference:
+    // split paste (the rest arrives in the next TTY read), so we buffer and
+    // retry before splitting into key events. This preserves paste atomicity
+    // while still emitting a debug-log breadcrumb so chronic protocol-format
+    // problems become visible. Bead reference:
     // @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
     let pasteResult: ReturnType<typeof parseBracketedPaste> = null
     try {
       pasteResult = parseBracketedPaste(chunk)
     } catch (err) {
       if (isProtocolError(err)) {
+        incompletePaste = chunk
         log?.debug?.(
-          `bracketed paste parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
+          `bracketed paste parser buffered incomplete input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
         )
+        return
       } else {
         log?.warn?.(`bracketed paste parser threw: ${String(err)}`)
       }
@@ -688,6 +695,7 @@ export function createInputOwner(
     clearIncompleteTimer()
     buffer = ""
     incompleteSequence = null
+    incompletePaste = null
 
     if (isTTY) {
       try {

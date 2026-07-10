@@ -69,6 +69,7 @@ jobs:
           }
 
           # Layer 1: Core types (no internal deps)
+          publish packages/command
           publish packages/ag
 
           # Layer 2: Depends on ag

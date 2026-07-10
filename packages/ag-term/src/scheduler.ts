@@ -44,6 +44,11 @@ import { ANSI, notify as notifyTerminal } from "./output"
 import { computeManagedFrame, protectManagedCursorSuffix } from "./managed-caret"
 import type { PipelineConfig } from "./pipeline"
 import {
+  markLayoutTreeDirty,
+  FRESH_LAYOUT_STRICT_SLUG,
+  FRESH_LAYOUT_STRICT_MIN_TIER,
+} from "./pipeline"
+import {
   clearLastOutputPhaseDiagnostics,
   getLastOutputPhaseDiagnostics,
   outputPhase,
@@ -946,12 +951,25 @@ export class RenderScheduler {
       // See bead `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
       commitLayoutSnapshot(this.root)
 
-      // SILVERY_STRICT: compare incremental render against fresh render
-      if (isStrictEnabled("incremental", 1) && this.stats.renderCount > 0) {
+      // SILVERY_STRICT: compare incremental render against fresh render.
+      // The `fresh-layout` slug (tier 2) also activates the comparison on its own
+      // so it composes when isolated (SILVERY_STRICT=fresh-layout).
+      const freshLayout = isStrictEnabled(FRESH_LAYOUT_STRICT_SLUG, FRESH_LAYOUT_STRICT_MIN_TIER)
+      if ((isStrictEnabled("incremental", 1) || freshLayout) && this.stats.renderCount > 0) {
         const renderNum = this.stats.renderCount + 1
         const doFreshRender = () => {
           const freshAg = createAg(this.root, { measurer })
-          freshAg.layout({ cols: width, rows: height }, { skipLayoutNotifications: true })
+          // fresh-layout STRICT slug: force an INDEPENDENT from-scratch layout so
+          // a shared stale rect (a layout-affecting change that failed to
+          // markDirty flexily) surfaces as a buffer mismatch instead of being
+          // masked by the incremental path's cleaned flexily tree. Deterministic
+          // on clean code (flexily expectRelayoutMatchesFresh fuzz). See
+          // markLayoutTreeDirty + AgLayoutOptions.forceFullPropagate.
+          if (freshLayout) markLayoutTreeDirty(this.root)
+          freshAg.layout(
+            { cols: width, rows: height },
+            { skipLayoutNotifications: true, forceFullPropagate: freshLayout },
+          )
           // Fresh render must NOT consume or mutate `this.postState` (which
           // tracks the incremental path's snapshots). Pass `fresh: true` so
           // the Ag uses a throw-away empty carrier for this comparison.
