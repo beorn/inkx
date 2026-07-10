@@ -108,7 +108,13 @@ export function composeSelectionCells(
       colEnd = Math.min(colEnd, scope.right)
       if (colStart > colEnd) continue
     }
-    const firstContentCol = findFirstContentCol(buffer, row, colStart, colEnd, respectSelectableFlag)
+    const firstContentCol = findFirstContentCol(
+      buffer,
+      row,
+      colStart,
+      colEnd,
+      respectSelectableFlag,
+    )
     if (firstContentCol === null) continue
     colStart = Math.max(colStart, firstContentCol)
 

@@ -25,11 +25,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  extractColonSGRReplacements,
-  parseSGRColor,
-  type SGRColor,
-} from "@silvery/ag-term"
+import { extractColonSGRReplacements, parseSGRColor, type SGRColor } from "@silvery/ag-term"
 
 // =============================================================================
 // parseSGRColor — structured RGB / index extraction
@@ -75,21 +71,15 @@ describe("parseSGRColor — truecolor", () => {
 
 describe("parseSGRColor — 256-color (extended palette)", () => {
   test("semicolon form: \\x1b[38;5;196m → fg index 196", () => {
-    expect(parseSGRColor("\x1b[38;5;196m")).toEqual([
-      { layer: "fg", kind: "indexed", index: 196 },
-    ])
+    expect(parseSGRColor("\x1b[38;5;196m")).toEqual([{ layer: "fg", kind: "indexed", index: 196 }])
   })
 
   test("colon form: \\x1b[38:5:196m → fg index 196", () => {
-    expect(parseSGRColor("\x1b[38:5:196m")).toEqual([
-      { layer: "fg", kind: "indexed", index: 196 },
-    ])
+    expect(parseSGRColor("\x1b[38:5:196m")).toEqual([{ layer: "fg", kind: "indexed", index: 196 }])
   })
 
   test("background 256 colon form: \\x1b[48:5:21m → bg index 21", () => {
-    expect(parseSGRColor("\x1b[48:5:21m")).toEqual([
-      { layer: "bg", kind: "indexed", index: 21 },
-    ])
+    expect(parseSGRColor("\x1b[48:5:21m")).toEqual([{ layer: "bg", kind: "indexed", index: 21 }])
   })
 })
 

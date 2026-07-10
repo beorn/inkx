@@ -172,13 +172,15 @@ export class SilveryErrorBoundary extends Component<
         React.createElement(
           "silvery-box",
           { key: "message", marginTop: 1, flexDirection: "column" },
-          ...err.message.split("\n").map((line, i) =>
-            React.createElement(
-              "silvery-text",
-              { key: `message-${i}`, wrap: "wrap" },
-              line.length > 0 ? line : " ",
+          ...err.message
+            .split("\n")
+            .map((line, i) =>
+              React.createElement(
+                "silvery-text",
+                { key: `message-${i}`, wrap: "wrap" },
+                line.length > 0 ? line : " ",
+              ),
             ),
-          ),
         ),
       )
 

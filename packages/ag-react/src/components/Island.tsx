@@ -374,7 +374,10 @@ export const Island = forwardRef(function Island(
             // landed during init would be dropped without this replay. Two-
             // phase protocol: we only REQUEST; the guest acknowledges on its
             // next paint.
-            if (slot.alive && (handle.size.cols !== colsRef.current || handle.size.rows !== rowsRef.current)) {
+            if (
+              slot.alive &&
+              (handle.size.cols !== colsRef.current || handle.size.rows !== rowsRef.current)
+            ) {
               handle.size.requestResize(colsRef.current, rowsRef.current)
             }
           },

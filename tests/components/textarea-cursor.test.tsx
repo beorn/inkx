@@ -102,7 +102,13 @@ describe("TextArea cursor position", () => {
       observedValue = value
       return (
         <Box width={10}>
-          <TextArea value={value} onChange={setValue} submitKey="enter" fieldSizing="fixed" rows={3} />
+          <TextArea
+            value={value}
+            onChange={setValue}
+            submitKey="enter"
+            fieldSizing="fixed"
+            rows={3}
+          />
         </Box>
       )
     }
@@ -143,7 +149,8 @@ describe("TextArea cursor position", () => {
     }
 
     const app = r(<App />)
-    const input = "see screenshots - the text is inserted offset vs where the cursor isafter a line wrap"
+    const input =
+      "see screenshots - the text is inserted offset vs where the cursor isafter a line wrap"
     for (const ch of input) await app.press(ch)
 
     expect(observedValue).toBe(input)

@@ -314,7 +314,10 @@ describe("scroll tier planner — exhaustive table (2^10 × scrollBg)", () => {
     const clear =
       i.hasPrevBuffer &&
       !shift &&
-      (i.scrollOffsetChanged || i.childrenDirty || i.childrenNeedFreshRender || i.visibleRangeChanged)
+      (i.scrollOffsetChanged ||
+        i.childrenDirty ||
+        i.childrenNeedFreshRender ||
+        i.visibleRangeChanged)
     const tier = shift ? "shift" : clear ? "clear" : "subtree-only"
     return {
       tier,
@@ -348,7 +351,9 @@ describe("scroll tier planner — exhaustive table (2^10 × scrollBg)", () => {
         }
         expect(actualCore, `mask=${mask} scrollBg=${JSON.stringify(scrollBg)}`).toEqual(expected)
         // Reasons invariants: SHIFT marker ⟺ shift tier; sticky marker ⟺ flag.
-        expect(actual.reasons.includes("SHIFT"), `SHIFT reason mask=${mask}`).toBe(expected.tier === "shift")
+        expect(actual.reasons.includes("SHIFT"), `SHIFT reason mask=${mask}`).toBe(
+          expected.tier === "shift",
+        )
         expect(actual.reasons.includes("stickyForceRefresh"), `sticky reason mask=${mask}`).toBe(
           expected.stickyForceRefresh,
         )

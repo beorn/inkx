@@ -155,10 +155,7 @@ export interface DecrpmResponse {
  *             OSC/CSI noise — only the first valid DECRPM match is returned)
  * @param expectedMode If set, only DECRPM responses for this mode are accepted
  */
-export function decodeDecrpmResponse(
-  data: string,
-  expectedMode?: number,
-): DecrpmResponse | null {
+export function decodeDecrpmResponse(data: string, expectedMode?: number): DecrpmResponse | null {
   if (!data) return null
 
   const match = DECRPM_RESPONSE_FIND_RE.exec(data)

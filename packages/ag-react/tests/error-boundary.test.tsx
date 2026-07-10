@@ -32,7 +32,12 @@ describe("SilveryErrorBoundary", () => {
       const errorLineIndex = lines.findIndex((line) => line.includes("ERROR"))
       expect(errorLineIndex).toBeGreaterThanOrEqual(0)
       expect(lines[errorLineIndex]).not.toContain("[")
-      expect(lines.slice(errorLineIndex + 1).find((line) => line.trim().length > 0)?.trim()).toBe("[")
+      expect(
+        lines
+          .slice(errorLineIndex + 1)
+          .find((line) => line.trim().length > 0)
+          ?.trim(),
+      ).toBe("[")
       expect(app.text).toContain("[")
       expect(app.text).toContain('"origin": "string"')
       expect(app.text).toContain("- renderRootSync")

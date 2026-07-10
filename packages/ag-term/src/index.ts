@@ -132,12 +132,7 @@ export {
   createColonSGRTracker,
   parseSGRColor,
 } from "./ansi-sanitize"
-export type {
-  AnsiToken,
-  ColonSGRReplacement,
-  SGRColor,
-  SGRColorLayer,
-} from "./ansi-sanitize"
+export type { AnsiToken, ColonSGRReplacement, SGRColor, SGRColorLayer } from "./ansi-sanitize"
 
 // =============================================================================
 // ANSI Escape Sequences / Output

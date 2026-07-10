@@ -23,7 +23,12 @@ describe("requireExcessClearGate — exhaustive 16-case table", () => {
       for (const layoutChanged of [false, true]) {
         for (const prevLayout of [null, PREV] as const) {
           for (const hasPrevBuffer of [false, true]) {
-            const gate = requireExcessClearGate(bufferIsCloned, layoutChanged, prevLayout, hasPrevBuffer)
+            const gate = requireExcessClearGate(
+              bufferIsCloned,
+              layoutChanged,
+              prevLayout,
+              hasPrevBuffer,
+            )
             const expected = bufferIsCloned && layoutChanged && prevLayout !== null && hasPrevBuffer
             const label = `cloned=${bufferIsCloned} layout=${layoutChanged} prev=${prevLayout !== null} buf=${hasPrevBuffer}`
             expect(gate !== null, label).toBe(expected)

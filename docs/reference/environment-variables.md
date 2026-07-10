@@ -15,10 +15,10 @@ These variables enable automatic correctness checking. They add overhead and are
 
 The canonical truth-of-render gate. Single env var that enables every runtime check (incremental ≡ fresh, degenerate-frame canary, sentinel-compare residue, future invariants).
 
-|             |                                                                                                                                                          |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|             |                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Values**  | Comma-separated list of numeric tiers (`1`, `2`, `3`) and check slugs (`incremental`, `canary`, `residue`, `clip-parity`). `!slug` skips a check. `0` / unset disables. |
-| **Default** | Disabled                                                                                                                                                 |
+| **Default** | Disabled                                                                                                                                                                |
 
 ```bash
 SILVERY_STRICT=1                # tier 1 — incremental ≡ fresh check (back-compat)
