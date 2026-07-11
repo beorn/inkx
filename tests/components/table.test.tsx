@@ -215,7 +215,14 @@ describe("Table", () => {
           { header: "COMMAND", key: "command", grow: true },
         ]}
         data={[
-          { pid: "726", seat: "unknown", cpu: "46.3", rss: "636M", command: "/Applications/cmux.app/Contents/MacOS/cmux --with-a-very-long-argument-list --that-overflows-eighty-columns --by-a-large-margin --so-shrink-must-engage" },
+          {
+            pid: "726",
+            seat: "unknown",
+            cpu: "46.3",
+            rss: "636M",
+            command:
+              "/Applications/cmux.app/Contents/MacOS/cmux --with-a-very-long-argument-list --that-overflows-eighty-columns --by-a-large-margin --so-shrink-must-engage",
+          },
           { pid: "5994", seat: "daemon", cpu: "20.2", rss: "1204M", command: "claude" },
         ]}
       />,
