@@ -6,7 +6,18 @@ export const VERSION = "0.0.1"
 // Curated app-composition surface. @silvery/create remains internal; keep
 // legacy tea()/definePlugin/createSlice out of the public umbrella.
 export { createBaseApp, pipe, useSlice, withRunners, withSlice, withSource } from "@silvery/create"
-export type BaseApp = import("@silvery/create").BaseApp
+export type {
+  BaseApp,
+  EffectRunnerMap,
+  PumpScope,
+  SliceHandle,
+  SliceHandler,
+  SliceHandlers,
+  SliceResult,
+  SourceApp,
+  SourcePump,
+  WithSliceSpec,
+} from "@silvery/create"
 export type Effect = import("@silvery/create/types").Effect
 export type Op = import("@silvery/create/types").Op
 
