@@ -6,12 +6,10 @@
  * via the global warning registry, rather than being silently ignored.
  */
 import { describe, test, expect, beforeAll, afterEach } from "vitest"
-// @ts-expect-error ghostty-web is an optional dependency (only available when installed)
-import { Ghostty } from "ghostty-web"
 import { createGhosttyBackend, initGhostty } from "@termless/ghostty"
 import { drainWarnings, clearWarnings } from "@termless/core"
 
-let ghostty: Ghostty
+let ghostty: Awaited<ReturnType<typeof initGhostty>>
 
 beforeAll(async () => {
   ghostty = await initGhostty()
