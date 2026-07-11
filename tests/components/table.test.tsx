@@ -198,6 +198,66 @@ describe("Table", () => {
     expect(app.lines[0]!.indexOf("B")).toBeGreaterThan(15)
   })
 
+  test("a grow column never squeezes fixed siblings below their content", () => {
+    // The bossi `ls` regression: at 80 cols a long grow column (process args)
+    // overflowed the container and flexbox shrank EVERY track proportionally,
+    // crushing the fixed siblings to one-glyph stubs ("P…  S…  C…  …").
+    // Contract: non-grow auto columns keep their intrinsic (content) width;
+    // only the grow column gives way — the terminal edge truncates IT, never
+    // its siblings.
+    const app = render(
+      <Table
+        columns={[
+          { header: "PID", key: "pid" },
+          { header: "SEAT", key: "seat" },
+          { header: "CPU", key: "cpu", align: "right" },
+          { header: "RSS", key: "rss", align: "right" },
+          { header: "COMMAND", key: "command", grow: true },
+        ]}
+        data={[
+          { pid: "726", seat: "unknown", cpu: "46.3", rss: "636M", command: "/Applications/cmux.app/Contents/MacOS/cmux --with-a-very-long-argument-list --that-overflows-eighty-columns --by-a-large-margin --so-shrink-must-engage" },
+          { pid: "5994", seat: "daemon", cpu: "20.2", rss: "1204M", command: "claude" },
+        ]}
+      />,
+    )
+    const lines = app.text.split("\n")
+    const header = lines.find((line) => line.includes("COMMAND"))
+    expect(header).toBeDefined()
+    // Every fixed header survives in full — no proportional crush.
+    expect(header).toMatch(/PID\s+SEAT\s+CPU\s+RSS\s+COMMAND/)
+    const row = lines.find((line) => line.includes("46.3"))
+    expect(row).toBeDefined()
+    expect(row).toContain("726")
+    expect(row).toContain("unknown")
+    expect(row).toContain("636M")
+    // The grow column is the one that yields at the edge.
+    expect(row!.length).toBeLessThanOrEqual(80)
+  })
+
+  test("headers follow their column's alignment", () => {
+    // A right-aligned column right-aligns its TITLE too — one `align` knob
+    // governs both header and cells (title narrower than its track so the
+    // alignment is observable).
+    const app = render(
+      <Table
+        columns={[
+          { header: "Name", key: "name" },
+          { header: "Id", key: "id", align: "right" },
+        ]}
+        data={[
+          { name: "Alice", id: "100" },
+          { name: "Bob", id: "250" },
+        ]}
+      />,
+    )
+    const lines = app.text.split("\n")
+    const header = lines.find((line) => line.includes("Id"))!
+    const row = lines.find((line) => line.includes("Alice"))!
+    // Right-flushed title ends exactly where the right-aligned content ends.
+    expect(header.trimEnd().endsWith("Id")).toBe(true)
+    expect(header.trimEnd().length).toBe(row.trimEnd().length)
+  })
+
   test("showHeader=false hides header", () => {
     const app = render(
       <Table

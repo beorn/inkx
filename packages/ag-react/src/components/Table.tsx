@@ -126,7 +126,12 @@ export function Table<T>({
           minWidth: col.minWidth ?? 0,
           maxWidth: col.maxWidth,
           flexGrow: col.grow ? 1 : 0,
-          flexShrink: 1,
+          // Only a grow column gives way under overflow. Shrinking every track
+          // proportionally to its basis crushes small fixed siblings into
+          // one-glyph stubs the moment one long cell overflows the container;
+          // a column that declared no flexibility keeps its content width and
+          // the terminal edge truncates the flexible one instead.
+          flexShrink: col.grow ? 1 : 0,
         }
 
   const renderCell = (col: Column<T>, item: T, index: number, track: Track, last: boolean) => {
