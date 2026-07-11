@@ -8,6 +8,7 @@
 
 import { useSyncExternalStore } from "react"
 import type { BaseApp } from "./runtime/base-app"
+import { takeUntil } from "./streams"
 import type { Effect, Op } from "./types"
 
 export type EffectRunnerMap<E extends Effect = Effect> = {
@@ -51,22 +52,34 @@ export type SliceHandlers<State, Operation extends Op = Op> = {
   readonly [Type in Operation["type"]]?: SliceHandler<State, Extract<Operation, { type: Type }>>
 }
 
-export interface SliceStore<State> {
+export interface SliceHandle<State> {
   getState(): State
   subscribe(listener: () => void): () => void
 }
 
-/** Add a state slice whose handlers are selected by `op.type`. */
-export function withSlice<State, Operation extends Op = Op>(
-  initialState: State,
-  handlers: SliceHandlers<State, Operation>,
+export interface WithSliceSpec<Name extends string, State, Operation extends Op = Op> {
+  readonly name: Name
+  readonly initial: State
+  readonly handlers: SliceHandlers<State, Operation>
+}
+
+/**
+ * Add a named state slice whose handlers are selected by `op.type`.
+ * Handled operations still delegate so stacked slices can consume one op.
+ */
+export function withSlice<Name extends string, State, Operation extends Op = Op>(
+  spec: WithSliceSpec<Name, State, Operation>,
 ) {
-  return <A extends BaseApp>(app: A): A & SliceStore<State> => {
-    let state = initialState
+  const { name, initial, handlers } = spec
+  return <A extends BaseApp>(app: A): A & { [Key in Name]: SliceHandle<State> } => {
+    let state = initial
     const listeners = new Set<() => void>()
     const { apply } = app
+    const handle: SliceHandle<State> = { getState, subscribe }
     app.apply = applySlice
-    return Object.assign(app, { getState, subscribe })
+    return Object.assign(app, { [name]: handle }) as A & {
+      [Key in Name]: SliceHandle<State>
+    }
 
     function applySlice(op: Op) {
       const handler = handlers[op.type] as SliceHandler<State, Op> | undefined
@@ -93,22 +106,59 @@ export function withSlice<State, Operation extends Op = Op>(
   }
 }
 
-/** Read a {@link SliceStore} from React with stable snapshot semantics. */
-export function useSlice<State>(slice: SliceStore<State>): State {
+/** Read a {@link SliceHandle} from React with stable snapshot semantics. */
+export function useSlice<State>(slice: SliceHandle<State>): State {
   return useSyncExternalStore(slice.subscribe, slice.getState, slice.getState)
 }
 
-export interface SourcePump {
-  start(): Promise<void>
+export interface PumpScope {
+  readonly signal: AbortSignal
 }
 
-/** Pump an async iterable into the app's dispatch chain in source order. */
+export interface SourcePump extends AsyncDisposable {
+  readonly done: Promise<void>
+  stop(): void
+}
+
+export interface SourceApp {
+  start(scope?: PumpScope): SourcePump
+}
+
+/** Pump an async iterable into dispatch until the source or owning scope ends. */
 export function withSource<Value>(source: AsyncIterable<Value>, toOp: (value: Value) => Op) {
-  return <A extends BaseApp>(app: A): A & SourcePump => {
+  return <A extends BaseApp>(app: A): A & SourceApp => {
     return Object.assign(app, { start })
 
-    async function start(): Promise<void> {
-      for await (const value of source) app.dispatch(toOp(value))
+    function start(scope?: PumpScope): SourcePump {
+      const controller = new AbortController()
+      if (scope?.signal.aborted) controller.abort()
+      else
+        scope?.signal.addEventListener("abort", stop, {
+          once: true,
+          signal: controller.signal,
+        })
+
+      const done = pump()
+      return { done, stop, [Symbol.asyncDispose]: dispose }
+
+      function stop(): void {
+        controller.abort()
+      }
+
+      async function dispose(): Promise<void> {
+        stop()
+        await done
+      }
+
+      async function pump(): Promise<void> {
+        try {
+          for await (const value of takeUntil(source, controller.signal)) {
+            app.dispatch(toOp(value))
+          }
+        } finally {
+          controller.abort()
+        }
+      }
     }
   }
 }

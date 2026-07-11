@@ -264,21 +264,31 @@ describe("withSlice", () => {
   } satisfies SliceHandlers<CounterState, CounterOp>
 
   function createCounterApp(): BaseApp & {
-    getState(): CounterState
-    subscribe(listener: () => void): () => void
+    counter: {
+      getState(): CounterState
+      subscribe(listener: () => void): () => void
+    }
   } {
-    return withSlice<CounterState, CounterOp>({ count: 0 }, handlers)(createBaseApp())
+    return withSlice<"counter", CounterState, CounterOp>({
+      name: "counter",
+      initial: { count: 0 },
+      handlers,
+    })(createBaseApp())
   }
 
   test("routes by op.type, preserves [state, effects], and notifies only for changed state", () => {
     const base = createBaseApp()
     base.apply = (op) => (op.type === "increment" ? [{ type: "downstream" }] : false)
-    const app = withSlice<CounterState, CounterOp>({ count: 0 }, handlers)(base)
+    const app = withSlice<"counter", CounterState, CounterOp>({
+      name: "counter",
+      initial: { count: 0 },
+      handlers,
+    })(base)
     const listener = vi.fn()
-    const unsubscribe = app.subscribe(listener)
+    const unsubscribe = app.counter.subscribe(listener)
 
     app.dispatch({ type: "increment", by: 2 })
-    expect(app.getState()).toEqual({ count: 2 })
+    expect(app.counter.getState()).toEqual({ count: 2 })
     expect(listener).toHaveBeenCalledTimes(1)
     expect(app.drainEffects()).toEqual([
       { type: "count.changed", count: 2 },
@@ -290,11 +300,26 @@ describe("withSlice", () => {
     unsubscribe()
   })
 
+  test("stacked slices keep separate handles and both receive a shared op", () => {
+    const app = withSlice({
+      name: "parity",
+      initial: "even",
+      handlers: {
+        increment: (state: string) => [state === "even" ? "odd" : "even", []] as const,
+      },
+    })(createCounterApp())
+
+    app.dispatch({ type: "increment", by: 1 })
+
+    expect(app.counter.getState()).toEqual({ count: 1 })
+    expect(app.parity.getState()).toBe("odd")
+  })
+
   test("useSlice is the React binding over getState/subscribe", () => {
     const slice = createCounterApp()
 
     function Counter() {
-      const state = useSlice(slice)
+      const state = useSlice(slice.counter)
       return React.createElement(Text, null, String(state.count))
     }
 
@@ -328,8 +353,36 @@ describe("withSource", () => {
     const app = withSource(values(), (value) => ({ type: "value", value }))(base)
 
     const start = app.start
-    await start()
+    await start().done
 
     expect(received).toEqual([1, 2, 3])
+  })
+
+  test("stops pumping when the owning scope is disposed", async () => {
+    async function* values() {
+      yield 1
+      yield 2
+      yield 3
+    }
+
+    const controller = new AbortController()
+    const received: number[] = []
+    const base = createBaseApp()
+    base.apply = (op) => {
+      if (op.type === "value") {
+        const value = op.value as number
+        received.push(value)
+        if (value === 2) controller.abort()
+      }
+      return []
+    }
+    const app = withSource(values(), (value) => ({ type: "value", value }))(base)
+
+    const pump = app.start({ signal: controller.signal })
+    await pump.done
+
+    expect(received).toEqual([1, 2])
+    expect(typeof pump.stop).toBe("function")
+    expect(typeof pump[Symbol.asyncDispose]).toBe("function")
   })
 })

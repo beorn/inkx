@@ -235,8 +235,11 @@ export type {
   EffectRunnerMap,
   SliceHandler,
   SliceHandlers,
+  SliceHandle,
   SliceResult,
-  SliceStore,
+  WithSliceSpec,
+  PumpScope,
+  SourceApp,
   SourcePump,
 } from "./app-primitives"
 
