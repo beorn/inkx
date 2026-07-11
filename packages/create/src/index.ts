@@ -240,6 +240,7 @@ export type {
   WithSliceSpec,
   PumpScope,
   SourceApp,
+  SourceInput,
   SourcePump,
 } from "./app-primitives"
 

@@ -15,6 +15,7 @@ export type {
   SliceHandlers,
   SliceResult,
   SourceApp,
+  SourceInput,
   SourcePump,
   WithSliceSpec,
 } from "@silvery/create"

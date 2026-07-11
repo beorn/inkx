@@ -11,13 +11,15 @@ import type { BaseApp } from "./runtime/base-app"
 import { takeUntil } from "./streams"
 import type { Effect, Op } from "./types"
 
-export type EffectRunnerMap<E extends Effect = Effect> = {
-  [K in E["type"]]?: (effect: Extract<E, { type: K }>, dispatch: (op: Op) => void) => void
+export type EffectRunnerMap<E extends Effect = Effect, A extends BaseApp = BaseApp> = {
+  [K in E["type"]]?: (effect: Extract<E, { type: K }>, dispatch: (op: Op) => void, app: A) => void
 }
 
 /** Route effects drained after dispatch to handlers keyed by `effect.type`. */
-export function withRunners<E extends Effect = Effect>(runners: EffectRunnerMap<E>) {
-  return <A extends BaseApp>(app: A): A => {
+export function withRunners<E extends Effect = Effect, A extends BaseApp = BaseApp>(
+  runners: EffectRunnerMap<E, A>,
+) {
+  return (app: A): A => {
     const { dispatch, drainEffects } = app
     const pending: Effect[] = []
     app.dispatch = run
@@ -28,9 +30,9 @@ export function withRunners<E extends Effect = Effect>(runners: EffectRunnerMap<
       dispatch(op)
       for (const effect of drainEffects()) {
         const runner = runners[effect.type as E["type"]] as
-          | ((effect: E, dispatch: (op: Op) => void) => void)
+          | ((effect: E, dispatch: (op: Op) => void, app: A) => void)
           | undefined
-        if (runner) runner(effect as E, app.dispatch)
+        if (runner) runner(effect as E, app.dispatch, app)
         else pending.push(effect)
       }
     }
@@ -126,21 +128,30 @@ export interface SourceApp {
   start(scope?: PumpScope): SourcePump
 }
 
-/** Pump an async iterable into dispatch until the source or owning scope ends. */
-export function withSource<Value>(source: AsyncIterable<Value>, toOp: (value: Value) => Op) {
-  return <A extends BaseApp>(app: A): A & SourceApp => {
+export type SourceInput<Value, A extends BaseApp = BaseApp> =
+  | AsyncIterable<Value>
+  | ((app: A) => AsyncIterable<Value>)
+
+/** Lazily resolve and pump an async source until it or the owning scope ends. */
+export function withSource<Value, A extends BaseApp = BaseApp>(
+  source: SourceInput<Value, A>,
+  toOp: (value: Value) => Op,
+) {
+  return (app: A): A & SourceApp => {
     return Object.assign(app, { start })
 
     function start(scope?: PumpScope): SourcePump {
       const controller = new AbortController()
-      if (scope?.signal.aborted) controller.abort()
+      const owningScope = scope ?? pumpScopeFrom(app)
+      if (owningScope?.signal.aborted) controller.abort()
       else
-        scope?.signal.addEventListener("abort", stop, {
+        owningScope?.signal.addEventListener("abort", stop, {
           once: true,
           signal: controller.signal,
         })
 
-      const done = pump()
+      const iterable = typeof source === "function" ? source(app) : source
+      const done = pump(iterable)
       return { done, stop, [Symbol.asyncDispose]: dispose }
 
       function stop(): void {
@@ -152,9 +163,9 @@ export function withSource<Value>(source: AsyncIterable<Value>, toOp: (value: Va
         await done
       }
 
-      async function pump(): Promise<void> {
+      async function pump(iterable: AsyncIterable<Value>): Promise<void> {
         try {
-          for await (const value of takeUntil(source, controller.signal)) {
+          for await (const value of takeUntil(iterable, controller.signal)) {
             app.dispatch(toOp(value))
           }
         } finally {
@@ -163,4 +174,22 @@ export function withSource<Value>(source: AsyncIterable<Value>, toOp: (value: Va
       }
     }
   }
+}
+
+function pumpScopeFrom(app: BaseApp): PumpScope | undefined {
+  if (!("scope" in app) || !isPumpScope(app.scope)) return undefined
+  return app.scope
+}
+
+function isPumpScope(value: unknown): value is PumpScope {
+  if (typeof value !== "object" || value === null || !("signal" in value)) return false
+  const { signal } = value
+  return (
+    typeof signal === "object" &&
+    signal !== null &&
+    "aborted" in signal &&
+    typeof signal.aborted === "boolean" &&
+    "addEventListener" in signal &&
+    typeof signal.addEventListener === "function"
+  )
 }

@@ -25,6 +25,7 @@ import {
   withSource,
   type BaseApp,
   type SliceHandlers,
+  type SourceInput,
 } from "../src"
 import type { ApplyResult, Effect, Op } from "../src/types"
 
@@ -244,6 +245,27 @@ describe("withRunners", () => {
 
     expect(applied).toEqual(["outer", "inner"])
   })
+
+  test("runner receives the composed app so it can read slice state and capabilities", () => {
+    const app = withSlice({
+      name: "latest",
+      initial: "before",
+      handlers: {
+        run: () => ["after", [{ type: "record", value: "seen" }]] as const,
+      },
+    })(createBaseApp())
+    let stateSeenByRunner: string | undefined
+
+    const enhanced = withRunners<RunnerEffect, typeof app>({
+      record(_effect, _dispatch, composedApp) {
+        stateSeenByRunner = composedApp.latest.getState()
+      },
+    })(app)
+
+    enhanced.dispatch({ type: "run" })
+
+    expect(stateSeenByRunner).toBe("after")
+  })
 })
 
 describe("withSlice", () => {
@@ -384,5 +406,31 @@ describe("withSource", () => {
     expect(received).toEqual([1, 2])
     expect(typeof pump.stop).toBe("function")
     expect(typeof pump[Symbol.asyncDispose]).toBe("function")
+  })
+
+  test("constructs a source from the composed app and defaults to its owning scope", async () => {
+    const controller = new AbortController()
+    const received: string[] = []
+    const base = Object.assign(createBaseApp(), {
+      scope: { signal: controller.signal },
+      sourceLabel: "from-app",
+    })
+    base.apply = (op) => {
+      if (op.type === "value") {
+        received.push(op.value as string)
+        controller.abort()
+      }
+      return []
+    }
+    const source: SourceInput<string, typeof base> = vi.fn(async function* (app: typeof base) {
+      yield app.sourceLabel
+      yield "after-dispose"
+    })
+    const app = withSource(source, (value) => ({ type: "value", value }))(base)
+
+    await app.start().done
+
+    expect(source).toHaveBeenCalledWith(app)
+    expect(received).toEqual(["from-app"])
   })
 })
