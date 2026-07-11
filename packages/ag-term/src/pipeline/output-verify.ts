@@ -48,14 +48,16 @@ export interface AccumulateState {
   accumulateFrameCount: number
 }
 
+type VerificationTerminal = ReturnType<typeof import("@termless/core").createTerminal>
+
 /** Per-instance state for SILVERY_STRICT_TERMINAL verification.
  *  Holds persistent terminal(s) that accumulate incremental ANSI output
  *  across frames, enabling comparison against a fresh render in an independent emulator. */
 export interface TerminalVerifyState {
   /** The persistent xterm.js terminal accumulating incremental output */
-  terminal: import("@termless/core").Terminal | null
+  terminal: VerificationTerminal | null
   /** Optional persistent Ghostty terminal for cross-backend verification */
-  ghosttyTerminal: import("@termless/core").Terminal | null
+  ghosttyTerminal: VerificationTerminal | null
   /** Width of the terminal */
   width: number
   /** Height of the terminal */
