@@ -123,18 +123,17 @@ Exported from `@silvery/create/runtime/*` (and the `@silvery/create/plugins` bar
 - `withInputChain` — the fallback useInput store.
 - `withFocusChain({ dispatchKey, hasActiveFocus })` — focused-element key dispatch. Goes outermost so focused components consume before `useInput`.
 
-The chain substrate is `createBaseApp()` from `@silvery/create/runtime/base-app`. Plugins follow a one-line idiom — capture `const prev = app.apply`, then replace `app.apply` with a wrapper that delegates to `prev(op)` for ops it doesn't handle. `apply(op) -> false | Effect[]`; runners call `app.dispatch(op)` then `app.drainEffects()` to get the render/exit/suspend/render-barrier effects to enact.
+The public chain substrate is `createBaseApp()` from the main `silvery` barrel. Plugins follow a one-line idiom — capture `const prev = app.apply`, then replace `app.apply` with a wrapper that delegates to `prev(op)` for ops it doesn't handle. `apply(op) -> false | Effect[]`; `withRunners()` routes effects by type, `withSlice()` adds declarative state, `useSlice()` binds that state to React, and `withSource()` pumps async iterables through dispatch. The lower-level `@silvery/create` package remains an internal workspace package.
 
 ```ts
 import {
-  createBaseApp,
   withTerminalChain,
   withPasteChain,
   withInputChain,
   withFocusChain,
   runEventBatch,
 } from "@silvery/create/plugins"
-import { pipe } from "@silvery/create/pipe"
+import { createBaseApp, pipe } from "silvery"
 
 const app = pipe(
   createBaseApp(),
