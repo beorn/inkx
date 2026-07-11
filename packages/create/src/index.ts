@@ -227,6 +227,19 @@ export type { DiagnosticOptions } from "./with-diagnostics"
 export { withRender } from "./with-render"
 export type { RenderTerm } from "./with-render"
 
+// Apply-chain app primitives
+export { createBaseApp } from "./runtime/base-app"
+export type { Apply, BaseApp } from "./runtime/base-app"
+export { useSlice, withRunners, withSlice, withSource } from "./app-primitives"
+export type {
+  EffectRunnerMap,
+  SliceHandler,
+  SliceHandlers,
+  SliceResult,
+  SliceStore,
+  SourcePump,
+} from "./app-primitives"
+
 // =============================================================================
 // Plugins barrel (re-exports all of the above)
 // =============================================================================

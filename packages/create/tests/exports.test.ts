@@ -23,11 +23,30 @@ describe("@silvery/create subpath exports", () => {
     expect(typeof mod.withReact).toBe("function")
     expect(typeof mod.createApp).toBe("function")
     expect(typeof mod.createAppContext).toBe("function")
+    expect(typeof mod.createBaseApp).toBe("function")
+    expect(typeof mod.withRunners).toBe("function")
+    expect(typeof mod.withSlice).toBe("function")
+    expect(typeof mod.useSlice).toBe("function")
+    expect(typeof mod.withSource).toBe("function")
   })
 
   test("@silvery/create/create-app resolves (.tsx entry)", async () => {
     const mod = await import("@silvery/create/create-app")
     expect(typeof mod.createApp).toBe("function")
+  })
+
+  test("silvery exposes only the curated app-composition surface", async () => {
+    const mod = await import("silvery")
+
+    expect(typeof mod.pipe).toBe("function")
+    expect(typeof mod.createBaseApp).toBe("function")
+    expect(typeof mod.withRunners).toBe("function")
+    expect(typeof mod.withSlice).toBe("function")
+    expect(typeof mod.useSlice).toBe("function")
+    expect(typeof mod.withSource).toBe("function")
+    expect("tea" in mod).toBe(false)
+    expect("definePlugin" in mod).toBe(false)
+    expect("createSlice" in mod).toBe(false)
   })
 
   test("@silvery/create/create-app-context resolves (.tsx entry)", async () => {

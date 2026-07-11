@@ -13,8 +13,19 @@
  *   app.apply = (op) => { ...; return prev(op) }
  */
 
-import { describe, expect, test } from "vitest"
-import { createBaseApp } from "../src/runtime/base-app"
+import React from "react"
+import { describe, expect, test, vi } from "vitest"
+import { Text } from "silvery"
+import { createRenderer } from "@silvery/test"
+import {
+  createBaseApp,
+  useSlice,
+  withRunners,
+  withSlice,
+  withSource,
+  type BaseApp,
+  type SliceHandlers,
+} from "../src"
 import type { ApplyResult, Effect, Op } from "../src/types"
 
 describe("createBaseApp", () => {
@@ -185,5 +196,140 @@ describe("plugin idiom", () => {
     expect(capturedPrev).not.toBeNull()
     // The captured prev should refer to the base apply (returns false).
     expect(capturedPrev!({ type: "any" })).toBe(false)
+  })
+})
+
+describe("withRunners", () => {
+  type RunnerEffect = { type: "record"; value: string } | { type: "round-trip"; op: Op }
+
+  test("routes drained effects by type in emission order and preserves unmatched effects", () => {
+    const app = createBaseApp()
+    app.apply = (op) =>
+      op.type === "run"
+        ? [
+            { type: "record", value: "first" },
+            { type: "unmatched", value: "middle" },
+            { type: "record", value: "last" },
+          ]
+        : false
+
+    const seen: string[] = []
+    const enhanced = withRunners<RunnerEffect>({
+      record(effect) {
+        seen.push(effect.value)
+      },
+    })(app)
+
+    enhanced.dispatch({ type: "run" })
+
+    expect(seen).toEqual(["first", "last"])
+    expect(enhanced.drainEffects()).toEqual([{ type: "unmatched", value: "middle" }])
+  })
+
+  test("runner dispatch callback re-enters the completed app chain", () => {
+    const app = createBaseApp()
+    const applied: string[] = []
+    app.apply = (op) => {
+      applied.push(op.type)
+      if (op.type === "outer") return [{ type: "round-trip", op: { type: "inner" } }]
+      return []
+    }
+    const enhanced = withRunners<RunnerEffect>({
+      "round-trip"(effect, dispatch) {
+        dispatch(effect.op)
+      },
+    })(app)
+
+    enhanced.dispatch({ type: "outer" })
+
+    expect(applied).toEqual(["outer", "inner"])
+  })
+})
+
+describe("withSlice", () => {
+  interface CounterState {
+    count: number
+  }
+
+  type CounterOp = { type: "increment"; by: number } | { type: "unchanged" }
+
+  const handlers = {
+    increment(state: CounterState, op: Extract<CounterOp, { type: "increment" }>) {
+      const count = state.count + op.by
+      return [{ count }, [{ type: "count.changed", count }]] as const
+    },
+    unchanged(state: CounterState) {
+      return [state, []] as const
+    },
+  } satisfies SliceHandlers<CounterState, CounterOp>
+
+  function createCounterApp(): BaseApp & {
+    getState(): CounterState
+    subscribe(listener: () => void): () => void
+  } {
+    return withSlice<CounterState, CounterOp>({ count: 0 }, handlers)(createBaseApp())
+  }
+
+  test("routes by op.type, preserves [state, effects], and notifies only for changed state", () => {
+    const base = createBaseApp()
+    base.apply = (op) => (op.type === "increment" ? [{ type: "downstream" }] : false)
+    const app = withSlice<CounterState, CounterOp>({ count: 0 }, handlers)(base)
+    const listener = vi.fn()
+    const unsubscribe = app.subscribe(listener)
+
+    app.dispatch({ type: "increment", by: 2 })
+    expect(app.getState()).toEqual({ count: 2 })
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(app.drainEffects()).toEqual([
+      { type: "count.changed", count: 2 },
+      { type: "downstream" },
+    ])
+
+    app.dispatch({ type: "unchanged" })
+    expect(listener).toHaveBeenCalledTimes(1)
+    unsubscribe()
+  })
+
+  test("useSlice is the React binding over getState/subscribe", () => {
+    const slice = createCounterApp()
+
+    function Counter() {
+      const state = useSlice(slice)
+      return React.createElement(Text, null, String(state.count))
+    }
+
+    const render = createRenderer({ cols: 20, rows: 2 })
+    const element = React.createElement(Counter)
+    const view = render(element)
+    expect(view.text).toContain("0")
+
+    slice.dispatch({ type: "increment", by: 3 })
+    // createRenderer does not flush external-store updates automatically;
+    // rerender mirrors the established hook contract tests.
+    view.rerender(element)
+    expect(view.text).toContain("3")
+  })
+})
+
+describe("withSource", () => {
+  test("pumps async-iterable values through dispatch in source order", async () => {
+    async function* values() {
+      yield 1
+      yield 2
+      yield 3
+    }
+
+    const received: number[] = []
+    const base = createBaseApp()
+    base.apply = (op) => {
+      if (op.type === "value") received.push(op.value as number)
+      return []
+    }
+    const app = withSource(values(), (value) => ({ type: "value", value }))(base)
+
+    const start = app.start
+    await start()
+
+    expect(received).toEqual([1, 2, 3])
   })
 })
