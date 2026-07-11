@@ -252,6 +252,37 @@ export { useStore } from "./useStore"
 export type { PluginHandle } from "./useStore"
 
 // =============================================================================
+// Apply-chain primitives (Substrate C) — createBaseApp + the four helpers
+//
+// The substrate base and the four plugins that equip it with the shapes km /
+// bossi hand-build today: an effect runner (withRunners), a declarative
+// state-slice plugin (withSlice), its React binding (useSlice), and an
+// async-source → dispatch pump (withSource). createBaseApp / BaseApp were
+// previously reachable only via the ./plugins subpath — surfaced here too.
+// =============================================================================
+
+export { createBaseApp } from "./runtime/base-app"
+export type { BaseApp, Apply } from "./runtime/base-app"
+
+export { withRunners } from "./withRunners"
+export type { EffectRunner, RunnerMap } from "./withRunners"
+
+export { withSlice } from "./withSlice"
+export type {
+  SliceHandle,
+  SliceHandler,
+  SliceHandlers,
+  SliceResult,
+  SliceOp,
+  WithSliceSpec,
+} from "./withSlice"
+
+export { useSlice } from "./useSlice"
+
+export { withSource } from "./withSource"
+export type { PumpScope, SourcePump } from "./withSource"
+
+// =============================================================================
 // Layer 3: App integration (createApp, useApp, StoreContext)
 // =============================================================================
 
