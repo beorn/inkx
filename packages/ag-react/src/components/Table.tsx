@@ -181,6 +181,7 @@ export function Table<T>({
               {...trackProps(col, tracks[i]!)}
               overflow="hidden"
               paddingRight={i === columns.length - 1 ? 0 : padding}
+              justifyContent={col.align === "right" ? "flex-end" : undefined}
             >
               <Text bold color={headerColor} minWidth={0} maxWidth="100%" wrap="truncate">
                 {col.header}
