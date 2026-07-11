@@ -82,7 +82,9 @@ export function withSlice<Name extends string, State, Operation extends Op = Op>
     }
 
     function applySlice(op: Op) {
-      const handler = handlers[op.type] as SliceHandler<State, Op> | undefined
+      const handler = (handlers as Readonly<Record<string, unknown>>)[op.type] as
+        | SliceHandler<State, Op>
+        | undefined
       if (!handler) return apply(op)
 
       const [nextState, effects] = handler(state, op)
