@@ -9,6 +9,7 @@
         "@silvery/color": "0.21.0",
         "@silvery/commander": "0.21.0",
         "@termless/core": "^0.8.1",
+        "alien-signals": "^3.2.1",
         "css-select": "^7.0.0",
         "css-what": "^8.0.0",
         "flexily": "0.7.3",
@@ -1620,8 +1621,6 @@
     "@mermaid-js/mermaid-mindmap/@braintree/sanitize-url": ["@braintree/sanitize-url@6.0.4", "", {}, "sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A=="],
 
     "@silvery/ag-term/flexily": ["flexily@github:beorn/flexily#0c23875", {}, "beorn-flexily-0c23875", "sha512-4BOyEs87EpPftScoTpLc6cNy9lK4YvaOadlkp/6+lcUsmOZ3KEG6N4LxqQdqOueXlfSkS3R3konxSLJD2IEG9g=="],
-
-    "@silvery/selection/alien-signals": ["alien-signals@3.1.2", "", {}, "sha512-d9dYqZTS90WLiU0I5c6DHj/HcKkF8ZyGN3G5x8wSbslulz70KOxaqCT0hQCo9KOyhVqzqGojvNdJXoTumZOtcw=="],
 
     "@ts-morph/common/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 
