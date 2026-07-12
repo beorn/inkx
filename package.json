@@ -106,7 +106,7 @@
     "bench:compare": "cd benchmarks && bun run bench:compare"
   },
   "dependencies": {
-    "@chenglou/pretext": "^0.0.7",
+    "@chenglou/pretext": "^0.0.8",
     "@silvery/color": "0.21.0",
     "@silvery/commander": "0.21.0",
     "@termless/core": "^0.8.1",
@@ -116,7 +116,7 @@
     "loggily": "^0.10.2",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^8.0.0",
-    "string-width": "^8.2.0"
+    "string-width": "^8.2.2"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
