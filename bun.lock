@@ -178,7 +178,7 @@
       "name": "@silvery/config",
       "version": "0.21.0",
       "dependencies": {
-        "alien-signals": "~3.1.2",
+        "alien-signals": "~3.2.1",
         "cosmiconfig": "^9.0.2",
         "yaml": ">=2.0.0",
       },
@@ -201,7 +201,7 @@
         "@silvery/headless": "0.21.0",
         "@silvery/ink": "0.21.0",
         "@silvery/test": "0.21.0",
-        "alien-signals": "~3.1.2",
+        "alien-signals": "~3.2.1",
       },
     },
     "packages/headless": {
@@ -248,7 +248,7 @@
       "name": "@silvery/signals",
       "version": "0.21.0",
       "dependencies": {
-        "alien-signals": "~3.1.2",
+        "alien-signals": "~3.2.1",
       },
     },
     "packages/storybook": {
@@ -965,7 +965,7 @@
 
     "algoliasearch": ["algoliasearch@5.55.1", "", { "dependencies": { "@algolia/abtesting": "1.21.1", "@algolia/client-abtesting": "5.55.1", "@algolia/client-analytics": "5.55.1", "@algolia/client-common": "5.55.1", "@algolia/client-insights": "5.55.1", "@algolia/client-personalization": "5.55.1", "@algolia/client-query-suggestions": "5.55.1", "@algolia/client-search": "5.55.1", "@algolia/ingestion": "1.55.1", "@algolia/monitoring": "1.55.1", "@algolia/recommend": "5.55.1", "@algolia/requester-browser-xhr": "5.55.1", "@algolia/requester-fetch": "5.55.1", "@algolia/requester-node-http": "5.55.1" } }, "sha512-FyaFnnsbVPtevQwqSj/SdxE3jAsSsY0BEH8IVLf9rXxEBdAhAmT6VKCVSMWoaPIHVN1Eufh/1w8q6k8URpIkWw=="],
 
-    "alien-signals": ["alien-signals@3.1.2", "", {}, "sha512-d9dYqZTS90WLiU0I5c6DHj/HcKkF8ZyGN3G5x8wSbslulz70KOxaqCT0hQCo9KOyhVqzqGojvNdJXoTumZOtcw=="],
+    "alien-signals": ["alien-signals@3.2.1", "", {}, "sha512-I8FjmltrfnDFoZedi5CG8DghVYNhzb/Ijluz7tCSJH0xpd0484Kowhbb1XDYOxfJpU1p5wnM2X54dA+IfGyD1g=="],
 
     "ansi-escapes": ["ansi-escapes@7.3.0", "", { "dependencies": { "environment": "^1.0.0" } }, "sha512-BvU8nYgGQBxcmMuEeUEmNTvrMVjJNSH7RgW24vXexN4Ven6qCvy4TntnvlnwnMLTVlcRQQdbRY8NKnaIoeWDNg=="],
 
@@ -1674,8 +1674,6 @@
     "@mermaid-js/mermaid-mindmap/@braintree/sanitize-url": ["@braintree/sanitize-url@6.0.4", "", {}, "sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A=="],
 
     "@silvery/ag-term/flexily": ["flexily@github:beorn/flexily#0c23875", {}, "beorn-flexily-0c23875", "sha512-4BOyEs87EpPftScoTpLc6cNy9lK4YvaOadlkp/6+lcUsmOZ3KEG6N4LxqQdqOueXlfSkS3R3konxSLJD2IEG9g=="],
-
-    "@silvery/selection/alien-signals": ["alien-signals@3.2.1", "", {}, "sha512-I8FjmltrfnDFoZedi5CG8DghVYNhzb/Ijluz7tCSJH0xpd0484Kowhbb1XDYOxfJpU1p5wnM2X54dA+IfGyD1g=="],
 
     "@ts-morph/common/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 

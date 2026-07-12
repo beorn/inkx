@@ -27,7 +27,6 @@
     "./*": "./src/*.ts"
   },
   "publishConfig": {
-    "access": "public",
     "exports": {
       ".": {
         "types": "./dist/index.d.mts",
@@ -105,7 +104,8 @@
         "types": "./dist/internal/input-router.d.mts",
         "import": "./dist/internal/input-router.mjs"
       }
-    }
+    },
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown"
@@ -118,7 +118,7 @@
     "@silvery/headless": "0.21.0",
     "@silvery/ink": "0.21.0",
     "@silvery/test": "0.21.0",
-    "alien-signals": "~3.1.2"
+    "alien-signals": "~3.2.1"
   },
   "tsdown": {
     "clean": true,
