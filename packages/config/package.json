@@ -27,7 +27,6 @@
     "./commander": "./src/commander.ts"
   },
   "publishConfig": {
-    "access": "public",
     "exports": {
       ".": {
         "types": "./dist/index.d.mts",
@@ -37,14 +36,15 @@
         "types": "./dist/commander.d.mts",
         "import": "./dist/commander.mjs"
       }
-    }
+    },
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown"
   },
   "dependencies": {
     "alien-signals": "~3.1.2",
-    "cosmiconfig": "^9.0.1",
+    "cosmiconfig": "^9.0.2",
     "yaml": ">=2.0.0"
   },
   "peerDependencies": {

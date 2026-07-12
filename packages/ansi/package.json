@@ -32,20 +32,20 @@
     ".": "./src/index.ts"
   },
   "publishConfig": {
-    "access": "public",
     "exports": {
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
       }
-    }
+    },
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown"
   },
   "dependencies": {
     "@silvery/color": "0.21.0",
-    "string-width": "^8.2.0"
+    "string-width": "^8.2.2"
   },
   "tsdown": {
     "clean": true,
