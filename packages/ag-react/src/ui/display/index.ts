@@ -10,4 +10,4 @@
  */
 
 export { Table } from "./Table"
-export type { TableColumn, TableProps } from "../types.js"
+export type { Column, TableColumn, TableProps } from "./Table"

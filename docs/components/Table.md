@@ -1,41 +1,51 @@
 # Table
 
-A data table with headers, column alignment, and auto-calculated column widths.
+A generic data table with headers, aligned columns, intrinsic sizing, custom
+React cells, and one-row truncation.
 
 ## Import
 
 ```tsx
-import { Table } from "silvery"
+import { Table, type TableColumn } from "silvery"
 ```
 
 ## Props
 
-| Prop         | Type                                          | Default      | Description            |
-| ------------ | --------------------------------------------- | ------------ | ---------------------- |
-| `columns`    | `TableColumn[]`                               | **required** | Column definitions     |
-| `data`       | `Array<Record<string, unknown> \| unknown[]>` | **required** | Data rows              |
-| `showHeader` | `boolean`                                     | `true`       | Show header row        |
-| `separator`  | `string`                                      | `" \| "`     | Border between columns |
-| `headerBold` | `boolean`                                     | `true`       | Bold header text       |
+| Prop          | Type                        | Default      | Description                     |
+| ------------- | --------------------------- | ------------ | ------------------------------- |
+| `columns`     | `readonly TableColumn<T>[]` | **required** | Generic column definitions      |
+| `data`        | `readonly T[]`              | **required** | Data rows                       |
+| `showHeader`  | `boolean`                   | `true`       | Show the header row             |
+| `headerColor` | `string`                    | `$fg-accent` | Header text color               |
+| `padding`     | `number`                    | `2`          | Minimum spacing between columns |
 
 ### TableColumn
 
 ```ts
-interface TableColumn {
+type TableColumn<T> = {
   header: string
-  key?: string // Key to extract from data row
-  width?: number // Column width (auto if omitted)
-  align?: "left" | "right" | "center"
+  key?: keyof T & string
+  render?: (item: T, index: number) => React.ReactNode
+  align?: "left" | "right"
+  width?: number
+  minWidth?: number
+  maxWidth?: number
+  grow?: boolean
 }
 ```
+
+`width` fixes a track. Otherwise the track uses its header and keyed values as
+its intrinsic basis, respects `minWidth` / `maxWidth`, and fills remaining
+space when `grow` is true. Every data item occupies one measured row; string
+cells ellipsize and arbitrary React cells are clipped to that row.
 
 ## Usage
 
 ```tsx
 <Table
   columns={[
-    { header: "Name", key: "name" },
-    { header: "Age", key: "age", align: "right" },
+    { header: "Name", key: "name", grow: true },
+    { header: "Age", key: "age", width: 5, align: "right" },
   ]}
   data={[
     { name: "Alice", age: 30 },
@@ -46,13 +56,13 @@ interface TableColumn {
 
 Output:
 
-```
-Name  | Age
-------+----
-Alice |  30
-Bob   |  25
+```text
+Name                 Age
+Alice                 30
+Bob                   25
 ```
 
 ## See Also
 
+- [TreeTable](./TreeTable.md) -- hierarchical rows with the same columns
 - [Box](./Box.md) -- layout container

@@ -136,6 +136,8 @@ export type { SelectListProps, SelectOption } from "./components/SelectList"
 
 export { Table } from "../components/Table"
 export type { TableProps, Column as TableColumn } from "../components/Table"
+export { TreeTable } from "./components/TreeTable"
+export type { TreeTableProps } from "./components/TreeTable"
 
 export { Badge } from "./components/Badge"
 export type { BadgeProps } from "./components/Badge"

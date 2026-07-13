@@ -183,27 +183,8 @@ export interface TextInputOptions {
   inputStream?: NodeJS.ReadStream
 }
 
-/** Column definition for Table component */
-export interface TableColumn {
-  /** Key in data objects to display */
-  key: string
-  /** Header text */
-  header: string
-  /** Fixed column width (auto-calculated from content if not specified) */
-  width?: number
-  /** Text alignment within the column */
-  align?: "left" | "center" | "right"
-}
-
-/** Props for React Table component */
-export interface TableProps {
-  /** Column definitions */
-  columns: TableColumn[]
-  /** Data rows to display */
-  data: Array<Record<string, unknown>>
-  /** Show box borders around cells */
-  border?: boolean
-}
+/** Canonical generic Table types (compatibility export from `ui/types`). */
+export type { Column, Column as TableColumn, TableProps } from "../components/Table"
 
 /** Option for Select component */
 export interface SelectOption<T> {

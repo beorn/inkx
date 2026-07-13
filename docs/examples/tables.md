@@ -35,7 +35,7 @@ Terminal data explorers need to handle thousands of rows, resize gracefully acro
 
 ## Key Benefits
 
-- **Table component** — Built-in `Table` with header alignment, column separators, and per-column `align` ("left", "right", "center"). Column widths auto-size to content when omitted, or accept explicit widths.
+- **Table component** — Built-in generic `Table` with header alignment, intrinsic sizing, bounded grow tracks, custom React cells, and per-column `align` (`"left"` or `"right"`).
 
 - **VirtualList for massive datasets** — Render millions of rows with constant memory. Only items within the visible viewport (plus configurable overscan) are mounted. Supports fixed and variable-height items, gap/separator rendering, and imperative `scrollToItem()`.
 
@@ -169,7 +169,7 @@ For thousands of rows, wrap in a VirtualList to keep memory constant:
 
 ### Table with Aligned Columns
 
-The Table component handles header alignment and separators:
+The Table component handles header alignment, spacing, and one-row truncation:
 
 ```tsx
 <Table

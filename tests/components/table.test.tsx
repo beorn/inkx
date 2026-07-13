@@ -8,6 +8,10 @@
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Text, Table } from "silvery"
+import { Table as CanonicalTable } from "../../packages/ag-react/src/components/Table"
+import { Table as ComponentsTable } from "../../packages/ag-react/src/ui/components"
+import { Table as CanvasTable } from "../../packages/ag-react/src/ui/canvas"
+import { Table as DisplayTable } from "../../packages/ag-react/src/ui/display"
 
 const render = createRenderer({ cols: 80, rows: 20 })
 
@@ -28,6 +32,13 @@ const people: readonly Person[] = [
 // =============================================================================
 
 describe("Table", () => {
+  test("all public barrels expose the canonical generic Table", () => {
+    expect(Table).toBe(CanonicalTable)
+    expect(ComponentsTable).toBe(CanonicalTable)
+    expect(CanvasTable).toBe(CanonicalTable)
+    expect(DisplayTable).toBe(CanonicalTable)
+  })
+
   test("renders header row with column names", () => {
     const app = render(
       <Table
@@ -163,6 +174,35 @@ describe("Table", () => {
     expect(app.text).toContain("senior")
     expect(app.text).toContain("Bob")
     expect(app.text).toContain("junior")
+  })
+
+  test("custom React cells stay one measured row so later rows remain visible", () => {
+    const narrow = createRenderer({ cols: 24, rows: 8 })
+    const app = narrow(
+      <Table
+        columns={[
+          {
+            header: "NAME",
+            grow: true,
+            render: (row: { name: string; state: string }) => <Text>{row.name}</Text>,
+          },
+          { header: "STATE", key: "state", width: 7 },
+        ]}
+        data={[
+          { name: "root-with-long-name", state: "ONE1" },
+          { name: "child-with-long-name", state: "TWO2" },
+          { name: "deep-with-long-name", state: "THR3" },
+        ]}
+      />,
+    )
+
+    const rowIndexes = ["ONE1", "TWO2", "THR3"].map((state) =>
+      app.lines.findIndex((line) => line.includes(state)),
+    )
+    expect(rowIndexes).toEqual([1, 2, 3])
+    expect(app.lines[1]).toContain("root")
+    expect(app.lines[2]).toContain("child")
+    expect(app.lines[3]).toContain("deep")
   })
 
   test("uses a rendered column's key for shared intrinsic sizing", () => {

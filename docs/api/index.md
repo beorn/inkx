@@ -29,7 +29,7 @@ Everything you need to build terminal UIs with Silvery.
 
 | Component                        | Description                                          |
 | -------------------------------- | ---------------------------------------------------- |
-| [Table](/api/table)              | Data table with columns, alignment, and borders      |
+| [Table](/api/table)              | Generic one-row table with aligned, sized columns    |
 | [Spinner](/api/spinner)          | Animated loading indicator (dots, line, arc, bounce) |
 | [ProgressBar](/api/progress-bar) | Determinate and indeterminate progress display       |
 
