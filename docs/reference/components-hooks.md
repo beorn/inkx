@@ -37,12 +37,13 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Data Display
 
-| Component                         | Description                        | API |
-| --------------------------------- | ---------------------------------- | --- |
-| [Table](/guides/components)       | Column-aligned table with headers  | UI  |
-| [VirtualList](/guides/components) | O(1) scroll for thousands of items | UI  |
-| [VirtualView](/guides/components) | Virtualized arbitrary content      | UI  |
-| [TreeView](/guides/components)    | Expandable/collapsible tree        | UI  |
+| Component                          | Description                        | API |
+| ---------------------------------- | ---------------------------------- | --- |
+| [Table](/guides/components)        | Column-aligned table with headers  | UI  |
+| [TreeTable](/components/TreeTable) | Passive tree with aligned columns  | UI  |
+| [VirtualList](/guides/components)  | O(1) scroll for thousands of items | UI  |
+| [VirtualView](/guides/components)  | Virtualized arbitrary content      | UI  |
+| [TreeView](/guides/components)     | Expandable/collapsible tree        | UI  |
 
 ### Feedback
 

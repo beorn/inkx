@@ -563,15 +563,16 @@ function Users() {
 }
 ```
 
-| Prop         | Type                                          | Description                                             |
-| ------------ | --------------------------------------------- | ------------------------------------------------------- |
-| `columns`    | `TableColumn[]`                               | Column definitions (`{ header, key?, width?, align? }`) |
-| `data`       | `Array<Record<string, unknown> \| unknown[]>` | Data rows (objects or arrays)                           |
-| `showHeader` | `boolean`                                     | Show header row (default: true)                         |
-| `separator`  | `string`                                      | Column separator (default: `" │ "`)                     |
-| `headerBold` | `boolean`                                     | Bold header text (default: true)                        |
+| Prop          | Type                        | Description                                    |
+| ------------- | --------------------------- | ---------------------------------------------- |
+| `columns`     | `readonly TableColumn<T>[]` | Generic column definitions                     |
+| `data`        | `readonly T[]`              | Data rows                                      |
+| `showHeader`  | `boolean`                   | Show header row (default: true)                |
+| `headerColor` | `string`                    | Header text color (default: `$fg-accent`)      |
+| `padding`     | `number`                    | Minimum spacing between columns (default: `2`) |
 
-Column `align` supports `"left"` (default), `"right"`, and `"center"`. Columns auto-size to fit content when `width` is omitted.
+Columns accept `key`, `render`, `width`, `minWidth`, `maxWidth`, `grow`, and
+`align: "left" | "right"`. Every data item occupies one measured row.
 
 ## Badge
 

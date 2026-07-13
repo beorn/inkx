@@ -427,6 +427,7 @@ export default withMermaid(
             { text: "Toast", link: "/components/Toast" },
             { text: "Toggle", link: "/components/Toggle" },
             { text: "Tooltip", link: "/components/Tooltip" },
+            { text: "TreeTable", link: "/components/TreeTable" },
             { text: "TreeView", link: "/components/TreeView" },
             { text: "Typography", link: "/components/typography" },
           ],

@@ -10,4 +10,6 @@
  */
 
 export { Table } from "./Table"
-export type { TableColumn, TableProps } from "../types.js"
+export type { Column, TableColumn, TableProps } from "./Table"
+export { TreeTable } from "../components/TreeTable"
+export type { TreeTableProps } from "../components/TreeTable"
