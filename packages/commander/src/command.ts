@@ -43,7 +43,13 @@
  * ```
  */
 
-import { Command as BaseCommand, Help, Option } from "commander"
+import {
+  Command as BaseCommand,
+  Help,
+  Option,
+  type CommandOptions,
+  type HelpConfiguration,
+} from "commander"
 import { colorizeHelp, shouldColorize } from "./colorize.ts"
 import type { CLIType, StandardSchemaV1 } from "./presets.ts"
 import { tokenizeCmdline, isShellLine, type CmdlineToken } from "./tokenize.ts"
@@ -465,6 +471,9 @@ function maxLineWidth(term: string): number {
 // (no `noImplicitOverride` or structural assignability issues).
 // ────────────────────────────────────────────────────────────────
 
+const silentAliasesSymbol = Symbol("silvery.commander.silentAliases")
+type CommandWithSilentAliases = BaseCommand & { [silentAliasesSymbol]?: string[] }
+
 class _CommandBase extends BaseCommand {
   private _helpSectionList: StoredSection[] = []
   private _helpSectionsInstalled = false
@@ -481,6 +490,102 @@ class _CommandBase extends BaseCommand {
     // detection shouldColorize() already exposes.
     if (shouldColorize()) colorizeHelp(this as any)
     this._capitalizeBuiltinDescriptions()
+  }
+
+  /** Compose help customizations while preserving the enhanced command's installed hooks. */
+  override configureHelp(configuration: HelpConfiguration): this
+  override configureHelp(): HelpConfiguration
+  override configureHelp(configuration?: HelpConfiguration): this | HelpConfiguration {
+    if (configuration === undefined) return super.configureHelp()
+    return super.configureHelp({ ...super.configureHelp(), ...configuration })
+  }
+
+  /** Return every spelling accepted for a command, including parse-only aliases. */
+  private _commandIdentities(command: BaseCommand): string[] {
+    return [command.name(), ...command.aliases(), ...this._silentAliasesFor(command)]
+  }
+
+  private _silentAliasesFor(command: BaseCommand): string[] {
+    return (command as CommandWithSilentAliases)[silentAliasesSymbol] ?? []
+  }
+
+  private _addSilentAlias(command: BaseCommand, alias: string): void {
+    const target = command as CommandWithSilentAliases
+    const aliases = target[silentAliasesSymbol]
+    if (aliases) {
+      aliases.push(alias)
+      return
+    }
+    Object.defineProperty(target, silentAliasesSymbol, { value: [alias] })
+  }
+
+  /** Match the executable-child forwarding used by Commander's alias(). */
+  private _aliasTarget(): BaseCommand {
+    const lastCommand = this.commands[this.commands.length - 1] as
+      | (BaseCommand & { _executableHandler?: boolean })
+      | undefined
+    return lastCommand?._executableHandler ? lastCommand : this
+  }
+
+  /** Parent lookup used by Commander parsing; silent aliases never enter normal alias metadata. */
+  _findCommand(name?: string): BaseCommand | undefined {
+    if (!name) return undefined
+    return this.commands.find((command) => this._commandIdentities(command).includes(name))
+  }
+
+  private _assertAliasAvailable(command: BaseCommand, alias: string): void {
+    if (alias === command.name()) {
+      throw new Error("Command alias can't be the same as its name")
+    }
+
+    const ownAliases = [...command.aliases(), ...this._silentAliasesFor(command)]
+    const matchingCommand = ownAliases.includes(alias)
+      ? command
+      : command.parent?.commands.find((candidate) =>
+          this._commandIdentities(candidate).includes(alias),
+        )
+    if (matchingCommand) {
+      const existingCommand = this._commandIdentities(matchingCommand).join("|")
+      throw new Error(
+        `cannot add alias '${alias}' to command '${command.name()}' as already have command '${existingCommand}'`,
+      )
+    }
+  }
+
+  override alias(alias: string): this
+  override alias(): string
+  override alias(alias?: string): this | string {
+    if (alias === undefined) return super.alias()
+    this._assertAliasAvailable(this._aliasTarget(), alias)
+    return super.alias(alias)
+  }
+
+  /** Add an accepted command spelling which is omitted from help, usage, and suggestions. */
+  silentAlias(alias: string): this {
+    const command = this._aliasTarget()
+    this._assertAliasAvailable(command, alias)
+    this._addSilentAlias(command, alias)
+    return this
+  }
+
+  override addCommand(command: BaseCommand, opts?: CommandOptions): this {
+    if (!command.name()) return super.addCommand(command, opts)
+
+    const identities = this._commandIdentities(command)
+    const seen = new Set<string>()
+    for (const identity of identities) {
+      const matchingCommand = seen.has(identity) ? command : this._findCommand(identity)
+      if (matchingCommand) {
+        const existingCommand = this._commandIdentities(matchingCommand).join("|")
+        const newCommand = identities.join("|")
+        throw new Error(
+          `cannot add command '${newCommand}' as already have command '${existingCommand}'`,
+        )
+      }
+      seen.add(identity)
+    }
+
+    return super.addCommand(command, opts)
   }
 
   /**
@@ -895,6 +1000,9 @@ export interface Command<
   alias(alias: string): this
   /** Get command alias. */
   alias(): string
+
+  /** Add a parse-only alias omitted from help, usage, and suggestions. */
+  silentAlias(alias: string): this
 
   /** Set command version (preserves typed chain). */
   version(str: string, flags?: string, description?: string): this

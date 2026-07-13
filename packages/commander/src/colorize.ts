@@ -88,7 +88,8 @@ export function colorizeHelp(program: CommandLike, options?: ColorizeHelpOptions
     styleCommandDescription: (str: string) => s.bold.primary(str),
   }
 
-  program.configureHelp(helpConfig)
+  const existingHelp = program.configureHelp()
+  program.configureHelp({ ...existingHelp, ...helpConfig })
 
   // Tell Commander that color output is supported, even when stdout is not
   // a TTY. Without this, Commander strips ANSI codes from helpInformation().

@@ -71,6 +71,12 @@ Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types 
   - Any [Standard Schema](https://github.com/standard-schema/standard-schema) library — [Valibot](https://github.com/fabian-hiller/valibot), [ArkType](https://github.com/arktypeio/arktype)
   - All types usable standalone via `.parse()`/`.safeParse()`
 
+## Help composition and silent aliases
+
+Enhanced `Command.configureHelp({...})` shallow-merges with the current help configuration, so partial customizations preserve Silvery's installed color hooks; supplied keys win. `@silvery/commander/plain` keeps Commander's replacement behavior.
+
+Use `.silentAlias("queues")` for a compatibility spelling that should parse without appearing in help, usage, or typo suggestions. Ordinary `.alias()` and `.aliases()` remain visible and otherwise keep Commander semantics.
+
 ## Docs
 
 Full reference, type table, and API details at **[silvery.dev/reference/commander](https://silvery.dev/reference/commander)**.
