@@ -36,13 +36,11 @@ import {
   createStyle,
   createTerminalProfile,
   detectColorFromEnv,
-  isProtocolError,
   type Style,
   type TerminalProfile,
   type TerminalEmulator,
 } from "@silvery/ansi"
 import { createTerminal } from "@termless/core"
-import { createLogger } from "loggily"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -74,16 +72,9 @@ import {
 } from "../runtime/devices/console"
 import { createConsoleRouter } from "../runtime/devices/console-router"
 export type { DeviceConsole as Console, ConsoleCaptureOptions, ConsoleStats }
-import { splitRawInput, parseKey } from "@silvery/ag/keys"
-import { isMouseSequence, parseMouseSequence } from "../mouse"
-import { parseFocusEvent } from "../focus-reporting"
-import { parseBracketedPaste } from "../bracketed-paste"
-import { parseClipboardResponse } from "../clipboard"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
 
 export type { OutputOptions } from "../runtime/devices/output"
-
-const log = createLogger("silvery:input-owner")
 
 // =============================================================================
 // ANSI Utilities
@@ -1140,7 +1131,6 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   // ANSI bytes and fans out to onKey/onMouse/onPaste/onFocus subscribers so
   // emulator-backed Terms share the same consumer shape as Node-backed.
   const input = createInputOwner(HEADLESS_STDIN, stdout, { enableBracketedPaste: false })
-  let inputBatchSeq = 0
   // Signals owner — emulator-backed terms share the host process so exit /
   // SIGINT handlers remain meaningful. Construction is free (no process
   // listeners until first on()), and the contract promises signals on every
@@ -1194,44 +1184,10 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
       resizeListeners.forEach((l) => l())
     },
     sendInput: (data: string) => {
-      // Parse the data into typed events and fan out via the input owner.
-      const receivedAt = performance.now()
-      const inputBatchId = ++inputBatchSeq
-      const pasteResult = parseBracketedPaste(data)
-      if (pasteResult) {
-        input.sendPaste({ text: pasteResult.content })
-        return
-      }
-      let clipboardText: string | null = null
-      try {
-        clipboardText = parseClipboardResponse(data)
-      } catch (err) {
-        if (isProtocolError(err)) {
-          log?.debug?.(
-            `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-          )
-        } else {
-          log?.warn?.(`clipboard parser threw: ${String(err)}`)
-        }
-      }
-      if (clipboardText !== null) {
-        input.sendPaste({ text: clipboardText })
-        return
-      }
-      for (const raw of splitRawInput(data)) {
-        const focusEvent = parseFocusEvent(raw)
-        if (focusEvent) {
-          input.sendFocus({ focused: focusEvent.type === "focus-in" })
-          continue
-        }
-        if (isMouseSequence(raw)) {
-          const parsed = parseMouseSequence(raw)
-          if (parsed) input.sendMouse({ ...parsed, receivedAt, inputBatchId })
-          continue
-        }
-        const [parsedInput, key] = parseKey(raw)
-        input.sendKey({ input: parsedInput, key })
-      }
+      // One raw-input transaction state machine for real stdin and emulators.
+      // In particular, a physical paste envelope may be split at any TTY read
+      // boundary; InputOwner buffers it until the terminator arrives.
+      input.sendInput(data)
     },
     stripAnsi,
     paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {

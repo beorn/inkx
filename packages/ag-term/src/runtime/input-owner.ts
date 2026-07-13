@@ -135,6 +135,17 @@ export interface InputOwner extends Disposable {
   onFocus(handler: (event: FocusEvent) => void): () => void
 
   /**
+   * Feed one raw terminal-input chunk through the same stateful parser used by
+   * the owned stdin stream. Chunks may split escape sequences or a bracketed
+   * paste envelope at any byte boundary; subscribers observe only complete
+   * typed events.
+   *
+   * Emulator and alternate-host input paths use this instead of duplicating
+   * the one-shot protocol parser.
+   */
+  sendInput(chunk: string | Buffer): void
+
+  /**
    * Inject a synthetic key event. Used by emulator-backed terms
    * (`createTerm({ cols, rows, emulator })`) and test helpers to fan out to
    * the same subscribers as real stdin parsing would.
@@ -559,13 +570,14 @@ export function createInputOwner(
 
   // Single stdin listener — the whole reason this file exists. No other
   // code in the session should call stdin.on("data", …) or stdin.setRawMode.
-  const onChunk = (chunk: string | Buffer) => {
+  function sendInput(chunk: string | Buffer): void {
     if (disposed) return
     const receivedAt = performance.now()
     const inputBatchId = ++inputBatchSeq
     buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8")
     drain(receivedAt, inputBatchId)
   }
+  const onChunk = sendInput
   if (isTTY) stdin.on("data", onChunk)
 
   function probe<T>(opts: {
@@ -739,6 +751,7 @@ export function createInputOwner(
     onMouse,
     onPaste,
     onFocus,
+    sendInput,
     sendKey,
     sendMouse,
     sendPaste,

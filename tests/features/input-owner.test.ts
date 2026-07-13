@@ -305,6 +305,52 @@ describe("InputOwner", () => {
     expect(pastes).toEqual(["payload"])
   })
 
+  it("treats split start, content, and end chunks as one atomic TTY paste", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+
+    const keys: string[] = []
+    const pastes: string[] = []
+    const events: string[] = []
+    owner.onKey((event) => {
+      keys.push(event.input)
+      events.push(`key:${event.input}`)
+    })
+    owner.onPaste((event) => {
+      pastes.push(event.text)
+      events.push(`paste:${event.text}`)
+    })
+
+    for (const chunk of ["\x1b[20", "0~alpha ", "beta", "\x1b[201", "~"]) send(chunk)
+
+    expect(keys).toEqual([])
+    expect(pastes).toEqual(["alpha beta"])
+
+    send("x")
+    for (const chunk of ["\x1b[2", "00~second", "\x1b[20", "1~"]) send(chunk)
+    send("y")
+
+    expect(keys).toEqual(["x", "y"])
+    expect(pastes).toEqual(["alpha beta", "second"])
+    expect(events).toEqual(["paste:alpha beta", "key:x", "paste:second", "key:y"])
+  })
+
+  it("raw chunk injection shares the stateful stdin transaction parser", () => {
+    const { stdin, stdout } = createMockIO({ isTTY: false })
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+
+    const keys: string[] = []
+    const pastes: string[] = []
+    owner.onKey((event) => keys.push(event.input))
+    owner.onPaste((event) => pastes.push(event.text))
+
+    for (const chunk of ["\x1b[20", "0~injected", "\x1b[201", "~"]) owner.sendInput(chunk)
+    owner.sendInput("z")
+
+    expect(pastes).toEqual(["injected"])
+    expect(keys).toEqual(["z"])
+  })
+
   it("dispatches standalone Escape after the protocol disambiguation window", async () => {
     const { stdin, stdout, send } = createMockIO()
     using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
