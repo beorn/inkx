@@ -171,12 +171,17 @@ export function Table<T>(props: TableProps<T>): React.ReactElement {
   const selectedCursorId = isCursorControlled ? controlledCursorId : uncontrolledCursorId
   const lastCursorIndexRef = useRef(0)
   const selectedIndex = rowIds.findIndex((id) => id === selectedCursorId)
+  // A missing controlled ID is absence, not permission to choose a replacement.
+  // ListView's -1 cursor paints and activates no row; only uncontrolled mode
+  // may fall back to the prior numeric slot below.
   const cursorIndex =
     selectedIndex >= 0
       ? selectedIndex
-      : rowIds.length === 0
-        ? 0
-        : Math.max(0, Math.min(lastCursorIndexRef.current, rowIds.length - 1))
+      : isCursorControlled
+        ? -1
+        : rowIds.length === 0
+          ? 0
+          : Math.max(0, Math.min(lastCursorIndexRef.current, rowIds.length - 1))
   if (selectedIndex >= 0) lastCursorIndexRef.current = selectedIndex
 
   const startsFollowing =

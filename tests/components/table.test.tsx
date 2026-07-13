@@ -572,6 +572,50 @@ describe("Table", () => {
     expectCursorOn(app, "Run 06")
   })
 
+  test("a controlled cursor does not select a replacement row when its ID disappears", async () => {
+    const onCursorIdChange = vi.fn()
+    const onActivate = vi.fn()
+    const interactive = createRenderer({ cols: 40, rows: 8 })
+    const rows = [
+      { id: "a", run: "A", status: "idle", subject: "alpha" },
+      { id: "b", run: "B", status: "idle", subject: "bravo" },
+      { id: "c", run: "C", status: "idle", subject: "charlie" },
+    ] satisfies readonly TableInteractiveFixtureRow[]
+    const renderTable = (data: readonly TableInteractiveFixtureRow[], cursorId: string) => (
+      <Table
+        interactive
+        active
+        height={4}
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+        cursorId={cursorId}
+        onCursorIdChange={onCursorIdChange}
+        onActivate={onActivate}
+      />
+    )
+    const app = interactive(renderTable(rows, "b"))
+    expectCursorOn(app, "bravo")
+
+    const withoutB = [rows[0]!, rows[2]!]
+    app.rerender(renderTable(withoutB, "b"))
+    await settle(app)
+
+    const rowA = app.lines.findIndex((line) => line.includes("alpha"))
+    const rowC = app.lines.findIndex((line) => line.includes("charlie"))
+    expect(
+      app.cell(0, rowA).bg,
+      "A must stay unselected while controlled cursorId=b is absent",
+    ).toBe(null)
+    expect(app.cell(0, rowC).bg, "C must not inherit the missing controlled cursor").toBe(null)
+    await app.press("Enter")
+    expect(onActivate).not.toHaveBeenCalled()
+    expect(onCursorIdChange).not.toHaveBeenCalled()
+
+    app.rerender(renderTable(withoutB, "c"))
+    expectCursorOn(app, "charlie")
+  })
+
   test("Enter and click activate the addressed row exactly once", async () => {
     const onActivate = vi.fn()
     const interactive = createRenderer({ cols: 64, rows: 10 })
