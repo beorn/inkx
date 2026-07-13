@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { z } from "zod"
-import { Command } from "../src/index.ts"
+import { Command, CommanderError } from "../src/index.ts"
 import type { StandardSchemaV1 } from "../src/index.ts"
 
 describe("Standard Schema detection", () => {
@@ -21,7 +21,7 @@ describe("Standard Schema detection", () => {
     expect(typeof cmd.opts().port).toBe("number")
   })
 
-  it("validates via Standard Schema and throws on error", () => {
+  it("classifies Standard Schema failures as invalid CLI arguments", () => {
     const cmd = new Command("test").option(
       "-p, --port <n>",
       "Port",
@@ -31,7 +31,9 @@ describe("Standard Schema detection", () => {
     cmd.configureOutput({ writeErr: () => {} })
     expect(() => {
       cmd.parse(["node", "test", "--port", "99999"], { from: "node" })
-    }).toThrow()
+    }).toThrow(
+      expect.objectContaining<Partial<CommanderError>>({ code: "commander.invalidArgument" }),
+    )
   })
 
   it("transforms via Standard Schema validate path", () => {
@@ -65,7 +67,7 @@ describe("custom Standard Schema objects", () => {
     expect(cmd.opts().count).toBe(42)
   })
 
-  it("rejects invalid values from hand-rolled schema", () => {
+  it("classifies invalid hand-rolled schema values as invalid CLI arguments", () => {
     const positiveNumber: StandardSchemaV1<number> = {
       "~standard": {
         version: 1,
@@ -84,7 +86,9 @@ describe("custom Standard Schema objects", () => {
     cmd.configureOutput({ writeErr: () => {} })
     expect(() => {
       cmd.parse(["node", "test", "--count", "-5"], { from: "node" })
-    }).toThrow()
+    }).toThrow(
+      expect.objectContaining<Partial<CommanderError>>({ code: "commander.invalidArgument" }),
+    )
   })
 })
 

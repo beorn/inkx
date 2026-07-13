@@ -43,7 +43,7 @@
  * ```
  */
 
-import { Command as BaseCommand, Help, Option } from "commander"
+import { Command as BaseCommand, Help, InvalidArgumentError, Option } from "commander"
 import { colorizeHelp, shouldColorize } from "./colorize.ts"
 import type { CLIType, StandardSchemaV1 } from "./presets.ts"
 import { tokenizeCmdline, isShellLine, type CmdlineToken } from "./tokenize.ts"
@@ -322,7 +322,7 @@ function standardSchemaParser<T>(schema: StandardSchemaV1<T>): (value: string) =
     const result = schema["~standard"].validate(value)
     if ("issues" in result) {
       const msg = result.issues.map((i) => i.message).join(", ")
-      throw new Error(msg)
+      throw new InvalidArgumentError(msg)
     }
     return result.value
   }
