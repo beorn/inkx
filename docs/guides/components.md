@@ -250,6 +250,7 @@ Simple interactive primitives for boolean toggles and clickable buttons.
 | `Spinner`     | Animated spinner with presets (dots, line, arc, bounce)                                      |
 | `ProgressBar` | Determinate and indeterminate progress with custom fill                                      |
 | `Table`       | Column-aligned table with header, per-column alignment                                       |
+| `TreeTable`   | Passive hierarchy composed with Table columns                                                |
 | `Badge`       | Styled label/tag                                                                             |
 | `Divider`     | Horizontal rule                                                                              |
 | `VirtualList` | O(1) scroll for thousands of items — see [List Components](/guide/scrolling#list-components) |

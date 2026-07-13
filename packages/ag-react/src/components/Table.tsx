@@ -48,6 +48,15 @@ export type Column<T> = {
   grow?: boolean
 }
 
+export const TABLE_CELL_PREFIX = Symbol("table-cell-prefix")
+
+export type InternalColumn<T> = Column<T> & {
+  [TABLE_CELL_PREFIX]?: (
+    item: T,
+    index: number,
+  ) => Readonly<{ text: string; node: React.ReactNode }> | undefined
+}
+
 export type TableProps<T> = {
   /** Data rows */
   data: readonly T[]
@@ -82,14 +91,15 @@ function computeTracks<T>(
   return columns.map((col) => {
     if (col.width !== undefined) return { basis: col.width, fixed: true }
     const cellValues = data.map((item, i) => {
+      const prefix = (col as InternalColumn<T>)[TABLE_CELL_PREFIX]?.(item, i)?.text ?? ""
       if (col.render) {
         const rendered = col.render(item, i)
-        if (typeof rendered === "string") return rendered
+        if (typeof rendered === "string") return prefix + rendered
         // Styled cells can still share the plain value used by their column.
-        if (col.key) return String(item[col.key] ?? "")
-        return ""
+        if (col.key) return prefix + String(item[col.key] ?? "")
+        return prefix
       }
-      return String((col.key ? item[col.key] : "") ?? "")
+      return prefix + String((col.key ? item[col.key] : "") ?? "")
     })
     const intrinsic = Math.max(col.header.length, ...cellValues.map((v) => v.length)) + padding
     return {
@@ -135,18 +145,19 @@ export function Table<T>({
         }
 
   const renderCell = (col: Column<T>, item: T, index: number, track: Track, last: boolean) => {
+    const prefix = (col as InternalColumn<T>)[TABLE_CELL_PREFIX]?.(item, index)
     const rendered = col.render ? col.render(item, index) : null
     const content =
       rendered != null ? (
         typeof rendered === "string" ? (
-          <Text minWidth={0} maxWidth="100%" wrap="truncate">
+          <Text minWidth={0} maxWidth={prefix ? undefined : "100%"} wrap="truncate">
             {rendered}
           </Text>
         ) : (
           rendered
         )
       ) : (
-        <Text minWidth={0} maxWidth="100%" wrap="truncate">
+        <Text minWidth={0} maxWidth={prefix ? undefined : "100%"} wrap="truncate">
           {String((col.key ? item[col.key] : "") ?? "")}
         </Text>
       )
@@ -159,7 +170,19 @@ export function Table<T>({
         paddingRight={last ? 0 : padding}
         justifyContent={col.align === "right" ? "flex-end" : undefined}
       >
-        {content}
+        {prefix ? (
+          <Box
+            width="100%"
+            minWidth={0}
+            overflow="hidden"
+            justifyContent={col.align === "right" ? "flex-end" : undefined}
+          >
+            {prefix.node}
+            {content}
+          </Box>
+        ) : (
+          content
+        )}
       </Box>
     )
   }

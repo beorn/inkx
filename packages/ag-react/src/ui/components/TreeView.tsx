@@ -27,6 +27,7 @@ import { useInput } from "../../hooks/useInput"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { ListView } from "./ListView"
+import { flattenTree, type FlatTreeItem } from "./_tree-layout"
 
 // =============================================================================
 // Types
@@ -63,24 +64,6 @@ export interface TreeViewProps {
 // =============================================================================
 // Helpers
 // =============================================================================
-
-/** A flattened tree item with its source node and depth. */
-interface FlatItem {
-  node: TreeNode
-  depth: number
-}
-
-/** Flatten tree into visible list based on expansion state. */
-function flattenTree(nodes: TreeNode[], expanded: Set<string>, depth: number = 0): FlatItem[] {
-  const result: FlatItem[] = []
-  for (const node of nodes) {
-    result.push({ node, depth })
-    if (node.children?.length && expanded.has(node.id)) {
-      result.push(...flattenTree(node.children, expanded, depth + 1))
-    }
-  }
-  return result
-}
 
 /** Collect all node IDs in the tree (for defaultExpanded). */
 function collectAllIds(nodes: TreeNode[]): Set<string> {
@@ -131,7 +114,10 @@ export function TreeView({
   // re-renders on every cursor move. Only expand/collapse reads it.
   const cursorRef = useRef(0)
 
-  const flatItems = useMemo(() => flattenTree(data, expanded), [data, expanded])
+  const flatItems = useMemo(
+    () => flattenTree(data, (node) => (expanded.has(node.id) ? node.children : [])),
+    [data, expanded],
+  )
 
   const toggleNode = useCallback(
     (nodeId: string) => {
@@ -156,12 +142,12 @@ export function TreeView({
       if (flatItems.length === 0) return
       const cursor = Math.min(cursorRef.current, flatItems.length - 1)
       const item = flatItems[cursor]
-      if (!item?.node.children?.length) return
+      if (!item?.item.children?.length) return
 
-      if (key.rightArrow && !expanded.has(item.node.id)) {
-        toggleNode(item.node.id)
-      } else if (key.leftArrow && expanded.has(item.node.id)) {
-        toggleNode(item.node.id)
+      if (key.rightArrow && !expanded.has(item.item.id)) {
+        toggleNode(item.item.id)
+      } else if (key.leftArrow && expanded.has(item.item.id)) {
+        toggleNode(item.item.id)
       }
     },
     { isActive },
@@ -171,8 +157,8 @@ export function TreeView({
   const handleSelect = useCallback(
     (index: number) => {
       const item = flatItems[index]
-      if (item?.node.children?.length) {
-        toggleNode(item.node.id)
+      if (item?.item.children?.length) {
+        toggleNode(item.item.id)
       }
     },
     [flatItems, toggleNode],
@@ -182,12 +168,12 @@ export function TreeView({
     cursorRef.current = index
   }, [])
 
-  const getKey = useCallback((item: FlatItem) => item.node.id, [])
+  const getKey = useCallback((item: FlatTreeItem<TreeNode>) => item.item.id, [])
 
   const renderTreeItem = useCallback(
-    (item: FlatItem, _index: number, meta: { isCursor: boolean }) => {
-      const hasChildren = !!item.node.children?.length
-      const isExpanded = expanded.has(item.node.id)
+    (item: FlatTreeItem<TreeNode>, _index: number, meta: { isCursor: boolean }) => {
+      const hasChildren = !!item.item.children?.length
+      const isExpanded = expanded.has(item.item.id)
       const prefix = hasChildren ? (isExpanded ? "v " : "> ") : "  "
       const padding = " ".repeat(item.depth * indent)
 
@@ -195,7 +181,7 @@ export function TreeView({
         <Text inverse={meta.isCursor}>
           {padding}
           <Text color={hasChildren ? "$fg-accent" : "$fg"}>{prefix}</Text>
-          {renderNode ? renderNode(item.node, item.depth) : <Text>{item.node.label}</Text>}
+          {renderNode ? renderNode(item.item, item.depth) : <Text>{item.item.label}</Text>}
         </Text>
       )
     },

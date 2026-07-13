@@ -72,10 +72,11 @@ API reference for all silvery components. Import from `"silvery"` (the public ba
 
 ## Data Display
 
-| Component               | Description                                  |
-| ----------------------- | -------------------------------------------- |
-| [Table](./Table.md)     | Data table with headers and column alignment |
-| [Console](./Console.md) | Rendered console output                      |
+| Component                   | Description                                  |
+| --------------------------- | -------------------------------------------- |
+| [Table](./Table.md)         | Data table with headers and column alignment |
+| [TreeTable](./TreeTable.md) | Passive tree with aligned Table columns      |
+| [Console](./Console.md)     | Rendered console output                      |
 
 ## Feedback
 

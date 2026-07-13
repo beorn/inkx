@@ -296,6 +296,8 @@ export type { SelectListProps, SelectOption } from "./ui/components"
 
 export { Table } from "./components/Table"
 export type { TableProps, Column, Column as TableColumn } from "./components/Table"
+export { TreeTable } from "./ui/components/TreeTable"
+export type { TreeTableProps } from "./ui/components/TreeTable"
 
 export { Badge } from "./ui/components"
 export type { BadgeProps } from "./ui/components"
