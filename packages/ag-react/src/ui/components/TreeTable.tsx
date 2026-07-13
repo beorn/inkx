@@ -16,7 +16,9 @@ import { flattenTree, formatTreeGuide, type TreeGuideStyle } from "./_tree-layou
 
 type NonEmptyColumns<T> = readonly [Column<T>, ...Column<T>[]]
 
-export type TreeTableProps<T> = Omit<TableProps<T>, "columns"> & {
+type PassiveTableProps<T> = Extract<TableProps<T>, { interactive?: false }>
+
+export type TreeTableProps<T> = Omit<PassiveTableProps<T>, "columns"> & {
   /** At least one column; the first column receives the tree guide. */
   columns: NonEmptyColumns<T>
   /** Return the children currently visible beneath an item. */

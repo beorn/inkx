@@ -20,10 +20,10 @@
  * />
  * ```
  */
-import React, { useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Box } from "./Box"
 import { Text } from "./Text"
-import { ListView } from "../ui/components/ListView"
+import { ListView, type FollowPolicy, type ListItemMeta } from "../ui/components/ListView"
 
 // =============================================================================
 // Types
@@ -57,7 +57,9 @@ export type InternalColumn<T> = Column<T> & {
   ) => Readonly<{ text: string; node: React.ReactNode }> | undefined
 }
 
-export type TableProps<T> = {
+export type TableRowId = string | number
+
+type TableBaseProps<T> = {
   /** Data rows */
   data: readonly T[]
   /** Column definitions */
@@ -69,6 +71,36 @@ export type TableProps<T> = {
   /** Minimum column padding between columns (default: 2) */
   padding?: number
 }
+
+type PassiveTableProps<T> = TableBaseProps<T> & {
+  /** Keep the historical, byte-identical display-only Table. */
+  interactive?: false
+}
+
+export type InteractiveTableProps<T> = TableBaseProps<T> & {
+  /** Enable ListView-owned row cursor, navigation, pointer, and activation behavior. */
+  interactive: true
+  /** Stable identity used for the cursor, anchoring, and ListView item keys. */
+  getRowId: (row: T, index: number) => TableRowId
+  /** Controlled cursor identity. */
+  cursorId?: TableRowId
+  /** Initial cursor identity for an uncontrolled Table. */
+  defaultCursorId?: TableRowId
+  /** Called when the stable cursor identity changes. */
+  onCursorIdChange?: (id: TableRowId | null) => void
+  /** Called once when Enter or a row click activates a row. */
+  onActivate?: (row: T) => void
+  /** Whether this Table owns keyboard input. Default: true. */
+  active?: boolean
+  /** Bounded data-row viewport height. Defaults to the data row count. */
+  height?: number
+  /** Follow the live tail until navigation or scrolling anchors the viewport. */
+  follow?: FollowPolicy
+  /** Changing scope/filter identity acknowledges the current anchor baseline. */
+  anchorKey?: TableRowId
+}
+
+export type TableProps<T> = PassiveTableProps<T> | InteractiveTableProps<T>
 
 // =============================================================================
 // Helpers
@@ -113,13 +145,140 @@ function computeTracks<T>(
 // Component
 // =============================================================================
 
-export function Table<T>({
-  data,
-  columns,
-  headerColor = "$fg-accent",
-  showHeader = true,
-  padding = 2,
-}: TableProps<T>): React.ReactElement {
+export function Table<T>(props: TableProps<T>): React.ReactElement {
+  const { data, columns, headerColor = "$fg-accent", showHeader = true, padding = 2 } = props
+  const interactive = props.interactive === true
+  const getRowId = interactive ? props.getRowId : undefined
+  const requestedFollow = interactive ? (props.follow ?? "none") : "none"
+  const controlledCursorId = interactive ? props.cursorId : undefined
+  const defaultCursorId = interactive ? props.defaultCursorId : undefined
+  const onCursorIdChange = interactive ? props.onCursorIdChange : undefined
+  const onActivate = interactive ? props.onActivate : undefined
+  const currentAnchorKey = interactive ? props.anchorKey : undefined
+  const isCursorControlled = interactive && controlledCursorId !== undefined
+
+  const rowIds = useMemo(
+    () => (getRowId ? data.map((row, index) => getRowId(row, index)) : []),
+    [data, getRowId],
+  )
+  const [uncontrolledCursorId, setUncontrolledCursorId] = useState<TableRowId | undefined>(() => {
+    if (!interactive) return undefined
+    if (controlledCursorId !== undefined) return controlledCursorId
+    if (defaultCursorId !== undefined) return defaultCursorId
+    if (rowIds.length === 0) return undefined
+    return requestedFollow === "end" ? rowIds[rowIds.length - 1] : rowIds[0]
+  })
+  const selectedCursorId = isCursorControlled ? controlledCursorId : uncontrolledCursorId
+  const lastCursorIndexRef = useRef(0)
+  const selectedIndex = rowIds.findIndex((id) => id === selectedCursorId)
+  const cursorIndex =
+    selectedIndex >= 0
+      ? selectedIndex
+      : rowIds.length === 0
+        ? 0
+        : Math.max(0, Math.min(lastCursorIndexRef.current, rowIds.length - 1))
+  if (selectedIndex >= 0) lastCursorIndexRef.current = selectedIndex
+
+  const startsFollowing =
+    requestedFollow === "end" &&
+    (rowIds.length === 0
+      ? selectedCursorId === undefined
+      : selectedCursorId === rowIds[rowIds.length - 1])
+  const [isFollowing, setIsFollowing] = useState(startsFollowing)
+  const followingRef = useRef(startsFollowing)
+
+  // If an uncontrolled row disappears, keep the prior numeric slot rather
+  // than jumping to an unrelated edge. The next render stores that row's ID,
+  // so subsequent reshuffles remain identity-stable again.
+  const fallbackCursorId = rowIds[cursorIndex]
+  useEffect(() => {
+    if (!interactive || isCursorControlled || selectedIndex >= 0) return
+    if (requestedFollow === "end" && followingRef.current) return
+    if (uncontrolledCursorId === fallbackCursorId) return
+    setUncontrolledCursorId(fallbackCursorId)
+    onCursorIdChange?.(fallbackCursorId ?? null)
+  }, [
+    fallbackCursorId,
+    interactive,
+    isCursorControlled,
+    onCursorIdChange,
+    requestedFollow,
+    selectedIndex,
+    uncontrolledCursorId,
+  ])
+
+  // Follow/anchor is ID-based. Entering anchor mode snapshots the IDs that
+  // existed at that moment; later reshuffles and removals do not inflate the
+  // count, while genuinely unseen IDs do. Reaching the live edge acknowledges
+  // the snapshot and resumes ListView's canonical follow="end" machinery.
+  const anchorIdsRef = useRef<ReadonlySet<TableRowId>>(new Set(rowIds))
+  const previousAnchorKeyRef = useRef<TableRowId | undefined>(currentAnchorKey)
+  if (previousAnchorKeyRef.current !== currentAnchorKey) {
+    previousAnchorKeyRef.current = currentAnchorKey
+    anchorIdsRef.current = new Set(rowIds)
+  }
+
+  const updateFollowing = useCallback(
+    (next: boolean) => {
+      if (followingRef.current === next) {
+        if (next) anchorIdsRef.current = new Set(rowIds)
+        return
+      }
+      anchorIdsRef.current = new Set(rowIds)
+      followingRef.current = next
+      setIsFollowing(next)
+    },
+    [rowIds],
+  )
+
+  // When a followed Table mounts empty, acquire the tail of its first batch.
+  // Later appends leave this stable-ID selection alone: ListView follow owns
+  // the viewport, while the cursor remains a selection marker.
+  useEffect(() => {
+    if (!interactive || isCursorControlled || requestedFollow !== "end") return
+    if (!followingRef.current || rowIds.length === 0) return
+    if (selectedCursorId !== undefined) return
+    const tailIndex = rowIds.length - 1
+    const tailId = rowIds[tailIndex]
+    if (tailId === undefined) return
+    lastCursorIndexRef.current = tailIndex
+    setUncontrolledCursorId(tailId)
+    onCursorIdChange?.(tailId)
+  }, [interactive, isCursorControlled, onCursorIdChange, requestedFollow, rowIds, selectedCursorId])
+
+  const previousRequestedFollowRef = useRef(requestedFollow)
+  useEffect(() => {
+    if (previousRequestedFollowRef.current === requestedFollow) return
+    previousRequestedFollowRef.current = requestedFollow
+    updateFollowing(requestedFollow === "end")
+  }, [requestedFollow, updateFollowing])
+
+  const newRowCount =
+    interactive && requestedFollow === "end" && !isFollowing
+      ? rowIds.reduce<number>((count, id) => count + (anchorIdsRef.current.has(id) ? 0 : 1), 0)
+      : 0
+
+  const handleCursor = useCallback(
+    (index: number) => {
+      if (!interactive) return
+      const id = rowIds[index]
+      if (id === undefined) return
+      lastCursorIndexRef.current = index
+      if (!isCursorControlled) setUncontrolledCursorId(id)
+      onCursorIdChange?.(id)
+      if (requestedFollow === "end") updateFollowing(index === rowIds.length - 1)
+    },
+    [interactive, isCursorControlled, onCursorIdChange, requestedFollow, rowIds, updateFollowing],
+  )
+  const handleActivate = useCallback(
+    (index: number) => {
+      if (!interactive) return
+      const row = data[index]
+      if (row !== undefined) onActivate?.(row)
+    },
+    [data, interactive, onActivate],
+  )
+
   const tracks = useMemo(() => computeTracks(columns, data, padding), [columns, data, padding])
 
   const trackProps = (col: Column<T>, track: Track) =>
@@ -190,8 +349,16 @@ export function Table<T>({
     )
   }
 
-  const renderRow = (item: T, index: number) => (
-    <Box width="100%" height={1} minWidth={0} flexShrink={0} overflow="hidden">
+  const renderRow = (item: T, index: number, meta: ListItemMeta) => (
+    <Box
+      width="100%"
+      height={1}
+      minWidth={0}
+      flexShrink={0}
+      overflow="hidden"
+      backgroundColor={interactive && meta.isCursor ? "$bg-selected" : undefined}
+      color={interactive && meta.isCursor ? "$fg-on-selected" : undefined}
+    >
       {columns.map((col, colIndex) =>
         renderCell(col, item, index, tracks[colIndex]!, colIndex === columns.length - 1),
       )}
@@ -200,7 +367,21 @@ export function Table<T>({
 
   // Viewport height = number of data rows (show all, no scrolling)
   // Minimum 1 to avoid zero-height viewport when data is empty
-  const viewportHeight = Math.max(data.length, 1)
+  const viewportHeight =
+    interactive && props.height !== undefined ? props.height : Math.max(data.length, 1)
+  const listInteractionProps = interactive
+    ? {
+        nav: true,
+        active: props.active,
+        getKey: props.getRowId,
+        cursorKey: cursorIndex,
+        onCursor: handleCursor,
+        onSelect: handleActivate,
+        follow: requestedFollow === "end" && isFollowing ? ("end" as const) : ("none" as const),
+        onAtBottomChange:
+          requestedFollow === "end" ? (atBottom: boolean) => updateFollowing(atBottom) : undefined,
+      }
+    : {}
 
   return (
     <Box flexDirection="column" width="100%" minWidth={0} overflow="hidden">
@@ -222,7 +403,18 @@ export function Table<T>({
         </Box>
       )}
       {data.length > 0 && (
-        <ListView items={data} height={viewportHeight} estimateHeight={1} renderItem={renderRow} />
+        <ListView
+          items={data}
+          height={viewportHeight}
+          estimateHeight={1}
+          renderItem={renderRow}
+          {...listInteractionProps}
+        />
+      )}
+      {newRowCount > 0 && (
+        <Box height={1} flexShrink={0} justifyContent="flex-end">
+          <Text color="$fg-muted">{newRowCount} new</Text>
+        </Box>
       )}
     </Box>
   )

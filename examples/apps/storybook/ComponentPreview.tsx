@@ -13,7 +13,7 @@
  * at the App root — swapping schemes there re-renders the whole tree.
  */
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   Box,
   Text,
@@ -39,12 +39,20 @@ import {
   ProgressBar,
   TextInput,
   TextArea,
+  Table,
   Toggle,
   useKineticScroll,
   type SelectOption,
 } from "silvery"
 import { IntentDemo } from "./IntentDemo.tsx"
 import { UrgencyDemo } from "./UrgencyDemo.tsx"
+import {
+  TABLE_ANCHOR_ROWS,
+  TABLE_ANCHOR_ROWS_WITH_NEW,
+  TABLE_CURSOR_RESHUFFLED_ROWS,
+  TABLE_CURSOR_ROWS,
+  type TableInteractiveFixtureRow,
+} from "./shared/tableInteractiveFixtures.ts"
 
 // Sample data kept tiny so the pane always fits.
 const SELECT_ITEMS: SelectOption[] = [
@@ -53,6 +61,58 @@ const SELECT_ITEMS: SelectOption[] = [
   { label: "Python", value: "py" },
   { label: "Elixir", value: "ex" },
 ]
+
+const TABLE_COLUMNS = [
+  { header: "RUN", key: "run", width: 8 },
+  { header: "STATUS", key: "status", width: 12 },
+  { header: "SUBJECT", key: "subject", grow: true },
+] as const
+
+function InteractiveTablePreview(): React.ReactElement {
+  const [cursorRows, setCursorRows] =
+    useState<readonly TableInteractiveFixtureRow[]>(TABLE_CURSOR_ROWS)
+  const [anchoredRows, setAnchoredRows] =
+    useState<readonly TableInteractiveFixtureRow[]>(TABLE_ANCHOR_ROWS)
+
+  // The story and focused acceptance share the same transition fixture. The
+  // first commit establishes an anchor baseline; the second adds three IDs,
+  // making the muted "3 new" state visible without a story-only code path.
+  useEffect(() => {
+    setCursorRows(TABLE_CURSOR_RESHUFFLED_ROWS)
+    setAnchoredRows(TABLE_ANCHOR_ROWS_WITH_NEW)
+  }, [])
+
+  return (
+    <Box flexDirection="column" gap={1}>
+      <Box flexDirection="column" width={64}>
+        <Muted>stable cursor</Muted>
+        <Table
+          interactive
+          active={false}
+          height={4}
+          columns={TABLE_COLUMNS}
+          data={cursorRows}
+          getRowId={(row) => row.id}
+          defaultCursorId="run-03"
+        />
+      </Box>
+      <Box flexDirection="column" width={64}>
+        <Muted>anchored live rows</Muted>
+        <Table
+          interactive
+          active={false}
+          height={4}
+          follow="end"
+          anchorKey="storybook:main"
+          columns={TABLE_COLUMNS}
+          data={anchoredRows}
+          getRowId={(row) => row.id}
+          defaultCursorId="run-10"
+        />
+      </Box>
+    </Box>
+  )
+}
 
 export interface ComponentPreviewProps {
   schemeName: string
@@ -258,6 +318,16 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
               <Toggle value={autosave} onChange={setAutosave} label="Autosave" isActive={false} />
             </Box>
           </Box>
+        </Box>
+
+        <Divider />
+
+        {/* Table cursor + anchor states share their deterministic rows with the focused tests. */}
+        <Box flexDirection="column" gap={0}>
+          <Small>
+            <Muted>INTERACTIVE TABLE</Muted>
+          </Small>
+          <InteractiveTablePreview />
         </Box>
 
         <Divider />

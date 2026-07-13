@@ -184,7 +184,13 @@ export interface TextInputOptions {
 }
 
 /** Canonical generic Table types (compatibility export from `ui/types`). */
-export type { Column, Column as TableColumn, TableProps } from "../components/Table"
+export type {
+  Column,
+  Column as TableColumn,
+  InteractiveTableProps,
+  TableProps,
+  TableRowId,
+} from "../components/Table"
 
 /** Option for Select component */
 export interface SelectOption<T> {

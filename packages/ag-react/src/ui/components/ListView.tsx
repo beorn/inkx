@@ -30,7 +30,7 @@
  *   estimateHeight={() => 3}
  * />
  *
- * // Navigable (built-in j/k, arrows, PgUp/PgDn, Home/End, G, mouse wheel)
+ * // Navigable (built-in j/k, arrows, PgUp/PgDn, g/G, Home/End, mouse wheel)
  * <ListView
  *   items={items}
  *   height={20}
@@ -445,7 +445,7 @@ export interface ListViewProps<T> {
 
   // ── Navigable mode ──────────────────────────────────────────────
 
-  /** Enable built-in keyboard (j/k, arrows, PgUp/PgDn, Home/End, G) and mouse wheel */
+  /** Enable built-in keyboard (j/k, arrows, PgUp/PgDn, g/G, Home/End) and mouse wheel */
   nav?: boolean
 
   /** Currently focused cursor key (controlled). Managed internally when not provided. */
@@ -1235,7 +1235,7 @@ function ListViewInner<T>(
       if (input === "j" || key.downArrow) moveTo(cur + 1)
       else if (input === "k" || key.upArrow) moveTo(cur - 1)
       else if (input === "G" || key.end) moveTo(items.length - 1)
-      else if (key.home) moveTo(0)
+      else if (input === "g" || key.home) moveTo(0)
       else if (key.pageDown || (input === "d" && key.ctrl)) moveTo(cur + pageStep)
       else if (key.pageUp || (input === "u" && key.ctrl)) moveTo(cur - pageStep)
       else if (key.return && !searchActiveRef.current) onSelect?.(cur)

@@ -135,7 +135,12 @@ export { SelectList } from "./components/SelectList"
 export type { SelectListProps, SelectOption } from "./components/SelectList"
 
 export { Table } from "../components/Table"
-export type { TableProps, Column as TableColumn } from "../components/Table"
+export type {
+  TableProps,
+  InteractiveTableProps,
+  TableRowId,
+  Column as TableColumn,
+} from "../components/Table"
 export { TreeTable } from "./components/TreeTable"
 export type { TreeTableProps } from "./components/TreeTable"
 

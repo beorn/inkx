@@ -78,7 +78,7 @@ interface ListViewHandle {
   estimateHeight={() => 3}
 />
 
-// Navigable (built-in j/k, arrows, PgUp/PgDn, Home/End, G, mouse wheel)
+// Navigable (built-in j/k, arrows, PgUp/PgDn, g/G, Home/End, mouse wheel)
 <ListView
   items={items}
   height={20}

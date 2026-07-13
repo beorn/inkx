@@ -1,7 +1,7 @@
 /**
  * ListView navigable mode — termless end-to-end tests.
  *
- * Verifies keyboard navigation (j/k, arrows, PgUp/PgDn, Home/End, G),
+ * Verifies keyboard navigation (j/k, arrows, PgUp/PgDn, g/G, Home/End),
  * mouse wheel scrolling, Enter selection, and cursor visibility through
  * the full ANSI rendering pipeline.
  *

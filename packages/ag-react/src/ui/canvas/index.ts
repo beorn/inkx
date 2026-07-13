@@ -87,7 +87,12 @@ export { Skeleton } from "../components/Skeleton"
 export { Spinner } from "../components/Spinner"
 export { SplitView } from "../components/SplitView"
 export { Table } from "../../components/Table"
-export type { TableProps, Column as TableColumn } from "../../components/Table"
+export type {
+  TableProps,
+  InteractiveTableProps,
+  TableRowId,
+  Column as TableColumn,
+} from "../../components/Table"
 export { TreeTable } from "../components/TreeTable"
 export type { TreeTableProps } from "../components/TreeTable"
 export { Tabs, TabList, Tab, TabPanel } from "../components/Tabs"

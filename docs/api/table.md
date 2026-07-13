@@ -1,7 +1,7 @@
 # Table
 
 Generic one-row data display with intrinsic column sizing, alignment, custom
-React cells, and truncation.
+React cells, truncation, and an opt-in stable-ID row cursor built on ListView.
 
 ## Import
 
@@ -57,6 +57,33 @@ type TableColumn<T> = {
 String cells truncate with an ellipsis when their track is narrower than the
 value. Custom React cells remain intact but are measured and clipped to one
 row, so a wrapping renderer cannot consume rows belonging to later items.
+
+## Interactive Cursor
+
+Pass `interactive` and `getRowId` to enable ListView-owned keyboard, pointer,
+scroll, and activation behavior. `cursorId` / `defaultCursorId` store identity
+rather than a volatile row index, and `onActivate(row)` fires once for both
+Enter and click.
+
+```tsx
+<Table
+  interactive
+  height={10}
+  follow="end"
+  anchorKey="main:all"
+  getRowId={(row) => row.id}
+  columns={columns}
+  data={rows}
+  onActivate={(row) => show(row)}
+/>
+```
+
+Navigation supports `j`/`k`, arrows, `g`/`G`, Home/End, and paging. Moving away
+from the followed end snapshots stable row IDs; newly appearing IDs are
+reported as muted `N new`. Reorders and removals do not increment that count,
+and returning to the end acknowledges it. Changing `anchorKey` resets the
+baseline for a new query or scope. Omit `interactive` for byte-identical passive
+rendering.
 
 ## Sizing
 

@@ -5,7 +5,7 @@
  * alignment, custom renderers, header visibility, empty data, and null handling.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Text, Table, TreeTable } from "silvery"
 import { Table as CanonicalTable } from "../../packages/ag-react/src/components/Table"
@@ -22,6 +22,13 @@ import {
   Table as DisplayTable,
   TreeTable as DisplayTreeTable,
 } from "../../packages/ag-react/src/ui/display"
+import {
+  TABLE_ANCHOR_ROWS,
+  TABLE_ANCHOR_ROWS_WITH_NEW,
+  TABLE_CURSOR_RESHUFFLED_ROWS,
+  TABLE_CURSOR_ROWS,
+  type TableInteractiveFixtureRow,
+} from "../../examples/apps/storybook/shared/tableInteractiveFixtures"
 
 const render = createRenderer({ cols: 80, rows: 20 })
 
@@ -36,6 +43,28 @@ const people: readonly Person[] = [
   { name: "Bob", age: 25, city: "San Francisco" },
   { name: "Charlie", age: 35, city: "Chicago" },
 ]
+
+const interactiveColumns = [
+  { header: "RUN", key: "run", width: 8 },
+  { header: "STATUS", key: "status", width: 12 },
+  { header: "SUBJECT", key: "subject", grow: true },
+] as const
+
+async function settle(app: ReturnType<ReturnType<typeof createRenderer>>): Promise<void> {
+  await app.waitForLayoutStable({ timeoutMs: 1000, maxPasses: 20 })
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
+}
+
+function expectCursorOn(app: ReturnType<ReturnType<typeof createRenderer>>, text: string): void {
+  const rowIndex = app.lines.findIndex((line) => line.includes(text))
+  expect(rowIndex, `${text} should be visible`).toBeGreaterThan(0)
+  expect(app.cell(0, rowIndex).bg, `${text} should use the semantic cursor background`).not.toBe(
+    null,
+  )
+  expect(app.cell(0, rowIndex).fg, `${text} should use the semantic cursor foreground`).not.toBe(
+    null,
+  )
+}
 
 // =============================================================================
 // Tests
@@ -435,5 +464,230 @@ describe("Table", () => {
     expect(app.lines[1]).toContain("task/x")
     expect(app.lines[1]).toContain("…")
     expect(app.lines[1]).toMatch(/… {2}task\/x/u)
+  })
+
+  test("omitting interaction preserves the exact passive ANSI byte stream", () => {
+    const passive = createRenderer({ cols: 24, rows: 6 })
+    const props = {
+      columns: [
+        { header: "ID", key: "id" as const, align: "right" as const, width: 4 },
+        { header: "NAME", key: "name" as const, grow: true },
+      ],
+      data: [
+        { id: "7", name: "alpha" },
+        { id: "42", name: "beta" },
+      ],
+    }
+
+    const omitted = passive(<Table {...props} />)
+    const explicitlyPassive = passive(<Table {...props} interactive={false} />)
+
+    expect(omitted.ansi).toBe(
+      "\u001b[38;2;129;161;193m\u001b[1mID\u001b[22m\u001b[39m  \u001b[1m\u001b[38;2;129;161;193mNAME\u001b[22m\u001b[39m\n 7  alpha\n42  beta",
+    )
+    expect(explicitlyPassive.ansi).toBe(omitted.ansi)
+  })
+
+  test("interactive cursor delegates j/k, arrows, g/G and survives an ID-preserving reshuffle", async () => {
+    const onCursorIdChange = vi.fn()
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const renderTable = (data: readonly TableInteractiveFixtureRow[]) => (
+      <Table
+        interactive
+        active
+        height={6}
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+        defaultCursorId="run-05"
+        onCursorIdChange={onCursorIdChange}
+      />
+    )
+    const app = interactive(renderTable(TABLE_CURSOR_ROWS))
+
+    expectCursorOn(app, "Run 05")
+    await app.press("j")
+    expectCursorOn(app, "Run 06")
+    await app.press("ArrowDown")
+    expectCursorOn(app, "Run 07")
+    await app.press("k")
+    expectCursorOn(app, "Run 06")
+
+    app.rerender(renderTable(TABLE_CURSOR_RESHUFFLED_ROWS))
+    expectCursorOn(app, "Run 06")
+
+    await app.press("G")
+    expectCursorOn(app, "Run 18")
+    await app.press("g")
+    expectCursorOn(app, "Run 09")
+    await app.press("ArrowUp")
+    expectCursorOn(app, "Run 09")
+
+    expect(onCursorIdChange).toHaveBeenCalledWith("run-06")
+  })
+
+  test("a removed cursor ID falls back to its prior numeric slot", async () => {
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const renderTable = (data: readonly TableInteractiveFixtureRow[]) => (
+      <Table
+        interactive
+        height={6}
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+        defaultCursorId="run-05"
+      />
+    )
+    const app = interactive(renderTable(TABLE_CURSOR_ROWS))
+    expectCursorOn(app, "Run 05")
+
+    app.rerender(renderTable(TABLE_CURSOR_ROWS.filter((item) => item.id !== "run-05")))
+    await settle(app)
+
+    expectCursorOn(app, "Run 06")
+  })
+
+  test("a controlled cursor reports the next ID and moves only when its owner updates", async () => {
+    const onCursorIdChange = vi.fn()
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const renderTable = (data: readonly TableInteractiveFixtureRow[], cursorId: string) => (
+      <Table
+        interactive
+        active
+        height={6}
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+        cursorId={cursorId}
+        onCursorIdChange={onCursorIdChange}
+      />
+    )
+    const app = interactive(renderTable(TABLE_CURSOR_ROWS, "run-05"))
+
+    await app.press("j")
+    expect(onCursorIdChange).toHaveBeenLastCalledWith("run-06")
+    expectCursorOn(app, "Run 05")
+
+    app.rerender(renderTable(TABLE_CURSOR_RESHUFFLED_ROWS, "run-06"))
+    expectCursorOn(app, "Run 06")
+  })
+
+  test("Enter and click activate the addressed row exactly once", async () => {
+    const onActivate = vi.fn()
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const app = interactive(
+      <Table
+        interactive
+        active
+        height={8}
+        columns={interactiveColumns}
+        data={TABLE_CURSOR_ROWS}
+        getRowId={(item) => item.id}
+        defaultCursorId="run-03"
+        onActivate={onActivate}
+      />,
+    )
+
+    await app.press("Enter")
+    expect(onActivate).toHaveBeenCalledTimes(1)
+    expect(onActivate).toHaveBeenLastCalledWith(TABLE_CURSOR_ROWS[2])
+
+    const runSevenRow = app.lines.findIndex((line) => line.includes("Run 07"))
+    expect(runSevenRow).toBeGreaterThan(0)
+    await app.click(1, runSevenRow)
+
+    expect(onActivate).toHaveBeenCalledTimes(2)
+    expect(onActivate).toHaveBeenLastCalledWith(TABLE_CURSOR_ROWS[6])
+  })
+
+  test("an empty followed Table acquires the live tail when its first batch arrives", async () => {
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const renderTable = (data: readonly TableInteractiveFixtureRow[]) => (
+      <Table
+        interactive
+        active
+        height={5}
+        follow="end"
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+      />
+    )
+    const app = interactive(renderTable([]))
+
+    app.rerender(renderTable(TABLE_ANCHOR_ROWS))
+    await settle(app)
+
+    expectCursorOn(app, "Run 15")
+    expect(app.text).not.toContain("new")
+
+    app.rerender(renderTable(TABLE_CURSOR_ROWS))
+    await settle(app)
+
+    expectCursorOn(app, "Run 15")
+    expect(app.text).not.toContain("new")
+  })
+
+  test("anchoring counts unseen row IDs, ignores reshuffles/removals, and G resumes follow", async () => {
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const renderTable = (data: readonly TableInteractiveFixtureRow[]) => (
+      <Table
+        interactive
+        active
+        height={5}
+        follow="end"
+        anchorKey="main:all"
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+        defaultCursorId="run-15"
+      />
+    )
+    const app = interactive(renderTable(TABLE_ANCHOR_ROWS))
+    await settle(app)
+
+    await app.press("k")
+    expectCursorOn(app, "Run 14")
+    app.rerender(renderTable(TABLE_ANCHOR_ROWS_WITH_NEW))
+    await settle(app)
+    expect(app.text).toContain("3 new")
+
+    const reorderedWithoutOne = [
+      TABLE_ANCHOR_ROWS_WITH_NEW[2]!,
+      ...TABLE_ANCHOR_ROWS_WITH_NEW.slice(0, 2),
+      ...TABLE_ANCHOR_ROWS_WITH_NEW.slice(3).filter((item) => item.id !== "run-02"),
+    ]
+    app.rerender(renderTable(reorderedWithoutOne))
+    expect(app.text).toContain("3 new")
+
+    await app.press("G")
+    await settle(app)
+    expect(app.text).not.toContain("3 new")
+  })
+
+  test("changing anchorKey acknowledges the current stable-ID baseline", async () => {
+    const interactive = createRenderer({ cols: 64, rows: 10 })
+    const renderTable = (data: readonly TableInteractiveFixtureRow[], anchorKey: string) => (
+      <Table
+        interactive
+        active
+        height={5}
+        follow="end"
+        anchorKey={anchorKey}
+        columns={interactiveColumns}
+        data={data}
+        getRowId={(item) => item.id}
+        defaultCursorId="run-15"
+      />
+    )
+    const app = interactive(renderTable(TABLE_ANCHOR_ROWS, "main:all"))
+    await settle(app)
+
+    await app.press("k")
+    app.rerender(renderTable(TABLE_ANCHOR_ROWS_WITH_NEW, "main:all"))
+    expect(app.text).toContain("3 new")
+
+    app.rerender(renderTable(TABLE_ANCHOR_ROWS_WITH_NEW, "main:failed"))
+    expect(app.text).not.toContain("3 new")
   })
 })
