@@ -7,11 +7,21 @@
 
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Text, Table } from "silvery"
+import { Text, Table, TreeTable } from "silvery"
 import { Table as CanonicalTable } from "../../packages/ag-react/src/components/Table"
-import { Table as ComponentsTable } from "../../packages/ag-react/src/ui/components"
-import { Table as CanvasTable } from "../../packages/ag-react/src/ui/canvas"
-import { Table as DisplayTable } from "../../packages/ag-react/src/ui/display"
+import { TreeTable as CanonicalTreeTable } from "../../packages/ag-react/src/ui/components/TreeTable"
+import {
+  Table as ComponentsTable,
+  TreeTable as ComponentsTreeTable,
+} from "../../packages/ag-react/src/ui/components"
+import {
+  Table as CanvasTable,
+  TreeTable as CanvasTreeTable,
+} from "../../packages/ag-react/src/ui/canvas"
+import {
+  Table as DisplayTable,
+  TreeTable as DisplayTreeTable,
+} from "../../packages/ag-react/src/ui/display"
 
 const render = createRenderer({ cols: 80, rows: 20 })
 
@@ -32,11 +42,15 @@ const people: readonly Person[] = [
 // =============================================================================
 
 describe("Table", () => {
-  test("all public barrels expose the canonical generic Table", () => {
+  test("all public barrels expose the canonical Table family", () => {
     expect(Table).toBe(CanonicalTable)
     expect(ComponentsTable).toBe(CanonicalTable)
     expect(CanvasTable).toBe(CanonicalTable)
     expect(DisplayTable).toBe(CanonicalTable)
+    expect(TreeTable).toBe(CanonicalTreeTable)
+    expect(ComponentsTreeTable).toBe(CanonicalTreeTable)
+    expect(CanvasTreeTable).toBe(CanonicalTreeTable)
+    expect(DisplayTreeTable).toBe(CanonicalTreeTable)
   })
 
   test("renders header row with column names", () => {
