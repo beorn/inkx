@@ -50,8 +50,8 @@ import {
   type ParseMouseOptions,
   type ParsedMouse,
 } from "../mouse"
-import { parseBracketedPaste } from "../bracketed-paste"
-import { parseClipboardResponse } from "../clipboard"
+import { parseBracketedPasteEnvelope } from "../bracketed-paste"
+import { parseClipboardResponseEnvelope } from "../clipboard"
 import { parseFocusEvent } from "../focus-reporting"
 import type { Modes } from "./devices/modes"
 
@@ -447,6 +447,14 @@ export function createInputOwner(
     }, ESC_DISAMBIGUATION_MS)
   }
 
+  function dispatchRawChunk(chunk: string, receivedAt?: number, inputBatchId?: number): void {
+    if (chunk.length === 0) return
+    const { sequences, incomplete } = splitRawInput(chunk)
+    incompleteSequence = incomplete
+    scheduleIncompleteFlush(receivedAt, inputBatchId)
+    for (const raw of sequences) dispatchSequence(raw, receivedAt, inputBatchId)
+  }
+
   // Drain the current buffer against probes (in registration order). Anything
   // probes don't consume flows into the event parser, which fires typed
   // handlers for each parsed sequence.
@@ -515,46 +523,53 @@ export function createInputOwner(
     // while still emitting a debug-log breadcrumb so chronic protocol-format
     // problems become visible. Bead reference:
     // @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
-    let pasteResult: ReturnType<typeof parseBracketedPaste> = null
-    try {
-      pasteResult = parseBracketedPaste(chunk)
-    } catch (err) {
-      if (isProtocolError(err)) {
-        incompletePaste = chunk
-        log?.debug?.(
-          `bracketed paste parser buffered incomplete input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-        )
-        return
-      } else {
-        log?.warn?.(`bracketed paste parser threw: ${String(err)}`)
+    let remaining = chunk
+    while (remaining.length > 0) {
+      let pasteEnvelope: ReturnType<typeof parseBracketedPasteEnvelope> = null
+      try {
+        pasteEnvelope = parseBracketedPasteEnvelope(remaining)
+      } catch (err) {
+        if (isProtocolError(err)) {
+          incompletePaste = remaining
+          log?.debug?.(
+            `bracketed paste parser buffered incomplete input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
+          )
+          return
+        } else {
+          log?.warn?.(`bracketed paste parser threw: ${String(err)}`)
+        }
       }
-    }
-    if (pasteResult) {
-      fire(pasteHandlers, { text: pasteResult.content })
+
+      let clipboardEnvelope: ReturnType<typeof parseClipboardResponseEnvelope> = null
+      try {
+        clipboardEnvelope = parseClipboardResponseEnvelope(remaining)
+      } catch (err) {
+        if (isProtocolError(err)) {
+          log?.debug?.(
+            `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
+          )
+        } else {
+          log?.warn?.(`clipboard parser threw: ${String(err)}`)
+        }
+      }
+
+      if (pasteEnvelope && (!clipboardEnvelope || pasteEnvelope.start <= clipboardEnvelope.start)) {
+        dispatchRawChunk(remaining.slice(0, pasteEnvelope.start), receivedAt, inputBatchId)
+        fire(pasteHandlers, { text: pasteEnvelope.result.content })
+        remaining = remaining.slice(pasteEnvelope.end)
+        continue
+      }
+
+      if (clipboardEnvelope) {
+        dispatchRawChunk(remaining.slice(0, clipboardEnvelope.start), receivedAt, inputBatchId)
+        fire(pasteHandlers, { text: clipboardEnvelope.text })
+        remaining = remaining.slice(clipboardEnvelope.end)
+        continue
+      }
+
+      dispatchRawChunk(remaining, receivedAt, inputBatchId)
       return
     }
-
-    let clipboardText: string | null = null
-    try {
-      clipboardText = parseClipboardResponse(chunk)
-    } catch (err) {
-      if (isProtocolError(err)) {
-        log?.debug?.(
-          `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-        )
-      } else {
-        log?.warn?.(`clipboard parser threw: ${String(err)}`)
-      }
-    }
-    if (clipboardText !== null) {
-      fire(pasteHandlers, { text: clipboardText })
-      return
-    }
-
-    const { sequences, incomplete } = splitRawInput(chunk)
-    incompleteSequence = incomplete
-    scheduleIncompleteFlush(receivedAt, inputBatchId)
-    for (const raw of sequences) dispatchSequence(raw, receivedAt, inputBatchId)
   }
 
   // Single stdin listener — the whole reason this file exists. No other

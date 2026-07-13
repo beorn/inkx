@@ -184,6 +184,51 @@ describe("island command prefix — keys", () => {
     }
   })
 
+  test("a command prefix commits host ownership before the next key in the same stdin chunk", async () => {
+    using term = createTermless({ cols: 40, rows: 8 })
+    const recorder = createInputRecorderGuest()
+    const hostKeys: string[] = []
+    const sendInput = (input: string): void =>
+      (term as unknown as { sendInput: (value: string) => void }).sendInput(input)
+
+    function App(): React.ReactElement {
+      const [capturing, setCapturing] = React.useState(false)
+      useInput((input, key) => {
+        if (key.ctrl && input === "g") {
+          hostKeys.push("ctrl-g")
+          setCapturing(true)
+          return
+        }
+        hostKeys.push(input)
+        setCapturing(false)
+      })
+      return (
+        <Box flexDirection="column">
+          <Island
+            guest={recorder.guest}
+            cols={10}
+            rows={2}
+            focusable
+            commandPrefix={{ hotkey: "ctrl+g", capturing }}
+          />
+          <Text>after</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term)
+    try {
+      await handle.press("Tab")
+      sendInput("\x07q")
+      await settle()
+
+      expect(hostKeys).toEqual(["ctrl-g", "q"])
+      expect(recorder.feeds).toEqual([])
+    } finally {
+      handle.unmount()
+    }
+  })
+
   test("commandPrefix capturing=true: while mid-command, even a normal key routes to the host", async () => {
     using term = createTermless({ cols: 40, rows: 8 })
     const recorder = createInputRecorderGuest()
@@ -433,12 +478,12 @@ describe("island bracketed-paste routing", () => {
       // The terminal's own Cmd-V emits bracketed-paste bytes; the host parser
       // strips the markers, and the runtime re-wraps them for a guest that
       // enabled DECSET 2004 so its line editor sees one atomic paste.
-      sendInput("\x1b[200~PASTED\x1b[201~")
+      sendInput("\x1b[200~PASTED\x1b[201~\r")
       await settle()
       expect(
         recorder.feeds.join(""),
-        "a focused guest with bracketed-paste ON must receive the paste wrapped in DECSET 2004 markers",
-      ).toBe("\x1b[200~PASTED\x1b[201~")
+        "a focused guest with bracketed-paste ON must receive the paste and same-chunk Return in order",
+      ).toBe("\x1b[200~PASTED\x1b[201~\r")
     } finally {
       handle.unmount()
     }

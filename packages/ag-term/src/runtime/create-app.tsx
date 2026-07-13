@@ -110,6 +110,7 @@ import {
   createHandlerContext,
   dispatchKeyToHandlers,
   handleFocusNavigation,
+  isFocusedIslandHostInputBarrier,
   invokeEventHandler,
   routePasteToFocusedIsland,
   type NamespacedEvent,
@@ -4368,8 +4369,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Mouse / resize / other namespaced events bypass the chain and go
     // straight to `runEventHandler` (app handlers), same as before.
     for (const event of events) {
+      let hostInputOwnershipBarrier = false
       if (event.type === "term:key") {
         const { input, key: parsedKey } = event.data as { input: string; key: Key }
+        hostInputOwnershipBarrier = isFocusedIslandHostInputBarrier(input, parsedKey, focusManager)
 
         // Raw lane: Always update keyboard modifier state (Super/Cmd, Hyper) for
         // mouse events. SGR mouse protocol can't report these — Kitty fills the gap.
@@ -4457,7 +4460,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // the post-batch doRender's dirty-row tracking would be stale relative
       // to runtime.prevBuffer, causing diffBuffers() to skip all rows and
       // produce an empty diff (0 bytes output).
-      if (result === "flush") {
+      if (result === "flush" || hostInputOwnershipBarrier) {
         pendingRerender = false
         currentBuffer = doRender()
         paintFrame()

@@ -252,20 +252,15 @@ export function createCompositeClipboard(...backends: ClipboardBackend[]): Clipb
 // Response Parsing
 // ============================================================================
 
-/**
- * Parse an OSC 52 clipboard response and decode the base64 content.
- *
- * Return semantics (see {@link ProtocolError} for the full contract):
- * - `null` — input is NOT an OSC 52 clipboard response (no prefix, or a
- *   query marker `?` rather than a response). Callers in a discriminator
- *   chain treat this as "next parser please."
- * - `throw ProtocolError` — input HAS the OSC 52 prefix (we committed to
- *   this protocol) but is malformed (e.g., missing terminator). Loud
- *   failure is required by bead 15127 acceptance line 22.
- *
- * Handles both BEL (\x07) and ST (ESC \) terminators.
- */
-export function parseClipboardResponse(input: string): string | null {
+/** @internal Parsed OSC 52 response with its exact consumed byte span. */
+export interface ClipboardResponseEnvelope {
+  text: string
+  start: number
+  end: number
+}
+
+/** @internal Use when a stream owner must preserve bytes around the response. */
+export function parseClipboardResponseEnvelope(input: string): ClipboardResponseEnvelope | null {
   const prefixIdx = input.indexOf(OSC52_PREFIX)
   if (prefixIdx === -1) return null
 
@@ -276,9 +271,12 @@ export function parseClipboardResponse(input: string): string | null {
   if (input[contentStart] === "?") return null
 
   // Find terminator: BEL (\x07) or ST (ESC \)
+  let terminatorLength = BEL.length
   let contentEnd = input.indexOf(BEL, contentStart)
   if (contentEnd === -1) {
-    contentEnd = input.indexOf(`${ESC}\\`, contentStart)
+    const stringTerminator = `${ESC}\\`
+    contentEnd = input.indexOf(stringTerminator, contentStart)
+    terminatorLength = stringTerminator.length
   }
   if (contentEnd === -1) {
     // We committed to OSC 52 (prefix matched) — missing terminator is a
@@ -313,5 +311,26 @@ export function parseClipboardResponse(input: string): string | null {
     })
   }
 
-  return Buffer.from(base64, "base64").toString("utf-8")
+  return {
+    text: Buffer.from(base64, "base64").toString("utf-8"),
+    start: prefixIdx,
+    end: contentEnd + terminatorLength,
+  }
+}
+
+/**
+ * Parse an OSC 52 clipboard response and decode the base64 content.
+ *
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — input is NOT an OSC 52 clipboard response (no prefix, or a
+ *   query marker `?` rather than a response). Callers in a discriminator
+ *   chain treat this as "next parser please."
+ * - `throw ProtocolError` — input HAS the OSC 52 prefix (we committed to
+ *   this protocol) but is malformed (e.g., missing terminator). Loud
+ *   failure is required by bead 15127 acceptance line 22.
+ *
+ * Handles both BEL (\x07) and ST (ESC \) terminators.
+ */
+export function parseClipboardResponse(input: string): string | null {
+  return parseClipboardResponseEnvelope(input)?.text ?? null
 }

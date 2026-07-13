@@ -305,6 +305,30 @@ describe("InputOwner", () => {
     expect(pastes).toEqual(["payload"])
   })
 
+  it("preserves trailing input after complete paste protocols in one stdin chunk", () => {
+    const cases = [
+      { chunk: "\x1b[200~bracketed\x1b[201~\r", text: "bracketed" },
+      {
+        chunk: `\x1b]52;c;${Buffer.from("clipboard", "utf8").toString("base64")}\x07\r`,
+        text: "clipboard",
+      },
+    ]
+
+    for (const { chunk, text } of cases) {
+      const { stdin, stdout, send } = createMockIO()
+      using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+      const events: string[] = []
+      owner.onPaste((event) => events.push(`paste:${event.text}`))
+      owner.onKey((event) => {
+        if (event.key.return) events.push("return")
+      })
+
+      send(chunk)
+
+      expect(events).toEqual([`paste:${text}`, "return"])
+    }
+  })
+
   it("dispatches standalone Escape after the protocol disambiguation window", async () => {
     const { stdin, stdout, send } = createMockIO()
     using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
