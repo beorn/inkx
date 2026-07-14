@@ -24,14 +24,18 @@
  */
 
 import React, { useState } from "react"
+import { spawnSync } from "node:child_process"
+import { resolve } from "node:path"
 import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
 import { Box, Text } from "../../src/index.js"
+import { createApp } from "../../packages/ag-term/src/runtime/create-app"
 import { run } from "../../packages/ag-term/src/runtime/run"
 import { type Scope, setDisposeErrorSink, type DisposeErrorContext } from "@silvery/scope"
 import { useScope, useAppScope, useScopeEffect } from "@silvery/ag-react/hooks"
 
 const settle = (ms = 50) => new Promise((r) => setTimeout(r, ms))
+const silveryRoot = resolve(import.meta.dirname, "../..")
 
 // ----------------------------------------------------------------------------
 // Test 1 — `handle.scope` is the React tree's scope
@@ -210,5 +214,103 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
     } finally {
       setDisposeErrorSink(() => {})
     }
+  })
+
+  test("factory failure rolls back process listeners and the root scope", () => {
+    const source = String.raw`
+      import React from "react"
+      import { createApp } from "./packages/ag-term/src/runtime/create-app.tsx"
+      import { getTraceSnapshot } from "./packages/scope/src/index.ts"
+
+      const before = {
+        resize: process.stdout.listenerCount("resize"),
+        sigint: process.listenerCount("SIGINT"),
+        sigterm: process.listenerCount("SIGTERM"),
+      }
+      let message = ""
+      try {
+        await createApp(() => () => {
+          throw new Error("factory-boom-live")
+        }).run(React.createElement(React.Fragment), {
+          stdout: process.stdout,
+          stdin: process.stdin,
+        })
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error)
+      }
+      const after = {
+        resize: process.stdout.listenerCount("resize"),
+        sigint: process.listenerCount("SIGINT"),
+        sigterm: process.listenerCount("SIGTERM"),
+      }
+      console.log(JSON.stringify({
+        message,
+        before,
+        after,
+        scopes: getTraceSnapshot().map(({ kind, name }) => ({ kind, name })),
+      }))
+    `
+    const result = spawnSync("bun", ["-e", source], {
+      cwd: silveryRoot,
+      encoding: "utf8",
+      env: { ...process.env, SILVERY_SCOPE_TRACE: "1" },
+    })
+
+    expect(result.status, result.stderr).toBe(0)
+    const record = JSON.parse(
+      result.stdout
+        .trim()
+        .split("\n")
+        .findLast((line) => line.startsWith("{")) ?? "{}",
+    ) as {
+      message?: string
+      before?: Record<string, number>
+      after?: Record<string, number>
+      scopes?: Array<{ kind: string; name?: string }>
+    }
+    expect(record.message).toBe("factory-boom-live")
+    expect(record.after).toEqual(record.before)
+    expect(record.scopes).toEqual([])
+  })
+
+  test("startup rejection waits for root-scope async disposal", async () => {
+    let registered = false
+    let disposalStarted = false
+    let disposalFinished = false
+
+    function AsyncOwner(): React.ReactElement {
+      const scope = useAppScope()
+      if (!registered) {
+        registered = true
+        scope.use({
+          async [Symbol.asyncDispose]() {
+            disposalStarted = true
+            await settle(25)
+            disposalFinished = true
+          },
+        })
+      }
+      return <Text>owned</Text>
+    }
+
+    let caught: unknown
+    try {
+      await createApp(() => () => ({})).run(<AsyncOwner />, {
+        cols: 10,
+        rows: 4,
+        writable: {
+          write() {
+            throw new Error("paint-boom")
+          },
+        },
+      })
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).toBeInstanceOf(Error)
+    expect((caught as Error).message).toBe("paint-boom")
+    expect(disposalStarted).toBe(true)
+    expect(disposalFinished).toBe(true)
   })
 })
