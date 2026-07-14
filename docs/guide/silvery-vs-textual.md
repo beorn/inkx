@@ -217,11 +217,12 @@ Silvery ships 45+ components:
 | `Toast`                   | Notification popups                               |
 | `Spinner` / `ProgressBar` | Progress feedback                                 |
 | `Image`                   | Kitty graphics / Sixel with auto-detect           |
-| `SplitView`               | Resizable split panes                             |
+| `SplitPane`               | Controlled resizable two-child pane               |
+| `SplitView`               | Recursive binary-tree pane renderer               |
 | `Console`                 | Composable console output                         |
 | `Link`                    | OSC 8 clickable hyperlinks                        |
 
-Textual's widget library is more mature, with some unique components (DataTable with sorting, Markdown viewer, DirectoryTree, Sparkline, RichLog). Both frameworks have a built-in command palette and toast/notification system. Silvery has some unique components of its own (Image, SplitView) and all components integrate with the framework's focus system and input layering.
+Textual's widget library is more mature, with some unique components (DataTable with sorting, Markdown viewer, DirectoryTree, Sparkline, RichLog). Both frameworks have a built-in command palette and toast/notification system. Silvery has some unique components of its own (Image, SplitPane, SplitView) and all components integrate with the framework's focus system and input layering.
 
 ## Reactive State
 

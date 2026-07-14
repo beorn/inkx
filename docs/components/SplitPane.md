@@ -46,19 +46,18 @@ row split and its vertical divider “horizontal.”
 
 ## Props
 
-| Prop                 | Type                      | Default  | Description                                                         |
-| -------------------- | ------------------------- | -------- | ------------------------------------------------------------------- |
-| `direction`          | `"row" \| "column"`       | required | Child flow and divider orientation                                  |
-| `ratio`              | `number`                  | required | Controlled primary fraction of non-divider cells                    |
-| `onRatioChange`      | `(ratio) => void`         | --       | Called during captured pointer movement                             |
-| `onRatioCommit`      | `(ratio) => void`         | --       | Called once when a resize gesture ends                              |
-| `minPrimarySize`     | `number`                  | `0`      | Primary minimum on the split's main axis, in cells                  |
-| `minSecondarySize`   | `number`                  | `0`      | Secondary minimum on the split's main axis, in cells                |
-| `dividerSize`        | `number`                  | `1`      | Visible sash and hit-zone thickness, in cells                       |
-| `secondaryCollapsed` | `boolean`                 | `false`  | Hide secondary layout and divider while keeping the subtree mounted |
-| `primary`            | `ReactNode`               | required | Primary pane content                                                |
-| `secondary`          | `ReactNode`               | required | Secondary pane content                                              |
-| `dividerProps`       | `PaneDividerProps` subset | --       | Semantic colors and visual sash options                             |
+| Prop                 | Type                | Default  | Description                                                         |
+| -------------------- | ------------------- | -------- | ------------------------------------------------------------------- |
+| `direction`          | `"row" \| "column"` | required | Child flow and divider orientation                                  |
+| `ratio`              | `number`            | required | Controlled primary fraction of non-divider cells                    |
+| `onRatioChange`      | `(ratio) => void`   | --       | Called during captured pointer movement                             |
+| `onRatioCommit`      | `(ratio) => void`   | --       | Called once when a resize gesture ends                              |
+| `minPrimarySize`     | `number`            | `0`      | Primary minimum on the split's main axis, in cells                  |
+| `minSecondarySize`   | `number`            | `0`      | Secondary minimum on the split's main axis, in cells                |
+| `dividerSize`        | `number`            | `1`      | Visible sash and hit-zone thickness, in cells                       |
+| `secondaryCollapsed` | `boolean`           | `false`  | Hide secondary layout and divider while keeping the subtree mounted |
+| `primary`            | `ReactNode`         | required | Primary pane content                                                |
+| `secondary`          | `ReactNode`         | required | Secondary pane content                                              |
 
 Without `onRatioChange`, the divider remains visible but is non-interactive.
 Use `onRatioCommit` for persistence so pointer movement does not write storage
