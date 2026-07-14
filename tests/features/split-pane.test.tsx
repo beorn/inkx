@@ -15,6 +15,7 @@ import {
   Box,
   SplitPane,
   Text,
+  clampSplitPaneRatio,
   resolveSplitPaneLayout,
   type SplitPaneDirection,
   useInput,
@@ -28,9 +29,11 @@ const SECONDARY = "SECONDARY"
 function frame({
   direction = "row",
   secondaryCollapsed = false,
+  secondary = <Text>{SECONDARY}</Text>,
 }: {
   direction?: SplitPaneDirection
   secondaryCollapsed?: boolean
+  secondary?: React.ReactNode
 } = {}): React.ReactElement {
   return (
     <Box width={40} height={8}>
@@ -41,7 +44,7 @@ function frame({
         minSecondarySize={8}
         secondaryCollapsed={secondaryCollapsed}
         primary={<Text>{PRIMARY}</Text>}
-        secondary={<Text>{SECONDARY}</Text>}
+        secondary={secondary}
       />
     </Box>
   )
@@ -56,6 +59,16 @@ function findGlyphColumn(term: ReturnType<typeof createTermless>, glyph: string,
 
 describe("SplitPane", () => {
   test("renders both children around the direction-appropriate divider and restores collapse", async () => {
+    let secondaryInstances = 0
+
+    function StatefulSecondary(): React.ReactElement {
+      const [instance] = useState(() => {
+        secondaryInstances += 1
+        return secondaryInstances
+      })
+      return <Text>{`${SECONDARY}-${instance}`}</Text>
+    }
+
     function Harness(): React.ReactElement {
       const [direction, setDirection] = useState<SplitPaneDirection>("row")
       const [secondaryCollapsed, setSecondaryCollapsed] = useState(false)
@@ -63,7 +76,11 @@ describe("SplitPane", () => {
         if (input === "o") setDirection((current) => (current === "row" ? "column" : "row"))
         if (input === "c") setSecondaryCollapsed((current) => !current)
       })
-      return frame({ direction, secondaryCollapsed })
+      return frame({
+        direction,
+        secondaryCollapsed,
+        secondary: <StatefulSecondary />,
+      })
     }
 
     using term = createTermless({ cols: 40, rows: 8 })
@@ -90,6 +107,8 @@ describe("SplitPane", () => {
       await handle.press("o")
       await waitFor(() => findGlyphColumn(term, "│") >= 0)
       expect(findGlyphColumn(term, "│")).toBeGreaterThan(0)
+      expect(term.screen).toContainText(`${SECONDARY}-1`)
+      expect(secondaryInstances).toBe(1)
     } finally {
       handle.unmount()
     }
@@ -177,6 +196,25 @@ describe("SplitPane", () => {
         preferredDirection: "row",
       }),
     ).toBe("single")
+    expect(
+      resolveSplitPaneLayout({
+        ...naturalSizes,
+        availableWidth: 153,
+        availableHeight: 25,
+        preferredDirection: "column",
+      }),
+    ).toBe("column")
+  })
+
+  test("compresses impossible minimums proportionally without hiding either pane", () => {
+    expect(
+      clampSplitPaneRatio(0.9, {
+        containerSize: 20,
+        dividerSize: 1,
+        minPrimarySize: 12,
+        minSecondarySize: 12,
+      }),
+    ).toBe(0.5)
   })
 
   test("registers a renderable story for each public layout state", () => {
