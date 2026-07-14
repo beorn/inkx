@@ -2755,6 +2755,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   }
 
+  // Startup is transactional: once cleanup exists, every exceptional return
+  // must release the same owners a normal handle would release. In particular,
+  // an initial JSX/render failure can happen after alternate-screen entry but
+  // before the caller receives a handle whose disposer it could invoke.
+  let startupCommitted = false
+  using _startupRollback = {
+    [Symbol.dispose]() {
+      if (startupCommitted) return
+      shouldExit = true
+      controller.abort()
+      cleanup()
+    },
+  }
+
   // Exit promise
   let exitResolve: () => void
   let exitResolved = false
@@ -5314,5 +5328,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     },
   }
 
+  startupCommitted = true
   return handle
 }

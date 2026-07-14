@@ -438,6 +438,12 @@ Compose order matters. `withScope()` looks for `app.term?.signals` at compose ti
 
 Web-host cancellation (`pagehide` / `beforeunload`) lives in the web runtime package, not in `withScope`. `@silvery/scope` is platform-neutral — it knows about `AbortSignal` and `AsyncDisposableStack`, nothing else.
 
+### Startup is transactional
+
+`render(...).run()` has only two terminal ownership outcomes: it returns a handle to the caller, or it rolls back every runtime and terminal owner acquired before that handle could be returned. An initial JSX or render exception therefore uses the same idempotent cleanup as normal exit: abort in-flight work, unmount the partial tree, dispose its scopes and runtime, restore terminal protocols, show the cursor, and leave the alternate screen.
+
+Do not add a caller-side terminal reset in a `catch` block. Before `run()` returns, the runtime still owns those resources and must unwind them itself. After it returns, `using` / `await using` owns the handle and normal disposal applies.
+
 ### Reading the scope from React
 
 Inside React, three hooks read the scope from context:
