@@ -44,6 +44,7 @@ import {
   type SelectOption,
 } from "silvery"
 import { IntentDemo } from "./IntentDemo.tsx"
+import { SPLIT_PANE_STORIES } from "./stories/SplitPane.story.tsx"
 import { UrgencyDemo } from "./UrgencyDemo.tsx"
 
 // Sample data kept tiny so the pane always fits.
@@ -281,6 +282,21 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
           <Box width={40}>
             <ProgressBar value={0.68} />
           </Box>
+        </Box>
+
+        <Divider />
+
+        {/* SplitPane — one registered story per public layout state. */}
+        <Box flexDirection="column" gap={1}>
+          <Small>
+            <Muted>SPLIT PANE</Muted>
+          </Small>
+          {SPLIT_PANE_STORIES.map((story) => (
+            <Box key={story.id} flexDirection="column" gap={0}>
+              <Muted>{story.id}</Muted>
+              {story.render({})}
+            </Box>
+          ))}
         </Box>
 
         <Divider />

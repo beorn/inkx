@@ -85,9 +85,14 @@
     "tooltip": "Expandable/collapsible tree navigation component"
   },
   {
+    "term": "SplitPane",
+    "href": "/components/SplitPane",
+    "tooltip": "Controlled two-child layout with drag resize and reversible collapse"
+  },
+  {
     "term": "SplitView",
     "href": "/components/SplitView",
-    "tooltip": "Resizable split panes component"
+    "tooltip": "Recursive binary-tree pane renderer"
   },
   {
     "term": "Toast",

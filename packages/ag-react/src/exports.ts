@@ -145,6 +145,21 @@ export {
 export type { MappedChild, MapChildIndexOptions } from "./ui/components/list-view/index-window"
 export { SplitView } from "./ui/components"
 export type { SplitViewProps } from "./ui/components"
+export {
+  SplitPane,
+  clampSplitPaneRatio,
+  splitPaneRatioAfterDrag,
+  resolveSplitPaneLayout,
+} from "./ui/components"
+export type {
+  ResolveSplitPaneLayoutOptions,
+  SplitPaneDirection,
+  SplitPaneDragOptions,
+  SplitPaneLayout,
+  SplitPaneNaturalSize,
+  SplitPaneProps,
+  SplitPaneRatioOptions,
+} from "./ui/components"
 export type { LayoutNode as SplitLayoutNode } from "@silvery/ag-term/pane-manager"
 export {
   createLeaf,
