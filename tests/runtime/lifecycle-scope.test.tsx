@@ -404,7 +404,7 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
 
     try {
       const deadline = new Promise<{ kind: "timeout" }>((resolve) => {
-        deadlineTimer = setTimeout(() => resolve({ kind: "timeout" }), 1_500)
+        deadlineTimer = setTimeout(() => resolve({ kind: "timeout" }), 3_000)
       })
       const outcome = await Promise.race([settled, deadline])
 
@@ -416,7 +416,7 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
       }
       expect(disposeErrors).toHaveLength(1)
       expect(disposeErrors[0]).toBeInstanceOf(Error)
-      expect((disposeErrors[0] as Error).message).toContain("did not settle within")
+      expect((disposeErrors[0] as Error).message).toContain("did not settle within 1000ms")
     } finally {
       if (deadlineTimer) clearTimeout(deadlineTimer)
       releaseDisposal()

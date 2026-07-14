@@ -440,7 +440,9 @@ Web-host cancellation (`pagehide` / `beforeunload`) lives in the web runtime pac
 
 ### Startup is transactional
 
-`render(...).run()` has only two terminal ownership outcomes: it returns a handle to the caller, or it rolls back every runtime and terminal owner acquired before that handle could be returned. An initial JSX or render exception therefore uses the same idempotent cleanup as normal exit: abort in-flight work, unmount the partial tree, dispose its scopes and runtime, restore terminal protocols, show the cursor, and leave the alternate screen.
+`render(...).run()` has only two terminal ownership outcomes: it returns a handle to the caller, or it rolls back every runtime and terminal owner acquired before that handle could be returned. This includes failures before the store factory returns, when the runtime may already own process signal and resize listeners. An initial factory, JSX, or render exception therefore uses the same idempotent cleanup as normal exit: abort in-flight work, unmount the partial tree, start scope disposal, restore terminal protocols, show the cursor, leave the alternate screen, and dispose the runtime.
+
+Terminal restoration is synchronous and never waits behind a user disposer. The rejected startup promise waits up to one second for root-scope async disposal to settle. If that deadline expires, the runtime reports a disposal error and preserves the original startup rejection instead of hanging indefinitely; scope teardown may finish in the background.
 
 Do not add a caller-side terminal reset in a `catch` block. Before `run()` returns, the runtime still owns those resources and must unwind them itself. After it returns, `using` / `await using` owns the handle and normal disposal applies.
 

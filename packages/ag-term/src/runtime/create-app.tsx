@@ -254,6 +254,7 @@ const STANDALONE_CAP_STREAK_LIMIT = 5
 const ENV = typeof process !== "undefined" ? process.env : undefined
 const NO_INCREMENTAL = ENV?.SILVERY_NO_INCREMENTAL === "1"
 const PANIC_STDIN_DRAIN_MS = 75
+const STARTUP_SCOPE_DISPOSE_TIMEOUT_MS = 1_000
 const FOCUS_DAMAGE_REPAINT_INTERVAL_MS = 500
 
 type RuntimeWheelMouseEvent = {
@@ -1119,6 +1120,63 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let output: Output | null = null
   let ownsOutput = false
 
+  // Startup is a resource-acquisition transaction until the fully initialized
+  // handle is returned. Register each sync owner in this temporary stack as it
+  // is acquired; once cleanup() exists, rollback delegates to that canonical
+  // path and only awaits its root-scope disposal. At that handoff the temporary
+  // registrations are disarmed and the handle becomes the sole owner.
+  const controller = new AbortController()
+  const signal = controller.signal
+  const providerCleanups: (() => void)[] = []
+  const stateUnsubscribes: (() => void)[] = []
+  const startupResources = new DisposableStack()
+  let startupResourcesTransferred = false
+  let startupCommitted = false
+  let startupCleanup: (() => void) | null = null
+  let startupScopeDispose: (() => Promise<void>) | null = null
+  let shouldExit = false
+
+  const registerStartupCleanup = (cleanup: () => void): void => {
+    if (startupResourcesTransferred) return
+    startupResources.defer(() => {
+      if (!startupResourcesTransferred) cleanup()
+    })
+  }
+  const registerProviderCleanup = (cleanup: () => void): void => {
+    providerCleanups.push(cleanup)
+    registerStartupCleanup(cleanup)
+  }
+  const registerStateUnsubscribe = (unsubscribe: () => void): void => {
+    stateUnsubscribes.push(unsubscribe)
+    registerStartupCleanup(unsubscribe)
+  }
+
+  await using _startupRollback = {
+    async [Symbol.asyncDispose]() {
+      if (startupCommitted) return
+      shouldExit = true
+      controller.abort()
+
+      if (startupCleanup) {
+        try {
+          startupCleanup()
+        } finally {
+          await startupScopeDispose?.()
+        }
+        return
+      }
+
+      // No terminal protocol has been enabled before the canonical cleanup
+      // handoff, but locally-created modes/providers/runtime may already own
+      // process listeners. Release every sync owner before awaiting the scope.
+      try {
+        startupResources.dispose()
+      } finally {
+        await startupScopeDispose?.()
+      }
+    },
+  }
+
   const writeTerminalControl = (data: string): void => {
     if (headless) return
     try {
@@ -1136,6 +1194,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       write: (s) => (output && output.active() ? output.write(s) : stdout.write(s)),
       stdin,
     })
+  if (!injectedTerm) registerStartupCleanup(() => modes[Symbol.dispose]())
 
   // Initialize layout engine
   await ensureLayoutEngine()
@@ -1155,26 +1214,50 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // cleanup — child scopes get a chance to release resources before we
   // tear down stdin/stdout.
   const appScope = createScope("app")
-
-  // Create abort controller for cleanup
-  const controller = new AbortController()
-  const signal = controller.signal
+  let appScopeDisposalPromise: Promise<void> | null = null
+  const disposeAppScope = (phase: "signal" | "app-exit"): Promise<void> => {
+    appScopeDisposalPromise ??= appScope[Symbol.asyncDispose]().catch((error) => {
+      reportDisposeError(error, { phase, scope: appScope })
+    })
+    return appScopeDisposalPromise
+  }
+  const awaitStartupScopeDisposal = async (): Promise<void> => {
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([
+        disposeAppScope("app-exit"),
+        new Promise<void>((resolve) => {
+          timeout = setTimeout(() => {
+            reportDisposeError(
+              new Error(
+                `app scope disposal did not settle within ${STARTUP_SCOPE_DISPOSE_TIMEOUT_MS}ms during startup rollback`,
+              ),
+              { phase: "app-exit", scope: appScope },
+            )
+            resolve()
+          }, STARTUP_SCOPE_DISPOSE_TIMEOUT_MS)
+        }),
+      ])
+    } finally {
+      if (timeout !== undefined) clearTimeout(timeout)
+    }
+  }
+  startupScopeDispose = awaitStartupScopeDisposal
 
   // Wire external signal
   if (externalSignal) {
     if (externalSignal.aborted) {
       controller.abort()
     } else {
-      externalSignal.addEventListener("abort", () => controller.abort(), {
-        once: true,
-      })
+      const onExternalAbort = () => controller.abort()
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true })
+      registerProviderCleanup(() => externalSignal.removeEventListener("abort", onExternalAbort))
     }
   }
 
   // Separate providers from plain values
   const providers: Record<string, Provider<unknown, Record<string, unknown>>> = {}
   const plainValues: Record<string, unknown> = {}
-  const providerCleanups: (() => void)[] = []
 
   // Create Term if not provided. In headless mode we pass mock streams so the
   // Term doesn't touch real stdin/stdout; `onResize` drives the mock stdout's
@@ -1233,7 +1316,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         : {}),
     })
     providers.term = autoTerm as unknown as Provider<unknown, Record<string, unknown>>
-    providerCleanups.push(() => autoTerm![Symbol.dispose]())
+    registerProviderCleanup(() => autoTerm![Symbol.dispose]())
 
     if (headless && explicitOnResize) {
       const unsub = explicitOnResize((dims) => {
@@ -1242,7 +1325,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         ;(termStdout as { columns: number; rows: number }).rows = dims.rows
         for (const listener of resizeListeners) listener()
       })
-      providerCleanups.push(unsub)
+      registerProviderCleanup(unsub)
     }
   }
 
@@ -1259,9 +1342,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const effectiveTerm = injectedTerm ?? autoTerm
   if (!headless && effectiveTerm?.signals) {
     const onSignal = (): void => {
-      void appScope[Symbol.asyncDispose]().catch((error) =>
-        reportDisposeError(error, { phase: "signal", scope: appScope }),
-      )
+      void disposeAppScope("signal")
     }
     appScope.use(
       effectiveTerm.signals.on("SIGINT", onSignal, {
@@ -1289,9 +1370,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Build inject object (providers + plain values)
   const inject = { ...providers, ...plainValues } as I
 
-  // Subscribe to provider state changes
-  const stateUnsubscribes: (() => void)[] = []
-
   // Create store
   const store = createStore<S & I>((set, get, api) => {
     // Get base state from factory
@@ -1313,7 +1391,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           // Could flatten provider state here if desired
           // For now, just trigger a re-check
         })
-        stateUnsubscribes.push(unsub)
+        registerStateUnsubscribe(unsub)
       }
     }
 
@@ -1346,7 +1424,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           for (const listener of mockTermSubscribers) listener(currentDims)
         },
       )
-      providerCleanups.push(stop)
+      registerProviderCleanup(stop)
     } else {
       const onStdoutResize = () => {
         currentDims = {
@@ -1356,11 +1434,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         for (const listener of mockTermSubscribers) listener(currentDims)
       }
       stdout.on("resize", onStdoutResize)
-      providerCleanups.push(() => stdout.off("resize", onStdoutResize))
+      registerProviderCleanup(() => stdout.off("resize", onStdoutResize))
     }
   }
 
-  let shouldExit = false
   let renderPaused = false
   let isRendering = false // Re-entrancy guard for store subscription
   let inEventHandler = false // True during processEvent/press — suppresses subscription renders
@@ -1454,7 +1531,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     stdout.write = traceWrite
     // Restore original stdout.write on cleanup (providerCleanups runs during cleanup())
-    providerCleanups.push(() => {
+    registerProviderCleanup(() => {
       if (_origStdoutWrite) stdout.write = _origStdoutWrite
     })
 
@@ -1472,7 +1549,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (_prevLogLevel !== "trace" && _prevLogLevel !== "debug") {
       setLogLevel("debug")
     }
-    providerCleanups.push(() => {
+    registerProviderCleanup(() => {
       unsubscribeTraceWriter()
       traceFileWriter.close()
       if (_prevLogLevel !== "trace" && _prevLogLevel !== "debug") {
@@ -1490,6 +1567,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   const bytesOutMonitor = isStrictEnabled("bytes_out", 1) ? createBytesOutMonitor() : null
   const memMonitor = isStrictEnabled("mem", 1) ? createMemMonitor() : null
+  if (bytesOutMonitor) registerStartupCleanup(() => bytesOutMonitor.dispose())
+  if (memMonitor) registerStartupCleanup(() => memMonitor.dispose())
   const syncUpdateEnabled =
     process.env.SILVERY_SYNC_UPDATE === "1" || process.env.SILVERY_SYNC_UPDATE === "true"
 
@@ -1778,6 +1857,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // no TDZ hazard. Single source of truth: no parallel focus derivation.
     windowFocused: () => chainApp.terminal.focused,
   })
+  registerStartupCleanup(() => runtime[Symbol.dispose]())
 
   // Cleanup state
   let cleanedUp = false
@@ -2514,12 +2594,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Dispose the root app scope — runs every resource that registered
     // through `useAppScope().use(...)` / `appScope.defer(...)` (LIFO),
     // and cascades into any child scopes that haven't already disposed
-    // via fiber teardown above. Fire-and-forget: cleanup() is sync, so
-    // any async-disposer rejection routes through `reportDisposeError`
-    // (phase: "app-exit") instead of throwing into the caller.
-    void appScope[Symbol.asyncDispose]().catch((error) =>
-      reportDisposeError(error, { phase: "app-exit", scope: appScope }),
-    )
+    // via fiber teardown above. cleanup() stays synchronous so terminal
+    // restoration cannot wait behind user async disposers; startup rollback
+    // awaits the memoized promise after this function has restored the terminal.
+    void disposeAppScope("app-exit")
 
     // Unregister node lifecycle hooks
     setContainerNodeLifecycle(container, null)
@@ -2755,20 +2833,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   }
 
-  // Startup is transactional: once cleanup exists, every exceptional return
-  // must release the same owners a normal handle would release. In particular,
-  // an initial JSX/render failure can happen after alternate-screen entry but
-  // before the caller receives a handle whose disposer it could invoke.
-  let startupCommitted = false
-  using _startupRollback = {
-    [Symbol.dispose]() {
-      if (startupCommitted) return
-      shouldExit = true
-      controller.abort()
-      cleanup()
-    },
-  }
-
   // Exit promise
   let exitResolve: () => void
   let exitResolved = false
@@ -2868,6 +2932,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     processUnhandledRejectionHandler = (reason: unknown) => {
       panicApp(reason, { title: "unhandledRejection" })
     }
+    registerStartupCleanup(() => {
+      if (processUncaughtHandler) process.off("uncaughtException", processUncaughtHandler)
+      if (processUnhandledRejectionHandler) {
+        process.off("unhandledRejection", processUnhandledRejectionHandler)
+      }
+    })
     process.on("uncaughtException", processUncaughtHandler)
     process.on("unhandledRejection", processUnhandledRejectionHandler)
   }
@@ -2895,6 +2965,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       })
     }
   })
+  registerStartupCleanup(() => setContainerNodeLifecycle(container, null))
 
   // Wire up focus cleanup for this render root — when React unmounts a subtree,
   // the host-config calls this to clear focus if the active element was removed.
@@ -2923,6 +2994,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       panicApp(error, { title: "react" })
     },
   })
+
+  // cleanup() can now safely touch every dependency it closes over. Transfer
+  // ownership from the pre-initialization transaction to the canonical handle
+  // path before any rendering or terminal protocol activation can throw.
+  startupCleanup = cleanup
+  startupResourcesTransferred = true
+  startupResources.dispose()
 
   // Track current buffer for text access
   let currentBuffer: Buffer
