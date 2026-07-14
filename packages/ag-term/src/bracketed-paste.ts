@@ -56,19 +56,15 @@ export interface BracketedPasteResult {
   content: string
 }
 
-/**
- * Detect and extract bracketed paste content from raw terminal input.
- *
- * Return semantics (see {@link ProtocolError} for the full contract):
- * - `null` — input contains no PASTE_START marker (this is not bracketed
- *   paste input). Discriminator-chain "next parser please" signal.
- * - `throw ProtocolError` — input HAS PASTE_START (we committed to
- *   bracketed paste) but no PASTE_END follows. This indicates either a
- *   stream-split paste (caller should buffer and retry on the next chunk)
- *   or a protocol violation. Loud failure surfaces the gap; the dispatch
- *   layer catches and decides whether to buffer or log.
- */
-export function parseBracketedPaste(input: string): BracketedPasteResult | null {
+/** @internal Parsed protocol envelope with its exact consumed byte span. */
+export interface BracketedPasteEnvelope {
+  result: BracketedPasteResult
+  start: number
+  end: number
+}
+
+/** @internal Use when a stream owner must preserve bytes around the paste. */
+export function parseBracketedPasteEnvelope(input: string): BracketedPasteEnvelope | null {
   const startIdx = input.indexOf(PASTE_START)
   if (startIdx === -1) return null
 
@@ -85,9 +81,29 @@ export function parseBracketedPaste(input: string): BracketedPasteResult | null 
   }
 
   return {
-    type: "paste",
-    content: input.slice(contentStart, endIdx),
+    result: {
+      type: "paste",
+      content: input.slice(contentStart, endIdx),
+    },
+    start: startIdx,
+    end: endIdx + PASTE_END.length,
   }
+}
+
+/**
+ * Detect and extract bracketed paste content from raw terminal input.
+ *
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — input contains no PASTE_START marker (this is not bracketed
+ *   paste input). Discriminator-chain "next parser please" signal.
+ * - `throw ProtocolError` — input HAS PASTE_START (we committed to
+ *   bracketed paste) but no PASTE_END follows. This indicates either a
+ *   stream-split paste (caller should buffer and retry on the next chunk)
+ *   or a protocol violation. Loud failure surfaces the gap; the dispatch
+ *   layer catches and decides whether to buffer or log.
+ */
+export function parseBracketedPaste(input: string): BracketedPasteResult | null {
+  return parseBracketedPasteEnvelope(input)?.result ?? null
 }
 
 // ============================================================================

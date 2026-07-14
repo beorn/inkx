@@ -169,6 +169,23 @@ export function canRouteKeyToFocusedIsland(
 }
 
 /**
+ * Whether this key can change focused-Island host ownership for the next key.
+ * The event loop uses this as a render barrier without disabling ordinary key
+ * repeat batching.
+ */
+export function isFocusedIslandHostInputBarrier(
+  input: string,
+  key: Key,
+  focusManager: FocusManager,
+): boolean {
+  if (key.eventType === "release") return false
+  const node = focusedIslandNode(focusManager)
+  const state = node?.islandState
+  if (!state?.capabilities.input || !state.handle?.input?.feed) return false
+  return isHostCommandPrefixKey(state.commandPrefix, input, key)
+}
+
+/**
  * A focused island with a {@link IslandCommandPrefix} reserves a key for the
  * host iff the key matches `hotkey`, one of `reservedHotkeys`, OR the host is
  * `capturing` (mid-command). Reserved keys fall through to the app's `useInput`
