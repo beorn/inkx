@@ -216,7 +216,7 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
     }
   })
 
-  test("factory failure rolls back process listeners and the root scope", () => {
+  test("pre-handle failures roll back process listeners and the root scope", () => {
     const source = String.raw`
       import React from "react"
       import { createApp } from "./packages/ag-term/src/runtime/create-app.tsx"
@@ -243,10 +243,46 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
         sigint: process.listenerCount("SIGINT"),
         sigterm: process.listenerCount("SIGTERM"),
       }
+
+      const handoffBefore = {
+        resize: process.stdout.listenerCount("resize"),
+        sigint: process.listenerCount("SIGINT"),
+        sigterm: process.listenerCount("SIGTERM"),
+        uncaught: process.listenerCount("uncaughtException"),
+        unhandled: process.listenerCount("unhandledRejection"),
+      }
+      const originalOn = process.on
+      let handoffError: unknown
+      process.on = function (event, listener) {
+        const result = originalOn.call(this, event, listener)
+        if (event === "uncaughtException") throw new Error("process-on-boom")
+        return result
+      }
+      try {
+        await createApp(() => () => ({})).run(React.createElement(React.Fragment), {
+          stdout: process.stdout,
+          stdin: process.stdin,
+        })
+      } catch (error) {
+        handoffError = error
+      } finally {
+        process.on = originalOn
+      }
+      const handoffAfter = {
+        resize: process.stdout.listenerCount("resize"),
+        sigint: process.listenerCount("SIGINT"),
+        sigterm: process.listenerCount("SIGTERM"),
+        uncaught: process.listenerCount("uncaughtException"),
+        unhandled: process.listenerCount("unhandledRejection"),
+      }
       console.log(JSON.stringify({
-        message,
-        before,
-        after,
+        factory: { message, before, after },
+        handoff: {
+          name: handoffError?.constructor?.name,
+          message: handoffError instanceof Error ? handoffError.message : String(handoffError),
+          before: handoffBefore,
+          after: handoffAfter,
+        },
         scopes: getTraceSnapshot().map(({ kind, name }) => ({ kind, name })),
       }))
     `
@@ -263,13 +299,24 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
         .split("\n")
         .findLast((line) => line.startsWith("{")) ?? "{}",
     ) as {
-      message?: string
-      before?: Record<string, number>
-      after?: Record<string, number>
+      factory?: {
+        message?: string
+        before?: Record<string, number>
+        after?: Record<string, number>
+      }
+      handoff?: {
+        name?: string
+        message?: string
+        before?: Record<string, number>
+        after?: Record<string, number>
+      }
       scopes?: Array<{ kind: string; name?: string }>
     }
-    expect(record.message).toBe("factory-boom-live")
-    expect(record.after).toEqual(record.before)
+    expect(record.factory?.message).toBe("factory-boom-live")
+    expect(record.factory?.after).toEqual(record.factory?.before)
+    expect(record.handoff?.name).toBe("Error")
+    expect(record.handoff?.message).toBe("process-on-boom")
+    expect(record.handoff?.after).toEqual(record.handoff?.before)
     expect(record.scopes).toEqual([])
   })
 
@@ -312,5 +359,69 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
     expect((caught as Error).message).toBe("paint-boom")
     expect(disposalStarted).toBe(true)
     expect(disposalFinished).toBe(true)
+  })
+
+  test("startup rejection bounds a stuck root-scope async disposer", async () => {
+    let registered = false
+    let disposalStarted = false
+    let releaseDisposal!: () => void
+    const heldDisposal = new Promise<void>((resolve) => {
+      releaseDisposal = resolve
+    })
+    const disposeErrors: unknown[] = []
+
+    function StuckOwner(): React.ReactElement {
+      const scope = useAppScope()
+      if (!registered) {
+        registered = true
+        scope.use({
+          async [Symbol.asyncDispose]() {
+            disposalStarted = true
+            await heldDisposal
+          },
+        })
+      }
+      return <Text>stuck</Text>
+    }
+
+    setDisposeErrorSink((error) => disposeErrors.push(error))
+    const runPromise = Promise.resolve(
+      createApp(() => () => ({})).run(<StuckOwner />, {
+        cols: 10,
+        rows: 4,
+        writable: {
+          write() {
+            throw new Error("bounded-paint-boom")
+          },
+        },
+      }),
+    )
+    const settled = runPromise.then(
+      () => ({ kind: "resolved" as const }),
+      (error: unknown) => ({ kind: "rejected" as const, error }),
+    )
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined
+
+    try {
+      const deadline = new Promise<{ kind: "timeout" }>((resolve) => {
+        deadlineTimer = setTimeout(() => resolve({ kind: "timeout" }), 1_500)
+      })
+      const outcome = await Promise.race([settled, deadline])
+
+      expect(disposalStarted).toBe(true)
+      expect(outcome.kind).toBe("rejected")
+      if (outcome.kind === "rejected") {
+        expect(outcome.error).toBeInstanceOf(Error)
+        expect((outcome.error as Error).message).toBe("bounded-paint-boom")
+      }
+      expect(disposeErrors).toHaveLength(1)
+      expect(disposeErrors[0]).toBeInstanceOf(Error)
+      expect((disposeErrors[0] as Error).message).toContain("did not settle within")
+    } finally {
+      if (deadlineTimer) clearTimeout(deadlineTimer)
+      releaseDisposal()
+      await settled
+      setDisposeErrorSink(() => {})
+    }
   })
 })
