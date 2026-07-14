@@ -7,6 +7,7 @@ For core components (Box, Text, SelectList, TextInput, TextArea, ListView, Tabs,
 ## Layout
 
 - [Screen](/components/Screen) -- Fullscreen root component
+- [SplitPane](/components/SplitPane) -- Controlled two-child layout with drag resize and collapse
 - [SplitView](/components/SplitView) -- Recursive binary-tree pane tiling
 - [Fill](/components/Fill) -- Repeats content to fill parent width
 

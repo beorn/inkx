@@ -8,6 +8,7 @@ API reference for all silvery components. Import from `"silvery"` (the public ba
 | --------------------------- | ------------------------------------------------- |
 | [Box](./Box.md)             | Flexbox container -- the primary layout primitive |
 | [Screen](./Screen.md)       | Fullscreen root component (claims full terminal)  |
+| [SplitPane](./SplitPane.md) | Controlled two-child layout with drag resize      |
 | [SplitView](./SplitView.md) | Recursive binary-tree pane tiling                 |
 | [Spacer](./Spacer.md)       | Fills available space (`flexGrow={1}`)            |
 | [Fill](./Fill.md)           | Repeats content to fill parent width              |

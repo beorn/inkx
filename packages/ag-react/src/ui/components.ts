@@ -43,6 +43,21 @@ export type {
 
 export { SplitView } from "./components/SplitView"
 export type { SplitViewProps } from "./components/SplitView"
+export {
+  SplitPane,
+  clampSplitPaneRatio,
+  splitPaneRatioAfterDrag,
+  resolveSplitPaneLayout,
+} from "./components/SplitPane"
+export type {
+  ResolveSplitPaneLayoutOptions,
+  SplitPaneDirection,
+  SplitPaneDragOptions,
+  SplitPaneLayout,
+  SplitPaneNaturalSize,
+  SplitPaneProps,
+  SplitPaneRatioOptions,
+} from "./components/SplitPane"
 export type { LayoutNode as SplitLayoutNode } from "@silvery/ag-term/pane-manager"
 export {
   createLeaf,

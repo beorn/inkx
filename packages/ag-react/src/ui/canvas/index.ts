@@ -86,6 +86,21 @@ export { SelectList } from "../components/SelectList"
 export { Skeleton } from "../components/Skeleton"
 export { Spinner } from "../components/Spinner"
 export { SplitView } from "../components/SplitView"
+export {
+  SplitPane,
+  clampSplitPaneRatio,
+  splitPaneRatioAfterDrag,
+  resolveSplitPaneLayout,
+} from "../components/SplitPane"
+export type {
+  ResolveSplitPaneLayoutOptions,
+  SplitPaneDirection,
+  SplitPaneDragOptions,
+  SplitPaneLayout,
+  SplitPaneNaturalSize,
+  SplitPaneProps,
+  SplitPaneRatioOptions,
+} from "../components/SplitPane"
 export { Table } from "../components/Table"
 export { Tabs, TabList, Tab, TabPanel } from "../components/Tabs"
 export { TextArea } from "../components/TextArea"

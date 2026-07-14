@@ -6,12 +6,13 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Layout
 
-| Component                       | Description                                       | API  |
-| ------------------------------- | ------------------------------------------------- | ---- |
-| [Box](/api/box)                 | Flexbox container with borders, padding, overflow | Core |
-| [Spacer](/api/spacer)           | Flexible space that fills available room          | Core |
-| [Newline](/api/newline)         | Line break                                        | Core |
-| [SplitView](/guides/components) | Resizable split panes                             | UI   |
+| Component                          | Description                                       | API  |
+| ---------------------------------- | ------------------------------------------------- | ---- |
+| [Box](/api/box)                    | Flexbox container with borders, padding, overflow | Core |
+| [Spacer](/api/spacer)              | Flexible space that fills available room          | Core |
+| [Newline](/api/newline)            | Line break                                        | Core |
+| [SplitPane](/components/SplitPane) | Controlled resizable two-child layout             | UI   |
+| [SplitView](/components/SplitView) | Recursive binary-tree pane renderer               | UI   |
 
 ### Text & Display
 
