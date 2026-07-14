@@ -219,8 +219,10 @@ describe("island command prefix — keys", () => {
     const handle = await run(<App />, term)
     try {
       await handle.press("Tab")
-      sendInput("\x07q")
-      await settle()
+      await React.act(async () => {
+        sendInput("\x07q")
+        await settle()
+      })
 
       expect(hostKeys).toEqual(["ctrl-g", "q"])
       expect(recorder.feeds).toEqual([])
@@ -478,8 +480,10 @@ describe("island bracketed-paste routing", () => {
       // The terminal's own Cmd-V emits bracketed-paste bytes; the host parser
       // strips the markers, and the runtime re-wraps them for a guest that
       // enabled DECSET 2004 so its line editor sees one atomic paste.
-      sendInput("\x1b[200~PASTED\x1b[201~\r")
-      await settle()
+      await React.act(async () => {
+        sendInput("\x1b[200~PASTED\x1b[201~\r")
+        await settle()
+      })
       expect(
         recorder.feeds.join(""),
         "a focused guest with bracketed-paste ON must receive the paste and same-chunk Return in order",
