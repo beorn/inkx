@@ -1,6 +1,6 @@
 {
   "name": "silvery",
-  "version": "0.21.1",
+  "version": "0.21.2",
   "description": "React for modern terminal apps — powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
@@ -42,6 +42,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./runtime": "./src/runtime.ts",
+    "./testing": "./src/testing.ts",
     "./term": "./src/term.ts",
     "./theme": "./src/theme.ts",
     "./ui": "./src/ui.ts",
@@ -59,6 +60,10 @@
       "./runtime": {
         "types": "./dist/runtime.d.mts",
         "import": "./dist/runtime.mjs"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.mts",
+        "import": "./dist/testing.mjs"
       },
       "./term": {
         "types": "./dist/term.d.mts",
@@ -108,8 +113,11 @@
   "dependencies": {
     "@chenglou/pretext": "^0.0.7",
     "@silvery/color": "0.21.0",
-    "@silvery/commander": "0.21.0",
+    "@silvery/commander": "0.21.2",
     "@termless/core": "^0.8.1",
+    "@termless/ghostty": "^0.8.2",
+    "@termless/ghostty-native": "^0.8.1",
+    "@termless/xtermjs": "^0.8.1",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
     "flexily": "0.7.3",
@@ -164,24 +172,12 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {
-    "@termless/ghostty": "^0.8.2",
-    "@termless/ghostty-native": "^0.8.1",
     "@termless/test": "^0.8.1",
-    "@termless/xtermjs": "^0.8.1",
     "playwright": ">=1.40.0",
     "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "@termless/ghostty": {
-      "optional": true
-    },
-    "@termless/ghostty-native": {
-      "optional": true
-    },
     "@termless/test": {
-      "optional": true
-    },
-    "@termless/xtermjs": {
       "optional": true
     },
     "playwright": {
@@ -198,6 +194,7 @@
     "entry": [
       "src/index.ts",
       "src/runtime.ts",
+      "src/testing.ts",
       "src/term.ts",
       "src/theme.ts",
       "src/ui.ts",
