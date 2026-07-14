@@ -182,6 +182,83 @@ describe("colorizeHelp", () => {
     const buildHelp = buildCmd.helpInformation()
     expect(buildHelp).toContain(`${RED}-w, --watch${FG_OFF}`)
   })
+
+  it("preserves automatic styles when Yrd adds partial help configuration", () => {
+    const program = new Command("yrd")
+    colorizeHelp(program)
+    const subcommandTerm = (command: BaseCommand): string => command.name()
+
+    program.configureHelp({ subcommandTerm })
+
+    const composed = program.configureHelp()
+    expect(composed.subcommandTerm).toBe(subcommandTerm)
+    expect(composed.styleTitle).toBeTypeOf("function")
+    expect(composed.styleSubcommandText).toBeTypeOf("function")
+    expect(composed.styleOptionText).toBeTypeOf("function")
+
+    const styleTitle = (text: string): string => `custom:${text}`
+    program.configureHelp({ styleTitle })
+    const overridden = program.configureHelp()
+    expect(overridden.styleTitle).toBe(styleTitle)
+    expect(overridden.styleSubcommandText).toBe(composed.styleSubcommandText)
+    expect(overridden.styleOptionText).toBe(composed.styleOptionText)
+  })
+})
+
+describe("silentAlias", () => {
+  it("accepts Yrd plural spellings without exposing them in help, usage, or suggestions", () => {
+    const program = new Command("yrd")
+    let invoked = false
+    const queue = program
+      .command("queue")
+      .alias("q")
+      .silentAlias("queues")
+      .action(() => {
+        invoked = true
+      })
+
+    program.parse(["node", "yrd", "queues"])
+    expect(invoked).toBe(true)
+    expect(stripAnsi(program.helpInformation())).toContain("queue|q")
+    expect(stripAnsi(program.helpInformation())).not.toContain("queues")
+    expect(stripAnsi(queue.helpInformation())).toContain("yrd queue|q")
+    expect(stripAnsi(queue.helpInformation())).not.toContain("queues")
+
+    let stderr = ""
+    const suggestions = new Command("yrd").exitOverride()
+    suggestions.configureOutput({ writeErr: (text) => (stderr += text) })
+    suggestions.command("pr").silentAlias("prs")
+    expect(() => suggestions.parse(["node", "yrd", "prss"])).toThrow()
+    expect(stderr).toContain("(Did you mean pr?)")
+    expect(stderr).not.toContain("(Did you mean prs?)")
+  })
+
+  it("shares one collision namespace with command names and visible aliases", () => {
+    const program = new Command("yrd")
+    program.command("queue").silentAlias("queues")
+    expect(() => program.command("watch").silentAlias("queues")).toThrow(/already have command/u)
+    expect(() => program.command("queues")).toThrow(/already have command/u)
+
+    const detached = new Command("pr").silentAlias("prs")
+    program.addCommand(detached)
+    expect(() => program.addCommand(new Command("issue").silentAlias("prs"))).toThrow(
+      /already have command/u,
+    )
+
+    const executable = new Command("yrd")
+    expect(executable.command("serve", "run the server").silentAlias("start")).toBe(executable)
+    expect(() => executable.command("start")).toThrow(/already have command/u)
+    expect(stripAnsi(executable.helpInformation())).not.toContain("start")
+
+    const rawProgram = new BaseCommand("raw-program")
+    rawProgram.command("raw", "run raw")
+    const rawExecutable = rawProgram.commands.at(-1)
+    if (!rawExecutable) throw new Error("Commander did not register its executable child")
+    const mixed = new Command("mixed").addCommand(rawExecutable)
+    expect(mixed.silentAlias("raws")).toBe(mixed)
+    expect(() => mixed.command("raws")).toThrow(/already have command/u)
+    expect(stripAnsi(mixed.helpInformation())).not.toContain("raws")
+  })
 })
 
 describe("addHelpSection", () => {

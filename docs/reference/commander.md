@@ -206,6 +206,18 @@ const program = new Command("myapp").description("My CLI tool")
 colorizeHelp(program) // applies recursively to all subcommands
 ```
 
+`colorizeHelp()` preserves unrelated help configuration while its semantic style hooks win. On the enhanced `Command`, later `configureHelp({...})` calls also shallow-merge with the current configuration, with supplied keys taking precedence. Importing `Command` from `@silvery/commander/plain` retains Commander's replacement semantics instead.
+
+## `silentAlias()`
+
+Use a silent alias for a compatibility spelling that should be accepted by the parser but omitted from help, usage, and typo suggestions:
+
+```typescript
+program.command("queue").alias("q").silentAlias("queues")
+```
+
+Normal `.alias()` and `.aliases()` spellings remain visible. Command names, visible aliases, and silent aliases share one collision namespace.
+
 ## Standard Schema Validation
 
 Pass any [Standard Schema v1](https://github.com/standard-schema/standard-schema) compatible schema as the third argument to `.option()`. Works with the built-in types, Zod (>=3.24), Valibot (>=1.0), ArkType (>=2.0), and any other library implementing the standard:
