@@ -10,7 +10,7 @@
 import React, { useCallback, useRef } from "react"
 import { Box } from "../../components/Box"
 import { MeasuredBox, type MeasuredBoxRect } from "./MeasuredBox"
-import { PaneDivider, type PaneDividerProps, type PaneDividerResizeStartEvent } from "./PaneDivider"
+import { PaneDivider, type PaneDividerResizeStartEvent } from "./PaneDivider"
 
 export type SplitPaneDirection = "row" | "column"
 
@@ -60,11 +60,42 @@ export interface SplitPaneProps {
   readonly secondaryCollapsed?: boolean
   readonly primary: React.ReactNode
   readonly secondary: React.ReactNode
-  /** Visual PaneDivider options; SplitPane owns its orientation, size, and gesture callbacks. */
-  readonly dividerProps?: Omit<
-    PaneDividerProps,
-    "orientation" | "size" | "onResizeStart" | "onResizeMove" | "onResizeEnd"
-  >
+}
+
+export function SplitPane({
+  direction,
+  ratio,
+  onRatioChange,
+  onRatioCommit,
+  minPrimarySize = 0,
+  minSecondarySize = 0,
+  dividerSize = 1,
+  secondaryCollapsed = false,
+  primary,
+  secondary,
+}: SplitPaneProps): React.ReactElement {
+  return (
+    // LAYOUT_READ_AT_RENDER: exact integer-cell clamps and drag ratios depend
+    // on the non-divider cells assigned by the parent layout. MeasuredBox
+    // defers the child tree until that committed size exists.
+    <MeasuredBox flexGrow={1} minWidth={0} minHeight={0} overflow="hidden">
+      {(rect) => (
+        <MeasuredSplitPane
+          rect={rect}
+          direction={direction}
+          ratio={ratio}
+          onRatioChange={onRatioChange}
+          onRatioCommit={onRatioCommit}
+          minPrimarySize={minPrimarySize}
+          minSecondarySize={minSecondarySize}
+          dividerSize={dividerSize}
+          secondaryCollapsed={secondaryCollapsed}
+          primary={primary}
+          secondary={secondary}
+        />
+      )}
+    </MeasuredBox>
+  )
 }
 
 function finiteCells(value: number, label: string): number {
@@ -152,41 +183,6 @@ export function resolveSplitPaneLayout({
   return "single"
 }
 
-export function SplitPane({
-  direction,
-  ratio,
-  onRatioChange,
-  onRatioCommit,
-  minPrimarySize = 0,
-  minSecondarySize = 0,
-  dividerSize = 1,
-  secondaryCollapsed = false,
-  primary,
-  secondary,
-  dividerProps,
-}: SplitPaneProps): React.ReactElement {
-  return (
-    <MeasuredBox flexGrow={1} minWidth={0} minHeight={0} overflow="hidden">
-      {(rect) => (
-        <MeasuredSplitPane
-          rect={rect}
-          direction={direction}
-          ratio={ratio}
-          onRatioChange={onRatioChange}
-          onRatioCommit={onRatioCommit}
-          minPrimarySize={minPrimarySize}
-          minSecondarySize={minSecondarySize}
-          dividerSize={dividerSize}
-          secondaryCollapsed={secondaryCollapsed}
-          primary={primary}
-          secondary={secondary}
-          dividerProps={dividerProps}
-        />
-      )}
-    </MeasuredBox>
-  )
-}
-
 interface MeasuredSplitPaneProps extends Omit<SplitPaneProps, "dividerSize"> {
   readonly rect: MeasuredBoxRect
   readonly dividerSize: number
@@ -211,7 +207,6 @@ function MeasuredSplitPane({
   secondaryCollapsed = false,
   primary,
   secondary,
-  dividerProps,
 }: MeasuredSplitPaneProps): React.ReactElement {
   const dividerSize = dividerCells(requestedDividerSize)
   const containerSize = direction === "row" ? rect.width : rect.height
@@ -277,10 +272,9 @@ function MeasuredSplitPane({
       {!secondaryCollapsed && (
         <PaneDivider
           key={direction}
-          {...dividerProps}
           orientation={row ? "vertical" : "horizontal"}
           size={dividerSize}
-          disabled={onRatioChange === undefined || dividerProps?.disabled === true}
+          disabled={onRatioChange === undefined}
           onResizeStart={handleResizeStart}
           onResizeMove={handleResizeMove}
           onResizeEnd={handleResizeEnd}
