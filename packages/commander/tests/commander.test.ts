@@ -250,10 +250,10 @@ describe("silentAlias", () => {
     expect(() => executable.command("start")).toThrow(/already have command/u)
     expect(stripAnsi(executable.helpInformation())).not.toContain("start")
 
-    const rawExecutable = new BaseCommand("raw") as BaseCommand & {
-      _executableHandler: boolean
-    }
-    rawExecutable._executableHandler = true
+    const rawProgram = new BaseCommand("raw-program")
+    rawProgram.command("raw", "run raw")
+    const rawExecutable = rawProgram.commands.at(-1)
+    if (!rawExecutable) throw new Error("Commander did not register its executable child")
     const mixed = new Command("mixed").addCommand(rawExecutable)
     expect(mixed.silentAlias("raws")).toBe(mixed)
     expect(() => mixed.command("raws")).toThrow(/already have command/u)

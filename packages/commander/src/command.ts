@@ -978,9 +978,9 @@ export interface Command<
   /** Return option values with full type inference. */
   opts(): Opts
 
-  /** Accept any `Command<...>` variant as a subcommand. */
+  /** Accept raw Commander commands and any enhanced `Command<...>` variant. */
   addCommand(
-    cmd: Command<any, any, any>,
+    cmd: BaseCommand | Command<any, any, any>,
     opts?: { isDefault?: boolean; hidden?: boolean; noHelp?: boolean },
   ): this
 
