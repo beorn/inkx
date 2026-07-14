@@ -35,6 +35,9 @@ import type { ColorLevel, UnderlineStyle } from "./types"
 export type { ColorProvenance } from "./profile"
 import type { ColorProvenance } from "./profile"
 
+/** Desktop-notification protocol selected by the resolved terminal profile. */
+export type TerminalNotificationProtocol = "osc99" | "osc9" | "osc777"
+
 /**
  * Pure protocol capability flags plus low-confidence environment heuristics —
  * what the terminal *can* do at the wire level, plus what the system guesses
@@ -161,8 +164,8 @@ export interface TerminalCaps {
   readonly osc52: boolean
   /** OSC 8 hyperlinks */
   readonly hyperlinks: boolean
-  /** OSC 9/99 notifications */
-  readonly notifications: boolean
+  /** Exact desktop-notification protocol, or false when none is proven. */
+  readonly notifications: TerminalNotificationProtocol | false
   /** Synchronized output (DEC 2026) */
   readonly syncOutput: boolean
 

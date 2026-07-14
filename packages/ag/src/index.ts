@@ -86,6 +86,19 @@ export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "./focu
 // Drag Event Types
 export type { DragEventPayload, DragEventProps } from "./drag-event-types"
 
+// Cross-target desktop notifications
+export { notify } from "./notification"
+export type {
+  NotificationAction,
+  NotificationCapabilities,
+  NotificationDelivery,
+  NotificationReply,
+  NotificationRequest,
+  NotificationTarget,
+  SentNotificationDelivery,
+  UnsupportedNotificationDelivery,
+} from "./notification"
+
 // Mouse Event Types
 export type { SilveryMouseEvent, SilveryWheelEvent, MouseEventProps } from "./mouse-event-types"
 

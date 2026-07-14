@@ -66,6 +66,14 @@ export type {
   ConsoleEntry,
 } from "@silvery/ag-term/ansi"
 
+export { createTerminalNotificationTarget } from "@silvery/ag-term/notification"
+export type {
+  TerminalNotificationCapabilities,
+  TerminalNotificationDelivery,
+  TerminalNotificationTarget,
+  TerminalNotificationTargetOptions,
+} from "@silvery/ag-term/notification"
+
 // `BoundTerm` — the app-bound term handle returned from `run()` / `render()`.
 export type { BoundTerm } from "@silvery/ag-term/bound-term"
 
@@ -73,7 +81,7 @@ export type { BoundTerm } from "@silvery/ag-term/bound-term"
 // Terminal capabilities & profile
 // -----------------------------------------------------------------------------
 
-export type { TerminalCaps } from "@silvery/ag-term/terminal-caps"
+export type { TerminalCaps, TerminalNotificationProtocol } from "@silvery/ag-term/terminal-caps"
 export {
   createTerminalProfile,
   probeTerminalProfile,

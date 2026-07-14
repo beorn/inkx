@@ -103,5 +103,5 @@ export type Color = AnsiColorName | HexColor | RgbColor | ThemeToken | (string &
  */
 export type UnderlineStyle = "single" | "double" | "curly" | "dotted" | "dashed"
 
-// Re-export TerminalCaps from caps for convenience
-export type { TerminalCaps } from "./caps"
+// Re-export terminal capabilities from caps for convenience
+export type { TerminalCaps, TerminalNotificationProtocol } from "./caps"

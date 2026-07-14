@@ -79,6 +79,10 @@
         "types": "./dist/mouse-event-types.d.mts",
         "import": "./dist/mouse-event-types.mjs"
       },
+      "./notification": {
+        "types": "./dist/notification.d.mts",
+        "import": "./dist/notification.mjs"
+      },
       "./text-frame": {
         "types": "./dist/text-frame.d.mts",
         "import": "./dist/text-frame.mjs"
@@ -122,6 +126,7 @@
       "src/keys.ts",
       "src/layout-types.ts",
       "src/mouse-event-types.ts",
+      "src/notification.ts",
       "src/text-frame.ts",
       "src/tree-utils.ts",
       "src/layout-signals.ts",

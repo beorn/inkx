@@ -632,7 +632,13 @@ export function detectTerminalProfileFromEnv(
     sixel: !isDumb && (isFoot || isWezTerm),
     osc52: isModern || (!isDumb && isAlacritty),
     hyperlinks: isModern || (!isDumb && isAlacritty),
-    notifications: isITerm || isKitty,
+    notifications: isKitty
+      ? "osc99"
+      : isITerm
+        ? "osc9"
+        : isGhostty || isWezTerm || isFoot
+          ? "osc777"
+          : false,
     syncOutput: isModern || (!isDumb && isAlacritty),
     maybeDarkBackground,
     maybeNerdFont,

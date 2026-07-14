@@ -783,27 +783,34 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 
 ## Terminal Notifications
 
-Silvery provides a notification API that auto-detects the terminal and sends notifications using the best available method.
+Silvery uses one target-neutral notification request and an explicit target adapter. The terminal adapter reads the protocol already resolved on `term.caps`, writes through `Term.write()`, and returns an unsupported result instead of silently substituting BEL.
 
 ```tsx
-import { notify, notifyITerm2, notifyKitty, BEL } from "@silvery/ag-term"
+import { createTerm, createTerminalNotificationTarget, notify } from "silvery"
 
-// Auto-detect terminal and send notification
-notify(process.stdout, "Build complete", { title: "silvery" })
+using term = createTerm()
+const target = createTerminalNotificationTarget(term)
+const delivery = await notify(target, {
+  id: "build-42",
+  title: "silvery",
+  body: "Build complete",
+})
 
-// Terminal-specific functions
-notifyITerm2("Build complete") // OSC 9 (iTerm2)
-notifyKitty("Build complete", { title: "silvery" }) // OSC 99 (Kitty)
+if (delivery.status === "unsupported") {
+  // The caller owns any product-level fallback policy.
+}
 ```
 
-| Function       | Protocol | Description                                         |
-| -------------- | -------- | --------------------------------------------------- |
-| `notify`       | Auto     | Detects terminal via `TERM_PROGRAM`/`TERM` env vars |
-| `notifyITerm2` | OSC 9    | Returns iTerm2 notification escape string           |
-| `notifyKitty`  | OSC 99   | Returns Kitty notification escape string            |
-| `BEL`          | BEL      | Basic terminal bell character (`\x07`)              |
+| Surface                            | Owner    | Description                                                      |
+| ---------------------------------- | -------- | ---------------------------------------------------------------- |
+| `NotificationRequest`              | Core     | Serializable title, body, id, and optional actions               |
+| `notify(target, request)`          | Core     | Enforces target capabilities before emission                     |
+| `createTerminalNotificationTarget` | Terminal | Emits the exact protocol selected by `term.caps.notifications`   |
+| `BEL`                              | Terminal | Explicit bell primitive; never an implicit notification fallback |
 
-`notify()` auto-selects: iTerm2 uses OSC 9, Kitty uses OSC 99, other terminals fall back to BEL (audible/visual bell).
+Known profiles select OSC 99 for Kitty, OSC 9 for iTerm2, and OSC 777 for Ghostty, WezTerm, and foot. Other profiles set the capability to `false`; notification delivery then returns `{ status: "unsupported", reason: "notifications" }` and writes no bytes.
+
+OSC 99 actions require an active Term input owner because the terminal reports activation asynchronously. Provide a stable request `id`; `delivery.reply` maps the terminal's one-based button number back to the action's domain id. OSC 9 and OSC 777 refuse action requests before writing.
 
 ## Standards Reference
 

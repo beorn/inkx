@@ -1,23 +1,23 @@
 # Terminal Compatibility Matrix
 
-_Terminal capabilities last verified: 2026-03._
+_Terminal capabilities last verified: 2026-07._
 
 Comprehensive reference of terminal emulator feature support as detected by Silvery.
 
 ## Capability Matrix
 
-| Terminal     | Colors   | Kitty KB | Kitty Gfx | Sixel | OSC 52 | Hyperlinks | Notify | Paste | Mouse | Sync | Unicode |
-| ------------ | -------- | -------- | --------- | ----- | ------ | ---------- | ------ | ----- | ----- | ---- | ------- |
-| Ghostty      | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
-| kitty        | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | Yes    | Yes   | Yes   | Yes  | Yes     |
-| WezTerm      | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
-| iTerm2       | 24-bit   | -        | -         | -     | Yes    | Yes        | Yes    | Yes   | Yes   | Yes  | Yes     |
-| foot         | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
-| Alacritty    | 24-bit   | -        | -         | -     | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
-| VS Code      | 24-bit   | -        | -         | -     | -      | -          | -      | Yes   | Yes   | -    | Yes     |
-| Terminal.app | 256      | -        | -         | -     | -      | -          | -      | Yes   | Yes   | -    | Yes     |
-| tmux         | 24-bit\* | -        | -         | -     | -      | -          | -      | Yes   | Yes   | -    | Yes     |
-| TERM=dumb    | -        | -        | -         | -     | -      | -          | -      | Yes   | Yes   | -    | Yes     |
+| Terminal     | Colors   | Kitty KB | Kitty Gfx | Sixel | OSC 52 | Hyperlinks | Notify  | Paste | Mouse | Sync | Unicode |
+| ------------ | -------- | -------- | --------- | ----- | ------ | ---------- | ------- | ----- | ----- | ---- | ------- |
+| Ghostty      | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | OSC 777 | Yes   | Yes   | Yes  | Yes     |
+| kitty        | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | OSC 99  | Yes   | Yes   | Yes  | Yes     |
+| WezTerm      | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | OSC 777 | Yes   | Yes   | Yes  | Yes     |
+| iTerm2       | 24-bit   | -        | -         | -     | Yes    | Yes        | OSC 9   | Yes   | Yes   | Yes  | Yes     |
+| foot         | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | OSC 777 | Yes   | Yes   | Yes  | Yes     |
+| Alacritty    | 24-bit   | -        | -         | -     | Yes    | Yes        | -       | Yes   | Yes   | Yes  | Yes     |
+| VS Code      | 24-bit   | -        | -         | -     | -      | -          | -       | Yes   | Yes   | -    | Yes     |
+| Terminal.app | 256      | -        | -         | -     | -      | -          | -       | Yes   | Yes   | -    | Yes     |
+| tmux         | 24-bit\* | -        | -         | -     | -      | -          | -       | Yes   | Yes   | -    | Yes     |
+| TERM=dumb    | -        | -        | -         | -     | -      | -          | -       | Yes   | Yes   | -    | Yes     |
 
 \* tmux color support depends on the outer terminal and tmux configuration.
 
@@ -25,19 +25,19 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 
 ## Column Descriptions
 
-| Column     | Protocol/Standard  | Description                                                   |
-| ---------- | ------------------ | ------------------------------------------------------------- |
-| Colors     | SGR                | Color depth: 24-bit (truecolor), 256, 16 (basic), or none     |
-| Kitty KB   | CSI > u            | Kitty keyboard protocol for unambiguous key identification    |
-| Kitty Gfx  | APC G              | Kitty graphics protocol for inline image display              |
-| Sixel      | DCS q              | Sixel graphics for inline image display                       |
-| OSC 52     | OSC 52             | Clipboard access (works over SSH)                             |
-| Hyperlinks | OSC 8              | Clickable hyperlinks in terminal output                       |
-| Notify     | OSC 9/99           | Desktop notifications (OSC 9 = iTerm2, OSC 99 = Kitty)        |
-| Paste      | DEC 2004           | Bracketed paste mode (distinguish pasted from typed input)    |
-| Mouse      | SGR 1003/1006/1016 | SGR mouse tracking (click, drag, scroll); optional SGR-Pixels |
-| Sync       | DEC 2026           | Synchronized output (batch rendering to prevent tearing)      |
-| Unicode    | -                  | Unicode and emoji rendering                                   |
+| Column     | Protocol/Standard  | Description                                                           |
+| ---------- | ------------------ | --------------------------------------------------------------------- |
+| Colors     | SGR                | Color depth: 24-bit (truecolor), 256, 16 (basic), or none             |
+| Kitty KB   | CSI > u            | Kitty keyboard protocol for unambiguous key identification            |
+| Kitty Gfx  | APC G              | Kitty graphics protocol for inline image display                      |
+| Sixel      | DCS q              | Sixel graphics for inline image display                               |
+| OSC 52     | OSC 52             | Clipboard access (works over SSH)                                     |
+| Hyperlinks | OSC 8              | Clickable hyperlinks in terminal output                               |
+| Notify     | OSC 9/99/777       | Desktop notifications; the resolved profile stores one exact protocol |
+| Paste      | DEC 2004           | Bracketed paste mode (distinguish pasted from typed input)            |
+| Mouse      | SGR 1003/1006/1016 | SGR mouse tracking (click, drag, scroll); optional SGR-Pixels         |
+| Sync       | DEC 2026           | Synchronized output (batch rendering to prevent tearing)              |
+| Unicode    | -                  | Unicode and emoji rendering                                           |
 
 ## Terminal Details
 
@@ -47,7 +47,8 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 - **Keyboard**: Full Kitty keyboard protocol (Cmd, Hyper, event types)
 - **Images**: Kitty graphics protocol
 - **Clipboard**: OSC 52 (works over SSH)
-- **Notes**: Modern GPU-accelerated terminal. No OSC 9/99 notifications.
+- **Notifications**: OSC 777
+- **Notes**: Modern GPU-accelerated terminal.
 
 ### kitty
 
@@ -64,6 +65,7 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 - **Keyboard**: Kitty keyboard protocol
 - **Images**: Sixel graphics
 - **Clipboard**: OSC 52
+- **Notifications**: OSC 777
 - **Notes**: Cross-platform (macOS, Linux, Windows). Also supports iTerm2 image protocol.
 
 ### iTerm2
@@ -81,6 +83,7 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 - **Keyboard**: Kitty keyboard protocol
 - **Images**: Sixel graphics
 - **Clipboard**: OSC 52
+- **Notifications**: OSC 777
 - **Notes**: Wayland-native, minimalist, fast. Linux only.
 
 ### Alacritty
@@ -149,6 +152,8 @@ const result = await detectKittyFromStdio(process.stdout, process.stdin, 200)
 - [XTerm Control Sequences](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html) -- de facto terminal standard
 - [Kitty Keyboard Protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)
 - [Kitty Graphics Protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/)
+- [Kitty Desktop Notifications](https://sw.kovidgoyal.net/kitty/desktop-notifications/)
+- [iTerm2 Escape Codes](https://iterm2.com/documentation-escape-codes.html)
 - [Sixel Graphics](https://en.wikipedia.org/wiki/Sixel)
 - [OSC 8 Hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda)
 - [Synchronized Output](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036)

@@ -96,11 +96,24 @@ describe("notification target", () => {
     expect(harness.chunks).toEqual([])
   })
 
+  test("refuses OSC 99 actions when the Term has no reply-capable input", async () => {
+    const harness = createMockTerm("osc99")
+    using term = harness.term
+
+    const delivery = await notify(createTerminalNotificationTarget(term), {
+      ...REQUEST,
+      actions: [{ id: "open", label: "Open" }],
+    })
+
+    expect(delivery).toEqual({ status: "unsupported", reason: "actions" })
+    expect(harness.chunks).toEqual([])
+  })
+
   test("Kitty actions use OSC 99 reporting and map the reply to the domain action id", async () => {
     const chunks: string[] = []
     const reply = "\x1b]99;i=build-42;1\x1b\\"
     const term = {
-      caps: { notifications: "osc99" },
+      caps: { input: true, notifications: "osc99" },
       output: {},
       input: {
         active: true,

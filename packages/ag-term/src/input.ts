@@ -74,9 +74,6 @@ export {
   enableKittyKeyboard,
   disableKittyKeyboard,
   queryKittyKeyboard,
-  notify,
-  notifyITerm2,
-  notifyKitty,
   reportDirectory,
 } from "./output"
 

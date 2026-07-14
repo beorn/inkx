@@ -952,9 +952,6 @@ export {
   enableKittyKeyboard,
   disableKittyKeyboard,
   queryKittyKeyboard,
-  notify,
-  notifyITerm2,
-  notifyKitty,
   reportDirectory,
   setWindowTitle,
   setWindowAndIconTitle,
@@ -965,6 +962,26 @@ export {
   resetMouseCursorShape,
 } from "@silvery/ag-term/output"
 export type { CursorShape, MouseCursorShape } from "@silvery/ag-term/output"
+
+// Cross-target notification contract + terminal adapter
+export { notify } from "@silvery/ag/notification"
+export type {
+  NotificationAction,
+  NotificationCapabilities,
+  NotificationDelivery,
+  NotificationReply,
+  NotificationRequest,
+  NotificationTarget,
+  SentNotificationDelivery,
+  UnsupportedNotificationDelivery,
+} from "@silvery/ag/notification"
+export { createTerminalNotificationTarget } from "@silvery/ag-term/notification"
+export type {
+  TerminalNotificationCapabilities,
+  TerminalNotificationDelivery,
+  TerminalNotificationTarget,
+  TerminalNotificationTargetOptions,
+} from "@silvery/ag-term/notification"
 
 // Bracketed paste mode (DEC private mode 2004)
 export {
@@ -1019,7 +1036,10 @@ export {
   type ProbeTerminalProfileOptions,
   type CreateTerminalProfileOptions,
 } from "@silvery/ansi"
-export { type TerminalCaps } from "@silvery/ag-term/terminal-caps"
+export {
+  type TerminalCaps,
+  type TerminalNotificationProtocol,
+} from "@silvery/ag-term/terminal-caps"
 
 // Terminal capability visual test
 export {

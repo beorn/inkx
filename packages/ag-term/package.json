@@ -171,6 +171,10 @@
         "types": "./dist/non-tty.d.mts",
         "import": "./dist/non-tty.mjs"
       },
+      "./notification": {
+        "types": "./dist/notification.d.mts",
+        "import": "./dist/notification.mjs"
+      },
       "./osc-markers": {
         "types": "./dist/osc-markers.d.mts",
         "import": "./dist/osc-markers.mjs"
@@ -433,6 +437,7 @@
       "src/mouse.ts",
       "src/mouse-events.ts",
       "src/non-tty.ts",
+      "src/notification.ts",
       "src/osc-markers.ts",
       "src/osc-palette.ts",
       "src/output.ts",

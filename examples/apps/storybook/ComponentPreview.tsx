@@ -44,6 +44,7 @@ import {
   type SelectOption,
 } from "silvery"
 import { IntentDemo } from "./IntentDemo.tsx"
+import { NOTIFICATION_TARGET_STORIES } from "./stories/NotificationTarget.story.tsx"
 import { SPLIT_PANE_STORIES } from "./stories/SplitPane.story.tsx"
 import { UrgencyDemo } from "./UrgencyDemo.tsx"
 
@@ -292,6 +293,21 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
             <Muted>SPLIT PANE</Muted>
           </Small>
           {SPLIT_PANE_STORIES.map((story) => (
+            <Box key={story.id} flexDirection="column" gap={0}>
+              <Muted>{story.id}</Muted>
+              {story.render({})}
+            </Box>
+          ))}
+        </Box>
+
+        <Divider />
+
+        {/* NotificationTarget — the production target over realistic request data. */}
+        <Box flexDirection="column" gap={1}>
+          <Small>
+            <Muted>NOTIFICATION TARGET</Muted>
+          </Small>
+          {NOTIFICATION_TARGET_STORIES.map((story) => (
             <Box key={story.id} flexDirection="column" gap={0}>
               <Muted>{story.id}</Muted>
               {story.render({})}
