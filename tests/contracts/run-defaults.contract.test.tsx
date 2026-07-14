@@ -164,7 +164,7 @@ describe("contract: RunOptions.copyOnSelect", () => {
 // ============================================================================
 //
 // Docstring (createTerminalProfile): "Priority for the final colorLevel
-// (highest wins): 1. NO_COLOR env var [...] 2. FORCE_COLOR env var [...]"
+// (highest wins): 1. FORCE_COLOR env var [...] 2. NO_COLOR env var [...]"
 //
 // Regression history: pre-H6, `detectTerminalCaps()` had its own TERM/
 // COLORTERM switch that short-circuited before the canonical detectColor()
@@ -200,11 +200,11 @@ describe("contract: createTerminalProfile env precedence", () => {
     expect(caps.colorLevel).toBe("mono")
   })
 
-  test("contract: NO_COLOR wins over FORCE_COLOR (documented precedence)", () => {
+  test("contract: FORCE_COLOR wins over NO_COLOR (documented precedence)", () => {
     process.env.NO_COLOR = "1"
     process.env.FORCE_COLOR = "3"
     const caps = createTerminalProfile().caps
-    expect(caps.colorLevel).toBe("mono")
+    expect(caps.colorLevel).toBe("truecolor")
   })
 })
 
@@ -282,11 +282,11 @@ describe("contract: createTerminalProfile env precedence", () => {
     expect(profile.colorLevel).toBe("mono")
   })
 
-  test("contract: createTerminalProfile NO_COLOR wins over FORCE_COLOR", () => {
+  test("contract: createTerminalProfile FORCE_COLOR wins over NO_COLOR", () => {
     process.env.NO_COLOR = "1"
     process.env.FORCE_COLOR = "3"
     const profile = createTerminalProfile()
-    expect(profile.colorLevel).toBe("mono")
+    expect(profile.colorLevel).toBe("truecolor")
   })
 
   test("contract: env wins over explicit colorLevel", () => {

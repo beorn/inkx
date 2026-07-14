@@ -288,7 +288,7 @@ export type RunOptionsProfileBranch =
        * SGR encoding, backdrop blend targets), AND the active Theme is
        * pre-quantized via `pickColorLevel` so token hex values match.
        *
-       * Priority (highest wins): `NO_COLOR` env → `FORCE_COLOR` env →
+       * Priority (highest wins): `FORCE_COLOR` env → `NO_COLOR` env →
        * `colorLevel` → auto-detect.
        *
        * Tiers:

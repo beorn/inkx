@@ -119,7 +119,7 @@ describe("contract: createTerm({ caps }) overrides detection", () => {
 })
 
 // ============================================================================
-// Node-backed createTerm with non-TTY streams (piped / scripted / CI)
+// Node-backed createTerm with injected streams (TTY / piped / scripted / CI)
 // ============================================================================
 //
 // no-color.org contract: when stdout is not a TTY (piped, redirected, or a
@@ -132,13 +132,29 @@ describe("contract: createTerm({ caps }) overrides detection", () => {
 // piped into a file emitted truecolor ANSI because `defaultCaps()`
 // (colorLevel: "truecolor") was used verbatim as the non-TTY caps base.
 
-function pipeStreams(): { stdout: NodeJS.WriteStream; stdin: NodeJS.ReadStream } {
+function pipeStreams(isTTY = false): { stdout: NodeJS.WriteStream; stdin: NodeJS.ReadStream } {
   const stdout = new Writable({ write: (_c, _e, cb) => cb() }) as unknown as NodeJS.WriteStream
   const stdin = new Readable({ read: () => undefined }) as unknown as NodeJS.ReadStream
+  Object.defineProperty(stdout, "isTTY", { value: isTTY })
+  Object.defineProperty(stdin, "isTTY", { value: isTTY })
   return { stdout, stdin }
 }
 
-describe("contract: createTerm({ stdout, stdin }) with non-TTY streams", () => {
+describe("contract: createTerm({ stdout, stdin }) with injected streams", () => {
+  test("contract: TTY output keeps styling without an explicit color override", () => {
+    const savedTerm = process.env.TERM
+    process.env.TERM = "xterm-256color"
+    try {
+      const { stdout, stdin } = pipeStreams(true)
+      const term = createTerm({ stdout, stdin })
+      expect(term.caps.colorLevel).not.toBe("mono")
+      expect(term.bold("@tent/ready-doable")).toContain("\x1b[")
+    } finally {
+      if (savedTerm === undefined) delete process.env.TERM
+      else process.env.TERM = savedTerm
+    }
+  })
+
   test("contract: piped stdout resolves colorLevel 'mono' (no-color.org)", () => {
     const { stdout, stdin } = pipeStreams()
     const term = createTerm({ stdout, stdin })
@@ -154,6 +170,15 @@ describe("contract: createTerm({ stdout, stdin }) with non-TTY streams", () => {
     const { stdout, stdin } = pipeStreams()
     const term = createTerm({ stdout, stdin })
     expect(term.caps.colorLevel).toBe("truecolor")
+  })
+
+  test("contract: explicit FORCE_COLOR wins over ambient NO_COLOR for piped output", () => {
+    process.env.NO_COLOR = "1"
+    process.env.FORCE_COLOR = "1"
+    const { stdout, stdin } = pipeStreams()
+    const term = createTerm({ stdout, stdin })
+    expect(term.caps.colorLevel).toBe("ansi16")
+    expect(term.bold("@tent/ready-doable")).toContain("\x1b[")
   })
 
   test("contract: NO_COLOR stays mono for non-TTY streams", () => {

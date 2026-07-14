@@ -44,7 +44,7 @@ function fromChalkLevel(level: ChalkLevel): ColorLevel {
 // Post km-silvery.plateau-delete-legacy-shims (H6): `createTerminalProfile`
 // is the canonical single-source-of-truth entry point, replacing the former
 // `detectColor()` shim. Its `colorLevel` is the resolved tier through the
-// full NO_COLOR > FORCE_COLOR > auto precedence chain.
+// full FORCE_COLOR > NO_COLOR > auto precedence chain.
 const detectedColor: ColorLevel =
   typeof process !== "undefined" && process.stdout
     ? createTerminalProfile({ stdout: process.stdout }).colorLevel

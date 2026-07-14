@@ -237,7 +237,7 @@ Forcing the tier does two things:
   hex leaf snaps to the tier's palette (16-slot ANSI, xterm-256 cube, or
   `#000`/`#fff`).
 
-Priority (highest wins): `NO_COLOR` env → `FORCE_COLOR` env →
+Priority (highest wins): `FORCE_COLOR` env → `NO_COLOR` env →
 `colorLevel` → auto-detect.
 
 > The older `run({ colorLevel })` shorthand still works but is

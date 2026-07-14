@@ -155,7 +155,7 @@ export interface CreateTerminalProfileOptions {
   stdin?: TerminalProfileStdin
   /**
    * Explicit color tier override. Wins over `caps.colorLevel` but NOT over
-   * NO_COLOR / FORCE_COLOR env vars. `null` is accepted as an alias for
+   * FORCE_COLOR / NO_COLOR env vars. `null` is accepted as an alias for
    * `"mono"` (pre-plateau no-color spelling).
    */
   colorLevel?: ColorLevel | null
@@ -182,8 +182,8 @@ export interface CreateTerminalProfileOptions {
  * Build a {@link TerminalProfile} from the current environment.
  *
  * Priority for the final `colorLevel` (highest wins):
- *   1. `NO_COLOR` env var → `"mono"`
- *   2. `FORCE_COLOR` env var → `0/false → mono, 1 → ansi16, 2 → 256, 3 → truecolor`
+ *   1. `FORCE_COLOR` env var → `0/false → mono, 1 → ansi16, 2 → 256, 3 → truecolor`
+ *   2. `NO_COLOR` env var → `"mono"`
  *   3. `options.colorLevel` (caller-supplied explicit tier)
  *   4. `options.caps.colorLevel` (base caps' pre-detected tier)
  *   5. Auto-detected tier from env (TERM, COLORTERM, TERM_PROGRAM, …)
@@ -206,7 +206,7 @@ export interface CreateTerminalProfileOptions {
  * const profile = createTerminalProfile()
  * console.log(profile.colorLevel) // "truecolor" on Ghostty
  *
- * // Force a tier (still honors NO_COLOR / FORCE_COLOR env precedence)
+ * // Force a tier (still honors FORCE_COLOR / NO_COLOR env precedence)
  * const forced = createTerminalProfile({ colorLevel: "256" })
  *
  * // Term path — base caps already detected, just resolve color tier.
@@ -463,18 +463,8 @@ export function detectColorFromEnv(
   env: Record<string, string | undefined>,
   stdout: TerminalProfileStdout,
 ): ColorLevel {
-  // NO_COLOR takes precedence (see https://no-color.org/)
-  if (env.NO_COLOR !== undefined) return "mono"
-
-  // FORCE_COLOR overrides detection
-  const forceColor = env.FORCE_COLOR
-  if (forceColor !== undefined) {
-    if (forceColor === "0" || forceColor === "false") return "mono"
-    if (forceColor === "1") return "ansi16"
-    if (forceColor === "2") return "256"
-    if (forceColor === "3") return "truecolor"
-    return "ansi16"
-  }
+  const envTier = envColorTier(env)
+  if (envTier !== undefined) return envTier
 
   if (!stdout.isTTY) return "mono"
   if (env.TERM === "dumb") return "mono"
@@ -517,7 +507,11 @@ export function detectColorFromEnv(
  * env always beats caller-supplied overrides.
  */
 function envColorTier(env: Record<string, string | undefined>): ColorLevel | undefined {
-  if (env.NO_COLOR !== undefined) return "mono"
+  // An explicit FORCE_COLOR belongs to the current invocation (for example a
+  // viddy wrapper around captured stdout), so it outranks an ambient
+  // NO_COLOR inherited from the parent shell. Keep the value-to-tier map here
+  // as the one canonical env capability path; detectColorFromEnv delegates to
+  // this helper instead of carrying a second map.
   const force = env.FORCE_COLOR
   if (force !== undefined) {
     if (force === "0" || force === "false") return "mono"
@@ -526,6 +520,7 @@ function envColorTier(env: Record<string, string | undefined>): ColorLevel | und
     if (force === "3") return "truecolor"
     return "ansi16"
   }
+  if (env.NO_COLOR !== undefined) return "mono"
   return undefined
 }
 
@@ -547,7 +542,7 @@ export function detectTerminalProfileFromEnv(
   const noColor = env.NO_COLOR !== undefined
 
   const isAppleTerminal = programLower === "apple_terminal"
-  const colorLevel: ColorLevel = noColor ? "mono" : detectColorFromEnv(env, stdout)
+  const colorLevel = detectColorFromEnv(env, stdout)
 
   const isKitty = TERM === "xterm-kitty"
   const isITerm = programLower === "iterm.app"

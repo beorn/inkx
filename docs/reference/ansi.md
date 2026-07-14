@@ -28,7 +28,7 @@ yarn add @silvery/ansi
 
 ## Terminal Profile
 
-Resolve the terminal profile (color tier + capability flags) in one call, respecting `NO_COLOR` and `FORCE_COLOR`:
+Resolve the terminal profile (color tier + capability flags) in one call, respecting `FORCE_COLOR` and `NO_COLOR`:
 
 ```typescript
 import { createTerminalProfile } from "@silvery/ansi"
@@ -42,8 +42,8 @@ const profile = createTerminalProfile()
 
 Precedence (highest wins):
 
-1. `NO_COLOR` env var -- forces `mono` ([no-color.org](https://no-color.org))
-2. `FORCE_COLOR` env var -- `0` = mono, `1` = ansi16, `2` = 256, `3` = truecolor
+1. `FORCE_COLOR` env var -- `0` = mono, `1` = ansi16, `2` = 256, `3` = truecolor
+2. `NO_COLOR` env var -- forces `mono` ([no-color.org](https://no-color.org))
 3. Explicit `colorLevel` option (includes `null` alias for `mono`)
 4. `caps.colorLevel` from caller-supplied partial caps
 5. Auto-detect from `COLORTERM`, `TERM`, `TERM_PROGRAM`, CI vars — otherwise `ansi16` if TTY, `mono` if piped

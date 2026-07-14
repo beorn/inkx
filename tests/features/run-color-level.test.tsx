@@ -2,7 +2,7 @@
  * `run({ colorLevel })` — programmatic color-tier override.
  *
  * Covers:
- * - env-var precedence (NO_COLOR > FORCE_COLOR > option > auto-detect)
+ * - env-var precedence (FORCE_COLOR > NO_COLOR > option > auto-detect)
  * - end-to-end: forcing `"mono"` strips color SGRs from the ANSI stream
  *   (the single tier the output phase already honors for inline hex +
  *   $tokens alike). Other tiers are exercised via the env-precedence cases;
@@ -201,11 +201,10 @@ describe("env-var precedence over colorLevel option", () => {
     expect(ansi).not.toMatch(/\x1b\[[0-9;]*38;5;/)
   })
 
-  test("NO_COLOR wins over FORCE_COLOR=3 (→ mono)", async () => {
+  test("FORCE_COLOR=3 wins over NO_COLOR (→ truecolor)", async () => {
     process.env.NO_COLOR = "1"
     process.env.FORCE_COLOR = "3"
     const ansi = await runCapturing(<Swatch hex="#88c0d0" />, { colorLevel: "truecolor" })
-    expect(ansi).not.toMatch(/\x1b\[[0-9;]*38;2;/)
-    expect(ansi).not.toMatch(/\x1b\[[0-9;]*38;5;/)
+    expect(ansi).toMatch(/\x1b\[[0-9;]*38;2;136;192;208/)
   })
 })

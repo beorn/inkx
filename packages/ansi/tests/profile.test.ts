@@ -6,7 +6,7 @@
  * - Env precedence (NO_COLOR, FORCE_COLOR)
  * - Explicit `colorLevel`
  * - `caps` base + `profile.caps.colorLevel` fallback
- * - Merge order (env > override > caps > auto)
+ * - Merge order (FORCE_COLOR > NO_COLOR > override > caps > auto)
  * - Edge cases: `null` colorLevel, TTY/non-TTY, COLORTERM, TERM_PROGRAM
  */
 
@@ -23,7 +23,7 @@ const tty = { isTTY: true }
 const nonTty = { isTTY: false }
 
 // ============================================================================
-// Env precedence — NO_COLOR > FORCE_COLOR > override > caps > auto
+// Env precedence — FORCE_COLOR > NO_COLOR > override > caps > auto
 // ============================================================================
 
 describe("createTerminalProfile — env precedence", () => {
@@ -87,12 +87,12 @@ describe("createTerminalProfile — env precedence", () => {
     expect(profile.colorLevel).toBe("mono")
   })
 
-  test("NO_COLOR wins over FORCE_COLOR", () => {
+  test("FORCE_COLOR wins over NO_COLOR", () => {
     const profile = createTerminalProfile({
       env: { NO_COLOR: "1", FORCE_COLOR: "3" },
       stdout: tty,
     })
-    expect(profile.colorLevel).toBe("mono")
+    expect(profile.colorLevel).toBe("truecolor")
   })
 })
 
@@ -849,8 +849,8 @@ describe("createTerminalProfile — color provenance attribution", () => {
 })
 
 describe("detectColorFromEnv", () => {
-  test("NO_COLOR wins", () => {
-    expect(detectColorFromEnv({ NO_COLOR: "1", FORCE_COLOR: "3" }, tty)).toBe("mono")
+  test("FORCE_COLOR wins over NO_COLOR", () => {
+    expect(detectColorFromEnv({ NO_COLOR: "1", FORCE_COLOR: "3" }, tty)).toBe("truecolor")
   })
 
   test("FORCE_COLOR=3 wins over non-TTY", () => {
@@ -880,6 +880,11 @@ describe("detectTerminalProfileFromEnv", () => {
   test("colorLevel honors FORCE_COLOR in caps", () => {
     const profile = detectTerminalProfileFromEnv({ FORCE_COLOR: "2" }, nonTty)
     expect(profile.caps.colorLevel).toBe("256")
+  })
+
+  test("colorLevel honors FORCE_COLOR over NO_COLOR in caps", () => {
+    const profile = detectTerminalProfileFromEnv({ NO_COLOR: "1", FORCE_COLOR: "1" }, nonTty)
+    expect(profile.caps.colorLevel).toBe("ansi16")
   })
 
   test("nerdfont defaults to true for modern terminals (iTerm.app)", () => {
