@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { ProtocolError } from "@silvery/ansi"
 import { MAX_OSC52_PAYLOAD_BYTES, parseClipboardResponse } from "../src/clipboard"
+import { createTerminalInputDecoder } from "../src/protocol-segments"
 import { createInputOwner } from "../src/runtime/input-owner"
 
 const ESC = "\x1b"
@@ -68,9 +69,40 @@ describe("parseClipboardResponse OSC52 bounds (CONFIRMED-2)", () => {
   })
 
   it("accepts a payload exactly at the cap", () => {
-    // All-"A" base64 of exactly the max length decodes cleanly (multiple of 4).
-    const atCap = "A".repeat(MAX_BASE64_LENGTH)
+    // The 1 MiB byte cap leaves one byte in its final base64 quantum, so the
+    // maximum-valid encoded form ends in two padding characters.
+    const atCap = `${"A".repeat(MAX_BASE64_LENGTH - 2)}==`
     expect(() => parseClipboardResponse(osc52Response(atCap))).not.toThrow()
+  })
+
+  it("rejects an unpadded encoded maximum that decodes past the byte cap", () => {
+    expect(() => parseClipboardResponse(osc52Response("A".repeat(MAX_BASE64_LENGTH)))).toThrow(
+      ProtocolError,
+    )
+  })
+
+  it("decodes valid OSC 52 text without the Node Buffer global", () => {
+    vi.stubGlobal("Buffer", undefined)
+    try {
+      expect(parseClipboardResponse(osc52Response("aGk="))).toBe("hi")
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it("preserves a leading UTF-8 BOM as clipboard content", () => {
+    expect(parseClipboardResponse(osc52Response("77u/WA=="))).toBe("\uFEFFX")
+  })
+
+  it("accepts a maximum-valid payload when its ST terminator is split", () => {
+    const decoder = createTerminalInputDecoder()
+    const payload = `${"A".repeat(MAX_BASE64_LENGTH - 2)}==`
+
+    expect(decoder.push(`${ESC}]52;c;${payload}${ESC}`)).toEqual([])
+    const decoded = decoder.push("\\q")
+
+    expect(decoded.map((segment) => segment.type)).toEqual(["clipboard", "raw"])
+    expect(decoded[1]).toEqual({ type: "raw", data: "q" })
   })
 
   it("throws ProtocolError on malformed base64 instead of best-effort decoding", () => {
@@ -83,6 +115,42 @@ describe("parseClipboardResponse OSC52 bounds (CONFIRMED-2)", () => {
     } catch (err) {
       expect((err as ProtocolError).reason).toContain("valid base64")
     }
+  })
+
+  it("rejects impossible base64 padding cardinality", () => {
+    expect(() => parseClipboardResponse(osc52Response("A="))).toThrow(ProtocolError)
+  })
+
+  it("caps an unterminated stream, discards its tail, then resynchronizes", () => {
+    const decoder = createTerminalInputDecoder()
+    const huge = `${ESC}]52;c;${"A".repeat(MAX_BASE64_LENGTH + 1)}`
+
+    const rejected = decoder.push(huge)
+    expect(rejected).toHaveLength(1)
+    expect(rejected[0]?.type).toBe("invalid")
+    if (rejected[0]?.type === "invalid") {
+      expect(rejected[0].error.reason).toContain(`${MAX_OSC52_PAYLOAD_BYTES}`)
+    }
+
+    expect(decoder.push("still-payload")).toEqual([])
+    expect(decoder.push(ESC)).toEqual([])
+    expect(decoder.push("\\q")).toEqual([{ type: "raw", data: "q" }])
+  })
+
+  it("preserves a split ST prefix while entering oversize discard mode", () => {
+    const decoder = createTerminalInputDecoder()
+    const huge = `${ESC}]52;c;${"A".repeat(MAX_BASE64_LENGTH + 4)}${ESC}`
+
+    expect(decoder.push(huge)[0]?.type).toBe("invalid")
+    expect(decoder.push("\\q")).toEqual([{ type: "raw", data: "q" }])
+  })
+
+  it("bounds an unterminated query and resynchronizes after its terminator", () => {
+    const decoder = createTerminalInputDecoder()
+    const hugeQuery = `${ESC}]52;c;?${"A".repeat(MAX_BASE64_LENGTH + 1)}`
+
+    expect(decoder.push(hugeQuery)[0]?.type).toBe("invalid")
+    expect(decoder.push(`${BEL}q`)).toEqual([{ type: "raw", data: "q" }])
   })
 
   it("still throws ProtocolError on a missing terminator (unchanged behavior)", () => {

@@ -554,6 +554,14 @@ export interface TermlessReflowResidue {
  * the need for `!` non-null assertions at every test callsite.
  */
 export interface TermlessTerm extends Term {
+  /**
+   * Feed one raw terminal transport chunk through the production input decoder.
+   *
+   * Pass the same bytes a terminal would emit, including bracketed-paste or
+   * OSC 52 framing. Calls are chunk boundaries, not key events: incomplete
+   * protocol transactions are retained and reassembled with later calls.
+   */
+  sendInput(raw: string): void
   readonly mouse: TermlessMouse
   readonly clipboard: TermlessClipboard
   readonly out: TermlessOutput
@@ -684,6 +692,7 @@ function sgrButtonByte(options?: TermlessMouseOptions): number {
  * The returned Term exposes two testing conveniences:
  * - `term.mouse.*` — ergonomic mouse API (click, drag, down/up/move, wheel)
  * - `term.clipboard` — OSC 52 capture (`term.clipboard.last`, `.all`)
+ * - `term.sendInput(raw)` — raw transport chunks through the production decoder
  *
  * **Always dispose with `using` or an explicit `term[Symbol.dispose]()`.**
  * Without disposal, each call leaks the xterm.js Terminal (~1 MB scrollback

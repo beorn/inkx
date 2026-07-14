@@ -329,6 +329,87 @@ describe("InputOwner", () => {
     }
   })
 
+  it("dispatches raw input before a split bracketed paste without replaying its framing", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onKey((event) => events.push(event.key.return ? "return" : `key:${event.input}`))
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+
+    send("a\x1b[200~part")
+    expect(events).toEqual(["key:a"])
+
+    send("ial\x1b[201~\r")
+    expect(events).toEqual(["key:a", "paste:partial", "return"])
+  })
+
+  it("buffers split OSC52 responses without replaying protocol bytes as keys", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onKey((event) => events.push(event.key.return ? "return" : `key:${event.input}`))
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+
+    send("a\x1b]52;c;c3Bs")
+    expect(events).toEqual(["key:a"])
+
+    send("aXQ=\x07\r")
+    expect(events).toEqual(["key:a", "paste:split", "return"])
+  })
+
+  it("processes complete input before buffering a later incomplete protocol", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onKey((event) => events.push(`key:${event.input}`))
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+
+    send("x\x1b]52;c;QQ==\x07y\x1b[200~z")
+    expect(events).toEqual(["key:x", "paste:A", "key:y"])
+
+    send("!\x1b[201~")
+    expect(events).toEqual(["key:x", "paste:A", "key:y", "paste:z!"])
+  })
+
+  it("finds a clipboard response after an OSC52 query and drops malformed envelopes", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onKey((event) => events.push(event.key.return ? "return" : `key:${event.input}`))
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+
+    send("\x1b]52;c;?\x07\x1b]52;c;QQ==\x07")
+    send("\x1b]52;c;AAAA\r\x07q")
+
+    expect(events).toEqual(["paste:A", "key:q"])
+  })
+
+  it("preserves standalone Escape before a paste and raw input after it", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onKey((event) => events.push(event.key.escape ? "escape" : `key:${event.input}`))
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+
+    send("\x1b\x1b[200~payload\x1b[201~q")
+
+    expect(events).toEqual(["escape", "paste:payload", "key:q"])
+  })
+
+  it("reassembles a paste marker split after its first escape byte", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onKey((event) => events.push(event.key.escape ? "escape" : `key:${event.input}`))
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+
+    send("\x1b")
+    expect(events).toEqual([])
+    send("[200~payload\x1b[201~q")
+
+    expect(events).toEqual(["paste:payload", "key:q"])
+  })
+
   it("dispatches standalone Escape after the protocol disambiguation window", async () => {
     const { stdin, stdout, send } = createMockIO()
     using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })

@@ -409,6 +409,26 @@ describe("TextInput shifted punctuation", () => {
   })
 })
 
+describe("TextInput paste transactions", () => {
+  test("paste followed by Return submits the pasted value, not an empty line", () => {
+    const changes: string[] = []
+    const submissions: string[] = []
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(
+      <TextInput
+        defaultValue=""
+        onChange={(value) => changes.push(value)}
+        onSubmit={(value) => submissions.push(value)}
+      />,
+    )
+
+    app.stdin.write("\x1b[200~pasted command\x1b[201~\r")
+
+    expect(changes).toEqual(["pasted command"])
+    expect(submissions).toEqual(["pasted command"])
+  })
+})
+
 describe("TextInput modifier-gated keys never insert", () => {
   // Regression: readline's insert branch (`char >= " "`) used to accept
   // Ctrl+letter events, so host apps binding Ctrl+O / Ctrl+Y / Ctrl+R

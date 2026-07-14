@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { PASTE_START, PASTE_END } from "../src/bracketed-paste"
+import {
+  TERMINAL_INPUT_PREFIX_TIMEOUT_MS,
+  createTerminalInputDecoder,
+  createTerminalInputStreamDecoder,
+} from "../src/protocol-segments"
 import type { FocusManager } from "@silvery/ag/focus-manager"
 
 // event-handlers.ts pulls in @silvery/ag-react/reconciler → packages/scope,
@@ -133,6 +138,76 @@ describe("stripBracketedPasteMarkers (CONFIRMED-1 envelope-breakout neutralizati
     expect(out).toBe("abcd")
     expect(count(out, PASTE_START)).toBe(0)
     expect(count(out, PASTE_END)).toBe(0)
+  })
+})
+
+describe("createTerminalInputDecoder", () => {
+  it("preserves every raw span and paste envelope in byte order", () => {
+    const decoder = createTerminalInputDecoder()
+    expect(
+      decoder.push(`a${PASTE_START}first${PASTE_END}b${PASTE_START}second${PASTE_END}\r`),
+    ).toEqual([
+      { type: "raw", data: "a" },
+      { type: "paste", text: "first", raw: `${PASTE_START}first${PASTE_END}` },
+      { type: "raw", data: "b" },
+      { type: "paste", text: "second", raw: `${PASTE_START}second${PASTE_END}` },
+      { type: "raw", data: "\r" },
+    ])
+  })
+
+  it("reassembles a paste marker split after its first escape byte", () => {
+    const decoder = createTerminalInputDecoder()
+
+    expect(decoder.push("\x1b")).toEqual([])
+    expect(decoder.push(`[200~pasted${PASTE_END}`)).toEqual([
+      { type: "paste", text: "pasted", raw: `${PASTE_START}pasted${PASTE_END}` },
+    ])
+  })
+
+  it("flushes an isolated ambiguous prefix without flushing a transaction", () => {
+    const decoder = createTerminalInputDecoder()
+
+    expect(decoder.push("\x1b")).toEqual([])
+    expect(decoder.hasPendingPrefix()).toBe(true)
+    expect(decoder.flushPendingPrefix()).toEqual([{ type: "raw", data: "\x1b" }])
+
+    expect(decoder.push(`${PASTE_START}still-pasting`)).toEqual([])
+    expect(decoder.hasPendingPrefix()).toBe(false)
+    expect(decoder.flushPendingPrefix()).toEqual([])
+  })
+
+  it("releases an isolated escape after the shared bounded window", () => {
+    vi.useFakeTimers()
+    try {
+      const segments: unknown[] = []
+      const decoder = createTerminalInputStreamDecoder({
+        onPrefixTimeout: (timedOut) => segments.push(...timedOut),
+      })
+
+      expect(decoder.push("\x1b")).toEqual([])
+      expect(segments).toEqual([])
+
+      vi.advanceTimersByTime(TERMINAL_INPUT_PREFIX_TIMEOUT_MS)
+      expect(segments).toEqual([{ type: "raw", data: "\x1b" }])
+      decoder.reset()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("keeps atomic logical input separate from a retained transport prefix", () => {
+    const timedOut: unknown[] = []
+    const decoder = createTerminalInputStreamDecoder({
+      onPrefixTimeout: (segments) => timedOut.push(...segments),
+    })
+
+    expect(decoder.push("\x1b")).toEqual([])
+    expect(decoder.pushAtomic("a")).toEqual([
+      { type: "raw", data: "\x1b" },
+      { type: "raw", data: "a" },
+    ])
+    expect(timedOut).toEqual([])
+    decoder.reset()
   })
 })
 

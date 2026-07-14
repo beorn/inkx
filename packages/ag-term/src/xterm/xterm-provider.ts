@@ -25,6 +25,10 @@
  */
 
 import type { XtermTerminal } from "./index"
+import { createLogger } from "loggily"
+import { createTerminalInputStreamDecoder, type TerminalInputSegment } from "../protocol-segments"
+
+const log = createLogger("silvery:xterm-input")
 
 // SGR mouse sequence regex: \x1b[<btn;x;yM (press) or \x1b[<btn;x;ym (release)
 const SGR_MOUSE_RE = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g
@@ -44,6 +48,9 @@ export interface XtermProvider {
    * Returns cleanup function.
    */
   onInput(handler: (chunk: string) => void): () => void
+
+  /** Subscribe to decoded bracketed-paste and OSC 52 clipboard text. */
+  onPaste(handler: (text: string) => void): () => void
 
   /**
    * Subscribe to mouse events (SGR mode, parsed).
@@ -83,10 +90,12 @@ export interface XtermProvider {
  * Create a provider that bridges an xterm.js Terminal to silvery's input system.
  *
  * The provider separates mouse sequences from keyboard input, so consumers
- * get clean keyboard data via `onInput` and parsed mouse events via `onMouse`.
+ * get clean keyboard data via `onInput`, typed paste text via `onPaste`, and
+ * parsed mouse events via `onMouse`.
  */
 export function createXtermProvider(terminal: XtermTerminal): XtermProvider {
   const inputHandlers = new Set<(chunk: string) => void>()
+  const pasteHandlers = new Set<(text: string) => void>()
   const mouseHandlers = new Set<
     (info: { x: number; y: number; button: number; type: "press" | "release" }) => void
   >()
@@ -94,45 +103,55 @@ export function createXtermProvider(terminal: XtermTerminal): XtermProvider {
   const disposables: Array<{ dispose(): void }> = []
   let disposed = false
 
+  function dispatchInputSegment(segment: TerminalInputSegment): void {
+    if (segment.type === "raw") {
+      dispatchRawInput(segment.data)
+    } else if (segment.type === "invalid") {
+      log.debug?.(
+        `input protocol rejected malformed input: ${segment.error.reason} (parser=${segment.error.parser}, len=${segment.error.inputLength})`,
+      )
+    } else {
+      for (const handler of pasteHandlers) handler(segment.text)
+    }
+  }
+
+  const inputDecoder = createTerminalInputStreamDecoder({
+    onPrefixTimeout(segments) {
+      if (disposed) return
+      for (const segment of segments) dispatchInputSegment(segment)
+    },
+  })
+
+  function dispatchRawInput(data: string): void {
+    let lastIndex = 0
+    let keyboardData = ""
+
+    SGR_MOUSE_RE.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = SGR_MOUSE_RE.exec(data)) !== null) {
+      if (match.index > lastIndex) keyboardData += data.slice(lastIndex, match.index)
+      lastIndex = match.index + match[0].length
+
+      const btn = parseInt(match[1]!, 10)
+      const x = parseInt(match[2]!, 10) - 1
+      const y = parseInt(match[3]!, 10) - 1
+      const type = match[4] === "M" ? ("press" as const) : ("release" as const)
+      for (const handler of mouseHandlers) handler({ x, y, button: btn, type })
+    }
+
+    if (lastIndex < data.length) keyboardData += data.slice(lastIndex)
+    if (keyboardData.length > 0) {
+      for (const handler of inputHandlers) handler(keyboardData)
+    }
+  }
+
   // Wire terminal.onData — split mouse sequences from keyboard input
   if (terminal.onData) {
     const dataDisposable = terminal.onData((data: string) => {
       if (disposed) return
 
-      // Extract all mouse sequences, forward keyboard remainder
-      let lastIndex = 0
-      let keyboardData = ""
-
-      SGR_MOUSE_RE.lastIndex = 0
-      let match: RegExpExecArray | null
-      while ((match = SGR_MOUSE_RE.exec(data)) !== null) {
-        // Collect keyboard data before this mouse sequence
-        if (match.index > lastIndex) {
-          keyboardData += data.slice(lastIndex, match.index)
-        }
-        lastIndex = match.index + match[0].length
-
-        // Parse and dispatch mouse event
-        const btn = parseInt(match[1]!, 10)
-        const x = parseInt(match[2]!, 10) - 1 // 1-indexed → 0-indexed
-        const y = parseInt(match[3]!, 10) - 1
-        const type = match[4] === "M" ? ("press" as const) : ("release" as const)
-
-        for (const handler of mouseHandlers) {
-          handler({ x, y, button: btn, type })
-        }
-      }
-
-      // Remaining keyboard data after last mouse sequence
-      if (lastIndex < data.length) {
-        keyboardData += data.slice(lastIndex)
-      }
-
-      // Dispatch keyboard input if any
-      if (keyboardData.length > 0) {
-        for (const handler of inputHandlers) {
-          handler(keyboardData)
-        }
+      for (const segment of inputDecoder.push(data)) {
+        dispatchInputSegment(segment)
       }
     })
     disposables.push(dataDisposable)
@@ -162,6 +181,13 @@ export function createXtermProvider(terminal: XtermTerminal): XtermProvider {
       inputHandlers.add(handler)
       return () => {
         inputHandlers.delete(handler)
+      }
+    },
+
+    onPaste(handler) {
+      pasteHandlers.add(handler)
+      return () => {
+        pasteHandlers.delete(handler)
       }
     },
 
@@ -201,8 +227,10 @@ export function createXtermProvider(terminal: XtermTerminal): XtermProvider {
       for (const d of disposables) d.dispose()
       disposables.length = 0
       inputHandlers.clear()
+      pasteHandlers.clear()
       mouseHandlers.clear()
       focusHandlers.clear()
+      inputDecoder.reset()
     },
   }
 }

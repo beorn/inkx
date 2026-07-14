@@ -181,6 +181,17 @@ export {
   PASTE_END,
 } from "./bracketed-paste"
 export type { BracketedPasteResult, PasteEvent } from "./bracketed-paste"
+export {
+  TERMINAL_INPUT_PREFIX_TIMEOUT_MS,
+  createTerminalInputDecoder,
+  createTerminalInputStreamDecoder,
+} from "./protocol-segments"
+export type {
+  TerminalInputDecoder,
+  TerminalInputSegment,
+  TerminalInputStreamDecoder,
+  TerminalInputStreamDecoderOptions,
+} from "./protocol-segments"
 
 // =============================================================================
 // Clipboard

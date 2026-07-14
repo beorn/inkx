@@ -18,10 +18,52 @@ describe("runtime input protocol routing", () => {
     const pastes: string[] = []
     input?.onPaste((event) => pastes.push(event.text))
 
-    const sender = term as unknown as { sendInput(data: string): void }
-    sender.sendInput(osc52ClipboardResponse("FROM_CLIPBOARD"))
+    term.sendInput(osc52ClipboardResponse("FROM_CLIPBOARD"))
 
     expect(pastes).toEqual(["FROM_CLIPBOARD"])
+  })
+
+  test("sendInput preserves trailing Return in the same OSC52 response chunk", () => {
+    using term = createTermless({ cols: 40, rows: 6 })
+    const events: string[] = []
+    term.input?.onPaste((event) => events.push(`paste:${event.text}`))
+    term.input?.onKey((event) => {
+      if (event.key.return) events.push("return")
+    })
+
+    term.sendInput(`${osc52ClipboardResponse("FROM_CLIPBOARD")}\r`)
+
+    expect(events).toEqual(["paste:FROM_CLIPBOARD", "return"])
+  })
+
+  test("sendInput preserves trailing Return in the same bracketed-paste chunk", () => {
+    using term = createTermless({ cols: 40, rows: 6 })
+    const events: string[] = []
+    term.input?.onPaste((event) => events.push(`paste:${event.text}`))
+    term.input?.onKey((event) => {
+      if (event.key.return) events.push("return")
+    })
+
+    term.sendInput("\x1b[200~FROM_PASTE\x1b[201~\r")
+
+    expect(events).toEqual(["paste:FROM_PASTE", "return"])
+  })
+
+  test("sendInput reassembles split bracketed-paste and OSC52 transactions", () => {
+    using term = createTermless({ cols: 40, rows: 6 })
+    const events: string[] = []
+    term.input?.onPaste((event) => events.push(`paste:${event.text}`))
+    term.input?.onKey((event) => {
+      if (event.key.return) events.push("return")
+    })
+
+    term.sendInput("\x1b")
+    expect(events).toEqual([])
+    term.sendInput("[200~BRACKETED_PASTE\x1b[201~\r")
+    term.sendInput("\x1b")
+    term.sendInput("]52;c;Q0xJUF9CT0FSRA==\x07\r")
+
+    expect(events).toEqual(["paste:BRACKETED_PASTE", "return", "paste:CLIP_BOARD", "return"])
   })
 
   test("sendInput ignores malformed OSC52 clipboard responses", () => {
@@ -30,10 +72,9 @@ describe("runtime input protocol routing", () => {
     const pastes: string[] = []
     input?.onPaste((event) => pastes.push(event.text))
 
-    const sender = term as unknown as { sendInput(data: string): void }
     const unterminatedClipboardResponse = `\x1b]52;c;${Buffer.from("broken").toString("base64")}`
 
-    expect(() => sender.sendInput(unterminatedClipboardResponse)).not.toThrow()
+    expect(() => term.sendInput(unterminatedClipboardResponse)).not.toThrow()
     expect(pastes).toEqual([])
   })
 

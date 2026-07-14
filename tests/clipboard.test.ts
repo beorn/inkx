@@ -414,6 +414,14 @@ describe("parseClipboardResponse", () => {
     expect(parseClipboardResponse("\x1b]52;c;?\x07")).toBeNull()
   })
 
+  test("skips a query and parses the next response", () => {
+    expect(parseClipboardResponse("\x1b]52;c;?\x07\x1b]52;c;QQ==\x07")).toBe("A")
+  })
+
+  test("uses the earliest terminator when an ST response precedes a BEL response", () => {
+    expect(parseClipboardResponse("\x1b]52;c;QQ==\x1b\\\x1b]52;c;Qg==\x07")).toBe("A")
+  })
+
   test("throws ProtocolError for unterminated response", () => {
     // OSC 52 prefix present (we committed to this protocol) but no BEL/ST
     // terminator. The parser must fail loudly so the dispatch boundary

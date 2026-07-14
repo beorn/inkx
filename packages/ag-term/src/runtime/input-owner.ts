@@ -41,7 +41,6 @@
  * `stdout.write` is fine. The owner's concern is stdin.
  */
 
-import { isProtocolError } from "@silvery/ansi"
 import { createLogger } from "loggily"
 import { type Key, parseKey } from "./keys"
 import {
@@ -50,8 +49,7 @@ import {
   type ParseMouseOptions,
   type ParsedMouse,
 } from "../mouse"
-import { parseBracketedPasteEnvelope } from "../bracketed-paste"
-import { parseClipboardResponseEnvelope } from "../clipboard"
+import { createTerminalInputStreamDecoder, type TerminalInputSegment } from "../protocol-segments"
 import { parseFocusEvent } from "../focus-reporting"
 import type { Modes } from "./devices/modes"
 
@@ -360,7 +358,14 @@ export function createInputOwner(
   // Per-owner state.
   let buffer = ""
   let incompleteSequence: string | null = null
-  let incompletePaste: string | null = null
+  let protocolReceivedAt: number | undefined
+  let protocolInputBatchId: number | undefined
+  const protocolDecoder = createTerminalInputStreamDecoder({
+    onPrefixTimeout(segments) {
+      if (disposed) return
+      dispatchProtocolSegments(segments, protocolReceivedAt, protocolInputBatchId, true)
+    },
+  })
   let incompleteSequenceTimer: ReturnType<typeof setTimeout> | null = null
   let incompleteSequenceImmediate: ReturnType<typeof setImmediate> | null = null
   const probes: ProbeEntry[] = []
@@ -447,12 +452,49 @@ export function createInputOwner(
     }, ESC_DISAMBIGUATION_MS)
   }
 
-  function dispatchRawChunk(chunk: string, receivedAt?: number, inputBatchId?: number): void {
+  function dispatchRawChunk(
+    chunk: string,
+    receivedAt?: number,
+    inputBatchId?: number,
+    flushAtProtocolBoundary = false,
+  ): void {
     if (chunk.length === 0) return
     const { sequences, incomplete } = splitRawInput(chunk)
     incompleteSequence = incomplete
-    scheduleIncompleteFlush(receivedAt, inputBatchId)
     for (const raw of sequences) dispatchSequence(raw, receivedAt, inputBatchId)
+    if (flushAtProtocolBoundary && incompleteSequence !== null) {
+      clearIncompleteTimer()
+      const pending = incompleteSequence
+      incompleteSequence = null
+      dispatchSequence(pending, receivedAt, inputBatchId)
+      return
+    }
+    scheduleIncompleteFlush(receivedAt, inputBatchId)
+  }
+
+  function dispatchProtocolSegments(
+    segments: TerminalInputSegment[],
+    receivedAt?: number,
+    inputBatchId?: number,
+    timedOutPrefix = false,
+  ): void {
+    for (let index = 0; index < segments.length; index++) {
+      const segment = segments[index]!
+      if (segment.type === "raw") {
+        dispatchRawChunk(
+          segment.data,
+          receivedAt,
+          inputBatchId,
+          timedOutPrefix || index < segments.length - 1,
+        )
+      } else if (segment.type === "paste" || segment.type === "clipboard") {
+        fire(pasteHandlers, { text: segment.text })
+      } else {
+        log?.debug?.(
+          `input protocol rejected malformed input: ${segment.error.reason} (parser=${segment.error.parser}, len=${segment.error.inputLength})`,
+        )
+      }
+    }
   }
 
   // Drain the current buffer against probes (in registration order). Anything
@@ -508,68 +550,9 @@ export function createInputOwner(
       chunk = incompleteSequence + chunk
       incompleteSequence = null
     }
-    if (incompletePaste !== null) {
-      chunk = incompletePaste + chunk
-      incompletePaste = null
-    }
-
-    // Bracketed paste is detected before splitting into individual keys —
-    // paste content is one logical event, not a stream of keystrokes.
-    //
-    // The parser may throw ProtocolError when PASTE_START is found but no
-    // PASTE_END follows in this chunk. That commonly indicates a stream-
-    // split paste (the rest arrives in the next TTY read), so we buffer and
-    // retry before splitting into key events. This preserves paste atomicity
-    // while still emitting a debug-log breadcrumb so chronic protocol-format
-    // problems become visible. Bead reference:
-    // @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
-    let remaining = chunk
-    while (remaining.length > 0) {
-      let pasteEnvelope: ReturnType<typeof parseBracketedPasteEnvelope> = null
-      try {
-        pasteEnvelope = parseBracketedPasteEnvelope(remaining)
-      } catch (err) {
-        if (isProtocolError(err)) {
-          incompletePaste = remaining
-          log?.debug?.(
-            `bracketed paste parser buffered incomplete input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-          )
-          return
-        } else {
-          log?.warn?.(`bracketed paste parser threw: ${String(err)}`)
-        }
-      }
-
-      let clipboardEnvelope: ReturnType<typeof parseClipboardResponseEnvelope> = null
-      try {
-        clipboardEnvelope = parseClipboardResponseEnvelope(remaining)
-      } catch (err) {
-        if (isProtocolError(err)) {
-          log?.debug?.(
-            `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-          )
-        } else {
-          log?.warn?.(`clipboard parser threw: ${String(err)}`)
-        }
-      }
-
-      if (pasteEnvelope && (!clipboardEnvelope || pasteEnvelope.start <= clipboardEnvelope.start)) {
-        dispatchRawChunk(remaining.slice(0, pasteEnvelope.start), receivedAt, inputBatchId)
-        fire(pasteHandlers, { text: pasteEnvelope.result.content })
-        remaining = remaining.slice(pasteEnvelope.end)
-        continue
-      }
-
-      if (clipboardEnvelope) {
-        dispatchRawChunk(remaining.slice(0, clipboardEnvelope.start), receivedAt, inputBatchId)
-        fire(pasteHandlers, { text: clipboardEnvelope.text })
-        remaining = remaining.slice(clipboardEnvelope.end)
-        continue
-      }
-
-      dispatchRawChunk(remaining, receivedAt, inputBatchId)
-      return
-    }
+    protocolReceivedAt = receivedAt
+    protocolInputBatchId = inputBatchId
+    dispatchProtocolSegments(protocolDecoder.push(chunk), receivedAt, inputBatchId)
   }
 
   // Single stdin listener — the whole reason this file exists. No other
@@ -710,7 +693,7 @@ export function createInputOwner(
     clearIncompleteTimer()
     buffer = ""
     incompleteSequence = null
-    incompletePaste = null
+    protocolDecoder.reset()
 
     if (isTTY) {
       try {

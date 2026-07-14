@@ -40,11 +40,8 @@ import { createCursorStore, CursorProvider, type CursorStore } from "./hooks/use
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey } from "@silvery/ag/keys"
 import { type LayoutEngineType, isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
-import {
-  enableBracketedPaste,
-  disableBracketedPaste,
-  parseBracketedPaste,
-} from "@silvery/ag-term/bracketed-paste"
+import { enableBracketedPaste, disableBracketedPaste } from "@silvery/ag-term/bracketed-paste"
+import { createTerminalInputStreamDecoder, type TerminalInputSegment } from "@silvery/ag-term"
 import {
   ANSI,
   enterAlternateScreen,
@@ -389,28 +386,42 @@ function SilveryApp({
   // Stable input chunk handler — created once, never changes identity.
   // All mutable state is read via refs to avoid dependency cascade.
   const handleChunkRef = useRef<((chunk: string) => void) | null>(null)
+  const inputDecoderRef = useRef<ReturnType<typeof createTerminalInputStreamDecoder> | null>(null)
   if (handleChunkRef.current === null) {
-    handleChunkRef.current = (rawChunk: string) => {
-      log.debug?.(`handleChunk: ${JSON.stringify(rawChunk)}`)
-
-      // Check for bracketed paste before splitting into individual keys.
-      const pasteResult = parseBracketedPaste(rawChunk)
-      if (pasteResult) {
+    function processSegment(segment: TerminalInputSegment): void {
+      if (segment.type === "paste" || segment.type === "clipboard") {
         // Dispatch to the child chain — the canonical subscription
         // surface for hooks via ChainAppContext. The legacy
         // `rt.on("paste", …)` subscriber list is gone (RuntimeContext
         // trimmed to {exit} only).
-        childApp.dispatch({ type: "term:paste", text: pasteResult.content })
+        childApp.dispatch({ type: "term:paste", text: segment.text })
         childApp.drainEffects()
         return
       }
 
-      // Split multi-character chunks into individual keypresses.
+      if (segment.type === "invalid") {
+        log.debug?.(
+          `input protocol rejected malformed input: ${segment.error.reason} (parser=${segment.error.parser}, len=${segment.error.inputLength})`,
+        )
+        return
+      }
+
       // Raw input sources can deliver multiple characters in a single chunk
       // (rapid typing, paste, or auto-repeat during heavy renders).
-      for (const keypress of splitRawInput(rawChunk)) {
-        processSingleKey(keypress)
-      }
+      for (const keypress of splitRawInput(segment.data)) processSingleKey(keypress)
+    }
+
+    const inputDecoder = createTerminalInputStreamDecoder({
+      onPrefixTimeout(segments) {
+        for (const segment of segments) processSegment(segment)
+      },
+    })
+    inputDecoderRef.current = inputDecoder
+    handleChunkRef.current = (rawChunk: string) => {
+      log.debug?.(`handleChunk: ${JSON.stringify(rawChunk)}`)
+
+      // Check for bracketed paste before splitting into individual keys.
+      for (const segment of inputDecoder.push(rawChunk)) processSegment(segment)
     }
 
     function processSingleKey(chunk: string) {
@@ -498,7 +509,11 @@ function SilveryApp({
   // Subscribe to input source when available
   useEffect(() => {
     if (!onInputSubscribe) return
-    return onInputSubscribe(handleChunk)
+    const unsubscribe = onInputSubscribe(handleChunk)
+    return () => {
+      unsubscribe()
+      inputDecoderRef.current?.reset()
+    }
   }, [onInputSubscribe, handleChunk])
 
   const stdoutContextValue = useMemo(

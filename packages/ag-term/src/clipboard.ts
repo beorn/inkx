@@ -89,7 +89,7 @@ const ESC = "\x1b"
 const BEL = "\x07"
 
 /** OSC 52 response prefix */
-const OSC52_PREFIX = `${ESC}]52;c;`
+export const OSC52_PREFIX = `${ESC}]52;c;`
 
 /**
  * Upper bound on the decoded size of an OSC 52 clipboard payload.
@@ -112,7 +112,7 @@ export const MAX_OSC52_PAYLOAD_BYTES = 1024 * 1024
  * `ceil(bytes / 3) * 4`. We compare the base64 length against this to reject
  * oversize payloads before decoding (never allocating the decoded buffer).
  */
-const MAX_OSC52_BASE64_LENGTH = Math.ceil(MAX_OSC52_PAYLOAD_BYTES / 3) * 4
+export const MAX_OSC52_BASE64_LENGTH = Math.ceil(MAX_OSC52_PAYLOAD_BYTES / 3) * 4
 
 /**
  * Standard base64 alphabet with optional `=` padding. Node's decoder silently
@@ -120,7 +120,29 @@ const MAX_OSC52_BASE64_LENGTH = Math.ceil(MAX_OSC52_PAYLOAD_BYTES / 3) * 4
  * and reject anything that isn't well-formed base64 rather than best-effort
  * decoding garbage into a paste.
  */
-const OSC52_BASE64_SHAPE = /^[A-Za-z0-9+/]*={0,2}$/
+const OSC52_BASE64_SHAPE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
+
+function encodeUtf8Base64(text: string): string {
+  const bytes = new TextEncoder().encode(text)
+  let binary = ""
+  const chunkSize = 32 * 1024
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize))
+  }
+  return btoa(binary)
+}
+
+function decodeUtf8Base64(base64: string): string {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+  return new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes)
+}
+
+function decodedBase64ByteLength(base64: string): number {
+  const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0
+  return (base64.length / 4) * 3 - padding
+}
 
 // ============================================================================
 // OSC 52 Backend
@@ -141,7 +163,7 @@ const OSC52_BASE64_SHAPE = /^[A-Za-z0-9+/]*={0,2}$/
 export function createOsc52Backend(stdout: Writable): ClipboardBackend {
   return {
     write(data: ClipboardData): void {
-      const base64 = Buffer.from(data.text, "utf-8").toString("base64")
+      const base64 = encodeUtf8Base64(data.text)
       stdout.write(`${ESC}]52;c;${base64}${BEL}`)
     },
 
@@ -259,63 +281,87 @@ export interface ClipboardResponseEnvelope {
   end: number
 }
 
+/** @internal Exact OSC string terminator span. */
+export interface Osc52Terminator {
+  start: number
+  end: number
+}
+
+/** Find the earliest BEL or ST terminator after `contentStart`. */
+export function findOsc52Terminator(input: string, contentStart: number): Osc52Terminator | null {
+  const belStart = input.indexOf(BEL, contentStart)
+  const st = `${ESC}\\`
+  const stStart = input.indexOf(st, contentStart)
+  if (belStart === -1 && stStart === -1) return null
+  if (stStart !== -1 && (belStart === -1 || stStart < belStart)) {
+    return { start: stStart, end: stStart + st.length }
+  }
+  return { start: belStart, end: belStart + BEL.length }
+}
+
+/** @internal Measure streamed OSC 52 content without counting a split ST prefix. */
+export function measureOsc52ContentLength(input: string, contentStart: number): number {
+  const terminator = findOsc52Terminator(input, contentStart)
+  const contentEnd =
+    terminator?.start ?? (input.endsWith(ESC) ? input.length - ESC.length : input.length)
+  return Math.max(0, contentEnd - contentStart)
+}
+
 /** @internal Use when a stream owner must preserve bytes around the response. */
 export function parseClipboardResponseEnvelope(input: string): ClipboardResponseEnvelope | null {
-  const prefixIdx = input.indexOf(OSC52_PREFIX)
-  if (prefixIdx === -1) return null
+  let prefixIdx = input.indexOf(OSC52_PREFIX)
+  while (prefixIdx !== -1) {
+    const contentStart = prefixIdx + OSC52_PREFIX.length
+    const terminator = findOsc52Terminator(input, contentStart)
 
-  const contentStart = prefixIdx + OSC52_PREFIX.length
+    if (input[contentStart] === "?") {
+      if (terminator === null) return null
+      prefixIdx = input.indexOf(OSC52_PREFIX, terminator.end)
+      continue
+    }
 
-  // Reject the query marker — it's not a response (but it IS valid OSC 52
-  // input, so silent skip is correct, not a ProtocolError).
-  if (input[contentStart] === "?") return null
+    const contentLength = measureOsc52ContentLength(input, contentStart)
+    if (contentLength > MAX_OSC52_BASE64_LENGTH) {
+      throw new ProtocolError({
+        parser: "parseClipboardResponse",
+        input,
+        reason: `OSC 52 base64 payload exceeds ${MAX_OSC52_PAYLOAD_BYTES}-byte cap (got ${contentLength} base64 chars)`,
+      })
+    }
 
-  // Find terminator: BEL (\x07) or ST (ESC \)
-  let terminatorLength = BEL.length
-  let contentEnd = input.indexOf(BEL, contentStart)
-  if (contentEnd === -1) {
-    const stringTerminator = `${ESC}\\`
-    contentEnd = input.indexOf(stringTerminator, contentStart)
-    terminatorLength = stringTerminator.length
+    if (terminator === null) {
+      throw new ProtocolError({
+        parser: "parseClipboardResponse",
+        input,
+        reason: "missing terminator (expected BEL or ST after OSC 52 base64 payload)",
+      })
+    }
+
+    const base64 = input.slice(contentStart, terminator.start)
+    if (!OSC52_BASE64_SHAPE.test(base64)) {
+      throw new ProtocolError({
+        parser: "parseClipboardResponse",
+        input,
+        reason: "OSC 52 payload is not valid base64",
+      })
+    }
+    const decodedBytes = decodedBase64ByteLength(base64)
+    if (decodedBytes > MAX_OSC52_PAYLOAD_BYTES) {
+      throw new ProtocolError({
+        parser: "parseClipboardResponse",
+        input,
+        reason: `OSC 52 payload exceeds ${MAX_OSC52_PAYLOAD_BYTES}-byte cap (decodes to ${decodedBytes} bytes)`,
+      })
+    }
+
+    return {
+      text: decodeUtf8Base64(base64),
+      start: prefixIdx,
+      end: terminator.end,
+    }
   }
-  if (contentEnd === -1) {
-    // We committed to OSC 52 (prefix matched) — missing terminator is a
-    // protocol violation, not a "next parser please" condition.
-    throw new ProtocolError({
-      parser: "parseClipboardResponse",
-      input,
-      reason: "missing terminator (expected BEL or ST after OSC 52 base64 payload)",
-    })
-  }
 
-  // OSC 52 responses are attacker-influenceable and Node's base64 decoder is
-  // lenient (never throws, silently drops invalid bytes) and unbounded. Reject
-  // oversize or malformed payloads LOUDLY instead of decoding garbage into a
-  // paste (NO SILENT ERRORS). The dispatch caller catches ProtocolError and
-  // drops the paste with a debug-log breadcrumb. The length check runs on the
-  // index delta so we never slice a giant substring just to measure it.
-  if (contentEnd - contentStart > MAX_OSC52_BASE64_LENGTH) {
-    throw new ProtocolError({
-      parser: "parseClipboardResponse",
-      input,
-      reason: `OSC 52 base64 payload exceeds ${MAX_OSC52_PAYLOAD_BYTES}-byte cap (got ${contentEnd - contentStart} base64 chars)`,
-    })
-  }
-
-  const base64 = input.slice(contentStart, contentEnd)
-  if (!OSC52_BASE64_SHAPE.test(base64)) {
-    throw new ProtocolError({
-      parser: "parseClipboardResponse",
-      input,
-      reason: "OSC 52 payload is not valid base64",
-    })
-  }
-
-  return {
-    text: Buffer.from(base64, "base64").toString("utf-8"),
-    start: prefixIdx,
-    end: contentEnd + terminatorLength,
-  }
+  return null
 }
 
 /**

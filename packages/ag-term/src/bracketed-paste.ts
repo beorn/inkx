@@ -101,6 +101,9 @@ export function parseBracketedPasteEnvelope(input: string): BracketedPasteEnvelo
  *   stream-split paste (caller should buffer and retry on the next chunk)
  *   or a protocol violation. Loud failure surfaces the gap; the dispatch
  *   layer catches and decides whether to buffer or log.
+ *
+ * This value-only compatibility projection discards bytes surrounding the
+ * first envelope. Stream consumers must use `createTerminalInputDecoder()`.
  */
 export function parseBracketedPaste(input: string): BracketedPasteResult | null {
   return parseBracketedPasteEnvelope(input)?.result ?? null

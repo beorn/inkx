@@ -19,6 +19,7 @@
  */
 
 import React, { type ReactElement } from "react"
+import { createLogger } from "loggily"
 import {
   type CanvasAdapterConfig,
   CanvasRenderBuffer,
@@ -51,12 +52,14 @@ import {
 import { createChildApp, toChainAppContextValue } from "../../chain-bridge"
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey, splitRawInput } from "@silvery/ag/keys"
-import { parseBracketedPaste } from "@silvery/ag-term/bracketed-paste"
+import { createTerminalInputStreamDecoder, type TerminalInputSegment } from "@silvery/ag-term"
 import { ThemeProvider } from "../../ThemeProvider"
 import { catppuccinMocha } from "@silvery/theme/schemes"
 import { deriveTheme, type Theme } from "@silvery/ansi"
 import { createCursorStore, CursorProvider } from "../../hooks/useCursor"
 import { createCanvasInput, type CanvasInputConfig } from "./input"
+
+const log = createLogger("silvery:canvas-input")
 
 // Re-export core components
 export { Box, type BoxProps } from "../../components/Box"
@@ -327,6 +330,7 @@ export function renderToCanvas(
   const handleFocusCycling = options.handleFocusCycling ?? inputEnabled
 
   let canvasInput: ReturnType<typeof createCanvasInput> | null = null
+  let inputDecoder: ReturnType<typeof createTerminalInputStreamDecoder> | null = null
   let focusManager: ReturnType<typeof createFocusManager> | null = null
   let runtimeContextValue: RuntimeContextValue | null = null
   let chainAppContextValue: ChainAppContextValue | null = null
@@ -349,6 +353,28 @@ export function renderToCanvas(
     const childApp = createChildApp()
     chainAppContextValue = toChainAppContextValue(childApp)
 
+    function processInputSegment(segment: TerminalInputSegment): void {
+      if (unmounted) return
+      if (segment.type === "paste" || segment.type === "clipboard") {
+        childApp.dispatch({ type: "term:paste", text: segment.text })
+        childApp.drainEffects()
+        return
+      }
+      if (segment.type === "invalid") {
+        log.debug?.(
+          `input protocol rejected malformed input: ${segment.error.reason} (parser=${segment.error.parser}, len=${segment.error.inputLength})`,
+        )
+        return
+      }
+      for (const keypress of splitRawInput(segment.data)) processKey(keypress)
+    }
+
+    inputDecoder = createTerminalInputStreamDecoder({
+      onPrefixTimeout(segments) {
+        for (const segment of segments) processInputSegment(segment)
+      },
+    })
+
     // Create canvas input handler (hidden textarea + DOM event conversion)
     const canvasContainer = canvas.parentElement ?? canvas
     canvasInput = createCanvasInput({
@@ -356,18 +382,7 @@ export function renderToCanvas(
       onData(data: string) {
         if (unmounted) return
 
-        // Check for bracketed paste
-        const pasteResult = parseBracketedPaste(data)
-        if (pasteResult) {
-          childApp.dispatch({ type: "term:paste", text: pasteResult.content })
-          childApp.drainEffects()
-          return
-        }
-
-        // Split and process individual keys
-        for (const keypress of splitRawInput(data)) {
-          processKey(keypress)
-        }
+        for (const segment of inputDecoder!.pushAtomic(data)) processInputSegment(segment)
       },
       onFocusChange(focused: boolean) {
         inputCallbacks.onFocus?.(focused)
@@ -509,6 +524,7 @@ export function renderToCanvas(
     if (unmounted) return
     unmounted = true
 
+    inputDecoder?.reset()
     if (canvasInput) canvasInput.dispose()
     reconciler.updateContainerSync(null, fiberRoot, null, null)
     reconciler.flushSyncWork()

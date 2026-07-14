@@ -393,6 +393,9 @@ export interface AppOptions {
   /** Function to send input */
   sendInput: (data: string) => void
 
+  /** Function to send one complete logical key event (defaults to sendInput). */
+  sendAtomicInput?: (data: string) => void
+
   /** Function to rerender */
   rerender: (element: ReactNode) => void
 
@@ -467,6 +470,7 @@ export function buildApp(options: AppOptions): App {
     getContainer,
     getBuffer,
     sendInput,
+    sendAtomicInput = sendInput,
     rerender,
     unmount,
     waitUntilExit,
@@ -567,7 +571,7 @@ export function buildApp(options: AppOptions): App {
             eventType: "press",
           })
           const sequence = kittyMode ? keyToKittyAnsi(key) : keyToAnsi(key)
-          sendInput(sequence)
+          sendAtomicInput(sequence)
           await Promise.resolve()
           return app
         })(),
@@ -584,7 +588,7 @@ export function buildApp(options: AppOptions): App {
             eventType: "press",
           })
           const baseSeq = kittyMode ? keyToKittyAnsi(key) : keyToAnsi(key)
-          sendInput(injectKittyEventType(baseSeq, 1))
+          sendAtomicInput(injectKittyEventType(baseSeq, 1))
           await Promise.resolve()
           return app
         })(),
@@ -601,7 +605,7 @@ export function buildApp(options: AppOptions): App {
             eventType: "release",
           })
           const baseSeq = kittyMode ? keyToKittyAnsi(key) : keyToAnsi(key)
-          sendInput(injectKittyEventType(baseSeq, 3))
+          sendAtomicInput(injectKittyEventType(baseSeq, 3))
           void hotkey
           await Promise.resolve()
           return app
@@ -624,7 +628,7 @@ export function buildApp(options: AppOptions): App {
       return makeChain(
         (async (): Promise<App> => {
           for (const char of text) {
-            sendInput(char)
+            sendAtomicInput(char)
           }
           await Promise.resolve()
           return app

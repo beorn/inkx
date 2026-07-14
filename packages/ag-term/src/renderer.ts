@@ -69,13 +69,12 @@ import {
 import { ScopeProvider } from "@silvery/ag-react/ScopeProvider"
 import { createScope, reportDisposeError } from "@silvery/scope"
 
-import { isProtocolError } from "@silvery/ansi"
 import { createTerm } from "./ansi/index"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "@silvery/test/debug-mismatch"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 import { keyToAnsi, parseKey, splitRawInput } from "@silvery/ag/keys"
-import { parseBracketedPaste } from "./bracketed-paste"
+import { createTerminalInputStreamDecoder, type TerminalInputSegment } from "./protocol-segments"
 import { IncrementalRenderMismatchError } from "./scheduler.js"
 import type { RenderPhaseStats } from "./pipeline/types"
 import { debugTree } from "@silvery/test/debug"
@@ -1361,15 +1360,6 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
   // Set up stdin bridge: forward external stdin data to the renderer's input
   let stdinOnReadable: (() => void) | undefined
-  if (stdinStream) {
-    stdinOnReadable = () => {
-      let chunk: string | null
-      while ((chunk = (stdinStream as any).read?.()) !== null && chunk !== undefined) {
-        instance.inputEmitter.emit("input", chunk)
-      }
-    }
-    stdinStream.on("readable", stdinOnReadable)
-  }
 
   // Helper functions for App
   const getContainer = () => getContainerRoot(instance.container)
@@ -1377,8 +1367,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // read what was actually painted. `instance.prevBuffer` is the pre-fade
   // buffer used for the next frame's renderPhase incremental clone.
   const getBuffer = () => instance.prevPaintedBuffer ?? instance.prevBuffer
-
-  const sendInput = (data: string) => {
+  const dispatchInputSegments = (segments: TerminalInputSegment[]) => {
     if (!instance.mounted) {
       throw new Error("Cannot write to stdin after unmount")
     }
@@ -1392,39 +1381,25 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     const t0 = performance.now()
     instance.rendering = true
     try {
-      // Check for bracketed paste before splitting into individual keys.
-      // Paste content is delivered as a single "paste" event, not individual keystrokes.
-      // This mirrors the production path in term-provider.ts.
-      //
-      // parseBracketedPaste may throw ProtocolError when PASTE_START is found
-      // but PASTE_END is missing in the test input (typically a fixture
-      // mistake or intentional malformed-input test). The test renderer
-      // mirrors the runtime input-owner contract: log + fall through.
-      // Bead: @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
-      let pasteResult: ReturnType<typeof parseBracketedPaste> = null
-      try {
-        pasteResult = parseBracketedPaste(data)
-      } catch (err) {
-        if (isProtocolError(err)) {
-          log.debug?.(
-            `bracketed paste parser flagged malformed input in press(): ${err.reason} (len=${err.inputLength})`,
-          )
-        } else {
-          throw err
-        }
-      }
-      if (pasteResult) {
-        withActEnvironment(() => {
-          act(() => {
-            instance.inputEmitter.emit("paste", pasteResult.content)
+      for (const segment of segments) {
+        if (segment.type === "paste" || segment.type === "clipboard") {
+          withActEnvironment(() => {
+            act(() => {
+              instance.inputEmitter.emit("paste", segment.text)
+            })
           })
-        })
-      } else {
-        // Split multi-character data into individual keypresses.
-        // This mirrors the production path (render.tsx handleReadable)
-        // where stdin.read() can return buffered characters.
+          continue
+        }
+        if (segment.type === "invalid") {
+          log.debug?.(
+            `input protocol rejected malformed input in press(): ${segment.error.reason} (parser=${segment.error.parser}, len=${segment.error.inputLength})`,
+          )
+          continue
+        }
+        // Split multi-character data into individual keypresses. This mirrors
+        // production render.tsx where stdin.read() can return buffered input.
         withActEnvironment(() => {
-          for (const keypress of splitRawInput(data)) {
+          for (const keypress of splitRawInput(segment.data)) {
             // Default Tab/Shift+Tab focus cycling and Escape blur.
             // Matches production behavior in run.tsx and render.tsx.
             // Tab events are consumed (not passed to useInput handlers).
@@ -1456,7 +1431,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             })
           }
         })
-      } // end else (non-paste input)
+      }
     } finally {
       instance.rendering = false
     }
@@ -1539,6 +1514,28 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
   }
 
+  const inputDecoder = createTerminalInputStreamDecoder({
+    onPrefixTimeout: dispatchInputSegments,
+  })
+  const sendInput = (data: string): void => {
+    const segments = inputDecoder.push(data)
+    if (segments.length > 0) dispatchInputSegments(segments)
+  }
+  const sendAtomicInput = (data: string): void => {
+    const segments = inputDecoder.pushAtomic(data)
+    if (segments.length > 0) dispatchInputSegments(segments)
+  }
+
+  if (stdinStream) {
+    stdinOnReadable = () => {
+      let chunk: string | Buffer | null
+      while ((chunk = stdinStream.read()) !== null && chunk !== undefined) {
+        sendInput(typeof chunk === "string" ? chunk : chunk.toString("utf8"))
+      }
+    }
+    stdinStream.on("readable", stdinOnReadable)
+  }
+
   const rerenderFn = (newElement: ReactNode) => {
     if (!instance.mounted) {
       throw new Error("Cannot rerender after unmount")
@@ -1583,6 +1580,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     if (!instance.mounted) {
       throw new Error("Already unmounted")
     }
+    inputDecoder.reset()
     // The root is created as ConcurrentRoot (see createFiberRoot). Mount and
     // rerender both use updateContainerSync + flushSyncWork; unmount must do
     // the same so React layout-effect cleanups (e.g. useBoxMetrics's
@@ -1741,6 +1739,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     getContainer,
     getBuffer,
     sendInput,
+    sendAtomicInput,
     rerender: rerenderFn,
     unmount: unmountFn,
     waitUntilExit: () => Promise.resolve(),

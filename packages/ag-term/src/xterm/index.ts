@@ -56,7 +56,6 @@ import {
 import { createChildApp, toChainAppContextValue } from "@silvery/ag-react/chain-bridge"
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey, splitRawInput } from "@silvery/ag/keys"
-import { parseBracketedPaste } from "../bracketed-paste"
 import { createXtermProvider, type XtermProvider } from "./xterm-provider"
 import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 import { catppuccinMocha } from "@silvery/theme/schemes"
@@ -320,19 +319,12 @@ export function renderToXterm(
     // Wire provider input to the child chain + user callbacks
     provider.onInput((chunk: string) => {
       if (unmounted) return
-
-      // Check for bracketed paste
-      const pasteResult = parseBracketedPaste(chunk)
-      if (pasteResult) {
-        childApp!.dispatch({ type: "term:paste", text: pasteResult.content })
-        childApp!.drainEffects()
-        return
-      }
-
-      // Split and process individual keys
-      for (const keypress of splitRawInput(chunk)) {
-        processKey(keypress)
-      }
+      for (const keypress of splitRawInput(chunk)) processKey(keypress)
+    })
+    provider.onPaste((text) => {
+      if (unmounted) return
+      childApp!.dispatch({ type: "term:paste", text })
+      childApp!.drainEffects()
     })
 
     // Wire mouse events to user callback

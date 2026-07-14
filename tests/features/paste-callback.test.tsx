@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect } from "react"
+import { PassThrough } from "node:stream"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Text } from "../../src/index.js"
@@ -171,6 +172,47 @@ describe("usePasteCallback", () => {
     // useInput did NOT receive individual characters
     expect(onInput).not.toHaveBeenCalled()
   })
+
+  test("PC-07: external stdin preserves paste-then-Return transaction order", async () => {
+    const stdin = new PassThrough()
+    const events: string[] = []
+
+    function App() {
+      usePasteCallback((text) => events.push(`paste:${text}`))
+      useInput((_input, key) => {
+        if (key.return) events.push("return")
+      })
+      return <Text>ready</Text>
+    }
+
+    const render = createRenderer({ cols: 40, rows: 5, stdin })
+    const app = render(<App />)
+
+    stdin.write(`${bracketedPaste("external")}\r`)
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    expect(events).toEqual(["paste:external", "return"])
+    app.unmount()
+  })
+})
+
+describe("atomic logical input", () => {
+  test("press Escape completes its event before resolving", async () => {
+    const seen: string[] = []
+
+    function App() {
+      useInput((_input, key) => {
+        if (key.escape) seen.push("escape")
+      })
+      return <Text>ready</Text>
+    }
+
+    const app = createRenderer({ cols: 20, rows: 2 })(<App />)
+    await app.press("Escape")
+
+    expect(seen).toEqual(["escape"])
+    app.unmount()
+  })
 })
 
 // ============================================================================
@@ -303,7 +345,43 @@ describe("paste integration", () => {
     expect(onInput).toHaveBeenCalledTimes(1)
   })
 
-  test("PI-02: empty paste sequence handled gracefully", () => {
+  test("PI-02: same-chunk raw and paste segments preserve their order", () => {
+    const events: string[] = []
+
+    function App() {
+      usePasteCallback((text) => events.push(`paste:${text}`))
+      useInput((input, key) => events.push(key.return ? "return" : `key:${input}`))
+      return <Text>ready</Text>
+    }
+
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<App />)
+
+    app.stdin.write(`a${bracketedPaste("first")}b${bracketedPaste("second")}\r`)
+
+    expect(events).toEqual(["key:a", "paste:first", "key:b", "paste:second", "return"])
+  })
+
+  test("PI-03: split paste framing is buffered and never replayed as keys", () => {
+    const events: string[] = []
+
+    function App() {
+      usePasteCallback((text) => events.push(`paste:${text}`))
+      useInput((input, key) => events.push(key.return ? "return" : `key:${input}`))
+      return <Text>ready</Text>
+    }
+
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<App />)
+
+    app.stdin.write("\x1b[200~split ")
+    expect(events).toEqual([])
+
+    app.stdin.write("paste\x1b[201~\r")
+    expect(events).toEqual(["paste:split paste", "return"])
+  })
+
+  test("PI-04: empty paste sequence handled gracefully", () => {
     const onPaste = vi.fn()
 
     function App() {
@@ -321,7 +399,7 @@ describe("paste integration", () => {
     expect(onPaste).toHaveBeenCalledWith("")
   })
 
-  test("PI-03: useInput onPaste option receives paste events", () => {
+  test("PI-05: useInput onPaste option receives paste events", () => {
     const inputHandler = vi.fn()
     const pasteHandler = vi.fn()
 
@@ -352,7 +430,7 @@ describe("paste integration", () => {
     expect(inputHandler).not.toHaveBeenCalled()
   })
 
-  test("PI-04: paste with multiline content delivered as single blob", () => {
+  test("PI-06: paste with multiline content delivered as single blob", () => {
     const onPaste = vi.fn()
 
     function App() {
@@ -372,7 +450,7 @@ describe("paste integration", () => {
     expect(onPaste.mock.calls[0]![0]).toContain("\n")
   })
 
-  test("PI-05: both usePasteCallback and useInput onPaste receive paste events", () => {
+  test("PI-07: both usePasteCallback and useInput onPaste receive paste events", () => {
     const callbackPaste = vi.fn()
     const inputPaste = vi.fn()
 

@@ -155,6 +155,15 @@ export function useReadline({
     [onChange],
   )
 
+  const handlePaste = useCallback(
+    (text: string) => {
+      const { value, cursor } = stateRef.current
+      const nextValue = value.slice(0, cursor) + text + value.slice(cursor)
+      applyResult({ value: nextValue, cursor: cursor + text.length, yankState: null }, value)
+    },
+    [applyResult],
+  )
+
   useInput(
     (input, key) => {
       const { value, cursor } = stateRef.current
@@ -202,7 +211,7 @@ export function useReadline({
       const result = handleReadlineKey(input, key, value, cursor, yankStateRef.current)
       if (result) applyResult(result, value)
     },
-    { isActive },
+    { isActive, onPaste: handlePaste },
   )
 
   return {

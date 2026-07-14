@@ -36,7 +36,6 @@ import {
   createStyle,
   createTerminalProfile,
   detectColorFromEnv,
-  isProtocolError,
   type Style,
   type TerminalProfile,
   type TerminalEmulator,
@@ -77,8 +76,7 @@ export type { DeviceConsole as Console, ConsoleCaptureOptions, ConsoleStats }
 import { splitRawInput, parseKey } from "@silvery/ag/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
 import { parseFocusEvent } from "../focus-reporting"
-import { parseBracketedPaste } from "../bracketed-paste"
-import { parseClipboardResponse } from "../clipboard"
+import { createTerminalInputStreamDecoder, type TerminalInputSegment } from "../protocol-segments"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
 
 export type { OutputOptions } from "../runtime/devices/output"
@@ -1141,6 +1139,47 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   // emulator-backed Terms share the same consumer shape as Node-backed.
   const input = createInputOwner(HEADLESS_STDIN, stdout, { enableBracketedPaste: false })
   let inputBatchSeq = 0
+  let inputReceivedAt = 0
+  let currentInputBatchId = 0
+
+  function dispatchInputSegment(segment: TerminalInputSegment): void {
+    if (segment.type === "paste" || segment.type === "clipboard") {
+      input.sendPaste({ text: segment.text })
+      return
+    }
+    if (segment.type === "invalid") {
+      log?.debug?.(
+        `input protocol rejected malformed input: ${segment.error.reason} (parser=${segment.error.parser}, len=${segment.error.inputLength})`,
+      )
+      return
+    }
+    for (const raw of splitRawInput(segment.data)) {
+      const focusEvent = parseFocusEvent(raw)
+      if (focusEvent) {
+        input.sendFocus({ focused: focusEvent.type === "focus-in" })
+        continue
+      }
+      if (isMouseSequence(raw)) {
+        const parsed = parseMouseSequence(raw)
+        if (parsed) {
+          input.sendMouse({
+            ...parsed,
+            receivedAt: inputReceivedAt,
+            inputBatchId: currentInputBatchId,
+          })
+        }
+        continue
+      }
+      const [parsedInput, key] = parseKey(raw)
+      input.sendKey({ input: parsedInput, key })
+    }
+  }
+
+  const inputDecoder = createTerminalInputStreamDecoder({
+    onPrefixTimeout(segments) {
+      for (const segment of segments) dispatchInputSegment(segment)
+    },
+  })
   // Signals owner — emulator-backed terms share the host process so exit /
   // SIGINT handlers remain meaningful. Construction is free (no process
   // listeners until first on()), and the contract promises signals on every
@@ -1195,42 +1234,10 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     },
     sendInput: (data: string) => {
       // Parse the data into typed events and fan out via the input owner.
-      const receivedAt = performance.now()
-      const inputBatchId = ++inputBatchSeq
-      const pasteResult = parseBracketedPaste(data)
-      if (pasteResult) {
-        input.sendPaste({ text: pasteResult.content })
-        return
-      }
-      let clipboardText: string | null = null
-      try {
-        clipboardText = parseClipboardResponse(data)
-      } catch (err) {
-        if (isProtocolError(err)) {
-          log?.debug?.(
-            `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-          )
-        } else {
-          log?.warn?.(`clipboard parser threw: ${String(err)}`)
-        }
-      }
-      if (clipboardText !== null) {
-        input.sendPaste({ text: clipboardText })
-        return
-      }
-      for (const raw of splitRawInput(data)) {
-        const focusEvent = parseFocusEvent(raw)
-        if (focusEvent) {
-          input.sendFocus({ focused: focusEvent.type === "focus-in" })
-          continue
-        }
-        if (isMouseSequence(raw)) {
-          const parsed = parseMouseSequence(raw)
-          if (parsed) input.sendMouse({ ...parsed, receivedAt, inputBatchId })
-          continue
-        }
-        const [parsedInput, key] = parseKey(raw)
-        input.sendKey({ input: parsedInput, key })
+      inputReceivedAt = performance.now()
+      currentInputBatchId = ++inputBatchSeq
+      for (const segment of inputDecoder.push(data)) {
+        dispatchInputSegment(segment)
       }
     },
     stripAnsi,
@@ -1242,6 +1249,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     },
     _emulator: emulator,
     [Symbol.dispose]: () => {
+      inputDecoder.reset()
       input[Symbol.dispose]()
       signals.dispose()
       modes[Symbol.dispose]()
