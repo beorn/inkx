@@ -152,6 +152,72 @@ describe("notification target", () => {
     expect(await delivery.reply).toEqual({ type: "activated", actionId: "open" })
   })
 
+  test("rejects Kitty identifiers outside the OSC 99 identifier grammar", () => {
+    const harness = createMockTerm("osc99")
+    using term = harness.term
+
+    expect(() =>
+      notify(createTerminalNotificationTarget(term), {
+        ...REQUEST,
+        id: "build/42",
+      }),
+    ).toThrow("OSC 99 notification ids may contain only A-Z, a-z, 0-9, _, -, +, and .")
+    expect(harness.chunks).toEqual([])
+  })
+
+  test("chunks oversized Kitty payloads within the OSC 99 encoded-byte limit", async () => {
+    const harness = createMockTerm("osc99")
+    using term = harness.term
+    const body = "x".repeat(3_073)
+
+    const delivery = await notify(createTerminalNotificationTarget(term), {
+      id: "large-payload",
+      body,
+    })
+
+    expect(delivery).toMatchObject({ status: "sent", protocol: "osc99" })
+    const sequences = [...harness.chunks.join("").matchAll(/\x1b\]99;([^;]+);([^\x1b]*)\x1b\\/g)]
+    expect(sequences.map((sequence) => sequence[1])).toEqual([
+      "i=large-payload:d=0:e=1:p=body",
+      "i=large-payload:d=1:e=1:p=body",
+    ])
+    expect(sequences.every((sequence) => (sequence[2]?.length ?? Infinity) <= 4_096)).toBe(true)
+    expect(Buffer.from(sequences.map((sequence) => sequence[2]).join(""), "base64").toString()).toBe(
+      body,
+    )
+  })
+
+  test("ignores out-of-range Kitty button replies", async () => {
+    const reply = "\x1b]99;i=build-42;3\x1b\\"
+    const term = {
+      caps: { input: true, notifications: "osc99" },
+      input: {
+        active: true,
+        async probe<T>({
+          parse,
+        }: {
+          query: string
+          parse: (input: string) => { result: T; consumed: number } | null
+          timeoutMs: number
+        }): Promise<T | null> {
+          return parse(reply)?.result ?? null
+        },
+      },
+      write() {},
+    } as unknown as Pick<Term, "caps" | "input" | "write">
+
+    const delivery = await notify(createTerminalNotificationTarget(term), {
+      ...REQUEST,
+      actions: [
+        { id: "open", label: "Open" },
+        { id: "dismiss", label: "Dismiss" },
+      ],
+    })
+
+    if (delivery.status !== "sent") throw new Error("expected sent delivery")
+    expect(await delivery.reply).toBeNull()
+  })
+
   test("termless observes the same exact OSC 777 bytes through Term.write", async () => {
     using term = createTermless({
       cols: 40,
