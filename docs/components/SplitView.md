@@ -2,6 +2,10 @@
 
 Recursive binary-tree pane tiling component. Renders a layout tree of split panes using flexbox. Each leaf renders via `renderPane(id)`. Splits divide space according to ratio (0-1, proportion given to first child).
 
+SplitView renders an existing tree; it does not provide divider gestures,
+cell-based minimums, or reversible collapse. For one interactive pair, use
+[SplitPane](./SplitPane.md).
+
 ## Import
 
 ```tsx
@@ -80,5 +84,6 @@ const nested = splitPane(split, "main", "vertical", "bottom")
 
 ## See Also
 
+- [SplitPane](./SplitPane.md) -- controlled two-child pane with drag resize
 - [Box](./Box.md) -- base layout container
 - [Screen](./Screen.md) -- fullscreen root component
