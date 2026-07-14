@@ -1,6 +1,7 @@
 import { Command as BaseCommand } from "commander"
 import { describe, expect, it } from "vitest"
 import { Command, colorizeHelp } from "../src/index.ts"
+import { Command as PlainCommand } from "../src/plain.ts"
 import { createStyle } from "@silvery/ansi"
 
 // Strip ANSI escape sequences for assertions that need to match raw text
@@ -203,6 +204,35 @@ describe("colorizeHelp", () => {
     expect(overridden.styleSubcommandText).toBe(composed.styleSubcommandText)
     expect(overridden.styleOptionText).toBe(composed.styleOptionText)
   })
+
+  it("preserves raw Commander configuration while semantic styles win", () => {
+    const program = new BaseCommand("raw")
+    const subcommandTerm = (command: BaseCommand): string => command.name()
+    const styleTitle = (text: string): string => `custom:${text}`
+    program.configureHelp({ subcommandTerm, styleTitle })
+
+    colorizeHelp(program)
+
+    const composed = program.configureHelp()
+    expect(composed.subcommandTerm).toBe(subcommandTerm)
+    expect(composed.styleTitle).toBeTypeOf("function")
+    expect(composed.styleTitle).not.toBe(styleTitle)
+    expect(composed.styleSubcommandText).toBeTypeOf("function")
+    expect(composed.styleOptionText).toBeTypeOf("function")
+  })
+
+  it("keeps upstream replacement semantics on the plain entry point", () => {
+    const program = new PlainCommand("plain")
+    const subcommandTerm = (command: BaseCommand): string => command.name()
+    const styleTitle = (text: string): string => `custom:${text}`
+
+    program.configureHelp({ subcommandTerm })
+    program.configureHelp({ styleTitle })
+
+    const replaced = program.configureHelp()
+    expect(replaced.subcommandTerm).toBeUndefined()
+    expect(replaced.styleTitle).toBe(styleTitle)
+  })
 })
 
 describe("silentAlias", () => {
@@ -245,8 +275,12 @@ describe("silentAlias", () => {
       /already have command/u,
     )
 
+    const visible = new Command("watch").alias("w")
+    expect(() => visible.silentAlias("w")).toThrow(/already have command/u)
+
     const executable = new Command("yrd")
     expect(executable.command("serve", "run the server").silentAlias("start")).toBe(executable)
+    expect(() => executable.alias("start")).toThrow(/already have command/u)
     expect(() => executable.command("start")).toThrow(/already have command/u)
     expect(stripAnsi(executable.helpInformation())).not.toContain("start")
 
