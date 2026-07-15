@@ -69,11 +69,15 @@ const log = createLogger("silvery:input-owner")
 export interface KeyEvent {
   input: string
   key: Key
+  /** Monotonic id shared by events decoded from the same terminal input chunk. */
+  inputBatchId?: number
 }
 
 /** Structured paste event — the text that was pasted (without markers). */
 export interface PasteEvent {
   text: string
+  /** Monotonic id shared by events decoded from the same terminal input chunk. */
+  inputBatchId?: number
 }
 
 /** Structured focus event — whether the terminal gained or lost focus. */
@@ -416,7 +420,7 @@ export function createInputOwner(
       log?.warn?.(`mouse sequence failed to parse: ${JSON.stringify(raw)}`)
     }
     const [input, key] = parseKey(raw)
-    fire(keyHandlers, { input, key })
+    fire(keyHandlers, { input, key, inputBatchId })
   }
 
   function clearIncompleteTimer(): void {
@@ -555,14 +559,14 @@ export function createInputOwner(
 
       if (pasteEnvelope && (!clipboardEnvelope || pasteEnvelope.start <= clipboardEnvelope.start)) {
         dispatchRawChunk(remaining.slice(0, pasteEnvelope.start), receivedAt, inputBatchId)
-        fire(pasteHandlers, { text: pasteEnvelope.result.content })
+        fire(pasteHandlers, { text: pasteEnvelope.result.content, inputBatchId })
         remaining = remaining.slice(pasteEnvelope.end)
         continue
       }
 
       if (clipboardEnvelope) {
         dispatchRawChunk(remaining.slice(0, clipboardEnvelope.start), receivedAt, inputBatchId)
-        fire(pasteHandlers, { text: clipboardEnvelope.text })
+        fire(pasteHandlers, { text: clipboardEnvelope.text, inputBatchId })
         remaining = remaining.slice(clipboardEnvelope.end)
         continue
       }

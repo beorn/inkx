@@ -317,15 +317,20 @@ describe("InputOwner", () => {
     for (const { chunk, text } of cases) {
       const { stdin, stdout, send } = createMockIO()
       using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
-      const events: string[] = []
-      owner.onPaste((event) => events.push(`paste:${event.text}`))
+      const events: Array<{ label: string; inputBatchId?: number }> = []
+      owner.onPaste((event) =>
+        events.push({ label: `paste:${event.text}`, inputBatchId: event.inputBatchId }),
+      )
       owner.onKey((event) => {
-        if (event.key.return) events.push("return")
+        if (event.key.return) events.push({ label: "return", inputBatchId: event.inputBatchId })
       })
 
       send(chunk)
 
-      expect(events).toEqual([`paste:${text}`, "return"])
+      expect(events).toEqual([
+        { label: `paste:${text}`, inputBatchId: 1 },
+        { label: "return", inputBatchId: 1 },
+      ])
     }
   })
 

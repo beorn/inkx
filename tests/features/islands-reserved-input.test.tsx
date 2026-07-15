@@ -485,9 +485,9 @@ describe("island bracketed-paste routing", () => {
         await settle()
       })
       expect(
-        recorder.feeds.join(""),
-        "a focused guest with bracketed-paste ON must receive the paste and same-chunk Return in order",
-      ).toBe("\x1b[200~PASTED\x1b[201~\r")
+        recorder.feeds,
+        "a focused guest with bracketed-paste ON must receive one write for the paste transaction",
+      ).toEqual(["\x1b[200~PASTED\x1b[201~\r"])
     } finally {
       handle.unmount()
     }

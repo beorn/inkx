@@ -108,6 +108,7 @@ import { createRuntime } from "./create-runtime"
 import {
   canRouteKeyToFocusedIsland,
   createHandlerContext,
+  createIslandInputTransaction,
   dispatchKeyToHandlers,
   handleFocusNavigation,
   isFocusedIslandHostInputBarrier,
@@ -3079,6 +3080,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // withFocusChain.dispatchKey does the focus-tree dispatch inline — the
   // legacy `handleFocusNavigation(…) + runtimeInputListeners` decision
   // point is now a single chain call per event.
+  const islandInputTransaction = createIslandInputTransaction()
   const baseApp = createBaseApp()
   const terminalChainApp = withTerminalChain({
     cols: currentDims.cols,
@@ -3090,6 +3092,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     dispatchKey: (input, key) => {
       const focusResult = handleFocusNavigation(input, key as Key, focusManager, container, {
         handleTabCycling: (options as { handleTabCycling?: boolean }).handleTabCycling ?? true,
+        islandInputFeed: islandInputTransaction.feed,
       })
       return focusResult === "consumed"
     },
@@ -4461,6 +4464,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Mouse / resize / other namespaced events bypass the chain and go
     // straight to `runEventHandler` (app handlers), same as before.
     for (const event of events) {
+      islandInputTransaction.advance(
+        event.type === "term:key" || event.type === "term:paste"
+          ? (event.data as { inputBatchId?: number }).inputBatchId
+          : undefined,
+      )
       let hostInputOwnershipBarrier = false
       if (event.type === "term:key") {
         const { input, key: parsedKey } = event.data as { input: string; key: Key }
@@ -4502,7 +4510,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // enabled DECSET 2004). Only when NO focused island consumes it do we
         // dispatch the app-level React `term:paste` event, so React apps
         // without a focused island still get their `usePaste` handlers.
-        if (!routePasteToFocusedIsland(text, focusManager)) {
+        if (!routePasteToFocusedIsland(text, focusManager, islandInputTransaction.feed)) {
           chainApp.dispatch({ type: "term:paste", text })
           chainApp.drainEffects()
         }
@@ -5258,6 +5266,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // dispatch (formerly handleFocusNavigation), withInputChain fires the
       // useInput fallback when focus didn't consume. Same precedence as the
       // batched path.
+      islandInputTransaction.advance(undefined)
       chainApp.dispatch({ type: "input:key", input, key: parsedKey })
       const pressEffects = chainApp.drainEffects()
       let focusConsumed = false

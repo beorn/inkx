@@ -128,6 +128,65 @@ function feedIsland(node: AgNode, data: string): boolean {
   return true
 }
 
+type IslandInputFeed = (node: AgNode, data: string) => boolean
+
+/**
+ * Preserve the physical terminal-read boundary across semantic key/paste
+ * routing. InputOwner may decode one read into several events, but an embedded
+ * byte-stream guest must observe all adjacent feeds from that read as one
+ * write. The batch id, rather than timing alone, prevents unrelated reads from
+ * being coalesced.
+ */
+export function createIslandInputTransaction(): {
+  advance(inputBatchId?: number): void
+  feed: IslandInputFeed
+  flush(): void
+} {
+  let activeBatchId: number | undefined
+  let commitScheduled = false
+  let generation = 0
+  const pending: Array<{ node: AgNode; data: string }> = []
+
+  function commit(): void {
+    generation++
+    commitScheduled = false
+    activeBatchId = undefined
+    const feeds = pending.splice(0)
+    for (const { node, data } of feeds) feedIsland(node, data)
+  }
+
+  function scheduleCommit(): void {
+    if (commitScheduled) return
+    commitScheduled = true
+    const scheduledGeneration = generation
+    queueMicrotask(() => {
+      if (!commitScheduled || generation !== scheduledGeneration) return
+      commit()
+    })
+  }
+
+  return {
+    advance(inputBatchId) {
+      if (inputBatchId === activeBatchId) return
+      commit()
+      activeBatchId = inputBatchId
+    },
+    feed(node, data) {
+      if (!data) return false
+      const state = node.islandState
+      if (!state?.capabilities.input || !state.handle?.input?.feed) return false
+      if (activeBatchId === undefined) return feedIsland(node, data)
+
+      const last = pending[pending.length - 1]
+      if (last?.node === node) last.data += data
+      else pending.push({ node, data })
+      scheduleCommit()
+      return true
+    },
+    flush: commit,
+  }
+}
+
 function keyToIslandAnsi(input: string, key: Key): string {
   const name = keyToName(key)
   const main = name || input
@@ -215,11 +274,16 @@ function isHostClipboardChord(input: string, key: Key): boolean {
   return main === "c" || main === "v" || main === "x"
 }
 
-function routeKeyToFocusedIsland(input: string, key: Key, focusManager: FocusManager): boolean {
+function routeKeyToFocusedIsland(
+  input: string,
+  key: Key,
+  focusManager: FocusManager,
+  feed: IslandInputFeed = feedIsland,
+): boolean {
   if (!canRouteKeyToFocusedIsland(input, key, focusManager)) return false
   const node = focusedIslandNode(focusManager)
   if (!node) return false
-  return feedIsland(node, keyToIslandAnsi(input, key))
+  return feed(node, keyToIslandAnsi(input, key))
 }
 
 /**
@@ -252,7 +316,11 @@ function islandWantsBracketedPaste(node: AgNode): boolean {
  * then skips the app-level React `term:paste` dispatch, so shells get paste and
  * React apps without a focused island still get their `usePaste` event.
  */
-export function routePasteToFocusedIsland(text: string, focusManager: FocusManager): boolean {
+export function routePasteToFocusedIsland(
+  text: string,
+  focusManager: FocusManager,
+  feed: IslandInputFeed = feedIsland,
+): boolean {
   if (!text) return false
   const node = focusedIslandNode(focusManager)
   if (!node) return false
@@ -268,7 +336,7 @@ export function routePasteToFocusedIsland(text: string, focusManager: FocusManag
   const payload = islandWantsBracketedPaste(node)
     ? `${PASTE_START}${stripBracketedPasteMarkers(text)}${PASTE_END}`
     : text
-  return feedIsland(node, payload)
+  return feed(node, payload)
 }
 
 /**
@@ -371,11 +439,11 @@ export function handleFocusNavigation(
   parsedKey: Key,
   focusManager: FocusManager,
   container: Container,
-  options: { handleTabCycling?: boolean } = {},
+  options: { handleTabCycling?: boolean; islandInputFeed?: IslandInputFeed } = {},
 ): "consumed" | "continue" {
   const handleTabCycling = options.handleTabCycling ?? true
 
-  if (routeKeyToFocusedIsland(input, parsedKey, focusManager)) {
+  if (routeKeyToFocusedIsland(input, parsedKey, focusManager, options.islandInputFeed)) {
     return "consumed"
   }
 
