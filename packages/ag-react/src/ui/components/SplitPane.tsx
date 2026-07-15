@@ -5,6 +5,13 @@
  * a controlled ratio into cell sizes, clamping both children to cell minimums,
  * tracking a captured resize gesture, and hiding/restoring the secondary pane.
  * Domain state and persistence stay with the caller.
+ *
+ * Hab Deck's PaneGrid intentionally stays specialized instead of wrapping this
+ * primitive: it owns an arbitrary recursive split tree, persisted tree
+ * mutations, pane-move hit testing, focus, and deck chrome, while SplitPane is
+ * a controlled two-child layout. Both converge on PaneDivider for divider
+ * rendering and pointer capture; forcing PaneGrid through SplitPane would add a
+ * second layout-state owner rather than remove one.
  */
 
 import React, { useCallback, useRef } from "react"
