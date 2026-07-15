@@ -1017,6 +1017,19 @@ function ListViewInner<T>(
     if (!wasActive) rerenderOnWheelGestureIdle()
   }, [])
 
+  const cancelWheelGesture = useCallback(() => {
+    const wasActive = wheelGestureActiveRef.current
+    if (wheelGestureActiveTimerRef.current !== null) {
+      clearTimeout(wheelGestureActiveTimerRef.current)
+      wheelGestureActiveTimerRef.current = null
+    }
+    wheelGestureActiveRef.current = false
+    gestureDirectionRef.current = null
+    pendingWheelGestureDirectionRef.current = null
+    committingWheelScrollRef.current = false
+    if (wasActive) rerenderOnWheelGestureIdle()
+  }, [])
+
   useEffect(
     () => () => {
       if (wheelGestureActiveTimerRef.current !== null) {
@@ -2575,6 +2588,11 @@ function ListViewInner<T>(
       },
       scrollToBottom() {
         const maxRow = maxScrollRowRef.current
+        // Imperative bottom navigation supersedes any in-flight upward
+        // wheel gesture. Leaving that guard active would clear the pending
+        // follow pin on the next layout effect, so the next append would
+        // remain hidden even though the caller explicitly resumed the tail.
+        cancelWheelGesture()
         scrollAnchoring.suppressOnce()
         isWheelDrivenRef.current = true
         wheelMeasurementSnapshotAvgHeightRef.current = undefined
@@ -2595,7 +2613,15 @@ function ListViewInner<T>(
         return composedViewportRef.current
       },
     }),
-    [flashEdgeBump, physics, scrollBehavior, scrollToItem, unmountedCount, resolvedFollow],
+    [
+      cancelWheelGesture,
+      flashEdgeBump,
+      physics,
+      scrollBehavior,
+      scrollToItem,
+      unmountedCount,
+      resolvedFollow,
+    ],
   )
 
   // ── Mouse wheel handler ─────────────────────────────────────────

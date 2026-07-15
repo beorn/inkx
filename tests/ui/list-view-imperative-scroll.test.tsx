@@ -202,6 +202,27 @@ describe("ListView imperative scroll API", () => {
     expect(stripAnsi(app.text)).toContain("New 9")
   })
 
+  test('scrollToBottom re-engages follow="end" during an active upward wheel gesture', async () => {
+    let items = makeItems(40)
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(renderList(items, listRef, { follow: "end" }))
+    expect(stripAnsi(app.text)).toContain("Item 39")
+
+    for (let index = 0; index < 5; index += 1) await app.wheel(5, 3, -3)
+    expect(stripAnsi(app.text)).not.toContain("Item 39")
+
+    act(() => {
+      listRef.current!.scrollToBottom()
+    })
+    app.rerender(renderList(items, listRef, { follow: "end" }))
+    expect(stripAnsi(app.text)).toContain("Item 39")
+
+    items = [...items, { id: "new-tail", title: "New tail" }]
+    app.rerender(renderList(items, listRef, { follow: "end" }))
+    expect(stripAnsi(app.text)).toContain("New tail")
+  })
+
   test("scrollBy clamped at the bottom edge flashes the bottom overscroll indicator", () => {
     // Intent-based edge bump for the imperative path: app-level keyboard
     // scroll (silvercode Ctrl+Down) and forwarded wheel events both go
