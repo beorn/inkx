@@ -6,6 +6,7 @@
  *   - silvery             → dist/index.js       (main barrel)
  *   - silvery/runtime     → dist/runtime.js     (run, createRuntime, useInput)
  *   - silvery/theme       → dist/theme.js       (ThemeProvider, palettes)
+ *   - silvery/test        → dist/test.js        (test renderer and Termless helpers)
  *   - silvery/ui          → dist/ui.js          (component library)
  *   - silvery/ui/*        → dist/ui/*.js        (component sub-categories)
  *   - silvery/ink         → dist/ink.js         (Ink compatibility)
@@ -94,6 +95,12 @@ const targets: BuildTarget[] = [
     name: "silvery/theme",
     entrypoint: "src/theme.ts",
     outfile: "dist/theme.js",
+  },
+  // Subpath: silvery/test
+  {
+    name: "silvery/test",
+    entrypoint: "src/test.ts",
+    outfile: "dist/test.js",
   },
   // Subpath: silvery/ui
   {

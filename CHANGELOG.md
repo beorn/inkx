@@ -7,6 +7,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `silvery/test` is a public bundled test surface for `createRenderer`,
+  `createTermless`, `waitFor`, and the rest of the supported Silvery test
+  utilities. It replaces consumer imports from the intentionally internal
+  `@silvery/test` workspace package.
+
+### Fixed
+
+- `@silvery/commander@0.21.2` publishes the already-tested `silentAlias()`
+  runtime support. The source implementation was present, but the published
+  `0.21.0` artifact could not contain it.
+
 ### Changed — copy extraction is semantic by default (`respectSelectableFlag` → `true`)
 
 `extractText` (@silvery/headless) and `extractHtml` (@silvery/ag-term) now default

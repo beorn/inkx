@@ -1,6 +1,6 @@
 {
   "name": "silvery",
-  "version": "0.21.1",
+  "version": "0.21.2",
   "description": "React for modern terminal apps — powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
@@ -44,6 +44,7 @@
     "./runtime": "./src/runtime.ts",
     "./term": "./src/term.ts",
     "./theme": "./src/theme.ts",
+    "./test": "./src/test.ts",
     "./ui": "./src/ui.ts",
     "./ui/*": "./src/ui/*.ts",
     "./ink": "@silvery/ink",
@@ -67,6 +68,10 @@
       "./theme": {
         "types": "./dist/theme.d.mts",
         "import": "./dist/theme.mjs"
+      },
+      "./test": {
+        "types": "./dist/test.d.mts",
+        "import": "./dist/test.mjs"
       },
       "./ui": {
         "types": "./dist/ui.d.mts",
@@ -200,6 +205,7 @@
       "src/runtime.ts",
       "src/term.ts",
       "src/theme.ts",
+      "src/test.ts",
       "src/ui.ts",
       "src/ui/*.ts"
     ],
