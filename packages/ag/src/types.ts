@@ -686,6 +686,12 @@ export interface BoxProps
    * default affordance for its children. During `mouseCapture`, the capture
    * target owns the cursor so drags keep their grab/resize shape outside the
    * original one-cell hit box.
+   *
+   * When omitted, activation handlers derive `"pointer"` and selectable text
+   * derives `"text"`. Explicit values always win; pass `"default"` to opt out
+   * of semantic defaults and restore the target's native cursor.
+   *
+   * @default Derived from interaction semantics.
    */
   mouseCursor?: MouseCursorShape
 
@@ -1177,8 +1183,11 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
   /**
    * Semantic mouse cursor for this text hit-test region.
    *
-   * Uses the same resolver as `BoxProps.mouseCursor`: the deepest hovered
-   * region wins, with ancestor fallback and terminal OSC 22 output.
+   * Uses the same resolver as `BoxProps.mouseCursor`: explicit hovered
+   * regions win, activation ancestors derive `"pointer"`, and selectable text
+   * derives `"text"`. Pass `"default"` to opt out of those defaults.
+   *
+   * @default Derived from interaction semantics.
    */
   mouseCursor?: MouseCursorShape
 }

@@ -207,6 +207,7 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
 
   return (
     <Box
+      mouseCursor="pointer"
       onMouseDown={() => setActiveValue(value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

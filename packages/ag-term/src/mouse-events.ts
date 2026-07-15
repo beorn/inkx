@@ -992,13 +992,34 @@ function findMouseCaptureTarget(node: AgNode | null): AgNode | null {
 }
 
 function resolveMouseCursor(node: AgNode | null): BoxProps["mouseCursor"] | null {
+  // Explicit intent always wins, including "default" as the opt-out for
+  // component/interaction defaults. Scan the whole path before deriving a
+  // semantic fallback so a clickable child cannot override an ancestor's
+  // explicit cursor.
   let current = node
   while (current) {
     const shape = (current.props as BoxProps).mouseCursor
-    if (shape) return shape
+    if (shape !== undefined) return shape
     current = current.parent
   }
-  return null
+
+  // Activation handlers carry the same pointer affordance as web controls.
+  // Scan the full path before falling back to text so labels nested inside a
+  // clickable region inherit the region's pointer rather than masking it.
+  let selectableText = false
+  current = node
+  while (current) {
+    const props = current.props as BoxProps
+    if (props.onClick || props.onDoubleClick || props.onTripleClick) {
+      return "pointer"
+    }
+    if (current.type === "silvery-text" && resolveUserSelect(current) !== "none") {
+      selectableText = true
+    }
+    current = current.parent
+  }
+
+  return selectableText ? "text" : null
 }
 
 function updateMouseCursor(state: MouseEventProcessorState, target: AgNode | null): void {

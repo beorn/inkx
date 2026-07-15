@@ -604,7 +604,30 @@ Supports theme tokens (`$bg`, `$fg-link`, …), named colors (`red`, `blue`), an
 `$fg-link` blue on `$bg-inverse` may have poor contrast. Hardcoded `#3a1111` for an error tint breaks across themes — `mix($bg, $fg-error, 15%)` adapts automatically.
 :::
 
-## 10. Use `<Backdrop>` to Dim a Region
+## 10. Let Components Choose Mouse Cursors
+
+Mouse cursors are semantic styling, so built-in components declare the
+affordance and applications normally omit `mouseCursor`.
+
+| Surface | Cursor when `mouseCursor` is omitted |
+| --- | --- |
+| `Button`, `Link`, `Tab`, interactive list rows | `pointer` |
+| `Box` / `Text` with click, double-click, or triple-click activation | `pointer` |
+| Selectable `Text` and `TextInput` | `text` |
+| `Scrollbar` | `grab`, then `grabbing` during the active drag |
+| Vertical / horizontal `PaneDivider` | `col-resize` / `row-resize` |
+
+Explicit intent still wins. Pass another shape to override a default, or pass
+`mouseCursor="default"` to opt out and restore the target's native cursor.
+This is preferable to `undefined`: omission asks Silvery to derive semantic
+intent, while `"default"` is an explicit decision.
+
+Terminal targets emit these shapes through OSC 22. Terminals without OSC 22
+support ignore the sequence, so this remains progressive enhancement.
+`<Island>` guest OSC 22 forwarding is a separate host-policy boundary; these
+component defaults do not grant a guest control over the host cursor.
+
+## 11. Use `<Backdrop>` to Dim a Region
 
 `<Backdrop fade={n}>` is a render-time fade effect: every cell covered by its rect has its `fg` and `bg` blended toward the theme neutral (pure black for dark themes, pure white for light). It works standalone — no modal required — as long as a `<ThemeProvider>` is in scope.
 

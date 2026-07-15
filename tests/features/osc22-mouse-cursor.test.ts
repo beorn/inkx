@@ -6,8 +6,12 @@
  * Tests the escape sequence generation for OSC 22 mouse cursor shapes.
  */
 
+import React from "react"
 import { describe, test, expect } from "vitest"
+import { createRenderer, createTermless, waitFor } from "@silvery/test"
 import { setMouseCursorShape, resetMouseCursorShape } from "@silvery/ag-term/output"
+import { run } from "../../packages/ag-term/src/runtime/run"
+import { Box, Tab, TabList, TabPanel, Tabs, Text } from "../../src/index.js"
 
 describe("OSC 22 mouse cursor", () => {
   test("setMouseCursorShape generates correct sequence", () => {
@@ -39,5 +43,45 @@ describe("OSC 22 mouse cursor", () => {
     expect(seq.endsWith("\x07")).toBe(true)
     // Contains OSC 22
     expect(seq).toContain("22;")
+  })
+
+  test("contract: Tab renders a pointer cursor when mouseCursor is omitted", () => {
+    const render = createRenderer({ cols: 24, rows: 6 })
+    const app = render(
+      React.createElement(
+        Tabs,
+        { defaultValue: "one" },
+        React.createElement(
+          TabList,
+          null,
+          React.createElement(Tab, { value: "one" }, "One"),
+          React.createElement(Tab, { value: "two" }, "Two"),
+        ),
+        React.createElement(TabPanel, { value: "one" }, React.createElement(Text, null, "Panel")),
+      ),
+    )
+    const label = app.getByText("One").resolve()
+
+    expect(label.parent?.props.mouseCursor).toBe("pointer")
+  })
+
+  test("contract: hovering a clickable Box with omitted mouseCursor emits pointer OSC 22", async () => {
+    using term = createTermless({ cols: 24, rows: 6 })
+    const tree = React.createElement(
+      Box,
+      { height: 1, onClick: () => undefined, width: 8 },
+      React.createElement(Text, null, "Open"),
+    )
+    const handle = await run(tree, term, { mouse: true, selection: false })
+
+    try {
+      await waitFor(() => term.out.containsOutput("Open"))
+      await term.mouse.move(1, 0)
+      await waitFor(() => term.out.containsOutput("\x1b]22;pointer\x07"))
+
+      expect(term.out.containsOutput("\x1b]22;pointer\x07")).toBe(true)
+    } finally {
+      handle.unmount()
+    }
   })
 })

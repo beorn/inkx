@@ -39,6 +39,9 @@ function stubNode(
   opts?: {
     children?: AgNode[]
     mouseCapture?: boolean
+    onClick?: BoxProps["onClick"]
+    type?: AgNode["type"]
+    userSelect?: BoxProps["userSelect"]
     mouseCursor?: BoxProps["mouseCursor"]
     rect?: { x: number; y: number; width: number; height: number }
   },
@@ -46,12 +49,14 @@ function stubNode(
   const children = opts?.children ?? []
   const rect = opts?.rect ?? null
   const node: AgNode = {
-    type: "silvery-box",
+    type: opts?.type ?? "silvery-box",
     props: {
       testID: id,
       focusable: true,
       mouseCapture: opts?.mouseCapture,
       mouseCursor: opts?.mouseCursor,
+      onClick: opts?.onClick,
+      userSelect: opts?.userSelect,
     } as BoxProps,
     children,
     parent: null,
@@ -283,6 +288,66 @@ describe("semantic mouse cursor via processMouseEvent", () => {
     processMouseEvent(state, makeParsedMouse("move", 11, 2), root)
 
     expect(changes).toEqual(["pointer"])
+  })
+
+  test("contract: omitted cursor derives pointer for activation and text for selectable text", () => {
+    const clickableLabel = stubNode("clickable-label", {
+      type: "silvery-text",
+      rect: { x: 1, y: 1, width: 6, height: 1 },
+    })
+    const clickable = stubNode("clickable", {
+      children: [clickableLabel],
+      onClick: () => undefined,
+      rect: { x: 1, y: 1, width: 6, height: 1 },
+    })
+    const selectableText = stubNode("selectable-text", {
+      type: "silvery-text",
+      rect: { x: 10, y: 1, width: 6, height: 1 },
+    })
+    const root = stubNode("root", {
+      children: [clickable, selectableText],
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+    })
+    const changes: Array<BoxProps["mouseCursor"] | null> = []
+    const state = createMouseEventProcessor({
+      onMouseCursorChange: (shape) => changes.push(shape),
+    })
+
+    processMouseEvent(state, makeParsedMouse("move", 2, 1), root)
+    processMouseEvent(state, makeParsedMouse("move", 11, 1), root)
+
+    expect(changes).toEqual(["pointer", "text"])
+  })
+
+  test("contract: explicit cursor and default opt-out override semantic defaults", () => {
+    const optOutLabel = stubNode("opt-out-label", {
+      type: "silvery-text",
+      rect: { x: 1, y: 1, width: 6, height: 1 },
+    })
+    const optOut = stubNode("opt-out", {
+      children: [optOutLabel],
+      mouseCursor: "default",
+      onClick: () => undefined,
+      rect: { x: 1, y: 1, width: 6, height: 1 },
+    })
+    const explicitText = stubNode("explicit-text", {
+      mouseCursor: "crosshair",
+      type: "silvery-text",
+      rect: { x: 10, y: 1, width: 6, height: 1 },
+    })
+    const root = stubNode("root", {
+      children: [optOut, explicitText],
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+    })
+    const changes: Array<BoxProps["mouseCursor"] | null> = []
+    const state = createMouseEventProcessor({
+      onMouseCursorChange: (shape) => changes.push(shape),
+    })
+
+    processMouseEvent(state, makeParsedMouse("move", 2, 1), root)
+    processMouseEvent(state, makeParsedMouse("move", 11, 1), root)
+
+    expect(changes).toEqual(["default", "crosshair"])
   })
 
   test("captured drag keeps the capture target cursor outside the hit tree", () => {
