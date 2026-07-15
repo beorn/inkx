@@ -18,6 +18,7 @@
  *
  * Bead: createrequire-ban (wave 3 — the incident siblings).
  */
+// @termless-backend: ghostty
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
