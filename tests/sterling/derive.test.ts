@@ -117,8 +117,8 @@ describe("sterling.deriveFromScheme — shape", () => {
     // relationship holds on light AND dark schemes (raw luminance flips).
     const scheme = builtinPalettes[name]!
     const theme = sterling.deriveFromScheme(scheme)
-    const cMuted = contrastRatio(theme["fg-muted"], theme.bg)
-    const cFaint = contrastRatio(theme["fg-faint"], theme.bg)
+    const cMuted = contrastRatio(theme["fg-muted"], theme["bg-default"])
+    const cFaint = contrastRatio(theme["fg-faint"], theme["bg-default"])
     expect(cFaint, `${name}: faint ${cFaint} should be < muted ${cMuted}`).toBeLessThan(cMuted)
     // …and still clears the FAINT non-text floor (never invisible).
     expect(cFaint, `${name}: faint below FAINT floor`).toBeGreaterThanOrEqual(1.5)
