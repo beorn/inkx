@@ -43,6 +43,7 @@ import type {
   DeriveOptions,
   DerivationStep,
   DisabledRole,
+  FaintRole,
   InverseRole,
   LinkRole,
   MutedRole,
@@ -450,6 +451,27 @@ export function deriveRoles(
   )
   const muted: MutedRole = { fg: mutedFg, bg: mutedBg }
 
+  // ── Faint ────────────────────────────────────────────────────────────────
+  // One tier fainter than `muted`. `muted` blends 0.4 toward bg (≥3:1, the
+  // AA-Large floor for secondary text); `faint` blends further — 0.55 toward
+  // bg — for text that must read as a whisper next to a muted caption
+  // (fine-print unit suffixes, decorative meter labels). It is the TEXT analog
+  // of `border-muted`: intentionally low-contrast, so it carries the same
+  // FAINT 1.5:1 floor rather than muted's 3:1. Guarded against `mutedBg` (the
+  // same worst-case surface `muted.fg` uses) so the two faint tiers share a
+  // reference surface; the 0.55-vs-0.4 blend gap keeps `faint` strictly
+  // dimmer than `muted` on every scheme (faint's floor sits below muted's).
+  const faintFg = guard(
+    "faint.fg",
+    "fg-faint",
+    "blend(fg, bg, 0.55)",
+    [fg, bg],
+    blend(fg, bg, 0.55),
+    mutedBg,
+    1.5,
+  )
+  const faint: FaintRole = { fg: faintFg }
+
   // ── Surface ──────────────────────────────────────────────────────────────
   //
   // Surface backgrounds carry body text (`fg`) at AA. The base seeds are
@@ -725,6 +747,7 @@ export function deriveRoles(
     warning,
     error,
     muted,
+    faint,
     surface,
     border,
     cursor,

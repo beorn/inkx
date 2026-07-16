@@ -35,6 +35,7 @@ const STERLING_SHAPE: ThemeShape = {
     "warning",
     "error",
     "muted",
+    "faint",
     "surface",
     "border",
     "cursor",

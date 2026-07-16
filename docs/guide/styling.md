@@ -29,6 +29,7 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<ErrorBoundary>`      | `$fg-error` border                                                         |
 | `<Divider>`            | `$border-default` for line character                                       |
 | `<ProgressBar>`        | `$fg-muted` for empty portion                                              |
+| `<Meter>`              | `$bg-accent` fill, `$fg-muted` track, `$fg-on-accent`/`$fg` overlay label  |
 | `<Spinner>`            | `$fg`                                                                      |
 | `<Button>`             | inverse (`$bg-inverse` / `$fg-on-inverse`) when focused/active             |
 | `<H1>`, `<H2>`, `<H3>` | `$fg-accent` / `$fg-accent` / `$fg` + bold (variant table)                 |

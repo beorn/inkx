@@ -14,6 +14,7 @@ import React, { useEffect, useState } from "react"
 import { useBoxSize } from "../../hooks/useLayout"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
+import { meterFilledCells } from "./Meter"
 
 // =============================================================================
 // Types
@@ -109,8 +110,8 @@ export function ProgressBar({
   let emptyPart: string
 
   if (isDeterminate) {
-    const clamped = Math.max(0, Math.min(1, value))
-    const filled = Math.round(clamped * barWidth)
+    // Shared fill math with Meter — one authority for value→cells rounding.
+    const filled = meterFilledCells(value, barWidth)
     filledPart = fillChar.repeat(filled)
     emptyPart = emptyChar.repeat(barWidth - filled)
   } else {

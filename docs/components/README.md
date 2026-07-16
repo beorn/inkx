@@ -84,6 +84,7 @@ API reference for all silvery components. Import from `"silvery"` (the public ba
 | ------------------------------- | ----------------------------------------------- |
 | [Spinner](./Spinner.md)         | Animated loading spinner                        |
 | [ProgressBar](./ProgressBar.md) | Progress bar (determinate/indeterminate)        |
+| [Meter](./Meter.md)             | Level gauge with segment-fitted overlay label   |
 | [Toast](./Toast.md)             | Toast notifications (useToast + ToastContainer) |
 
 ## Error Handling

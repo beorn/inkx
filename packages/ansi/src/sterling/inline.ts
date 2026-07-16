@@ -204,6 +204,11 @@ export function inlineSterlingTokens(theme: Theme, scheme?: ColorScheme): Inline
     setIfAbsent("bg-muted", m.bg)
   }
 
+  const ft = roles.faint
+  if (ft) {
+    setIfAbsent("fg-faint", ft.fg)
+  }
+
   const sel = roles.selected
   if (sel) {
     setIfAbsent("bg-selected", sel.bg)

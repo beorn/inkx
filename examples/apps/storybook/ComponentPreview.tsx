@@ -37,6 +37,7 @@ import {
   SelectList,
   Spinner,
   ProgressBar,
+  Meter,
   TextInput,
   TextArea,
   Toggle,
@@ -281,6 +282,18 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
           </Box>
           <Box width={40}>
             <ProgressBar value={0.68} />
+          </Box>
+          <Box width={40} gap={1}>
+            <Meter
+              value={0.62}
+              width={14}
+              fillColor="$bg-warning"
+              overlay={{
+                candidates: ["13h 20m", "13h"],
+                isSecondaryChar: (c) => c >= "a" && c <= "z",
+              }}
+            />
+            <Muted>quota meter</Muted>
           </Box>
         </Box>
 

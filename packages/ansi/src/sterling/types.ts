@@ -120,6 +120,18 @@ export interface MutedRole {
 }
 
 /**
+ * Faint role — the deemphasis tier BELOW `muted`. Intentionally-faint text
+ * that should barely register: fine-print unit suffixes, decorative meter
+ * labels, whisper-weight metadata that must not compete with the `muted`
+ * caption beside it. The text analog of `border-muted` (the FAINT 1.5:1
+ * divider tier) — single `fg` slot, no surface/border companions (faint is a
+ * text-only treatment; if a faint fill is ever needed, reach for `bg-muted`).
+ */
+export interface FaintRole {
+  readonly fg: string
+}
+
+/**
  * Selected role — the highlight surface for the cursor row, mouse selection,
  * search-match highlight, and any "this is the active item" treatment.
  * `fgOn` is the text color drawn on `bg`; `hover.bg` is the +0.04L shift used
@@ -183,6 +195,7 @@ export interface Roles {
   readonly warning: StatusRole
   readonly error: StatusRole
   readonly muted: MutedRole
+  readonly faint: FaintRole
   readonly surface: SurfaceRole
   readonly border: BorderRole
   readonly cursor: CursorRole
@@ -218,6 +231,9 @@ export type FlatToken =
   // Muted (status-text — no state variants)
   | "fg-muted"
   | "bg-muted"
+  // Faint — the deemphasis tier below muted (intentionally-faint fine-print
+  // text; the text analog of border-muted's FAINT tier). Text-only, no bg.
+  | "fg-faint"
   // Accent — link-like interactive text, keeps fg.hover + fg.active
   | "fg-accent"
   | "bg-accent"

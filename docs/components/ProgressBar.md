@@ -36,4 +36,5 @@ import { ProgressBar } from "silvery"
 
 ## See Also
 
+- [Meter](./Meter.md) -- level/utilization gauge with a segment-fitted overlay label (the `<meter>` to this `<progress>`)
 - [Spinner](./Spinner.md) -- animated loading indicator
