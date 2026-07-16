@@ -199,6 +199,14 @@ export interface ListItemMeta {
   /** Whether this item is at the cursor position (nav mode only) */
   isCursor: boolean
   /**
+   * Whether the pointer is currently over this item (nav mode only). Tracked
+   * independently of the cursor, so a consumer can paint a hover affordance
+   * (e.g. a `$hover`-family background) WITHOUT the pointer moving the
+   * selection — pair with an `onItemHover` no-op to decouple hover from cursor.
+   * Always `false` when nav is off or the list is inactive.
+   */
+  isHovered: boolean
+  /**
    * Active search query at the time of render. Empty string when no search
    * is in progress (no `SearchProvider` in the tree, or `search` prop not
    * set, or the query is empty).
@@ -952,6 +960,11 @@ function ListViewInner<T>(
   // simply appearing in one frame IS the attention-grab; no animation
   // needed.
   const [bumpedEdge, setBumpedEdge] = useState<"top" | "bottom" | null>(null)
+  // Index of the item the pointer is currently over (nav mode). Surfaced as
+  // `meta.isHovered` so consumers can paint a hover affordance independently of
+  // the cursor. A single integer — allocation-light; the enter/leave setters
+  // re-render only when the hovered row actually changes.
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   // Latest item count — the wheel/kinetic seed callback closes over a
   // stale items.length on each frame otherwise.
   const itemCountRef = useRef(items.length)
@@ -1340,6 +1353,7 @@ function ListViewInner<T>(
         try {
           const element = renderItem(item, i, {
             isCursor: false,
+            isHovered: false,
             searchQuery: "",
             matchRanges: EMPTY_MATCH_RANGES,
           })
@@ -3538,6 +3552,7 @@ function ListViewInner<T>(
               : EMPTY_MATCH_RANGES
           const meta: ListItemMeta = {
             isCursor: originalIndex === activeCursor,
+            isHovered: originalIndex === hoveredIndex,
             searchQuery: activeSearchQuery,
             matchRanges: itemMatchRanges,
           }
@@ -3563,19 +3578,25 @@ function ListViewInner<T>(
                 flexDirection="column"
                 minWidth={0}
                 flexShrink={0}
-                onMouseEnter={
-                  onItemHover
-                    ? () => onItemHover(originalIndex)
-                    : // Hover updates the cursor but does NOT reset
-                      // wheel/scroll state. Otherwise, content scrolling
-                      // under a stationary mouse would fire onMouseEnter
-                      // on each newly-revealed item, each call would
-                      // clobber the in-flight scroll anchor, and the next
-                      // wheel event would re-seed from the (now stale)
-                      // virtualizer position — manifesting as a sudden
-                      // 30+ row jump after a brief pause mid-flick.
-                      () => setCursorSilently(originalIndex)
-                }
+                onMouseEnter={() => {
+                  // Track hover for `meta.isHovered` regardless of the
+                  // cursor-follow policy below.
+                  setHoveredIndex(originalIndex)
+                  if (onItemHover) {
+                    onItemHover(originalIndex)
+                  } else {
+                    // Hover updates the cursor but does NOT reset
+                    // wheel/scroll state. Otherwise, content scrolling
+                    // under a stationary mouse would fire onMouseEnter
+                    // on each newly-revealed item, each call would
+                    // clobber the in-flight scroll anchor, and the next
+                    // wheel event would re-seed from the (now stale)
+                    // virtualizer position — manifesting as a sudden
+                    // 30+ row jump after a brief pause mid-flick.
+                    setCursorSilently(originalIndex)
+                  }
+                }}
+                onMouseLeave={() => setHoveredIndex((current) => (current === originalIndex ? null : current))}
                 onClick={
                   onItemClick
                     ? () => onItemClick(originalIndex)
