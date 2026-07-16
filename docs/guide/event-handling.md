@@ -99,6 +99,12 @@ on subsequent moves within that target, `onDragLeave` fires when it exits, and
 `onDrop` fires on release. Crossing the drag threshold suppresses text
 selection and the synthetic click that would otherwise follow mouseup.
 
+The draggable source can observe its own lifecycle with `onDragStart`,
+`onDragEnd`, and `onDragCancel`. Start fires only after the pointer crosses the
+drag threshold. A release always fires end, even when there is no drop target;
+an explicit cancellation fires cancel instead. The final two events are
+mutually exclusive for each started drag.
+
 Use `useDragState()` when presentation needs the live source, pointer position,
 or current target. Its snapshot changes on every pointer move, which is the
 rendering seam for application-specific drag indicators and previews.

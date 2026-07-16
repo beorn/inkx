@@ -7,9 +7,9 @@
  *
  * Mouse event handling:
  * - mousedown within a draggable=true source → start tracking
- * - mousemove past threshold (3px) → activate drag, find drop targets
- * - mouseup → dispatch onDrop to drop target, reset state
- * - Escape → cancel drag
+ * - mousemove past threshold (3px) → activate drag, dispatch source onDragStart
+ * - mouseup → dispatch target onDrop, then source onDragEnd
+ * - Escape → dispatch source onDragCancel
  *
  * Mouse-enabled run() composition creates the feature, routes gestures through
  * the typed apply chain, and registers it in the CapabilityRegistry under
@@ -59,7 +59,7 @@ export interface DragFeature {
   /** Handle mouse up — emit drop event, reset state. */
   handleMouseUp(col: number, row: number, hitTestFn: (x: number, y: number) => AgNode | null): void
 
-  /** Cancel the current drag (e.g., on Escape). */
+  /** Cancel tracking and dispatch onDragCancel when a drag is active (e.g., on Escape). */
   cancel(): void
 
   /** Clean up resources. */
@@ -108,8 +108,8 @@ function findDragSource(node: AgNode): AgNode | null {
  *
  * The feature manages the drag lifecycle:
  * 1. Pointing phase (mousedown on draggable, before threshold)
- * 2. Dragging phase (threshold crossed, drop targets tracked)
- * 3. Drop or cancel (mouseup dispatches onDrop, Escape cancels)
+ * 2. Dragging phase (threshold crossed, source started, drop targets tracked)
+ * 3. Drop/end or cancel (mouseup ends; Escape cancels)
  */
 export function createDragFeature(options: DragFeatureOptions): DragFeature {
   const { invalidate } = options
@@ -134,6 +134,18 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
     const props = target.props as DragEventProps
     if (props.onDragEnter) {
       props.onDragEnter(createDragEvent(source, pos, target))
+    }
+  }
+
+  function dispatchSourceLifecycle(
+    handler: "onDragStart" | "onDragEnd" | "onDragCancel",
+    source: AgNode,
+    pos: Position,
+    dropTarget: AgNode | null,
+  ): void {
+    const callback = (source.props as DragEventProps)[handler]
+    if (callback) {
+      callback(createDragEvent(source, pos, dropTarget))
     }
   }
 
@@ -217,6 +229,7 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
           currentPos: pos,
           dropTarget: effectiveTarget,
         }
+        dispatchSourceLifecycle("onDragStart", dragState.source, pos, effectiveTarget)
         if (effectiveTarget) {
           dispatchDragEnter(effectiveTarget, dragState.source, pos)
         }
@@ -285,6 +298,7 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
       if (effectiveTarget) {
         dispatchDrop(effectiveTarget, dragState.source, pos)
       }
+      dispatchSourceLifecycle("onDragEnd", dragState.source, pos, effectiveTarget)
 
       reset()
       notifyListeners()
@@ -293,6 +307,14 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
 
     cancel(): void {
       if (!pointing && !dragState) return
+      if (dragState) {
+        dispatchSourceLifecycle(
+          "onDragCancel",
+          dragState.source,
+          dragState.currentPos,
+          dragState.dropTarget,
+        )
+      }
       reset()
       notifyListeners()
       invalidate()

@@ -14,7 +14,7 @@
  */
 
 import { describe, test, expect, vi } from "vitest"
-import { createDragFeature, type DragFeature } from "../../packages/ag-term/src/features/drag"
+import { createDragFeature } from "../../packages/ag-term/src/features/drag"
 import type { AgNode } from "../../packages/ag/src/types"
 
 // ============================================================================
@@ -140,6 +140,107 @@ describe("DragFeature — state management", () => {
     feature.handleMouseUp(10, 5, alwaysHit(null))
 
     expect(feature.state).toBeNull()
+
+    feature.dispose()
+  })
+})
+
+// ============================================================================
+// DragFeature — source lifecycle
+// ============================================================================
+
+describe("DragFeature — source lifecycle", () => {
+  test("source start/end bracket a successful drop", () => {
+    const order: string[] = []
+    const onDragStart = vi.fn(() => order.push("start"))
+    const onDragEnd = vi.fn(() => order.push("end"))
+    const onDragEnter = vi.fn(() => order.push("enter"))
+    const onDrop = vi.fn(() => order.push("drop"))
+    const feature = createDragFeature({ invalidate: () => {} })
+    const sourceNode = createMockNode({ draggable: true, onDragStart, onDragEnd })
+    const targetNode = createMockNode({ onDragEnter, onDrop })
+
+    feature.handleMouseDown(5, 5, sourceNode)
+    feature.handleMouseMove(7, 5, alwaysHit(targetNode))
+
+    expect(onDragStart).not.toHaveBeenCalled()
+
+    feature.handleMouseMove(10, 5, alwaysHit(targetNode))
+
+    expect(onDragStart).toHaveBeenCalledTimes(1)
+    expect(onDragStart).toHaveBeenCalledWith({
+      source: sourceNode,
+      position: { x: 10, y: 5 },
+      dropTarget: targetNode,
+    })
+
+    feature.handleMouseMove(11, 5, alwaysHit(targetNode))
+    feature.handleMouseUp(12, 5, alwaysHit(targetNode))
+
+    expect(onDragStart).toHaveBeenCalledTimes(1)
+    expect(onDrop).toHaveBeenCalledTimes(1)
+    expect(onDragEnd).toHaveBeenCalledTimes(1)
+    expect(onDragEnd).toHaveBeenCalledWith({
+      source: sourceNode,
+      position: { x: 12, y: 5 },
+      dropTarget: targetNode,
+    })
+    expect(order).toEqual(["start", "enter", "drop", "end"])
+
+    feature.dispose()
+  })
+
+  test("release outside a drop target still ends the source lifecycle", () => {
+    const onDragEnd = vi.fn()
+    const feature = createDragFeature({ invalidate: () => {} })
+    const sourceNode = createMockNode({ draggable: true, onDragEnd })
+
+    feature.handleMouseDown(5, 5, sourceNode)
+    feature.handleMouseMove(10, 5, alwaysHit(null))
+    feature.handleMouseUp(12, 5, alwaysHit(null))
+
+    expect(onDragEnd).toHaveBeenCalledOnce()
+    expect(onDragEnd).toHaveBeenCalledWith({
+      source: sourceNode,
+      position: { x: 12, y: 5 },
+      dropTarget: null,
+    })
+
+    feature.dispose()
+  })
+
+  test("cancel reports an active drag without ending and ignores the pointing phase", () => {
+    const onDragStart = vi.fn()
+    const onDragEnd = vi.fn()
+    const onDragCancel = vi.fn()
+    const feature = createDragFeature({ invalidate: () => {} })
+    const sourceNode = createMockNode({
+      draggable: true,
+      onDragStart,
+      onDragEnd,
+      onDragCancel,
+    })
+    const targetNode = createDropTargetNode()
+
+    feature.handleMouseDown(5, 5, sourceNode)
+    feature.cancel()
+
+    expect(onDragStart).not.toHaveBeenCalled()
+    expect(onDragCancel).not.toHaveBeenCalled()
+
+    feature.handleMouseDown(5, 5, sourceNode)
+    feature.handleMouseMove(10, 5, alwaysHit(targetNode))
+    feature.cancel()
+    feature.cancel()
+
+    expect(onDragStart).toHaveBeenCalledOnce()
+    expect(onDragCancel).toHaveBeenCalledOnce()
+    expect(onDragCancel).toHaveBeenCalledWith({
+      source: sourceNode,
+      position: { x: 10, y: 5 },
+      dropTarget: targetNode,
+    })
+    expect(onDragEnd).not.toHaveBeenCalled()
 
     feature.dispose()
   })

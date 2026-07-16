@@ -4,7 +4,8 @@
  * The DragFeature unit tests prove the service in isolation. This file pins
  * the public composition boundary: mouse-enabled run() installs the drag
  * capability, a draggable ancestor wins over text selection, React observes
- * live drag state, and the target receives enter/over/drop callbacks.
+ * live drag state, the source receives start/end/cancel, and the target
+ * receives enter/over/drop callbacks.
  */
 
 import React from "react"
@@ -43,6 +44,9 @@ describe("run() drag-and-drop capability", () => {
     const onDragEnter = vi.fn()
     const onDragOver = vi.fn()
     const onDrop = vi.fn()
+    const onDragStart = vi.fn()
+    const onDragEnd = vi.fn()
+    const onDragCancel = vi.fn()
     const onClick = vi.fn()
 
     using term = createTermless({ cols: 40, rows: 5 })
@@ -50,7 +54,15 @@ describe("run() drag-and-drop capability", () => {
       <Box width={40} height={5} flexDirection="column">
         <DragStatus />
         <Box flexDirection="row" height={2}>
-          <Box width={10} height={2} draggable onClick={onClick}>
+          <Box
+            width={10}
+            height={2}
+            draggable
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragCancel={onDragCancel}
+            onClick={onClick}
+          >
             <Text>SOURCE</Text>
           </Box>
           <Box
@@ -79,6 +91,14 @@ describe("run() drag-and-drop capability", () => {
     await settle()
 
     expect(term.screen).toContainText("drag:12,1")
+    expect(onDragStart).toHaveBeenCalledTimes(1)
+    expect(onDragStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: expect.objectContaining({ props: expect.objectContaining({ draggable: true }) }),
+        dropTarget: expect.objectContaining({ props: expect.objectContaining({ onDrop }) }),
+        position: { x: 12, y: 1 },
+      }),
+    )
     expect(onDragEnter).toHaveBeenCalledTimes(1)
 
     await term.mouse.move(15, 1)
@@ -100,11 +120,22 @@ describe("run() drag-and-drop capability", () => {
         position: { x: 15, y: 1 },
       }),
     )
+    expect(onDragEnd).toHaveBeenCalledTimes(1)
+    expect(onDragEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: expect.objectContaining({ props: expect.objectContaining({ draggable: true }) }),
+        dropTarget: expect.objectContaining({ props: expect.objectContaining({ onDrop }) }),
+        position: { x: 15, y: 1 },
+      }),
+    )
+    expect(onDragCancel).not.toHaveBeenCalled()
     expect(onClick).not.toHaveBeenCalled()
     expect(term.clipboard.last).toBeNull()
     expect(term.screen).toContainText("drag:idle")
 
     onDrop.mockClear()
+    onDragStart.mockClear()
+    onDragEnd.mockClear()
     await term.mouse.down(2, 1)
     await term.mouse.move(12, 1)
     await settle()
@@ -112,6 +143,16 @@ describe("run() drag-and-drop capability", () => {
     await settle()
 
     expect(term.screen).toContainText("drag:idle")
+    expect(onDragStart).toHaveBeenCalledTimes(1)
+    expect(onDragCancel).toHaveBeenCalledTimes(1)
+    expect(onDragCancel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: expect.objectContaining({ props: expect.objectContaining({ draggable: true }) }),
+        dropTarget: expect.objectContaining({ props: expect.objectContaining({ onDrop }) }),
+        position: { x: 12, y: 1 },
+      }),
+    )
+    expect(onDragEnd).not.toHaveBeenCalled()
     await term.mouse.up(12, 1)
     await settle()
 
@@ -119,6 +160,8 @@ describe("run() drag-and-drop capability", () => {
     // cannot turn the original mousedown into a delayed click or drop.
     expect(onDrop).not.toHaveBeenCalled()
     expect(onClick).not.toHaveBeenCalled()
+    expect(onDragCancel).toHaveBeenCalledTimes(1)
+    expect(onDragEnd).not.toHaveBeenCalled()
 
     await term.mouse.click(2, 1)
     await settle()

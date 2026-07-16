@@ -18,9 +18,9 @@ import type { AgNode } from "./types"
 export interface DragEventPayload {
   /** The node being dragged */
   source: AgNode
-  /** Current terminal position of the pointer */
+  /** Current Silvery layout-space position of the pointer */
   position: { x: number; y: number }
-  /** The node under the cursor (the drop target receiving this event) */
+  /** The current or final drop target under the pointer, when one exists */
   dropTarget: AgNode | null
 }
 
@@ -29,6 +29,12 @@ export interface DragEventPayload {
 // ============================================================================
 
 export interface DragEventProps {
+  /** Fired on the draggable source when the pointer crosses the drag threshold */
+  onDragStart?: (event: DragEventPayload) => void
+  /** Fired on the draggable source after pointer release, whether or not a drop target exists */
+  onDragEnd?: (event: DragEventPayload) => void
+  /** Fired on the draggable source when an active drag is canceled */
+  onDragCancel?: (event: DragEventPayload) => void
   /** Fired when a dragged node enters this node's bounds */
   onDragEnter?: (event: DragEventPayload) => void
   /** Fired when a dragged node leaves this node's bounds */

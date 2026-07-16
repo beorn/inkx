@@ -20,7 +20,6 @@ import {
   createDragEvent,
   isDropTarget,
   findDropTarget,
-  type DragState,
 } from "@silvery/ag-term/drag-events"
 import type { AgNode } from "@silvery/ag/types"
 
@@ -265,6 +264,17 @@ describe("drop target detection", () => {
 
   test("isDropTarget returns false for node without drop handlers", () => {
     const node = makeNode()
+    expect(isDropTarget(node)).toBe(false)
+  })
+
+  test("source lifecycle handlers do not make the source a drop target", () => {
+    const node = makeNode({
+      props: {
+        onDragStart: () => {},
+        onDragEnd: () => {},
+        onDragCancel: () => {},
+      },
+    })
     expect(isDropTarget(node)).toBe(false)
   })
 
