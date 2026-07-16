@@ -241,8 +241,8 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     addListener: () => mockStdout,
   } as unknown as NodeJS.WriteStream
 
-  // Create mock term for components that use useTerm()
-  const mockTerm = createTerm({
+  // Create a fixed-size headless Term for components that use useTerm().
+  using mockTerm = createTerm({
     cols: width,
     rows: height,
     caps: { colorLevel: plain ? "mono" : "truecolor" },
@@ -275,82 +275,85 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     ),
   )
 
-  // Mount the React tree inside act() so layout feedback works
-  withActEnvironment(() => {
-    act(() => {
-      stringReconciler.updateContainerSync(wrapped, fiberRoot, null, null)
-      stringReconciler.flushSyncWork()
-    })
-  })
-
-  // Propagate any uncaught render errors (e.g., text outside <Text> in strict mode)
-  if (uncaughtError) {
-    throw uncaughtError instanceof Error ? uncaughtError : new Error(String(uncaughtError))
-  }
-
-  // Layout stabilization loop: run the pipeline, flush React work from
-  // layout notifications (useBoxRect forceUpdate etc.), repeat until stable.
-  // This matches the test renderer's multi-pass approach.
-  let buffer!: TerminalBuffer
-  let rootNode: ReturnType<typeof getContainerRoot> | undefined
-  const MAX_ITERATIONS = 5
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    hadReactCommit = false
+  try {
+    // Mount the React tree inside act() so layout feedback works
     withActEnvironment(() => {
       act(() => {
-        const root = getContainerRoot(container)
-        rootNode = root
-        const measurer = pipelineConfig?.measurer
-        const doRender = () => {
-          const ag = createAg(root, { measurer })
-          ag.layout({ cols: width, rows: height })
-          return ag.render()
-        }
-        const result = measurer ? runWithMeasurer(measurer, doRender) : doRender()
-        buffer = result.buffer
+        stringReconciler.updateContainerSync(wrapped, fiberRoot, null, null)
+        stringReconciler.flushSyncWork()
       })
-      if (!hadReactCommit) {
-        act(() => {
-          stringReconciler.flushSyncWork()
-        })
-      }
     })
-    if (!hadReactCommit) break
-  }
 
-  // Report content height if callback provided.
-  // Compute from children's outer bottom edges (including margins) rather than
-  // root.boxRect.height which equals the buffer height (root stretches to fill).
-  if (onContentHeight && rootNode) {
-    let maxBottom = 0
-    let hasChildren = false
-    for (const child of rootNode.children) {
-      if (child.boxRect) {
-        hasChildren = true
-        const props = child.props as Record<string, unknown>
-        const mb =
-          (props.marginBottom as number) ??
-          (props.marginY as number) ??
-          (props.margin as number) ??
-          0
-        const childBottom = child.boxRect.y + child.boxRect.height + mb
-        if (childBottom > maxBottom) maxBottom = childBottom
-      }
+    // Propagate any uncaught render errors (e.g., text outside <Text> in strict mode)
+    if (uncaughtError) {
+      throw uncaughtError instanceof Error ? uncaughtError : new Error(String(uncaughtError))
     }
-    onContentHeight(hasChildren ? maxBottom : 0)
-  }
 
-  // Unmount (cleanup)
-  withActEnvironment(() => {
-    act(() => {
-      stringReconciler.updateContainerSync(null, fiberRoot, null, null)
-      stringReconciler.flushSyncWork()
+    // Layout stabilization loop: run the pipeline, flush React work from
+    // layout notifications (useBoxRect forceUpdate etc.), repeat until stable.
+    // This matches the test renderer's multi-pass approach.
+    let buffer!: TerminalBuffer
+    let rootNode: ReturnType<typeof getContainerRoot> | undefined
+    const MAX_ITERATIONS = 5
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      hadReactCommit = false
+      withActEnvironment(() => {
+        act(() => {
+          const root = getContainerRoot(container)
+          rootNode = root
+          const measurer = pipelineConfig?.measurer
+          const doRender = () => {
+            const ag = createAg(root, { measurer })
+            ag.layout({ cols: width, rows: height })
+            return ag.render()
+          }
+          const result = measurer ? runWithMeasurer(measurer, doRender) : doRender()
+          buffer = result.buffer
+        })
+        if (!hadReactCommit) {
+          act(() => {
+            stringReconciler.flushSyncWork()
+          })
+        }
+      })
+      if (!hadReactCommit) break
+    }
+
+    // Report content height if callback provided.
+    // Compute from children's outer bottom edges (including margins) rather than
+    // root.boxRect.height which equals the buffer height (root stretches to fill).
+    if (onContentHeight && rootNode) {
+      let maxBottom = 0
+      let hasChildren = false
+      for (const child of rootNode.children) {
+        if (child.boxRect) {
+          hasChildren = true
+          const props = child.props as Record<string, unknown>
+          const mb =
+            (props.marginBottom as number) ??
+            (props.marginY as number) ??
+            (props.margin as number) ??
+            0
+          const childBottom = child.boxRect.y + child.boxRect.height + mb
+          if (childBottom > maxBottom) maxBottom = childBottom
+        }
+      }
+      onContentHeight(hasChildren ? maxBottom : 0)
+    }
+
+    return plain && !alwaysStyled
+      ? bufferToText(buffer, { trimTrailingWhitespace, trimEmptyLines })
+      : bufferToStyledText(buffer, { trimTrailingWhitespace, trimEmptyLines })
+  } finally {
+    // Static rendering is one-shot: always release React effects, even when
+    // rendering, layout, or a result callback throws.
+    withActEnvironment(() => {
+      act(() => {
+        stringReconciler.updateContainerSync(null, fiberRoot, null, null)
+        stringReconciler.flushSyncWork()
+      })
     })
-  })
-
-  return plain && !alwaysStyled
-    ? bufferToText(buffer, { trimTrailingWhitespace, trimEmptyLines })
-    : bufferToStyledText(buffer, { trimTrailingWhitespace, trimEmptyLines })
+  }
 }
 
 // ============================================================================

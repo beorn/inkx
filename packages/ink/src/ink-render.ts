@@ -722,8 +722,14 @@ export function renderToString(
   // Sync color detection with chalk: tests may set chalk.level = 3 programmatically
   // even when FORCE_COLOR=0, so we must respect chalk's runtime level
   const chalkHasColors = currentChalkLevel() > 0
-  const colorLevel = chalkHasColors ? ("truecolor" as const) : null
-  const term = createTerm({ colorLevel: colorLevel })
+  const colorLevel = chalkHasColors ? ("truecolor" as const) : ("mono" as const)
+  const columns = options?.columns ?? 80
+  const bufferHeight = 24
+  using term = createTerm({
+    cols: columns,
+    rows: bufferHeight,
+    caps: { colorLevel },
+  })
   // Always render with color enabled (plain=false) so that embedded ANSI sequences
   // in text children are preserved in the buffer output. Ink preserves embedded ANSI
   // even when chalk has no color support — only chalk-applied style props are skipped
@@ -736,10 +742,9 @@ export function renderToString(
     { value: staticStore },
     React.createElement(TermContext.Provider, { value: term }, node),
   )
-  const bufferHeight = 24
   let layoutContentHeight = 0
   let output = renderStringSync(wrapped as import("react").ReactElement, {
-    width: options?.columns ?? 80,
+    width: columns,
     height: bufferHeight,
     plain,
     trimTrailingWhitespace: true,

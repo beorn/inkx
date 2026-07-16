@@ -1103,29 +1103,7 @@ async function renderAsync(
   termOrDef?: Term | TermDef,
   options?: RenderOptions,
 ): Promise<Instance> {
-  // Resolve termOrDef to get configuration
-  let resolved: ResolvedTermDef
-  let term: Term
-
-  if (!termOrDef) {
-    // No term/def provided - static mode with defaults
-    resolved = resolveTermDef({})
-    term = createTerm({ colorLevel: resolved.colors ?? undefined })
-  } else if (isTerm(termOrDef)) {
-    // Full Term instance provided
-    resolved = resolveFromTerm(termOrDef)
-    term = termOrDef
-  } else if (isTermDef(termOrDef)) {
-    // TermDef provided
-    resolved = resolveTermDef(termOrDef)
-    term = createTerm({
-      stdout: termOrDef.stdout,
-      stdin: termOrDef.stdin,
-      colorLevel: resolved.colors ?? undefined,
-    })
-  } else {
-    throw new Error("Invalid second argument: expected Term, TermDef, or undefined")
-  }
+  const { resolved, term, disposeTerm } = prepareRenderTerm(termOrDef)
 
   // Merge options. `resolved.stdout/stdin` come from `resolveFromTerm` (which
   // reads them from the Term) or `resolveTermDef` (which takes them from the
@@ -1139,7 +1117,56 @@ async function renderAsync(
     stdin: options?.stdin ?? (resolved.isStatic ? undefined : process.stdin),
   }
 
-  return renderImpl(element, mergedOptions, term, resolved)
+  try {
+    return await renderImpl(element, mergedOptions, term, resolved, disposeTerm)
+  } catch (error) {
+    disposeTerm()
+    throw error
+  }
+}
+
+interface PreparedRenderTerm {
+  resolved: ResolvedTermDef
+  term: Term
+  disposeTerm: () => void
+}
+
+/** Resolve one Term for both async and sync render entrypoints. */
+function prepareRenderTerm(termOrDef?: Term | TermDef): PreparedRenderTerm {
+  if (termOrDef && isTerm(termOrDef)) {
+    return {
+      resolved: resolveFromTerm(termOrDef),
+      term: termOrDef,
+      disposeTerm: () => {},
+    }
+  }
+
+  if (termOrDef !== undefined && !isTermDef(termOrDef)) {
+    throw new Error("Invalid second argument: expected Term, TermDef, or undefined")
+  }
+
+  const definition = termOrDef ?? {}
+  const resolved = resolveTermDef(definition)
+  const term = resolved.isStatic
+    ? createTerm({
+        cols: resolved.width,
+        rows: resolved.height,
+        caps: { colorLevel: resolved.colors },
+      })
+    : createTerm({
+        stdout: definition.stdout,
+        stdin: definition.stdin,
+        colorLevel: resolved.colors,
+      })
+
+  let disposed = false
+  const disposeTerm = () => {
+    if (disposed) return
+    disposed = true
+    term[Symbol.dispose]()
+  }
+
+  return { resolved, term, disposeTerm }
 }
 
 /**
@@ -1150,6 +1177,7 @@ async function renderImpl(
   options: RenderOptions,
   term: Term,
   resolved: ResolvedTermDef,
+  disposeTerm: () => void,
 ): Promise<Instance> {
   log.debug?.(`render() called, isStatic=${resolved.isStatic}`)
   const renderStart = Date.now()
@@ -1166,7 +1194,7 @@ async function renderImpl(
 
   // For static mode, use renderString-style rendering
   if (resolved.isStatic) {
-    return renderStaticImpl(element, term, resolved)
+    return renderStaticImpl(element, term, resolved, disposeTerm)
   }
 
   // Merge with defaults for interactive mode
@@ -1205,12 +1233,26 @@ async function renderImpl(
   // Wrap rerender to also include contexts
   const rerender = (newElement: ReactNode) =>
     instance.rerender(<TermContext.Provider value={term}>{newElement}</TermContext.Provider>)
+  const unmount = () => {
+    try {
+      instance.unmount()
+    } finally {
+      disposeTerm()
+    }
+  }
+  const waitUntilExit = async () => {
+    try {
+      await instance.waitUntilExit()
+    } finally {
+      disposeTerm()
+    }
+  }
 
   return {
     rerender,
-    unmount: instance.unmount,
-    [Symbol.dispose]: instance.unmount,
-    waitUntilExit: instance.waitUntilExit,
+    unmount,
+    [Symbol.dispose]: unmount,
+    waitUntilExit,
     clear: instance.clear,
     flush: instance.flush,
     pause: instance.pause,
@@ -1226,6 +1268,7 @@ async function renderStaticImpl(
   element: ReactElement,
   term: Term,
   resolved: ResolvedTermDef,
+  disposeTerm: () => void,
 ): Promise<Instance> {
   log.debug?.(`renderStatic() called, dimensions: ${resolved.width}x${resolved.height}`)
 
@@ -1239,7 +1282,7 @@ async function renderStaticImpl(
   const output = renderStringSync(wrappedElement, {
     width: resolved.width,
     height: resolved.height,
-    plain: resolved.colors === null,
+    plain: resolved.colors === "mono",
   })
 
   // Write output if we have a stdout
@@ -1256,17 +1299,21 @@ async function renderStaticImpl(
       lastFrame = renderStringSync(newWrapped as ReactElement, {
         width: resolved.width,
         height: resolved.height,
-        plain: resolved.colors === null,
+        plain: resolved.colors === "mono",
       })
       if (resolved.stdout) {
         resolved.stdout.write(lastFrame)
         resolved.stdout.write("\n")
       }
     },
-    unmount: () => {},
-    [Symbol.dispose]() {},
-    waitUntilExit: () => Promise.resolve(),
+    unmount: disposeTerm,
+    [Symbol.dispose]: disposeTerm,
+    waitUntilExit: () => {
+      disposeTerm()
+      return Promise.resolve()
+    },
     clear: () => {},
+    flush: () => {},
     pause: () => {},
     resume: () => {},
     // Extra property for accessing last rendered frame
@@ -1305,44 +1352,33 @@ export function renderSync(
     )
   }
 
-  // Resolve termOrDef
-  let resolved: ResolvedTermDef
-  let term: Term
-
-  if (!termOrDef) {
-    resolved = resolveTermDef({})
-    term = createTerm({ colorLevel: resolved.colors ?? undefined })
-  } else if (isTerm(termOrDef)) {
-    resolved = resolveFromTerm(termOrDef)
-    term = termOrDef
-  } else if (isTermDef(termOrDef)) {
-    resolved = resolveTermDef(termOrDef)
-    term = createTerm({
-      stdout: termOrDef.stdout,
-      stdin: termOrDef.stdin,
-      colorLevel: resolved.colors ?? undefined,
-    })
-  } else {
-    throw new Error("Invalid second argument: expected Term, TermDef, or undefined")
-  }
+  const { resolved, term, disposeTerm } = prepareRenderTerm(termOrDef)
 
   // For static mode, use sync string rendering
   if (resolved.isStatic) {
     const wrappedElement = <TermContext.Provider value={term}>{element}</TermContext.Provider>
-    const lastFrame = renderStringSync(wrappedElement, {
-      width: resolved.width,
-      height: resolved.height,
-      plain: resolved.colors === null,
-    })
-    if (resolved.stdout) {
-      resolved.stdout.write(lastFrame)
-      resolved.stdout.write("\n")
+    try {
+      const lastFrame = renderStringSync(wrappedElement, {
+        width: resolved.width,
+        height: resolved.height,
+        plain: resolved.colors === "mono",
+      })
+      if (resolved.stdout) {
+        resolved.stdout.write(lastFrame)
+        resolved.stdout.write("\n")
+      }
+    } catch (error) {
+      disposeTerm()
+      throw error
     }
     return {
       rerender: () => {},
-      unmount: () => {},
-      [Symbol.dispose]() {},
-      waitUntilExit: () => Promise.resolve(),
+      unmount: disposeTerm,
+      [Symbol.dispose]: disposeTerm,
+      waitUntilExit: () => {
+        disposeTerm()
+        return Promise.resolve()
+      },
       clear: () => {},
       flush: () => {},
       pause: () => {},
@@ -1372,28 +1408,46 @@ export function renderSync(
     mouse: mergedOptions.mouse ?? true,
   }
 
-  // Get or create instance for this stdout
-  let instance = instances.get(resolvedOptions.stdout)
-  if (!instance) {
-    instance = new SilveryInstance(resolvedOptions)
-    instances.set(resolvedOptions.stdout, instance)
+  let instance: SilveryInstance
+  try {
+    // Get or create instance for this stdout
+    const existingInstance = instances.get(resolvedOptions.stdout)
+    instance = existingInstance ?? new SilveryInstance(resolvedOptions)
+    if (!existingInstance) instances.set(resolvedOptions.stdout, instance)
+
+    // Wrap element with contexts
+    const wrappedElement = <TermContext.Provider value={term}>{element}</TermContext.Provider>
+
+    // Render the element
+    instance.render(wrappedElement)
+  } catch (error) {
+    disposeTerm()
+    throw error
   }
-
-  // Wrap element with contexts
-  const wrappedElement = <TermContext.Provider value={term}>{element}</TermContext.Provider>
-
-  // Render the element
-  instance.render(wrappedElement)
 
   // Wrap rerender to also include contexts
   const rerender = (newElement: ReactNode) =>
-    instance!.rerender(<TermContext.Provider value={term}>{newElement}</TermContext.Provider>)
+    instance.rerender(<TermContext.Provider value={term}>{newElement}</TermContext.Provider>)
+  const unmount = () => {
+    try {
+      instance.unmount()
+    } finally {
+      disposeTerm()
+    }
+  }
+  const waitUntilExit = async () => {
+    try {
+      await instance.waitUntilExit()
+    } finally {
+      disposeTerm()
+    }
+  }
 
   return {
     rerender,
-    unmount: instance.unmount,
-    [Symbol.dispose]: instance.unmount,
-    waitUntilExit: instance.waitUntilExit,
+    unmount,
+    [Symbol.dispose]: unmount,
+    waitUntilExit,
     clear: instance.clear,
     flush: instance.flush,
     pause: instance.pause,

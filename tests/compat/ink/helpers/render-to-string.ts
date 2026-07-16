@@ -46,18 +46,23 @@ async function ensureEngine(): Promise<void> {
 
 function doRender(node: React.JSX.Element, options?: RenderToStringOptions): string {
   const chalkHasColors = currentChalkLevel() > 0
-  const colorLevel = chalkHasColors ? ("truecolor" as const) : null
-  const term = createTerm({ colorLevel: colorLevel })
+  const colorLevel = chalkHasColors ? ("truecolor" as const) : ("mono" as const)
+  const columns = options?.columns ?? 100
+  const bufferHeight = 24
+  using term = createTerm({
+    cols: columns,
+    rows: bufferHeight,
+    caps: { colorLevel },
+  })
   // Post km-silvery.caps-restructure (Phase 7): hasColor() is deleted; read
   // the tier from term.caps. "mono" is the canonical no-color state (legacy
   // test expected the deleted `null` spelling).
   const plain = term.caps.colorLevel === "mono"
   const wrapped = React.createElement(TermContext.Provider, { value: term }, node)
 
-  const bufferHeight = 24
   let layoutContentHeight = 0
   let output = renderStringSync(wrapped as React.ReactElement, {
-    width: options?.columns ?? 100,
+    width: columns,
     height: bufferHeight,
     plain,
     // Always use styled output to preserve embedded ANSI sequences (SGR, OSC

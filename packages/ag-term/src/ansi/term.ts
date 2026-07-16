@@ -1114,10 +1114,11 @@ function createHeadlessTerm(
   })
 
   return finalizeTerm(
-    // Headless: no color, no extended underline. Project the array form of
-    // caps.underlineStyles to the boolean the Style caps shape expects.
+    // Headless has no I/O, but its Style chain must honor the capabilities it
+    // advertises. Project the array form of caps.underlineStyles to the
+    // boolean the Style caps shape expects.
     createStyle({
-      level: null,
+      level: profile.colorLevel,
       caps: {
         underlineStyles: profile.caps.underlineStyles.length > 0,
         underlineColor: profile.caps.underlineColor,
