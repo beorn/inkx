@@ -334,4 +334,80 @@ describe("ListView signals refactor — convergence", () => {
       `wheel produced no frame change — handleWheel likely dropped on maxRow<=0:\n${app.text}`,
     ).not.toBe(textBeforeWheel)
   })
+
+  test("a wheel during the zero-content-rows window is deferred and replayed on convergence (21184)", async () => {
+    // The residual latent window behind the trackpad symptom: a wheel packet
+    // that arrives while `followEndContentRows` is still 0 (content
+    // unmeasured — the first convergence commits in the live app) used to be
+    // dropped by `handleWheel`'s `maxRow <= 0` gate, silently losing user
+    // intent. The deterministic stand-in for that ms-scale transient: rows
+    // that measure to zero height occupy the frame with a zero-row content
+    // model; flipping them to real rows drives the same
+    // `scrollableRows 0 → positive` transition the live convergence chain
+    // produces. The deferred packet must replay: the viewport lands where
+    // the converged-first-paint test above lands after the same wheel.
+    const COLS = 40
+    const ROWS = 12
+    const items = makeItems(40)
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+    function Harness({ measured }: { measured: boolean }) {
+      return (
+        <Box width={COLS} height={ROWS} flexDirection="column">
+          <Box flexGrow={1} flexShrink={1} minHeight={0}>
+            <ListView
+              items={items}
+              nav
+              getKey={(item) => item}
+              renderItem={(item) => (measured ? <Text>{item}</Text> : <Box height={0} />)}
+            />
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<Harness measured={false} />)
+    await app.wheel(COLS / 2, ROWS / 2, 5)
+    app.rerender(<Harness measured={true} />)
+
+    const topVisible = app.text.split("\n").find((line) => line.trim() !== "")
+    expect(
+      topVisible,
+      `deferred wheel was not replayed — viewport still at the top:\n${app.text}`,
+    ).toContain("item 5")
+  })
+
+  test("a wheel on a MEASURED list whose content fits stays a genuine no-op (21184 discriminator)", async () => {
+    // The other side of the defer discriminator: content is measured and
+    // simply fits the viewport (followEndContentRows > 0, maxRow == 0).
+    // That wheel is a real no-op — it must NOT be queued, so growing the
+    // list later never replays a stale gesture into the new content.
+    const COLS = 40
+    const ROWS = 12
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+    function Harness({ count }: { count: number }) {
+      return (
+        <Box width={COLS} height={ROWS} flexDirection="column">
+          <Box flexGrow={1} flexShrink={1} minHeight={0}>
+            <ListView
+              items={makeItems(count)}
+              nav
+              getKey={(item) => item}
+              renderItem={(item) => <Text>{item}</Text>}
+            />
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<Harness count={3} />)
+    expect(app.text).toContain("item 0")
+    await app.wheel(COLS / 2, ROWS / 2, 5)
+    app.rerender(<Harness count={40} />)
+
+    const topVisible = app.text.split("\n").find((line) => line.trim() !== "")
+    expect(
+      topVisible,
+      `fits-wheel leaked into the defer queue and replayed after growth:\n${app.text}`,
+    ).toContain("item 0")
+  })
 })

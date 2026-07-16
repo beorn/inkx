@@ -190,6 +190,14 @@ function toPhysicalRows(rows: number): number {
   return Math.max(0, Math.round(rows))
 }
 
+// Pre-convergence wheel defer-and-replay bounds
+// (@km/code/trackpad-wheel-not-scrolling/21184-listview-wheel-preconv). The
+// queue only ever holds a trackpad burst from the few unmeasured commits, so
+// it stays tiny, and packets older than the replay window are stale intent —
+// replaying a wheel seconds later reads as a haunted viewport.
+const PRECONVERGENCE_WHEEL_QUEUE_MAX = 8
+const PRECONVERGENCE_REPLAY_WINDOW_MS = 500
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -991,6 +999,23 @@ function ListViewInner<T>(
   const isWheelDrivenRef = useRef(false)
   const gestureDirectionRef = useRef<"up" | "down" | null>(null)
   const pendingWheelGestureDirectionRef = useRef<"up" | "down" | null>(null)
+  // 21184 — defer-and-replay for wheel/scroll intent that arrives while the
+  // content height is still UNMEASURED (followEndContentRows <= 0: the first
+  // ~2 convergence commits, or a list whose items are about to populate).
+  // In that state `maxRow` reads 0 and the guards below would drop the
+  // user's intent on the floor. A MEASURED list whose content genuinely fits
+  // (followEndContentRows > 0 with maxRow == 0) still drops — that is a real
+  // no-op, not a transient. No timers: expiry is checked at enqueue/replay
+  // time (timer state across re-renders caused the stuck-flash class above).
+  const preconvergenceWheelQueueRef = useRef<
+    Array<{ deltaY: number; timeStamp?: number; at: number }>
+  >([])
+  const preconvergenceFracIntentRef = useRef<{
+    frac: number
+    rearmFollowAtEnd: boolean
+    at: number
+  } | null>(null)
+  const followEndContentRowsRef = useRef(0)
   const committingWheelScrollRef = useRef(false)
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1140,13 +1165,27 @@ function ListViewInner<T>(
       event.preventDefault?.()
       const maxRow = maxScrollRowRef.current
       if (maxRow <= 0) {
-        // Diagnostic — wheel event arrived but layout hasn't converged
-        // yet (initial post-resume render in silvercode triggers this
-        // path because the height-convergence chain takes 3+ commits
-        // but the renderer caps at 2). Wheel events silently no-op
-        // until the chain settles. Bead:
-        // @km/code/trackpad-wheel-not-scrolling.
-        wheelLog.debug?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
+        // Wheel arrived but layout hasn't converged yet (initial
+        // post-resume render in silvercode triggers this path because the
+        // height-convergence chain takes 3+ commits but the renderer caps
+        // at 2). While content is UNMEASURED the packet is DEFERRED and
+        // replayed when `scrollableRows` first turns positive; a measured
+        // list whose content fits is a genuine no-op and still drops.
+        // Bead: @km/code/trackpad-wheel-not-scrolling/21184.
+        if (followEndContentRowsRef.current <= 0) {
+          const now = Date.now()
+          const queue = preconvergenceWheelQueueRef.current.filter(
+            (packet) => now - packet.at <= PRECONVERGENCE_REPLAY_WINDOW_MS,
+          )
+          queue.push({ deltaY: event.deltaY, timeStamp: event.timeStamp, at: now })
+          while (queue.length > PRECONVERGENCE_WHEEL_QUEUE_MAX) queue.shift()
+          preconvergenceWheelQueueRef.current = queue
+          wheelLog.debug?.(
+            `handleWheel deferred (pre-convergence): deltaY=${event.deltaY} queued=${queue.length}`,
+          )
+        } else {
+          wheelLog.debug?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
+        }
         return
       }
       const wheelDirection = event.deltaY < 0 ? "up" : "down"
@@ -1199,7 +1238,20 @@ function ListViewInner<T>(
   const scrollToFrac = useCallback(
     (frac: number, opts?: { rearmFollowAtEnd?: boolean }) => {
       const maxRow = maxScrollRowRef.current
-      if (maxRow <= 0) return
+      if (maxRow <= 0) {
+        // Same defer semantics as handleWheel: an explicit position intent
+        // during the unmeasured window replays on convergence (latest one
+        // wins — it is an absolute takeover); a measured fitting list is a
+        // genuine no-op (21184).
+        if (followEndContentRowsRef.current <= 0) {
+          preconvergenceFracIntentRef.current = {
+            frac,
+            rearmFollowAtEnd: opts?.rearmFollowAtEnd ?? true,
+            at: Date.now(),
+          }
+        }
+        return
+      }
       const rearmFollowAtEnd = opts?.rearmFollowAtEnd ?? true
       const clampedFrac = Math.max(0, Math.min(1, frac))
       const target = clampedFrac * maxRow
@@ -1753,6 +1805,9 @@ function ListViewInner<T>(
     tailReserveRows: effectiveTailReserveRows,
   })
   const followEndMaxTopRow = Math.max(0, Math.round(followEndContentRows - contentViewportHeight))
+  // 21184 — the unmeasured-vs-fits discriminator for the pre-convergence
+  // defer queue, read at wheel/scroll-event time by the guards above.
+  followEndContentRowsRef.current = followEndContentRows
   // `totalRowsMeasured` / `scrollableRows` keep the `Math.max()` merge for the
   // COSMETIC scrollbar thumb only (an over-estimate there is harmless). They
   // must NOT feed the follow pin or the at-end test — those use the single
@@ -1784,6 +1839,29 @@ function ListViewInner<T>(
     virtualizerScrollOffset: scrollOffset,
     model: heightModel,
   })
+  // 21184 — replay deferred pre-convergence intent the moment the list first
+  // becomes scrollable. Enqueueing is only possible while content is
+  // unmeasured (scrollableRows 0), so the boolean dep fires exactly on the
+  // 0→positive transition; stale packets (past the replay window) are
+  // dropped here as well as at enqueue time. The explicit frac intent is an
+  // absolute takeover and replays before the relative wheel packets.
+  const listIsScrollable = scrollableRows > 0
+  useLayoutEffect(() => {
+    if (!listIsScrollable) return
+    const queue = preconvergenceWheelQueueRef.current
+    const fracIntent = preconvergenceFracIntentRef.current
+    if (queue.length === 0 && fracIntent === null) return
+    preconvergenceWheelQueueRef.current = []
+    preconvergenceFracIntentRef.current = null
+    const now = Date.now()
+    if (fracIntent !== null && now - fracIntent.at <= PRECONVERGENCE_REPLAY_WINDOW_MS) {
+      scrollToFrac(fracIntent.frac, { rearmFollowAtEnd: fracIntent.rearmFollowAtEnd })
+    }
+    for (const packet of queue) {
+      if (now - packet.at > PRECONVERGENCE_REPLAY_WINDOW_MS) continue
+      handleWheel({ deltaY: packet.deltaY, timeStamp: packet.timeStamp })
+    }
+  }, [listIsScrollable, handleWheel, scrollToFrac])
   const keyForActiveIndex = useCallback(
     (index: number): string | number | null => {
       const item = activeItems[index]
