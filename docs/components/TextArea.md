@@ -25,7 +25,7 @@ import { TextArea } from "silvery"
 | `maxRows`          | `number`                                  | `8`                 | Maximum rows in `"content"` mode (scrolls beyond)         |
 | `cursorStyle`      | `"block" \| "underline"`                  | `"block"`           | Active hardware and inactive visual cursor style          |
 | `scrollMargin`     | `number`                                  | `1`                 | Context lines above/below cursor when scrolling           |
-| `disabled`         | `boolean`                                 | --                  | Ignore all input and dim text                             |
+| `disabled`         | `boolean`                                 | --                  | Disable keyboard/mouse interaction and use disabled styling |
 | `maxLength`        | `number`                                  | --                  | Maximum number of characters allowed                      |
 | `borderStyle`      | `string`                                  | --                  | Border style (wraps input in bordered Box)                |
 | `borderColor`      | `string`                                  | `"$border-default"` | Border color when unfocused                               |

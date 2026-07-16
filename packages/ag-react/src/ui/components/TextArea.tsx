@@ -74,6 +74,7 @@ import { Text } from "../../components/Text"
 import { useTextArea } from "./useTextArea"
 import type { WrappedLine } from "@silvery/create/text-cursor"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import { resolveInputState } from "./_input-state"
 
 // =============================================================================
 // Types
@@ -289,6 +290,13 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // for backward compatibility.
   const { focused } = useFocusable()
   const isActive = isActiveProp ?? (testID ? focused : true)
+  const inputState = resolveInputState({
+    isActive,
+    disabled,
+    color: bodyColor,
+    borderColor: borderColorProp,
+    focusBorderColor,
+  })
 
   // LAYOUT_READ_AT_RENDER: parentWidth feeds the soft-wrap math in
   // useTextArea (wrapWidth → wrappedLines). The wrap calculation produces
@@ -384,6 +392,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
   const handleMouseDown = useCallback(
     (e: SilveryMouseEvent) => {
+      if (!inputState.interactive) return
       if (e.button !== 0) return
       // 20079: clicking an INACTIVE field requests activation so a parent that
       // owns focus imperatively (e.g. focusedRegion) can move focus here — a
@@ -408,7 +417,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
       const offset = Math.min(Math.max(0, wl.startOffset + col), ta.value.length)
       ta.setCursor(offset)
     },
-    [ta, isActive, onActivate],
+    [ta, inputState.interactive, isActive, onActivate],
   )
 
   // =========================================================================
@@ -420,7 +429,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const borderProps = borderStyleProp
     ? {
         borderStyle: borderStyleProp as any,
-        borderColor: isActive ? focusBorderColor : borderColorProp,
+        borderColor: inputState.borderColor,
         paddingX: 1 as const,
       }
     : {}
@@ -444,7 +453,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const cursorOffset = {
     col: ta.cursorCol,
     row: ta.visibleCursorRow,
-    visible: isActive && !disabled && !ta.selection,
+    visible: isActive && inputState.interactive && !ta.selection,
     shape: cursorStyle,
   }
   // Active text inputs own cursor placement whether the hardware cursor is
@@ -456,7 +465,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   if (showPlaceholder) {
     return (
       <Box
-        focusable
+        focusable={inputState.interactive}
         focused={focusedCursorOwner}
         testID={testID}
         flexDirection="column"
@@ -466,7 +475,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         cursorOffset={cursorOffset}
         {...borderProps}
       >
-        <Text color="$fg-muted">{placeholder}</Text>
+        <Text color={inputState.placeholderColor}>{placeholder}</Text>
       </Box>
     )
   }
@@ -479,7 +488,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
   return (
     <Box
-      focusable
+      focusable={inputState.interactive}
       focused={focusedCursorOwner}
       testID={testID}
       key={ta.scrollOffset}
@@ -489,7 +498,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
       height={outerHeight}
       cursorOffset={cursorOffset}
       {...borderProps}
-      onMouseDown={handleMouseDown}
+      onMouseDown={inputState.interactive ? handleMouseDown : undefined}
     >
       {renderedLines.map((wl, i) => {
         const absoluteRow = ta.scrollOffset + i
@@ -503,7 +512,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
         if (disabled) {
           return (
-            <Text key={absoluteRow} color="$fg-muted" wrap={false}>
+            <Text key={absoluteRow} color={inputState.textColor} wrap={false}>
               {wl.line || " "}
             </Text>
           )

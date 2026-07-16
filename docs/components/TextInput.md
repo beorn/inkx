@@ -19,6 +19,7 @@ import { TextInput } from "silvery"
 | `onEOF`            | `() => void`              | --                  | Called on Ctrl+D with empty input                        |
 | `placeholder`      | `string`                  | `""`                | Placeholder text when empty                              |
 | `isActive`         | `boolean`                 | --                  | Whether input is focused/active (overrides focus system) |
+| `disabled`         | `boolean`                 | `false`             | Disable keyboard/mouse interaction and use disabled styling |
 | `prompt`           | `string`                  | `""`                | Prompt prefix (e.g., "$ " or "> ")                       |
 | `promptColor`      | `string`                  | `"$control"`        | Prompt color                                             |
 | `color`            | `string`                  | --                  | Text color                                               |

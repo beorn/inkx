@@ -32,6 +32,7 @@ import { Text } from "../../components/Text"
 import { useReadline } from "./useReadline"
 import { useFocusable } from "../../hooks/useFocusable"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import { resolveInputState } from "./_input-state"
 
 // =============================================================================
 // Types
@@ -68,6 +69,8 @@ export interface TextInputProps {
    * @default false
    */
   readOnly?: boolean
+  /** Disable keyboard/mouse interaction and use disabled styling */
+  disabled?: boolean
   /** Prompt prefix (e.g., "$ " or "> ") */
   prompt?: string
   /** Prompt color (default: "$fg-accent") */
@@ -120,6 +123,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
     placeholderColor = "$fg-muted",
     isActive: isActiveProp,
     readOnly = false,
+    disabled = false,
     prompt = "",
     promptColor = "$fg-accent",
     promptBold = false,
@@ -141,6 +145,14 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   // for backward compatibility.
   const { focused } = useFocusable()
   const isActive = isActiveProp ?? (testID ? focused : true)
+  const inputState = resolveInputState({
+    isActive,
+    disabled,
+    color,
+    placeholderColor,
+    borderColor: borderColorProp,
+    focusBorderColor,
+  })
 
   // Track whether we're in controlled mode
   const isControlled = controlledValue !== undefined
@@ -170,7 +182,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
       },
       [onChange],
     ),
-    isActive: isActive && !readOnly,
+    isActive: isActive && !readOnly && inputState.interactive,
     handleEnter: !!onSubmit,
     onSubmit,
     onEOF,
@@ -233,12 +245,13 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   const cursorOffset = {
     col: prompt.length + displayBeforeCursor.length,
     row: 0,
-    visible: isActive,
+    visible: isActive && inputState.interactive,
   }
 
   // Click-to-position: map mouse click to cursor offset
   const handleMouseDown = useCallback(
     (e: SilveryMouseEvent) => {
+      if (!inputState.interactive) return
       if (e.button !== 0) return
       const rect = e.currentTarget.scrollRect
       if (!rect) return
@@ -246,11 +259,11 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
       const newCursor = Math.max(0, Math.min(relativeX, value.length))
       readline.setValueWithCursor(value, newCursor)
     },
-    [prompt.length, value, readline],
+    [inputState.interactive, prompt.length, value, readline],
   )
 
   const inputContent = (
-    <Text color={color}>
+    <Text color={inputState.textColor}>
       {prompt && (
         <Text color={promptColor} bold={promptBold}>
           {prompt}
@@ -266,15 +279,15 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
         // decision flowchart entry for placeholder text.
         <>
           {cursorStyle === "underline" ? (
-            <Text underline color={placeholderColor}>
+            <Text underline color={inputState.placeholderColor}>
               {placeholder[0]}
             </Text>
           ) : (
-            <Text inverse color={placeholderColor}>
+            <Text inverse color={inputState.placeholderColor}>
               {placeholder[0]}
             </Text>
           )}
-          <Text color={placeholderColor}>{placeholder.slice(1)}</Text>
+          <Text color={inputState.placeholderColor}>{placeholder.slice(1)}</Text>
         </>
       ) : (
         <>
@@ -289,15 +302,15 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   if (borderStyleProp) {
     return (
       <Box
-        focusable
+        focusable={inputState.interactive}
         testID={testID}
         flexDirection="column"
         borderStyle={borderStyleProp as any}
-        borderColor={isActive ? focusBorderColor : borderColorProp}
+        borderColor={inputState.borderColor}
         paddingX={1}
         cursorOffset={cursorOffset}
-        mouseCursor="text"
-        onMouseDown={handleMouseDown}
+        mouseCursor={inputState.interactive ? "text" : undefined}
+        onMouseDown={inputState.interactive ? handleMouseDown : undefined}
       >
         {inputContent}
         {showUnderline && <Text color="$border-default">{"─".repeat(underlineWidth)}</Text>}
@@ -307,12 +320,12 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
 
   return (
     <Box
-      focusable
+      focusable={inputState.interactive}
       testID={testID}
       flexDirection="column"
       cursorOffset={cursorOffset}
-      mouseCursor="text"
-      onMouseDown={handleMouseDown}
+      mouseCursor={inputState.interactive ? "text" : undefined}
+      onMouseDown={inputState.interactive ? handleMouseDown : undefined}
     >
       {inputContent}
       {showUnderline && <Text color="$border-default">{"─".repeat(underlineWidth)}</Text>}
