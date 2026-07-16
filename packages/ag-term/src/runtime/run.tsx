@@ -472,7 +472,11 @@ export async function run(
       // Mirrors `resolveMouseOption` (run.tsx, real-PTY branch) but adapted
       // for in-process feed+onResponse instead of stdin probe-owner. See
       // @km/silvery/run-emulator-probe-mouse-mode-parity for the design.
-      const emulatorMouseOption = await resolveEmulatorMouseOption(emulator, termOptions?.mouse)
+      const emulatorMouseOption = await resolveEmulatorMouseOption(
+        emulator,
+        termOptions?.mouse,
+        altScreen,
+      )
 
       const app = createApp(() => () => ({}))
       // Phase 8b: createApp.run() still wants raw streams. Use the internal
@@ -922,11 +926,16 @@ interface EmulatorBackend {
 async function resolveEmulatorMouseOption(
   emulator: { backend?: EmulatorBackend } | undefined,
   requested: boolean | ParseMouseOptions | undefined,
+  defaultEnabled: boolean,
 ): Promise<boolean | ParseMouseOptions> {
   // Explicit opt-out — caller intent wins, no probe.
   if (requested === false) return false
   // Caller passed an explicit ParseMouseOptions — pass through unchanged.
   if (typeof requested === "object" && requested !== null) return requested
+  // Unspecified — follow the mode-derived default (fullscreen → on, inline →
+  // off), matching the options path (`mode !== "inline"`). An explicit `true`
+  // still probes for pixel mode below.
+  if (requested === undefined && !defaultEnabled) return false
 
   const cellSize = await probeEmulatorMouseCellSize(emulator)
   return cellSize ? { coordinateMode: "pixel", cellSize } : true

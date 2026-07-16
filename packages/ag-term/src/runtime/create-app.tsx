@@ -1025,7 +1025,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     alternateScreen = false,
     kittyMode: explicitKittyMode,
     kitty: kittyOption,
-    mouse: mouseOption = false,
+    // Mouse defaults to the alternate-screen mode: ON in fullscreen, OFF
+    // inline. This mirrors run()'s `mode !== "inline"` rule (run.tsx) so a
+    // direct `createApp().run({ alternateScreen: true })` gets mouse tracking
+    // like `run()` does — without it, wheel events on the alt screen get
+    // translated to cursor keys and "the wheel moves the cursor". An explicit
+    // `mouse` (true / false / ParseMouseOptions) always wins. `alternateScreen`
+    // is destructured just above, so this default reads its resolved value.
+    mouse: mouseOption = alternateScreen,
     virtualInline: virtualInlineOption = false,
     suspendOnCtrlZ: suspendOption = true,
     exitOnCtrlC: exitOnCtrlCOption = true,
@@ -3442,6 +3449,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // request, not focused-island requests.
       if (legacyMouseMode !== false) {
         setMouseMode(legacyMouseMode, "setup")
+      }
+
+      // Alt-screen + mouse-off defense (DEC private mode 1007, alternate-scroll).
+      // On the alternate screen with mouse tracking OFF, terminals that have
+      // alternate-scroll enabled translate wheel events into cursor (arrow)
+      // keys — the recurring "wheel moves the cursor/selection" bug. Disable
+      // 1007 so the wheel is a benign no-op instead. One-way (disable-and-leave):
+      // `modes.disableAlternateScroll()` never re-enables on teardown because
+      // 1007's prior state is unknowable and it is moot once we leave the alt
+      // screen. When mouse tracking IS on, 1003/1006 already capture the wheel
+      // as SGR events regardless of 1007, so this only fires for mouse-off apps.
+      if (alternateScreen && !mouseEnabled) {
+        modes.disableAlternateScroll()
+        recordTerminalProtocolWrite("\x1b[?1007l", "mode:alternate-scroll", "setup")
       }
 
       // Focus reporting is deferred to after the event loop starts (see below).
