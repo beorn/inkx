@@ -28,7 +28,7 @@
  * struct. Three fields don't earn a namespace.
  */
 
-import type { ColorLevel, UnderlineStyle } from "./types"
+import type { ColorLevel, TerminalNotificationProtocol, UnderlineStyle } from "./types"
 
 // Forward re-export — profile.ts defines ColorProvenance but caps consumers
 // want one import for everything they need.
@@ -161,8 +161,8 @@ export interface TerminalCaps {
   readonly osc52: boolean
   /** OSC 8 hyperlinks */
   readonly hyperlinks: boolean
-  /** OSC 9/99 notifications */
-  readonly notifications: boolean
+  /** Proven desktop-notification protocol, or false when unsupported. */
+  readonly notifications: TerminalNotificationProtocol | false
   /** Synchronized output (DEC 2026) */
   readonly syncOutput: boolean
 

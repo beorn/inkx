@@ -16,6 +16,7 @@ export type {
   Color,
   UnderlineStyle,
   TerminalCaps,
+  TerminalNotificationProtocol,
 } from "@silvery/ansi"
 
 // =============================================================================

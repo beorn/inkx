@@ -1,6 +1,6 @@
 # Terminal Compatibility Matrix
 
-_Terminal capabilities last verified: 2026-03._
+_Terminal capabilities last verified: 2026-07._
 
 Comprehensive reference of terminal emulator feature support as detected by Silvery.
 
@@ -8,11 +8,11 @@ Comprehensive reference of terminal emulator feature support as detected by Silv
 
 | Terminal     | Colors   | Kitty KB | Kitty Gfx | Sixel | OSC 52 | Hyperlinks | Notify | Paste | Mouse | Sync | Unicode |
 | ------------ | -------- | -------- | --------- | ----- | ------ | ---------- | ------ | ----- | ----- | ---- | ------- |
-| Ghostty      | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
-| kitty        | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | Yes    | Yes   | Yes   | Yes  | Yes     |
-| WezTerm      | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
-| iTerm2       | 24-bit   | -        | -         | -     | Yes    | Yes        | Yes    | Yes   | Yes   | Yes  | Yes     |
-| foot         | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
+| Ghostty      | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | 777    | Yes   | Yes   | Yes  | Yes     |
+| kitty        | 24-bit   | Yes      | Yes       | -     | Yes    | Yes        | 99     | Yes   | Yes   | Yes  | Yes     |
+| WezTerm      | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | 777    | Yes   | Yes   | Yes  | Yes     |
+| iTerm2       | 24-bit   | -        | -         | -     | Yes    | Yes        | 9      | Yes   | Yes   | Yes  | Yes     |
+| foot         | 24-bit   | Yes      | -         | Yes   | Yes    | Yes        | 777    | Yes   | Yes   | Yes  | Yes     |
 | Alacritty    | 24-bit   | -        | -         | -     | Yes    | Yes        | -      | Yes   | Yes   | Yes  | Yes     |
 | VS Code      | 24-bit   | -        | -         | -     | -      | -          | -      | Yes   | Yes   | -    | Yes     |
 | Terminal.app | 256      | -        | -         | -     | -      | -          | -      | Yes   | Yes   | -    | Yes     |
@@ -33,7 +33,7 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 | Sixel      | DCS q              | Sixel graphics for inline image display                       |
 | OSC 52     | OSC 52             | Clipboard access (works over SSH)                             |
 | Hyperlinks | OSC 8              | Clickable hyperlinks in terminal output                       |
-| Notify     | OSC 9/99           | Desktop notifications (OSC 9 = iTerm2, OSC 99 = Kitty)        |
+| Notify     | OSC 9/777/99       | Capability-selected desktop notification protocol             |
 | Paste      | DEC 2004           | Bracketed paste mode (distinguish pasted from typed input)    |
 | Mouse      | SGR 1003/1006/1016 | SGR mouse tracking (click, drag, scroll); optional SGR-Pixels |
 | Sync       | DEC 2026           | Synchronized output (batch rendering to prevent tearing)      |
@@ -47,7 +47,8 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 - **Keyboard**: Full Kitty keyboard protocol (Cmd, Hyper, event types)
 - **Images**: Kitty graphics protocol
 - **Clipboard**: OSC 52 (works over SSH)
-- **Notes**: Modern GPU-accelerated terminal. No OSC 9/99 notifications.
+- **Notifications**: OSC 777
+- **Notes**: Modern GPU-accelerated terminal.
 
 ### kitty
 
@@ -64,6 +65,7 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 - **Keyboard**: Kitty keyboard protocol
 - **Images**: Sixel graphics
 - **Clipboard**: OSC 52
+- **Notifications**: OSC 777
 - **Notes**: Cross-platform (macOS, Linux, Windows). Also supports iTerm2 image protocol.
 
 ### iTerm2
@@ -78,6 +80,7 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 ### foot
 
 - **Env**: `TERM=foot` or `TERM=foot-extra`, `COLORTERM=truecolor`
+- **Notifications**: OSC 777
 - **Keyboard**: Kitty keyboard protocol
 - **Images**: Sixel graphics
 - **Clipboard**: OSC 52

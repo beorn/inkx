@@ -923,6 +923,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.syncOutput).toBe(true)
     expect(profile.caps.underlineStyles.length).toBeGreaterThan(0)
     expect(profile.caps.underlineColor).toBe(true)
+    expect(profile.caps.notifications).toBe("osc777")
     expect(profile.caps.maybeNerdFont).toBe(true)
   })
 
@@ -934,7 +935,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.kittyGraphics).toBe(true)
     expect(profile.caps.osc52).toBe(true)
     expect(profile.caps.hyperlinks).toBe(true)
-    expect(profile.caps.notifications).toBe(true)
+    expect(profile.caps.notifications).toBe("osc99")
   })
 
   test("WezTerm (TERM_PROGRAM=WezTerm) populates kitty + modern caps", () => {
@@ -945,6 +946,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.sixel).toBe(true)
     expect(profile.caps.osc52).toBe(true)
     expect(profile.caps.hyperlinks).toBe(true)
+    expect(profile.caps.notifications).toBe("osc777")
   })
 
   test("foot (TERM=foot) populates kitty + modern caps", () => {
@@ -953,6 +955,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.sixel).toBe(true)
     expect(profile.caps.osc52).toBe(true)
     expect(profile.caps.hyperlinks).toBe(true)
+    expect(profile.caps.notifications).toBe("osc777")
   })
 
   test("iTerm.app (TERM_PROGRAM=iTerm.app) populates iTerm caps", () => {
@@ -961,7 +964,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.colorLevel).toBe("truecolor")
     expect(profile.caps.osc52).toBe(true)
     expect(profile.caps.hyperlinks).toBe(true)
-    expect(profile.caps.notifications).toBe(true)
+    expect(profile.caps.notifications).toBe("osc9")
     // iTerm is not Kitty-keyboard by default — that matrix cell must stay false.
     expect(profile.caps.kittyKeyboard).toBe(false)
   })
@@ -976,6 +979,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.hyperlinks).toBe(false)
     expect(profile.caps.underlineStyles.length).toBe(0)
     expect(profile.caps.underlineColor).toBe(false)
+    expect(profile.caps.notifications).toBe(false)
     // Apple Terminal renders text-emoji at 1-cell width — required for correct
     // grapheme measurement in the pipeline.
     expect(profile.caps.maybeWideEmojis).toBe(false)
@@ -990,6 +994,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.underlineColor).toBe(true)
     // Alacritty doesn't implement Kitty keyboard protocol.
     expect(profile.caps.kittyKeyboard).toBe(false)
+    expect(profile.caps.notifications).toBe(false)
   })
 
   test("unknown TERM (e.g. plain xterm) falls back to ansi16 without modern caps", () => {
@@ -999,6 +1004,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.kittyGraphics).toBe(false)
     expect(profile.caps.osc52).toBe(false)
     expect(profile.caps.hyperlinks).toBe(false)
+    expect(profile.caps.notifications).toBe(false)
   })
 
   test("TERM=dumb suppresses stale terminal-program graphics caps", () => {
@@ -1012,6 +1018,7 @@ describe("detectTerminalProfileFromEnv — terminal matrix", () => {
     expect(profile.caps.kittyGraphics).toBe(false)
     expect(profile.caps.sixel).toBe(false)
     expect(profile.caps.syncOutput).toBe(false)
+    expect(profile.caps.notifications).toBe(false)
   })
 })
 

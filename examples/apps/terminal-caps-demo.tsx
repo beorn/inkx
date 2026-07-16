@@ -112,7 +112,11 @@ function buildStaticEntries(caps: TerminalCaps): CapEntry[] {
       status: caps.kittyGraphics || caps.sixel ? "supported" : "not-supported",
       detail: caps.kittyGraphics ? "Kitty" : caps.sixel ? "Sixel" : "none",
     },
-    { name: "Notifications (OSC 9/99)", status: bool(caps.notifications) },
+    {
+      name: "Notifications (OSC 9/777/99)",
+      status: bool(caps.notifications !== false),
+      detail: caps.notifications || "none",
+    },
     { name: "Underline Styles (SGR 4:x)", status: bool(caps.underlineStyles.length > 0) },
     { name: "Underline Color (SGR 58)", status: bool(caps.underlineColor) },
     { name: "Unicode", status: bool(caps.unicode) },

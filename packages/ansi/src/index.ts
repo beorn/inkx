@@ -29,7 +29,15 @@
 // Types
 // =============================================================================
 
-export type { ColorLevel, RGB, AnsiColorName, Color, UnderlineStyle, TerminalCaps } from "./types"
+export type {
+  ColorLevel,
+  RGB,
+  AnsiColorName,
+  Color,
+  UnderlineStyle,
+  TerminalCaps,
+  TerminalNotificationProtocol,
+} from "./types"
 export type { TerminalEmulator } from "./emulator"
 
 // =============================================================================
