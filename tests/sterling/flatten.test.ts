@@ -31,8 +31,9 @@ describe("sterling flatten", () => {
     //   disabled = fg, bg, border                                       =  3
     //   backdrop = bg                                                   =  1
     //   default surfaces = fg-default, bg-default                       =  2
-    //   total = 52
-    expect(STERLING_FLAT_TOKENS.length).toBe(52)
+    //   faint = fg                                                      =  1
+    //   total = 53
+    expect(STERLING_FLAT_TOKENS.length).toBe(53)
   })
 
   test("theme is frozen (direct assignment throws in strict mode)", () => {
@@ -50,10 +51,10 @@ describe("sterling flatten", () => {
     expect(theme.surface.overlay).toBe(theme["bg-surface-overlay"])
   })
 
-  test("Object.keys counts ~78 entries (52 flat + 13 roles + mode + name + variants + palette + 8 hues + fg/bg root)", () => {
+  test("Object.keys counts ~81 entries (53 flat + 14 roles + mode + name + variants + palette + 8 hues + fg/bg root)", () => {
     const keys = Object.keys(theme)
     expect(keys.length).toBeGreaterThanOrEqual(74)
-    expect(keys.length).toBeLessThanOrEqual(80)
+    expect(keys.length).toBeLessThanOrEqual(82)
   })
 
   test("flat-only filter finds exactly STERLING_FLAT_TOKENS entries", () => {

@@ -50,6 +50,11 @@
     "tooltip": "Determinate/indeterminate progress indicator with theming"
   },
   {
+    "term": "Meter",
+    "href": "/components/Meter",
+    "tooltip": "Level/utilization gauge with a segment-fitted overlay label"
+  },
+  {
     "term": "Spinner",
     "href": "/api/spinner",
     "tooltip": "Animated loading indicator with customizable frames"

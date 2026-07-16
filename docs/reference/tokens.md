@@ -52,6 +52,7 @@ text on a status (e.g. `fg-error`) is a label, not an interactive link.
 | accent                                    |  ✓  |  ✓  |  ✓   |   ✓    |    ✓     |    ✓     |     ✓     |     ✓     |
 | info / success / warning / error (status) |  ✓  |  ✓  |  ✓   |   –    |    –     |    ✓     |     –     |     ✓     |
 | muted                                     |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |
+| faint                                     |  ✓  |  –  |  –   |   –    |    –     |    –     |     –     |     –     |
 | surface                                   |  –  |  ✓  |  –   |   –    |    –     |    ✓     |     –     |     –     |
 | border                                    |  –  |  –  |  –   |   ✓    |    –     |    –     |     –     |     –     |
 | cursor                                    |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |
@@ -105,6 +106,12 @@ for the full rule.
 | ---------- | ---------- | --------------- | ------------ | ------------------------------------------------- | ------------------------------------------ | ------------------------------------------- |
 | `fg-muted` | `#9A9FA7`  | 4.69:1          | AA-Large 3:1 | Deemphasized text — captions, secondary metadata. | blend(fg, bg, 0.4); ≥3:1 against bg-muted. | Stable in ansi16 (uses bright-black slot).  |
 | `bg-muted` | `#3B414D`  | 1.22:1          | —            | Code blocks, kbd chips, deemphasized fills.       | blend(bg, fg, 0.08).                       | May collapse with surface-subtle in ansi16. |
+
+### Faint
+
+| Token      | Hex (Nord) | Ratio vs canvas | Contract    | Purpose                                                                                                                                            | Derivation                                                          | Tier notes                                                                                            |
+| ---------- | ---------- | --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `fg-faint` | `#7D828C`  | 3.24:1          | FAINT 1.5:1 | Whisper-weight text one tier below `fg-muted` — fine-print unit suffixes, decorative meter labels, metadata that must not compete with a muted caption. | blend(fg, bg, 0.55); ≥1.5:1 against bg-muted (FAINT floor, below muted's 3:1). | Text analog of `border-muted`'s FAINT tier. In ansi16 collapses toward the bright-black slot (with `fg-muted`); intentionally low contrast. |
 
 ### Accent (link-like, full state matrix)
 

@@ -183,6 +183,20 @@ export const PUBLIC_TOKENS: readonly TokenManifestEntry[] = [
     tierNotes: "May collapse with surface-subtle in ansi16.",
   },
 
+  // ── Faint (deemphasis tier below muted — text only) ─────────────────────
+  {
+    flat: "fg-faint",
+    path: "faint.fg",
+    family: "faint",
+    axis: "fg",
+    purpose:
+      "Whisper-weight text one tier below `fg-muted` — fine-print unit suffixes, decorative meter labels, metadata that must not compete with an adjacent muted caption.",
+    derivation: "blend(fg, bg, 0.55); ≥1.5:1 against bg-muted (FAINT floor, below muted's 3:1).",
+    contrast: FAINT,
+    tierNotes:
+      "Text analog of border-muted's FAINT tier. In ansi16 collapses toward the bright-black slot (with fg-muted); intentionally low contrast.",
+  },
+
   // ── Accent ───────────────────────────────────────────────────────────────
   {
     flat: "fg-accent",
@@ -490,6 +504,7 @@ export const FAMILY_ORDER: readonly string[] = [
   "surface",
   "border",
   "muted",
+  "faint",
   "accent",
   "info",
   "success",

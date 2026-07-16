@@ -143,6 +143,21 @@ export type { SpinnerProps } from "./components/Spinner"
 export { ProgressBar } from "./components/ProgressBar"
 export type { ProgressBarProps } from "./components/ProgressBar"
 
+export {
+  Meter,
+  fitSegmentLabel,
+  leadingUnitLabelCandidates,
+  meterFilledCells,
+} from "./components/Meter"
+export type {
+  FitSegmentLabelOptions,
+  MeterLabelColors,
+  MeterOverlay,
+  MeterProps,
+  SegmentLabelFit,
+  SegmentLabelRegion,
+} from "./components/Meter"
+
 export { Pulse, usePulse } from "./components/Pulse"
 export type { PulseProps, UsePulseOptions } from "./components/Pulse"
 

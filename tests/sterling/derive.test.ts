@@ -11,6 +11,16 @@
 import { describe, test, expect } from "vitest"
 import { sterling, STERLING_FLAT_TOKENS } from "@silvery/theme/sterling"
 import { builtinPalettes } from "@silvery/theme/schemes"
+import { relativeLuminance } from "@silvery/color"
+
+/** WCAG contrast ratio between two hex colors (1..21). */
+function contrastRatio(a: string, b: string): number {
+  const la = relativeLuminance(a) ?? 0
+  const lb = relativeLuminance(b) ?? 0
+  const hi = Math.max(la, lb)
+  const lo = Math.min(la, lb)
+  return (hi + 0.05) / (lo + 0.05)
+}
 
 describe("sterling.deriveFromScheme — shape", () => {
   const names = Object.keys(builtinPalettes)
@@ -41,6 +51,7 @@ describe("sterling.deriveFromScheme — shape", () => {
     expect(theme.selected).toBeDefined()
     expect(theme.inverse).toBeDefined()
     expect(theme.link).toBeDefined()
+    expect(theme.faint).toBeDefined()
 
     // Same-reference invariant for canonical pairs
     expect(theme.accent.bg, `accent.bg`).toBe(theme["bg-accent"])
@@ -94,6 +105,23 @@ describe("sterling.deriveFromScheme — shape", () => {
 
     // Link — text color only
     expect(theme.link.fg).toBe(theme["fg-link"])
+
+    // Faint — text color only, the deemphasis tier below muted
+    expect(theme.faint.fg).toBe(theme["fg-faint"])
+  })
+
+  test.each(names)("'%s' — fg-faint reads dimmer than fg-muted (lower contrast vs bg)", (name) => {
+    // The faint tier must always resolve strictly fainter than muted: its
+    // blend runs further toward bg (0.55 vs 0.4) and its floor sits below
+    // muted's (1.5:1 vs 3:1). Compare contrast against the canvas so the
+    // relationship holds on light AND dark schemes (raw luminance flips).
+    const scheme = builtinPalettes[name]!
+    const theme = sterling.deriveFromScheme(scheme)
+    const cMuted = contrastRatio(theme["fg-muted"], theme.bg)
+    const cFaint = contrastRatio(theme["fg-faint"], theme.bg)
+    expect(cFaint, `${name}: faint ${cFaint} should be < muted ${cMuted}`).toBeLessThan(cMuted)
+    // …and still clears the FAINT non-text floor (never invisible).
+    expect(cFaint, `${name}: faint below FAINT floor`).toBeGreaterThanOrEqual(1.5)
   })
 
   test("theme.mode + name metadata is populated", () => {

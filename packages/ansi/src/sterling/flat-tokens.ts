@@ -28,6 +28,8 @@ export const STERLING_FLAT_TOKENS: readonly FlatToken[] = [
   // Muted
   "fg-muted",
   "bg-muted",
+  // Faint — deemphasis tier below muted (text-only; FAINT tier)
+  "fg-faint",
   // Accent — link-like interactive text, keeps fg state variants
   "fg-accent",
   "bg-accent",

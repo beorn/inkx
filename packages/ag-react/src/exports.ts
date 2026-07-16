@@ -303,6 +303,21 @@ export type { SpinnerProps } from "./ui/components"
 export { ProgressBar } from "./ui/components"
 export type { ProgressBarProps } from "./ui/components"
 
+export {
+  Meter,
+  fitSegmentLabel,
+  leadingUnitLabelCandidates,
+  meterFilledCells,
+} from "./ui/components"
+export type {
+  FitSegmentLabelOptions,
+  MeterLabelColors,
+  MeterOverlay,
+  MeterProps,
+  SegmentLabelFit,
+  SegmentLabelRegion,
+} from "./ui/components"
+
 export { Pulse, usePulse } from "./ui/components"
 export type { PulseProps, UsePulseOptions } from "./ui/components"
 

@@ -51,6 +51,7 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 | ---------------------------------------- | ------------------------------------------ | --- |
 | [Spinner](/guides/components)            | Animated spinner (dots, line, arc, bounce) | UI  |
 | [ProgressBar](/guides/components)        | Determinate and indeterminate progress     | UI  |
+| [Meter](/guides/components)              | Level gauge with fitted overlay label      | UI  |
 | [Toast / useToast()](/guides/components) | Auto-dismiss notifications                 | UI  |
 | [Skeleton](/guides/components)           | Loading placeholder                        | UI  |
 
