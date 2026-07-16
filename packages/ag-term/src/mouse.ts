@@ -36,8 +36,18 @@ export interface ParsedMouse {
   coordinateMode: "cell" | "pixel"
   /** Event action */
   action: "down" | "up" | "move" | "wheel"
-  /** Wheel delta: -1 for up, +1 for down */
+  /**
+   * Vertical wheel delta (deltaY): -1 for wheel-up, +1 for wheel-down, 0 for a
+   * pure-horizontal wheel. DOM-style sign convention (down is positive).
+   */
   delta?: number
+  /**
+   * Horizontal wheel delta (deltaX): -1 for wheel-left, +1 for wheel-right, 0
+   * for a pure-vertical wheel. DOM-style sign convention (right is positive).
+   * SGR buttons 66 (left) / 67 (right) decode here; consumers that only read
+   * `delta`/`deltaY` are unaffected.
+   */
+  deltaX?: number
   /** Shift was held */
   shift: boolean
   /** Alt/Meta was held */
@@ -96,7 +106,13 @@ export function parseMouseSequence(input: string, options?: ParseMouseOptions): 
   const isWheel = !!(raw & 64)
 
   if (isWheel) {
-    const wheelButton = raw & 3 // 0=up, 1=down, 2=left, 3=right
+    // Bits 0-1 of a wheel button: 0=up, 1=down, 2=left, 3=right (X11 buttons
+    // 4/5/6/7 → SGR 64/65/66/67). Up/down move the vertical axis (deltaY),
+    // left/right the horizontal axis (deltaX); a wheel tick is single-axis.
+    const wheelButton = raw & 3
+    const horizontal = wheelButton >= 2
+    const deltaY = horizontal ? 0 : wheelButton === 0 ? -1 : 1
+    const deltaX = horizontal ? (wheelButton === 2 ? -1 : 1) : 0
     return {
       button: 0,
       x,
@@ -105,7 +121,8 @@ export function parseMouseSequence(input: string, options?: ParseMouseOptions): 
       ...(clientY === undefined ? {} : { clientY }),
       coordinateMode,
       action: "wheel",
-      delta: wheelButton === 0 ? -1 : 1,
+      delta: deltaY,
+      deltaX,
       shift,
       meta,
       ctrl,

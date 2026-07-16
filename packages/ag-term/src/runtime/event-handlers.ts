@@ -96,6 +96,7 @@ type RoutedMouseData = {
   y: number
   action: string
   delta?: number
+  deltaX?: number
   shift?: boolean
   meta?: boolean
   ctrl?: boolean
@@ -315,7 +316,11 @@ function encodeIslandMouse(
   } else if (data.action === "move") {
     button += 32
   } else if (data.action === "wheel") {
-    button = (data.delta ?? 1) < 0 ? 64 : 65
+    // Single-axis wheel tick: horizontal (deltaX) → 66 (left) / 67 (right);
+    // otherwise vertical (delta/deltaY) → 64 (up) / 65 (down). Preserves the
+    // axis when forwarding a wheel event to a focused island guest.
+    const dx = data.deltaX ?? 0
+    button = dx !== 0 ? (dx < 0 ? 66 : 67) : (data.delta ?? 1) < 0 ? 64 : 65
   } else if (data.action !== "down") {
     return null
   }
@@ -475,6 +480,7 @@ export function dispatchMouseEventToTree(
     y: number
     action: string
     delta?: number
+    deltaX?: number
     receivedAt?: number
     inputBatchId?: number
     shift: boolean
@@ -491,6 +497,7 @@ export function dispatchMouseEventToTree(
       coordinateMode: "cell",
       action: mouseData.action as "down" | "up" | "move" | "wheel",
       delta: mouseData.delta,
+      deltaX: mouseData.deltaX,
       receivedAt: mouseData.receivedAt,
       inputBatchId: mouseData.inputBatchId,
       shift: mouseData.shift,
