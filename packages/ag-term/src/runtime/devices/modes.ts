@@ -77,6 +77,9 @@ const DISABLE_FOCUS_REPORTING = `${CSI}?1004l`
 const ENTER_ALT_SCREEN = `${CSI}?1049h`
 const LEAVE_ALT_SCREEN = `${CSI}?1049l`
 
+/** DEC private mode 1007: alternate-scroll (wheel → cursor keys on alt screen). */
+const DISABLE_ALTERNATE_SCROLL = `${CSI}?1007l`
+
 /**
  * Kitty keyboard protocol flags (bitfield).
  *
@@ -152,6 +155,24 @@ export interface Modes extends Disposable {
 
   /** Focus-in / focus-out reporting (DEC 1004). */
   readonly focusReporting: Signal<boolean>
+
+  /**
+   * Disable DEC private mode 1007 (alternate-scroll) with `CSI ?1007l`.
+   *
+   * Alternate-scroll makes the terminal translate wheel events into cursor
+   * (arrow) keys while the alternate screen is active and mouse tracking is
+   * OFF. For a silvery app that deliberately turned mouse tracking off, those
+   * synthesized arrows move the cursor/selection on every wheel tick — the
+   * recurring "wheel jumps the cursor" bug. Disabling 1007 turns the wheel
+   * into a benign no-op instead.
+   *
+   * One-way by design, unlike the callable-signal modes above: we emit
+   * `?1007l` at most once and never re-enable on dispose. 1007's prior state
+   * is unknowable (we never query it), so a blind `?1007h` on teardown could
+   * wrongly enable a mode the user had off; and it is moot once we leave the
+   * alt screen, which is where 1007 has any effect. Idempotent across calls.
+   */
+  disableAlternateScroll(): void
 
   /**
    * Enable a mode and return a `Disposable` that restores the mode to its
@@ -252,6 +273,10 @@ export function createModes(opts: CreateModesOptions): Modes {
   let touchedKittyKeyboard = false
   let touchedMouse = false
   let touchedFocusReporting = false
+  // Alternate-scroll (1007) is one-way: we only ever disable it, and never
+  // restore it on dispose (see `disableAlternateScroll` docs). This flag makes
+  // the emission idempotent — a second call is a no-op.
+  let touchedAlternateScroll = false
 
   let disposed = false
   let disposing = false
@@ -403,6 +428,20 @@ export function createModes(opts: CreateModesOptions): Modes {
     stopFocusEffect()
   }
 
+  function disableAlternateScroll(): void {
+    if (touchedAlternateScroll) return
+    touchedAlternateScroll = true
+    // Note: no `touched`-based restore. Unlike the callable-signal modes, we
+    // do NOT flip this back on dispose — 1007's prior state is unknowable and
+    // it is moot once the alt screen is gone. Disable-and-leave, by design.
+    if (disposed && !disposing) return
+    try {
+      write(DISABLE_ALTERNATE_SCROLL)
+    } catch {
+      // Terminal may already be gone (SSH disconnect, etc.)
+    }
+  }
+
   function enable(name: ModeName): Disposable {
     const sig =
       name === "rawMode"
@@ -433,6 +472,7 @@ export function createModes(opts: CreateModesOptions): Modes {
     kittyKeyboard,
     mouse,
     focusReporting,
+    disableAlternateScroll,
     enable,
     [Symbol.dispose]: dispose,
   }

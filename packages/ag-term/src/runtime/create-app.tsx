@@ -265,6 +265,7 @@ const FOCUS_DAMAGE_REPAINT_INTERVAL_MS = 500
 type RuntimeWheelMouseEvent = {
   action?: string
   delta?: number
+  deltaX?: number
   inputBatchId?: number
   x?: number
   y?: number
@@ -317,15 +318,21 @@ function canCoalesceWheelEvent(prev: NamespacedEvent, next: NamespacedEvent): bo
   if (!isWheelEvent(prev) || !isWheelEvent(next)) return false
   const a = prev.data
   const b = next.data
-  const deltaA = a.delta ?? 0
-  const deltaB = b.delta ?? 0
+  const vA = a.delta ?? 0
+  const vB = b.delta ?? 0
+  const hA = a.deltaX ?? 0
+  const hB = b.deltaX ?? 0
+  // A wheel tick moves on exactly one axis. Coalesce only same-axis, same-sign
+  // runs — vertical ticks merge with vertical, horizontal with horizontal, and
+  // never across axes (that would collapse an L-shaped scroll into one vector).
+  const vertical = hA === 0 && hB === 0 && Math.sign(vA) !== 0 && Math.sign(vA) === Math.sign(vB)
+  const horizontal = vA === 0 && vB === 0 && Math.sign(hA) !== 0 && Math.sign(hA) === Math.sign(hB)
+  if (!vertical && !horizontal) return false
   const sameInputBatch = a.inputBatchId === b.inputBatchId
   return (
     prev.type === next.type &&
     prev.provider === next.provider &&
     sameInputBatch &&
-    Math.sign(deltaA) !== 0 &&
-    Math.sign(deltaA) === Math.sign(deltaB) &&
     a.x === b.x &&
     a.y === b.y &&
     a.clientX === b.clientX &&
@@ -347,6 +354,7 @@ function coalesceWheelEvents(events: NamespacedEvent[]): NamespacedEvent[] {
       prev.data = {
         ...prevData,
         delta: (prevData.delta ?? 0) + (nextData.delta ?? 0),
+        deltaX: (prevData.deltaX ?? 0) + (nextData.deltaX ?? 0),
       }
       continue
     }
@@ -1025,7 +1033,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     alternateScreen = false,
     kittyMode: explicitKittyMode,
     kitty: kittyOption,
-    mouse: mouseOption = false,
+    // Mouse defaults to the alternate-screen mode: ON in fullscreen, OFF
+    // inline. This mirrors run()'s `mode !== "inline"` rule (run.tsx) so a
+    // direct `createApp().run({ alternateScreen: true })` gets mouse tracking
+    // like `run()` does — without it, wheel events on the alt screen get
+    // translated to cursor keys and "the wheel moves the cursor". An explicit
+    // `mouse` (true / false / ParseMouseOptions) always wins. `alternateScreen`
+    // is destructured just above, so this default reads its resolved value.
+    mouse: mouseOption = alternateScreen,
     virtualInline: virtualInlineOption = false,
     suspendOnCtrlZ: suspendOption = true,
     exitOnCtrlC: exitOnCtrlCOption = true,
@@ -3444,6 +3459,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         setMouseMode(legacyMouseMode, "setup")
       }
 
+      // Alt-screen + mouse-off defense (DEC private mode 1007, alternate-scroll).
+      // On the alternate screen with mouse tracking OFF, terminals that have
+      // alternate-scroll enabled translate wheel events into cursor (arrow)
+      // keys — the recurring "wheel moves the cursor/selection" bug. Disable
+      // 1007 so the wheel is a benign no-op instead. One-way (disable-and-leave):
+      // `modes.disableAlternateScroll()` never re-enables on teardown because
+      // 1007's prior state is unknowable and it is moot once we leave the alt
+      // screen. When mouse tracking IS on, 1003/1006 already capture the wheel
+      // as SGR events regardless of 1007, so this only fires for mouse-off apps.
+      if (alternateScreen && !mouseEnabled) {
+        modes.disableAlternateScroll()
+        recordTerminalProtocolWrite("\x1b[?1007l", "mode:alternate-scroll", "setup")
+      }
+
       // Focus reporting is deferred to after the event loop starts (see below).
       // Enabling it here would cause the terminal's immediate CSI I/O response
       // to arrive before the input parser's stdin listener is attached, leaking
@@ -4001,8 +4030,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         y: number
         action: string
         delta?: number
+        deltaX?: number
       }
       if (mouseData.action === "wheel") {
+        // A pure-horizontal wheel (deltaX only, delta === 0) carries no vertical
+        // intent — there is no horizontal history to scroll, so consume it
+        // without moving the vertical scrollback. Without this guard a
+        // horizontal tick (delta 0) falls through to the "scroll down" branch.
+        if (mouseData.delta === 0) return true
         const scrollLines = 3 * Math.max(1, Math.abs(mouseData.delta ?? 1))
         if (mouseData.delta && mouseData.delta < 0) {
           // Scroll up (into history)

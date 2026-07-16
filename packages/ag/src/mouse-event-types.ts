@@ -84,9 +84,13 @@ export interface SilveryMouseEvent {
  * Synthetic wheel event, extending SilveryMouseEvent with scroll deltas.
  */
 export interface SilveryWheelEvent extends SilveryMouseEvent {
-  /** Vertical scroll: -1 (up) or +1 (down) */
+  /** Vertical scroll: -1 (up), +1 (down), or 0 for a pure-horizontal wheel */
   deltaY: number
-  /** Horizontal scroll: always 0 for terminals */
+  /**
+   * Horizontal scroll: -1 (left), +1 (right), or 0 for a pure-vertical wheel.
+   * Sourced from SGR mouse buttons 66/67 (trackpad / tilt-wheel horizontal
+   * scroll); 0 on terminals or input devices that never emit them.
+   */
   deltaX: number
 }
 

@@ -112,7 +112,7 @@ export function createWheelEvent(
 ): SilveryWheelEvent {
   const base = createMouseEvent("wheel", x, y, target, parsed, keyboardMods) as SilveryWheelEvent
   base.deltaY = parsed.delta ?? 0
-  base.deltaX = 0
+  base.deltaX = parsed.deltaX ?? 0
   return base
 }
 
