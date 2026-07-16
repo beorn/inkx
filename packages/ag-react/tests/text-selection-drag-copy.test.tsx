@@ -77,6 +77,25 @@ describe("run({ mouse: true }) — in-app text selection copies via OSC 52", () 
     expect(copied).toContain(SELECTABLE)
   })
 
+  test("shipping config: { mode: 'fullscreen', mouse: true } selects+copies on drag", async () => {
+    // Byte-for-byte the yrd WATCH_LIVE_RENDER_OPTIONS shape (alt-screen +
+    // mouse). Selection operates on the rendered buffer, so the alt-screen
+    // switch must not disable it — this pins that the shipped path, not just
+    // the inline default, keeps in-app selection.
+    using term = createTermless({ cols: 40, rows: 8 })
+    using _handle = await run(
+      <Box>
+        <Text>{SELECTABLE}</Text>
+      </Box>,
+      term,
+      { mode: "fullscreen", mouse: true },
+    )
+    await settle()
+
+    const copied = await dragRowZeroAndReadClipboard(term, SELECTABLE.length - 1)
+    expect(copied).toContain(SELECTABLE)
+  })
+
   test("text rendered inside a ListView row is selectable (watch-UI parity)", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
     using _handle = await run(
