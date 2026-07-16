@@ -662,8 +662,9 @@ export interface BoxProps
   /**
    * Whether this node can be dragged via mouse.
    * When true, mousedown + drag past threshold initiates a node drag gesture
-   * instead of text selection. Not inherited — only the node with draggable=true
-   * is draggable, not its children.
+   * instead of text selection. The prop is not inherited, but pointer hits on
+   * descendants resolve to their nearest draggable ancestor, matching DOM drag
+   * targeting for content-bearing cards and rows.
    */
   draggable?: boolean
 

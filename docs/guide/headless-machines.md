@@ -103,12 +103,12 @@ Actions that move accept an optional `isDisabled` predicate to skip disabled ite
 
 ### Interaction Features (Runtime-Level)
 
-The following interaction capabilities are implemented as **runtime features** in `@silvery/ag-term/features/`, not as headless machines. They are wired automatically by providers:
+The following interaction capabilities are implemented as **runtime features** in `@silvery/ag-term/features/`, not as headless machines. The shipped `run()` runtime composes them automatically:
 
-- **SelectionFeature** — text selection with mouse drag, word/line selection, contain boundaries. Activated by `withDomEvents()`.
-- **FindFeature** — buffer-level text search with match highlighting and navigation. Activated by `withFocus()` (`Ctrl+F`).
-- **CopyModeFeature** — vim-style keyboard-driven text selection. Activated by `withFocus()` (`Esc, v`).
-- **DragFeature** — mouse drag-and-drop with hit testing. Activated by `withDomEvents()`.
+- **SelectionFeature** — text selection with mouse drag, word/line selection, contain boundaries. Installed when mouse tracking is enabled.
+- **FindFeature** — buffer-level text search with match highlighting and navigation (`Ctrl+F`).
+- **CopyModeFeature** — vim-style keyboard-driven text selection (`Esc, v`).
+- **DragFeature** — mouse drag-and-drop with hit testing. Installed when mouse tracking is enabled.
 
 See [Text Selection](/guide/text-selection), [Find](/guide/find), and [Event Handling](/guide/event-handling) for usage details.
 
