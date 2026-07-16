@@ -47,22 +47,31 @@ describe("OSC 22 mouse cursor", () => {
 
   test("contract: Tab renders a pointer cursor when mouseCursor is omitted", () => {
     const render = createRenderer({ cols: 24, rows: 6 })
+    // children passed via props: React.createElement's typing only accepts a
+    // required `children` prop inside the props object, not as variadic args.
     const app = render(
-      React.createElement(
-        Tabs,
-        { defaultValue: "one" },
-        React.createElement(
-          TabList,
-          null,
-          React.createElement(Tab, { value: "one" }, "One"),
-          React.createElement(Tab, { value: "two" }, "Two"),
-        ),
-        React.createElement(TabPanel, { value: "one" }, React.createElement(Text, null, "Panel")),
-      ),
+      React.createElement(Tabs, {
+        defaultValue: "one",
+        children: [
+          React.createElement(TabList, {
+            key: "list",
+            children: [
+              React.createElement(Tab, { key: "one", value: "one", children: "One" }),
+              React.createElement(Tab, { key: "two", value: "two", children: "Two" }),
+            ],
+          }),
+          React.createElement(TabPanel, {
+            key: "panel",
+            value: "one",
+            children: React.createElement(Text, null, "Panel"),
+          }),
+        ],
+      }),
     )
     const label = app.getByText("One").resolve()
 
-    expect(label.parent?.props.mouseCursor).toBe("pointer")
+    expect(label).not.toBeNull()
+    expect(label!.parent?.props.mouseCursor).toBe("pointer")
   })
 
   test("contract: hovering a clickable Box with omitted mouseCursor emits pointer OSC 22", async () => {
