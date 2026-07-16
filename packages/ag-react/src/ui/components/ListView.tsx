@@ -3554,6 +3554,15 @@ function ListViewInner<T>(
           const itemNode =
             nav && active !== false ? (
               <Box
+                // Layout-neutral hit surface: column direction stretches the
+                // item to the wrapper's full width (cross-axis stretch), so
+                // flexGrow/right-aligned cells inside renderItem lay out
+                // identically with nav on and off. The default row direction
+                // shrink-wrapped the item, starving flexGrow of free space
+                // (right-aligned cells floated at the content edge).
+                flexDirection="column"
+                minWidth={0}
+                flexShrink={0}
                 onMouseEnter={
                   onItemHover
                     ? () => onItemHover(originalIndex)
