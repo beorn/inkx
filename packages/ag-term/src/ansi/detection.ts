@@ -20,6 +20,7 @@
 export { defaultCaps, createTerminalProfile, probeTerminalProfile } from "@silvery/ansi"
 export type {
   TerminalCaps,
+  TerminalNotificationProtocol,
   TerminalProfile,
   ColorProvenance,
   TerminalProfileStdout,

@@ -23,6 +23,9 @@
  */
 export type ColorLevel = "mono" | "ansi16" | "256" | "truecolor"
 
+/** Desktop-notification escape protocol selected for a terminal profile. */
+export type TerminalNotificationProtocol = "osc9" | "osc777" | "osc99"
+
 /**
  * RGB color tuple for underline color.
  * Each component is 0-255.

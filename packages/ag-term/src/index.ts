@@ -147,9 +147,6 @@ export {
   enableKittyKeyboard,
   disableKittyKeyboard,
   queryKittyKeyboard,
-  notify,
-  notifyITerm2,
-  notifyKitty,
   reportDirectory,
   setWindowTitle,
   setWindowAndIconTitle,
@@ -160,6 +157,11 @@ export {
   resetMouseCursorShape,
 } from "./output"
 export type { CursorShape, MouseCursorShape } from "./output"
+export type {
+  NotificationRequest,
+  NotificationDelivery,
+  NotificationUrgency,
+} from "./ansi/notification"
 
 // =============================================================================
 // Caret Style — target-specific cursor shape mapping (invariant 6)
@@ -247,7 +249,7 @@ export { createKittyManager, type KittyManager, type KittyManagerOptions } from 
 // Post km-silvery.plateau-delete-legacy-shims (H6): `detectTerminalCaps`
 // deleted — the profile factory in @silvery/ansi is the canonical entry
 // point. Types remain available for consumers that destructure caps fields.
-export { defaultCaps, type TerminalCaps } from "./terminal-caps"
+export { defaultCaps, type TerminalCaps, type TerminalNotificationProtocol } from "./terminal-caps"
 export {
   createTerminalProfile,
   probeTerminalProfile,
