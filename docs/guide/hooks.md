@@ -4,11 +4,11 @@ Silvery provides hooks for input handling, layout queries, terminal access, and 
 
 ## Interaction Feature Hooks
 
-These hooks read state from the interactions runtime (features registered in the `CapabilityRegistry`). They require no provider wrappers — just use the corresponding `with*` provider in your app's `pipe()` chain.
+These hooks read state from interaction features registered in the `CapabilityRegistry`. The shipped `run()` runtime installs its mouse features automatically; explicitly composed runtimes must register the corresponding capability themselves.
 
 ### useSelection
 
-Reads the current text selection state from the `SelectionFeature`. Available when `withDomEvents()` is in the provider chain.
+Reads the current text selection state from the `SelectionFeature`. It is available in mouse-enabled `run()` composition.
 
 ```tsx
 import { useSelection } from "silvery"
@@ -23,7 +23,7 @@ function SelectionIndicator() {
 Returns `TerminalSelectionState | undefined` — `undefined` when no selection feature is registered.
 
 ::: info Legacy hooks
-The following hooks are superseded by the feature-based architecture but still exist for backwards compatibility: `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider`. New code should use `useSelection()` and the automatic feature activation via `withDomEvents()` / `withFocus()`.
+The following hooks are superseded by the feature-based architecture but still exist for backwards compatibility: `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider`. New code should use `useSelection()` and the capabilities installed by the shipped `run()` runtime.
 :::
 
 ## useBoxRect

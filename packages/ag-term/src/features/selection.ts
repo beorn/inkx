@@ -3,15 +3,16 @@
  *
  * Connects the pure `terminalSelectionUpdate` state machine to ag-term's
  * buffer for text extraction, clipboard for copy-on-select, and the
- * input router's invalidate callback for render triggering.
+ * runtime's invalidate callback for render triggering.
  *
  * Mouse event handling:
  * - mousedown → start selection (character granularity)
  * - mousemove while selecting → extend selection range
  * - mouseup → finish selection, copy to clipboard if available
  *
- * The feature is created by withDomEvents and registered in the
- * CapabilityRegistry under SELECTION_CAPABILITY.
+ * run() exposes its inline selection owner through a bridge registered in the
+ * CapabilityRegistry under SELECTION_CAPABILITY. Explicit/headless composition
+ * can still create a standalone feature for copy mode.
  */
 
 import {

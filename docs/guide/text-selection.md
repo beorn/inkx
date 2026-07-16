@@ -4,17 +4,13 @@ Silvery captures all mouse events via DECSET 1003, which kills native terminal t
 
 ## How It's Activated
 
-Text selection is a **runtime feature** (`SelectionFeature`) that activates automatically when you use `withDomEvents()`:
+Text selection is a **runtime feature** (`SelectionFeature`) installed by mouse-enabled `run()` composition:
 
 ```typescript
-const app = pipe(
-  createApp(store),
-  withReact(<App />),
-  withTerminal(process),
-  withFocus(),
-  withDomEvents(),    // ← text selection is included
-)
+await run(<App />, { mouse: true })
 ```
+
+`withDomEvents()` provides DOM-style component event dispatch for explicitly composed apps; it does not create the selection feature.
 
 No explicit hook setup is needed. To observe selection state from a React component, use the `useSelection()` hook:
 
@@ -28,7 +24,7 @@ function SelectionStatus() {
 }
 ```
 
-`useSelection()` is the recommended API — it reads from the `CapabilityRegistry`, so no provider wrapper is needed. The older `useTerminalSelection` hook and `TerminalSelectionProvider` component remain as fallback options.
+`useSelection()` is the recommended API — it reads from the `CapabilityRegistry`, so no provider wrapper is needed in a `run()` app. The older `useTerminalSelection` hook and `TerminalSelectionProvider` component remain as fallback options.
 
 ## The `userSelect` Prop
 

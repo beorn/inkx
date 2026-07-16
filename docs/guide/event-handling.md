@@ -2,15 +2,15 @@
 
 > This page documents Silvery's event handling APIs. For the guided progression from callbacks to composable plugins, see [Building an App](../guides/terminal-apps.md).
 
-## InputRouter and Feature Registration
+## Apply Chain and Feature Registration
 
-Under the hood, Silvery uses an **InputRouter** (`@silvery/create/internal/`) to dispatch keyboard and mouse events to registered feature handlers. Features like `SelectionFeature`, `FindFeature`, `CopyModeFeature`, and `DragFeature` register themselves with the router via the **CapabilityRegistry**. This happens automatically when you use the corresponding providers — you don't need to configure the router directly.
+Under the hood, Silvery routes typed input operations through its apply chain. Runtime features such as `SelectionFeature`, `FindFeature`, `CopyModeFeature`, and `DragFeature` publish their observable state through the **CapabilityRegistry**. Mouse-enabled `run()` composition installs the relevant capabilities automatically — applications don't configure the registry directly.
 
 The `CapabilityRegistry` also powers React hooks like `useSelection()`, which read feature state without needing provider wrappers.
 
 ## `withDomEvents()` — Component Event Handlers
 
-Adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes. Also activates `SelectionFeature` (text selection) and `DragFeature` (drag-and-drop).
+Adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes. The mouse-enabled runtime composes these handlers with text selection and drag-and-drop gesture ownership.
 
 ```tsx
 import { pipe, withDomEvents, withReact } from "@silvery/create/plugins"
@@ -63,6 +63,45 @@ of glyph-accurate hit testing. It assumes a uniform terminal cell grid and a
 runtime-probed cell size. Components that render custom pixel geometry, inline
 graphics, or terminal-side transformed text should provide their own hit testing
 or stay with cell-mode mouse input for that region.
+
+### Drag and drop
+
+Set `draggable` on a source `Box` and add drag handlers to a target. A pointer
+hit on source content resolves to the nearest draggable ancestor, so ordinary
+cards and rows don't need to repeat `draggable` on each child.
+
+```tsx
+function BoardCard() {
+  const [over, setOver] = useState(false)
+
+  return (
+    <Box flexDirection="row">
+      <Box draggable>
+        <Text>Drag me</Text>
+      </Box>
+      <Box
+        borderStyle="single"
+        borderColor={over ? "$border-focus" : undefined}
+        onDragEnter={() => setOver(true)}
+        onDragLeave={() => setOver(false)}
+        onDragOver={(event) => previewMove(event.source, event.dropTarget)}
+        onDrop={(event) => moveCard(event.source, event.dropTarget)}
+      >
+        <Text>Drop here</Text>
+      </Box>
+    </Box>
+  )
+}
+```
+
+`onDragEnter` fires once when the pointer enters a target, `onDragOver` fires
+on subsequent moves within that target, `onDragLeave` fires when it exits, and
+`onDrop` fires on release. Crossing the drag threshold suppresses text
+selection and the synthetic click that would otherwise follow mouseup.
+
+Use `useDragState()` when presentation needs the live source, pointer position,
+or current target. Its snapshot changes on every pointer move, which is the
+rendering seam for application-specific drag indicators and previews.
 
 ## `withCommands()` — Named Serializable Actions
 

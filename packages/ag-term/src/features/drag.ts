@@ -3,16 +3,17 @@
  *
  * Connects the pointer state machine's drag effects to ag-term's tree-based
  * hit testing for drop target resolution, the DragEvent dispatch system,
- * and the input router's invalidate callback for render triggering.
+ * and the runtime's invalidate callback for render triggering.
  *
  * Mouse event handling:
- * - mousedown on a draggable=true node → start tracking
+ * - mousedown within a draggable=true source → start tracking
  * - mousemove past threshold (3px) → activate drag, find drop targets
  * - mouseup → dispatch onDrop to drop target, reset state
  * - Escape → cancel drag
  *
- * The feature is created by withDomEvents and registered in the
- * CapabilityRegistry under DRAG_CAPABILITY.
+ * Mouse-enabled run() composition creates the feature, routes gestures through
+ * the typed apply chain, and registers it in the CapabilityRegistry under
+ * DRAG_CAPABILITY.
  */
 
 import type { AgNode } from "@silvery/ag/types"
@@ -42,8 +43,9 @@ export interface DragFeature {
 
   /**
    * Handle mouse down on a node.
-   * If the node has draggable=true, starts drag tracking (pointing phase).
-   * Returns true if the node is draggable and tracking has started.
+   * If the node or its nearest ancestor has draggable=true, starts drag
+   * tracking (pointing phase) from that declared source. Returns true when
+   * tracking has started.
    */
   handleMouseDown(col: number, row: number, node: AgNode): boolean
 
@@ -88,6 +90,17 @@ const DRAG_THRESHOLD = 3
 interface PointingState {
   node: AgNode
   startPos: Position
+}
+
+/** Resolve the nearest draggable ancestor of the hit-tested node. */
+function findDragSource(node: AgNode): AgNode | null {
+  let current: AgNode | null = node
+  while (current) {
+    const props = current.props as { draggable?: boolean }
+    if (props.draggable === true) return current
+    current = current.parent
+  }
+  return null
 }
 
 /**
@@ -167,12 +180,12 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
     },
 
     handleMouseDown(col: number, row: number, node: AgNode): boolean {
-      const props = node.props as { draggable?: boolean }
-      if (!props.draggable) return false
+      const source = findDragSource(node)
+      if (!source) return false
 
       // Start pointing phase — drag hasn't started yet
       pointing = {
-        node,
+        node: source,
         startPos: { x: col, y: row },
       }
       return true
@@ -191,16 +204,21 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
         if (dist <= DRAG_THRESHOLD) return // Not past threshold yet
 
         // Threshold crossed — activate drag
-        dragState = createDragState(pointing.node, pointing.startPos)
-        dragState.currentPos = pos
+        const nextDragState = createDragState(pointing.node, pointing.startPos)
         pointing = null
 
         // Find initial drop target
         const hitNode = hitTestFn(col, row)
         const dropTarget = findDropTarget(hitNode)
-        if (dropTarget && dropTarget !== dragState.source) {
-          dragState.dropTarget = dropTarget
-          dispatchDragEnter(dropTarget, dragState.source, pos)
+        const effectiveTarget =
+          dropTarget && dropTarget !== nextDragState.source ? dropTarget : null
+        dragState = {
+          ...nextDragState,
+          currentPos: pos,
+          dropTarget: effectiveTarget,
+        }
+        if (effectiveTarget) {
+          dispatchDragEnter(effectiveTarget, dragState.source, pos)
         }
 
         notifyListeners()
@@ -210,8 +228,6 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
 
       // --- Dragging phase: update position and drop target ---
       if (!dragState) return
-
-      dragState.currentPos = pos
 
       const hitNode = hitTestFn(col, row)
       const newDropTarget = findDropTarget(hitNode)
@@ -228,9 +244,17 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
         if (effectiveTarget) {
           dispatchDragEnter(effectiveTarget, dragState.source, pos)
         }
-        dragState.dropTarget = effectiveTarget
       } else if (effectiveTarget) {
         dispatchDragOver(effectiveTarget, dragState.source, pos)
+      }
+
+      // useSyncExternalStore snapshots are identity-based. Publish a fresh
+      // object on every move so observers (including a cursor-following drag
+      // preview) repaint even when the target itself did not change.
+      dragState = {
+        ...dragState,
+        currentPos: pos,
+        dropTarget: effectiveTarget,
       }
 
       notifyListeners()

@@ -124,6 +124,7 @@ import {
   updateKeyboardModifiers,
   findSelectionBoundaries,
   selectionHitTest,
+  hitTest,
   refreshHoverPath,
   resolveSelectionAnchorFromPoint,
   createClickCountState,
@@ -156,11 +157,12 @@ import {
   type SelectionScope,
 } from "@silvery/headless/selection"
 import { createSelectionBridge, type SelectionFeature } from "../features/selection"
+import { createDragFeature, type DragFeature } from "../features/drag"
 import {
   createCapabilityRegistry,
   type CapabilityRegistry,
 } from "@silvery/create/internal/capability-registry"
-import { SELECTION_CAPABILITY } from "@silvery/create/internal/capabilities"
+import { DRAG_CAPABILITY, SELECTION_CAPABILITY } from "@silvery/create/internal/capabilities"
 import {
   createBaseApp,
   withCustomEvents,
@@ -175,6 +177,7 @@ import {
   type TerminalStore,
   type FocusChainStore,
 } from "@silvery/create/plugins"
+import { isDragChainEffect, withDragChain } from "./with-drag-chain"
 import { createVirtualScrollback } from "../virtual-scrollback"
 import { createSearchState, searchUpdate } from "../search-overlay"
 import { createOutput, type Output } from "./devices/output"
@@ -2338,6 +2341,19 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     capabilityRegistry.register(SELECTION_CAPABILITY, selectionBridge)
   }
 
+  // --- Node drag capability ---
+  // Mouse-enabled runtimes install one DragFeature. The typed apply-chain
+  // below owns gesture routing; React observes this same instance through
+  // useDragState(), so input and presentation cannot drift onto parallel
+  // authorities.
+  const dragFeature: DragFeature | undefined = mouseTrackingEnabled
+    ? createDragFeature({ invalidate: () => runtime.invalidate() })
+    : undefined
+  if (dragFeature) {
+    capabilityRegistry.register(DRAG_CAPABILITY, dragFeature)
+    appScope.defer(() => dragFeature.dispose())
+  }
+
   // Virtual inline mode state
   const scrollback = virtualInlineOption ? createVirtualScrollback() : null
   let virtualScrollOffset = 0 // 0 = live (bottom), >0 = scrolled up
@@ -3095,9 +3111,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     },
     hasActiveFocus: () => focusManager.activeElement !== null,
   })(inputChainApp)
+  const dragChainApp = dragFeature
+    ? withDragChain({
+        feature: dragFeature,
+        hitTest: (x, y) => {
+          const root = getContainerRoot(container)
+          return root ? hitTest(root, x, y) : null
+        },
+      })(focusChainApp)
+    : focusChainApp
   // Custom events — replaces the legacy RuntimeContext.on/emit surface
   // for app-defined channels (e.g. km-tui's `link:open`).
-  const app = withCustomEvents(focusChainApp)
+  const app = withCustomEvents(dragChainApp)
   // Focus event slice — mirrors the withTerminalChain `focused` snapshot
   // into a pub/sub store shaped like InputStore/PasteStore. Used by the
   // ChainAppContext `focusEvents` accessor (hooks useTerminalFocused,
@@ -3862,7 +3887,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
    *
    * Intercepts mouse events for selection and virtual inline mode.
    */
-  function runEventHandler(event: NamespacedEvent): boolean | "flush" {
+  function runEventHandler(
+    event: NamespacedEvent,
+    { skipSelection = false }: { skipSelection?: boolean } = {},
+  ): boolean | "flush" {
     // Virtual inline: intercept search key events
     if (scrollback && searchState.active && event.type === "term:key") {
       const data = event.data as { input: string; key: Key }
@@ -3986,7 +4014,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     //                                   so onClick/onSelect does NOT fire)
     //   up from armed     → idle       (plain click — event propagates,
     //                                   no selection created, no clipboard)
-    if (selectionEnabled && event.event === "mouse" && event.data) {
+    if (!skipSelection && selectionEnabled && event.event === "mouse" && event.data) {
       const mouseData = event.data as {
         button: number
         x: number
@@ -4458,10 +4486,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // resize. The chain's effects (render / exit) are drained and re-routed
     // into this runner's render pipeline.
     //
-    // Mouse / resize / other namespaced events bypass the chain and go
-    // straight to `runEventHandler` (app handlers), same as before.
+    // Node-drag mouse events also enter the chain; unclaimed mouse events and
+    // resize / other namespaced events continue to runEventHandler.
     for (const event of events) {
       let hostInputOwnershipBarrier = false
+      let dragPointerOwned = false
+      let suppressEvent = false
       if (event.type === "term:key") {
         const { input, key: parsedKey } = event.data as { input: string; key: Key }
         hostInputOwnershipBarrier = isFocusedIslandHostInputBarrier(input, parsedKey, focusManager)
@@ -4484,6 +4514,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const chainEffects = chainApp.drainEffects()
         for (const eff of chainEffects) {
           if (eff.type === "exit") shouldExit = true
+          if (isDragChainEffect(eff)) suppressEvent = eff.suppressEvent
         }
         if (shouldExit) {
           inEventHandler = false
@@ -4493,6 +4524,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // pre-refactor behaviour: those never produced app-level commands).
         if (parsedKey.eventType === "release" || isModifierOnlyEvent(input, parsedKey)) {
           continue
+        }
+      } else if (dragFeature && event.event === "mouse" && event.data) {
+        const mouse = event.data as {
+          action: "down" | "up" | "move" | "wheel"
+          button: number
+          x: number
+          y: number
+        }
+        chainApp.dispatch({ type: "term:mouse", ...mouse })
+        const chainEffects = chainApp.drainEffects()
+        for (const effect of chainEffects) {
+          if (!isDragChainEffect(effect)) continue
+          suppressEvent ||= effect.suppressEvent
+          if (effect.type === "drag:pointer") dragPointerOwned = effect.ownsPointer
         }
       } else if (event.type === "term:paste") {
         const { text } = event.data as { text: string }
@@ -4535,7 +4580,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         return null
       }
 
-      const result = runEventHandler(event)
+      if (suppressEvent) {
+        // The DOM event processor armed the drag source on mousedown. An
+        // active drag consumes mouseup, so release that capture explicitly
+        // instead of leaving a stale armed/capture target behind.
+        const mouse = event.event === "mouse" ? (event.data as { action?: string }) : null
+        if (mouse?.action === "up" && mouseEventState.mouseDownTarget) {
+          setArmed(mouseEventState.mouseDownTarget, false)
+          mouseEventState.mouseDownTarget = null
+          mouseEventState.mouseCaptureTarget = null
+        }
+        continue
+      }
+
+      const result = runEventHandler(event, { skipSelection: dragPointerOwned })
       if (result === false) {
         isRendering = false
         inEventHandler = false
