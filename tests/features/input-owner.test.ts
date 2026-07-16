@@ -329,6 +329,28 @@ describe("InputOwner", () => {
     }
   })
 
+  it("buffers split OSC52 before a bracketed paste and Return", () => {
+    const { stdin, stdout, send } = createMockIO()
+    using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
+    const events: string[] = []
+    owner.onPaste((event) => events.push(`paste:${event.text}`))
+    owner.onKey((event) => {
+      events.push(event.key.return ? "return" : `key:${event.input}`)
+    })
+
+    send("\x1b]52;c;Q0")
+
+    expect(events).toEqual([])
+
+    send('xJUA==\x07\x1b[200~printf "OSC52_SPLIT_20652\\n"\x1b[201~\r')
+
+    expect(events).toEqual([
+      "paste:CLIP",
+      'paste:printf "OSC52_SPLIT_20652\\n"',
+      "return",
+    ])
+  })
+
   it("dispatches standalone Escape after the protocol disambiguation window", async () => {
     const { stdin, stdout, send } = createMockIO()
     using owner = createInputOwner(stdin, stdout, { enableBracketedPaste: false })
