@@ -358,11 +358,24 @@ async function importProbe(prepared: PreparedPkg, npmrc: string): Promise<ProbeR
   }
 
   const probeScript = `
-import('${entry.name}').then(m => {
+import('${entry.name}').then(async m => {
   const keys = Object.keys(m).slice(0, 3)
   if (keys.length === 0) {
     console.error('NO_EXPORTS')
     process.exit(2)
+  }
+  if (${entry.name === "silvery"}) {
+    for (const name of ['SplitPane', 'clampSplitPaneRatio', 'resolveSplitPaneLayout']) {
+      if (typeof m[name] !== 'function') {
+        throw new TypeError('silvery must export function ' + name)
+      }
+    }
+    const testModule = await import('silvery/test')
+    for (const name of ['createRenderer', 'createTermless', 'waitFor']) {
+      if (typeof testModule[name] !== 'function') {
+        throw new TypeError('silvery/test must export function ' + name)
+      }
+    }
   }
   console.log('OK ' + keys.join(','))
 }).catch(e => {

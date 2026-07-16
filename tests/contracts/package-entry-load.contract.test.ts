@@ -31,7 +31,10 @@ function expectBunCanImport(specifier: string, expectedExports: string[] = []) {
 
 describe("contract: package entry points load under Bun", () => {
   test.each(["@silvery/ag-react", "silvery"])("%s", (specifier) => {
-    expectBunCanImport(specifier)
+    expectBunCanImport(
+      specifier,
+      specifier === "silvery" ? ["SplitPane", "clampSplitPaneRatio", "resolveSplitPaneLayout"] : [],
+    )
   })
 
   test("silvery/test exposes the bundled test renderer and Termless helpers", () => {
