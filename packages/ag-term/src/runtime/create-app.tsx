@@ -52,6 +52,7 @@ import { type StateCreator, type StoreApi, createStore } from "@silvery/create/s
 import { watch } from "@silvery/signals"
 
 import { createTerm } from "../ansi"
+import { NOTIFICATION_WRITER_AVAILABLE } from "../ansi/notification"
 import {
   CacheBackendContext,
   CapabilityRegistryContext,
@@ -1273,7 +1274,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       ? ({
           columns: cols,
           rows,
-          write: () => true,
+          [NOTIFICATION_WRITER_AVAILABLE]: explicitWritable !== undefined,
+          write(data: string | Uint8Array) {
+            if (explicitWritable) {
+              explicitWritable.write(
+                typeof data === "string" ? data : new TextDecoder().decode(data),
+              )
+            }
+            return true
+          },
           isTTY: false,
           on(event: string, handler: () => void) {
             if (event === "resize") resizeListeners.add(handler)
@@ -1305,6 +1314,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       stdin: termStdin,
       stdout: termStdout,
       mouse: mouseParseOptions,
+      ...(capsOption ? { caps: capsOption } : {}),
       // Propagate `input: false` to the auto-created Term so its lazy
       // `.input` accessor returns undefined instead of constructing an
       // InputOwner on first access. Without this, createApp's input
@@ -3077,6 +3087,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   }
   const mockTerm = Object.create(baseMockTerm, {
     getState: { value: (): { cols: number; rows: number } => currentDims },
+    notify: {
+      value: effectiveTerm
+        ? effectiveTerm.notify.bind(effectiveTerm)
+        : baseMockTerm.notify.bind(baseMockTerm),
+    },
     subscribe: {
       value: (listener: (state: { cols: number; rows: number }) => void): (() => void) => {
         mockTermSubscribers.add(listener)
@@ -3328,10 +3343,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // `output` is set (see RenderTarget.write above), and the explicit
   // alt-screen sequences below mirror that via `writeOwned`.
   if (shouldGuardOutput && process.env.SILVERY_NO_CAPTURE !== "1") {
-    // Prefer the injected Term's Output sub-owner (single writer per
-    // resource). Fall back to constructing a local one when no Term is
-    // injected or the Term has no Output (headless / emulator backends).
-    const termOutput = injectedTerm?.output
+    // Prefer the effective Term's Output sub-owner (single writer per
+    // resource). Fall back to constructing a local one when the Term has no
+    // Output (headless / emulator backends).
+    const termOutput = effectiveTerm?.output
     if (termOutput) {
       output = termOutput
       ownsOutput = false

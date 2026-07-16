@@ -596,6 +596,7 @@ class SilveryInstance {
   private resizeCleanup: (() => void) | null = null
   private signalCleanup: (() => void) | null = null
   private output: Output | null = null
+  private ownsOutput = false
   /**
    * Mouse event processor — `undefined` when mouse tracking is disabled
    * (`mouse: false` or non-TTY). Created once per instance so hover tracking
@@ -604,7 +605,9 @@ class SilveryInstance {
    */
   private mouseState: MouseEventProcessorState | undefined
 
-  constructor(options: Required<Omit<RenderOptions, "layoutEngine">>) {
+  constructor(
+    options: Required<Omit<RenderOptions, "layoutEngine">> & { readonly termOutput?: Output },
+  ) {
     log.debug?.("SilveryInstance constructor start")
     const startTime = Date.now()
 
@@ -669,7 +672,8 @@ class SilveryInstance {
     // in tests don't need guarding and intercepting process.stdout would
     // break the test infrastructure.
     if (this.alternateScreen && this.stdout === process.stdout) {
-      this.output = createOutput()
+      this.output = options.termOutput ?? createOutput()
+      this.ownsOutput = options.termOutput === undefined
       this.output.activate()
     }
 
@@ -798,7 +802,8 @@ class SilveryInstance {
     // Dispose output owner BEFORE terminal protocol cleanup — restores original
     // stdout/stderr write methods so the cleanup sequences go through unimpeded.
     if (this.output) {
-      this.output.dispose()
+      if (this.ownsOutput) this.output.dispose()
+      else this.output.deactivate()
       this.output = null
     }
 
@@ -1184,7 +1189,7 @@ async function renderImpl(
   let instance = instances.get(resolvedOptions.stdout)
   if (!instance) {
     log.debug?.("render(): creating new SilveryInstance")
-    instance = new SilveryInstance(resolvedOptions)
+    instance = new SilveryInstance({ ...resolvedOptions, termOutput: term.output })
     instances.set(resolvedOptions.stdout, instance)
     log.debug?.(`render(): SilveryInstance created in ${Date.now() - renderStart}ms`)
   }

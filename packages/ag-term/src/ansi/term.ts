@@ -4,7 +4,7 @@
  * Term is the central abstraction for terminal interaction:
  * - Caps + emulator identity: term.caps, term.emulator
  * - Dimensions: cols, rows (shorthand for term.size.cols() / .rows())
- * - I/O: write(), writeLine()
+ * - I/O: write(), writeLine(), notify()
  * - Sub-owners: input, output, modes, size, signals, console
  * - Styling: Chainable styles via Proxy (term.bold.red('text'))
  * - Lifecycle: Disposable pattern via Symbol.dispose
@@ -80,6 +80,12 @@ import { parseFocusEvent } from "../focus-reporting"
 import { parseBracketedPaste } from "../bracketed-paste"
 import { parseClipboardResponse } from "../clipboard"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
+import {
+  createNotificationEmitter,
+  NOTIFICATION_WRITER_AVAILABLE,
+  type NotificationDelivery,
+  type NotificationRequest,
+} from "./notification"
 
 export type { OutputOptions } from "../runtime/devices/output"
 
@@ -473,6 +479,9 @@ export interface Term extends Disposable, StyleChain {
    */
   write(str: string): void
 
+  /** Emit a desktop notification through the capability-proven protocol. */
+  notify(request: NotificationRequest): NotificationDelivery
+
   /**
    * Write string followed by newline to stdout.
    */
@@ -864,6 +873,11 @@ function createNodeTerm(options: CreateTermOptions): Term {
     if (out && out.active()) return out.write(s)
     return stdout.write(s)
   }
+  const notificationWrite =
+    (stdout as { [NOTIFICATION_WRITER_AVAILABLE]?: boolean })[NOTIFICATION_WRITER_AVAILABLE] ===
+    false
+      ? undefined
+      : ownedWrite
 
   // Modes owner — single authority for terminal protocol modes (raw, alt-
   // screen, paste, kitty keyboard, mouse, focus reporting). Consolidates
@@ -947,6 +961,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
     write: (str: string) => {
       ownedWrite(str)
     },
+    notify: createNotificationEmitter(detectedCaps, notificationWrite),
     writeLine: (str: string) => {
       ownedWrite(str + "\n")
     },
@@ -1068,6 +1083,7 @@ function createHeadlessTerm(
     signals,
     console: undefined as DeviceConsole | undefined,
     write: () => {},
+    notify: createNotificationEmitter(profile.caps),
     writeLine: () => {},
     stripAnsi,
     paint: (_buffer: TerminalBuffer, _prev: TerminalBuffer | null): string => {
@@ -1186,6 +1202,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     signals,
     console: undefined as DeviceConsole | undefined,
     write: (str: string) => emulator.feed(str),
+    notify: createNotificationEmitter(profile.caps, (str) => emulator.feed(str)),
     writeLine: (str: string) => emulator.feed(str + "\n"),
     resize: (cols: number, rows: number) => {
       emulator.resize(cols, rows)

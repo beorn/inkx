@@ -53,4 +53,59 @@ describe("createApp TermContext caps", () => {
 
     handle.unmount()
   })
+
+  test("useTerm().notify delegates to the runtime-owned Term writer", async () => {
+    const sink = makeWritable()
+    const deliveries: unknown[] = []
+    const profile = createTerminalProfile({
+      caps: { notifications: "osc777" },
+    })
+
+    function Probe(): React.ReactElement {
+      const term = useTerm()
+      useEffect(() => {
+        deliveries.push(term.notify({ title: "Build", body: "Done" }))
+      }, [term])
+      return <Text>notified</Text>
+    }
+
+    const handle = await run(<Probe />, {
+      writable: sink.writable,
+      cols: 40,
+      rows: 5,
+      profile,
+    })
+    await settle()
+
+    expect(deliveries).toContainEqual({ status: "emitted", protocol: "osc777" })
+    expect(sink.output).toContain("\x1b]777;notify;Build;Done\x07")
+
+    handle.unmount()
+  })
+
+  test("useTerm().notify refuses when the runtime has no writable sink", async () => {
+    const deliveries: unknown[] = []
+    const profile = createTerminalProfile({
+      caps: { notifications: "osc9" },
+    })
+
+    function Probe(): React.ReactElement {
+      const term = useTerm()
+      useEffect(() => {
+        deliveries.push(term.notify({ body: "Done" }))
+      }, [term])
+      return <Text>notified</Text>
+    }
+
+    const handle = await run(<Probe />, {
+      cols: 40,
+      rows: 5,
+      profile,
+    })
+    await settle()
+
+    expect(deliveries).toContainEqual({ status: "unsupported", reason: "notifications" })
+
+    handle.unmount()
+  })
 })

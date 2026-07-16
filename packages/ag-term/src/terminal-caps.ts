@@ -7,7 +7,7 @@
  * entry point; consume `term.caps` / `term.profile` when a Term is in scope.
  */
 
-export { defaultCaps, type TerminalCaps } from "./ansi/detection"
+export { defaultCaps, type TerminalCaps, type TerminalNotificationProtocol } from "./ansi/detection"
 export {
   createTerminalProfile,
   probeTerminalProfile,

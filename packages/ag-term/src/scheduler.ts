@@ -40,7 +40,7 @@ import {
   type OutputCursorTarget,
   type PrevPresentation,
 } from "./cursor-diagnostics"
-import { ANSI, notify as notifyTerminal } from "./output"
+import { ANSI } from "./output"
 import { computeManagedFrame, protectManagedCursorSuffix } from "./managed-caret"
 import type { PipelineConfig } from "./pipeline"
 import {
@@ -478,21 +478,6 @@ export class RenderScheduler {
   addScrollbackLines(lines: number): void {
     if (this.mode !== "inline" || lines <= 0) return
     this.scrollbackOffset += lines
-  }
-
-  /**
-   * Send a terminal notification.
-   *
-   * Auto-detects terminal type and uses the best available method:
-   * - iTerm2 → OSC 9
-   * - Kitty → OSC 99
-   * - Others → BEL
-   */
-  notify(message: string, opts?: { title?: string }): void {
-    if (this.disposed) return
-    // Route through writeOutput so the output guard allows it through
-    const writable = { write: (data: string) => this.writeOutput(data) } as NodeJS.WriteStream
-    notifyTerminal(writable, message, opts)
   }
 
   /**
