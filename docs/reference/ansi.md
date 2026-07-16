@@ -103,7 +103,7 @@ Profiles are two-layer: `profile.emulator` carries identity (program/version/TER
 | `sixel`               | `boolean`                   | Sixel graphics                                   |
 | `osc52`               | `boolean`                   | OSC 52 clipboard access                          |
 | `hyperlinks`          | `boolean`                   | OSC 8 hyperlinks                                 |
-| `notifications`       | `boolean`                   | OSC 9/99 notifications                           |
+| `notifications`       | `"osc9" \| "osc777" \| "osc99" \| false` | Proven desktop-notification protocol              |
 | `bracketedPaste`      | `boolean`                   | Bracketed paste mode                             |
 | `mouse`               | `boolean`                   | SGR mouse tracking                               |
 | `syncOutput`          | `boolean`                   | Synchronized output (DEC 2026)                   |

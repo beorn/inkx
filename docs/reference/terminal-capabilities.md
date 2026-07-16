@@ -783,27 +783,35 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 
 ## Terminal Notifications
 
-Silvery provides a notification API that auto-detects the terminal and sends notifications using the best available method.
+Every `Term` exposes one notification entry. It uses the protocol already proven by
+`term.caps.notifications`; it never re-detects ambient environment state.
 
 ```tsx
-import { notify, notifyITerm2, notifyKitty, BEL } from "@silvery/ag-term"
+import { createTerm } from "@silvery/ag-term"
 
-// Auto-detect terminal and send notification
-notify(process.stdout, "Build complete", { title: "silvery" })
+using term = createTerm()
+const delivery = term.notify({
+  id: "build-42",
+  title: "silvery",
+  body: "Build complete",
+  urgency: "normal",
+})
 
-// Terminal-specific functions
-notifyITerm2("Build complete") // OSC 9 (iTerm2)
-notifyKitty("Build complete", { title: "silvery" }) // OSC 99 (Kitty)
+if (delivery.status === "unsupported") {
+  // The caller chooses any fallback policy explicitly.
+}
 ```
 
-| Function       | Protocol | Description                                         |
-| -------------- | -------- | --------------------------------------------------- |
-| `notify`       | Auto     | Detects terminal via `TERM_PROGRAM`/`TERM` env vars |
-| `notifyITerm2` | OSC 9    | Returns iTerm2 notification escape string           |
-| `notifyKitty`  | OSC 99   | Returns Kitty notification escape string            |
-| `BEL`          | BEL      | Basic terminal bell character (`\x07`)              |
+| Entry                  | Protocol      | Description                                      |
+| ---------------------- | ------------- | ------------------------------------------------ |
+| `term.notify(request)` | OSC 9/777/99  | Emits through the Term-owned writer              |
+| typed `unsupported`    | None          | Emits no bytes; caller owns explicit fallback    |
 
-`notify()` auto-selects: iTerm2 uses OSC 9, Kitty uses OSC 99, other terminals fall back to BEL (audible/visual bell).
+The capability table selects OSC 9 for iTerm2, OSC 99 for Kitty, and OSC 777
+for Ghostty, WezTerm, and foot. Unknown terminals return
+`{ status: "unsupported", reason: "notifications" }` without writing BEL or
+silently dropping the request. OSC 99 v1 supports basic title/body/id/urgency
+emission; actions and activation replies are intentionally not part of this API.
 
 ## Standards Reference
 

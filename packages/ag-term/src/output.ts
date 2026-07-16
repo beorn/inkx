@@ -11,8 +11,6 @@ import {
   disableMouse as _disableMouse,
   enableKittyKeyboard as _enableKittyKeyboard,
   disableKittyKeyboard as _disableKittyKeyboard,
-  createTerminalProfile,
-  type TerminalCaps,
 } from "@silvery/ansi"
 
 // ============================================================================
@@ -254,56 +252,11 @@ export function queryKittyKeyboard(): string {
 export const disableKittyKeyboard = _disableKittyKeyboard
 
 // ============================================================================
-// Terminal Notifications
+// Bell / OSC String Terminator
 // ============================================================================
 
-/** BEL character — basic terminal bell/notification */
+/** BEL character — audible bell and legacy OSC string terminator. */
 export const BEL = "\x07"
-
-/** iTerm2 notification (OSC 9) */
-export function notifyITerm2(message: string): string {
-  return `${ESC}]9;${message}${BEL}`
-}
-
-/** Kitty notification (OSC 99) with optional title */
-export function notifyKitty(message: string, opts?: { title?: string }): string {
-  const params = opts?.title ? `;t=t;${opts.title}` : ""
-  return `${ESC}]99;i=1:d=0${params};${message}${ESC}\\`
-}
-
-/**
- * Send a terminal notification using the best available method.
- *
- * Auto-detects terminal type via {@link TerminalCaps}:
- * - iTerm2 → OSC 9
- * - Kitty → OSC 99
- * - Others → BEL (audible/visual bell)
- *
- * Pass `caps` when a {@link TerminalCaps} is in scope (typically `term.caps`).
- * Without caps, falls back to {@link createTerminalProfile} — the canonical
- * single-source-of-truth entry in `@silvery/ansi/profile`.
- */
-export function notify(
-  stdout: NodeJS.WriteStream,
-  message: string,
-  opts?: {
-    title?: string
-    /** Structural emulator — `{ program, TERM }` is all this function reads. */
-    emulator?: { program: string; TERM: string }
-  },
-): void {
-  const emulator = opts?.emulator ?? createTerminalProfile().emulator
-  const termProgram = emulator.program
-  const TERM = emulator.TERM
-
-  if (termProgram === "iTerm.app") {
-    stdout.write(notifyITerm2(message))
-  } else if (TERM === "xterm-kitty") {
-    stdout.write(notifyKitty(message, opts))
-  } else {
-    stdout.write(BEL)
-  }
-}
 
 // ============================================================================
 // Window Title (OSC 0/2)
