@@ -86,8 +86,14 @@ export function layout(element: ReactElement, dims: Dims, options: LayoutOptions
     addListener: () => mockStdout,
   } as unknown as NodeJS.WriteStream
 
-  // Create mock term for components that use useTerm()
-  const mockTerm = createTerm({ colorLevel: plain ? null : "truecolor" })
+  // Create a fixed-size headless Term for components that use useTerm().
+  // `layout()` is a pure, one-shot entrypoint: it must not acquire the host
+  // process's stdin/stdout or inherit dimensions from them.
+  using mockTerm = createTerm({
+    cols: width,
+    rows: height,
+    caps: { colorLevel: plain ? "mono" : "truecolor" },
+  })
 
   // Wrap with minimal contexts (no input handling needed)
   const wrapped = React.createElement(
@@ -116,33 +122,32 @@ export function layout(element: ReactElement, dims: Dims, options: LayoutOptions
     ),
   )
 
-  // Mount, render, and unmount - all without act warnings
-  withoutActWarnings(() => {
-    reconciler.updateContainerSync(wrapped, fiberRoot, null, null)
-    reconciler.flushSyncWork()
-  })
+  try {
+    // Mount and render without act warnings.
+    withoutActWarnings(() => {
+      reconciler.updateContainerSync(wrapped, fiberRoot, null, null)
+      reconciler.flushSyncWork()
+    })
 
-  // Execute render pipeline (skip layout notifications for static renders)
-  const root = getContainerRoot(container)
-  const ag = createAg(root)
-  ag.layout({ cols: width, rows: height }, { skipLayoutNotifications })
-  const { buffer: termBuffer } = ag.render()
+    // Execute render pipeline (skip layout notifications for static renders)
+    const root = getContainerRoot(container)
+    const ag = createAg(root)
+    ag.layout({ cols: width, rows: height }, { skipLayoutNotifications })
+    const { buffer: termBuffer } = ag.render()
 
-  // Get text representations
-  const text = bufferToText(termBuffer)
-  const ansi = bufferToStyledText(termBuffer)
-
-  // Unmount (cleanup)
-  withoutActWarnings(() => {
-    reconciler.updateContainerSync(null, fiberRoot, null, null)
-    reconciler.flushSyncWork()
-  })
-
-  return {
-    text,
-    ansi,
-    nodes: root,
-    _buffer: termBuffer,
+    return {
+      text: bufferToText(termBuffer),
+      ansi: bufferToStyledText(termBuffer),
+      nodes: root,
+      _buffer: termBuffer,
+    }
+  } finally {
+    // Static layout is one-shot: always release React effects, even when
+    // reconciliation, layout, or rendering throws.
+    withoutActWarnings(() => {
+      reconciler.updateContainerSync(null, fiberRoot, null, null)
+      reconciler.flushSyncWork()
+    })
   }
 }
 

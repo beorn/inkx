@@ -8,6 +8,7 @@
 
 import React from "react"
 import { describe, expect, test } from "vitest"
+import { ensureLayoutEngine, layout } from "@silvery/ag-term/runtime"
 import { Text, render, renderString, renderSync, useTerm, type Term } from "../../src/index.js"
 import { renderToString as renderInkToString } from "../../packages/ink/src/ink-render.js"
 
@@ -53,6 +54,23 @@ describe("contract: renderString headless Term", () => {
     const rendered = await renderString(<TermProbe />, { width: 47, height: 9, plain: true })
 
     expect(rendered).toBe("headless:47x9")
+  })
+
+  test("contract: the pure layout entrypoint provides its requested headless dimensions", async () => {
+    await ensureLayoutEngine()
+
+    const rendered = layout(<TermProbe />, { cols: 31, rows: 7 }, { plain: true })
+
+    expect(rendered.text).toBe("headless:31x7")
+  })
+
+  test("contract: the pure layout entrypoint releases its internally owned Term", async () => {
+    await ensureLayoutEngine()
+    let captured: Term | undefined
+
+    layout(<CaptureTermProbe capture={(term) => (captured = term)} />, { cols: 31, rows: 7 })
+
+    expect(captured?.signals.isDisposed).toBe(true)
   })
 
   test("contract: static render entrypoints share the headless default", async () => {
