@@ -76,7 +76,7 @@ export interface WatchOptions<T> {
  * Subscribe to signal changes via an imperative callback.
  *
  * alien-signals' `effect()` runs once eagerly to establish dependencies,
- * which means a plain `effect(() => handler(sig()))` fires with the seed
+ * which means an `effect(() => { handler(sig()) })` fires with the seed
  * value. `watch()` swallows that first fire and only calls `onChange` when
  * the value actually changes — matching the old `.subscribe(handler)`
  * semantic consumers often want.
