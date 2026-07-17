@@ -142,7 +142,7 @@ const BLANK_CELL: FrameCell = Object.freeze({
 interface TermlessLike {
   readonly cols: number
   readonly rows: number
-  feed(data: string): void
+  feed(data: Uint8Array | string): void
   cell(row: number, col: number): TermlessCellView
   screen: {
     getText(): string
@@ -170,9 +170,9 @@ interface TermlessCellView {
 }
 
 /**
- * Build an immutable TextFrame snapshot from a termless emulator. Cells are
- * lazily materialized on first access and cached to keep snapshots cheap —
- * typical tests only inspect a handful of cells per frame.
+ * Build an immutable TextFrame snapshot from a termless emulator. Cell values
+ * must be copied eagerly: the emulator is mutable, so a lazy `cell()` read
+ * would make every historical frame report the terminal's latest style.
  */
 function snapshotEmulator(emu: TermlessLike): TextFrame {
   const width = emu.cols
@@ -182,7 +182,32 @@ function snapshotEmulator(emu: TermlessLike): TextFrame {
   while (lines.length < height) lines.push("")
   const text = lines.join("\n")
 
-  const cellCache = new Map<number, FrameCell>()
+  const cells: FrameCell[] = []
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const view = emu.cell(row, col)
+      cells.push(
+        Object.freeze({
+          char: view.char,
+          fg: view.fg,
+          bg: view.bg,
+          bold: view.bold,
+          dim: view.dim,
+          italic: view.italic,
+          underline: view.underline,
+          underlineColor: view.underlineColor,
+          overline: view.overline ?? false,
+          strikethrough: view.strikethrough,
+          inverse: view.inverse,
+          blink: view.blink,
+          hidden: view.hidden,
+          wide: view.wide,
+          continuation: view.continuation,
+          hyperlink: view.hyperlink,
+        }),
+      )
+    }
+  }
 
   const frame: TextFrame = {
     get text() {
@@ -201,30 +226,7 @@ function snapshotEmulator(emu: TermlessLike): TextFrame {
     height,
     cell(col: number, row: number): FrameCell {
       if (col < 0 || col >= width || row < 0 || row >= height) return BLANK_CELL
-      const key = row * width + col
-      const cached = cellCache.get(key)
-      if (cached) return cached
-      const view = emu.cell(row, col)
-      const cell: FrameCell = {
-        char: view.char,
-        fg: view.fg,
-        bg: view.bg,
-        bold: view.bold,
-        dim: view.dim,
-        italic: view.italic,
-        underline: view.underline,
-        underlineColor: view.underlineColor,
-        overline: view.overline ?? false,
-        strikethrough: view.strikethrough,
-        inverse: view.inverse,
-        blink: view.blink,
-        hidden: view.hidden,
-        wide: view.wide,
-        continuation: view.continuation,
-        hyperlink: view.hyperlink,
-      }
-      cellCache.set(key, cell)
-      return cell
+      return cells[row * width + col]!
     },
     containsText(needle: string) {
       return text.includes(needle)
@@ -286,7 +288,7 @@ function diffFrames(a: TextFrame, b: TextFrame): CellChange[] {
 /**
  * Start recording frames from a Term (or any object exposing `.term`).
  *
- * The recorder wraps the term's stdout sink so that every render patch
+ * The recorder observes the emulator's ANSI feed so that every render patch
  * triggers a fresh TextFrame snapshot. Only calls made AFTER `recordFrames()`
  * returns are captured — the initial render is not retroactively recorded.
  * Call `recording.stop()` to end recording early.
@@ -315,16 +317,11 @@ export function recordFrames(target: Term | FrameRecordable): FrameRecording {
   // createTermless already wraps feed() for clipboard capture, so preserve and
   // call the current wrapper rather than reaching through to a raw stream.
   const originalFeed = emulator.feed
-  const recordingFeed = function (this: TermlessLike, data: string): void {
+  const recordingFeed = function (this: TermlessLike, data: Uint8Array | string): void {
     originalFeed.call(this, data)
-    if (!stopped) {
-      // The emulator has just been fed (synchronously) — snapshot its state.
-      try {
-        frames.push(snapshotEmulator(emulator))
-      } catch {
-        // Snapshot failure shouldn't break the test app; swallow and continue.
-      }
-    }
+    // The emulator has just been fed (synchronously) — snapshot its state.
+    // Snapshot errors must fail the test instead of silently dropping proof.
+    if (!stopped) frames.push(snapshotEmulator(emulator))
   }
   emulator.feed = recordingFeed
 

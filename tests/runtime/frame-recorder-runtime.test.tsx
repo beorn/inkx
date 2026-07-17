@@ -18,7 +18,7 @@ describe("recordFrames runtime integration", () => {
     function Counter(): React.ReactElement {
       const [value, setValue] = useState(0)
       update = setValue
-      return <Text>{`frame ${value}`}</Text>
+      return <Text color={value === 1 ? "#ff0000" : "#00ff00"}>{`frame ${value}`}</Text>
     }
 
     using term = createTermless({ cols: 20, rows: 3 })
@@ -29,7 +29,15 @@ describe("recordFrames runtime integration", () => {
       update?.(1)
       await new Promise((resolve) => setTimeout(resolve, 50))
 
-      expect(recording.frames.some((frame) => frame.containsText("frame 1"))).toBe(true)
+      const first = recording.frames.find((frame) => frame.containsText("frame 1"))
+      expect(first?.cell(0, 0).fg).toEqual({ r: 255, g: 0, b: 0 })
+
+      update?.(2)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      const second = recording.frames.find((frame) => frame.containsText("frame 2"))
+      expect(second?.cell(0, 0).fg).toEqual({ r: 0, g: 255, b: 0 })
+      expect(first?.cell(0, 0).fg).toEqual({ r: 255, g: 0, b: 0 })
     } finally {
       recording.stop()
       handle.unmount()
