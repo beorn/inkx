@@ -21,6 +21,13 @@ export interface ScrollAreaProps {
   scrollbar?: boolean
   /** Forwarded to the outer interaction surface. */
   userSelect?: "text" | "none" | "contain"
+  /**
+   * External scroll controller (from {@link useScrollController}). Pass one
+   * when the host also drives scrolling imperatively — keyboard bindings,
+   * jump-to-match, offset persistence across content swaps. Omitted, the
+   * component owns a private controller (the common case).
+   */
+  controller?: ScrollController
 }
 
 export function useScrollController(): ScrollController {
@@ -57,8 +64,10 @@ export function ScrollArea({
   children,
   scrollbar = true,
   userSelect,
+  controller: externalController,
 }: ScrollAreaProps): JSX.Element {
-  const controller = useScrollController()
+  const ownController = useScrollController()
+  const controller = externalController ?? ownController
   const handleWheel = React.useCallback(
     (event: {
       deltaY: number

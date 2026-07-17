@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react"
+import React, { useContext, useEffect, useState } from "react"
 import { reportDisposeError, type Scope } from "@silvery/scope"
 import { Text, type TextProps } from "../../components/Text"
 import { useScopeEffect } from "../../hooks/useScopeEffect"
@@ -75,7 +75,14 @@ export function useSynchronizedPhase({
   const count = motionEnabled ? normalizedSteps(steps) : 1
   const enabled = motionEnabled && count > 1
 
-  useScopeEffect(() => {
+  // A plain useEffect (NOT useScopeEffect): an inactive/static phase does no
+  // work and must not require a scope, but useScopeEffect calls useScope() at
+  // render time — which throws when there is no app-root scope (e.g. the
+  // renderString / --once path). The subscription owns its own lifetime under
+  // `appScope` (read tolerantly from context, null when absent), so the child
+  // scope useScopeEffect would create is unused here. An ENABLED clock without
+  // a scope still fails loudly at the explicit guard below.
+  useEffect(() => {
     if (!enabled || appScope === null || appScope.disposed) return
     return subscribeSynchronizedPhase(
       appScope,

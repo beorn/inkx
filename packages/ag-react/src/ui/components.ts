@@ -301,6 +301,16 @@ export { AnimatedNumber } from "./components/AnimatedNumber"
 export type { AnimatedNumberProps } from "./components/AnimatedNumber"
 export { TextShimmer } from "./components/TextShimmer"
 export type { TextShimmerProps } from "./components/TextShimmer"
+export {
+  GlimmerText,
+  GLIMMER_PERIOD_MS,
+  GLIMMER_REFERENCE_COLUMNS,
+  GLIMMER_SPAN,
+  glimmerCycleLength,
+  glimmerPeriod,
+  isGlimmerCell,
+} from "./components/GlimmerText"
+export type { GlimmerTextProps } from "./components/GlimmerText"
 export { TextReveal } from "./components/TextReveal"
 export type { TextRevealProps } from "./components/TextReveal"
 export { TimeToFirstDraw } from "./components/TimeToFirstDraw"
