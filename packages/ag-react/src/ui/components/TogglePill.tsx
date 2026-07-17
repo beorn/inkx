@@ -70,8 +70,15 @@ export function togglePillColor({
 // =============================================================================
 
 export interface TogglePillProps extends Omit<BoxProps, "children" | "onClick"> {
-  /** Pill text (e.g. `"[p]ending"`). Always rendered, so the row never reflows. */
+  /** Pill text (e.g. `"pending"`). Always rendered, so the row never reflows. */
   label: string
+  /**
+   * Render the label's first character bold — e.g. to surface a `p`/`r`/`f`/`d`
+   * hotkey hint inside a plain word (`**p**ending`) without brackets. The bold
+   * weight never changes the cell count, so hover/toggle still never reflows.
+   * Default `false`.
+   */
+  boldFirstLetter?: boolean
   /** Whether the pill is toggled on. */
   active: boolean
   /** Called when the pill is clicked. */
@@ -88,6 +95,7 @@ export interface TogglePillProps extends Omit<BoxProps, "children" | "onClick"> 
  */
 export function TogglePill({
   label,
+  boldFirstLetter = false,
   active,
   onToggle,
   activeColor = "$fg",
@@ -114,7 +122,16 @@ export function TogglePill({
       backgroundColor={hover.isHovered ? "$bg-surface-hover" : undefined}
       {...rest}
     >
-      <Text color={color}>{label}</Text>
+      {boldFirstLetter && label.length > 0 ? (
+        <>
+          <Text color={color} bold>
+            {label.slice(0, 1)}
+          </Text>
+          <Text color={color}>{label.slice(1)}</Text>
+        </>
+      ) : (
+        <Text color={color}>{label}</Text>
+      )}
     </Box>
   )
 }
