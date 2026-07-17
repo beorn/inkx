@@ -142,6 +142,7 @@ const BLANK_CELL: FrameCell = Object.freeze({
 interface TermlessLike {
   readonly cols: number
   readonly rows: number
+  feed(data: string): void
   cell(row: number, col: number): TermlessCellView
   screen: {
     getText(): string
@@ -305,25 +306,17 @@ export function recordFrames(target: Term | FrameRecordable): FrameRecording {
     )
   }
 
-  // Hook term.paint() — emulator-backed Terms feed the emulator synchronously
-  // inside paint(), so snapshotting right after the original paint returns
-  // captures the same state the previous implementation did by wrapping the
-  // underlying write sink. This avoids reaching into the deprecated Term
-  // raw-stream field, which is slated for removal in
-  // km-silvery.term-sub-owners Phase 8b.
-  const paintable = term as unknown as {
-    paint?: (buffer: unknown, prev: unknown) => string
-  }
-  const originalPaint = paintable.paint
-  if (typeof originalPaint !== "function") {
-    throw new Error("recordFrames(): term is missing a paint() method.")
-  }
-
   const frames: TextFrame[] = []
   let stopped = false
 
-  paintable.paint = function (buffer: unknown, prev: unknown): string {
-    const result = originalPaint.call(this, buffer, prev)
+  // run() writes ANSI patches straight to the emulator; it does not call the
+  // legacy Term.paint() helper. Observe that production output boundary so a
+  // recorder attached either before or after run() sees every live repaint.
+  // createTermless already wraps feed() for clipboard capture, so preserve and
+  // call the current wrapper rather than reaching through to a raw stream.
+  const originalFeed = emulator.feed
+  const recordingFeed = function (this: TermlessLike, data: string): void {
+    originalFeed.call(this, data)
     if (!stopped) {
       // The emulator has just been fed (synchronously) — snapshot its state.
       try {
@@ -332,8 +325,8 @@ export function recordFrames(target: Term | FrameRecordable): FrameRecording {
         // Snapshot failure shouldn't break the test app; swallow and continue.
       }
     }
-    return result
   }
+  emulator.feed = recordingFeed
 
   const recording: FrameRecording = {
     get frames() {
@@ -360,7 +353,7 @@ export function recordFrames(target: Term | FrameRecordable): FrameRecording {
     stop() {
       if (stopped) return
       stopped = true
-      paintable.paint = originalPaint
+      if (emulator.feed === recordingFeed) emulator.feed = originalFeed
     },
   }
 
