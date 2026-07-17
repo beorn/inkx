@@ -338,8 +338,12 @@ describe("createSize: reactive effect subscription", () => {
     const rowsLog: number[] = []
     const snapLog: Array<{ cols: number; rows: number }> = []
 
-    const stopRows = effect(() => rowsLog.push(size.rows()))
-    const stopSnap = effect(() => snapLog.push(size.snapshot()))
+    const stopRows = effect(() => {
+      rowsLog.push(size.rows())
+    })
+    const stopSnap = effect(() => {
+      snapLog.push(size.snapshot())
+    })
 
     setDims(stdout, 100, 50)
     await sleep(50)
@@ -630,7 +634,9 @@ describe("createFixedSize", () => {
   test("update() fires effects with new dims", () => {
     using size = createFixedSize({ cols: 80, rows: 24 })
     const observed: Array<{ cols: number; rows: number }> = []
-    const stop = effect(() => observed.push(size.snapshot()))
+    const stop = effect(() => {
+      observed.push(size.snapshot())
+    })
 
     size.update(120, 40)
 
@@ -647,7 +653,9 @@ describe("createFixedSize", () => {
   test("update after dispose is a no-op", () => {
     const size = createFixedSize({ cols: 80, rows: 24 })
     const observed: Array<{ cols: number; rows: number }> = []
-    const stop = effect(() => observed.push(size.snapshot()))
+    const stop = effect(() => {
+      observed.push(size.snapshot())
+    })
 
     size[Symbol.dispose]()
     size.update(120, 40)
