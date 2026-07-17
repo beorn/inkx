@@ -6,6 +6,7 @@
  * multi-byte Unicode graphemes and combining characters).
  */
 
+import { bgFromRgb, fgFromRgb, nearestAnsi16, rgbToAnsi256, type ColorLevel } from "@silvery/ansi"
 import { fgColorCode, bgColorCode } from "./ansi/sgr-codes"
 
 // ============================================================================
@@ -794,7 +795,7 @@ export class TerminalBuffer {
 
     // Write trap for SILVERY_STRICT mismatch diagnosis
     const trap = (globalThis as any).__silvery_write_trap
-    if (trap && x === trap.x && y === trap.y) {
+    if (x === trap?.x && y === trap.y) {
       const char = cell.char ?? " "
       const stack = new Error().stack?.split("\n").slice(1, 6).join("\n") ?? ""
       trap.log.push(
@@ -1842,9 +1843,10 @@ export function bufferToStyledText(
   options: {
     trimTrailingWhitespace?: boolean
     trimEmptyLines?: boolean
+    colorLevel?: ColorLevel
   } = {},
 ): string {
-  const { trimTrailingWhitespace = true, trimEmptyLines = true } = options
+  const { trimTrailingWhitespace = true, trimEmptyLines = true, colorLevel = "truecolor" } = options
 
   const lines: string[] = []
   let currentStyle: Style | null = null
@@ -1881,7 +1883,7 @@ export function bufferToStyledText(
         attrs: cell.attrs,
       }
       if (!styleEquals(currentStyle, cellStyle)) {
-        line += styleTransitionCodes(currentStyle, cellStyle)
+        line += styleTransitionCodes(currentStyle, cellStyle, colorLevel)
         currentStyle = cellStyle
       }
 
@@ -2268,7 +2270,69 @@ export function hasActiveAttrs(attrs: CellAttrs): boolean {
  * is no previous style context (first cell), so the terminal is already in
  * reset state. Each attribute gets its own \x1b[Xm sequence.
  */
-export function styleToAnsiCodes(style: Style): string {
+function serializedPaletteIndex(color: Exclude<Color, null>): number | undefined {
+  if (typeof color === "number") return color
+  return color.index !== undefined && color.index >= 0 && color.index <= 255
+    ? color.index
+    : undefined
+}
+
+function rgbForColor(color: Exclude<Color, null>): { r: number; g: number; b: number } {
+  return typeof color === "number" ? ansi256ToRgb(color) : color
+}
+
+function foregroundCode(color: Exclude<Color, null>, colorLevel: ColorLevel): string | undefined {
+  if (colorLevel === "mono") return undefined
+  if (colorLevel === "truecolor") return fgColorCode(color)
+  const index = serializedPaletteIndex(color)
+  if (colorLevel === "256" && index !== undefined) return `38;5;${index}`
+  const { r, g, b } = rgbForColor(color)
+  return fgFromRgb(r, g, b, colorLevel)
+}
+
+function backgroundCode(color: Exclude<Color, null>, colorLevel: ColorLevel): string | undefined {
+  if (colorLevel === "mono") return undefined
+  if (colorLevel === "truecolor") return bgColorCode(color)
+  const index = serializedPaletteIndex(color)
+  if (colorLevel === "256" && index !== undefined) return `48;5;${index}`
+  const { r, g, b } = rgbForColor(color)
+  return bgFromRgb(r, g, b, colorLevel)
+}
+
+function underlineColorCode(
+  color: Exclude<Color, null>,
+  colorLevel: ColorLevel,
+): string | undefined {
+  if (colorLevel === "mono") return undefined
+  const index = serializedPaletteIndex(color)
+  if (colorLevel === "truecolor") {
+    if (index !== undefined) return `58;5;${index}`
+    const { r, g, b } = rgbForColor(color)
+    return `58;2;${r};${g};${b}`
+  }
+  if (colorLevel === "256") {
+    if (index !== undefined) return `58;5;${index}`
+    const { r, g, b } = rgbForColor(color)
+    return `58;5;${rgbToAnsi256(r, g, b)}`
+  }
+  const { r, g, b } = rgbForColor(color)
+  return `58;5;${nearestAnsi16(r, g, b)}`
+}
+
+function colorTransitionCode(
+  oldColor: Color | undefined,
+  newColor: Color | undefined,
+  resetCode: string,
+  colorLevel: ColorLevel,
+  serialize: (color: Exclude<Color, null>, level: ColorLevel) => string | undefined,
+): string {
+  if (colorEquals(oldColor, newColor)) return ""
+  if (newColor == null) return colorLevel === "mono" ? "" : resetCode
+  const code = serialize(newColor, colorLevel)
+  return code ? `\x1b[${code}m` : ""
+}
+
+export function styleToAnsiCodes(style: Style, colorLevel: ColorLevel = "truecolor"): string {
   const fg = style.fg
   const bg = style.bg
 
@@ -2276,12 +2340,14 @@ export function styleToAnsiCodes(style: Style): string {
 
   // Foreground color
   if (fg !== null) {
-    result += `\x1b[${fgColorCode(fg)}m`
+    const code = foregroundCode(fg, colorLevel)
+    if (code) result += `\x1b[${code}m`
   }
 
   // Background color (DEFAULT_BG sentinel = terminal default, skip)
   if (bg !== null && !isDefaultBg(bg)) {
-    result += `\x1b[${bgColorCode(bg)}m`
+    const code = backgroundCode(bg, colorLevel)
+    if (code) result += `\x1b[${code}m`
   }
 
   // Attributes
@@ -2314,11 +2380,8 @@ export function styleToAnsiCodes(style: Style): string {
 
   // Underline color (SGR 58)
   if (style.underlineColor !== null && style.underlineColor !== undefined) {
-    if (typeof style.underlineColor === "number") {
-      result += `\x1b[58;5;${style.underlineColor}m`
-    } else {
-      result += `\x1b[58;2;${style.underlineColor.r};${style.underlineColor.g};${style.underlineColor.b}m`
-    }
+    const code = underlineColorCode(style.underlineColor, colorLevel)
+    if (code) result += `\x1b[${code}m`
   }
 
   return result
@@ -2331,9 +2394,13 @@ export function styleToAnsiCodes(style: Style): string {
  * full generation via styleToAnsiCodes. Otherwise, diffs attribute
  * by attribute and emits only changed SGR codes as individual \x1b[Xm sequences.
  */
-export function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
+export function styleTransitionCodes(
+  oldStyle: Style | null,
+  newStyle: Style,
+  colorLevel: ColorLevel = "truecolor",
+): string {
   // First cell or after reset — full generation
-  if (!oldStyle) return styleToAnsiCodes(newStyle)
+  if (!oldStyle) return styleToAnsiCodes(newStyle, colorLevel)
 
   // Same style — nothing to emit
   if (styleEquals(oldStyle, newStyle)) return ""
@@ -2401,34 +2468,15 @@ export function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): s
     result += na.overline ? "\x1b[53m" : "\x1b[55m"
   }
 
-  // Foreground color
-  if (!colorEquals(oldStyle.fg, newStyle.fg)) {
-    if (newStyle.fg === null) {
-      result += "\x1b[39m"
-    } else {
-      result += `\x1b[${fgColorCode(newStyle.fg)}m`
-    }
-  }
-
-  // Background color
-  if (!colorEquals(oldStyle.bg, newStyle.bg)) {
-    if (newStyle.bg === null) {
-      result += "\x1b[49m"
-    } else {
-      result += `\x1b[${bgColorCode(newStyle.bg)}m`
-    }
-  }
-
-  // Underline color (SGR 58/59)
-  if (!colorEquals(oldStyle.underlineColor, newStyle.underlineColor)) {
-    if (newStyle.underlineColor === null || newStyle.underlineColor === undefined) {
-      result += "\x1b[59m"
-    } else if (typeof newStyle.underlineColor === "number") {
-      result += `\x1b[58;5;${newStyle.underlineColor}m`
-    } else {
-      result += `\x1b[58;2;${newStyle.underlineColor.r};${newStyle.underlineColor.g};${newStyle.underlineColor.b}m`
-    }
-  }
+  result += colorTransitionCode(oldStyle.fg, newStyle.fg, "\x1b[39m", colorLevel, foregroundCode)
+  result += colorTransitionCode(oldStyle.bg, newStyle.bg, "\x1b[49m", colorLevel, backgroundCode)
+  result += colorTransitionCode(
+    oldStyle.underlineColor,
+    newStyle.underlineColor,
+    "\x1b[59m",
+    colorLevel,
+    underlineColorCode,
+  )
 
   return result
 }

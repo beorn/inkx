@@ -372,4 +372,17 @@ describe("Meter via renderString (headless CLI feasibility)", () => {
     // Styling actually happened (filled bg + track fg present).
     expect(styled).toContain("\x1B[")
   })
+
+  test.each([
+    { colorLevel: "256" as const, expected: /\x1B\[(?:38|48);5;\d+m/u },
+    { colorLevel: "truecolor" as const, expected: /\x1B\[(?:38|48);2;\d+;\d+;\d+m/u },
+  ])("honors an explicit $colorLevel output tier", async ({ colorLevel, expected }) => {
+    const styled = await renderString(meter, {
+      width: 10,
+      height: 1,
+      colorLevel,
+      trimTrailingWhitespace: false,
+    })
+    expect(styled).toMatch(expected)
+  })
 })
