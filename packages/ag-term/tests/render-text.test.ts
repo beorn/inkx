@@ -48,38 +48,43 @@ describe("formatTextLines", () => {
   })
 })
 
-describe("getTextStyle dim prop", () => {
-  // Base cell attrs for a TOP-LEVEL <Text dim>: the reconciler feeds props.dim
-  // here just like props.bold. Without it a plain <Text dim>x</Text> renders
-  // undimmed.
-  it("reads props.dim into base cell attrs (mirrors props.bold)", () => {
-    expect(getTextStyle({ dim: true }).attrs.dim).toBe(true)
+describe("getTextStyle internal_dim prop", () => {
+  // Base cell attrs for a TOP-LEVEL <Text internal_dim>: the reconciler feeds
+  // props.internal_dim here just like props.bold. Without it a plain
+  // <Text internal_dim>x</Text> renders undimmed. (internal_dim is the
+  // deliberately-unadvertised faint escape hatch — token-first policy.)
+  it("reads props.internal_dim into base cell attrs (mirrors props.bold)", () => {
+    expect(getTextStyle({ internal_dim: true }).attrs.dim).toBe(true)
     expect(getTextStyle({ bold: true }).attrs.bold).toBe(true)
   })
 
   it("leaves dim falsy when the prop is absent or false", () => {
     expect(getTextStyle({}).attrs.dim).toBeFalsy()
-    expect(getTextStyle({ dim: false }).attrs.dim).toBeFalsy()
+    expect(getTextStyle({ internal_dim: false }).attrs.dim).toBeFalsy()
   })
 })
 
 describe("collectTextContent dim inheritance (nested Text)", () => {
-  // The style-context builder must mirror bold's `childProps.dim ?? parent.dim`:
-  // a child's explicit value wins, otherwise it inherits the parent context.
+  // The style-context builder must mirror bold's `childProps.internal_dim ??
+  // parent.dim`: a child's explicit value wins, otherwise it inherits the
+  // parent context. (Nested children carry dim via `internal_dim`; the resolved
+  // StyleContext field is `dim`.)
 
-  it("nested <Text dim> emits SGR 2 (child value wins over an unset parent)", () => {
-    const out = collectTextContent(container(styledText({ dim: true }, "x")), {})
+  it("nested internal_dim emits SGR 2 (child value wins over an unset parent)", () => {
+    const out = collectTextContent(container(styledText({ internal_dim: true }, "x")), {})
     expect(out).toContain(SGR_DIM)
     expect(stripAnsi(out)).toBe("x")
   })
 
-  it("nested <Text dim={false}> overrides an inherited-dim parent (no SGR 2)", () => {
-    const out = collectTextContent(container(styledText({ dim: false }, "x")), { dim: true })
+  it("nested internal_dim={false} overrides an inherited-dim parent (no SGR 2)", () => {
+    const out = collectTextContent(container(styledText({ internal_dim: false }, "x")), {
+      dim: true,
+    })
     expect(out).not.toContain(SGR_DIM)
     expect(stripAnsi(out)).toBe("x")
   })
 
-  it("a nested child with no dim prop inherits the parent's dim (regression guard)", () => {
+  it("a nested child with no internal_dim inherits the parent's dim (regression guard)", () => {
     const out = collectTextContent(container(styledText({}, "x")), { dim: true })
     expect(out).toContain(SGR_DIM)
   })

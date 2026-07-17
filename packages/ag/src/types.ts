@@ -517,8 +517,6 @@ export interface StyleProps {
   color?: string
   backgroundColor?: string
   bold?: boolean
-  /** Dim/faint text — SGR 2. Inherited by nested `<Text>`; a child's explicit value wins. */
-  dim?: boolean
   italic?: boolean
   /**
    * Enable underline. Accepts:
@@ -1159,6 +1157,15 @@ export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, Mou
   truncateMarkerColor?: string
   /** @internal Hyperlink carried as cell metadata; use Link instead. */
   internal_hyperlink?: string
+  /**
+   * @internal Faint/dim text — SGR 2. Intentionally NOT a public style prop:
+   * the design system is token-first, so reach for a semantic token
+   * (`$fg-muted`, `$muted`, …) instead. This escape hatch exists only for
+   * chrome on surfaces with no matching token tier (e.g. dimmed text on the
+   * `$bg-inverse` band). Prefer tokens everywhere a token exists. Inherited by
+   * nested `<Text>`; a child's explicit value wins.
+   */
+  internal_dim?: boolean
   /** Internal transform function applied to each rendered line. Used by Transform component. */
   internal_transform?: (line: string, index: number) => string
   /**
