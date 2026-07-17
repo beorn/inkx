@@ -54,7 +54,9 @@ describe("Config.signal — deep-key reactivity", () => {
   it("fires effect when the value changes via set()", () => {
     const sig = config.signal<string>("ai.acp.default")
     const calls: Array<string | undefined> = []
-    const dispose = effect(() => calls.push(sig()))
+    const dispose = effect(() => {
+      calls.push(sig())
+    })
     config.set("ai.acp.default", "codex")
     expect(calls).toEqual(["claude-work", "codex"])
     dispose()
@@ -90,7 +92,9 @@ describe("Config.signal — deep-key reactivity", () => {
   it("returns undefined for missing keys, fires when key is added", () => {
     const sig = config.signal<string>("ai.acp.brand-new")
     const calls: Array<string | undefined> = []
-    const dispose = effect(() => calls.push(sig()))
+    const dispose = effect(() => {
+      calls.push(sig())
+    })
     config.set("ai.acp.brand-new", "value")
     expect(calls).toEqual([undefined, "value"])
     dispose()
@@ -167,7 +171,9 @@ describe("Registry signals", () => {
   it("signalDefault fires when default points to a still-undefined entry", () => {
     const acp = config.registry("ai.acp", AcpKind)
     const sig = acp.signalDefault()
-    const dispose = effect(() => sig())
+    const dispose = effect(() => {
+      sig()
+    })
     acp.setDefault("not-yet-added")
     expect(sig()).toBeUndefined()
     acp.add("not-yet-added", "codex?model=gpt-5")
