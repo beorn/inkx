@@ -126,3 +126,37 @@ describe("TogglePill in the FILTER row", () => {
     ).not.toEqual(inactiveHoveredFg)
   })
 })
+
+describe("TogglePill boldFirstLetter", () => {
+  function BoldRow() {
+    return (
+      <TogglePillGroup>
+        <TogglePill label="pending" boldFirstLetter active onToggle={() => {}} />
+        <TogglePill label="running" boldFirstLetter={false} active onToggle={() => {}} />
+      </TogglePillGroup>
+    )
+  }
+
+  test("bolds only the first character of the label and never reflows on hover", async () => {
+    const render = createRenderer({ cols: 60, rows: 6 })
+    const app = render(<BoldRow />)
+    // The plain word renders with no brackets.
+    expect(app.text).toContain("pending")
+
+    const row = app.lines.findIndex((line) => line.includes("pending"))
+    const col = app.lines[row]!.indexOf("pending")
+    // First character bold, the rest not — the hotkey hint reads inside the word.
+    expect(app.cell(col, row).bold, "first character is bold").toBe(true)
+    expect(app.cell(col + 1, row).bold, "the second character is not bold").toBe(false)
+
+    // The sibling pill without boldFirstLetter stays fully non-bold.
+    const plainRow = app.lines.findIndex((line) => line.includes("running"))
+    const plainCol = app.lines[plainRow]!.indexOf("running")
+    expect(app.cell(plainCol, plainRow).bold, "boldFirstLetter=false leaves the first char plain").toBe(false)
+
+    // Bold weight never changes the cell count, so hover recolours but never reflows.
+    const before = app.text
+    await app.hover(col, row)
+    expect(app.text, "hover does not reflow the bolded pill").toBe(before)
+  })
+})
