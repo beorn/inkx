@@ -490,6 +490,41 @@ import { Spinner } from "silvery"
 | `label`    | `string`                                | Label text shown after spinner           |
 | `interval` | `number`                                | Animation interval in ms (default: 80)   |
 
+## Pulse
+
+A two-phase text pulse. Pulses are local by default; enable `synchronized` when
+several indicators must share one app-scoped phase even when they mount at
+different times.
+
+```tsx
+import { Pulse, useSynchronizedPhase } from "silvery"
+
+<Pulse colors={["$fg-accent", "$fg-muted"]}>●</Pulse>
+<Pulse synchronized intervalMs={900} colors={["$fg-accent", "$fg-muted"]}>
+  ●
+</Pulse>
+
+// Multi-step animations use one complete-cycle period.
+const phase = useSynchronizedPhase({ active: true, periodMs: 1800, steps: 48 })
+```
+
+| Prop            | Type             | Description                                                  |
+| --------------- | ---------------- | ------------------------------------------------------------ |
+| `intervalMs`    | `number`         | Time between the two visible phases (default: 500 ms)        |
+| `active`        | `boolean`        | Run the phase clock (default: true)                          |
+| `initialOn`     | `boolean`        | Visible phase before the first transition (default: true)    |
+| `synchronized`  | `boolean`        | Join the app-scoped shared phase instead of starting locally |
+| `colors`        | `[Color, Color]` | Foreground colors for the on and off phases                  |
+| `reducedMotion` | `boolean`        | Override the host's `prefers-reduced-motion` result          |
+
+`useSynchronizedPhase` treats `periodMs` as the duration of the complete
+cycle and divides it into `steps` equal phases. By contrast, `Pulse.intervalMs`
+is the duration of each of its two phases. `periodMs` must be finite and at
+least 1 ms; `steps` must be a positive integer. A one-step phase is static and
+allocates no timer. An active multi-step synchronized clock requires an
+app-root scope; local, inactive, reduced-motion, and one-step phases work with
+the current component scope alone.
+
 ## ProgressBar
 
 A terminal progress bar with determinate and indeterminate modes.

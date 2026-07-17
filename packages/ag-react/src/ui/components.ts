@@ -158,8 +158,8 @@ export type {
   SegmentLabelRegion,
 } from "./components/Meter"
 
-export { Pulse, usePulse } from "./components/Pulse"
-export type { PulseProps, UsePulseOptions } from "./components/Pulse"
+export { Pulse, usePulse, useSynchronizedPhase } from "./components/Pulse"
+export type { PulseProps, UsePulseOptions, UseSynchronizedPhaseOptions } from "./components/Pulse"
 
 export { SelectList } from "./components/SelectList"
 export type { SelectListProps, SelectOption } from "./components/SelectList"

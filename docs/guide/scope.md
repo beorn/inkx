@@ -451,7 +451,7 @@ Do not add a caller-side terminal reset in a `catch` block. Before `run()` retur
 Inside React, three hooks read the scope from context:
 
 - **`useScope()`** — the nearest enclosing scope. Walks the React fiber chain via `useContext(ScopeContext)`; falls back to the app-root scope if there's no nested provider; throws if neither is present.
-- **`useAppScope()`** — always the root scope, regardless of nested providers. Use this only for whole-app shutdown paths (hot-swap a global, route a custom signal into the root).
+- **`useAppScope()`** — always the root scope, regardless of nested providers. Use this only when identity or lifetime must span the whole app, such as owning a shared app resource, hot-swapping a global, or routing a custom signal into the root. Keep component-local resources on `useScope()` / `useScopeEffect()`.
 - **`useScopeEffect((scope) => …, deps)`** — allocates a child of `useScope()`'s scope after commit, disposes on dep change or unmount.
 
 ```tsx

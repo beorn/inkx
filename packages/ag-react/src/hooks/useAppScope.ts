@@ -4,12 +4,12 @@
  * Set at the app root by `withScope()` (or, in tests, by explicitly
  * providing `AppScopeContext`). Unlike `useScope()`, nesting a
  * `<ScopeProvider>` never changes what this returns — it always resolves
- * to the root, which is what "whole-app shutdown" paths need.
+ * to the root, which is what whole-app ownership paths need.
  *
  * Throws if no app scope has been provided. Use `useScope()` for a
- * component-local scope; reach for `useAppScope()` only for imperative
- * whole-app shutdown (e.g. hot-swap a global, trigger exit, route SIGINT
- * into scope disposal).
+ * component-local scope; reach for `useAppScope()` only when identity or
+ * lifetime must span the whole app (e.g. own a shared app resource, hot-swap
+ * a global, trigger exit, or route SIGINT into scope disposal).
  */
 
 import { useContext } from "react"

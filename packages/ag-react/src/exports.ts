@@ -318,8 +318,8 @@ export type {
   SegmentLabelRegion,
 } from "./ui/components"
 
-export { Pulse, usePulse } from "./ui/components"
-export type { PulseProps, UsePulseOptions } from "./ui/components"
+export { Pulse, usePulse, useSynchronizedPhase } from "./ui/components"
+export type { PulseProps, UsePulseOptions, UseSynchronizedPhaseOptions } from "./ui/components"
 
 export { SelectList } from "./ui/components"
 export type { SelectListProps, SelectOption } from "./ui/components"
