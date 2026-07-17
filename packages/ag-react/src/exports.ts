@@ -430,6 +430,16 @@ export { AnimatedNumber } from "./ui/components"
 export type { AnimatedNumberProps } from "./ui/components"
 export { TextShimmer } from "./ui/components"
 export type { TextShimmerProps } from "./ui/components"
+export {
+  GlimmerText,
+  GLIMMER_PERIOD_MS,
+  GLIMMER_REFERENCE_COLUMNS,
+  GLIMMER_SPAN,
+  glimmerCycleLength,
+  glimmerPeriod,
+  isGlimmerCell,
+} from "./ui/components"
+export type { GlimmerTextProps } from "./ui/components"
 export { TextReveal } from "./ui/components"
 export type { TextRevealProps } from "./ui/components"
 export { TimeToFirstDraw } from "./ui/components"
