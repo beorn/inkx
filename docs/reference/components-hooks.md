@@ -50,6 +50,7 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 | Component                                | Description                                | API |
 | ---------------------------------------- | ------------------------------------------ | --- |
 | [Spinner](/guides/components)            | Animated spinner (dots, line, arc, bounce) | UI  |
+| [Pulse](/reference/components#pulse)     | Local or app-synchronized text pulse       | UI  |
 | [ProgressBar](/guides/components)        | Determinate and indeterminate progress     | UI  |
 | [Meter](/guides/components)              | Level gauge with fitted overlay label      | UI  |
 | [Toast / useToast()](/guides/components) | Auto-dismiss notifications                 | UI  |
@@ -110,10 +111,12 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Animation
 
-| Hook                  | Description                       | API |
-| --------------------- | --------------------------------- | --- |
-| useAnimation          | Frame-based animation with easing | UI  |
-| useAnimatedTransition | Animated value transitions        | UI  |
+| Hook                  | Description                               | API |
+| --------------------- | ----------------------------------------- | --- |
+| useAnimation          | Frame-based animation with easing         | UI  |
+| useAnimatedTransition | Animated value transitions                | UI  |
+| usePulse              | Local or app-synchronized two-phase clock | UI  |
+| useSynchronizedPhase  | App-scoped shared multi-step phase clock  | UI  |
 
 ### Data & State
 
