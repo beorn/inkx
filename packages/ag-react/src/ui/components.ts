@@ -125,6 +125,8 @@ export type { PickerListProps } from "./components/PickerList"
 // Focusable Controls
 export { Toggle } from "./components/Toggle"
 export type { ToggleProps } from "./components/Toggle"
+export { TogglePill, TogglePillGroup, togglePillColor } from "./components/TogglePill"
+export type { TogglePillProps, TogglePillGroupProps } from "./components/TogglePill"
 
 export { Button } from "./components/Button"
 export type { ButtonProps } from "./components/Button"
