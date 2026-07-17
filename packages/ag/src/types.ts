@@ -517,6 +517,8 @@ export interface StyleProps {
   color?: string
   backgroundColor?: string
   bold?: boolean
+  /** Dim/faint text — SGR 2. Inherited by nested `<Text>`; a child's explicit value wins. */
+  dim?: boolean
   italic?: boolean
   /**
    * Enable underline. Accepts:

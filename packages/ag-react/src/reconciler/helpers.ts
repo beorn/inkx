@@ -86,6 +86,7 @@ const STYLE_PROPS = new Set([
   "truncateMarkerColor",
   "backgroundColor",
   "bold",
+  "dim",
   "italic",
   "underline",
   "underlineStyle",
