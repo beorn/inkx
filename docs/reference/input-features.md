@@ -6,19 +6,23 @@ Silvery provides best-in-class terminal input handling: full Kitty keyboard prot
 
 ### Legacy ANSI
 
-Standard terminal input that works everywhere. Handles arrow keys, function keys, Ctrl combinations, Alt/Meta sequences, and printable characters.
+Standard terminal input that works everywhere. Handles arrow keys, function keys, Ctrl combinations, Alt/Meta sequences, and printable characters. At the application boundary, use [`useHotkey`](/api/use-hotkey) for commands and [`useTextInput`](/api/use-text-input) for text:
 
 ```tsx
-import { useInput, type Key } from "@silvery/ag-term/runtime"
+import { useHotkeyMap } from "silvery"
 
-useInput((input, key) => {
-  if (input === "j" || key.downArrow) moveDown()
-  if (key.ctrl && input === "s") save()
-  if (key.meta && input === "p") openPalette() // ⌥P
-  if (key.return) submit()
-  if (input === "q") return "exit"
+useHotkeyMap({
+  j: moveDown,
+  ArrowDown: moveDown,
+  "ctrl+s": save,
+  "alt+p": openPalette,
+  Enter: submit,
+  "?": showHelp,
+  q: () => "exit",
 })
 ```
+
+The low-level [`useInput`](/api/use-input) hook reports both normalized key identity and produced text when protocol-aware code needs the distinction. For example, <kbd>?</kbd> arrives as `input === "/"`, `key.shift === true`, and `key.text === "?"`. Match physical chords with `input` plus modifier fields; match literal characters with `key.text`. See [Normalized key identity vs typed text](/api/use-input#normalized-key-identity-vs-typed-text) for the full contract.
 
 **Limitations**: Legacy ANSI cannot distinguish Cmd ⌘ from other modifiers, cannot report key release events, and many key combinations produce ambiguous sequences.
 

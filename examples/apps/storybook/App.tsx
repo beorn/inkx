@@ -189,7 +189,7 @@ export function App(): React.ReactElement {
       exit()
       return
     }
-    if (input === "?") {
+    if (key.text === "?") {
       setShowHelp(true)
       return
     }

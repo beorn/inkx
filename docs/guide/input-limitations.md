@@ -209,18 +209,19 @@ Despite these limitations, many keys work reliably everywhere:
 
 ```tsx
 // Good: Use keys that work everywhere
-useInput((input, key) => {
-  if (key.upArrow || input === "k") moveUp()
-  if (key.downArrow || input === "j") moveDown()
-  if (key.return) select()
-  if (key.escape || input === "q") quit()
+useHotkeyMap({
+  ArrowUp: moveUp,
+  k: moveUp,
+  ArrowDown: moveDown,
+  j: moveDown,
+  Enter: select,
+  Escape: quit,
+  q: quit,
 })
 
 // Risky: Relies on Ctrl combinations that may conflict
-useInput((input, key) => {
-  if (key.ctrl && input === "i") {
-    // User pressing Tab will trigger this too!
-  }
+useHotkey("ctrl+i", () => {
+  // A legacy terminal reports the same bytes for Ctrl+I and Tab.
 })
 ```
 
@@ -229,11 +230,11 @@ useInput((input, key) => {
 When using keys with known limitations, offer alternatives:
 
 ```tsx
-useInput((input, key) => {
-  // Multiple ways to trigger the same action
-  if (input === "?" || input === "h" || (key.ctrl && input === "h")) {
-    showHelp()
-  }
+useHotkeyMap({
+  // Multiple ways to trigger the same action.
+  "?": showHelp,
+  h: showHelp,
+  "ctrl+h": showHelp,
 })
 ```
 

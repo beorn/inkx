@@ -7,15 +7,17 @@
  *
  * parseKey() returns `[input, key]` where these serve DIFFERENT purposes:
  *
- * - `input` is **normalized for keybinding matching**. Shifted punctuation is
+ * - `input` is **normalized for physical keybinding matching**. Shifted punctuation is
  *   decomposed: '#' becomes input='3' with key.shift=true, so keybindings
- *   like 'shift-3' can match. Uppercase letters become lowercase + shift.
+ *   like 'shift+3' can match. Uppercase letters retain their casing and set shift.
  *
  * - `key.text` is the **actual typed character** (pre-normalization). For text
- *   insertion, always use `key.text ?? input` — this ensures Shift+3 inserts
- *   '#', opt+e inserts '´', and IME output inserts the composed string.
+ *   insertion or literal-character hotkeys, use it instead of normalized `input`.
+ *   `key.text ?? input` ensures Shift+3 inserts '#', opt+e inserts '´', and IME
+ *   output inserts the composed string.
  *
- * Rule: keybinding resolution uses `input`. Text insertion uses `key.text`.
+ * Rule: physical keybindings use `input` plus modifiers. Literal-character hotkeys
+ * and text insertion use `key.text`; matchHotkey() handles both representations.
  * Never reconstruct characters from key codes — trust what the terminal sent.
  *
  * - KEY_MAP: Playwright key names -> ANSI sequences (for sending input)

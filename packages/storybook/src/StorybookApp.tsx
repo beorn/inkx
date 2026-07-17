@@ -202,7 +202,7 @@ export function StorybookApp({ initialStoryId, stories = [] }: AppProps): React.
       return
     }
     if (input === "q" || (key.ctrl && input === "c")) return exit()
-    if (input === "?") return setShowHelp(true)
+    if (key.text === "?") return setShowHelp(true)
 
     if (input === "h") {
       setFocus("list")

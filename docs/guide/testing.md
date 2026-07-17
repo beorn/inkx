@@ -114,28 +114,29 @@ Use `app.press()` to simulate keyboard input with named keys:
 
 ```tsx
 import { useState } from "react"
-import { Box, Text, useInput } from "silvery"
+import { Text, useHotkey } from "silvery"
 
 function Counter() {
   const [count, setCount] = useState(0)
 
-  useInput((input, key) => {
-    if (input === "+" || key.upArrow) setCount((c) => c + 1)
-    if (input === "-" || key.downArrow) setCount((c) => c - 1)
-  })
+  useHotkey("+", () => setCount((c) => c + 1))
+  useHotkey("ArrowUp", () => setCount((c) => c + 1))
+  useHotkey("-", () => setCount((c) => c - 1))
+  useHotkey("ArrowDown", () => setCount((c) => c - 1))
 
   return <Text>Count: {count}</Text>
 }
 
-test("increments with arrow keys", async () => {
+test("handles literal and named bindings", async () => {
   const render = createRenderer()
   const app = render(<Counter />)
 
   await app.press("ArrowUp")
   await app.press("ArrowUp")
   await app.press("ArrowDown")
+  await app.press("+")
 
-  expect(app.text).toContain("Count: 1")
+  expect(app.text).toContain("Count: 2")
 })
 ```
 

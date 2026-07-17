@@ -143,8 +143,8 @@ function ConditionalContent() {
 function MultiColumn() {
   const [cols, setCols] = useState(2)
   const [content, setContent] = useState("hello")
-  useInput((input) => {
-    if (input === "+") setCols((c) => Math.min(4, c + 1))
+  useInput((input, key) => {
+    if (key.text === "+") setCols((c) => Math.min(4, c + 1))
     if (input === "-") setCols((c) => Math.max(1, c - 1))
     if (input === "x") setContent((c) => c + "!")
     if (input === "z") setContent((c) => (c.length > 1 ? c.slice(0, -1) : c))
@@ -730,10 +730,10 @@ describe("incremental rendering fuzz", () => {
         ["Done 1", "Done 2"],
         ["Backlog 1", "Backlog 2", "Backlog 3", "Backlog 4"],
       ])
-      useInput((input) => {
+      useInput((input, key) => {
         if (input === "h") setSelected((s) => Math.max(0, s - 1))
         if (input === "l") setSelected((s) => Math.min(colCount - 1, s + 1))
-        if (input === "+") setColCount((c) => Math.min(5, c + 1))
+        if (key.text === "+") setColCount((c) => Math.min(5, c + 1))
         if (input === "-") setColCount((c) => Math.max(1, c - 1))
         if (input === "a") {
           setItems((prev) => {
