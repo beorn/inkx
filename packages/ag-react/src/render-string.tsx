@@ -25,6 +25,7 @@
  */
 
 import React, { type ReactElement } from "react"
+import type { ColorLevel } from "@silvery/ansi"
 // React's `act` exists only in dev/test builds — production React omits the
 // export, and a static named import fails to LINK in a NODE_ENV=production
 // host (km 19841). The render-to-string path's act-wrapping matters only on
@@ -71,6 +72,13 @@ export interface RenderStringOptions {
    * Default: false (includes ANSI styling)
    */
   plain?: boolean
+
+  /**
+   * Color capability used when serializing styled cells.
+   * Default: truecolor (preserves the historical renderString output).
+   * `mono` is equivalent to `plain: true` for component styling.
+   */
+  colorLevel?: ColorLevel
 
   /**
    * Pipeline configuration (scoped width measurer + output phase).
@@ -195,6 +203,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     width = 80,
     height = 24,
     plain = false,
+    colorLevel = "truecolor",
     pipelineConfig,
     trimTrailingWhitespace = true,
     trimEmptyLines = true,
@@ -242,7 +251,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
   } as unknown as NodeJS.WriteStream
 
   // Create mock term for components that use useTerm()
-  const mockTerm = createTerm({ colorLevel: plain ? null : "truecolor" })
+  const mockTerm = createTerm({ colorLevel: plain || colorLevel === "mono" ? null : colorLevel })
 
   // Wrap with minimal contexts (no input handling needed)
   const wrapped = React.createElement(
@@ -344,9 +353,9 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     })
   })
 
-  return plain && !alwaysStyled
+  return (plain || colorLevel === "mono") && !alwaysStyled
     ? bufferToText(buffer, { trimTrailingWhitespace, trimEmptyLines })
-    : bufferToStyledText(buffer, { trimTrailingWhitespace, trimEmptyLines })
+    : bufferToStyledText(buffer, { trimTrailingWhitespace, trimEmptyLines, colorLevel })
 }
 
 // ============================================================================
