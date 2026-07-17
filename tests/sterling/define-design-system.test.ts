@@ -203,6 +203,7 @@ describe("defaultFlattenRule — channel-role-state", () => {
     expect(defaultFlattenRule(["accent", "fg"])).toBe("fg-accent")
     expect(defaultFlattenRule(["accent", "bg"])).toBe("bg-accent")
     expect(defaultFlattenRule(["accent", "fgOn"])).toBe("fg-on-accent")
+    expect(defaultFlattenRule(["inverse", "muted", "fgOn"])).toBe("fg-on-inverse-muted")
     expect(defaultFlattenRule(["accent", "border"])).toBe("border-accent")
     expect(defaultFlattenRule(["accent", "hover", "bg"])).toBe("bg-accent-hover")
     expect(defaultFlattenRule(["accent", "hover", "fg"])).toBe("fg-accent-hover")
