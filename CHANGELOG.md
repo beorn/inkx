@@ -11,8 +11,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Sterling now exposes the complete inverse-chrome family:
   `$bg-inverse-hover` (`theme.inverse.hover.bg`) and
-  `$fg-on-inverse-muted` (`theme.inverse.muted.fgOn`). Both preserve the
-  alpha-like sRGB mixes previously hand-rolled by consumers.
+  `$fg-on-inverse-muted` (`theme.inverse.muted.fgOn`). Both start from the
+  alpha-like sRGB mixes previously hand-rolled by consumers, then enforce AA
+  base-text and 3:1 muted-text contrast on base and hover surfaces.
 - `silvery/test` is a public bundled test surface for `createRenderer`,
   `createTermless`, `waitFor`, and the rest of the supported Silvery test
   utilities. It replaces consumer imports from the intentionally internal

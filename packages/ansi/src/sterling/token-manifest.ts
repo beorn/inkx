@@ -392,8 +392,8 @@ export const PUBLIC_TOKENS: readonly TokenManifestEntry[] = [
     family: "inverse",
     axis: "bg-hover",
     purpose: "Hover surface for interactive controls in an inverse band.",
-    derivation: "sRGB mix of bg-inverse 90% + fg-on-inverse 10%.",
-    contrast: NA,
+    derivation: "sRGB mix of bg-inverse 90% + fg-on-inverse 10%; auto-lifted for AA text.",
+    contrast: AA,
     tierNotes: "Retains the inverse attr in mono; may collapse to bg-inverse in ansi16.",
   },
   {
@@ -402,8 +402,8 @@ export const PUBLIC_TOKENS: readonly TokenManifestEntry[] = [
     family: "inverse",
     axis: "fg-on-muted",
     purpose: "Deemphasized text drawn on inverse chrome.",
-    derivation: "sRGB mix of fg-on-inverse 65% + bg-inverse 35%.",
-    contrast: "Lower emphasis than fg-on-inverse",
+    derivation: "sRGB mix up to 65% fg-on-inverse + 35% bg-inverse; bounded for both surfaces.",
+    contrast: LARGE,
     tierNotes: "Uses dim in mono; may collapse toward fg-on-inverse in ansi16.",
   },
 

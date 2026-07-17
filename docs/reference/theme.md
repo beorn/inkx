@@ -251,8 +251,8 @@ Sterling uses a **blend-first-then-ensure** pattern: an initial blend sets the c
 | `surface.hover`      | OKLCH +0.04L from `surface.default`                            | —               |
 | `inverse.bg`         | `fg` blended 10% toward `bg`                                   | —               |
 | `inverse.fgOn`       | `contrastFg(inverse.bg)`                                       | —               |
-| `inverse.hover.bg`   | sRGB mix of `inverse.bg` 90% + `inverse.fgOn` 10%              | —               |
-| `inverse.muted.fgOn` | sRGB mix of `inverse.fgOn` 65% + `inverse.bg` 35%              | —               |
+| `inverse.hover.bg`   | sRGB mix of `inverse.bg` 90% + `inverse.fgOn` 10%; auto-lifted | AA pair         |
+| `inverse.muted.fgOn` | sRGB mix toward `inverse.bg`, capped at 35% by both surfaces   | 3:1             |
 | `selected.bg`        | `scheme.selectionBackground` repaired for visibility (ΔL≥0.08) | —               |
 | `selected.fgOn`      | `scheme.selectionForeground` ensured against `selected.bg`     | AA              |
 | `cursor.bg`          | `scheme.cursorColor` repaired for visibility (ΔE≥0.15)         | —               |

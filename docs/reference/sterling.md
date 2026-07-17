@@ -71,6 +71,10 @@ Both paths are real fields on the same object — there is no Proxy. `theme.acce
 
 Status roles only carry **surface** state (`hover.bg`, `active.bg`). They don't carry text-color hover variants — text on a status role isn't a link, so `fg-error-hover` would be a category error. `accent` is the only role with `fg.hover` / `fg.active`, because it _is_ a link-like role.
 
+Inverse chrome is the exception with a dedicated on-fill deemphasis tier:
+`inverse.hover.bg` keeps base `fgOn` at AA, while `inverse.muted.fgOn`
+preserves at least 3:1 against both the base and hover surfaces.
+
 ### Flat tokens
 
 Same data, hyphen-keyed. The full list (every flat token Sterling emits):

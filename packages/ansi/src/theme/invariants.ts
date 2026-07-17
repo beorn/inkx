@@ -151,6 +151,30 @@ const CONTRAST_PAIRS: Pair[] = [
     bg: "bg-selected",
     min: AA_RATIO,
   },
+  {
+    rule: "contrast:fg-on-inverse/bg-inverse",
+    fg: "fg-on-inverse",
+    bg: "bg-inverse",
+    min: AA_RATIO,
+  },
+  {
+    rule: "contrast:fg-on-inverse/bg-inverse-hover",
+    fg: "fg-on-inverse",
+    bg: "bg-inverse-hover",
+    min: AA_RATIO,
+  },
+  {
+    rule: "contrast:fg-on-inverse-muted/bg-inverse",
+    fg: "fg-on-inverse-muted",
+    bg: "bg-inverse",
+    min: LARGE_RATIO,
+  },
+  {
+    rule: "contrast:fg-on-inverse-muted/bg-inverse-hover",
+    fg: "fg-on-inverse-muted",
+    bg: "bg-inverse-hover",
+    min: LARGE_RATIO,
+  },
   { rule: "contrast:fg-cursor/bg-cursor", fg: "fg-cursor", bg: "bg-cursor", min: AA_RATIO },
 
   // Non-text chrome (WCAG 1.4.11)

@@ -35,6 +35,7 @@
 
 import type { Theme, ColorScheme, AnsiColorName } from "./types.ts"
 import type { MonoAttr } from "./monochrome.ts"
+import { STERLING_FLAT_TOKENS } from "../sterling/flat-tokens.ts"
 
 /** A derivation-style token — computed from the scheme + theme at resolution time. */
 export interface DeriveTokenDef {
@@ -112,16 +113,8 @@ const RESERVED_KEYS = new Set<string>([
   "accent-active",
   "fg-hover",
   "fg-active",
-  "bg-selected-hover",
-  "bg-surface-hover",
-  // Sterling flat selection / inverse / link tokens (replaced legacy aliases in 0.21.0)
-  "bg-selected",
-  "fg-on-selected",
-  "bg-inverse",
-  "fg-on-inverse",
-  "bg-inverse-hover",
-  "fg-on-inverse-muted",
-  "fg-link",
+  // Every canonical Sterling flat token is reserved from app-level shadowing.
+  ...STERLING_FLAT_TOKENS,
 ])
 
 function stripSigil(key: string): string {

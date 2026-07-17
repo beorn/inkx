@@ -539,7 +539,7 @@ This is essential for `<Link>` (which defaults to `$fg-link`) inside colored con
 
 ### State variants
 
-Sterling's interactive roles ship `-hover` and `-active` companions. Most are derived in OKLCH (`±0.04L` / `±0.08L`) so they stay in-palette; inverse chrome uses an alpha-like sRGB mix. Use them when mouse hover or press state matters:
+Sterling's interactive roles ship `-hover` and `-active` companions. Most are derived in OKLCH (`±0.04L` / `±0.08L`) so they stay in-palette; inverse chrome starts from an alpha-like sRGB mix, then lifts it as needed so base text remains AA and muted text remains at least 3:1 on both inverse surfaces. Use them when mouse hover or press state matters:
 
 ```tsx
 <Text color={hovered ? "$fg-accent-hover" : "$fg-accent"}>Click me</Text>

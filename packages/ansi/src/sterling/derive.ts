@@ -306,6 +306,48 @@ function guardTarget(
   return finalValue
 }
 
+/** Whether a foreground clears `target` against every supplied surface. */
+function clearsEverySurface(value: string, surfaces: readonly string[], target: number): boolean {
+  return surfaces.every(
+    (surface) => checkAA("contrast-bounded mix", value, surface, target) === null,
+  )
+}
+
+/**
+ * Preserve an alpha-like sRGB mix as far as its readability budget allows.
+ *
+ * `maxMix` is the desired amount of `toward` color. When that exact mix falls
+ * below the contrast floor on either surface, binary-search back toward the
+ * readable foreground and return the most-deemphasized passing hex. This keeps
+ * muted text on the same color line instead of allowing a generic contrast
+ * repair to flip it to the opposite light/dark pole.
+ */
+function mixSrgbWithContrastFloor(
+  foreground: string,
+  toward: string,
+  maxMix: number,
+  surfaces: readonly string[],
+  target: number,
+): string {
+  const desired = mixSrgb(foreground, toward, maxMix)
+  if (clearsEverySurface(desired, surfaces, target)) return desired
+
+  let passingMix = 0
+  let failingMix = maxMix
+  let best = foreground
+  for (let step = 0; step < 16; step++) {
+    const candidateMix = (passingMix + failingMix) / 2
+    const candidate = mixSrgb(foreground, toward, candidateMix)
+    if (clearsEverySurface(candidate, surfaces, target)) {
+      passingMix = candidateMix
+      best = candidate
+    } else {
+      failingMix = candidateMix
+    }
+  }
+  return best
+}
+
 // ── Main derivation ────────────────────────────────────────────────────────
 
 /**
@@ -689,13 +731,23 @@ export function deriveRoles(
     "mixSrgb(inverse.bg, inverse.fgOn, 0.1)",
     [inverseBg, inverseFgOn],
     mixSrgb(inverseBg, inverseFgOn, 0.1),
+    inverseFgOn,
+  )
+  const inverseMutedCandidate = mixSrgbWithContrastFloor(
+    inverseFgOn,
+    inverseBg,
+    0.35,
+    [inverseBg, inverseHoverBg],
+    3,
   )
   const inverseMutedFgOn = guard(
     "inverse.muted.fgOn",
     "fg-on-inverse-muted",
-    "mixSrgb(inverse.fgOn, inverse.bg, 0.35)",
-    [inverseFgOn, inverseBg],
-    mixSrgb(inverseFgOn, inverseBg, 0.35),
+    "mixSrgb(inverse.fgOn, inverse.bg, ≤0.35), bounded to ≥3:1 on inverse surfaces",
+    [inverseFgOn, inverseBg, inverseHoverBg],
+    inverseMutedCandidate,
+    inverseBg,
+    3,
   )
   const inverse: InverseRole = {
     bg: inverseBg,

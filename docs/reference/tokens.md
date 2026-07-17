@@ -177,12 +177,12 @@ for the full rule.
 
 ### Inverse
 
-| Token                 | Hex (Nord) | Ratio vs canvas | Contract                          | Purpose                                                    | Derivation                                      | Tier notes                                                              |
-| --------------------- | ---------- | --------------- | --------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
-| `bg-inverse`          | `#D7DAE0`  | 8.92:1          | —                                 | Inverse-band surface — status bar, modal chrome.           | blend(bg, fg, 0.85) (heavily fg-tinted bg).     | Stable; high-contrast band.                                             |
-| `fg-on-inverse`       | `#2E3440`  | 1.00:1          | AA 4.5:1                          | Text on the inverse band.                                  | contrast-pick for AA on bg-inverse.             | Pre-quantization pick.                                                  |
-| `bg-inverse-hover`    | `#C6C9D0`  | 7.53:1          | —                                 | Hover surface for interactive controls in an inverse band. | sRGB mix of bg-inverse 90% + fg-on-inverse 10%. | Retains the inverse attr in mono; may collapse to bg-inverse in ansi16. |
-| `fg-on-inverse-muted` | `#696E78`  | 2.44:1          | Lower emphasis than fg-on-inverse | Deemphasized text drawn on inverse chrome.                 | sRGB mix of fg-on-inverse 65% + bg-inverse 35%. | Uses dim in mono; may collapse toward fg-on-inverse in ansi16.          |
+| Token                 | Hex (Nord) | Ratio vs canvas | Contract     | Purpose                                                    | Derivation                                                                    | Tier notes                                                              |
+| --------------------- | ---------- | --------------- | ------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `bg-inverse`          | `#D7DAE0`  | 8.92:1          | —            | Inverse-band surface — status bar, modal chrome.           | blend(bg, fg, 0.85) (heavily fg-tinted bg).                                   | Stable; high-contrast band.                                             |
+| `fg-on-inverse`       | `#2E3440`  | 1.00:1          | AA 4.5:1     | Text on the inverse band.                                  | contrast-pick for AA on bg-inverse.                                           | Pre-quantization pick.                                                  |
+| `bg-inverse-hover`    | `#C6C9D0`  | 7.53:1          | AA 4.5:1     | Hover surface for interactive controls in an inverse band. | sRGB mix of bg-inverse 90% + fg-on-inverse 10%; auto-lifted for AA text.      | Retains the inverse attr in mono; may collapse to bg-inverse in ansi16. |
+| `fg-on-inverse-muted` | `#696E78`  | 2.44:1          | AA-Large 3:1 | Deemphasized text drawn on inverse chrome.                 | sRGB mix up to 65% fg-on-inverse + 35% bg-inverse; bounded for both surfaces. | Uses dim in mono; may collapse toward fg-on-inverse in ansi16.          |
 
 ### Link
 

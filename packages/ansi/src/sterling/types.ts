@@ -151,7 +151,8 @@ export interface SelectedRole {
 /**
  * Inverse role — flipped surface used for status bars, modal chrome, the
  * "you are here" inverse band. `hover.bg` is the interactive surface state;
- * `muted.fgOn` is deemphasized text that remains legible on inverse chrome.
+ * `muted.fgOn` is deemphasized text with a 3:1 floor on base and hover
+ * inverse chrome; base `fgOn` remains AA-readable on both surfaces.
  */
 export interface InverseRole {
   readonly bg: string
