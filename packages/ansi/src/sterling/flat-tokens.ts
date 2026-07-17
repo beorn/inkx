@@ -70,6 +70,8 @@ export const STERLING_FLAT_TOKENS: readonly FlatToken[] = [
   // Inverse — flipped surface (status bar, modal chrome)
   "bg-inverse",
   "fg-on-inverse",
+  "bg-inverse-hover",
+  "fg-on-inverse-muted",
   // Link — hyperlink text color
   "fg-link",
   // Disabled — neutral deemphasis for unavailable controls

@@ -141,6 +141,8 @@ export const DEFAULT_MONO_ATTRS: MonochromeAttrs = {
   "bg-selected-hover": ["inverse"],
   "bg-inverse": ["inverse"],
   "fg-on-inverse": [],
+  "bg-inverse-hover": ["inverse"],
+  "fg-on-inverse-muted": ["dim"],
   "fg-link": ["underline"],
 }
 

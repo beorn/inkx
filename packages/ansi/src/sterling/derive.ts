@@ -30,6 +30,7 @@ import {
   deltaE as oklchDeltaE,
   ensureContrast,
   hexToOklch,
+  mixSrgb,
   oklchToHex,
   relativeLuminance,
 } from "@silvery/color"
@@ -665,6 +666,8 @@ export function deriveRoles(
   // `blend(fg, bg, 0.1)` matches the legacy Theme's `inversebg` derivation:
   // a slight tint of fg over bg, distinct enough to read as a band but not
   // so loud it competes with `bg-accent`. fgOn picks the contrast partner.
+  // Hover and muted use sRGB channel mixes to match alpha-like terminal
+  // overlays without the perceptual hue shift of an OKLCH blend.
   const inverseBg = guard(
     "inverse.bg",
     "bg-inverse",
@@ -680,7 +683,26 @@ export function deriveRoles(
     pickFgOn(inverseBg, scheme),
     inverseBg,
   )
-  const inverse: InverseRole = { bg: inverseBg, fgOn: inverseFgOn }
+  const inverseHoverBg = guard(
+    "inverse.hover.bg",
+    "bg-inverse-hover",
+    "mixSrgb(inverse.bg, inverse.fgOn, 0.1)",
+    [inverseBg, inverseFgOn],
+    mixSrgb(inverseBg, inverseFgOn, 0.1),
+  )
+  const inverseMutedFgOn = guard(
+    "inverse.muted.fgOn",
+    "fg-on-inverse-muted",
+    "mixSrgb(inverse.fgOn, inverse.bg, 0.35)",
+    [inverseFgOn, inverseBg],
+    mixSrgb(inverseFgOn, inverseBg, 0.35),
+  )
+  const inverse: InverseRole = {
+    bg: inverseBg,
+    fgOn: inverseFgOn,
+    hover: { bg: inverseHoverBg },
+    muted: { fgOn: inverseMutedFgOn },
+  }
 
   // ── Link ─────────────────────────────────────────────────────────────────
   //

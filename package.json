@@ -98,7 +98,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "docs:gen": "bun scripts/gen-token-docs.ts",
+    "docs:gen": "bun scripts/gen-token-docs.ts && oxfmt docs/reference/tokens.md",
     "docs:check": "bun run docs:gen && git diff --exit-code docs/reference/tokens.md",
     "theme": "bun packages/theme/src/cli.ts",
     "demo": "bun examples/bin/cli.ts",

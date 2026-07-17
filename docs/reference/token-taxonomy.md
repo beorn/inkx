@@ -112,12 +112,13 @@ Plus `bg-X-hover` and `bg-X-active` for interactive surfaces. Note that text on 
 
 ### Root + text hierarchy
 
-| Token            | Meaning                                           |
-| ---------------- | ------------------------------------------------- |
-| `$fg`            | Default body text                                 |
-| `$bg`            | Default background                                |
-| `$fg-muted`      | Secondary text (captions, hints, disabled)        |
-| `$fg-on-inverse` | Text on `$bg-inverse` (status bars, modal chrome) |
+| Token                  | Meaning                                                |
+| ---------------------- | ------------------------------------------------------ |
+| `$fg`                  | Default body text                                      |
+| `$bg`                  | Default background                                     |
+| `$fg-muted`            | Secondary text (captions, hints, disabled)             |
+| `$fg-on-inverse`       | Base text on `$bg-inverse` (status bars, modal chrome) |
+| `$fg-on-inverse-muted` | Deemphasized metadata on inverse chrome                |
 
 Sterling collapses pre-0.20 `$muted` / `$secondary` / `$disabledfg` / `$faint` onto a single role: `$fg-muted`. The `<Small>` typography preset emits a pre-dimmed variant for fine print.
 
@@ -135,14 +136,15 @@ Every "surface" comes as a `bg-X` background paired with `$fg` (text) or `$fg-on
 </Box>
 ```
 
-| Surface                          | Use                            |
-| -------------------------------- | ------------------------------ |
-| `$bg` / `$fg`                    | Default root canvas            |
-| `$bg-surface-subtle`             | Cards, list rows               |
-| `$bg-surface-raised`             | Dialogs, modals, raised panels |
-| `$bg-surface-overlay`            | Tooltips, dropdowns, overlays  |
-| `$bg-inverse` / `$fg-on-inverse` | Status bars, footers           |
-| `$bg-muted` / `$fg`              | Inline muted chips, code       |
+| Surface                          | Use                                  |
+| -------------------------------- | ------------------------------------ |
+| `$bg` / `$fg`                    | Default root canvas                  |
+| `$bg-surface-subtle`             | Cards, list rows                     |
+| `$bg-surface-raised`             | Dialogs, modals, raised panels       |
+| `$bg-surface-overlay`            | Tooltips, dropdowns, overlays        |
+| `$bg-inverse` / `$fg-on-inverse` | Status bars, footers                 |
+| `$bg-inverse-hover`              | Hover for controls in inverse chrome |
+| `$bg-muted` / `$fg`              | Inline muted chips, code             |
 
 ### Accent (the canonical interactive role)
 

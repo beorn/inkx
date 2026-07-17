@@ -116,12 +116,12 @@ Programmatic access — typed, IDE-completable, structured:
 | `border`   | `{ default, focus, muted }`                                       | Structural rules, focus ring, faint dividers                   |
 | `cursor`   | `{ fg, bg }`                                                      | Cursor color and the glyph under it                            |
 | `selected` | `{ bg, fgOn, hover: { bg } }`                                     | Cursor row, mouse selection, search match highlight            |
-| `inverse`  | `{ bg, fgOn }`                                                    | Status bars, modal chrome                                      |
+| `inverse`  | `{ bg, fgOn, hover: { bg }, muted: { fgOn } }`                    | Status bars, modal chrome                                      |
 | `link`     | `{ fg }`                                                          | Hyperlink text (distinct from `accent`)                        |
 
 ### Flat tokens (the `$token` resolution path)
 
-Same data, hyphen-keyed. Grammar: `prefix-role[-state]` or `prefix-on-role`.
+Same data, hyphen-keyed. Grammar: `prefix-role[-state]` or `prefix-on-role[-state]`.
 
 ```
 Surface     bg-surface-default | bg-surface-subtle | bg-surface-raised
@@ -145,7 +145,7 @@ Error       fg-error | bg-error | fg-on-error | bg-error-hover | bg-error-active
 
 Selected    bg-selected | fg-on-selected | bg-selected-hover
 
-Inverse     bg-inverse | fg-on-inverse
+Inverse     bg-inverse | fg-on-inverse | bg-inverse-hover | fg-on-inverse-muted
 
 Link        fg-link
 ```
@@ -229,36 +229,38 @@ Pins accept either nested or flat path syntax — `{ "accent.bg": "#5B8DEF" }` a
 
 Sterling uses a **blend-first-then-ensure** pattern: an initial blend sets the color's character from the scheme's aesthetic, then `ensureContrast()` only adjusts lightness if the ratio falls short.
 
-| Token             | Source                                                         | Contrast target |
-| ----------------- | -------------------------------------------------------------- | --------------- |
-| `fg`              | `scheme.foreground` ensured against `bg-surface-overlay`       | AA              |
-| `accent.fg`       | `scheme.primary` (or yellow dark / blue light)                 | AA              |
-| `accent.bg`       | derived from `accent.fg` for fill                              | —               |
-| `accent.fgOn`     | `contrastFg(accent.bg)` — black or white                       | —               |
-| `accent.hover.*`  | OKLCH ±0.04L from `accent.{fg,bg}`                             | —               |
-| `accent.active.*` | OKLCH ±0.08L from `accent.{fg,bg}`                             | —               |
-| `accent.border`   | `accent.fg` lifted for border contrast                         | CONTROL         |
-| `error.fg`        | `scheme.red`                                                   | AA              |
-| `warning.fg`      | `scheme.yellow`                                                | AA              |
-| `success.fg`      | `scheme.green`                                                 | AA              |
-| `info.fg`         | blend of `fg` and `accent.fg` at 50%                           | AA              |
-| `link.fg`         | `scheme.brightBlue` (dark) / `scheme.blue` (light)             | AA              |
-| `muted.fg`        | `fg` blended 40% toward `bg`                                   | AA              |
-| `muted.bg`        | `bg` blended 4% toward `fg`                                    | —               |
-| `surface.subtle`  | `bg` blended 5% toward `fg`                                    | —               |
-| `surface.raised`  | `bg` blended 8% toward `fg`                                    | —               |
-| `surface.overlay` | `bg` blended 10% toward `fg`                                   | —               |
-| `surface.hover`   | OKLCH +0.04L from `surface.default`                            | —               |
-| `inverse.bg`      | `fg` blended 10% toward `bg`                                   | —               |
-| `inverse.fgOn`    | `contrastFg(inverse.bg)`                                       | —               |
-| `selected.bg`     | `scheme.selectionBackground` repaired for visibility (ΔL≥0.08) | —               |
-| `selected.fgOn`   | `scheme.selectionForeground` ensured against `selected.bg`     | AA              |
-| `cursor.bg`       | `scheme.cursorColor` repaired for visibility (ΔE≥0.15)         | —               |
-| `cursor.fg`       | `scheme.cursorText` ensured against `cursor.bg`                | AA              |
-| `border.default`  | `bg` blended 15% toward `fg`                                   | FAINT           |
-| `border.focus`    | same hue as `accent.fg`                                        | CONTROL         |
-| `border.muted`    | `bg` blended 8% toward `fg`                                    | —               |
-| `red` … `pink`    | scheme accents rotated through OKLCH; contrast-adjusted        | AA              |
+| Token                | Source                                                         | Contrast target |
+| -------------------- | -------------------------------------------------------------- | --------------- |
+| `fg`                 | `scheme.foreground` ensured against `bg-surface-overlay`       | AA              |
+| `accent.fg`          | `scheme.primary` (or yellow dark / blue light)                 | AA              |
+| `accent.bg`          | derived from `accent.fg` for fill                              | —               |
+| `accent.fgOn`        | `contrastFg(accent.bg)` — black or white                       | —               |
+| `accent.hover.*`     | OKLCH ±0.04L from `accent.{fg,bg}`                             | —               |
+| `accent.active.*`    | OKLCH ±0.08L from `accent.{fg,bg}`                             | —               |
+| `accent.border`      | `accent.fg` lifted for border contrast                         | CONTROL         |
+| `error.fg`           | `scheme.red`                                                   | AA              |
+| `warning.fg`         | `scheme.yellow`                                                | AA              |
+| `success.fg`         | `scheme.green`                                                 | AA              |
+| `info.fg`            | blend of `fg` and `accent.fg` at 50%                           | AA              |
+| `link.fg`            | `scheme.brightBlue` (dark) / `scheme.blue` (light)             | AA              |
+| `muted.fg`           | `fg` blended 40% toward `bg`                                   | AA              |
+| `muted.bg`           | `bg` blended 4% toward `fg`                                    | —               |
+| `surface.subtle`     | `bg` blended 5% toward `fg`                                    | —               |
+| `surface.raised`     | `bg` blended 8% toward `fg`                                    | —               |
+| `surface.overlay`    | `bg` blended 10% toward `fg`                                   | —               |
+| `surface.hover`      | OKLCH +0.04L from `surface.default`                            | —               |
+| `inverse.bg`         | `fg` blended 10% toward `bg`                                   | —               |
+| `inverse.fgOn`       | `contrastFg(inverse.bg)`                                       | —               |
+| `inverse.hover.bg`   | sRGB mix of `inverse.bg` 90% + `inverse.fgOn` 10%              | —               |
+| `inverse.muted.fgOn` | sRGB mix of `inverse.fgOn` 65% + `inverse.bg` 35%              | —               |
+| `selected.bg`        | `scheme.selectionBackground` repaired for visibility (ΔL≥0.08) | —               |
+| `selected.fgOn`      | `scheme.selectionForeground` ensured against `selected.bg`     | AA              |
+| `cursor.bg`          | `scheme.cursorColor` repaired for visibility (ΔE≥0.15)         | —               |
+| `cursor.fg`          | `scheme.cursorText` ensured against `cursor.bg`                | AA              |
+| `border.default`     | `bg` blended 15% toward `fg`                                   | FAINT           |
+| `border.focus`       | same hue as `accent.fg`                                        | CONTROL         |
+| `border.muted`       | `bg` blended 8% toward `fg`                                    | —               |
+| `red` … `pink`       | scheme accents rotated through OKLCH; contrast-adjusted        | AA              |
 
 **Primary inference:** when `scheme.primary` is not set, `accent` defaults to `scheme.yellow` (dark) or `scheme.blue` (light). Set `scheme.primary` explicitly to override.
 

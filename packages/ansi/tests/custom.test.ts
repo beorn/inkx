@@ -52,6 +52,17 @@ describe("defineTokens — validation", () => {
     ).toThrow(/collides with built-in/)
   })
 
+  it.each(["$bg-inverse-hover", "$fg-on-inverse-muted"])(
+    "rejects collision with inverse-family token %s",
+    (token) => {
+      expect(() =>
+        defineTokens({
+          [token]: { rgb: "#FF0000", ansi16: "red" },
+        }),
+      ).toThrow(/collides with built-in/)
+    },
+  )
+
   it("rejects mixed derive + rgb", () => {
     expect(() =>
       defineTokens({

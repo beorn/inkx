@@ -10,7 +10,7 @@ import {
   deriveTheme,
   defaultDarkScheme,
 } from "@silvery/ansi"
-import type { MonoAttr, Theme } from "@silvery/ansi"
+import type { MonoAttr } from "@silvery/ansi"
 
 describe("deriveMonochromeTheme", () => {
   it("returns the default attrs map for any theme", () => {
@@ -46,6 +46,11 @@ describe("deriveMonochromeTheme", () => {
 
   it("bg-selected uses inverse (visible without color)", () => {
     expect(DEFAULT_MONO_ATTRS["bg-selected"]).toEqual(["inverse"])
+  })
+
+  it("inverse-family states preserve hover and deemphasis without color", () => {
+    expect(DEFAULT_MONO_ATTRS["bg-inverse-hover"]).toEqual(["inverse"])
+    expect(DEFAULT_MONO_ATTRS["fg-on-inverse-muted"]).toEqual(["dim"])
   })
 
   it("structural backgrounds have no attrs", () => {

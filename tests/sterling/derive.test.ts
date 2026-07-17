@@ -99,9 +99,11 @@ describe("sterling.deriveFromScheme — shape", () => {
     expect(theme.selected.fgOn).toBe(theme["fg-on-selected"])
     expect(theme.selected.hover.bg).toBe(theme["bg-selected-hover"])
 
-    // Inverse — flipped surface (bg + fgOn)
+    // Inverse — flipped surface (bg + fgOn + hover + muted on-fill text)
     expect(theme.inverse.bg).toBe(theme["bg-inverse"])
     expect(theme.inverse.fgOn).toBe(theme["fg-on-inverse"])
+    expect(theme.inverse.hover.bg).toBe(theme["bg-inverse-hover"])
+    expect(theme.inverse.muted.fgOn).toBe(theme["fg-on-inverse-muted"])
 
     // Link — text color only
     expect(theme.link.fg).toBe(theme["fg-link"])
@@ -181,6 +183,8 @@ describe("sterling.deriveFromScheme — shape", () => {
     expect(theme["bg-selected-hover"]).toMatch(/^#[0-9a-fA-F]{6}$/)
     expect(theme["bg-inverse"]).toMatch(/^#[0-9a-fA-F]{6}$/)
     expect(theme["fg-on-inverse"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["bg-inverse-hover"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["fg-on-inverse-muted"]).toMatch(/^#[0-9a-fA-F]{6}$/)
     expect(theme["fg-link"]).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 

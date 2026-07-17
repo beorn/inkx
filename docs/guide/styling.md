@@ -539,11 +539,14 @@ This is essential for `<Link>` (which defaults to `$fg-link`) inside colored con
 
 ### State variants
 
-Sterling's interactive roles ship `-hover` and `-active` companions — derived in OKLCH (`±0.04L` / `±0.08L`) so they stay in-palette. Use them when mouse hover or press state matters:
+Sterling's interactive roles ship `-hover` and `-active` companions. Most are derived in OKLCH (`±0.04L` / `±0.08L`) so they stay in-palette; inverse chrome uses an alpha-like sRGB mix. Use them when mouse hover or press state matters:
 
 ```tsx
 <Text color={hovered ? "$fg-accent-hover" : "$fg-accent"}>Click me</Text>
 <Box backgroundColor={pressed ? "$bg-selected-hover" : "$bg-selected"}>…</Box>
+<Box backgroundColor={hovered ? "$bg-inverse-hover" : "$bg-inverse"}>
+  <Text color={secondary ? "$fg-on-inverse-muted" : "$fg-on-inverse"}>Status</Text>
+</Box>
 ```
 
 Available state-aware tokens:
@@ -553,6 +556,7 @@ Available state-aware tokens:
 - `$bg-info-hover` / `$bg-info-active` (and same for `success` / `warning` / `error`)
 - `$bg-selected-hover`
 - `$bg-surface-hover`
+- `$bg-inverse-hover` / `$fg-on-inverse-muted`
 
 ### Mix
 
@@ -610,13 +614,13 @@ Supports theme tokens (`$bg`, `$fg-link`, …), named colors (`red`, `blue`), an
 Mouse cursors are semantic styling, so built-in components declare the
 affordance and applications normally omit `mouseCursor`.
 
-| Surface | Cursor when `mouseCursor` is omitted |
-| --- | --- |
-| `Button`, `Link`, `Tab`, interactive list rows | `pointer` |
-| `Box` / `Text` with click, double-click, or triple-click activation | `pointer` |
-| Selectable `Text` and `TextInput` | `text` |
-| `Scrollbar` | `grab`, then `grabbing` during the active drag |
-| Vertical / horizontal `PaneDivider` | `col-resize` / `row-resize` |
+| Surface                                                             | Cursor when `mouseCursor` is omitted           |
+| ------------------------------------------------------------------- | ---------------------------------------------- |
+| `Button`, `Link`, `Tab`, interactive list rows                      | `pointer`                                      |
+| `Box` / `Text` with click, double-click, or triple-click activation | `pointer`                                      |
+| Selectable `Text` and `TextInput`                                   | `text`                                         |
+| `Scrollbar`                                                         | `grab`, then `grabbing` during the active drag |
+| Vertical / horizontal `PaneDivider`                                 | `col-resize` / `row-resize`                    |
 
 Explicit intent still wins. Pass another shape to override a default, or pass
 `mouseCursor="default"` to opt out and restore the target's native cursor.

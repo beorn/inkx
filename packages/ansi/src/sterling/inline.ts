@@ -220,6 +220,8 @@ export function inlineSterlingTokens(theme: Theme, scheme?: ColorScheme): Inline
   if (inv) {
     setIfAbsent("bg-inverse", inv.bg)
     setIfAbsent("fg-on-inverse", inv.fgOn)
+    setIfAbsent("bg-inverse-hover", inv.hover.bg)
+    setIfAbsent("fg-on-inverse-muted", inv.muted.fgOn)
   }
 
   const lnk = roles.link

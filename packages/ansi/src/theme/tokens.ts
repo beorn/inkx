@@ -81,6 +81,8 @@ export type StandardThemeToken =
   | "$border-accent"
   | "$bg-inverse"
   | "$fg-on-inverse"
+  | "$bg-inverse-hover"
+  | "$fg-on-inverse-muted"
   | "$bg-selected"
   | "$fg-on-selected"
   | "$fg-link"

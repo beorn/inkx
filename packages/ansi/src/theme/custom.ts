@@ -119,6 +119,8 @@ const RESERVED_KEYS = new Set<string>([
   "fg-on-selected",
   "bg-inverse",
   "fg-on-inverse",
+  "bg-inverse-hover",
+  "fg-on-inverse-muted",
   "fg-link",
 ])
 

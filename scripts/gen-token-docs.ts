@@ -5,8 +5,6 @@
  *
  * Usage:
  *   bun run docs:gen
- *   # or directly:
- *   bun scripts/gen-token-docs.ts
  *
  * CI guard:
  *   bun run docs:gen && git diff --exit-code docs/reference/tokens.md
@@ -50,6 +48,8 @@ function familyHeader(name: string): string {
       return "Border"
     case "muted":
       return "Muted"
+    case "faint":
+      return "Faint"
     case "accent":
       return "Accent (link-like, full state matrix)"
     case "info":
@@ -119,6 +119,7 @@ Examples:
 - \`bg-accent\` — accent fill background.
 - \`fg-on-error\` — text color when drawing on \`bg-error\` (button labels, etc.).
 - \`bg-info-hover\` — info fill, hover state.
+- \`fg-on-inverse-muted\` — deemphasized text on inverse chrome.
 - \`border-focus\` — focus-ring border.
 
 ## Decision tree
@@ -140,20 +141,21 @@ Not every family supports every channel — the asymmetry is intentional and
 type-enforced. Status roles do not support \`fg.hover\` / \`fg.active\` because
 text on a status (e.g. \`fg-error\`) is a label, not an interactive link.
 
-| Family | fg | bg | fgOn | border | hover.fg | hover.bg | active.fg | active.bg |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| accent | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| info / success / warning / error (status) | ✓ | ✓ | ✓ | – | – | ✓ | – | ✓ |
-| muted | ✓ | ✓ | – | – | – | – | – | – |
-| surface | – | ✓ | – | – | – | ✓ | – | – |
-| border | – | – | – | ✓ | – | – | – | – |
-| cursor | ✓ | ✓ | – | – | – | – | – | – |
-| selected | – | ✓ | ✓ | – | – | ✓ | – | – |
-| inverse | – | ✓ | ✓ | – | – | – | – | – |
-| link | ✓ | – | – | – | – | – | – | – |
-| disabled | ✓ | ✓ | – | ✓ | – | – | – | – |
-| backdrop | – | ✓ | – | – | – | – | – | – |
-| default | ✓ | ✓ | – | – | – | – | – | – |
+| Family | fg | bg | fgOn | border | hover.fg | hover.bg | active.fg | active.bg | muted.fgOn |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| accent | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | – |
+| info / success / warning / error (status) | ✓ | ✓ | ✓ | – | – | ✓ | – | ✓ | – |
+| muted | ✓ | ✓ | – | – | – | – | – | – | – |
+| faint | ✓ | – | – | – | – | – | – | – | – |
+| surface | – | ✓ | – | – | – | ✓ | – | – | – |
+| border | – | – | – | ✓ | – | – | – | – | – |
+| cursor | ✓ | ✓ | – | – | – | – | – | – | – |
+| selected | – | ✓ | ✓ | – | – | ✓ | – | – | – |
+| inverse | – | ✓ | ✓ | – | – | ✓ | – | – | ✓ |
+| link | ✓ | – | – | – | – | – | – | – | – |
+| disabled | ✓ | ✓ | – | ✓ | – | – | – | – | – |
+| backdrop | – | ✓ | – | – | – | – | – | – | – |
+| default | ✓ | ✓ | – | – | – | – | – | – | – |
 
 ## Asymmetric Surprise principle
 
@@ -187,7 +189,7 @@ async function main(): Promise<void> {
 - [Sterling design system](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md) — internal canonical doc
 - [\`STERLING_FLAT_TOKENS\`](../../packages/ansi/src/sterling/flat-tokens.ts) — the type-level union, in lockstep with this page
 - [\`PUBLIC_TOKENS\`](../../packages/ansi/src/sterling/token-manifest.ts) — the manifest powering this generator
-- "Ratio vs canvas" measures contrast against ${ratioVsCanvas}; values < 4.5:1 are non-text tokens (borders, surfaces, hover backgrounds) and listed for reference only.
+- "Ratio vs canvas" measures contrast against ${ratioVsCanvas}; surface and border values are listed for reference only. Text-token guarantees are stated explicitly in the Contract column (deemphasized text may intentionally sit below AA).
 `
 
   const md = header() + sections.join("\n") + trailer

@@ -17,7 +17,7 @@ describe("sterling flatten", () => {
     }
   })
 
-  test("STERLING_FLAT_TOKENS has exactly 52 tokens", () => {
+  test("STERLING_FLAT_TOKENS has exactly 55 tokens", () => {
     // Status roles (info/success/warning/error) no longer emit fg-X-hover
     // and fg-X-active — text tokens on status roles are not state-varying.
     //   surfaces = 5, border = 3, cursor = 2, muted = 2                = 12
@@ -26,14 +26,14 @@ describe("sterling flatten", () => {
     //   info | success | warning | error — each:
     //     fg, bg, fgOn, bg-hover, bg-active = 5, × 4                   = 20
     //   selected = bg, fgOn, bg-hover                                   =  3
-    //   inverse = bg, fgOn                                              =  2
+    //   inverse = bg, fgOn, bg-hover, fgOn-muted                        =  4
     //   link = fg                                                       =  1
     //   disabled = fg, bg, border                                       =  3
     //   backdrop = bg                                                   =  1
     //   default surfaces = fg-default, bg-default                       =  2
     //   faint = fg                                                      =  1
-    //   total = 53
-    expect(STERLING_FLAT_TOKENS.length).toBe(53)
+    //   total = 55
+    expect(STERLING_FLAT_TOKENS.length).toBe(55)
   })
 
   test("theme is frozen (direct assignment throws in strict mode)", () => {
@@ -51,10 +51,10 @@ describe("sterling flatten", () => {
     expect(theme.surface.overlay).toBe(theme["bg-surface-overlay"])
   })
 
-  test("Object.keys counts ~81 entries (53 flat + 14 roles + mode + name + variants + palette + 8 hues + fg/bg root)", () => {
+  test("Object.keys counts ~83 entries (55 flat + 14 roles + mode + name + variants + palette + 8 hues + fg/bg root)", () => {
     const keys = Object.keys(theme)
     expect(keys.length).toBeGreaterThanOrEqual(74)
-    expect(keys.length).toBeLessThanOrEqual(82)
+    expect(keys.length).toBeLessThanOrEqual(84)
   })
 
   test("flat-only filter finds exactly STERLING_FLAT_TOKENS entries", () => {

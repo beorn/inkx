@@ -26,6 +26,7 @@ Examples:
 - `bg-accent` — accent fill background.
 - `fg-on-error` — text color when drawing on `bg-error` (button labels, etc.).
 - `bg-info-hover` — info fill, hover state.
+- `fg-on-inverse-muted` — deemphasized text on inverse chrome.
 - `border-focus` — focus-ring border.
 
 ## Decision tree
@@ -47,21 +48,21 @@ Not every family supports every channel — the asymmetry is intentional and
 type-enforced. Status roles do not support `fg.hover` / `fg.active` because
 text on a status (e.g. `fg-error`) is a label, not an interactive link.
 
-| Family                                    | fg  | bg  | fgOn | border | hover.fg | hover.bg | active.fg | active.bg |
-| ----------------------------------------- | :-: | :-: | :--: | :----: | :------: | :------: | :-------: | :-------: |
-| accent                                    |  ✓  |  ✓  |  ✓   |   ✓    |    ✓     |    ✓     |     ✓     |     ✓     |
-| info / success / warning / error (status) |  ✓  |  ✓  |  ✓   |   –    |    –     |    ✓     |     –     |     ✓     |
-| muted                                     |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |
-| faint                                     |  ✓  |  –  |  –   |   –    |    –     |    –     |     –     |     –     |
-| surface                                   |  –  |  ✓  |  –   |   –    |    –     |    ✓     |     –     |     –     |
-| border                                    |  –  |  –  |  –   |   ✓    |    –     |    –     |     –     |     –     |
-| cursor                                    |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |
-| selected                                  |  –  |  ✓  |  ✓   |   –    |    –     |    ✓     |     –     |     –     |
-| inverse                                   |  –  |  ✓  |  ✓   |   –    |    –     |    –     |     –     |     –     |
-| link                                      |  ✓  |  –  |  –   |   –    |    –     |    –     |     –     |     –     |
-| disabled                                  |  ✓  |  ✓  |  –   |   ✓    |    –     |    –     |     –     |     –     |
-| backdrop                                  |  –  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |
-| default                                   |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |
+| Family                                    | fg  | bg  | fgOn | border | hover.fg | hover.bg | active.fg | active.bg | muted.fgOn |
+| ----------------------------------------- | :-: | :-: | :--: | :----: | :------: | :------: | :-------: | :-------: | :--------: |
+| accent                                    |  ✓  |  ✓  |  ✓   |   ✓    |    ✓     |    ✓     |     ✓     |     ✓     |     –      |
+| info / success / warning / error (status) |  ✓  |  ✓  |  ✓   |   –    |    –     |    ✓     |     –     |     ✓     |     –      |
+| muted                                     |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |     –      |
+| faint                                     |  ✓  |  –  |  –   |   –    |    –     |    –     |     –     |     –     |     –      |
+| surface                                   |  –  |  ✓  |  –   |   –    |    –     |    ✓     |     –     |     –     |     –      |
+| border                                    |  –  |  –  |  –   |   ✓    |    –     |    –     |     –     |     –     |     –      |
+| cursor                                    |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |     –      |
+| selected                                  |  –  |  ✓  |  ✓   |   –    |    –     |    ✓     |     –     |     –     |     –      |
+| inverse                                   |  –  |  ✓  |  ✓   |   –    |    –     |    ✓     |     –     |     –     |     ✓      |
+| link                                      |  ✓  |  –  |  –   |   –    |    –     |    –     |     –     |     –     |     –      |
+| disabled                                  |  ✓  |  ✓  |  –   |   ✓    |    –     |    –     |     –     |     –     |     –      |
+| backdrop                                  |  –  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |     –      |
+| default                                   |  ✓  |  ✓  |  –   |   –    |    –     |    –     |     –     |     –     |     –      |
 
 ## Asymmetric Surprise principle
 
@@ -70,7 +71,7 @@ reasonable lookup. Every flat key in this page exists on every derived
 Theme. The compiler refuses `<Alert variant="destructive">` (Alert doesn't
 accept that variant); dynamic indexing of unknown tokens throws a
 `TypeError` with a "did you mean…?" hint. See
-the internal Sterling design doc (`design/v10-terminal/design-system.md` §"Asymmetric Surprise")
+[`hub/silvery/design/v10-terminal/design-system.md` §"Asymmetric Surprise"](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md)
 for the full rule.
 
 ## Tokens by family
@@ -87,8 +88,8 @@ for the full rule.
 | Token                | Hex (Nord) | Ratio vs canvas | Contract | Purpose                                                           | Derivation                                               | Tier notes                                                                               |
 | -------------------- | ---------- | --------------- | -------- | ----------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `bg-surface-default` | `#2E3440`  | 1.00:1          | —        | The canvas — body bg of every screen. Same value as `bg-default`. | = scheme.background, verbatim.                           | Stable across all tiers (truecolor → ansi16 → mono).                                     |
-| `bg-surface-subtle`  | `#363C48`  | 1.13:1          | —        | Subtle elevation tier — sidebars, secondary regions.              | blend(bg, fg, 0.05); auto-lifted to keep fg AA-readable. | Often collapses to surface.default in ANSI16 — renderer compensates with non-color cues. |
-| `bg-surface-raised`  | `#3B414D`  | 1.22:1          | —        | Raised elevation — cards, panels above the canvas.                | blend(bg, fg, 0.08); auto-lifted to keep fg AA-readable. | May collapse to subtle in low-tier modes.                                                |
+| `bg-surface-subtle`  | `#333945`  | 1.08:1          | —        | Subtle elevation tier — sidebars, secondary regions.              | blend(bg, fg, 0.03); auto-lifted to keep fg AA-readable. | Often collapses to surface.default in ANSI16 — renderer compensates with non-color cues. |
+| `bg-surface-raised`  | `#3E4450`  | 1.28:1          | —        | Raised elevation — cards, panels above the canvas.                | blend(bg, fg, 0.10); auto-lifted to keep fg AA-readable. | May collapse to subtle in low-tier modes.                                                |
 | `bg-surface-overlay` | `#424853`  | 1.36:1          | —        | Overlay surface — popovers, tooltips, menus (NOT modal backdrop). | blend(bg, fg, 0.12); auto-lifted to keep fg AA-readable. | Distinct from `bg-backdrop` (the modal scrim).                                           |
 | `bg-surface-hover`   | `#3E4450`  | 1.28:1          | —        | Hover wash for surfaces (default-row hover, etc.).                | blend(bg, fg, 0.10); auto-lifted to keep fg AA-readable. | Renderer may fall back to inverse cue in ansi16.                                         |
 
@@ -109,9 +110,9 @@ for the full rule.
 
 ### Faint
 
-| Token      | Hex (Nord) | Ratio vs canvas | Contract    | Purpose                                                                                                                                            | Derivation                                                          | Tier notes                                                                                            |
-| ---------- | ---------- | --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `fg-faint` | `#7D828C`  | 3.24:1          | FAINT 1.5:1 | Whisper-weight text one tier below `fg-muted` — fine-print unit suffixes, decorative meter labels, metadata that must not compete with a muted caption. | blend(fg, bg, 0.55); ≥1.5:1 against bg-muted (FAINT floor, below muted's 3:1). | Text analog of `border-muted`'s FAINT tier. In ansi16 collapses toward the bright-black slot (with `fg-muted`); intentionally low contrast. |
+| Token      | Hex (Nord) | Ratio vs canvas | Contract    | Purpose                                                                                                                                                           | Derivation                                                                     | Tier notes                                                                                                                              |
+| ---------- | ---------- | --------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `fg-faint` | `#7D828C`  | 3.24:1          | FAINT 1.5:1 | Whisper-weight text one tier below `fg-muted` — fine-print unit suffixes, decorative meter labels, metadata that must not compete with an adjacent muted caption. | blend(fg, bg, 0.55); ≥1.5:1 against bg-muted (FAINT floor, below muted's 3:1). | Text analog of border-muted's FAINT tier. In ansi16 collapses toward the bright-black slot (with fg-muted); intentionally low contrast. |
 
 ### Accent (link-like, full state matrix)
 
@@ -176,10 +177,12 @@ for the full rule.
 
 ### Inverse
 
-| Token           | Hex (Nord) | Ratio vs canvas | Contract | Purpose                                          | Derivation                                  | Tier notes                  |
-| --------------- | ---------- | --------------- | -------- | ------------------------------------------------ | ------------------------------------------- | --------------------------- |
-| `bg-inverse`    | `#D7DAE0`  | 8.92:1          | —        | Inverse-band surface — status bar, modal chrome. | blend(bg, fg, 0.85) (heavily fg-tinted bg). | Stable; high-contrast band. |
-| `fg-on-inverse` | `#2E3440`  | 1.00:1          | AA 4.5:1 | Text on the inverse band.                        | contrast-pick for AA on bg-inverse.         | Pre-quantization pick.      |
+| Token                 | Hex (Nord) | Ratio vs canvas | Contract                          | Purpose                                                    | Derivation                                      | Tier notes                                                              |
+| --------------------- | ---------- | --------------- | --------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
+| `bg-inverse`          | `#D7DAE0`  | 8.92:1          | —                                 | Inverse-band surface — status bar, modal chrome.           | blend(bg, fg, 0.85) (heavily fg-tinted bg).     | Stable; high-contrast band.                                             |
+| `fg-on-inverse`       | `#2E3440`  | 1.00:1          | AA 4.5:1                          | Text on the inverse band.                                  | contrast-pick for AA on bg-inverse.             | Pre-quantization pick.                                                  |
+| `bg-inverse-hover`    | `#C6C9D0`  | 7.53:1          | —                                 | Hover surface for interactive controls in an inverse band. | sRGB mix of bg-inverse 90% + fg-on-inverse 10%. | Retains the inverse attr in mono; may collapse to bg-inverse in ansi16. |
+| `fg-on-inverse-muted` | `#696E78`  | 2.44:1          | Lower emphasis than fg-on-inverse | Deemphasized text drawn on inverse chrome.                 | sRGB mix of fg-on-inverse 65% + bg-inverse 35%. | Uses dim in mono; may collapse toward fg-on-inverse in ansi16.          |
 
 ### Link
 
@@ -210,7 +213,7 @@ for the full rule.
 
 ## See also
 
-- Sterling design system (`design/v10-terminal/design-system.md` in the internal repo) — internal canonical doc
+- [Sterling design system](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md) — internal canonical doc
 - [`STERLING_FLAT_TOKENS`](../../packages/ansi/src/sterling/flat-tokens.ts) — the type-level union, in lockstep with this page
 - [`PUBLIC_TOKENS`](../../packages/ansi/src/sterling/token-manifest.ts) — the manifest powering this generator
-- "Ratio vs canvas" measures contrast against `bg-surface-default` (= `#2E3440` for Nord); values < 4.5:1 are non-text tokens (borders, surfaces, hover backgrounds) and listed for reference only.
+- "Ratio vs canvas" measures contrast against `bg-surface-default` (= `#2E3440` for Nord); surface and border values are listed for reference only. Text-token guarantees are stated explicitly in the Contract column (deemphasized text may intentionally sit below AA).

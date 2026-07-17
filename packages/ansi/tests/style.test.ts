@@ -192,7 +192,7 @@ describe("resolveThemeColor", () => {
   // single-hex `selection` / `selectionbg` / `inverse` / `inversebg` / `link`
   // legacy aliases were dropped from runtime emit in 0.21.0
   // (sterling-purge-legacy-tokens) — consumers read Sterling flat tokens
-  // (`bg-selected`, `fg-on-selected`, `bg-inverse`, `fg-on-inverse`, `fg-link`).
+  // (`bg-selected`, `fg-on-selected`, inverse-family tokens, `fg-link`).
   describe("Sterling flat tokens (direct lookup)", () => {
     const sterlingTheme = {
       // Legacy roots still emitted by deriveTheme at runtime
@@ -221,6 +221,8 @@ describe("resolveThemeColor", () => {
       "fg-on-selected": "#f8f8f2",
       "bg-inverse": "#f8f8f2",
       "fg-on-inverse": "#1a1a1a",
+      "bg-inverse-hover": "#e2e2de",
+      "fg-on-inverse-muted": "#686866",
       "fg-link": "#8be9fd",
     }
     it("$fg-muted resolves directly", () => {
@@ -255,6 +257,12 @@ describe("resolveThemeColor", () => {
     })
     it("$fg-on-inverse resolves directly (Sterling-owned, no legacy root)", () => {
       expect(resolveThemeColor("$fg-on-inverse", sterlingTheme)).toBe("#1a1a1a")
+    })
+    it("$bg-inverse-hover resolves directly", () => {
+      expect(resolveThemeColor("$bg-inverse-hover", sterlingTheme)).toBe("#e2e2de")
+    })
+    it("$fg-on-inverse-muted resolves directly", () => {
+      expect(resolveThemeColor("$fg-on-inverse-muted", sterlingTheme)).toBe("#686866")
     })
     it("$fg-link resolves directly (Sterling-owned, no legacy root)", () => {
       expect(resolveThemeColor("$fg-link", sterlingTheme)).toBe("#8be9fd")

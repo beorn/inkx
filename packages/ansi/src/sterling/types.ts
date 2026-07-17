@@ -35,6 +35,11 @@ export interface BgStatePair {
   readonly bg: string
 }
 
+/** On-fill foreground state pair. Used for deemphasis within a filled role. */
+export interface FgOnStatePair {
+  readonly fgOn: string
+}
+
 /**
  * Interactive (link-like) state pair: both `fg` and `bg` vary by state.
  * Used by `accent` — the canonical interactive-text role.
@@ -145,12 +150,14 @@ export interface SelectedRole {
 
 /**
  * Inverse role — flipped surface used for status bars, modal chrome, the
- * "you are here" inverse band. Subtle blend of fg into bg, with `fgOn`
- * picked for AA contrast against the resulting surface.
+ * "you are here" inverse band. `hover.bg` is the interactive surface state;
+ * `muted.fgOn` is deemphasized text that remains legible on inverse chrome.
  */
 export interface InverseRole {
   readonly bg: string
   readonly fgOn: string
+  readonly hover: BgStatePair
+  readonly muted: FgOnStatePair
 }
 
 /**
@@ -211,7 +218,8 @@ export interface Roles {
  * Every flat hyphen-key that Sterling emits. String-literal union so that
  * `theme["bg-accent"]` is type-checked and typos fail the compile.
  *
- * Grammar: `prefix-role[-state]` or `prefix-on-role` or `prefix-role-kind[-state]`.
+ * Grammar: `prefix-role[-state]` or `prefix-on-role[-state]` or
+ * `prefix-role-kind[-state]`.
  * (See design-system.md §"Flattening rule".)
  */
 export type FlatToken =
@@ -274,6 +282,8 @@ export type FlatToken =
   // Inverse — flipped surface (status bar, modal chrome)
   | "bg-inverse"
   | "fg-on-inverse"
+  | "bg-inverse-hover"
+  | "fg-on-inverse-muted"
   // Link — hyperlink text color
   | "fg-link"
   // Disabled — neutral deemphasis for unavailable controls

@@ -32,12 +32,16 @@ const theme = sterling.deriveFromScheme(myScheme)
 // Nested roles — programmatic access
 theme.accent.bg // "#5B8DEF"
 theme.accent.hover.bg // "#6498F6"
+theme.inverse.hover.bg // inverse control hover surface
+theme.inverse.muted.fgOn // deemphasized text on inverse chrome
 theme.surface.raised // "#3B4252"
 theme.cursor.fg // "#E5E9F0"
 
 // Flat hyphen keys — token resolution path (used by `$tokens` in JSX)
 theme["bg-accent"] // "#5B8DEF" — same string as theme.accent.bg
 theme["bg-accent-hover"] // "#6498F6" — same string as theme.accent.hover.bg
+theme["bg-inverse-hover"] // same string as theme.inverse.hover.bg
+theme["fg-on-inverse-muted"] // same string as theme.inverse.muted.fgOn
 theme["bg-surface-raised"] // "#3B4252"
 theme["fg-cursor"] // "#E5E9F0"
 
@@ -62,7 +66,7 @@ Both paths are real fields on the same object — there is no Proxy. `theme.acce
 | `border`   | `{ default, focus, muted }`                                       | Structural rules, focus ring, faint dividers                     |
 | `cursor`   | `{ fg, bg }`                                                      | Cursor color and the glyph under it                              |
 | `selected` | `{ bg, fgOn, hover: { bg } }`                                     | Cursor row, mouse selection, search match highlight              |
-| `inverse`  | `{ bg, fgOn }`                                                    | Status bars, modal chrome — the "you are here" inverse band      |
+| `inverse`  | `{ bg, fgOn, hover: { bg }, muted: { fgOn } }`                    | Status bars, modal chrome — the "you are here" inverse band      |
 | `link`     | `{ fg }`                                                          | Hyperlink text (distinct from `accent` if you want classic blue) |
 
 Status roles only carry **surface** state (`hover.bg`, `active.bg`). They don't carry text-color hover variants — text on a status role isn't a link, so `fg-error-hover` would be a category error. `accent` is the only role with `fg.hover` / `fg.active`, because it _is_ a link-like role.
@@ -101,17 +105,18 @@ Error       fg-error | bg-error | fg-on-error
 Selected    bg-selected | fg-on-selected | bg-selected-hover
 
 Inverse     bg-inverse | fg-on-inverse
+            | bg-inverse-hover | fg-on-inverse-muted
 
 Link        fg-link
 ```
 
 Plus the **root pair** `fg` and `bg`, the **categorical hues** (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`), the 16-slot ANSI **palette** (`$color0` … `$color15`), the **typography variants** map, and metadata (`name`, `mode`, optional `derivationTrace`).
 
-The grammar is `prefix-role[-state]` or `prefix-on-role`:
+The grammar is `prefix-role[-state]` or `prefix-on-role[-state]`:
 
 - `bg-X` — fill of role X
 - `fg-X` — foreground of role X
-- `fg-on-X` — text drawn ON the bg of role X (contrast-picked)
+- `fg-on-X` — text drawn ON the bg of role X (the base token is contrast-picked)
 - `border-X` — border for role X
 - `*-hover`, `*-active` — state variants
 

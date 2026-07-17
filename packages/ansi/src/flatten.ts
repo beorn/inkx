@@ -47,6 +47,7 @@ export type FlattenRule = (path: readonly string[]) => string | null
  * | `accent.fg`                  | `fg-accent`                 |
  * | `accent.bg`                  | `bg-accent`                 |
  * | `accent.fgOn`                | `fg-on-accent`              |
+ * | `inverse.muted.fgOn`         | `fg-on-inverse-muted`       |
  * | `accent.border`              | `border-accent`             |
  * | `accent.hover.bg`            | `bg-accent-hover`           |
  * | `accent.active.fg`           | `fg-accent-active`          |
@@ -72,8 +73,11 @@ export const defaultFlattenRule: FlattenRule = (path) => {
   const last = path[path.length - 1]!
   const mid = path.slice(1, -1)
 
-  // Rule B: fgOn → fg-on-{role}
-  if (last === "fgOn") return `fg-on-${role}`
+  // Rule B: fgOn → fg-on-{role}[-{state}]
+  if (last === "fgOn") {
+    const state = mid.length > 0 ? mid.join("-") : undefined
+    return state ? `fg-on-${role}-${state}` : `fg-on-${role}`
+  }
 
   // Rule A: last segment is a channel kind (fg | bg | border)
   if (last === "fg" || last === "bg" || last === "border") {
