@@ -40,7 +40,7 @@ import {
 } from "../unicode"
 import { collectPlainText } from "./collect-text"
 import { getTextStyle, getTextWidth, parseColor } from "./render-helpers"
-import { getActiveTheme } from "./state"
+import { getActiveColorLevel, getActiveTheme } from "./state"
 import {
   getCachedPlainText,
   setCachedPlainText,
@@ -168,6 +168,33 @@ interface StyleContext {
  */
 function styleToAnsi(style: StyleContext): string {
   const parts: string[] = []
+  let bold = style.bold
+  let dim = style.dim
+  let italic = style.italic
+  let underline = style.underline
+  let underlineStyle = style.underlineStyle
+  let inverse = style.inverse
+  let strikethrough = style.strikethrough
+
+  // Nested Text runs bypass getTextStyle(), so carry the same monochrome
+  // token fallbacks into their inline ANSI segments. Without this,
+  // `$fg-on-inverse-muted` loses its SGR dim fallback inside a parent Text and
+  // color-driven animations disappear on mono terminals.
+  if (getActiveColorLevel() === "mono") {
+    const monoAttrs = getTextStyle({
+      color: style.color,
+      backgroundColor: style.backgroundColor,
+    }).attrs
+    if (monoAttrs.bold) bold = true
+    if (monoAttrs.dim) dim = true
+    if (monoAttrs.italic) italic = true
+    if (monoAttrs.underline) {
+      underline = true
+      if (!underlineStyle) underlineStyle = "single"
+    }
+    if (monoAttrs.inverse) inverse = true
+    if (monoAttrs.strikethrough) strikethrough = true
+  }
 
   // Foreground color - use parseColor directly instead of roundtripping through getTextStyle
   if (style.color) {
@@ -186,11 +213,11 @@ function styleToAnsi(style: StyleContext): string {
   // bg color from bleeding across wrapped lines. See collectTextWithBg().
 
   // Attributes
-  if (style.bold) parts.push("1")
-  if (style.dim) parts.push("2")
-  if (style.italic) parts.push("3")
+  if (bold) parts.push("1")
+  if (dim) parts.push("2")
+  if (italic) parts.push("3")
   // Underline: prefer underlineStyle (SGR 4:x subparam) over boolean (SGR 4)
-  if (style.underlineStyle) {
+  if (underlineStyle) {
     const styleMap: Record<string, string> = {
       single: "4:1",
       double: "4:2",
@@ -198,8 +225,8 @@ function styleToAnsi(style: StyleContext): string {
       dotted: "4:4",
       dashed: "4:5",
     }
-    parts.push(styleMap[style.underlineStyle] ?? "4")
-  } else if (style.underline) {
+    parts.push(styleMap[underlineStyle] ?? "4")
+  } else if (underline) {
     parts.push("4")
   }
   // Underline color (SGR 58;5;N or 58;2;r;g;b).
@@ -221,8 +248,8 @@ function styleToAnsi(style: StyleContext): string {
       }
     }
   }
-  if (style.inverse) parts.push("7")
-  if (style.strikethrough) parts.push("9")
+  if (inverse) parts.push("7")
+  if (strikethrough) parts.push("9")
   if (style.overline) parts.push("53")
 
   if (parts.length === 0) {

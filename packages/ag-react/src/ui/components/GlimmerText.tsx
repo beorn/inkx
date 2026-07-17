@@ -15,7 +15,12 @@
  *
  * Usage:
  * ```tsx
- * <GlimmerText active={isRunning} color="$fg-on-inverse" bold>
+ * <GlimmerText
+ *   active={isRunning}
+ *   color="$fg-on-inverse-muted"
+ *   glimmerColor="$fg-on-inverse"
+ *   bold
+ * >
  *   {commandLine}
  * </GlimmerText>
  * ```
@@ -49,7 +54,10 @@ export function glimmerCycleLength(length: number): number {
 
 /** Period scaled so the sweep VELOCITY stays constant across text widths. */
 export function glimmerPeriod(periodMs: number, length: number): number {
-  return Math.max(1, Math.round((periodMs * glimmerCycleLength(length)) / GLIMMER_REFERENCE_COLUMNS))
+  return Math.max(
+    1,
+    Math.round((periodMs * glimmerCycleLength(length)) / GLIMMER_REFERENCE_COLUMNS),
+  )
 }
 
 /** Whether the character at `index` is inside the lit span at `phase`. */
@@ -99,9 +107,12 @@ export function GlimmerText({
     )
   }
   return (
-    <Text color={color} {...rest}>
+    <Text {...rest}>
       {characters.map((character, index) => (
-        <Text key={`${index}:${character}`} color={isGlimmerCell(index, phase, cycleLength) ? glimmerColor : color}>
+        <Text
+          key={`${index}:${character}`}
+          color={isGlimmerCell(index, phase, cycleLength) ? glimmerColor : color}
+        >
           {character}
         </Text>
       ))}
