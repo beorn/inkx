@@ -335,3 +335,86 @@ describe("ListView signals refactor — convergence", () => {
     ).not.toBe(textBeforeWheel)
   })
 })
+
+describe("21184 — pre-convergence wheel defer-and-replay (layout bootstrap window)", () => {
+  // The deterministic stand-in for the live ms-scale transient: FEW items
+  // whose rows measure to zero height initially. Count-space estimates then
+  // ALSO say "fits" (items.length rows < viewport), so maxScrollRow is 0 AND
+  // layoutContentRows is 0 — the exact layout-bootstrap window. Flipping the
+  // rows to tall measured content drives the same `scrollableRows 0→positive`
+  // transition the live convergence chain produces.
+  //
+  // Item count is the load-bearing choice: with MANY items (the parked WIP
+  // used 40) the count-space fallback makes maxScrollRow positive
+  // pre-measurement, the wheel scrolls normally on estimates, and the test
+  // passes against pristine code — the false-pass that parked the first cut.
+  // Four items measuring five rows each is the estimate-UNDERSHOOT shape:
+  // count-space says fits, measurement says overflows.
+  const COLS = 40
+  const ROWS = 12
+  const TALL_ITEM_ROWS = 5
+
+  function Harness({ measured, count }: { measured: boolean; count: number }) {
+    return (
+      <Box width={COLS} height={ROWS} flexDirection="column">
+        <Box flexGrow={1} flexShrink={1} minHeight={0}>
+          <ListView
+            items={makeItems(count)}
+            nav
+            getKey={(item) => item}
+            renderItem={(item) =>
+              measured ? (
+                <Box height={TALL_ITEM_ROWS} flexShrink={0}>
+                  <Text>{item}</Text>
+                </Box>
+              ) : (
+                <Box height={0} />
+              )
+            }
+          />
+        </Box>
+      </Box>
+    )
+  }
+
+  test("a wheel in the bootstrap window is deferred and replayed when the list becomes scrollable", async () => {
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+    const app = render(<Harness measured={false} count={4} />)
+    await app.wheel(COLS / 2, ROWS / 2, 5)
+    app.rerender(<Harness measured={true} count={4} />)
+
+    const topVisible = app.text.split("\n").find((line) => line.trim() !== "")
+    expect(
+      topVisible,
+      `deferred wheel was not replayed — viewport still at the top:\n${app.text}`,
+    ).not.toContain("item 0")
+  })
+
+  test("a wheel on a MEASURED list whose content fits stays a genuine no-op (the discriminator's other side)", async () => {
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+    function FitsHarness({ count }: { count: number }) {
+      return (
+        <Box width={COLS} height={ROWS} flexDirection="column">
+          <Box flexGrow={1} flexShrink={1} minHeight={0}>
+            <ListView
+              items={makeItems(count)}
+              nav
+              getKey={(item) => item}
+              renderItem={(item) => <Text>{item}</Text>}
+            />
+          </Box>
+        </Box>
+      )
+    }
+    const app = render(<FitsHarness count={3} />)
+    expect(app.text).toContain("item 0")
+    await app.wheel(COLS / 2, ROWS / 2, 5)
+    app.rerender(<FitsHarness count={40} />)
+
+    const topVisible = app.text.split("\n").find((line) => line.trim() !== "")
+    expect(
+      topVisible,
+      `fits-wheel leaked into the defer queue and replayed after growth:\n${app.text}`,
+    ).toContain("item 0")
+  })
+})
