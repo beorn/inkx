@@ -13,6 +13,18 @@ import React, { useState } from "react"
 import { describe, expect, test, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { TogglePill, TogglePillGroup, togglePillColor } from "../src/ui/components/TogglePill"
+import * as agReact from "../src/index"
+
+describe("TogglePill public barrel", () => {
+  // Regression guard: adding a component to ui/components.ts is not enough — the
+  // curated exports.ts surface (what `import … from "silvery"` resolves) must
+  // re-export it too, or consumers get an undefined element at render.
+  test("TogglePill / TogglePillGroup / togglePillColor are reachable from the @silvery/ag-react barrel", () => {
+    expect(typeof agReact.TogglePill, "TogglePill on the public barrel").toBe("function")
+    expect(typeof agReact.TogglePillGroup, "TogglePillGroup on the public barrel").toBe("function")
+    expect(typeof agReact.togglePillColor, "togglePillColor on the public barrel").toBe("function")
+  })
+})
 
 describe("togglePillColor ladder", () => {
   const color = (o: { active: boolean; groupHovered: boolean; itemHovered: boolean }) =>
