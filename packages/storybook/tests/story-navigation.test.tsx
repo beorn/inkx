@@ -1,9 +1,7 @@
 /**
  * @failure  StorybookApp's list-pane keyboard navigation (j / ArrowDown)
- *   stops moving the selected story — e.g. the `nav`/`active` wiring on the
- *   story ListView regresses, or `onCursor`/`setSelectedStoryId` stops
- *   updating the preview — silently freezing the runner on the initial
- *   story regardless of keypresses. This is the package's OWN behavioral
+ *   stops moving the selected story, or its shifted-punctuation help binding
+ *   silently stops matching `?`. This is the package's OWN behavioral
  *   coverage; before this file only a downstream consumer's tests exercised
  *   navigation.
  * @level    l2
@@ -82,5 +80,16 @@ describe("StorybookApp story navigation (20740)", () => {
     expect(app.text).toContain("GAMMA-BODY-MARKER")
     expect(app.text).not.toContain("ALPHA-BODY-MARKER")
     expect(app.text).not.toContain("BETA-BODY-MARKER")
+  })
+
+  test("pressing ? opens the help overlay", async () => {
+    const render = createRenderer({ cols: 100, rows: 30 })
+    const app = render(<StorybookApp initialStoryId="Nav/alpha" stories={STORIES} />)
+
+    expect(app.text).not.toContain("Storybook — keys")
+
+    await app.press("?")
+
+    expect(app.text).toContain("Storybook — keys")
   })
 })

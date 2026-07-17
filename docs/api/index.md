@@ -54,7 +54,11 @@ Everything you need to build terminal UIs with Silvery.
 | [useScreenRect](/api/use-screen-rect)                  | Actual paint position on the terminal screen                            |
 | [useResponsiveBoxProps](/api/use-responsive-box-props) | Declarative responsive `<Box>` prop spread (canonical primitive)        |
 | [useResponsiveValue](/api/use-responsive-value)        | Pick any value (string, enum, callback) by viewport breakpoint          |
-| [useInput](/api/use-input)                             | Handle keyboard and mouse input                                         |
+| [useHotkey](/api/use-hotkey)                           | Bind commands to semantic key names                                     |
+| [useHotkeyMap](/api/use-hotkey#usehotkeymap)           | Register several semantic command bindings                              |
+| [useTextInput](/api/use-text-input)                    | Receive typed and pasted text for custom editors                        |
+| [useInput](/api/use-input)                             | Low-level Ink-compatible keyboard input                                 |
+| [useRawKeyEvent](/api/use-raw-key-event)               | Observe release, modifier-only, and protocol-level key events           |
 | [useApp](/api/use-app)                                 | Access the app instance (exit, rerender)                                |
 | [useStdout](/api/use-stdout)                           | Access stdout for raw writes                                            |
 | [Focus Hooks](/api/use-focus)                          | Focus management (useFocusable, useFocusScope)                          |
@@ -89,7 +93,11 @@ import {
   ProgressBar,
   render,
   useBoxRect,
+  useHotkey,
+  useHotkeyMap,
+  useTextInput,
   useInput,
+  useRawKeyEvent,
   useApp,
 } from "silvery"
 ```

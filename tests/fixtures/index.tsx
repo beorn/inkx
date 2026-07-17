@@ -201,8 +201,8 @@ export function ResponsiveBox() {
 export function Counter({ initial = 0 }: { initial?: number }) {
   const [count, setCount] = useState(initial)
 
-  useInput((input) => {
-    if (input === "j" || input === "+") setCount((c) => c + 1)
+  useInput((input, key) => {
+    if (input === "j" || key.text === "+") setCount((c) => c + 1)
     if (input === "k" || input === "-") setCount((c) => c - 1)
   })
 

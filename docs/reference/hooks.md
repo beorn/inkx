@@ -30,7 +30,7 @@ function Tooltip() {
 
 ## useInput
 
-Registers a keyboard input handler. Return `"exit"` to exit the app.
+Registers a low-level Ink-compatible keyboard input handler. Return `"exit"` to exit the app. New code should use [`useHotkey`](/api/use-hotkey) for commands or [`useTextInput`](/api/use-text-input) for text; use this tuple when you genuinely need normalized key identity and the full `Key` object together.
 
 ```tsx
 import { useInput, type Key } from "silvery/runtime"

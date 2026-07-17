@@ -117,25 +117,29 @@ function renderWithChain(element: React.ReactElement, chain = createFakeChain())
 }
 
 describe("input boundary hooks", () => {
-  test("useHotkey matches semantic command bindings without treating text as commands", () => {
-    const onQuestion = vi.fn()
-    const onRelease = vi.fn()
+  test("useHotkey distinguishes literal shifted punctuation from a physical chord", () => {
+    const onPhysicalQuestion = vi.fn()
+    const onLiteralQuestion = vi.fn()
 
     function Probe(): React.ReactElement {
-      useHotkey("shift+/", onQuestion)
-      useHotkey("shift+/", onRelease)
+      useHotkey("shift+/", onPhysicalQuestion)
+      useHotkey("?", onLiteralQuestion)
       return <Text>probe</Text>
     }
 
     const chain = renderWithChain(<Probe />)
     chain.press("/", { shift: true, text: "?" })
     chain.press("/", { shift: true, text: "?", eventType: "release" })
+    chain.press("ß", { text: "?" })
     chain.press("", { shift: true, isModifierOnly: true })
 
-    expect(onQuestion).toHaveBeenCalledTimes(1)
-    expect(onQuestion.mock.calls[0]?.[0]).toMatchObject({ input: "/", binding: "shift+/" })
-    expect(onQuestion.mock.calls[0]?.[0].key.text).toBe("?")
-    expect(onRelease).toHaveBeenCalledTimes(1)
+    expect(onPhysicalQuestion).toHaveBeenCalledTimes(1)
+    expect(onPhysicalQuestion.mock.calls[0]?.[0]).toMatchObject({
+      input: "/",
+      binding: "shift+/",
+    })
+    expect(onLiteralQuestion).toHaveBeenCalledTimes(2)
+    expect(onLiteralQuestion.mock.calls[1]?.[0]).toMatchObject({ input: "ß", binding: "?" })
   })
 
   test("useHotkey exposes web-literate meta and alt names at the public boundary", () => {

@@ -2,6 +2,20 @@
 
 Silvery provides hooks for input handling, layout queries, terminal access, and interaction features.
 
+## Input hooks by intent
+
+Choose the narrowest hook for the job:
+
+| Intent                       | Hook                                           |
+| ---------------------------- | ---------------------------------------------- |
+| Application command          | [`useHotkey`](/api/use-hotkey)                 |
+| Several application commands | [`useHotkeyMap`](/api/use-hotkey#usehotkeymap) |
+| Typed and pasted text        | [`useTextInput`](/api/use-text-input)          |
+| Ink-compatible mixed handler | [`useInput`](/api/use-input)                   |
+| Release/modifier observation | [`useRawKeyEvent`](/api/use-raw-key-event)     |
+
+The semantic hooks keep normalized key identity separate from produced text. In particular, bind the literal character `"?"` with `useHotkey("?", handler)`; the low-level `input` value for that press is the normalized base key `"/"`.
+
 ## Interaction Feature Hooks
 
 These hooks read state from interaction features registered in the `CapabilityRegistry`. The shipped `run()` runtime installs its mouse features automatically; explicitly composed runtimes must register the corresponding capability themselves.
@@ -126,7 +140,7 @@ Returns the `Term` instance passed to `render()`. Provides:
 
 ## useInput
 
-Handle keyboard input.
+Handle the low-level Ink-compatible `(input, key)` tuple. Prefer `useHotkey` for commands and `useTextInput` for text in new code; see the [`useInput` API reference](/api/use-input) for the normalized-key contract.
 
 ```tsx
 import { useInput } from "silvery"
@@ -144,31 +158,7 @@ function App() {
 }
 ```
 
-### Parameters
-
-```tsx
-useInput(
-  (input: string, key: Key) => void,
-  options?: { isActive?: boolean }
-)
-```
-
-### Key Object
-
-| Property     | Type      | Description           |
-| ------------ | --------- | --------------------- |
-| `upArrow`    | `boolean` | Up arrow pressed      |
-| `downArrow`  | `boolean` | Down arrow pressed    |
-| `leftArrow`  | `boolean` | Left arrow pressed    |
-| `rightArrow` | `boolean` | Right arrow pressed   |
-| `return`     | `boolean` | Enter/Return pressed  |
-| `escape`     | `boolean` | Escape pressed        |
-| `ctrl`       | `boolean` | Control key held      |
-| `shift`      | `boolean` | Shift key held        |
-| `meta`       | `boolean` | Meta/Command key held |
-| `tab`        | `boolean` | Tab pressed           |
-| `backspace`  | `boolean` | Backspace pressed     |
-| `delete`     | `boolean` | Delete pressed        |
+The low-level `input` value is normalized for physical key matching, while `key.text` is the produced character. See the [`useInput` API reference](/api/use-input) for the complete signature, options, and `Key` fields.
 
 ## useApp
 

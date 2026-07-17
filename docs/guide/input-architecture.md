@@ -68,10 +68,10 @@ Each parsed sequence becomes a typed `ProviderEvent`:
 
 `parseKey()` returns `[input, key]` where these serve different purposes:
 
-- **`input`** is normalized for keybinding matching. Shifted punctuation is decomposed: `#` becomes `input="3"` with `key.shift=true`, so `shift+3` matches. Uppercase letters become lowercase + shift.
-- **`key.text`** is the actual typed character. For text insertion, always use `key.text ?? input` -- this ensures Shift+3 inserts `#` and option+e inserts the accent.
+- **`input`** is normalized for physical keybinding matching. Shifted punctuation is decomposed: `#` becomes `input="3"` with `key.shift=true`, so `shift+3` matches. Uppercase letters retain their casing and set `key.shift=true`.
+- **`key.text`** is the actual typed character. Use it for literal-character hotkeys, and use `key.text ?? input` for text insertion -- this ensures Shift+3 inserts `#` and option+e inserts the accent.
 
-Rule: keybinding resolution uses `input`. Text insertion uses `key.text`.
+Rule: physical keybindings use `input` plus modifier fields. Literal-character hotkeys and text insertion use `key.text`; `matchHotkey()` handles both representations for reusable shortcuts.
 
 ### Kitty protocol parsing
 
@@ -180,26 +180,30 @@ These defaults only fire when `dispatchKeyEvent()` did not set `propagationStopp
 
 All hooks are defined in `@silvery/ag-react/hooks/` and re-exported from `silvery` and `silvery/runtime`. There is ONE implementation per hook — no duplicates across packages.
 
-| Hook                 | Purpose                         | Sees releases?         | Sees modifier-only? |
-| -------------------- | ------------------------------- | ---------------------- | ------------------- |
-| `useInput()`         | Primary key handling            | Via `onRelease` option | No (filtered)       |
-| `useModifierKeys()`  | Track held modifier state       | Yes (all events)       | Yes                 |
-| `useInputLayer()`    | Layered input with bubbling     | No                     | No                  |
-| `useExit()`          | Programmatic exit               | N/A                    | N/A                 |
-| `usePasteCallback()` | Simple paste text callback      | N/A                    | N/A                 |
-| `usePaste()`         | Context-based rich paste events | N/A                    | N/A                 |
+| Hook                 | Purpose                           | Sees releases?         | Sees modifier-only? |
+| -------------------- | --------------------------------- | ---------------------- | ------------------- |
+| `useHotkey()`        | One semantic command binding      | No                     | No                  |
+| `useHotkeyMap()`     | Several semantic command bindings | No                     | No                  |
+| `useTextInput()`     | Typed text and bracketed paste    | No                     | No                  |
+| `useInput()`         | Low-level Ink-compatible input    | Via `onRelease` option | No (filtered)       |
+| `useRawKeyEvent()`   | Protocol-level key observation    | Yes                    | Yes                 |
+| `useModifierKeys()`  | Track held modifier state         | Yes (all events)       | Yes                 |
+| `useInputLayer()`    | Layered input with bubbling       | No                     | No                  |
+| `useExit()`          | Programmatic exit                 | N/A                    | N/A                 |
+| `usePasteCallback()` | Simple paste text callback        | N/A                    | N/A                 |
+| `usePaste()`         | Context-based rich paste events   | N/A                    | N/A                 |
 
-**`useInput(handler, options?)`** -- the primary input hook. Subscribes to `RuntimeContext` "input" events. Filters out modifier-only events via `isModifierOnlyEvent()` from `@silvery/ag/keys`. Routes release events to the `onRelease` callback if provided, otherwise drops them. Return `"exit"` to quit the app. See [Event Handling](event-handling.md) for the full API.
+**`useHotkey(binding, handler, options?)` / `useHotkeyMap(bindings, options?)`** -- the semantic command boundary. Both compile public binding names through `parseHotkey()`/`matchHotkey()`, filter release and modifier-only events, and distinguish literal produced characters from physical chords. See [`useHotkey`](/api/use-hotkey).
+
+**`useTextInput(options)`** -- the semantic text boundary. It emits printable text and bracketed paste, segments Unicode graphemes, and filters command, navigation, release, and modifier-only events. See [`useTextInput`](/api/use-text-input).
+
+**`useInput(handler, options?)`** -- the low-level Ink-compatible boundary. It exposes normalized `input` plus `Key`, filters modifier-only events, and routes release events to `onRelease` when provided. Return `"exit"` to quit the app. See [`useInput`](/api/use-input).
+
+**`useRawKeyEvent(handler, options?)`** -- observes every raw key event that reaches the chain, including release and modifier-only events. See [`useRawKeyEvent`](/api/use-raw-key-event).
 
 **`useModifierKeys(options?)`** -- tracks which modifier keys (Cmd, Ctrl, Alt, Shift) are currently held. Uses `useSyncExternalStore` backed by a per-runtime singleton store. The `enabled` option controls subscription -- set to `false` to avoid re-renders when the component doesn't need modifier state.
 
 **`useInputLayer(name, handler)`** -- registers a handler in a layered stack. Layers receive input in child-first order (like DOM bubbling). Return `true` to consume the event, `false` to let it bubble.
-
-### Planned hooks
-
-**`useKeyPress()`** -- (planned) a higher-level hook with declarative keybinding matching, replacing the manual `if (input === "j")` pattern.
-
-**`useTextInput()`** -- (planned) dedicated text capture hook that handles `key.text`, IME, paste, and undo. Currently, `TextInput` and `TextArea` components implement this internally.
 
 ## Command System Integration
 
@@ -292,26 +296,15 @@ Dialogs capture Escape in the bubble phase to close themselves, preventing it fr
 
 ### Text input vs discrete commands
 
-Components that accept text input (search bars, editors) use `key.text` for insertion and `useInput` for control keys. The two paths are distinct:
+Custom text surfaces separate commands from text. `useHotkey()` matches commands through normalized key identity, while `useTextInput()` emits the text the user produced. For example, <kbd>?</kbd> arrives at the low-level boundary as `input === "/"`, `key.shift === true`, and `key.text === "?"`, but the semantic text hook emits `"?"` directly:
 
 ```tsx
-useInput((input, key) => {
-  if (key.return) {
-    submit()
-    return
-  }
-  if (key.escape) {
-    cancel()
-    return
-  }
-
-  // Text insertion: use key.text (actual character) not input (normalized)
-  const char = key.text ?? input
-  if (char.length === 1 && char >= " ") {
-    insertText(char)
-  }
-})
+useHotkey("Enter", submit)
+useHotkey("Escape", cancel)
+useTextInput({ onText: insertText })
 ```
+
+Use the built-in [`TextInput`](/api/text-input) or [`TextArea`](/api/text-area) unless you are implementing a custom editor primitive.
 
 ### Mode-based routing
 

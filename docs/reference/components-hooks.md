@@ -87,11 +87,15 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Input & Interaction
 
-| Hook                       | Description                       | API  |
-| -------------------------- | --------------------------------- | ---- |
-| [useInput](/api/use-input) | Keyboard input handler            | Core |
-| usePaste                   | Bracketed paste handler           | Core |
-| useCursor                  | Terminal cursor positioning (IME) | Core |
+| Hook                                         | Description                              | API  |
+| -------------------------------------------- | ---------------------------------------- | ---- |
+| [useHotkey](/api/use-hotkey)                 | Semantic command binding                 | Core |
+| [useHotkeyMap](/api/use-hotkey#usehotkeymap) | Multiple semantic command bindings       | Core |
+| [useTextInput](/api/use-text-input)          | Typed and pasted text for custom editors | Core |
+| [useInput](/api/use-input)                   | Low-level Ink-compatible keyboard input  | Core |
+| [useRawKeyEvent](/api/use-raw-key-event)     | Protocol-level key observation           | Core |
+| usePaste                                     | Bracketed paste handler                  | Core |
+| useCursor                                    | Terminal cursor positioning (IME)        | Core |
 
 ### Focus
 

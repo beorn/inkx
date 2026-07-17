@@ -206,10 +206,10 @@ export function KanbanBoard() {
     }
 
     // Move card between columns
-    if (input === "<" || input === ",") {
+    if (key.text === "<") {
       moveCard(-1)
     }
-    if (input === ">" || input === ".") {
+    if (key.text === ">") {
       moveCard(1)
     }
   })
