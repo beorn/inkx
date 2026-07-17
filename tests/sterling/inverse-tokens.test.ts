@@ -4,7 +4,8 @@
  * Inverse chrome (status bars, modal bands) needs the same state vocabulary
  * as its consumers: a hover surface and deemphasized text that still belongs
  * to the inverse foreground channel. These tokens replace consumer-local
- * `mix()` expressions, so their sRGB derivation is part of the contract.
+ * `mix()` expressions. sRGB mixing supplies the starting intent; Sterling's
+ * contrast guards keep the resulting pair readable across every palette.
  */
 
 import { mixSrgb, relativeLuminance } from "@silvery/color"
@@ -30,8 +31,29 @@ describe("Sterling inverse-family tokens", () => {
     expect(theme.inverse.muted.fgOn).toBe(theme["fg-on-inverse-muted"])
   })
 
-  test.each(schemes)("%s preserves the canonical sRGB inverse mixes", (_name, scheme) => {
-    const theme = sterling.deriveFromScheme(scheme)
+  test.each(schemes)(
+    "%s keeps both inverse text tiers readable on base and hover",
+    (_name, scheme) => {
+      const theme = sterling.deriveFromScheme(scheme)
+      const baseText = theme["fg-on-inverse"]
+      const mutedText = theme["fg-on-inverse-muted"]
+      const surfaces = [theme["bg-inverse"], theme["bg-inverse-hover"]]
+
+      expect(theme["bg-inverse-hover"]).not.toBe(theme["bg-inverse"])
+      for (const surface of surfaces) {
+        const baseContrast = contrastRatio(baseText, surface)
+        const mutedContrast = contrastRatio(mutedText, surface)
+        expect(baseContrast, `${_name}: base text on ${surface}`).toBeGreaterThanOrEqual(4.5)
+        expect(mutedContrast, `${_name}: muted text on ${surface}`).toBeGreaterThanOrEqual(3)
+        expect(mutedContrast, `${_name}: muted remains below base emphasis`).toBeLessThan(
+          baseContrast,
+        )
+      }
+    },
+  )
+
+  test("Nord preserves the unlifted sRGB mix when both contrast floors already clear", () => {
+    const theme = sterling.deriveFromScheme(builtinPalettes.nord!)
 
     expect(theme["bg-inverse-hover"]).toBe(
       mixSrgb(theme["bg-inverse"], theme["fg-on-inverse"], 0.1),
@@ -39,14 +61,6 @@ describe("Sterling inverse-family tokens", () => {
     expect(theme["fg-on-inverse-muted"]).toBe(
       mixSrgb(theme["fg-on-inverse"], theme["bg-inverse"], 0.35),
     )
-  })
-
-  test.each(schemes)("%s keeps muted inverse text below the base emphasis", (_name, scheme) => {
-    const theme = sterling.deriveFromScheme(scheme)
-    const baseContrast = contrastRatio(theme["fg-on-inverse"], theme["bg-inverse"])
-    const mutedContrast = contrastRatio(theme["fg-on-inverse-muted"], theme["bg-inverse"])
-
-    expect(mutedContrast).toBeLessThan(baseContrast)
   })
 
   test("both inverse state tokens can be pinned by their canonical paths", () => {

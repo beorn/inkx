@@ -11,6 +11,7 @@ import {
   defaultDarkScheme,
 } from "@silvery/ansi"
 import { blend } from "@silvery/color"
+import { STERLING_FLAT_TOKENS } from "@silvery/theme/sterling"
 
 const theme = deriveTheme(defaultDarkScheme)
 
@@ -52,16 +53,20 @@ describe("defineTokens — validation", () => {
     ).toThrow(/collides with built-in/)
   })
 
-  it.each(["$bg-inverse-hover", "$fg-on-inverse-muted"])(
-    "rejects collision with inverse-family token %s",
-    (token) => {
-      expect(() =>
+  it("rejects collisions with every built-in Sterling flat token", () => {
+    for (const token of STERLING_FLAT_TOKENS) {
+      let thrown: unknown
+      try {
         defineTokens({
-          [token]: { rgb: "#FF0000", ansi16: "red" },
-        }),
-      ).toThrow(/collides with built-in/)
-    },
-  )
+          [`$${token}`]: { rgb: "#FF0000", ansi16: "red" },
+        })
+      } catch (error) {
+        thrown = error
+      }
+      expect(thrown, `$${token}`).toBeInstanceOf(CustomTokenError)
+      expect((thrown as Error).message, `$${token}`).toMatch(/collides with built-in/)
+    }
+  })
 
   it("rejects mixed derive + rgb", () => {
     expect(() =>
