@@ -288,6 +288,8 @@ export type { ProseProps, ProseHandle } from "./ui/components"
 // Focusable Controls
 export { Toggle } from "./ui/components"
 export type { ToggleProps } from "./ui/components"
+export { TogglePill, TogglePillGroup, togglePillColor } from "./ui/components"
+export type { TogglePillProps, TogglePillGroupProps } from "./ui/components"
 
 export { Button } from "./ui/components"
 export type { ButtonProps } from "./ui/components"
