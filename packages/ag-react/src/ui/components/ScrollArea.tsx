@@ -17,7 +17,7 @@ export interface ScrollController {
 
 export interface ScrollAreaProps {
   children: React.ReactNode
-  /** Render draggable scrollbar chrome. Defaults to true. */
+  /** Render activity-visible draggable scrollbar chrome. Defaults to true. */
   scrollbar?: boolean
   /** Forwarded to the outer interaction surface. */
   userSelect?: "text" | "none" | "contain"
@@ -118,6 +118,7 @@ export function ScrollArea({
           scrollableRows={controller.maxScroll}
           scrollOffset={controller.scrollOffset}
           onScrollOffsetChange={controller.setScrollOffset}
+          visible={controller.isScrolling}
         />
       ) : null}
     </Box>
