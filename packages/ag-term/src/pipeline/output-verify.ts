@@ -336,8 +336,8 @@ function applySgrParams(params: string, sgr: SgrState): void {
  * escape sequences that outputPhase() produces (CUP, SGR, EL, text) and
  * tracks the resulting character + style at each position.
  *
- * Used by SILVERY_STRICT_OUTPUT to verify that incremental output produces
- * the same visual + style result as a fresh full render.
+ * Used by SILVERY_STRICT_TERMINAL (vt100 backend) to verify that incremental
+ * output produces the same visual + style result as a fresh full render.
  *
  * @deprecated Use `SILVERY_STRICT_TERMINAL=vt100` instead. This function is now
  * the internal implementation of the `vt100` backend for STRICT_TERMINAL verification.

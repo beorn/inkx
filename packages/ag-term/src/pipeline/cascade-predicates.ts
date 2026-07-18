@@ -3,7 +3,8 @@
  *
  * TEST/STRICT-ONLY ORACLE: In production, the reactive system (alien-signals)
  * drives cascade computation. This module is only used as a verification oracle
- * when SILVERY_REACTIVE_VERIFY=1 or SILVERY_REACTIVE=0 (fallback mode). The
+ * when SILVERY_STRICT enables the `incremental` check (e.g. `SILVERY_STRICT=1`
+ * or `SILVERY_STRICT=incremental`) or SILVERY_REACTIVE=0 (fallback mode). The
  * bundler tree-shakes it when STRICT is off since all call sites are gated
  * behind `_reactiveVerifyEnabled` or `!_reactiveEnabled`.
  *
