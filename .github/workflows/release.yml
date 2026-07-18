@@ -97,7 +97,7 @@ jobs:
           publish .
 
           # Layer 6: Examples (depends on silvery)
-          publish packages/examples
+          publish examples
 
       # Smoke test: verify the JUST-PUBLISHED version resolves correctly.
       # Pin to ${{ github.ref_name }} (e.g. v0.19.2 → 0.19.2) instead of

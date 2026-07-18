@@ -46,7 +46,7 @@ if (args.includes("--version") || args.includes("-v")) {
 const delegateArgs = args[0] === "examples" ? args.slice(1) : args
 
 // Try workspace path first (monorepo dev)
-const workspaceCli = resolve(root, "packages/examples/bin/cli.ts")
+const workspaceCli = resolve(root, "examples/bin/cli.ts")
 const runtime = typeof globalThis.Bun !== "undefined" ? "bun" : "node"
 
 if (existsSync(workspaceCli)) {

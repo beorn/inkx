@@ -32,7 +32,6 @@
   },
   "workspaces": [
     "packages/*",
-    "!packages/examples",
     "!examples"
   ],
   "files": [
