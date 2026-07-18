@@ -75,7 +75,6 @@ Public packages (users install directly):
 - `@silvery/ansi` — ANSI utilities, color detection, theme derivation
 - `@silvery/color` — Pure color math: RGB/HSL/hex conversion, contrast
 - `@silvery/commander` — Commander.js integration with colorized help
-- `@silvery/model` — Optional DI model factories
 
 ## Component & Hook Model
 

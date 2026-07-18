@@ -216,10 +216,6 @@
         "@silvery/ansi": "0.21.0",
       },
     },
-    "packages/model": {
-      "name": "@silvery/model",
-      "version": "0.21.0",
-    },
     "packages/scope": {
       "name": "@silvery/scope",
       "version": "0.21.0",
@@ -693,8 +689,6 @@
     "@silvery/headless": ["@silvery/headless@workspace:packages/headless"],
 
     "@silvery/ink": ["@silvery/ink@workspace:packages/ink"],
-
-    "@silvery/model": ["@silvery/model@workspace:packages/model"],
 
     "@silvery/scope": ["@silvery/scope@workspace:packages/scope"],
 

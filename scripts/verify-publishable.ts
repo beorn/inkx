@@ -50,7 +50,6 @@ const PACKAGES: PackageEntry[] = [
   { dir: "packages/ag-react", name: "@silvery/ag-react", expectPublic: false },
   { dir: "packages/scope", name: "@silvery/scope", expectPublic: false },
   { dir: "packages/signals", name: "@silvery/signals", expectPublic: false },
-  { dir: "packages/model", name: "@silvery/model", expectPublic: false },
   { dir: "packages/color", name: "@silvery/color", expectPublic: true },
   { dir: "packages/headless", name: "@silvery/headless", expectPublic: false },
   { dir: "packages/theme", name: "@silvery/theme", expectPublic: false },

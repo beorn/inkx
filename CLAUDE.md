@@ -759,7 +759,6 @@ Users install and import from these packages:
 | `@silvery/commands`  | Command registry, keymaps, invocation                                                                                   |
 | `@silvery/scope`     | Structured concurrency — createScope, withScope                                                                         |
 | `@silvery/signals`   | Reactive signals — thin wrapper around alien-signals                                                                    |
-| `@silvery/model`     | Optional DI model factories                                                                                             |
 | `@silvery/commander` | Type-safe Commander.js with colorized help, Standard Schema                                                             |
 | `@silvery/ansi`      | Everything terminal — styling, ANSI primitives, detection, theme derivation                                             |
 | `@silvery/color`     | Color math — OKLCH-native blend, brighten, darken, complement, contrast (hex public API, re-exported by @silvery/theme) |

@@ -76,7 +76,6 @@ jobs:
           publish packages/ag-react
           publish packages/scope
           publish packages/signals
-          publish packages/model
           publish packages/color
           publish packages/headless
 
