@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { createWheelGestureFilter } from "../../packages/ag-react/src/ui/input/wheel-gesture-filter"
+import { createWheelGestureFilter } from "../../packages/ag-react/src/hooks/wheel-gesture-filter"
 
 const deltas = (samples: Array<{ deltaY: number }>): number[] =>
   samples.map((sample) => sample.deltaY)

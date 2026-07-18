@@ -64,7 +64,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { createWheelGestureFilter } from "../ui/input/wheel-gesture-filter"
+import { createWheelGestureFilter } from "./wheel-gesture-filter"
 
 /** Rows moved per wheel event before `wheelMultiplier`. Constant — event
  * frequency encodes speed; per-event inverse-dt acceleration would

@@ -153,9 +153,10 @@ import { task, tasks, steps } from "silvery/ui/progress"
 // React components (prefer importing from silvery instead)
 import { Spinner, ProgressBar } from "silvery/ui/react"
 
+// Interactive + display components (import from the main barrel)
+import { TextInput, SelectList, Table } from "silvery"
+
 // Other sub-modules
-import { TextInput, Select } from "silvery/ui/input"
-import { Skeleton, Badge } from "silvery/ui/display"
 import { useAnimation, easings } from "silvery/ui/animation"
 import { wrapAnsi } from "silvery/ui/ansi"
 ```

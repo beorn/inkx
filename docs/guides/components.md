@@ -334,7 +334,7 @@ await loader.run({ clear: true })
 
 ```tsx
 import { Spinner, ProgressBar, Tasks, Task } from "@silvery/ag-react/ui/react"
-import { TextInput, Select } from "@silvery/ag-react/ui/input"
+import { TextInput, SelectList } from "silvery"
 ```
 
 See the [@silvery/ag-react/ui README](https://github.com/beorn/silvery/tree/main/packages/ag-react/src/ui) for full documentation.

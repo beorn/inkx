@@ -212,17 +212,9 @@
         "types": "./dist/ui/components/useTextArea.d.mts",
         "import": "./dist/ui/components/useTextArea.mjs"
       },
-      "./ui/display": {
-        "types": "./dist/ui/display/index.d.mts",
-        "import": "./dist/ui/display/index.mjs"
-      },
       "./ui/image": {
         "types": "./dist/ui/image/index.d.mts",
         "import": "./dist/ui/image/index.mjs"
-      },
-      "./ui/input": {
-        "types": "./dist/ui/input/index.d.mts",
-        "import": "./dist/ui/input/index.mjs"
       },
       "./ui/progress": {
         "types": "./dist/ui/progress/index.d.mts",
@@ -317,9 +309,7 @@
       "src/ui/components/TextArea.tsx",
       "src/ui/components/TextInput.tsx",
       "src/ui/components/useTextArea.ts",
-      "src/ui/display/index.ts",
       "src/ui/image/index.ts",
-      "src/ui/input/index.ts",
       "src/ui/progress/index.ts",
       "src/ui/recording-chrome/index.ts",
       "src/ui/recording-chrome/spec.ts",
