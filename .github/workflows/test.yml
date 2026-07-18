@@ -48,7 +48,7 @@ jobs:
       # Grep gates — cheap, run before the test suite so ownership/hygiene
       # violations fail fast (raw-mode owner routing, async unmount, env reads).
       - name: Lint gates
-        run: bun scripts/lint-env-reads.ts && bun scripts/lint-no-raw-mode.ts && bun scripts/lint-no-async-unmount.ts
+        run: bun scripts/lint-env-reads.ts && bun scripts/lint-no-raw-mode.ts && bun scripts/lint-no-async-unmount.ts && bun scripts/lint-no-in-flight-rect-in-app.ts
 
       - name: Run tests
         run: bun run test
