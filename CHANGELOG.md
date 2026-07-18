@@ -19,6 +19,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   utilities. It replaces consumer imports from the intentionally internal
   `@silvery/test` workspace package.
 
+### Removed — dead / duplicate public surface (21453)
+
+Pre-launch cleanup removing zero-consumer and duplicate exports. Each line
+is breaking for anyone importing the named surface:
+
+- `useBoxMetrics` / `BoxMetrics` (from `silvery` / `@silvery/ag-react`) —
+  read uncommitted in-flight rects; use `useBoxRect()`. The Ink-compat shim
+  under `silvery/ink` is unaffected.
+- `silvery/ui/input` and `silvery/ui/display` subpaths — the legacy
+  `Select` / `TextInput` / `Table` family with a divergent
+  `options`/`value`/`onChange` API. Use the canonical `TextInput` /
+  `SelectList` / `Table` from the `silvery` barrel.
+- `@silvery/model` package (optional DI model factories) — zero consumers.
+- `INITIAL_RENDER_MAX_PASSES` (from `@silvery/ag-term`) — dead runtime
+  surface used only by internal convergence tests; inline `5` if you
+  asserted against it.
+
 ### Fixed
 
 - `@silvery/commander@0.21.2` publishes the already-tested `silentAlias()`

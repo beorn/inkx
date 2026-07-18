@@ -582,28 +582,6 @@ export const MAX_CONVERGENCE_PASSES =
   PASS_CAUSE_BOUNDS["viewport-resize"] +
   PASS_CAUSE_BOUNDS.unknown
 
-/**
- * Initial-render pass cap. Historical: the test renderer's initial render
- * used to run with this wider cap so hooks like useBoxRect could
- * subscribe → layout → forceUpdate → re-render before the first frame was
- * stable. As of `@km/silvery/test-harness-convergence-cap-parity` the
- * test harness uses the same `MAX_CONVERGENCE_PASSES` cap as production
- * on first paint — tests asserting post-convergence state opt in via
- * `await app.waitForLayoutStable()`.
- *
- * The constant is retained for the structural ceiling assertions in
- * `tests/pipeline/bounded-convergence*.test.ts`, but is no longer wired
- * into any production or test runtime code path. The layout-signals
- * refactor (`@km/silvery/listview-layout-signals-from-getlayoutsignals`)
- * eliminated the structural 3+ pass convergence requirement that
- * motivated the wider cap in the first place.
- *
- * @deprecated Not used by any runtime path as of 2026-05-11. Will be
- * removed once the asserting tests in `bounded-convergence*.test.ts`
- * migrate to a pure-constant fixture.
- */
-export const INITIAL_RENDER_MAX_PASSES = 5
-
 // =============================================================================
 // Always-on violation ring (independent of INSTRUMENT)
 // =============================================================================

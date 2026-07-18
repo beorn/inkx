@@ -28,11 +28,15 @@ import { createRenderer } from "@silvery/test"
 import { Box, Text, useBoxRect } from "@silvery/ag-react"
 import {
   MAX_CONVERGENCE_PASSES,
-  INITIAL_RENDER_MAX_PASSES,
   resetPassRing,
   passRingSize,
   formatPassRingBreakdown,
 } from "@silvery/ag-term/runtime/pass-cause"
+
+// Structural-ceiling fixture. Formerly the INITIAL_RENDER_MAX_PASSES export
+// in @silvery/ag-term/runtime/pass-cause (removed in 21453 — dead runtime
+// surface). Inlined per the export's own deprecation prescription.
+const INITIAL_RENDER_MAX_PASSES = 5
 
 /**
  * Bounded feedback: schedules `targetIterations` setState updates from

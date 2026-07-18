@@ -12,7 +12,7 @@
  * one pass late. Visible symptoms: scrollbar invisible until first
  * prompt submit, `handleWheel` drops events at `maxRow <= 0`, etc.
  *
- * Pre-fix, the test renderer used `INITIAL_RENDER_MAX_PASSES = 5` on its
+ * Pre-fix, the test renderer used a wider 5-pass cap on its
  * initial render — so tests over-settled relative to production. Tests
  * saw post-convergence state that real users NEVER get on first paint;
  * bugs that fire only during the first 1-2 passes were invisible.

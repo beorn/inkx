@@ -18,7 +18,6 @@ import { describe, test, expect } from "vitest"
 import {
   PASS_CAUSE_BOUNDS,
   MAX_CONVERGENCE_PASSES,
-  INITIAL_RENDER_MAX_PASSES,
   assertBoundedConvergence,
   recordPassRing,
   resetPassRing,
@@ -28,6 +27,13 @@ import {
   type PassCause,
   type ConvergenceLoopName,
 } from "@silvery/ag-term/runtime/pass-cause"
+
+// Structural-ceiling fixture. Formerly the INITIAL_RENDER_MAX_PASSES export
+// in @silvery/ag-term/runtime/pass-cause (removed in 21453 — it was dead
+// runtime surface used only by these bound-ceiling assertions). Inlined here
+// per the export's own deprecation prescription ("migrate to a pure-constant
+// fixture").
+const INITIAL_RENDER_MAX_PASSES = 5
 
 describe("bounded-convergence: per-cause bound model", () => {
   test("PASS_CAUSE_BOUNDS covers every PassCause category", () => {

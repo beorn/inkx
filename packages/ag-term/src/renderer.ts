@@ -1282,7 +1282,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // `await app.waitForLayoutStable()` explicitly — see that method's docs.
   // The default is production timing; opt-in is the explicit primitive.
   //
-  // Historical note: this used to be `INITIAL_RENDER_MAX_PASSES = 5` to
+  // Historical note: this used to run a wider 5-pass initial cap to
   // accommodate multi-layer measurement chains (useBoxRect → forceUpdate
   // → re-render → useBoxRect again). With the layout-signals refactor
   // (`@km/silvery/listview-layout-signals-from-getlayoutsignals`), the
