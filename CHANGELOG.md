@@ -38,6 +38,10 @@ is breaking for anyone importing the named surface:
 
 ### Fixed
 
+- Terminal startup now keeps one uninterrupted `term.input` owner across
+  profile, mouse-cell, text-sizing, DEC-width, and Kitty probes. Probe replies
+  no longer race a second stdin listener into normal input, and negotiated
+  SGR-Pixels cell metrics now configure the long-lived mouse parser.
 - `@silvery/commander@0.21.2` publishes the already-tested `silentAlias()`
   runtime support. The source implementation was present, but the published
   `0.21.0` artifact could not contain it.

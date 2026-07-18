@@ -81,7 +81,7 @@ import {
   getCachedProbeResult,
   getTerminalFingerprint,
 } from "../text-sizing"
-import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
+import { applyWidthConfig, detectWidthConfigWithProbe } from "../ansi/width-detection"
 import { isStrictEnabled } from "../strict-mode.js"
 import { recordOutputCursorDiagnostics } from "../cursor-diagnostics"
 import { computeManagedFrame, protectManagedCursorSuffix } from "../managed-caret"
@@ -106,6 +106,7 @@ import {
 } from "@silvery/ag-react/reconciler"
 import { map, merge, takeUntil } from "@silvery/create/streams"
 import { createRuntime } from "./create-runtime"
+import { setInputOwnerMouseOptions } from "./input-owner"
 import {
   canRouteKeyToFocusedIsland,
   createHandlerContext,
@@ -148,7 +149,7 @@ import {
   enterAlternateScreen,
   leaveAlternateScreen,
 } from "../output"
-import { detectKittyFromStdio } from "../kitty-detect"
+import { detectKittyWithProbe } from "../kitty-detect"
 import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
 import type { Buffer, Dims, Provider, RenderTarget } from "./types"
 import {
@@ -712,8 +713,7 @@ export interface AppRunOptions {
    *
    * When `false`, the runtime skips:
    *   - flipping `stdin` raw mode
-   *   - attaching `stdin.on("data", …)` listeners (including the
-   *     text-sizing + DEC width-detection probes)
+   *   - constructing the canonical InputOwner (including terminal probes)
    *   - the term provider's input subscription (`useInput`, `usePaste`,
    *     focus key dispatch all become no-ops)
    *
@@ -1064,9 +1064,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     ...injectValues
   } = options
   // When the caller opts out (`input: false`), the runtime treats stdin
-  // as if it weren't a TTY: no raw-mode flip, no `stdin.on("data", …)`
-  // listener (including the text-sizing + DEC width-detection probes),
-  // no term-provider input subscription. The host process keeps stdin
+  // as if it weren't a TTY: no raw-mode flip, no canonical InputOwner
+  // (including terminal probes), no term-provider input subscription.
+  // The host process keeps stdin
   // for its own use (typically piping to a child PTY). See
   // `docs/design/terminal-component.md` § "render({ input: false })".
   const inputDisabled = inputOption === false
@@ -1369,6 +1369,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // there's no real terminal for SIGINT to come from, and tests routinely
   // create+dispose Terms in tight loops without wanting global handlers.
   const effectiveTerm = injectedTerm ?? autoTerm
+  // Claim stdin before any protocol mode is enabled. Detection and normal
+  // key/mouse delivery use this same owner for the entire session; terminal
+  // replies therefore cannot fall through a listener handoff or reach a
+  // competing ad-hoc reader.
+  const sessionInput = hostOwnsStdin ? effectiveTerm?.input : undefined
+  if (sessionInput) setInputOwnerMouseOptions(sessionInput, mouseParseOptions)
   if (!headless && effectiveTerm?.signals) {
     const onSignal = (): void => {
       void disposeAppScope("signal")
@@ -3435,7 +3441,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             legacyKittyFlags = defaultKittyFlags
             setKittyKeyboardMode(defaultKittyFlags, "setup")
           } else {
-            const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
+            const result = sessionInput
+              ? await detectKittyWithProbe(sessionInput)
+              : { supported: false }
             if (result.supported) {
               legacyKittyFlags = defaultKittyFlags
               setKittyKeyboardMode(defaultKittyFlags, "setup")
@@ -3474,9 +3482,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
 
       // Focus reporting is deferred to after the event loop starts (see below).
-      // Enabling it here would cause the terminal's immediate CSI I/O response
-      // to arrive before the input parser's stdin listener is attached, leaking
-      // raw escape sequences to the screen.
+      // The InputOwner is already attached, but typed subscribers are not; an
+      // immediate CSI I/O response enabled here could otherwise be parsed and
+      // dropped before the event loop subscribes.
     }
     if (_ansiTrace) {
       process
@@ -4923,42 +4931,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
     }
 
-    // Run text sizing probe BEFORE stdin is consumed by the input parser.
-    // The probe writes a test sequence to stdout and reads the CPR response
-    // from stdin. This must happen before pumpEvents() attaches the stdin
-    // data listener, otherwise the CPR response would be consumed as a key event.
-    if (needsProbe) {
+    // Probes run through the canonical InputOwner's probe lane. Its stdin
+    // listener is already active, and matching replies are consumed before
+    // the normal typed-event parser sees any leftovers.
+    if (needsProbe && sessionInput) {
       try {
-        // Set up temporary raw mode + stdin listener for probe.
-        // Race-safe: only flip raw mode if NO other consumer is on stdin.
-        // See vendor/silvery/packages/ansi/src/theme/detect.ts probeColors
-        // for the same fix — re-setting raw=false in finally based on a stale
-        // wasRaw capture kills the host TUI's input.
-        const otherListeners = stdin.listenerCount("data") > 0
-        const wasRaw = stdin.isRaw
-        let didSetRaw = false
-        if (stdin.isTTY && !wasRaw && !otherListeners) {
-          stdin.setRawMode(true)
-          stdin.resume()
-          stdin.setEncoding("utf8")
-          didSetRaw = true
-        }
-
-        const probeRead = (): Promise<string> =>
-          new Promise<string>((resolve) => {
-            const onData = (data: string) => {
-              stdin.off("data", onData)
-              resolve(data as string)
-            }
-            stdin.on("data", onData)
-          })
-
-        const probeResult = await detectTextSizingSupport(
-          (data) => (output ? output.write(data) : stdout.write(data)),
-          probeRead,
-          probeFingerprint,
-          500, // Short timeout — probe should be fast
-        )
+        const probeResult = await detectTextSizingWithInput(sessionInput, probeFingerprint, 500)
 
         // If probe result differs from initial heuristic, recreate pipeline
         if (probeResult.supported !== textSizing) {
@@ -4984,55 +4962,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             }
           }
         }
-
-        // Restore raw mode only if WE set it. Same race-safety pattern as
-        // probeColors — never undo someone else's setRawMode(true).
-        if (stdin.isTTY && didSetRaw) {
-          stdin.setRawMode(false)
-          stdin.pause()
-        }
       } catch {
         // Probe failed — keep current textSizing setting (safe fallback)
       }
     }
 
-    // Run DEC width detection probe BEFORE stdin is consumed by the input parser.
-    // Queries DEC modes 1020-1023 for emoji/CJK/PUA width settings.
-    // Must happen before pumpEvents() for the same reason as text-sizing probe.
-    if (needsWidthDetection) {
+    // Query DEC modes 1020-1023 through that same owner.
+    if (needsWidthDetection && sessionInput) {
       try {
-        // Race-safe — see text-sizing probe above for the same pattern.
-        const otherListeners = stdin.listenerCount("data") > 0
-        const wasRaw = stdin.isRaw
-        let didSetRaw = false
-        if (stdin.isTTY && !wasRaw && !otherListeners) {
-          stdin.setRawMode(true)
-          stdin.resume()
-          stdin.setEncoding("utf8")
-          didSetRaw = true
-        }
-
-        const stdinHandlers: Array<(data: string) => void> = []
-        const stdinListener = (data: string) => {
-          for (const handler of stdinHandlers) handler(data)
-        }
-        stdin.on("data", stdinListener)
-
-        const detector = createWidthDetector({
-          write: (data) => (output ? output.write(data) : stdout.write(data)),
-          onData: (handler) => {
-            stdinHandlers.push(handler)
-            return () => {
-              const idx = stdinHandlers.indexOf(handler)
-              if (idx >= 0) stdinHandlers.splice(idx, 1)
-            }
-          },
-          timeoutMs: 200,
-        })
-
-        const widthConfig = await detector.detect()
-        detector.dispose()
-        stdin.off("data", stdinListener)
+        const widthConfig = await detectWidthConfigWithProbe(sessionInput, 200)
 
         // Apply detected width config to caps and recreate pipeline if
         // changed. Post km-silvery.plateau-naming-polish: `maybeWideEmojis`
@@ -5059,11 +4997,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               }
             }
           }
-        }
-
-        if (stdin.isTTY && didSetRaw) {
-          stdin.setRawMode(false)
-          stdin.pause()
         }
       } catch {
         // Width detection failed — keep default caps (safe fallback)
@@ -5519,4 +5452,40 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   startupCommitted = true
   return handle
+}
+
+/**
+ * Adapt the legacy text-sizing detector to the session InputOwner without
+ * opening another stdin subscription. The detector still owns the support
+ * decision and cache; this adapter only turns its write/read pair into one
+ * atomic owner probe (register parser, then write query).
+ */
+function detectTextSizingWithInput(
+  input: NonNullable<Term["input"]>,
+  fingerprint: string,
+  timeoutMs: number,
+): Promise<import("../text-sizing").TextSizingProbeResult> {
+  let response: Promise<string | null> | undefined
+  return detectTextSizingSupport(
+    (query) => {
+      response = input.probe({
+        query,
+        timeoutMs,
+        parse: (acc) => {
+          const start = acc.indexOf("\x1b[")
+          const end = start < 0 ? -1 : acc.indexOf("R", start + 2)
+          if (end < 0) return null
+          const body = acc.slice(start + 2, end)
+          if (!/^\d+;\d+$/.test(body)) return null
+          return {
+            result: acc.slice(start, end + 1),
+            consumed: end + 1,
+          }
+        },
+      })
+    },
+    async () => (response ? ((await response) ?? "") : ""),
+    fingerprint,
+    timeoutMs,
+  )
 }

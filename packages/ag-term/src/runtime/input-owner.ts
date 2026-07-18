@@ -58,6 +58,7 @@ import type { Modes } from "./devices/modes"
 const BRACKETED_PASTE_ON = "\x1b[?2004h"
 const BRACKETED_PASTE_OFF = "\x1b[?2004l"
 const ESC_DISAMBIGUATION_MS = 25
+const SET_MOUSE_OPTIONS = Symbol("silvery.input.setMouseOptions")
 
 const log = createLogger("silvery:input-owner")
 
@@ -176,11 +177,12 @@ export interface InputOwnerOptions {
   /**
    * When true, `dispose()` does NOT drop raw mode. The listener is still
    * removed and pending probes still resolve with null, but raw mode stays
-   * set so the next owner (typically the term-provider's events() generator)
-   * can take over seamlessly.
+   * set for a caller-managed handoff.
    *
-   * Use this when the owner is the pre-session probe window AND a follow-up
-   * stdin consumer will re-set raw=true immediately.
+   * Silvery's runtime does not use this escape hatch: probes and normal input
+   * share one owner instead. Removing a listener while raw mode remains set
+   * creates an ownerless interval unless the caller supplies stronger atomic
+   * handoff machinery than Node streams provide.
    */
   retainRawModeOnDispose?: boolean
   /**
@@ -209,6 +211,20 @@ interface ProbeEntry {
   resolve: (value: unknown) => void
   timer: ReturnType<typeof setTimeout>
   settled: boolean
+}
+
+interface ConfigurableInputOwner extends InputOwner {
+  [SET_MOUSE_OPTIONS](options: ParseMouseOptions | undefined): void
+}
+
+/** Configure startup-discovered mouse metrics without widening Term.input's public API. */
+export function setInputOwnerMouseOptions(
+  input: InputOwner,
+  options: ParseMouseOptions | undefined,
+): void {
+  const configure = (input as ConfigurableInputOwner)[SET_MOUSE_OPTIONS]
+  if (!configure) throw new Error("InputOwner does not support negotiated mouse options")
+  configure(options)
 }
 
 // ============================================================================
@@ -368,6 +384,7 @@ export function createInputOwner(
   const mouseHandlers = new Set<(e: ParsedMouse) => void>()
   const pasteHandlers = new Set<(e: PasteEvent) => void>()
   const focusHandlers = new Set<(e: FocusEvent) => void>()
+  let mouseOptions = options.mouse
   let resolvedCount = 0
   let timedOutCount = 0
   let disposed = false
@@ -396,7 +413,7 @@ export function createInputOwner(
       return
     }
     if (isMouseSequence(raw)) {
-      const mouse = parseMouseSequence(raw, options.mouse)
+      const mouse = parseMouseSequence(raw, mouseOptions)
       if (mouse) {
         const event = { ...mouse, receivedAt, inputBatchId }
         // Action-specific debug — silvery:input-owner only logs the
@@ -687,6 +704,11 @@ export function createInputOwner(
     fire(focusHandlers, event)
   }
 
+  function setMouseOptions(next: ParseMouseOptions | undefined): void {
+    if (disposed) return
+    mouseOptions = next
+  }
+
   function dispose(): void {
     if (disposed) return
     disposed = true
@@ -748,7 +770,7 @@ export function createInputOwner(
     log?.debug?.(`disposed (resolved=${resolvedCount}, timedOut=${timedOutCount})`)
   }
 
-  return {
+  const owner: InputOwner = {
     probe,
     onKey,
     onMouse,
@@ -770,4 +792,6 @@ export function createInputOwner(
     dispose,
     [Symbol.dispose]: dispose,
   }
+  Object.defineProperty(owner, SET_MOUSE_OPTIONS, { value: setMouseOptions })
+  return owner
 }

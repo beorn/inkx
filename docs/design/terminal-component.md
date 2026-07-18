@@ -250,9 +250,8 @@ const handle = await app.run(<App />, { ...opts, input: false })
   `process.stdin`.
 - `render(element, term, { input: false })` is defence-in-depth: even
   if a future `term.input` access tried to construct an owner, the
-  render pipeline would refuse to wire it. `pumpEvents` skips the
-  text-sizing + width-detection probes and never attaches its own
-  stdin listener.
+  render pipeline would refuse to wire it. Terminal probes and normal
+  events share that same owner, so opting out suppresses both.
 - Cleanup paths that ordinarily remove stdin listeners or flip raw
   mode back to `false` are also gated — the host owns stdin and may
   want raw mode for its child PTY pipe; flipping it would break the
@@ -280,8 +279,8 @@ const handle = await app.run(<App />, { ...opts, input: false })
 - `drainBufferedStdinBytes`, `drainLateStdinBytes`, the cleanup
   `removeAllListeners` + `setRawMode(false)` calls all gate on
   `!inputDisabled`.
-- `run()` skips constructing the transient probe `InputOwner` when
-  `input: false` is set in either entry point.
+- `run()` skips constructing the session `InputOwner` when `input: false`
+  is set in either entry point.
 
 ### Why a flag and not a separate factory
 

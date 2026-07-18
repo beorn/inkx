@@ -5,6 +5,7 @@
  * supports the Kitty keyboard protocol and which flags it reports.
  */
 
+import type { ProbeInputOwner } from "@silvery/ansi"
 import { queryKittyKeyboard } from "./output"
 
 export interface KittyDetectResult {
@@ -42,17 +43,45 @@ export async function detectKittySupport(
     return { supported: false, flags: 0 }
   }
 
-  const match = KITTY_RESPONSE_RE.exec(data)
-  if (!match) {
+  const parsed = parseKittyResponse(data)
+  if (!parsed) {
     return { supported: false, flags: 0, buffered: data }
   }
 
-  const flags = parseInt(match[1]!, 10)
   // Anything outside the matched response is buffered input
-  const before = data.slice(0, match.index)
-  const after = data.slice(match.index + match[0].length)
+  const before = data.slice(0, parsed.start)
+  const after = data.slice(parsed.end)
   const buffered = before + after
-  return { supported: true, flags, buffered: buffered || undefined }
+  return { ...parsed.result, buffered: buffered || undefined }
+}
+
+/** Query Kitty support through the session's canonical stdin owner. */
+export async function detectKittyWithProbe(
+  input: ProbeInputOwner,
+  timeoutMs = 200,
+): Promise<KittyDetectResult> {
+  return (
+    (await input.probe({
+      query: queryKittyKeyboard(),
+      timeoutMs,
+      parse: (acc) => {
+        const parsed = parseKittyResponse(acc)
+        return parsed ? { result: parsed.result, consumed: parsed.end } : null
+      },
+    })) ?? { supported: false, flags: 0 }
+  )
+}
+
+function parseKittyResponse(
+  data: string,
+): { result: KittyDetectResult; start: number; end: number } | null {
+  const match = KITTY_RESPONSE_RE.exec(data)
+  if (!match) return null
+  return {
+    result: { supported: true, flags: parseInt(match[1]!, 10) },
+    start: match.index,
+    end: match.index + match[0].length,
+  }
 }
 
 /**

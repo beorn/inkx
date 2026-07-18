@@ -2,7 +2,7 @@
 
 Single-owner stdin mediator for a Silvery session. Owns raw mode, the single `data` listener, and probe response routing.
 
-`term.input` replaces direct `process.stdin.setRawMode`, `process.stdin.on("data", …)`, and the capture-and-restore `wasRaw` pattern that races under async. One owner per Term — tenants request capabilities (`probe`, `onData`), they don't touch stdin.
+`term.input` replaces direct `process.stdin.setRawMode`, `process.stdin.on("data", …)`, and the capture-and-restore `wasRaw` pattern that races under async. One owner per Term — tenants request capabilities (`probe`, typed event subscriptions), they don't touch stdin.
 
 ## Shape
 
@@ -13,7 +13,10 @@ interface Input extends Disposable {
     parse: (acc: string) => { result: T; consumed: number } | null
     timeoutMs: number
   }): Promise<T | null>
-  onData(handler: (chunk: string) => void): () => void
+  onKey(handler: (event: KeyEvent) => void): () => void
+  onMouse(handler: (event: ParsedMouse) => void): () => void
+  onPaste(handler: (event: PasteEvent) => void): () => void
+  onFocus(handler: (event: FocusEvent) => void): () => void
   readonly active: boolean
   readonly resolvedCount: number
   readonly timedOutCount: number
@@ -76,7 +79,7 @@ const [colors, cursor, kitty] = await Promise.all([
 ])
 ```
 
-Probes are order-sensitive: put strict parsers (fixed-length responses) before lenient ones (regex-on-buffer).
+Probes are order-sensitive: put strict parsers (fixed-length responses) before lenient ones (regex-on-buffer). Registering a probe and writing its query are atomic: the owner installs the parser first, so even a synchronous terminal reply cannot leak into normal input.
 
 ### Parse result `consumed`
 
@@ -84,25 +87,26 @@ Probes are order-sensitive: put strict parsers (fixed-length responses) before l
 
 ### Timeout semantics
 
-A timed-out probe resolves with `null`. The shared buffer continues draining; a late response for the timed-out probe falls through to `onData` subscribers (the key parser typically discards unrecognized bytes).
+A timed-out probe resolves with `null`. The shared buffer continues draining; a late response for the timed-out probe falls through to the typed event parser (which typically discards an unrecognized terminal reply).
 
-## `onData(handler)`
+## Typed event subscriptions
 
-Subscribe to non-probe data — any bytes that arrive when no registered probe consumed them. The term-provider's key/mouse parser is the canonical consumer.
+Bytes no active probe consumes pass through the owner's canonical parser exactly once. Subscribe to the structured event family you need:
 
 ```ts
-const unsubscribe = term.input!.onData((chunk) => {
-  // Process bytes that didn't match any pending probe.
-})
+const stopKeys = term.input!.onKey(({ input, key }) => handleKey(input, key))
+const stopMouse = term.input!.onMouse((event) => handleMouse(event))
+const stopPaste = term.input!.onPaste(({ text }) => insert(text))
+const stopFocus = term.input!.onFocus(({ focused }) => setFocused(focused))
 ```
 
-Returns an unsubscribe function. Multiple subscribers can coexist; each gets the full chunk.
+Each method returns an unsubscribe function. Multiple subscribers can coexist, but none attaches another stdin listener; the InputOwner fans out the parsed event.
 
 ## Lifecycle + stats
 
 - `active` — `true` until `dispose()` runs.
 - `resolvedCount` / `timedOutCount` — cumulative counts for diagnostics.
-- `dispose()` (and `Symbol.dispose`) — restores raw to `false` (unless constructed with `retainRawModeOnDispose`), pauses stdin, removes the listener, resolves pending probes with `null`, clears timers. Idempotent.
+- `dispose()` (and `Symbol.dispose`) — restores the terminal state this owner activated, pauses stdin, removes the listener, resolves pending probes with `null`, and clears timers. Idempotent.
 
 The Term's own `dispose()` cascades to `term.input.dispose()` — normal `using term = createTerm()` usage requires no explicit disposal.
 

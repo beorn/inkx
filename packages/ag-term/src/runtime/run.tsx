@@ -35,7 +35,7 @@ import { createApp } from "./create-app"
 // `_resetPanicCircuitBreaker` in `./create-app` for the contract.
 // Bead: @km/silvery/auto-panic-circuit-break.
 export { _resetPanicCircuitBreaker } from "./create-app"
-import type { Term } from "../ansi/term"
+import { createTerm, type Term } from "../ansi/term"
 import type { PanicOptions } from "@silvery/ag-react/context"
 import {
   createTerminalProfile,
@@ -46,7 +46,7 @@ import {
 import { nord, catppuccinLatte } from "@silvery/theme/schemes"
 import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 import type { TerminalCaps } from "../terminal-caps"
-import { createInputOwner, type InputOwner } from "./input-owner"
+import { setInputOwnerMouseOptions, type InputOwner } from "./input-owner"
 import { getInternalStreams } from "./term-internal"
 import type { ParseMouseOptions } from "../mouse"
 import { preloadStrictTerminalBackends } from "../strict-terminal-backends"
@@ -204,8 +204,7 @@ export interface RunOptionsCommon {
    *
    * When `false`, the runtime skips:
    *   - flipping `stdin` raw mode
-   *   - attaching stdin data listeners (text-sizing + DEC width-detection
-   *     probes)
+   *   - constructing the canonical InputOwner (including terminal probes)
    *   - the term provider's input subscription (`useInput`, `usePaste`,
    *     focus key dispatch all become no-ops)
    *
@@ -519,12 +518,9 @@ export async function run(
     // applies the pre-quantize gate on its own, and lets the probe window be
     // a structural concern instead of a copy-pasted try/finally block.
     //
-    // The InputOwner is still transient — owns raw-mode + stdin listener for
-    // the probe duration only, disposed BEFORE createApp spins up its own
-    // input owner. That separation is what avoids the wasRaw race between
-    // probeColors' finally and term-provider startup (see km-silvery.input-owner
-    // Phase 1-2; Phase 8b pins the rationale — `term.input` would yield a
-    // second owner competing for stdin if constructed here).
+    // The Term's InputOwner spans detection + normal input. Probes register
+    // against its probe lane, then createApp subscribes to typed events on the
+    // same owner — no listener handoff and no second reader.
     //
     // Post km-silvery.plateau-profile-theme (H2 /big review 2026-04-23):
     // collapses the prior `createTerminalProfile` + InputOwner dance +
@@ -533,37 +529,30 @@ export async function run(
     // thing, and `term.profile` is the caps base when no override is passed.
     const { stdin: termStdin, stdout: termStdout } = getInternalStreams(term)
     // `input: false` opts the host out of stdin ownership entirely — skip
-    // both the transient probe owner and the OSC theme probe so we never
-    // touch stdin. The recording-overlay use case keeps stdin raw for its
+    // both the session input owner and the OSC theme probe so we never touch
+    // stdin. The recording-overlay use case keeps stdin raw for its
     // own child PTY pipe and typically supplies its own colorLevel anyway.
     const termInputDisabled = termOptions?.input === false
     const probeOwner =
-      termStdin?.isTTY && termStdout?.isTTY && !termInputDisabled
-        ? createInputOwner(termStdin, termStdout, { retainRawModeOnDispose: true })
-        : null
+      termStdin?.isTTY && termStdout?.isTTY && !termInputDisabled ? (term.input ?? null) : null
     // Read profile / colorLevel through a widened view of termOptions — the
     // TS union narrows them to `never` on the opposite XOR branch, but the
     // runtime warning above already enforces mutual exclusion.
     const termOptsAny = termOptions as
       | (Partial<RunOptionsCommon> & { profile?: TerminalProfile; colorLevel?: ColorLevel })
       | undefined
-    let termProfile: TerminalProfile
-    let termMouseOption: boolean | ParseMouseOptions
-    try {
-      termProfile =
-        termOptsAny?.profile ??
-        (await probeTerminalProfile({
-          colorLevel: termOptsAny?.colorLevel,
-          caps: term.profile.caps,
-          probeTheme: !termInputDisabled,
-          fallbackDark: nord,
-          fallbackLight: catppuccinLatte,
-          ...(probeOwner ? { input: probeOwner } : {}),
-        }))
-      termMouseOption = await resolveMouseOption(probeOwner, termOptions?.mouse, true)
-    } finally {
-      probeOwner?.dispose()
-    }
+    const termProfile =
+      termOptsAny?.profile ??
+      (await probeTerminalProfile({
+        colorLevel: termOptsAny?.colorLevel,
+        caps: term.profile.caps,
+        probeTheme: !termInputDisabled,
+        fallbackDark: nord,
+        fallbackLight: catppuccinLatte,
+        ...(probeOwner ? { input: probeOwner } : {}),
+      }))
+    const termMouseOption = await resolveMouseOption(probeOwner, termOptions?.mouse, true)
+    if (probeOwner) setInputOwnerMouseOptions(probeOwner, mouseParseOptions(termMouseOption))
     const caps: TerminalCaps = termProfile.caps
     // `profile.theme` is populated by probeTerminalProfile (already
     // pre-quantized when `profile.colorForced === true`). When a caller
@@ -626,21 +615,26 @@ export async function run(
   const runStdin = (rest.stdin ?? process.stdin) as NodeJS.ReadStream
   const runStdout = (rest.stdout ?? process.stdout) as NodeJS.WriteStream
   // Mirror the Term-path: when the caller opts out of stdin, skip both the
-  // transient probe owner and the OSC theme probe. `input: false` means
+  // session input owner and the OSC theme probe. `input: false` means
   // every stdin-touching path belongs to the embedding host, not silvery.
   const optsInputDisabled = (rest as { input?: false }).input === false
+  const initialCaps = profileOption?.caps ?? capsOption
 
-  // Transient InputOwner around the probe window — owns raw-mode + stdin
-  // listener for the duration, disposed BEFORE createApp constructs its own
-  // input owner. Same shape as the Term-path branch above.
-  const optsProbeOwner =
-    !headless && runStdin.isTTY && runStdout.isTTY && !optsInputDisabled
-      ? createInputOwner(runStdin, runStdout, { retainRawModeOnDispose: true })
-      : null
-  let optsProfile: TerminalProfile
-  let optsMouseOption: boolean | ParseMouseOptions
+  // The options form owns a Term for the whole run so terminal detection and
+  // normal input share one stdin owner just like the explicit-Term form.
+  const ownedTerm = headless
+    ? null
+    : createTerm({
+        stdin: runStdin,
+        stdout: runStdout,
+        ...(initialCaps ? { caps: initialCaps } : {}),
+        ...(colorLevelOption !== undefined ? { colorLevel: colorLevelOption } : {}),
+        ...(typeof rest.mouse === "object" ? { mouse: rest.mouse } : {}),
+        ...(optsInputDisabled ? { input: false as const } : {}),
+      })
+  const optsProbeOwner = ownedTerm?.input ?? null
   try {
-    optsProfile =
+    const optsProfile =
       profileOption ??
       (headless
         ? createTerminalProfile({ colorLevel: colorLevelOption, caps: capsOption })
@@ -652,42 +646,46 @@ export async function run(
             fallbackLight: catppuccinLatte,
             ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
           }))
-    optsMouseOption = await resolveMouseOption(optsProbeOwner, rest.mouse, mode !== "inline")
-  } finally {
-    optsProbeOwner?.dispose()
+    const optsMouseOption = await resolveMouseOption(optsProbeOwner, rest.mouse, mode !== "inline")
+    if (optsProbeOwner)
+      setInputOwnerMouseOptions(optsProbeOwner, mouseParseOptions(optsMouseOption))
+    const caps: TerminalCaps = optsProfile.caps
+    // Headless renders don't wrap in ThemeProvider — no OSC probe ran, no
+    // theme was bundled. Non-headless renders with a theme wrap the element
+    // so the app sees the detected (and pre-quantized when forced) theme.
+    const themed: ReactElement =
+      !headless && optsProfile.theme ? (
+        <ThemeProvider theme={optsProfile.theme}>{element}</ThemeProvider>
+      ) : (
+        element
+      )
+    const app = createApp(() => () => ({}))
+    const kittyOption = Object.prototype.hasOwnProperty.call(rest, "kitty")
+      ? rest.kitty
+      : caps.kittyKeyboard
+        ? true
+        : undefined
+    const handle = await app.run(themed, {
+      ...rest,
+      ...(ownedTerm ? { term: ownedTerm } : {}),
+      caps,
+      // Thread the resolved profile through so createApp's `profileOption`
+      // branch sees the same source-of-truth that run() already consulted.
+      // Phase 4 of km-silvery.terminal-profile-plateau.
+      profile: optsProfile,
+      alternateScreen: mode !== "inline",
+      virtualInline: mode === "virtualInline",
+      kitty: kittyOption,
+      mouse: optsMouseOption,
+      focusReporting: rest.focusReporting ?? mode !== "inline",
+      textSizing: rest.textSizing ?? "auto",
+      widthDetection: rest.widthDetection ?? "auto",
+    })
+    return wrapHandle(handle, ownedTerm ?? undefined)
+  } catch (error) {
+    ownedTerm?.[Symbol.dispose]()
+    throw error
   }
-  const caps: TerminalCaps = optsProfile.caps
-  // Headless renders don't wrap in ThemeProvider — no OSC probe ran, no
-  // theme was bundled. Non-headless renders with a theme wrap the element
-  // so the app sees the detected (and pre-quantized when forced) theme.
-  const themed: ReactElement =
-    !headless && optsProfile.theme ? (
-      <ThemeProvider theme={optsProfile.theme}>{element}</ThemeProvider>
-    ) : (
-      element
-    )
-  const app = createApp(() => () => ({}))
-  const kittyOption = Object.prototype.hasOwnProperty.call(rest, "kitty")
-    ? rest.kitty
-    : caps.kittyKeyboard
-      ? true
-      : undefined
-  const handle = await app.run(themed, {
-    ...rest,
-    caps,
-    // Thread the resolved profile through so createApp's `profileOption`
-    // branch sees the same source-of-truth that run() already consulted.
-    // Phase 4 of km-silvery.terminal-profile-plateau.
-    profile: optsProfile,
-    alternateScreen: mode !== "inline",
-    virtualInline: mode === "virtualInline",
-    kitty: kittyOption,
-    mouse: optsMouseOption,
-    focusReporting: rest.focusReporting ?? mode !== "inline",
-    textSizing: rest.textSizing ?? "auto",
-    widthDetection: rest.widthDetection ?? "auto",
-  })
-  return wrapHandle(handle)
 }
 
 /** Duck-type check: Term has the sub-owner umbrella (size + modes + signals).
@@ -706,18 +704,40 @@ function isTerm(obj: unknown): obj is Term {
 }
 
 /** Wrap AppHandle as RunHandle (subset of the full handle). */
-function wrapHandle(handle: {
-  readonly text: string
-  readonly root: import("@silvery/ag/types").AgNode
-  readonly buffer: import("../buffer").TerminalBuffer | null
-  readonly scope: import("@silvery/scope").Scope
-  waitUntilExit(): Promise<void>
-  waitForLayoutStable(opts?: { timeoutMs?: number; maxPasses?: number }): Promise<void>
-  panic(reason: unknown, options?: PanicOptions): void
-  unmount(): void
-  [Symbol.dispose](): void
-  press(key: string): Promise<void>
-}): RunHandle {
+function wrapHandle(
+  handle: {
+    readonly text: string
+    readonly root: import("@silvery/ag/types").AgNode
+    readonly buffer: import("../buffer").TerminalBuffer | null
+    readonly scope: import("@silvery/scope").Scope
+    waitUntilExit(): Promise<void>
+    waitForLayoutStable(opts?: { timeoutMs?: number; maxPasses?: number }): Promise<void>
+    panic(reason: unknown, options?: PanicOptions): void
+    unmount(): void
+    [Symbol.dispose](): void
+    press(key: string): Promise<void>
+  },
+  ownedTerm?: Term,
+): RunHandle {
+  let ownedTermDisposed = false
+  const disposeOwnedTerm = (): void => {
+    if (!ownedTerm || ownedTermDisposed) return
+    ownedTermDisposed = true
+    ownedTerm[Symbol.dispose]()
+  }
+  const unmount = (): void => {
+    try {
+      handle.unmount()
+    } finally {
+      disposeOwnedTerm()
+    }
+  }
+  // `createApp()` owns and disposes its auto-created Term. The options form
+  // injects a Term so startup probes and normal input can share one owner;
+  // mirror the auto-Term lifecycle even when the app exits itself and the
+  // caller never invokes `waitUntilExit()`.
+  if (ownedTerm) void handle.waitUntilExit().then(disposeOwnedTerm, disposeOwnedTerm)
+
   return {
     get text() {
       return handle.text
@@ -731,14 +751,24 @@ function wrapHandle(handle: {
     get scope() {
       return handle.scope
     },
-    waitUntilExit: () => handle.waitUntilExit(),
+    waitUntilExit: async () => {
+      try {
+        await handle.waitUntilExit()
+      } finally {
+        disposeOwnedTerm()
+      }
+    },
     waitForLayoutStable: (opts?: { timeoutMs?: number; maxPasses?: number }) =>
       handle.waitForLayoutStable(opts),
     panic: (reason: unknown, options?: PanicOptions) => handle.panic(reason, options),
-    unmount: () => handle.unmount(),
-    [Symbol.dispose]: () => handle[Symbol.dispose](),
+    unmount,
+    [Symbol.dispose]: unmount,
     press: (key: string) => handle.press(key),
   }
+}
+
+function mouseParseOptions(option: boolean | ParseMouseOptions): ParseMouseOptions | undefined {
+  return typeof option === "object" ? option : undefined
 }
 
 /**

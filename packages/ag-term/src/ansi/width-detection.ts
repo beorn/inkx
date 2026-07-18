@@ -25,6 +25,8 @@
  * @see https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
  */
 
+import type { ProbeInputOwner } from "@silvery/ansi"
+
 /** Well-known xterm width DEC mode numbers. */
 export const WidthMode = {
   /** UTF-8 mode */
@@ -141,6 +143,58 @@ function queryWidthMode(
 }
 
 /**
+ * Query width modes through the session's canonical stdin owner.
+ *
+ * Unlike `createWidthDetector`'s standalone transport adapter, this path
+ * never attaches another `data` listener: responses are consumed by the
+ * owner's probe lane before normal key/mouse parsing.
+ */
+export function detectWidthConfigWithProbe(
+  input: ProbeInputOwner,
+  timeoutMs = 200,
+): Promise<TerminalWidthConfig> {
+  return detectWidthConfig((mode) =>
+    input.probe({
+      query: `\x1b[?${mode}$p`,
+      timeoutMs,
+      parse: (acc) => parseWidthModeResponse(acc, mode),
+    }),
+  )
+}
+
+function parseWidthModeResponse(
+  acc: string,
+  expectedMode: number,
+): { result: number; consumed: number } | null {
+  DECRPM_RE.lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = DECRPM_RE.exec(acc)) !== null) {
+    if (parseInt(match[1]!, 10) !== expectedMode) continue
+    return {
+      result: parseInt(match[2]!, 10),
+      consumed: match.index + match[0].length,
+    }
+  }
+  return null
+}
+
+async function detectWidthConfig(
+  query: (mode: number) => Promise<number | null>,
+): Promise<TerminalWidthConfig> {
+  const utf8Ps = await query(WidthMode.UTF8)
+  const cjkPs = await query(WidthMode.CJK_WIDTH)
+  const emojiPs = await query(WidthMode.EMOJI_WIDTH)
+  const puaPs = await query(WidthMode.PRIVATE_USE_WIDTH)
+
+  return {
+    utf8: utf8Ps !== null ? isSet(utf8Ps) : DEFAULT_WIDTH_CONFIG.utf8,
+    cjkWidth: cjkPs !== null ? (isSet(cjkPs) ? 2 : 1) : DEFAULT_WIDTH_CONFIG.cjkWidth,
+    emojiWidth: emojiPs !== null ? (isSet(emojiPs) ? 2 : 1) : DEFAULT_WIDTH_CONFIG.emojiWidth,
+    privateUseWidth: puaPs !== null ? (isSet(puaPs) ? 2 : 1) : DEFAULT_WIDTH_CONFIG.privateUseWidth,
+  }
+}
+
+/**
  * Apply detected width configuration to terminal capabilities.
  *
  * Post km-silvery.plateau-naming-polish (2026-04-23): `maybeWideEmojis` and
@@ -195,19 +249,8 @@ export function createWidthDetector(options: WidthDetectorOptions): WidthDetecto
       if (disposed) return config ?? { ...DEFAULT_WIDTH_CONFIG }
       if (config !== null) return config
 
-      // Query all 4 modes sequentially (each waits for its response)
-      const utf8Ps = await queryWidthMode(write, onData, WidthMode.UTF8, timeoutMs)
-      const cjkPs = await queryWidthMode(write, onData, WidthMode.CJK_WIDTH, timeoutMs)
-      const emojiPs = await queryWidthMode(write, onData, WidthMode.EMOJI_WIDTH, timeoutMs)
-      const puaPs = await queryWidthMode(write, onData, WidthMode.PRIVATE_USE_WIDTH, timeoutMs)
-
-      config = {
-        utf8: utf8Ps !== null ? isSet(utf8Ps) : DEFAULT_WIDTH_CONFIG.utf8,
-        cjkWidth: cjkPs !== null ? (isSet(cjkPs) ? 2 : 1) : DEFAULT_WIDTH_CONFIG.cjkWidth,
-        emojiWidth: emojiPs !== null ? (isSet(emojiPs) ? 2 : 1) : DEFAULT_WIDTH_CONFIG.emojiWidth,
-        privateUseWidth:
-          puaPs !== null ? (isSet(puaPs) ? 2 : 1) : DEFAULT_WIDTH_CONFIG.privateUseWidth,
-      }
+      // Query all 4 modes sequentially (each waits for its response).
+      config = await detectWidthConfig((mode) => queryWidthMode(write, onData, mode, timeoutMs))
 
       return config
     },

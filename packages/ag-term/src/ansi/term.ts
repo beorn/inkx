@@ -368,7 +368,7 @@ export interface Term extends Disposable, StyleChain {
   /**
    * Input owner — mediates ALL stdin reads + raw-mode + data subscription.
    * Use `term.input.probe(…)` for terminal queries (color, cursor, kitty, etc.)
-   * and `term.input.onData(…)` for primary key/mouse stream consumers.
+   * and its typed key/mouse/paste/focus subscriptions for normal input.
    *
    * Replaces direct `process.stdin.setRawMode` / `stdin.on('data', …)` —
    * those patterns race under async (the 2026-04-22 wasRaw class).

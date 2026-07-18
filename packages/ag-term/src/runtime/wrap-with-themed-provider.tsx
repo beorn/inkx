@@ -81,16 +81,17 @@ export async function wrapWithThemedProvider(
   element: ReactElement,
   opts: ThemedProviderOptions = {},
 ): Promise<WrapWithThemedProviderResult> {
-  // Phase 1 of km-silvery.input-owner: if an InputOwner wasn't passed in,
-  // construct one for the detection window and dispose it when we're done.
-  // Avoids the wasRaw race between probeColors' finally and the enclosing
-  // term-provider.events() startup.
+  // If an InputOwner wasn't passed in, construct one for this standalone
+  // detection window and restore termios when it ends. Callers that compose
+  // detection into a longer session pass that session's owner explicitly;
+  // leaving raw mode set after removing this owner's listener would create an
+  // ownerless handoff gap.
   const ownedProbeOwner =
     opts.input == null &&
     typeof process !== "undefined" &&
     process.stdin?.isTTY &&
     process.stdout?.isTTY
-      ? createInputOwner(process.stdin, process.stdout, { retainRawModeOnDispose: true })
+      ? createInputOwner(process.stdin, process.stdout)
       : null
   const effectiveInput = opts.input ?? ownedProbeOwner
 
