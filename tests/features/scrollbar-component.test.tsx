@@ -14,11 +14,21 @@
 import React, { useState } from "react"
 import { describe, expect, test, vi } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
-import { Box, ScrollArea, Scrollbar, Text } from "../../src/index.js"
+import { Box, SCROLLBAR_FADE_AFTER_MS, ScrollArea, Scrollbar, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
 
 function wheelDown(term: unknown, x: number, y: number): void {
   ;(term as { sendInput: (input: string) => void }).sendInput(`\x1b[<65;${x + 1};${y + 1}M`)
+}
+
+function hasScrollbarThumb(
+  term: ReturnType<typeof createTermless>,
+  column: number,
+  rows: number,
+): boolean {
+  return Array.from({ length: rows }, (_, row) => term.cell(row, column).char).some((char) =>
+    /[█▁▂▃▄▅▆▇]/.test(char),
+  )
 }
 
 describe("Scrollbar", () => {
@@ -545,6 +555,30 @@ describe("ScrollArea", () => {
     expect(term.screen!.getText()).not.toContain("row 0")
     expect(term.screen!.getText()).toContain("row 19")
     expect(term.cell(7, 29).char).toMatch(/[█▁▂▃▄▅▆▇]/)
+
+    handle.unmount()
+  })
+
+  test("auto-hides the scrollbar while idle, shows it during wheel activity, then hides after idle", async () => {
+    using term = createTermless({ cols: 30, rows: 8 })
+
+    const handle = await run(
+      <ScrollArea>
+        {Array.from({ length: 20 }, (_, index) => (
+          <Text key={index}>row {index}</Text>
+        ))}
+      </ScrollArea>,
+      term,
+      { mouse: true, selection: false },
+    )
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(hasScrollbarThumb(term, 29, 8)).toBe(false)
+    wheelDown(term, 5, 4)
+    await vi.waitFor(() => expect(hasScrollbarThumb(term, 29, 8)).toBe(true), { timeout: 1_000 })
+
+    await new Promise((resolve) => setTimeout(resolve, SCROLLBAR_FADE_AFTER_MS))
+    await vi.waitFor(() => expect(hasScrollbarThumb(term, 29, 8)).toBe(false), { timeout: 500 })
     handle.unmount()
   })
 })
