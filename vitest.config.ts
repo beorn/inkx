@@ -21,6 +21,11 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/dist/**",
+      // Never let discovery wander into embedded agent worktrees / debris —
+      // stale checkouts there carry pre-deletion copies of test files that
+      // false-fail against the current source (SR-7, deletion-wave 21453).
+      "**/.claude/**",
+      "**/.worktrees/**",
       // Playwright-driven — run via `bun run test:showcase`, not vitest.
       "tests/web/**",
       "tests/site-smoke.test.ts",
