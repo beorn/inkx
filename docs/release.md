@@ -58,7 +58,7 @@ Internal packages (`@silvery/ag`, `@silvery/ag-react`, `@silvery/ag-term`, etc.)
 
 Once `verify-publishable` is green on `main`:
 
-1. Bump `version` in every workspace `package.json` (use `bun scripts/publish.ts <version> --dry-run` to preview).
+1. Bump `version` in every workspace `package.json` (keep them in lockstep — `release.yml` publishes in dependency order).
 2. Commit + tag: `git tag v<version> && git push --tags`.
 3. `release.yml` runs: build → verify-publishable gate → publish in dep order → smoke test → GitHub Release.
 
