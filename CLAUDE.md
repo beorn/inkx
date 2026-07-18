@@ -47,7 +47,7 @@ try {
 reconciler.updateContainer(null, fiberRoot, null, () => {})
 ```
 
-**Why it breaks**: `createFiberRoot` creates a `ConcurrentRoot` (mode 1). React's async `updateContainer(null, …)` does **not** run `useLayoutEffect` cleanups synchronously on a ConcurrentRoot. That keeps `useBoxRect` / `useBoxMetrics` signal-effect disposers pending past unmount; signal subscriptions stay live; the React tree stays reachable; the `FiberRoot` keeps a `containerInfo` pointer to our `Container`; `Container.onRender` closes over the enclosing render-instance graph. Net: every host (test renderer, ag-react render class, withReact plugin, browser/canvas one-shot) leaks across cycles. 200 mount/unmount cycles in `tests/memory/memory.test.tsx` overshot a 15 MB budget by 2.5×.
+**Why it breaks**: `createFiberRoot` creates a `ConcurrentRoot` (mode 1). React's async `updateContainer(null, …)` does **not** run `useLayoutEffect` cleanups synchronously on a ConcurrentRoot. That keeps `useBoxRect` signal-effect disposers pending past unmount; signal subscriptions stay live; the React tree stays reachable; the `FiberRoot` keeps a `containerInfo` pointer to our `Container`; `Container.onRender` closes over the enclosing render-instance graph. Net: every host (test renderer, ag-react render class, withReact plugin, browser/canvas one-shot) leaks across cycles. 200 mount/unmount cycles in `tests/memory/memory.test.tsx` overshot a 15 MB budget by 2.5×.
 
 **The structural fix is `unmountFiberRoot`** from `@silvery/ag-react/reconciler`:
 

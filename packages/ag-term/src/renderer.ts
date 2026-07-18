@@ -1585,7 +1585,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
     // The root is created as ConcurrentRoot (see createFiberRoot). Mount and
     // rerender both use updateContainerSync + flushSyncWork; unmount must do
-    // the same so React layout-effect cleanups (e.g. useBoxMetrics's
+    // the same so React layout-effect cleanups (e.g. useBoxRect's
     // signalEffect disposers) actually run synchronously. The async
     // updateContainer(null, …) path on a ConcurrentRoot leaves cleanups
     // pending past unmount, which kept signal subscriptions + the whole

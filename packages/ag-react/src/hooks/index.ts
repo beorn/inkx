@@ -17,9 +17,6 @@ export { useBoxRect, useScrollRect, useScreenRect, type Rect } from "./useLayout
 // the single source of truth for what's visible in an overflow="scroll" node)
 export { useScrollState, type ScrollStateSnapshot } from "./useScrollState"
 
-// Box metrics (Ink-compatible — returns { width, height, left, top, hasMeasured })
-export { useBoxMetrics, type BoxMetrics } from "./useBoxMetrics"
-
 // Animation (Ink-compatible — Phase 1: shared-scheduler frame counter)
 export { useAnimation, type UseAnimationOptions, type UseAnimationResult } from "./useAnimation"
 

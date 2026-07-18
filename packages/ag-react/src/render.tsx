@@ -858,7 +858,7 @@ class SilveryInstance {
     if (this.fiberRoot && this.container) {
       // Sync unmount + container scrub. The async path on a ConcurrentRoot
       // leaks useLayoutEffect cleanups (signal-effect disposers in
-      // useBoxRect/useBoxMetrics survive past unmount) and the FiberRoot
+      // useBoxRect survive past unmount) and the FiberRoot
       // keeps the Container.onRender closure alive — which holds a
       // reference back to `this`. See unmountFiberRoot doc.
       unmountFiberRoot(this.fiberRoot, this.container)

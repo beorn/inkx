@@ -116,7 +116,7 @@ export function getContainerRoot(container: Container): AgNode {
  * 1. `createFiberRoot` uses `ConcurrentRoot` (mode 1). React's async
  *    `updateContainer(null, fiberRoot, ...)` does NOT run layout-effect
  *    cleanups before returning — useLayoutEffect / useBoxRect /
- *    useBoxMetrics / signal-effect disposers are scheduled but may not
+ *    signal-effect disposers are scheduled but may not
  *    fire promptly. That keeps signal subscriptions alive past unmount,
  *    which keeps the React tree reachable, which keeps the host
  *    `RenderInstance` reachable. `updateContainerSync` + `flushSyncWork`

@@ -50,7 +50,7 @@ import { Box, Text, render } from "silvery/ink"
 | `useFocus()`        | Supported | Supported | Enhanced with spatial navigation |
 | `useFocusManager()` | Supported | Supported | Same API                         |
 | `measureElement()`  | Supported | Supported | Works, but prefer `useBoxRect()` |
-| `useBoxMetrics()`   | --        | New       | Post-layout dimensions           |
+| `useBoxMetrics()`   | Supported | via `silvery/ink` | Ink 7.0 hook; prefer `useBoxRect()` |
 
 ### render() Differences
 

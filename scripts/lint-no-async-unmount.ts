@@ -10,7 +10,7 @@
  *
  * does NOT run React layout-effect cleanups synchronously on a
  * ConcurrentRoot. That leaves `useLayoutEffect` cleanups pending past
- * unmount — `useBoxRect` / `useBoxMetrics` / signal-effect disposers
+ * unmount — `useBoxRect` / signal-effect disposers
  * survive, signal subscriptions stay live, and the React tree stays
  * reachable. The closed-over `Container.onRender` then pins the entire
  * enclosing render-instance graph through the FiberRoot's containerInfo

@@ -597,28 +597,6 @@ export type { AgNodeHandle } from "./hooks/useAgNode"
 export { useSignal } from "./hooks/useSignal"
 
 /**
- * Ink-compatible box metrics hook.
- *
- * Returns `{ width, height, left, top, hasMeasured }` for the nearest silvery
- * Box. With a ref, mirrors Ink 7.0's `useBoxMetrics(ref)`. Without a ref,
- * uses NodeContext (silvery idiom). `left` / `top` are parent-relative.
- *
- * @example Ink-compatible
- * ```tsx
- * const ref = useRef(null)
- * const { width, height, hasMeasured } = useBoxMetrics(ref)
- * return <Box ref={ref}>...</Box>
- * ```
- *
- * @example Silvery idiom
- * ```tsx
- * const { width } = useBoxMetrics()
- * ```
- */
-export { useBoxMetrics } from "./hooks/useBoxMetrics"
-export type { BoxMetrics } from "./hooks/useBoxMetrics"
-
-/**
  * Keyboard input hook.
  *
  * @example
