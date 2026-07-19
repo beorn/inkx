@@ -36,13 +36,11 @@ import {
   createStyle,
   createTerminalProfile,
   detectColorFromEnv,
-  isProtocolError,
   type Style,
   type TerminalProfile,
   type TerminalEmulator,
 } from "@silvery/ansi"
 import { createTerminal } from "@termless/core"
-import { createLogger } from "loggily"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -74,22 +72,17 @@ import {
 } from "../runtime/devices/console"
 import { createConsoleRouter } from "../runtime/devices/console-router"
 export type { DeviceConsole as Console, ConsoleCaptureOptions, ConsoleStats }
-import { splitRawInput, parseKey } from "@silvery/ag/keys"
-import { isMouseSequence, parseMouseSequence } from "../mouse"
-import { parseFocusEvent } from "../focus-reporting"
-import { parseBracketedPaste } from "../bracketed-paste"
-import { parseClipboardResponse } from "../clipboard"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
 import {
-  createNotificationEmitter,
+  createNotificationTarget,
   NOTIFICATION_WRITER_AVAILABLE,
-  type NotificationDelivery,
+  type NotificationActivation,
   type NotificationRequest,
+  type NotificationTarget,
+  type TerminalNotificationDelivery,
 } from "./notification"
 
 export type { OutputOptions } from "../runtime/devices/output"
-
-const log = createLogger("silvery:input-owner")
 
 // =============================================================================
 // ANSI Utilities
@@ -260,7 +253,7 @@ export type StyleChain = {
  * await run(<App />, term)
  * ```
  */
-export interface Term extends Disposable, StyleChain {
+export interface Term extends Disposable, StyleChain, NotificationTarget {
   // -------------------------------------------------------------------------
   // Capability + identity surface (post km-silvery.caps-restructure Phase 7)
   //
@@ -480,7 +473,10 @@ export interface Term extends Disposable, StyleChain {
   write(str: string): void
 
   /** Emit a desktop notification through the capability-proven protocol. */
-  notify(request: NotificationRequest): NotificationDelivery
+  notify(request: NotificationRequest): TerminalNotificationDelivery
+
+  /** Subscribe to target-neutral notification and action activations. */
+  onNotificationActivation(handler: (event: NotificationActivation) => void): () => void
 
   /**
    * Write string followed by newline to stdout.
@@ -949,6 +945,9 @@ function createNodeTerm(options: CreateTermOptions): Term {
   // call. Replaces the 78+ scattered `process.on(SIG…, …)` sites found in the
   // 2026-04-22 shared-global audit. See Phase 6.
   const signals = createSignals()
+  const notifications = createNotificationTarget(detectedCaps, notificationWrite, (handler) =>
+    getInput()?.onNotificationActivationReply(handler),
+  )
 
   const termBase = {
     caps: detectedCaps,
@@ -961,7 +960,8 @@ function createNodeTerm(options: CreateTermOptions): Term {
     write: (str: string) => {
       ownedWrite(str)
     },
-    notify: createNotificationEmitter(detectedCaps, notificationWrite),
+    notify: notifications.notify,
+    onNotificationActivation: notifications.onNotificationActivation,
     writeLine: (str: string) => {
       ownedWrite(str + "\n")
     },
@@ -976,6 +976,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
       // (input/output/modes) while they're alive. After this, we drop each
       // owner in reverse-construction order.
       signals.dispose()
+      notifications.dispose()
       if (_input) _input[Symbol.dispose]()
       if (_output) _output[Symbol.dispose]()
       consoleOwner[Symbol.dispose]()
@@ -1073,6 +1074,7 @@ function createHeadlessTerm(
     stdout: { isTTY: false },
     caps: headlessCaps,
   })
+  const notifications = createNotificationTarget(profile.caps)
 
   const termBase = {
     caps: profile.caps,
@@ -1083,7 +1085,8 @@ function createHeadlessTerm(
     signals,
     console: undefined as DeviceConsole | undefined,
     write: () => {},
-    notify: createNotificationEmitter(profile.caps),
+    notify: notifications.notify,
+    onNotificationActivation: notifications.onNotificationActivation,
     writeLine: () => {},
     stripAnsi,
     paint: (_buffer: TerminalBuffer, _prev: TerminalBuffer | null): string => {
@@ -1093,6 +1096,7 @@ function createHeadlessTerm(
     [Symbol.dispose]: () => {
       if (disposed) return
       disposed = true
+      notifications.dispose()
       signals[Symbol.dispose]()
       modes[Symbol.dispose]()
       size[Symbol.dispose]()
@@ -1156,7 +1160,6 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   // ANSI bytes and fans out to onKey/onMouse/onPaste/onFocus subscribers so
   // emulator-backed Terms share the same consumer shape as Node-backed.
   const input = createInputOwner(HEADLESS_STDIN, stdout, { enableBracketedPaste: false })
-  let inputBatchSeq = 0
   // Signals owner — emulator-backed terms share the host process so exit /
   // SIGINT handlers remain meaningful. Construction is free (no process
   // listeners until first on()), and the contract promises signals on every
@@ -1192,6 +1195,11 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     stdout: { isTTY: false },
     caps: emulatorCaps,
   })
+  const notifications = createNotificationTarget(
+    profile.caps,
+    (str) => emulator.feed(str),
+    (handler) => input.onNotificationActivationReply(handler),
+  )
 
   const termBase = {
     caps: profile.caps,
@@ -1202,7 +1210,8 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     signals,
     console: undefined as DeviceConsole | undefined,
     write: (str: string) => emulator.feed(str),
-    notify: createNotificationEmitter(profile.caps, (str) => emulator.feed(str)),
+    notify: notifications.notify,
+    onNotificationActivation: notifications.onNotificationActivation,
     writeLine: (str: string) => emulator.feed(str + "\n"),
     resize: (cols: number, rows: number) => {
       emulator.resize(cols, rows)
@@ -1210,46 +1219,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
       size.update(cols, rows)
       resizeListeners.forEach((l) => l())
     },
-    sendInput: (data: string) => {
-      // Parse the data into typed events and fan out via the input owner.
-      const receivedAt = performance.now()
-      const inputBatchId = ++inputBatchSeq
-      const pasteResult = parseBracketedPaste(data)
-      if (pasteResult) {
-        input.sendPaste({ text: pasteResult.content })
-        return
-      }
-      let clipboardText: string | null = null
-      try {
-        clipboardText = parseClipboardResponse(data)
-      } catch (err) {
-        if (isProtocolError(err)) {
-          log?.debug?.(
-            `clipboard parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
-          )
-        } else {
-          log?.warn?.(`clipboard parser threw: ${String(err)}`)
-        }
-      }
-      if (clipboardText !== null) {
-        input.sendPaste({ text: clipboardText })
-        return
-      }
-      for (const raw of splitRawInput(data)) {
-        const focusEvent = parseFocusEvent(raw)
-        if (focusEvent) {
-          input.sendFocus({ focused: focusEvent.type === "focus-in" })
-          continue
-        }
-        if (isMouseSequence(raw)) {
-          const parsed = parseMouseSequence(raw)
-          if (parsed) input.sendMouse({ ...parsed, receivedAt, inputBatchId })
-          continue
-        }
-        const [parsedInput, key] = parseKey(raw)
-        input.sendKey({ input: parsedInput, key })
-      }
-    },
+    sendInput: (data: string) => input.sendRaw(data),
     stripAnsi,
     paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {
       const output = outputPhase(prev, buffer)
@@ -1259,6 +1229,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     },
     _emulator: emulator,
     [Symbol.dispose]: () => {
+      notifications.dispose()
       input[Symbol.dispose]()
       signals.dispose()
       modes[Symbol.dispose]()

@@ -56,7 +56,7 @@ For comprehensive, feature-by-feature terminal compatibility data beyond what Si
 - **Keyboard**: Full Kitty keyboard protocol (originator of the spec)
 - **Images**: Kitty graphics protocol (originator of the spec)
 - **Clipboard**: OSC 52
-- **Notifications**: OSC 99
+- **Notifications**: OSC 99, including buttons and typed activation replies
 - **Notes**: Feature-rich terminal, defines many protocols used by others.
 
 ### WezTerm

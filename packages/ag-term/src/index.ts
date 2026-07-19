@@ -157,8 +157,13 @@ export {
 } from "./output"
 export type { CursorShape, MouseCursorShape } from "./output"
 export type {
+  NotificationAction,
+  NotificationActivation,
+  NotificationTarget,
   NotificationRequest,
   NotificationDelivery,
+  NotificationUnsupportedReason,
+  TerminalNotificationDelivery,
   NotificationUrgency,
 } from "./ansi/notification"
 

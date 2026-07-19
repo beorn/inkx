@@ -53,6 +53,10 @@ import {
 import { parseBracketedPasteEnvelope } from "../bracketed-paste"
 import { parseClipboardResponseEnvelope } from "../clipboard"
 import { parseFocusEvent } from "../focus-reporting"
+import {
+  parseNotificationReplyEnvelope,
+  type TerminalNotificationActivation,
+} from "../ansi/notification"
 import type { Modes } from "./devices/modes"
 
 const BRACKETED_PASTE_ON = "\x1b[?2004h"
@@ -134,6 +138,17 @@ export interface InputOwner extends Disposable {
    * unsubscribe function.
    */
   onFocus(handler: (event: FocusEvent) => void): () => void
+
+  /** Subscribe to parsed OSC 99 activation replies. */
+  onNotificationActivationReply(
+    handler: (event: TerminalNotificationActivation) => void,
+  ): () => void
+
+  /**
+   * Inject raw terminal input through the canonical parser. Emulator-backed
+   * Terms use this instead of maintaining a second protocol parser.
+   */
+  sendRaw(data: string | Buffer): void
 
   /**
    * Inject a synthetic key event. Used by emulator-backed terms
@@ -377,6 +392,7 @@ export function createInputOwner(
   let buffer = ""
   let incompleteSequence: string | null = null
   let incompletePaste: string | null = null
+  let incompleteNotification: string | null = null
   let incompleteSequenceTimer: ReturnType<typeof setTimeout> | null = null
   let incompleteSequenceImmediate: ReturnType<typeof setImmediate> | null = null
   const probes: ProbeEntry[] = []
@@ -384,6 +400,7 @@ export function createInputOwner(
   const mouseHandlers = new Set<(e: ParsedMouse) => void>()
   const pasteHandlers = new Set<(e: PasteEvent) => void>()
   const focusHandlers = new Set<(e: FocusEvent) => void>()
+  const notificationActivationHandlers = new Set<(e: TerminalNotificationActivation) => void>()
   let mouseOptions = options.mouse
   let resolvedCount = 0
   let timedOutCount = 0
@@ -529,6 +546,10 @@ export function createInputOwner(
       chunk = incompletePaste + chunk
       incompletePaste = null
     }
+    if (incompleteNotification !== null) {
+      chunk = incompleteNotification + chunk
+      incompleteNotification = null
+    }
 
     // Bracketed paste is detected before splitting into individual keys —
     // paste content is one logical event, not a stream of keystrokes.
@@ -570,6 +591,25 @@ export function createInputOwner(
         }
       }
 
+      const notificationEnvelope = parseNotificationReplyEnvelope(remaining)
+      const notificationIsFirst =
+        notificationEnvelope !== null &&
+        (!pasteEnvelope || notificationEnvelope.start <= pasteEnvelope.start) &&
+        (!clipboardEnvelope || notificationEnvelope.start <= clipboardEnvelope.start)
+
+      if (notificationIsFirst) {
+        dispatchRawChunk(remaining.slice(0, notificationEnvelope.start), receivedAt, inputBatchId)
+        if (notificationEnvelope.status === "incomplete") {
+          incompleteNotification = remaining.slice(notificationEnvelope.start)
+          return
+        }
+        if (notificationEnvelope.activation !== null) {
+          fire(notificationActivationHandlers, notificationEnvelope.activation)
+        }
+        remaining = remaining.slice(notificationEnvelope.end)
+        continue
+      }
+
       if (pasteEnvelope && (!clipboardEnvelope || pasteEnvelope.start <= clipboardEnvelope.start)) {
         dispatchRawChunk(remaining.slice(0, pasteEnvelope.start), receivedAt, inputBatchId)
         fire(pasteHandlers, { text: pasteEnvelope.result.content })
@@ -591,13 +631,14 @@ export function createInputOwner(
 
   // Single stdin listener — the whole reason this file exists. No other
   // code in the session should call stdin.on("data", …) or stdin.setRawMode.
-  const onChunk = (chunk: string | Buffer) => {
+  function sendRaw(chunk: string | Buffer): void {
     if (disposed) return
     const receivedAt = performance.now()
     const inputBatchId = ++inputBatchSeq
     buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8")
     drain(receivedAt, inputBatchId)
   }
+  const onChunk = (chunk: string | Buffer) => sendRaw(chunk)
   if (isTTY) stdin.on("data", onChunk)
 
   function probe<T>(opts: {
@@ -684,6 +725,15 @@ export function createInputOwner(
     }
   }
 
+  function onNotificationActivationReply(
+    handler: (e: TerminalNotificationActivation) => void,
+  ): () => void {
+    notificationActivationHandlers.add(handler)
+    return () => {
+      notificationActivationHandlers.delete(handler)
+    }
+  }
+
   function sendKey(event: KeyEvent): void {
     if (disposed) return
     fire(keyHandlers, event)
@@ -729,10 +779,12 @@ export function createInputOwner(
     mouseHandlers.clear()
     pasteHandlers.clear()
     focusHandlers.clear()
+    notificationActivationHandlers.clear()
     clearIncompleteTimer()
     buffer = ""
     incompleteSequence = null
     incompletePaste = null
+    incompleteNotification = null
 
     if (isTTY) {
       try {
@@ -776,6 +828,8 @@ export function createInputOwner(
     onMouse,
     onPaste,
     onFocus,
+    onNotificationActivationReply,
+    sendRaw,
     sendKey,
     sendMouse,
     sendPaste,

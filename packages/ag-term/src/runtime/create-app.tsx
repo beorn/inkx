@@ -3113,6 +3113,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         ? effectiveTerm.notify.bind(effectiveTerm)
         : baseMockTerm.notify.bind(baseMockTerm),
     },
+    onNotificationActivation: {
+      value: effectiveTerm
+        ? effectiveTerm.onNotificationActivation.bind(effectiveTerm)
+        : baseMockTerm.onNotificationActivation.bind(baseMockTerm),
+    },
     subscribe: {
       value: (listener: (state: { cols: number; rows: number }) => void): (() => void) => {
         mockTermSubscribers.add(listener)

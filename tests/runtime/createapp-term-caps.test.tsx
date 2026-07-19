@@ -1,7 +1,9 @@
 import React, { useEffect } from "react"
 import { describe, expect, test } from "vitest"
-import { Text, useTerm } from "../../src/index.js"
+import { Text, type NotificationActivation, useTerm } from "../../src/index.js"
 import { createTerminalProfile } from "@silvery/ansi"
+import { createTermless } from "@silvery/test"
+import { createApp } from "../../packages/ag-term/src/runtime/create-app"
 import { run } from "../../packages/ag-term/src/runtime/run"
 
 function makeWritable() {
@@ -79,6 +81,39 @@ describe("createApp TermContext caps", () => {
 
     expect(deliveries).toContainEqual({ status: "emitted", protocol: "osc777" })
     expect(sink.output).toContain("\x1b]777;notify;Build;Done\x07")
+
+    handle.unmount()
+  })
+
+  test("useTerm() keeps notification delivery and activation on the runtime Term", async () => {
+    using term = createTermless({
+      cols: 40,
+      rows: 5,
+      caps: { notifications: "osc99" },
+    })
+    const activations: NotificationActivation[] = []
+
+    function Probe(): React.ReactElement {
+      const target = useTerm()
+      useEffect(() => {
+        const unsubscribe = target.onNotificationActivation((event) => activations.push(event))
+        target.notify({
+          id: "build",
+          body: "Done",
+          actions: [{ id: "logs", label: "Open logs" }],
+        })
+        return unsubscribe
+      }, [target])
+      return <Text>notified</Text>
+    }
+
+    const app = createApp(() => () => ({}))
+    const handle = await app.run(<Probe />, { cols: 40, rows: 5, term })
+    await settle()
+    ;(term as unknown as { sendInput(data: string): void }).sendInput("\x1b]99;i=build;1\x1b\\")
+    await settle()
+
+    expect(activations).toEqual([{ id: "build", kind: "action", actionId: "logs" }])
 
     handle.unmount()
   })

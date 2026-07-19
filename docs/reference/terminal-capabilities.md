@@ -788,30 +788,49 @@ Every `Term` exposes one notification entry. It uses the protocol already proven
 
 ```tsx
 import { createTerm } from "@silvery/ag-term"
+import type { NotificationTarget } from "silvery"
 
 using term = createTerm()
+const target: NotificationTarget = term
+const unsubscribe = target.onNotificationActivation((event) => {
+  if (event.kind === "action") openPanel(event.actionId)
+})
 const delivery = term.notify({
   id: "build-42",
   title: "silvery",
   body: "Build complete",
   urgency: "normal",
+  actions: [{ id: "logs", label: "Open logs" }],
+  reportActivation: true,
 })
 
 if (delivery.status === "unsupported") {
   // The caller chooses any fallback policy explicitly.
 }
+
+unsubscribe()
 ```
 
-| Entry                  | Protocol      | Description                                      |
-| ---------------------- | ------------- | ------------------------------------------------ |
-| `term.notify(request)` | OSC 9/777/99  | Emits through the Term-owned writer              |
-| typed `unsupported`    | None          | Emits no bytes; caller owns explicit fallback    |
+| Entry                                      | Protocol     | Description                                      |
+| ------------------------------------------ | ------------ | ------------------------------------------------ |
+| `target.notify(request)`                   | OSC 9/777/99 | Emits through the target-owned writer            |
+| `target.onNotificationActivation(handler)` | OSC 99       | Projects clicks and buttons to domain action ids |
+| typed `unsupported`                        | None         | Emits no bytes; caller owns explicit fallback    |
 
 The capability table selects OSC 9 for iTerm2, OSC 99 for Kitty, and OSC 777
 for Ghostty, WezTerm, and foot. Unknown terminals return
 `{ status: "unsupported", reason: "notifications" }` without writing BEL or
-silently dropping the request. OSC 99 v1 supports basic title/body/id/urgency
-emission; actions and activation replies are intentionally not part of this API.
+silently dropping the request. Basic title/body/id/urgency emission works on
+all three selected protocols. Actions and activation replies require OSC 99,
+a readable terminal input owner, and a stable request `id`; buttons imply
+activation reporting. Unsupported action or reply requests return
+`notification-actions` or `notification-activation` with zero bytes. Kitty's
+one-based button numbers stay private: callers receive their own action ids
+through `NotificationActivation`. The protocol-neutral request, delivery,
+activation, and `NotificationTarget` types are exported from `silvery`, so a
+future DOM target can implement the same capability without importing terminal
+protocols or Hab routing policy. OSC 99 encoding follows Kitty's
+[desktop-notification protocol](https://sw.kovidgoyal.net/kitty/desktop-notifications/).
 
 ## Standards Reference
 

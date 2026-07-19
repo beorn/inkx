@@ -22,6 +22,18 @@ export type {
 export type Effect = import("@silvery/create/types").Effect
 export type Op = import("@silvery/create/types").Op
 
+// Target-neutral notification domain. The terminal implementation currently
+// lives in @silvery/ag-term; a future DOM target implements this same shape.
+export type {
+  NotificationAction,
+  NotificationActivation,
+  NotificationDelivery,
+  NotificationRequest,
+  NotificationTarget,
+  NotificationUnsupportedReason,
+  NotificationUrgency,
+} from "@silvery/ag-term"
+
 // Re-export everything from @silvery/ag-react — local `render` below shadows the re-exported one
 export * from "@silvery/ag-react"
 
