@@ -277,6 +277,10 @@ export {
 } from "./ui/components"
 export type { TypographyProps } from "./ui/components"
 
+// Shared noun#value.revision identity grammar.
+export { formatNounId, NounId } from "./ui/components"
+export type { NounIdProps, NounIdValue } from "./ui/components"
+
 // Heading (OSC 66 text sizing)
 export { Heading } from "./ui/components"
 export type { HeadingProps, HeadingLevel } from "./ui/components"

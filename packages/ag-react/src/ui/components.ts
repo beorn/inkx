@@ -207,6 +207,9 @@ export {
 } from "./components/Typography"
 export type { TypographyProps } from "./components/Typography"
 
+export { formatNounId, NounId } from "./components/NounId"
+export type { NounIdProps, NounIdValue } from "./components/NounId"
+
 // Prose — text-wrapping container primitive (encapsulates flexShrink + minWidth chain)
 export { Prose } from "./components/Prose"
 export type { ProseProps, ProseHandle } from "./components/Prose"
