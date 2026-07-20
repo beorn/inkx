@@ -58,6 +58,13 @@ const entries: EntryPoint[] = [
     expectNoReact: true,
     expectNoReconciler: true,
   },
+  {
+    name: "@silvery/ag-term/pipeline/adapter-pipeline",
+    specifier: "@silvery/ag-term/pipeline/adapter-pipeline",
+    importExpr: "{ executeRenderAdapter, setRenderAdapter }",
+    expectNoReact: true,
+    expectNoReconciler: true,
+  },
   // --- @silvery/ag-term sub-paths that legitimately need React ---
   {
     name: "@silvery/ag-term/hit-registry",
@@ -71,6 +78,13 @@ const entries: EntryPoint[] = [
     name: "@silvery/create/core",
     specifier: "@silvery/create/core",
     importExpr: "{ none, batch, dispatch, compose, createFocusManager }",
+    expectNoReact: true,
+    expectNoReconciler: true,
+  },
+  {
+    name: "@silvery/create/runtime-chain",
+    specifier: "@silvery/create/runtime-chain",
+    importExpr: "{ createBaseApp, withInputChain }",
     expectNoReact: true,
     expectNoReconciler: true,
   },

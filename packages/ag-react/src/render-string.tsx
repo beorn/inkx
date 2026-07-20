@@ -46,6 +46,7 @@ import { createAg } from "@silvery/ag-term/ag"
 import { runWithMeasurer } from "@silvery/ag-term/unicode"
 import { createContainer, getContainerRoot } from "./reconciler"
 import { stringReconciler } from "./reconciler/string-reconciler"
+import { setListViewCacheRenderer } from "./ui/components/list-view/cache-renderer"
 
 // ============================================================================
 // Types
@@ -375,3 +376,8 @@ function withActEnvironment(fn: () => void): void {
     ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = prev
   }
 }
+
+// The terminal/root surface supplies ListView's optional ANSI cache capture.
+// Canvas never imports this module, so its ListView path stays browser-safe and
+// uses the existing semantic plain-text fallback.
+setListViewCacheRenderer(renderStringSync)

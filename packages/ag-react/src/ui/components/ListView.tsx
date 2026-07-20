@@ -74,7 +74,7 @@ import { Text } from "../../components/Text"
 import { Scrollbar } from "./Scrollbar"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
-import { renderStringSync } from "../../render-string"
+import { getListViewCacheRenderer } from "./list-view/cache-renderer"
 import {
   createHeightModel,
   shouldKeepHeightModelSnapshot,
@@ -1392,7 +1392,8 @@ function ListViewInner<T>(
     (cacheMode === "virtual" || cacheMode === "terminal")
   ) {
     const captureWidth = width ?? term?.cols ?? 80
-    const canCapture = isLayoutEngineInitialized()
+    const cacheRenderer = getListViewCacheRenderer()
+    const canCapture = isLayoutEngineInitialized() && cacheRenderer !== undefined
     for (let i = prevCachedRef.current; i < cachedCount; i++) {
       const item = items[i]!
       const key = getKey?.(item, i) ?? i
@@ -1410,7 +1411,7 @@ function ListViewInner<T>(
             searchQuery: "",
             matchRanges: EMPTY_MATCH_RANGES,
           })
-          ansi = renderStringSync(element as React.ReactElement, {
+          ansi = cacheRenderer(element as React.ReactElement, {
             width: captureWidth,
             plain: false,
             trimTrailingWhitespace: true,

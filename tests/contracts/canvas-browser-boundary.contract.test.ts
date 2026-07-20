@@ -14,9 +14,26 @@ function isThirdPartyPackage(id: string): boolean {
 
 describe("canvas browser boundary", () => {
   test("the canvas entry does not load terminal or Node-only modules", async () => {
+    const loadedModules = new Set<string>()
+    const ineffectiveDynamicImports: string[] = []
     const bundle = await rolldown({
       input: canvasEntry,
       external: isThirdPartyPackage,
+      onLog(level, log, handler) {
+        if (log.code === "INEFFECTIVE_DYNAMIC_IMPORT") {
+          ineffectiveDynamicImports.push(log.message)
+          return
+        }
+        handler(level, log)
+      },
+      plugins: [
+        {
+          name: "capture-canvas-module-graph",
+          transform(_code, id) {
+            loadedModules.add(id)
+          },
+        },
+      ],
     })
 
     try {
@@ -30,9 +47,35 @@ describe("canvas browser boundary", () => {
       const forbiddenReferences = [
         ...new Set(generatedCode.match(/(?:node:[\w/.-]+|@termless\/[\w.-]+)/g) ?? []),
       ].sort()
+      const forbiddenModuleSuffixes = [
+        "/packages/ag-term/src/pipeline/index.ts",
+        "/packages/create/src/plugins.ts",
+        "/packages/ag-term/src/ansi/index.ts",
+        "/packages/ag-term/src/render-adapter.ts",
+        "/packages/ag-react/src/render-string.tsx",
+      ]
+      const requiredModuleSuffixes = [
+        "/packages/ag-term/src/pipeline/adapter-pipeline.ts",
+        "/packages/create/src/runtime-chain.ts",
+        "/packages/ag-term/src/ansi/background-override.ts",
+        "/packages/ag-term/src/render-adapter-state.ts",
+        "/packages/ag-react/src/ui/components/list-view/cache-renderer.ts",
+      ]
+      const loadedForbiddenModules = [...loadedModules]
+        .filter((id) => forbiddenModuleSuffixes.some((suffix) => id.endsWith(suffix)))
+        .sort()
+      const missingRequiredModules = requiredModuleSuffixes.filter(
+        (suffix) => ![...loadedModules].some((id) => id.endsWith(suffix)),
+      )
+      const suppressedForbiddenWarnings = ineffectiveDynamicImports.filter((message) =>
+        forbiddenModuleSuffixes.some((suffix) => message.includes(suffix)),
+      )
 
       expect(externalImports).toEqual([])
       expect(forbiddenReferences).toEqual([])
+      expect(loadedForbiddenModules).toEqual([])
+      expect(missingRequiredModules).toEqual([])
+      expect(suppressedForbiddenWarnings).toEqual([])
     } finally {
       await bundle.close()
     }

@@ -125,7 +125,13 @@ import { createTerm, hyperlink, curlyUnderline } from "@silvery/ag-term/ansi"
 // Render pipeline internals
 import { createAg } from "@silvery/ag-term/ag"
 import { outputPhase, type PipelineConfig } from "@silvery/ag-term/pipeline"
-import { outputPhase, createOutputPhase } from "@silvery/ag-term/pipeline"
+
+// Browser-safe adapter pipeline (Canvas/DOM/custom render targets)
+import {
+  executeRenderAdapter,
+  setRenderAdapter,
+  type RenderAdapter,
+} from "@silvery/ag-term/pipeline/adapter-pipeline"
 
 // Diagnostic toolbelt (withDiagnostics, VirtualTerminal, buffer comparison)
 import { withDiagnostics, VirtualTerminal, compareBuffers } from "@silvery/ag-term/toolbelt"
@@ -161,9 +167,25 @@ import { useAnimation, easings } from "silvery/ui/animation"
 import { wrapAnsi } from "silvery/ui/ansi"
 ```
 
-### `@silvery/create` -- app composition _(coming soon)_
+### `@silvery/create` -- app composition
 
-App composition, state management, commands, and keybindings. Currently in development — API will be documented when released.
+App composition, state management, commands, and keybindings. Framework and
+renderer authors that need the target-neutral runtime apply chain can use its
+narrow entry without loading terminal test-harness plugins:
+
+```ts
+import {
+  createBaseApp,
+  withTerminalChain,
+  withPasteChain,
+  withInputChain,
+  withFocusChain,
+  withCustomEvents,
+} from "@silvery/create/runtime-chain"
+```
+
+`runtime-chain` aggregates the existing apply-chain functions only. Terminal
+plugin/provider surfaces remain behind their existing entries.
 
 ### `@silvery/theme` -- theming system
 

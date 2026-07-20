@@ -696,7 +696,9 @@ function detectMacOSDarkMode(): boolean {
   if (cachedMacOSDarkMode !== undefined) return cachedMacOSDarkMode
   try {
     // sync-node-builtin: multi-target lazy guard via getBuiltinModule (ESM-only wave-3).
-    const { spawnSync } = process.getBuiltinModule("node:child_process")
+    // The bare built-in name is equivalent in Node and does not create a
+    // `node:*` browser bundle reference for this guarded fallback.
+    const { spawnSync } = process.getBuiltinModule("child_process")
     const result = spawnSync("defaults", ["read", "-g", "AppleInterfaceStyle"], {
       encoding: "utf-8",
       timeout: 500,

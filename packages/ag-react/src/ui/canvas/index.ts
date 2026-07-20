@@ -29,9 +29,11 @@ import { createPretextMeasurer } from "./pretext-measurer"
 import { createDomMeasurer } from "./dom-measurer"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { setLayoutEngine } from "@silvery/ag-term/layout-engine"
-import { executeRenderAdapter } from "@silvery/ag-term/pipeline"
-import type { RenderAdapter, RenderBuffer } from "@silvery/ag-term/render-adapter"
-import { setRenderAdapter } from "@silvery/ag-term/render-adapter"
+import {
+  executeRenderAdapter,
+  setRenderAdapter,
+  type RenderBuffer,
+} from "@silvery/ag-term/pipeline/adapter-pipeline"
 import {
   createContainer,
   createFiberRoot,
@@ -56,7 +58,7 @@ import { ThemeProvider } from "../../ThemeProvider"
 import { catppuccinMocha } from "@silvery/theme/schemes"
 import { deriveTheme, type Theme } from "@silvery/ansi"
 import { createCursorStore, CursorProvider } from "../../hooks/useCursor"
-import { createCanvasInput, type CanvasInputConfig } from "./input"
+import { createCanvasInput } from "./input"
 
 // Re-export core components
 export { Box, type BoxProps } from "../../components/Box"
@@ -249,7 +251,6 @@ function computeDimensions(pixelWidth: number, pixelHeight: number, options: Can
 // ============================================================================
 
 let initialized = false
-let currentAdapter: RenderAdapter | null = null
 let lastMonospace: boolean | undefined
 
 function initCanvasRenderer(config: CanvasAdapterConfig): void {
@@ -258,8 +259,7 @@ function initCanvasRenderer(config: CanvasAdapterConfig): void {
   if (initialized && lastMonospace === monospace) return
 
   setLayoutEngine(createFlexilyZeroEngine())
-  currentAdapter = createCanvasAdapter(config)
-  setRenderAdapter(currentAdapter)
+  setRenderAdapter(createCanvasAdapter(config))
 
   lastMonospace = monospace
   initialized = true
@@ -317,7 +317,7 @@ export function renderToCanvas(
 
   let dims = computeDimensions(pixelWidth, pixelHeight, optionsWithDpr)
   let { cols, rows } = dims
-  const { charWidth, lineHeight, isProportional, measurer: pixelMeasurer } = dims
+  const { charWidth, lineHeight, measurer: pixelMeasurer } = dims
 
   // Cursor store for cursor position tracking
   const cursorStore = createCursorStore()
@@ -449,8 +449,9 @@ export function renderToCanvas(
     const withCursor = React.createElement(CursorProvider, { store: cursorStore }, el)
     const themed = React.createElement(ThemeProvider, { theme, children: withCursor })
 
-    if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue)
+    if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue) {
       return themed
+    }
     return React.createElement(
       FocusManagerContext.Provider,
       { value: focusManager },

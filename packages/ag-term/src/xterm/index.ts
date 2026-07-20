@@ -44,8 +44,8 @@ import {
   runWithDiscreteEvent,
   setContainerNodeLifecycle,
 } from "@silvery/ag-react/reconciler"
-import type { RenderBuffer } from "../render-adapter"
-import { setRenderAdapter } from "../render-adapter"
+import type { RenderBuffer } from "../render-adapter-state"
+import { setRenderAdapter } from "../render-adapter-state"
 import {
   ChainAppContext,
   FocusManagerContext,
@@ -413,8 +413,9 @@ export function renderToXterm(
       children: withCursor,
     })
 
-    if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue)
+    if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue) {
       return themed
+    }
     return React.createElement(
       FocusManagerContext.Provider,
       { value: focusManager },

@@ -335,7 +335,9 @@ export function createPassCauseAggregator(): PassCauseAggregator {
   function appendJson(file: string): void {
     const h = getHistogram()
     if (h.totalRecords === 0) return
-    const fs = process.getBuiltinModule("node:fs") as typeof import("node:fs")
+    // Bare built-in names keep the disabled instrumentation branch out of
+    // browser dependency graphs while remaining equivalent in Node.
+    const fs = process.getBuiltinModule("fs") as typeof import("node:fs")
     fs.appendFileSync(file, JSON.stringify(h) + "\n")
   }
 
@@ -493,7 +495,7 @@ export function printPassHistogram(): void {
   const formatted = passAggregator.formatSummary()
   const file = process.env.SILVERY_INSTRUMENT_FILE
   if (file) {
-    const fs = process.getBuiltinModule("node:fs") as typeof import("node:fs")
+    const fs = process.getBuiltinModule("fs") as typeof import("node:fs")
     fs.appendFileSync(file, "\n" + formatted + "\n")
     return
   }
