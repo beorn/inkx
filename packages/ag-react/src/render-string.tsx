@@ -251,7 +251,10 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
   } as unknown as NodeJS.WriteStream
 
   // Create mock term for components that use useTerm()
-  const mockTerm = createTerm({ colorLevel: plain || colorLevel === "mono" ? null : colorLevel })
+  using mockTerm = createTerm({
+    stdout: mockStdout,
+    colorLevel: plain || colorLevel === "mono" ? null : colorLevel,
+  })
 
   // Wrap with minimal contexts (no input handling needed)
   const wrapped = React.createElement(
