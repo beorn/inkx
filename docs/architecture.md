@@ -1,25 +1,51 @@
 # Silvery Architecture
 
-Silvery is a React framework for terminal UIs. It provides a React reconciler, layout engine, incremental rendering pipeline, component library, and theme system. Apps are written as standard React components; silvery handles the terminal.
+Silvery is a multi-target React UI framework. The terminal is the primary
+shipped target; Canvas is implemented, and DOM is an explicit target. Silvery
+provides a React reconciler, layout engine, incremental rendering pipeline,
+component library, and theme system while keeping target-specific output behind
+render adapters.
 
 ## Rendering Pipeline
 
 Three phases, run on each frame:
 
 ```
-React tree → AgNode tree → Measure → Layout → Render → ANSI output
+React tree → AgNode tree → Measure → Layout → Render → target adapter
                               ↓          ↓         ↓
-                          set constraints  positions   incremental
-                          from props      via Flexily  buffer diff
+                          set constraints  positions   buffer/output
+                          from props      via Flexily  for ANSI/Canvas/DOM
 ```
 
 **Measure** — React reconciler produces an `AgNode` tree. Each node's box props (width, height, flex, padding, etc.) become Flexily layout constraints.
 
 **Layout** — Flexily (pure JS flexbox, Yoga-compatible) calculates positions and sizes. Results land on `AgNode.layout` as `Rect { x, y, width, height }`. Also computes scroll offsets, sticky positions, and screen-relative rects. Components receive layout via `useBoxRect()` / `useScrollRect()`.
 
-**Render** — Incremental content render to `TerminalBuffer`. Dirty flags (`contentDirty`, `stylePropsDirty`, `bgDirty`, `subtreeDirty`, `childrenDirty`) control which nodes re-render. Previous frame buffer is cloned; only dirty subtrees are re-rendered. Output phase diffs current vs previous buffer to produce minimal ANSI escape sequences. Layout dirty is tracked by Flexily (`node.layoutNode.isDirty()`) — no separate silvery-side flag.
+**Render** — Incremental content render through the active `RenderAdapter`.
+Terminal output uses `TerminalBuffer` and diffs the current frame against the
+previous buffer to produce minimal ANSI escape sequences; Canvas and DOM
+adapters draw through the same layout and adapter-pipeline contract. Dirty flags
+(`contentDirty`, `stylePropsDirty`, `bgDirty`, `subtreeDirty`, `childrenDirty`)
+control which nodes re-render. Layout dirty is tracked by Flexily
+(`node.layoutNode.isDirty()`) — no separate silvery-side flag.
 
 The invariant: incremental output must match a fresh (non-incremental) render. Verified with `SILVERY_STRICT=1`.
+
+### Cross-target render boundary
+
+Shared reconciliation, layout, and adapter-aware render phases are
+target-neutral. Non-terminal targets install the process render adapter through
+the neutral state owned by the adapter pipeline; the existing
+`@silvery/ag-term/render-adapter` path keeps terminal initialization as a lazy
+compatibility surface.
+
+**Invariant: Canvas-transitive runtime modules may not import terminal
+initialization or terminal output implementations.** Canvas and other custom
+targets use `@silvery/ag-term/pipeline/adapter-pipeline`; renderer composition
+that needs the apply chain without terminal test-harness plugins uses
+`@silvery/create/runtime-chain`. A Rolldown contract bundles the real Canvas
+entry and rejects terminal/Node reachability, while compatibility tests prove
+the narrow and existing adapter paths share one singleton.
 
 ## Reactive Architecture
 
@@ -130,4 +156,7 @@ Complex applications use level 3 (`createApp`) for multi-provider composition.
 
 ## Code Style
 
-Factory functions, `using` cleanup, no classes, no globals. ESM imports only. TypeScript strict mode. Raw `.ts` source published to npm (no build step — Node.js 23.6+ strips types natively).
+Factory functions, `using` cleanup, no classes, no globals. ESM imports only.
+TypeScript strict mode. Published packages expose compiled ESM and declarations
+from `dist`; workspace development exports resolve directly to TypeScript
+source.
