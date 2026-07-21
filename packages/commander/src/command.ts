@@ -315,6 +315,12 @@ type InferOptionType<Flags extends string, ParseArg = undefined> =
                 : string | boolean | undefined
         : boolean | undefined
 
+/** `requiredOption()` guarantees the option is present before the action runs. */
+type InferRequiredOptionType<Flags extends string, ParseArg = undefined> = Exclude<
+  InferOptionType<Flags, ParseArg>,
+  undefined
+>
+
 // --- Standard Schema support ---
 
 /** Runtime check: is this value a Standard Schema v1 object? */
@@ -629,6 +635,48 @@ class _CommandBase extends BaseCommand {
       return super.option(flags, description ?? "", parseArgOrDefault, defaultValue)
     }
     return super.option(flags, description ?? "", parseArgOrDefault)
+  }
+
+  /**
+   * Add a mandatory option with the same smart third-argument detection as `.option()`.
+   *
+   * Commander implements `requiredOption()` independently rather than delegating to
+   * `.option()`, so without this override schemas and choice arrays are treated as
+   * default values and silently skip validation/parsing.
+   */
+  override requiredOption(
+    flags: string,
+    description?: string,
+    parseArgOrDefault?: any,
+    defaultValue?: any,
+  ): this {
+    if (Array.isArray(parseArgOrDefault)) {
+      const opt = new Option(flags, description ?? "")
+        .choices(parseArgOrDefault as string[])
+        .makeOptionMandatory()
+      this.addOption(opt)
+      return this
+    }
+    if (isStandardSchema(parseArgOrDefault)) {
+      return super.requiredOption(
+        flags,
+        description ?? "",
+        standardSchemaParser(parseArgOrDefault),
+        defaultValue,
+      )
+    }
+    if (isLegacyZodSchema(parseArgOrDefault)) {
+      return super.requiredOption(
+        flags,
+        description ?? "",
+        legacyZodParser(parseArgOrDefault),
+        defaultValue,
+      )
+    }
+    if (typeof parseArgOrDefault === "function") {
+      return super.requiredOption(flags, description ?? "", parseArgOrDefault, defaultValue)
+    }
+    return super.requiredOption(flags, description ?? "", parseArgOrDefault)
   }
 
   /**
@@ -1052,6 +1100,62 @@ export interface Command<
    * that doesn't match the more specific overloads above.
    */
   option<F extends string>(
+    flags: F,
+    description: string,
+    parseArgOrDefault: any,
+    defaultValue?: any,
+  ): Command<Opts, Args, ArgsRecord>
+
+  // -- Typed required-option overloads --
+
+  /** Add a mandatory choices option. */
+  requiredOption<F extends string, const C extends readonly string[]>(
+    flags: F,
+    description: string,
+    choices: C,
+  ): Command<Opts & Record<FlagKey<F>, InferRequiredOptionType<F, C>>, Args, ArgsRecord>
+
+  /** Add a mandatory option with a CLIType preset (port, csv, uint, etc.). */
+  requiredOption<F extends string, T>(
+    flags: F,
+    description: string,
+    schema: CLIType<T>,
+    defaultValue?: T,
+  ): Command<Opts & Record<FlagKey<F>, InferRequiredOptionType<F, CLIType<T>>>, Args, ArgsRecord>
+
+  /** Add a mandatory option with a Standard Schema v1 validator. */
+  requiredOption<F extends string, S extends AnyStandardSchema>(
+    flags: F,
+    description: string,
+    schema: S,
+    defaultValue?: SchemaOutput<S>,
+  ): Command<
+    Opts & Record<FlagKey<F>, InferRequiredOptionType<F, StandardSchemaV1<SchemaOutput<S>>>>,
+    Args,
+    ArgsRecord
+  >
+
+  /** Add a mandatory option with a parser function. */
+  requiredOption<F extends string, T>(
+    flags: F,
+    description: string,
+    parseArg: (value: string, previous: T) => T,
+    defaultValue?: T,
+  ): Command<
+    Opts & Record<FlagKey<F>, InferRequiredOptionType<F, (value: string, previous: T) => T>>,
+    Args,
+    ArgsRecord
+  >
+
+  /** Add a mandatory boolean flag or string-value option (no parser). */
+  requiredOption<F extends string>(
+    flags: F,
+    description?: string,
+    defaultValue?: string | boolean,
+  ): Command<Opts & Record<FlagKey<F>, InferRequiredOptionType<F>>, Args, ArgsRecord>
+
+  /** Fallback for legacy schemas or unknown third-argument forms. */
+  requiredOption<F extends string>(
     flags: F,
     description: string,
     parseArgOrDefault: any,

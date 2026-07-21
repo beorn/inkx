@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { z } from "zod"
-import { Command, colorizeHelp, shouldColorize } from "../src/index.ts"
+import { Command, colorizeHelp, int, shouldColorize } from "../src/index.ts"
 
 describe("Command subclass", () => {
   it("constructor help follows color detection — plain when the environment has no color", () => {
@@ -106,6 +106,21 @@ describe("Command subclass", () => {
 })
 
 describe("custom parser", () => {
+  it("applies custom parsers to required options", () => {
+    const cmd = new Command("test").requiredOption("--count <n>", "Count", int)
+    cmd.parse(["node", "test", "--count", "3"], { from: "node" })
+    expect(cmd.opts().count).toBe(3)
+    expect(typeof cmd.opts().count).toBe("number")
+  })
+
+  it("applies choices to required options instead of treating them as a default", () => {
+    const cmd = new Command("test").requiredOption("--env <env>", "Environment", ["dev", "prod"])
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: () => {} })
+
+    expect(() => cmd.parse(["node", "test", "--env", "staging"], { from: "node" })).toThrow()
+  })
+
   it("parses with parseInt", () => {
     const cmd = new Command("test").option("-p, --port <n>", "Port", parseInt)
     cmd.parse(["node", "test", "--port", "3000"], { from: "node" })
