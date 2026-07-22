@@ -10,7 +10,7 @@
 
 import React from "react"
 import { bench, describe } from "vitest"
-import { createRenderer } from "@silvery/test"
+import { createRenderer } from "silvery/test"
 import { Box, Text } from "silvery"
 import {
   buildTextAnalysis,

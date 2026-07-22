@@ -10,7 +10,7 @@
 import React from "react"
 import { bench, describe } from "vitest"
 import { Writable } from "node:stream"
-import { createRenderer } from "@silvery/test"
+import { createRenderer } from "silvery/test"
 import { Box as SBox, Text as SText } from "silvery"
 import { render as inkRender, Box as IBox, Text as IText } from "ink"
 import { setReactiveEnabled } from "@silvery/ag-term/pipeline/render-phase"

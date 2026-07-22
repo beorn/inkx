@@ -8,10 +8,8 @@
     "bench:compare": "SILVERY_STRICT=0 bunx --bun vitest bench --reporter=verbose"
   },
   "dependencies": {
-    "@silvery/test": "0.5.1",
     "ink": "7.0.0",
     "react": "^19.0.0",
-    "silvery": "0.15.0",
     "vitest": "4.1.10"
   }
 }

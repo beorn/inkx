@@ -12,7 +12,7 @@
  * - Both use their native Box/Text components (no compat layer)
  * - Mounted tests use the same prop changes on both sides
  * - Ink uses debug: true (synchronous — every rerender() does full work, no throttle)
- * - Silvery uses @silvery/test createRenderer (same production render core, headless)
+ * - Silvery uses silvery/test createRenderer (same production render core, headless)
  * - Both use mocked stdout — no real terminal I/O
  * - Same terminal dimensions
  * - Ink's Yoga WASM init happens once at import (not measured per-render)
@@ -23,7 +23,7 @@
 import React from "react"
 import { bench, describe } from "vitest"
 import { Writable } from "node:stream"
-import { createRenderer } from "@silvery/test"
+import { createRenderer } from "silvery/test"
 import { Box as SBox, Text as SText } from "silvery"
 import {
   render as inkRender,
