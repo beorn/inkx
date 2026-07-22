@@ -44,6 +44,19 @@ export {
 export type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 
 // -----------------------------------------------------------------------------
+// Selection scopes
+// -----------------------------------------------------------------------------
+//
+// Document-aware selection resolution: `resolveUserSelect` reads a node's
+// effective user-select policy, `findContainBoundary` resolves the nearest
+// `contain` scope bounding a drag, and `selectionHitTest` picks the selectable
+// node under a point. Multi-pane apps declare per-pane selection scopes and
+// verify them through these.
+
+export { findContainBoundary, resolveUserSelect, selectionHitTest } from "@silvery/ag-term/mouse-events"
+export type { SelectionScope } from "@silvery/headless/selection"
+
+// -----------------------------------------------------------------------------
 // Mouse parsing (SGR mode 1006 / X10 / any-event)
 // -----------------------------------------------------------------------------
 
