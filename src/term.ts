@@ -53,7 +53,11 @@ export type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 // node under a point. Multi-pane apps declare per-pane selection scopes and
 // verify them through these.
 
-export { findContainBoundary, resolveUserSelect, selectionHitTest } from "@silvery/ag-term/mouse-events"
+export {
+  findContainBoundary,
+  resolveUserSelect,
+  selectionHitTest,
+} from "@silvery/ag-term/mouse-events"
 export type { SelectionScope } from "@silvery/headless/selection"
 
 // -----------------------------------------------------------------------------
