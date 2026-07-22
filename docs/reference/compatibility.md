@@ -42,14 +42,14 @@ import { Box, Text, render } from "silvery/ink"
 
 ### Hook Compatibility
 
-| Hook                | Ink       | Silvery   | Notes                            |
-| ------------------- | --------- | --------- | -------------------------------- |
-| `useInput()`        | Supported | Supported | Same callback signature          |
-| `useApp()`          | Supported | Supported | Same API                         |
-| `useStdout()`       | Supported | Supported | Same API                         |
-| `useFocus()`        | Supported | Supported | Enhanced with spatial navigation |
-| `useFocusManager()` | Supported | Supported | Same API                         |
-| `measureElement()`  | Supported | Supported | Works, but prefer `useBoxRect()` |
+| Hook                | Ink       | Silvery           | Notes                               |
+| ------------------- | --------- | ----------------- | ----------------------------------- |
+| `useInput()`        | Supported | Supported         | Same callback signature             |
+| `useApp()`          | Supported | Supported         | Same API                            |
+| `useStdout()`       | Supported | Supported         | Same API                            |
+| `useFocus()`        | Supported | Supported         | Enhanced with spatial navigation    |
+| `useFocusManager()` | Supported | Supported         | Same API                            |
+| `measureElement()`  | Supported | Supported         | Works, but prefer `useBoxRect()`    |
 | `useBoxMetrics()`   | Supported | via `silvery/ink` | Ink 7.0 hook; prefer `useBoxRect()` |
 
 ### render() Differences

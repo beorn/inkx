@@ -52,7 +52,8 @@ function frame({
 
 function findGlyphColumn(term: ReturnType<typeof createTermless>, glyph: string, row = 1): number {
   const columns = term.cols
-  if (columns === undefined) throw new Error("findGlyphColumn requires a terminal with a known column count")
+  if (columns === undefined)
+    throw new Error("findGlyphColumn requires a terminal with a known column count")
   for (let column = 0; column < columns; column += 1) {
     if (term.cell(row, column).char === glyph) return column
   }

@@ -152,7 +152,10 @@ describe("TogglePill boldFirstLetter", () => {
     // The sibling pill without boldFirstLetter stays fully non-bold.
     const plainRow = app.lines.findIndex((line) => line.includes("running"))
     const plainCol = app.lines[plainRow]!.indexOf("running")
-    expect(app.cell(plainCol, plainRow).bold, "boldFirstLetter=false leaves the first char plain").toBe(false)
+    expect(
+      app.cell(plainCol, plainRow).bold,
+      "boldFirstLetter=false leaves the first char plain",
+    ).toBe(false)
 
     // Bold weight never changes the cell count, so hover recolours but never reflows.
     const before = app.text

@@ -10,28 +10,28 @@ import { TextArea } from "silvery"
 
 ## Props
 
-| Prop               | Type                                      | Default             | Description                                               |
-| ------------------ | ----------------------------------------- | ------------------- | --------------------------------------------------------- |
-| `value`            | `string`                                  | --                  | Current value (controlled mode)                           |
-| `defaultValue`     | `string`                                  | `""`                | Initial value (uncontrolled mode)                         |
-| `onChange`         | `(value: string) => void`                 | --                  | Called when value changes                                 |
-| `onSubmit`         | `(value: string) => void`                 | --                  | Called on submit                                          |
-| `submitKey`        | `"ctrl+enter" \| "enter" \| "meta+enter"` | `"ctrl+enter"`      | Key to trigger submit                                     |
-| `placeholder`      | `string`                                  | `""`                | Placeholder text when empty                               |
-| `isActive`         | `boolean`                                 | --                  | Whether input is focused/active (overrides focus system)  |
-| `fieldSizing`      | `"content" \| "fixed"`                    | `"content"`         | CSS field-sizing analog — auto-grow with content vs fixed |
-| `rows`             | `number`                                  | `1`                 | Visible row count in `"fixed"` mode                       |
-| `minRows`          | `number`                                  | `1`                 | Minimum rows in `"content"` mode                          |
-| `maxRows`          | `number`                                  | `8`                 | Maximum rows in `"content"` mode (scrolls beyond)         |
-| `cursorStyle`      | `"block" \| "underline"`                  | `"block"`           | Active hardware and inactive visual cursor style          |
-| `scrollMargin`     | `number`                                  | `1`                 | Context lines above/below cursor when scrolling           |
+| Prop               | Type                                      | Default             | Description                                                 |
+| ------------------ | ----------------------------------------- | ------------------- | ----------------------------------------------------------- |
+| `value`            | `string`                                  | --                  | Current value (controlled mode)                             |
+| `defaultValue`     | `string`                                  | `""`                | Initial value (uncontrolled mode)                           |
+| `onChange`         | `(value: string) => void`                 | --                  | Called when value changes                                   |
+| `onSubmit`         | `(value: string) => void`                 | --                  | Called on submit                                            |
+| `submitKey`        | `"ctrl+enter" \| "enter" \| "meta+enter"` | `"ctrl+enter"`      | Key to trigger submit                                       |
+| `placeholder`      | `string`                                  | `""`                | Placeholder text when empty                                 |
+| `isActive`         | `boolean`                                 | --                  | Whether input is focused/active (overrides focus system)    |
+| `fieldSizing`      | `"content" \| "fixed"`                    | `"content"`         | CSS field-sizing analog — auto-grow with content vs fixed   |
+| `rows`             | `number`                                  | `1`                 | Visible row count in `"fixed"` mode                         |
+| `minRows`          | `number`                                  | `1`                 | Minimum rows in `"content"` mode                            |
+| `maxRows`          | `number`                                  | `8`                 | Maximum rows in `"content"` mode (scrolls beyond)           |
+| `cursorStyle`      | `"block" \| "underline"`                  | `"block"`           | Active hardware and inactive visual cursor style            |
+| `scrollMargin`     | `number`                                  | `1`                 | Context lines above/below cursor when scrolling             |
 | `disabled`         | `boolean`                                 | --                  | Disable keyboard/mouse interaction and use disabled styling |
-| `maxLength`        | `number`                                  | --                  | Maximum number of characters allowed                      |
-| `borderStyle`      | `string`                                  | --                  | Border style (wraps input in bordered Box)                |
-| `borderColor`      | `string`                                  | `"$border-default"` | Border color when unfocused                               |
-| `focusBorderColor` | `string`                                  | `"$border-focus"`   | Border color when focused                                 |
-| `testID`           | `string`                                  | --                  | Test ID for focus system identification                   |
-| `onEdge`           | `(edge) => boolean`                       | --                  | Fires when arrow key pressed AT buffer boundary           |
+| `maxLength`        | `number`                                  | --                  | Maximum number of characters allowed                        |
+| `borderStyle`      | `string`                                  | --                  | Border style (wraps input in bordered Box)                  |
+| `borderColor`      | `string`                                  | `"$border-default"` | Border color when unfocused                                 |
+| `focusBorderColor` | `string`                                  | `"$border-focus"`   | Border color when focused                                   |
+| `testID`           | `string`                                  | --                  | Test ID for focus system identification                     |
+| `onEdge`           | `(edge) => boolean`                       | --                  | Fires when arrow key pressed AT buffer boundary             |
 
 ### Ref: TextAreaHandle
 
