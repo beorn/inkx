@@ -130,7 +130,6 @@
     "@silvery/ag-term": "0.23.0",
     "@silvery/ansi": "0.23.0",
     "@silvery/theme": "0.23.0",
-    "@termless/core": "^0.8.1",
     "@termless/ghostty": "^0.8.2",
     "@termless/ghostty-native": "^0.8.1",
     "@termless/test": "^0.8.1",
