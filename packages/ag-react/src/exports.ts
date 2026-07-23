@@ -289,6 +289,10 @@ export type { HeadingProps, HeadingLevel } from "./ui/components"
 export { Prose } from "./ui/components"
 export type { ProseProps, ProseHandle } from "./ui/components"
 
+// MarkdownView — minimal Markdown → Silvery renderer (paragraph reflow + presets)
+export { MarkdownView } from "./ui/components"
+export type { MarkdownViewProps } from "./ui/components"
+
 // Focusable Controls
 export { Toggle } from "./ui/components"
 export type { ToggleProps } from "./ui/components"
