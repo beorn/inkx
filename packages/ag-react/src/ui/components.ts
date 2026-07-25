@@ -214,6 +214,12 @@ export type { NounIdProps, NounIdValue } from "./components/NounId"
 export { Prose } from "./components/Prose"
 export type { ProseProps, ProseHandle } from "./components/Prose"
 
+// MarkdownView — minimal Markdown → Silvery renderer (headings, emphasis, code,
+// lists, blockquotes, HR; paragraph hard-wrap reflow). Maps onto Typography
+// presets + semantic tokens.
+export { MarkdownView } from "./components/MarkdownView"
+export type { MarkdownViewProps } from "./components/MarkdownView"
+
 // Heading (OSC 66 text sizing)
 export { Heading } from "./components/Heading"
 export type { HeadingProps, HeadingLevel } from "./components/Heading"
