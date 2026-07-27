@@ -70,9 +70,9 @@ Sterling tokens are designed so adopters never get `undefined` from a
 reasonable lookup. Every flat key in this page exists on every derived
 Theme. The compiler refuses `<Alert variant="destructive">` (Alert doesn't
 accept that variant); dynamic indexing of unknown tokens throws a
-`TypeError` with a "did you mean…?" hint. See
-[`hub/silvery/design/v10-terminal/design-system.md` §"Asymmetric Surprise"](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md)
-for the full rule.
+`TypeError` with a "did you mean…?" hint. The guarantee is asymmetric by
+design: known keys are total across derived themes, while unknown keys fail
+loudly.
 
 ## Tokens by family
 
@@ -213,7 +213,6 @@ for the full rule.
 
 ## See also
 
-- [Sterling design system](https://github.com/beorn/silvery-internal/blob/main/design/v10-terminal/design-system.md) — internal canonical doc
 - [`STERLING_FLAT_TOKENS`](../../packages/ansi/src/sterling/flat-tokens.ts) — the type-level union, in lockstep with this page
 - [`PUBLIC_TOKENS`](../../packages/ansi/src/sterling/token-manifest.ts) — the manifest powering this generator
 - "Ratio vs canvas" measures contrast against `bg-surface-default` (= `#2E3440` for Nord); surface and border values are listed for reference only. Text-token guarantees are stated explicitly in the Contract column (deemphasized text may intentionally sit below AA).
