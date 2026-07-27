@@ -97,15 +97,15 @@ For up-to-date compatibility data across all terminals, see [terminfo.dev's Kitt
 
 ### Terminals with Full Support
 
-| Terminal                                   | Platform              | Notes                        |
-| ------------------------------------------ | --------------------- | ---------------------------- |
-| [Kitty](https://sw.kovidgoyal.net/kitty/)  | Linux, macOS          | The reference implementation |
-| [WezTerm](https://wezfurlong.org/wezterm/) | Linux, macOS, Windows | Full support                 |
-| [foot](https://codeberg.org/dnkl/foot)     | Linux (Wayland)       | Full support                 |
-| [Ghostty](https://ghostty.org/)            | macOS, Linux          | Full support                 |
-| [Alacritty](https://alacritty.org/)        | Cross-platform        | Full support (added 2024)    |
-| [iTerm2](https://iterm2.com/)              | macOS                 | Full support                 |
-| [rio](https://rioterm.com)                 | Cross-platform        | Full support                 |
+| Terminal                                                   | Platform              | Notes                        |
+| ---------------------------------------------------------- | --------------------- | ---------------------------- |
+| [Kitty](https://sw.kovidgoyal.net/kitty/)                  | Linux, macOS          | The reference implementation |
+| [WezTerm](https://wezfurlong.org/wezterm/)                 | Linux, macOS, Windows | Full support                 |
+| [foot](https://man.archlinux.org/man/extra/foot/foot.1.en) | Linux (Wayland)       | Full support                 |
+| [Ghostty](https://ghostty.org/)                            | macOS, Linux          | Full support                 |
+| [Alacritty](https://alacritty.org/)                        | Cross-platform        | Full support (added 2024)    |
+| [iTerm2](https://iterm2.com/)                              | macOS                 | Full support                 |
+| [rio](https://rioterm.com)                                 | Cross-platform        | Full support                 |
 
 ### Terminals Without Support
 

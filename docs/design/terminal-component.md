@@ -18,7 +18,7 @@ into `<Terminal>`.
 It is the silvery-native replacement for any place where the application
 would otherwise hand-roll `rowToAnsi` + `ansiCursorTo` against
 `process.stdout`. The original motivating consumer was `termless rec`'s
-[`rec-live-overlay.ts`](https://github.com/beorn/termless/blob/main/packages/cli/src/rec-live-overlay.ts),
+[`rec-live-overlay.tsx`](https://github.com/beorn/termless/blob/main/packages/cli/src/rec-live-overlay.tsx),
 a direct-ANSI painter that mirrored a recording terminal into a centred
 frame on the host. The live recording path has since moved to
 `<Island guest={xtermGuest}>`; `<Terminal>` remains the reusable
