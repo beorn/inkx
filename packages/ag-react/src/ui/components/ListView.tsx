@@ -124,7 +124,6 @@ import { composeViewport } from "@silvery/ag-term/viewport-compositor"
 import type { ComposedViewport } from "@silvery/ag-term/viewport-compositor"
 import { stripAnsi } from "@silvery/ag-term/unicode"
 import { isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
-import { isStrictEnabled } from "@silvery/ag-term/strict-mode"
 import { useSearchOptional } from "../../providers/SearchProvider"
 import type { MatchRange, SearchMatch } from "@silvery/ag-term/search-overlay"
 import { computeMatchRanges } from "@silvery/ag-term/search-overlay"
@@ -1011,13 +1010,6 @@ function ListViewInner<T>(
   const committingWheelScrollRef = useRef(false)
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // STRICT slug `scroll_height` — last frame's authority snapshot for the
-  // steady-state divergence check (@km/code/v0.2/19633 no-parallel-derivation).
-  const strictScrollHeightPrevRef = useRef<{
-    itemCount: number
-    countSpace: number
-    layout: number
-  } | null>(null)
   const liveAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
   const wheelMeasurementSnapshotAvgHeightRef = useRef<number | undefined>(undefined)
   const [, rerenderOnWheelGestureIdle] = useReducer((value: number) => value + 1, 0)
@@ -2548,49 +2540,6 @@ function ListViewInner<T>(
   // ── Ref ───────────────────────────────────────────────────────────
   // Wrap scrollToItem to accept original indices (before virtual adjustment).
   //
-  // STRICT slug `scroll_height` (tier 2) — no-parallel-derivation guard for
-  // @km/code/v0.2/19633. At STEADY STATE (follow=end settled, not wheel-
-  // driving, both authorities present, item count stable for ≥2 consecutive
-  // frames), the count-space height-model total and the pixel-space layout
-  // height MUST agree within a small tolerance. If they diverge at steady
-  // state, the two authorities have drifted again and the follow pin can
-  // oscillate — fail loud the instant it appears, with both values. Bounded to
-  // tier 2 and to the settled window so legitimate measurement convergence
-  // (where the two are transiently out of phase) never trips it.
-  useEffect(() => {
-    if (!isStrictEnabled("scroll_height", 2)) return
-    if (resolvedFollow !== "end") return
-    if (followEndPinRef.current.kind !== "end") return
-    if (isWheelDrivenRef.current || wheelGestureActiveRef.current) return
-    // Both authorities must be live (past bootstrap) for a meaningful compare.
-    if (layoutContentRows <= 0 || totalContentRows <= 1) return
-    const stable =
-      strictScrollHeightPrevRef.current !== null &&
-      strictScrollHeightPrevRef.current.itemCount === activeItems.length &&
-      Math.abs(strictScrollHeightPrevRef.current.countSpace - totalContentRows) <= 0.5 &&
-      Math.abs(strictScrollHeightPrevRef.current.layout - layoutContentRows) <= 0.5
-    strictScrollHeightPrevRef.current = {
-      itemCount: activeItems.length,
-      countSpace: totalContentRows,
-      layout: layoutContentRows,
-    }
-    if (!stable) return
-    // Tolerance: 1 row + 2% of the larger total absorbs rounding / a single
-    // in-flight tail measurement; a real divergence is the ~N-row leapfrog.
-    const tolerance = 1 + 0.02 * Math.max(totalContentRows, layoutContentRows)
-    const divergence = Math.abs(totalContentRows - layoutContentRows)
-    if (divergence > tolerance) {
-      throw new Error(
-        `SILVERY_STRICT[scroll_height]: ListView follow-end content-height ` +
-          `authorities diverge at steady state — count-space heightModel.totalRows()=` +
-          `${totalContentRows} vs pixel-space layoutContentRows=${layoutContentRows} ` +
-          `(divergence ${divergence.toFixed(1)} > tolerance ${tolerance.toFixed(1)}, ` +
-          `items=${activeItems.length}). The follow pin can oscillate (no-parallel-` +
-          `derivation; @km/code/v0.2/19633). One authority must own the total.`,
-      )
-    }
-  })
-
   // `scrollBy` / `scrollToTop` / `scrollToBottom` operate on the row-space
   // viewport position (NOT cursor index). They drive the kinetic-scroll
   // hook's float position directly via `physics.setScrollFloat` and flip

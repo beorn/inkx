@@ -20,22 +20,24 @@
  * layout; a single chosen authority (pixel-space when present, count-space
  * only at bootstrap) cannot.
  *
- * HONEST SCOPE (load-bearing, see bead): this is a forward-looking invariant
- * on the pure resolver, NOT a closed-form reproduction of the live A/B limit
- * cycle. The live oscillation needs budget-capped index-window eviction + real
- * terminal measurement timing + React commit ordering; no closed-form unit
- * recurrence (three were attempted) reproduces it, and the in-process
- * render-trace shows ZERO idle repaints in termless — so termless cannot
- * reproduce it either (confirms the @agent/5 forensic). The fix is justified
- * structurally (no-parallel-derivation: eliminate the second authority) and
- * guarded going forward by (a) this invariant, (b) the SILVERY_STRICT
- * `scroll_height` slug that throws on steady-state divergence in a LIVE
- * session, and (c) the full ListView scroll-anchoring suite staying green.
+ * HONEST SCOPE (load-bearing, see bead): the original A/B limit cycle needs
+ * budget-capped index-window eviction + real terminal measurement timing +
+ * React commit ordering; no closed-form unit recurrence (three were attempted)
+ * reproduces it, and the in-process render-trace shows zero idle repaints in
+ * termless. Protection therefore comes from (a) the pure single-authority
+ * invariant below, (b) an integration regression reproducing the later live
+ * `scroll_height` false panic at the exact 21-item, 115×59, 50-vs-27 geometry,
+ * and (c) the full ListView scroll-anchoring suite staying green. The estimator
+ * is deliberately allowed to differ once pixel-space layout is authoritative.
  *
  * Bead: @km/code/v0.2/19633-output-flicker.
  */
 
+import React from "react"
+import { Box, Text } from "@silvery/ag-react"
+import { createRenderer } from "@silvery/test"
 import { describe, expect, test } from "vitest"
+import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
 import { createContentGeometry } from "../../packages/ag-react/src/ui/components/list-view/scroll-position"
 import { createHeightModel } from "../../packages/ag-react/src/ui/components/list-view/height-model"
 import {
@@ -69,6 +71,42 @@ function geometryForWindow(opts: {
 }
 
 describe("19633 follow-end content-height authority is a fixed point", () => {
+  test("accepts stable estimator/layout divergence after layout becomes authoritative", () => {
+    const previousStrict = process.env.SILVERY_STRICT
+    process.env.SILVERY_STRICT = "scroll_height"
+    const items = Array.from({ length: 21 }, (_, index) => ({
+      id: `item-${index}`,
+      renderedRows: index < 6 ? 2 : 1,
+    }))
+    const render = createRenderer({ cols: 115, rows: 59 })
+    const view = () => (
+      <Box width={115} height={59} flexDirection="column">
+        <ListView
+          items={items}
+          follow="end"
+          estimateHeight={(index) => (index < 8 ? 3 : 2)}
+          getKey={(item) => item.id}
+          renderItem={(item) => (
+            <Box height={item.renderedRows} flexShrink={0}>
+              <Text>{item.id}</Text>
+            </Box>
+          )}
+        />
+      </Box>
+    )
+
+    try {
+      expect(() => {
+        const app = render(view())
+        app.rerender(view())
+        app.rerender(view())
+      }).not.toThrow()
+    } finally {
+      if (previousStrict === undefined) delete process.env.SILVERY_STRICT
+      else process.env.SILVERY_STRICT = previousStrict
+    }
+  })
+
   test("resolveFollowEndContentRows ignores count-space leapfrog when pixel-space layout is settled", () => {
     // Pixel-space (Flexily) layout height is the settled truth: 8 long rows ×
     // 13 measured rows each = 104 content rows. It does NOT depend on which
