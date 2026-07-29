@@ -214,6 +214,42 @@ export type { NounIdProps, NounIdValue } from "./components/NounId"
 export { Prose } from "./components/Prose"
 export type { ProseProps, ProseHandle } from "./components/Prose"
 
+// Content — shared semantic layout lanes (prose/wide/full/auto)
+export {
+  Content,
+  MeasuredPaneScope,
+  PaneSize,
+  useContentLayout,
+  useContentRowWidth,
+  useHasContentLayout,
+  useResponsiveContent,
+} from "./components/Content"
+export type {
+  ContentBodyProps,
+  ContentBodyWidth,
+  ContentLayoutContextValue,
+  ContentResponsive,
+  ContentWidthValue,
+} from "./components/Content"
+
+// DocumentView — store-neutral semantic document presentation.
+export { DocumentView } from "./components/DocumentView"
+export type {
+  DocumentBlock,
+  DocumentBlockId,
+  DocumentCodeBlock,
+  DocumentExtensionBlock,
+  DocumentHeadingBlock,
+  DocumentLane,
+  DocumentListItem,
+  DocumentListItemBlock,
+  DocumentParagraphBlock,
+  DocumentQuoteBlock,
+  DocumentRuleBlock,
+  DocumentTableBlock,
+  DocumentViewProps,
+} from "./components/DocumentView"
+
 // MarkdownView — minimal Markdown → Silvery renderer (headings, emphasis, code,
 // lists, blockquotes, HR; paragraph hard-wrap reflow). Maps onto Typography
 // presets + semantic tokens.

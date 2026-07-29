@@ -15,7 +15,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, MarkdownView } from "silvery"
+import { Box, Content, DocumentView, MarkdownView, type DocumentBlock } from "silvery"
 import { parseMarkdownBlocks } from "../../packages/ag-react/src/ui/components/MarkdownView"
 
 const DEFAULT_WIDTH = 80
@@ -28,6 +28,17 @@ function render(source: string, width = DEFAULT_WIDTH) {
   return r(
     <Box width={width} height={24}>
       <MarkdownView source={source} />
+    </Box>,
+  )
+}
+
+function renderDocument(blocks: readonly DocumentBlock[], width: number) {
+  const r = createRenderer({ cols: width, rows: 24 })
+  return r(
+    <Box width={width} height={24}>
+      <Content.Layout fill={false} prose="100%" align="start">
+        <DocumentView blocks={blocks} />
+      </Content.Layout>
     </Box>,
   )
 }
@@ -144,6 +155,68 @@ describe("MarkdownView — block elements", () => {
     expect(app.text).toContain("const b = 2")
     expect(app.text).not.toContain("const a = 1 const b = 2") // stayed on two lines
     expect(app.text).not.toContain("```") // fence markers stripped
+  })
+})
+
+describe("DocumentView — shared document geometry", () => {
+  test("ordered counters advance while every body shares one hanging-indent column", () => {
+    const list = {
+      groupId: "steps",
+      depth: 0,
+      ordered: true,
+      start: 9,
+    } as const
+    const app = renderDocument(
+      [
+        { id: "step-9", kind: "list-item", list, content: "Nine" },
+        {
+          id: "step-10",
+          kind: "list-item",
+          list,
+          content: "Ten has enough words to wrap at this narrow width",
+        },
+        { id: "step-11", kind: "list-item", list, content: "Eleven" },
+      ],
+      24,
+    )
+    const lines = app.text.split("\n")
+    const nine = lines.findIndex((line) => line.includes("9."))
+    const ten = lines.findIndex((line) => line.includes("10."))
+    const eleven = lines.findIndex((line) => line.includes("11."))
+    const continuation = lines.findIndex((line) => line.includes("wrap at"))
+
+    expect(nine).toBeGreaterThanOrEqual(0)
+    expect(ten).toBeGreaterThan(nine)
+    expect(eleven).toBeGreaterThan(ten)
+    expect(continuation).toBeGreaterThan(ten)
+    expect(lines[nine]?.indexOf("Nine")).toBe(lines[ten]?.indexOf("Ten"))
+    expect(lines[ten]?.indexOf("Ten")).toBe(lines[eleven]?.indexOf("Eleven"))
+    expect(lines[continuation]?.search(/\S/u)).toBe(lines[ten]?.indexOf("Ten"))
+  })
+
+  test("tight list rows stay adjacent and leave block rhythm before following prose", () => {
+    const list = {
+      groupId: "bullets",
+      depth: 0,
+      ordered: false,
+    } as const
+    const app = renderDocument(
+      [
+        { id: "alpha", kind: "list-item", list, content: "Alpha" },
+        { id: "beta", kind: "list-item", list, content: "Beta" },
+        { id: "after", kind: "paragraph", content: "After the list" },
+      ],
+      32,
+    )
+    const lines = app.text.split("\n")
+    const alpha = lines.findIndex((line) => line.includes("Alpha"))
+    const beta = lines.findIndex((line) => line.includes("Beta"))
+    const after = lines.findIndex((line) => line.includes("After the list"))
+
+    expect(beta).toBe(alpha + 1)
+    expect(after).toBe(beta + 2)
+    expect(lines[alpha]).toMatch(/•\s+Alpha/u)
+    expect(lines[beta]).toMatch(/•\s+Beta/u)
   })
 })
 

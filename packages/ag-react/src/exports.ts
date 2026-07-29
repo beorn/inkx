@@ -289,6 +289,42 @@ export type { HeadingProps, HeadingLevel } from "./ui/components"
 export { Prose } from "./ui/components"
 export type { ProseProps, ProseHandle } from "./ui/components"
 
+// Content — shared semantic layout lanes (prose/wide/full/auto)
+export {
+  Content,
+  MeasuredPaneScope,
+  PaneSize,
+  useContentLayout,
+  useContentRowWidth,
+  useHasContentLayout,
+  useResponsiveContent,
+} from "./ui/components"
+export type {
+  ContentBodyProps,
+  ContentBodyWidth,
+  ContentLayoutContextValue,
+  ContentResponsive,
+  ContentWidthValue,
+} from "./ui/components"
+
+// DocumentView — store-neutral semantic document presentation.
+export { DocumentView } from "./ui/components"
+export type {
+  DocumentBlock,
+  DocumentBlockId,
+  DocumentCodeBlock,
+  DocumentExtensionBlock,
+  DocumentHeadingBlock,
+  DocumentLane,
+  DocumentListItem,
+  DocumentListItemBlock,
+  DocumentParagraphBlock,
+  DocumentQuoteBlock,
+  DocumentRuleBlock,
+  DocumentTableBlock,
+  DocumentViewProps,
+} from "./ui/components"
+
 // MarkdownView — minimal Markdown → Silvery renderer (paragraph reflow + presets)
 export { MarkdownView } from "./ui/components"
 export type { MarkdownViewProps } from "./ui/components"

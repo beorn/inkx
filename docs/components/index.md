@@ -23,6 +23,8 @@ For core components (Box, Text, SelectList, TextInput, TextArea, ListView, Tabs,
 - [Tooltip](/components/Tooltip) -- Contextual help text
 - [Typography](/components/typography) -- Semantic text presets (H1-H3, P, Lead, Muted, Code, etc.)
 - [Prose](/components/Prose) -- Text-wrapping container primitive (encapsulates flex chain for `<Text wrap="wrap">`)
+- [Content](/components/Content) -- Responsive prose, wide, full, and auto content lanes
+- [DocumentView](/components/DocumentView) -- Store-neutral semantic document presenter
 
 ## Input & Selection
 
