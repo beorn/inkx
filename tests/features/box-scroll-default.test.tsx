@@ -9,8 +9,15 @@
 
 import React from "react"
 import { describe, expect, test, vi } from "vitest"
-import { createRenderer } from "@silvery/test"
-import { Box, Text } from "../../src/index.js"
+import { run } from "@silvery/ag-term/runtime"
+import { createRenderer, createTermless } from "@silvery/test"
+import {
+  Box,
+  ScrollArea,
+  Text,
+  useScrollController,
+  type ScrollController,
+} from "../../src/index.js"
 
 function rows(count: number): React.ReactElement {
   return (
@@ -75,5 +82,30 @@ describe("Box overflow=scroll default wheel behavior", () => {
     await app.wheel(4, 2, 1)
 
     expect(ancestorWheel).toHaveBeenCalledOnce()
+  })
+
+  test("ScrollArea controller composes burst keyboard-sized scrollBy calls", async () => {
+    const controllerRef: { current?: ScrollController } = {}
+    function ControlledScrollArea(): React.ReactElement {
+      const controller = useScrollController()
+      controllerRef.current = controller
+      return <ScrollArea controller={controller}>{rows(20)}</ScrollArea>
+    }
+
+    using term = createTermless({ cols: 24, rows: 5 })
+    const handle = await run(<ControlledScrollArea />, term, {
+      mouse: true,
+      selection: false,
+    })
+    await vi.waitFor(() => expect(term.screen?.getText()).toContain("row-0"))
+    expect(term.screen?.getText()).not.toContain("row-19")
+    const controller = controllerRef.current
+    if (!controller) throw new Error("ScrollArea controller did not initialize")
+
+    controller.scrollBy(10)
+    controller.scrollBy(10)
+
+    await vi.waitFor(() => expect(term.screen?.getText()).toContain("row-19"))
+    handle.unmount()
   })
 })

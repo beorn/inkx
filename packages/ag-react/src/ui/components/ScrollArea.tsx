@@ -12,6 +12,8 @@ export interface ScrollController {
   setContentHeight: (height: number) => void
   setViewportHeight: (height: number) => void
   setScrollOffset: (offset: number) => void
+  /** Compose an imperative row delta against the latest pre-render write. */
+  scrollBy: (rows: number) => void
   onWheel: (event: { deltaY: number; timeStamp?: number }) => void
 }
 
@@ -34,7 +36,7 @@ export function useScrollController(): ScrollController {
   const [contentHeight, setContentHeightState] = useState(0)
   const [viewportHeight, setViewportHeightState] = useState(0)
   const maxScroll = Math.max(0, contentHeight - viewportHeight)
-  const { scrollOffset, isScrolling, onWheel, setScrollOffset } = useKineticScroll({
+  const { scrollOffset, isScrolling, onWheel, setScrollOffset, getScrollFloat } = useKineticScroll({
     maxScroll: () => Math.max(0, contentHeight - viewportHeight),
   })
 
@@ -47,6 +49,7 @@ export function useScrollController(): ScrollController {
     setContentHeight: (height: number) => setContentHeightState(Math.max(0, Math.round(height))),
     setViewportHeight: (height: number) => setViewportHeightState(Math.max(0, Math.round(height))),
     setScrollOffset,
+    scrollBy: (rows: number) => setScrollOffset(getScrollFloat() + rows),
     onWheel,
   }
 }
