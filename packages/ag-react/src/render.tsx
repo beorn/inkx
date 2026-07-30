@@ -34,6 +34,8 @@ import {
   StdoutContext,
   StderrContext,
   TermContext,
+  ScrollInteractionContext,
+  type ScrollInteractionRuntime,
 } from "./context"
 import { createChildApp, toChainAppContextValue } from "./chain-bridge"
 import { createCursorStore, CursorProvider, type CursorStore } from "./hooks/useCursor"
@@ -155,11 +157,14 @@ export interface RenderOptions {
    * `onMouseDown` / `onMouseUp` / `onMouseMove` handlers on `Box`, `Text`, and
    * any component that takes mouse handler props.
    *
-   * Default `false` for `render()` so low-level/static-style consumers keep
-   * native terminal text selection. Pass `true` to opt in to mouse event
-   * dispatch when the app supplies its own interaction model.
+   * `render()` leaves native terminal text selection alone until a scrollable
+   * surface mounts, then acquires mouse reporting for wheel delivery. Pass
+   * `false` to preserve native selection even for scrollable content, or
+   * `true` to enable reporting for the full render lifetime.
    *
-   * Default: `false`. Mouse tracking is also disabled in non-TTY environments.
+   * Terminal convention: Shift-drag bypasses application mouse reporting in
+   * terminals that support native-selection passthrough. Mouse tracking is
+   * always disabled in non-TTY environments.
    */
   mouse?: boolean | ParseMouseOptions
 }
@@ -303,7 +308,7 @@ interface AppProps {
    * so modifier tracking (Kitty Super/Hyper) and hover state persist across
    * events. When `undefined`, mouse sequences on stdin are ignored.
    */
-  mouseState?: MouseEventProcessorState
+  mouseStateRef: { current: MouseEventProcessorState | undefined }
   /** Parser options for SGR mouse sequences. */
   mouseParseOptions?: ParseMouseOptions
 }
@@ -331,7 +336,7 @@ function SilveryApp({
   onScrollback,
   getRoot: getRootProp,
   handleFocusCycling = true,
-  mouseState,
+  mouseStateRef,
   mouseParseOptions,
 }: AppProps): ReactElement {
   // Child apply-chain BaseApp — the ChainAppContext surface for hooks
@@ -381,8 +386,6 @@ function SilveryApp({
   // Mouse processor state — held in ref so handleChunk closes over the ref,
   // not the value. Undefined when mouse tracking is disabled; mouse CSI
   // sequences on stdin are silently dropped in that case.
-  const mouseStateRef = useRef<MouseEventProcessorState | undefined>(mouseState)
-  mouseStateRef.current = mouseState
   const mouseParseOptionsRef = useRef<ParseMouseOptions | undefined>(mouseParseOptions)
   mouseParseOptionsRef.current = mouseParseOptions
 
@@ -579,8 +582,11 @@ class SilveryInstance {
   private readonly alternateScreen: boolean
   private readonly mode: RenderMode
   private readonly nonTTYMode: NonTTYMode
-  private readonly mouseEnabled: boolean
+  private mouseEnabled = false
+  private readonly mouseExplicitlyEnabled: boolean
+  private readonly autoMouseEnabled: boolean
   private readonly mouseParseOptions: ParseMouseOptions | undefined
+  private scrollInteractionHolds = 0
 
   private scheduler: RenderScheduler | null = null
   private cursorStore: CursorStore
@@ -603,10 +609,18 @@ class SilveryInstance {
    * (`hoverPath`) and modifier state (`keyboardModifiers`) persist across
    * events, matching the create-app.tsx pattern.
    */
-  private mouseState: MouseEventProcessorState | undefined
+  private readonly mouseStateRef: { current: MouseEventProcessorState | undefined } = {
+    current: undefined,
+  }
+  private readonly scrollInteractionRuntime: ScrollInteractionRuntime = {
+    acquire: () => this.acquireScrollInteraction(),
+  }
 
   constructor(
-    options: Required<Omit<RenderOptions, "layoutEngine">> & { readonly termOutput?: Output },
+    options: Required<Omit<RenderOptions, "layoutEngine">> & {
+      readonly termOutput?: Output
+      readonly autoMouse: boolean
+    },
   ) {
     log.debug?.("SilveryInstance constructor start")
     const startTime = Date.now()
@@ -618,12 +632,13 @@ class SilveryInstance {
     this.alternateScreen = options.alternateScreen
     this.mode = options.mode
     this.nonTTYMode = options.nonTTYMode
-    // Mouse is opt-in for render(). Tracking SGR modes on a non-TTY stdout writes
-    // uninterpretable bytes into whatever the stream is (piped logs, test
-    // capture) so we guard on `isTTY` even when a caller opts in.
+    // Tracking SGR modes on a non-TTY stdout writes uninterpretable bytes into
+    // piped logs/test capture, so both explicit and capability-driven paths
+    // guard on `isTTY`.
     this.mouseParseOptions = typeof options.mouse === "object" ? options.mouse : undefined
-    this.mouseEnabled =
+    this.mouseExplicitlyEnabled =
       (options.mouse === true || this.mouseParseOptions != null) && this.stdout.isTTY
+    this.autoMouseEnabled = options.autoMouse && this.stdout.isTTY
 
     // Set up exit promise
     this.exitPromise = new Promise<void>((resolve, reject) => {
@@ -651,14 +666,7 @@ class SilveryInstance {
     // the other protocols are set up, and pair it with the matching disable
     // in unmount(). Construct the mouse event processor BEFORE SilveryApp
     // mounts so the first mouse sequence on stdin has somewhere to dispatch.
-    if (this.mouseEnabled) {
-      this.stdout.write(enableMouse({ pixels: this.mouseParseOptions?.coordinateMode === "pixel" }))
-      this.mouseState = createMouseEventProcessor({
-        onMouseCursorChange: (shape) => {
-          this.stdout.write(shape ? setMouseCursorShape(shape) : resetMouseCursorShape())
-        },
-      })
-    }
+    if (this.mouseExplicitlyEnabled) this.enableMouseTracking()
 
     // Per-instance cursor state (replaces module-level globals)
     this.cursorStore = createCursorStore()
@@ -716,31 +724,33 @@ class SilveryInstance {
     this.lastElement = element
 
     const tree = (
-      <CursorProvider store={this.cursorStore}>
-        <SilveryApp
-          container={this.container}
-          onInputSubscribe={this.subscribeToInput}
-          exitOnCtrlC={this.exitOnCtrlC}
-          stdoutWrite={(data: string) => {
-            if (this.output) {
-              this.output.write(data)
-            } else {
-              this.stdout.write(data)
-            }
-          }}
-          stdout={this.stdout}
-          onExit={this.handleExit}
-          onPanic={this.handlePanic}
-          onPause={this.pause}
-          onResume={this.resume}
-          onScrollback={this.handleScrollback}
-          getRoot={() => (this.container ? getContainerRoot(this.container) : null)}
-          mouseState={this.mouseState}
-          mouseParseOptions={this.mouseParseOptions}
-        >
-          {element}
-        </SilveryApp>
-      </CursorProvider>
+      <ScrollInteractionContext.Provider value={this.scrollInteractionRuntime}>
+        <CursorProvider store={this.cursorStore}>
+          <SilveryApp
+            container={this.container}
+            onInputSubscribe={this.subscribeToInput}
+            exitOnCtrlC={this.exitOnCtrlC}
+            stdoutWrite={(data: string) => {
+              if (this.output) {
+                this.output.write(data)
+              } else {
+                this.stdout.write(data)
+              }
+            }}
+            stdout={this.stdout}
+            onExit={this.handleExit}
+            onPanic={this.handlePanic}
+            onPause={this.pause}
+            onResume={this.resume}
+            onScrollback={this.handleScrollback}
+            getRoot={() => (this.container ? getContainerRoot(this.container) : null)}
+            mouseStateRef={this.mouseStateRef}
+            mouseParseOptions={this.mouseParseOptions}
+          >
+            {element}
+          </SilveryApp>
+        </CursorProvider>
+      </ScrollInteractionContext.Provider>
     )
 
     // Use synchronous update to ensure React commits the work immediately
@@ -813,10 +823,7 @@ class SilveryInstance {
     // raw mode (subscribeToInput cleanup), so any queued release / mouse
     // bytes are routed to /dev/null rather than the shell prompt.
     if (this.stdout.isTTY) {
-      if (this.mouseEnabled) {
-        this.stdout.write(resetMouseCursorShape())
-        this.stdout.write(disableMouse())
-      }
+      if (this.mouseEnabled) this.disableMouseTracking()
       disableBracketedPaste(this.stdout)
       this.stdout.write(disableKittyKeyboard())
     }
@@ -916,6 +923,51 @@ class SilveryInstance {
     }
 
     this.unmount()
+  }
+
+  private writeTerminalProtocol(data: string): void {
+    if (this.output) {
+      this.output.write(data)
+    } else {
+      this.stdout.write(data)
+    }
+  }
+
+  private enableMouseTracking(): void {
+    if (this.mouseEnabled || !this.stdout.isTTY) return
+    this.writeTerminalProtocol(
+      enableMouse({ pixels: this.mouseParseOptions?.coordinateMode === "pixel" }),
+    )
+    this.mouseStateRef.current = createMouseEventProcessor({
+      onMouseCursorChange: (shape) => {
+        this.writeTerminalProtocol(shape ? setMouseCursorShape(shape) : resetMouseCursorShape())
+      },
+    })
+    this.mouseEnabled = true
+  }
+
+  private disableMouseTracking(): void {
+    if (!this.mouseEnabled) return
+    this.writeTerminalProtocol(resetMouseCursorShape())
+    this.writeTerminalProtocol(disableMouse())
+    this.mouseStateRef.current = undefined
+    this.mouseEnabled = false
+  }
+
+  private acquireScrollInteraction(): () => void {
+    if (!this.autoMouseEnabled || this.isUnmounted) return () => {}
+    this.scrollInteractionHolds += 1
+    if (this.scrollInteractionHolds === 1) this.enableMouseTracking()
+
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      this.scrollInteractionHolds = Math.max(0, this.scrollInteractionHolds - 1)
+      if (this.scrollInteractionHolds === 0 && !this.mouseExplicitlyEnabled && !this.isUnmounted) {
+        this.disableMouseTracking()
+      }
+    }
   }
 
   /**
@@ -1060,21 +1112,22 @@ class SilveryInstance {
  * });
  * ```
  *
- * @example Opt in to SGR mouse tracking
+ * @example Override capability-driven mouse tracking
  * ```tsx
- * // render() keeps native terminal selection by default. Pass true when this
- * // low-level mount should receive wheel / click / drag / hover events.
+ * // Scrollable surfaces acquire tracking while mounted. Pass true to keep
+ * // tracking for the full render lifetime, or false to preserve native
+ * // terminal selection even while scrollable content is present.
  * await render(<App />, term, { mouse: true });
  * ```
  *
  * @param element - React element to render
  * @param termOrDef - Term instance, TermDef config, or omitted for static mode
  * @param options - Additional render options (merged with TermDef if provided).
- *   Notable flags: `mouse` (default `false`) enables SGR mouse 1003+1006, or
- *   1003+1006+1016 when pixel parse options are provided, and wires wheel /
- *   click / drag / enter / leave events through the component tree's `onWheel`
- *   / `onClick` / `onMouse*` handlers. Use `run()` / `createApp().run()` for
- *   interactive terminal apps that also need Silvery's selection/copy runtime.
+ *   Notable flags: omitted `mouse` acquires SGR reporting while a scrollable
+ *   surface is mounted; `true` keeps it for the full render lifetime; `false`
+ *   disables it. Pixel parse options enable SGR-Pixels 1016. Use `run()` /
+ *   `createApp().run()` for apps that also need Silvery's selection/copy
+ *   runtime.
  * @returns RenderHandle - thenable for Instance, or use .run() for fluent API
  *
  * @example
@@ -1180,8 +1233,7 @@ async function renderImpl(
     alternateScreen: options.alternateScreen ?? mode === "fullscreen",
     mode,
     nonTTYMode: options.nonTTYMode ?? ("auto" as NonTTYMode),
-    // render() is the low-level mount API and does not wire the selection/copy
-    // runtime that run() provides, so mouse capture is explicit opt-in.
+    autoMouse: options.mouse === undefined,
     mouse: options.mouse ?? false,
   }
 
@@ -1369,6 +1421,7 @@ export function renderSync(
     alternateScreen: mergedOptions.alternateScreen ?? mode === "fullscreen",
     mode,
     nonTTYMode: mergedOptions.nonTTYMode ?? ("auto" as NonTTYMode),
+    autoMouse: false,
     mouse: mergedOptions.mouse ?? true,
   }
 

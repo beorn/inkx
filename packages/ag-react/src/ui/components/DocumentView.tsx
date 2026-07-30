@@ -4,6 +4,7 @@ import { Text } from "../../components/Text"
 import { Blockquote, CodeBlock, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
 import { Prose } from "./Prose"
 import { Content, type ContentBodyWidth, useHasContentLayout } from "./Content"
+import { StylePriorityProvider } from "../../style-priority"
 
 export type DocumentBlockId = string | number
 export type DocumentLane = ContentBodyWidth
@@ -178,8 +179,13 @@ function BlockFrame({
           backgroundColor={selected ? "$bg-selected" : undefined}
           color={selected ? "$fg-on-selected" : undefined}
         >
-          {block.accessory}
-          {children}
+          <StylePriorityProvider
+            foreground={selected ? "$fg-on-selected" : undefined}
+            background={selected ? "$bg-selected" : undefined}
+          >
+            {block.accessory}
+            {children}
+          </StylePriorityProvider>
         </Box>
       </Content.Body>
     </Content.Row>
@@ -261,7 +267,7 @@ function DocumentBlocks({
                 block={block}
                 selected={selected}
                 lane={blockLane}
-                marginTop={index === 0 ? undefined : block.level <= 2 ? 2 : 1}
+                marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
               >
                 <Heading color={selected ? "$fg-on-selected" : undefined} wrap="wrap">

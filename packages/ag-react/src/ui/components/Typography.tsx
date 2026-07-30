@@ -38,6 +38,8 @@ import { createContext, useContext, Children, cloneElement, isValidElement } fro
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import type { TextProps } from "../../components/Text"
+import { useTheme } from "../../ThemeContext"
+import { StylePriorityProvider } from "../../style-priority"
 
 export interface TypographyProps extends Omit<TextProps, "children"> {
   children?: ReactNode
@@ -47,58 +49,49 @@ export interface TypographyProps extends Omit<TextProps, "children"> {
 // Headings
 // ============================================================================
 
-/** Page title — $fg-accent + bold. Maximum emphasis. */
-export function H1({ children, color, ...rest }: TypographyProps) {
+function Heading({
+  variant,
+  children,
+  color,
+  ...rest
+}: TypographyProps & { readonly variant: NonNullable<TypographyProps["variant"]> }) {
+  const theme = useTheme()
+  const foreground = color ?? theme.variants?.[variant]?.color
   return (
-    <Text variant="h1" color={color} {...rest}>
-      {children}
+    <Text variant={variant} color={color} {...rest}>
+      <StylePriorityProvider foreground={foreground}>{children}</StylePriorityProvider>
     </Text>
   )
+}
+
+/** Page title — $fg-accent + bold. Maximum emphasis. */
+export function H1({ children, color, ...rest }: TypographyProps) {
+  return <Heading variant="h1" children={children} color={color} {...rest} />
 }
 
 /** Section heading — $fg-accent + bold. Contrasts with H1. */
 export function H2({ children, color, ...rest }: TypographyProps) {
-  return (
-    <Text variant="h2" color={color} {...rest}>
-      {children}
-    </Text>
-  )
+  return <Heading variant="h2" children={children} color={color} {...rest} />
 }
 
 /** Group heading — bold, no color override. Same hue as theme's primary but no bold means lighter weight than H1. */
 export function H3({ children, color, ...rest }: TypographyProps) {
-  return (
-    <Text variant="h3" color={color} {...rest}>
-      {children}
-    </Text>
-  )
+  return <Heading variant="h3" children={children} color={color} {...rest} />
 }
 
 /** Sub-group heading — bold + $fg-muted. Recedes from H3. */
 export function H4({ children, color, ...rest }: TypographyProps) {
-  return (
-    <Text variant="h4" color={color} {...rest}>
-      {children}
-    </Text>
-  )
+  return <Heading variant="h4" children={children} color={color} {...rest} />
 }
 
 /** Minor heading — italic + $fg-muted. A step further down the hierarchy. */
 export function H5({ children, color, ...rest }: TypographyProps) {
-  return (
-    <Text variant="h5" color={color} {...rest}>
-      {children}
-    </Text>
-  )
+  return <Heading variant="h5" children={children} color={color} {...rest} />
 }
 
 /** Deepest heading — $fg-muted + dim. Minimum weight before body text. */
 export function H6({ children, color, ...rest }: TypographyProps) {
-  return (
-    <Text variant="h6" color={color} {...rest}>
-      {children}
-    </Text>
-  )
+  return <Heading variant="h6" children={children} color={color} {...rest} />
 }
 
 // ============================================================================

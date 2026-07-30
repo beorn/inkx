@@ -39,6 +39,25 @@ export const TermContext = createContext<Term | null>(null)
 export const NodeContext = createContext<AgNode | null>(null)
 
 // ============================================================================
+// Scroll Interaction Context
+// ============================================================================
+
+/**
+ * Runtime capability used by scroll containers to announce that pointer-wheel
+ * input has a live consumer.
+ *
+ * Targets decide how to satisfy the capability. The terminal renderer uses it
+ * to acquire SGR mouse reporting while an interactive scroll surface is
+ * mounted; browser and canvas targets can leave it unprovided because their
+ * native event systems already deliver wheel input.
+ */
+export interface ScrollInteractionRuntime {
+  acquire(): () => void
+}
+
+export const ScrollInteractionContext = createContext<ScrollInteractionRuntime | null>(null)
+
+// ============================================================================
 // Stdio Context
 // ============================================================================
 

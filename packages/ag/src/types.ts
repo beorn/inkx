@@ -460,6 +460,11 @@ export interface FlexboxProps {
 
   // Scroll control (only used when overflow='scroll')
   /**
+   * `overflow="scroll"` is user-scrollable by default. Silvery supplies
+   * kinetic wheel behavior unless the caller provides `onWheel`, which is the
+   * explicit override for virtualized or otherwise specialized scroll owners.
+   */
+  /**
    * Child index to ensure visible. Declarative — the Box fires edge-based
    * ensure-visible when this value CHANGES (or on mount). Re-renders with
    * the same value are no-ops; content-height changes do not re-trigger

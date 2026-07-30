@@ -10,9 +10,8 @@
  * over `run()`.
  *
  * Coverage:
- *  1. Omitted `mouse` does not write the SGR enable sequence. `render()` does
- *     not currently wire Silvery's buffer-level text selection/copy path, so
- *     default mouse capture would steal native terminal selection.
+ *  1. Omitted `mouse` acquires SGR reporting only while a scrollable surface
+ *     is mounted.
  *  2. Explicit `mouse: true` writes the SGR enable sequence at startup and the
  *     disable sequence on unmount.
  *  3. `mouse: false` writes neither enable nor disable.
@@ -171,6 +170,50 @@ describe("render() mouse wiring", () => {
     instance.unmount()
     await settle()
     expect(stdout.output).not.toContain(MOUSE_DISABLE)
+  })
+
+  test("omitted mouse acquires reporting only while a scrollable Box is mounted", async () => {
+    const stdout = createMockStdout()
+    const stdin = createMockStdin()
+    const instance = await render(
+      <Box width={20} height={3} overflow="scroll">
+        <Box flexDirection="column" flexShrink={0}>
+          {Array.from({ length: 10 }, (_, index) => (
+            <Text key={index}>row {index}</Text>
+          ))}
+        </Box>
+      </Box>,
+      { stdout: stdout.stream, stdin: stdin.stream },
+      { alternateScreen: false },
+    )
+    await settle()
+
+    expect(stdout.output).toContain(MOUSE_ENABLE)
+
+    instance.rerender(<Text>plain content</Text>)
+    await settle()
+    expect(stdout.output).toContain(MOUSE_DISABLE)
+
+    instance.unmount()
+    await settle()
+    expect(stdout.output.split(MOUSE_DISABLE)).toHaveLength(2)
+  })
+
+  test("explicit mouse:false remains an override for a scrollable Box", async () => {
+    const stdout = createMockStdout()
+    const stdin = createMockStdin()
+    const instance = await render(
+      <Box width={20} height={3} overflow="scroll">
+        <Text>content</Text>
+      </Box>,
+      { stdout: stdout.stream, stdin: stdin.stream },
+      { alternateScreen: false, mouse: false },
+    )
+    await settle()
+
+    expect(stdout.output).not.toContain(MOUSE_ENABLE)
+
+    instance.unmount()
   })
 
   test("explicit mouse: true writes SGR mouse enable sequence", async () => {

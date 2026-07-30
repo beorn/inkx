@@ -15,6 +15,7 @@ import type { AgNode, TextProps as TextPropsType } from "@silvery/ag/types"
 import type { KnownVariant, Theme } from "@silvery/ansi"
 import { KNOWN_VARIANTS } from "@silvery/ansi"
 import { ThemeContext } from "../ThemeContext"
+import { StylePriorityContext } from "../style-priority"
 
 // ============================================================================
 // Runtime variant warning — fires once per (theme, variantName) pair.
@@ -125,6 +126,7 @@ export const Text = forwardRef(function Text(
 ): JSX.Element {
   const { children, variant, ...callerProps } = props
   const theme = useContext(ThemeContext)
+  const stylePriority = useContext(StylePriorityContext)
 
   // Resolve variant defaults. Variant is the DEFAULT; caller props always win.
   //
@@ -160,6 +162,15 @@ export const Text = forwardRef(function Text(
       if (v !== undefined) definedCallerProps[key] = v
     }
     styleProps = { ...callerProps, ...variantDefaults, ...definedCallerProps } as typeof callerProps
+  }
+  if (stylePriority?.foreground !== undefined || stylePriority?.background !== undefined) {
+    styleProps = {
+      ...styleProps,
+      ...(stylePriority.foreground === undefined ? {} : { color: stylePriority.foreground }),
+      ...(stylePriority.background === undefined
+        ? {}
+        : { backgroundColor: stylePriority.background }),
+    }
   }
 
   // For Text, we need to pass the ref through to the host element

@@ -123,7 +123,7 @@ If you're doing arithmetic with widths, you're fighting the layout engine instea
 
 ## 3. Let the Framework Scroll
 
-`overflow="scroll"` measures children, determines visibility, renders only what fits, and shows scroll indicators. It handles variable heights. All in one prop.
+`overflow="scroll"` measures children, determines visibility, renders only what fits, responds to wheel input, and shows scroll indicators. It handles variable heights. Supplying `onWheel` replaces the default kinetic scroll owner for specialized or virtualized surfaces.
 
 ::: tip ✨ Shiny
 
@@ -286,7 +286,7 @@ Tokens avoid this. At truecolor, `$fg-muted` resolves to a specific pre-dimmed h
 <Strong>urgent</Strong>      // bold
 <Em>aside</Em>               // italic
 <Small>fine print</Small>    // pre-dimmed $fg-muted at truecolor
-<Link>clickable</Link>       // $fg-link + underline (composed by preset)
+<Link>clickable</Link>       // $fg-link + semantic link affordance
 
 // Status indicators: shape + color (colorblind-safe)
 <Text color="$fg-success">✓</Text>   // done
@@ -295,6 +295,13 @@ Tokens avoid this. At truecolor, `$fg-muted` resolves to a specific pre-dimmed h
 ```
 
 :::
+
+`DocumentView` also resolves style precedence semantically. A heading's
+structural foreground wins over element foregrounds inside it, while link
+decoration remains visible through the `link` typography variant's dotted
+underline. A selected block's background wins over nested element backgrounds
+such as inline code. Adapters provide semantic blocks and inline elements; they
+do not manually reapply heading or selection colors.
 
 ::: danger 🩶 Tarnished
 

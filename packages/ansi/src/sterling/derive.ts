@@ -77,7 +77,7 @@ export const DEFAULT_VARIANTS: Record<string, Variant> = {
   "fine-print": { color: "$fg-muted", dim: true },
   strong: { bold: true },
   em: { italic: true },
-  link: { color: "$fg-accent", underlineStyle: "single" },
+  link: { color: "$fg-accent", underlineStyle: "dotted" },
   key: { color: "$fg-accent", bold: true },
   code: { backgroundColor: "$bg-muted" },
   kbd: { backgroundColor: "$bg-muted", color: "$fg-accent", bold: true },

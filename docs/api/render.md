@@ -24,12 +24,21 @@ function render(element: ReactElement, term?: Term, options?: RenderOptions): Re
 
 ### Options
 
-| Option            | Type      | Default | Description                                             |
-| ----------------- | --------- | ------- | ------------------------------------------------------- |
-| `exitOnCtrlC`     | `boolean` | `true`  | Exit the app when Ctrl+C is pressed                     |
-| `patchConsole`    | `boolean` | `true`  | Patch `console.*` methods to work with Silvery output   |
-| `debug`           | `boolean` | `false` | Enable verbose debug logging                            |
-| `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
+| Option            | Type                           | Default      | Description                                                              |
+| ----------------- | ------------------------------ | ------------ | ------------------------------------------------------------------------ |
+| `exitOnCtrlC`     | `boolean`                      | `true`       | Exit the app when Ctrl+C is pressed                                      |
+| `patchConsole`    | `boolean`                      | `true`       | Patch `console.*` methods to work with Silvery output                    |
+| `debug`           | `boolean`                      | `false`      | Enable verbose debug logging                                             |
+| `alternateScreen` | `boolean`                      | mode-derived | Use the alternate screen buffer                                          |
+| `mouse`           | `boolean \| ParseMouseOptions` | capability   | Acquire tracking for scroll surfaces; use `true` always or `false` never |
+
+With `mouse` omitted, `render()` enables terminal mouse reporting only while
+an `overflow="scroll"` surface is mounted, so wheel input works without
+capturing native selection for the rest of the app lifetime. Explicit
+`mouse: false` preserves native terminal selection even on scroll surfaces;
+explicit `true` keeps click, drag, hover, and wheel reporting enabled for the
+whole render lifetime. Shift-drag remains the terminal-native selection escape
+hatch where the terminal supports it.
 
 ### Return Value
 
