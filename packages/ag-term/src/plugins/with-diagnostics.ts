@@ -27,10 +27,12 @@
  * import { withDiagnostics } from '@silvery/ag-term/toolbelt';
  *
  * // All checks enabled by default when you call withDiagnostics()
- * const driver = withDiagnostics(createBoardDriver(repo, rootId));
+ * using baseDriver = createBoardDriver(repo, rootId);
+ * const driver = withDiagnostics(baseDriver);
  *
  * // Or disable specific checks
- * const driver = withDiagnostics(createBoardDriver(repo, rootId), {
+ * using baseDriver = createBoardDriver(repo, rootId);
+ * const driver = withDiagnostics(baseDriver, {
  *   checkReplay: false  // skip ANSI replay check
  * });
  *

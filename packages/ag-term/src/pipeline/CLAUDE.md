@@ -635,7 +635,9 @@ describe("regression: <brief description>", () => {
       item("Column 1", item("Task A"), item("Task B")),
       item("Column 2", item("Task C")),
     )
-    const driver = withDiagnostics(createBoardDriver(createFakeRepo({ nodes }), "board"), {
+    using repo = createFakeRepo({ nodes })
+    using baseDriver = createBoardDriver(repo, "board")
+    const driver = withDiagnostics(baseDriver, {
       checkIncremental: true,
       checkReplay: true,
       checkStability: true,
