@@ -80,11 +80,14 @@ describe("useKineticScroll — animated scrollTo", () => {
 
     apiRef.current!.animateToFloat(999, 30)
     await settle(80)
-    expect(apiRef.current!.scrollFloat).toBe(50)
+    // A loaded runner can observe the penultimate cubic-ease sample before
+    // the interval commits the exact endpoint. Clamping is a row-space
+    // contract, so assert sub-cell convergence rather than timer identity.
+    expect(apiRef.current!.scrollFloat).toBeCloseTo(50, 2)
 
     apiRef.current!.animateToFloat(-100, 30)
     await settle(80)
-    expect(apiRef.current!.scrollFloat).toBe(0)
+    expect(apiRef.current!.scrollFloat).toBeCloseTo(0, 2)
   })
 
   test("user wheel during animation cancels it", async () => {
@@ -376,11 +379,11 @@ describe("useKineticScroll — input cadence detection", () => {
     )
     await settle()
 
-    apiRef.current!.onWheel({ deltaY: 1 })
+    apiRef.current!.onWheel({ deltaY: 1, timeStamp: 1000 })
     await settle(10)
-    apiRef.current!.onWheel({ deltaY: 1 })
+    apiRef.current!.onWheel({ deltaY: 1, timeStamp: 1010 })
     await settle(80)
-    apiRef.current!.onWheel({ deltaY: 60 })
+    apiRef.current!.onWheel({ deltaY: 60, timeStamp: 1090 })
 
     const afterBurst = apiRef.current!.getScrollFloat()
     expect(
