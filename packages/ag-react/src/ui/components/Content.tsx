@@ -6,6 +6,15 @@ import { useOnBoxRectCommitted } from "../../hooks/useLayout"
 import { type Breakpoint, DEFAULT_BREAKPOINTS } from "../../hooks/useResponsiveValue"
 import { useTerm } from "../../hooks/useTerm"
 import { densityForWidth } from "../density"
+import {
+  TABLE_CELL_PADDING_X,
+  padCellLine,
+  shrinkTableWidths,
+  tableFrameWidth,
+  tableNaturalWidths,
+  wrapCell,
+  type TableAlignment,
+} from "./table-layout.ts"
 
 export type ContentResponsive<T> = T | ({ default: T } & Partial<Record<Breakpoint, T>>)
 export type ContentWidthValue = number | `${number}%`
@@ -802,92 +811,6 @@ function AutoLane({ children }: { children: React.ReactNode }): React.ReactEleme
       </Box>
     </Box>
   )
-}
-
-type TableAlignment = "left" | "right" | "center" | null
-const TABLE_CELL_PADDING_X = 1
-
-function tableNaturalWidths(
-  headers: readonly string[],
-  rows: readonly (readonly string[])[],
-): number[] {
-  return headers.map((header, col) => {
-    const maxRow = rows.reduce((w, row) => Math.max(w, (row[col] ?? "").length), 0)
-    return Math.max(header.length, maxRow)
-  })
-}
-
-function tableFrameWidth(widths: readonly number[], separatorWidth: number): number {
-  const paddedCells = widths.reduce((sum, width) => sum + width + TABLE_CELL_PADDING_X * 2, 0)
-  return paddedCells + separatorWidth * Math.max(0, widths.length - 1) + 2
-}
-
-function shrinkTableWidths(
-  widths: readonly number[],
-  targetWidth: number,
-  separatorWidth: number,
-): number[] | null {
-  if (widths.length === 0) return []
-  const separatorTotal = separatorWidth * Math.max(0, widths.length - 1)
-  const paddingTotal = widths.length * TABLE_CELL_PADDING_X * 2
-  const availableCells = targetWidth - separatorTotal - paddingTotal - 2
-  const minimums = widths.map((width) => Math.min(width, 8))
-  const minimumTotal = minimums.reduce((sum, width) => sum + width, 0)
-  if (availableCells < minimumTotal) return null
-
-  const out = [...widths]
-  let total = out.reduce((sum, width) => sum + width, 0)
-  let overflow = total - availableCells
-  while (overflow > 0) {
-    const candidates = out
-      .map((width, index) => ({ width, index, reducible: width - (minimums[index] ?? 0) }))
-      .filter((candidate) => candidate.reducible > 0)
-      .sort((a, b) => b.width - a.width)
-    const candidate = candidates[0]
-    if (!candidate) return null
-    out[candidate.index] = (out[candidate.index] ?? 0) - 1
-    overflow -= 1
-    total -= 1
-  }
-  return out
-}
-
-function wrapCell(text: string, width: number): string[] {
-  if (width <= 0) return [""]
-  const out: string[] = []
-  for (const rawLine of text.split(/\r?\n/)) {
-    const words = rawLine.trim().length > 0 ? rawLine.trim().split(/\s+/) : [""]
-    let line = ""
-    for (const originalWord of words) {
-      let word = originalWord
-      if (line.length > 0 && line.length + 1 + word.length <= width) {
-        line += ` ${word}`
-        continue
-      }
-      if (line.length > 0) {
-        out.push(line)
-        line = ""
-      }
-      while (word.length > width) {
-        out.push(word.slice(0, width))
-        word = word.slice(width)
-      }
-      line = word
-    }
-    out.push(line)
-  }
-  return out.length > 0 ? out : [""]
-}
-
-function padCellLine(text: string, width: number, align: TableAlignment | undefined): string {
-  const clipped = text.length > width ? text.slice(0, width) : text
-  if (align === "right") return clipped.padStart(width)
-  if (align === "center") {
-    const extra = width - clipped.length
-    const left = Math.floor(extra / 2)
-    return " ".repeat(left) + clipped + " ".repeat(extra - left)
-  }
-  return clipped.padEnd(width)
 }
 
 type TableProps = {
