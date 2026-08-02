@@ -277,10 +277,21 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
           await heldPump
         }
       },
-      [Symbol.dispose]() {},
+      [Symbol.dispose]() {
+        providerDisposed()
+      },
     }
 
-    const handle = await createApp(() => () => ({})).run(<Text>pump</Text>, {
+    function ProviderOwner(): React.ReactElement {
+      const appScope = useAppScope()
+      useEffect(() => {
+        // The injected provider is borrowed by createApp, so its app-lifetime owner adopts it explicitly.
+        appScope.use(provider)
+      }, [appScope])
+      return <Text>pump</Text>
+    }
+
+    const handle = await createApp(() => () => ({})).run(<ProviderOwner />, {
       cols: 20,
       rows: 2,
       writable: { write() {} },
@@ -289,10 +300,10 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
     await started
 
     handle.unmount()
-    // Let the provider's outstanding `next()` observe cancellation. Its
-    // gated `finally` still keeps the runtime pump in flight.
-    providerDisposed()
     const joined = handle.waitUntilExit().then(() => "joined" as const)
+    await disposed
+    // Root-scope disposal releases the provider's outstanding `next()`. Its
+    // gated `finally` still keeps the runtime pump in flight.
     const earlyOutcome = await Promise.race([
       joined,
       settle(25).then(() => "pump-still-stopping" as const),
