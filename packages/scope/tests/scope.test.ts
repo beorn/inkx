@@ -294,6 +294,44 @@ describe("early child disposal releases parent reference", () => {
 // =============================================================================
 
 describe("[Symbol.asyncDispose] idempotence", () => {
+  it("concurrent dispose calls join the same in-flight teardown", async () => {
+    let release!: () => void
+    let started!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const disposalStarted = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    let finished = false
+    const scope = createScope("concurrent")
+    scope.use({
+      async [Symbol.asyncDispose]() {
+        started()
+        await gate
+        finished = true
+      },
+    })
+
+    const first = scope[Symbol.asyncDispose]()
+    await disposalStarted
+    const second = scope[Symbol.asyncDispose]()
+    let secondSettled = false
+    void second.then(() => {
+      secondSettled = true
+    })
+    await Promise.resolve()
+
+    try {
+      expect(secondSettled).toBe(false)
+      expect(finished).toBe(false)
+    } finally {
+      release()
+      await Promise.all([first, second])
+    }
+    expect(finished).toBe(true)
+  })
+
   it("second dispose is a no-op", async () => {
     let count = 0
     const scope = createScope("a")

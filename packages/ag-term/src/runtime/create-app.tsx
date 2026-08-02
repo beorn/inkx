@@ -761,7 +761,7 @@ export interface AppHandle<S> {
    * directly. See `km-silvery.lifecycle-scope`.
    */
   readonly scope: Scope
-  /** Wait until the app exits */
+  /** Wait until the event loop has stopped and app-scope disposal has settled. */
   waitUntilExit(): Promise<void>
   /**
    * Drain additional commit / layout cycles until layout reports stable
@@ -1235,6 +1235,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // tear down stdin/stdout.
   const appScope = createScope("app")
   let appScopeDisposalPromise: Promise<void> | null = null
+  const signalExit = { requested: false, handler: undefined as (() => void) | undefined }
   const disposeAppScope = (phase: "signal" | "app-exit"): Promise<void> => {
     appScopeDisposalPromise ??= appScope[Symbol.asyncDispose]().catch((error) => {
       reportDisposeError(error, { phase, scope: appScope })
@@ -1358,11 +1359,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   }
 
-  // Wire SIGINT/SIGTERM into root-scope disposal (km-silvery.lifecycle-scope).
+  // Wire SIGINT/SIGTERM into the canonical app exit request.
   //
   // The terminal Term owns the actual `process.on(...)` registrations via
-  // `term.signals` — we just mediate one handler per signal that starts
-  // root-scope teardown. `term.signals.on(...)` returns a `SignalUnregister`
+  // `term.signals` — we just mediate one handler per signal that requests the
+  // same abort + terminal cleanup + joined completion as unmount().
+  // `term.signals.on(...)` returns a `SignalUnregister`
   // which is `Disposable & AsyncDisposable`, so we adopt it into `appScope`
   // and the unregister fires when the scope disposes (idempotent on a
   // process exiting after a real signal). Skipped for headless because
@@ -1377,7 +1379,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   if (sessionInput) setInputOwnerMouseOptions(sessionInput, mouseParseOptions)
   if (!headless && effectiveTerm?.signals) {
     const onSignal = (): void => {
-      void disposeAppScope("signal")
+      signalExit.requested = true
+      signalExit.handler?.()
     }
     appScope.use(
       effectiveTerm.signals.on("SIGINT", onSignal, {
@@ -2635,8 +2638,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     try {
       reconciler.updateContainerSync(null, fiberRoot, null, () => {})
       reconciler.flushSyncWork()
-    } catch {
-      // Ignore — component tree may already be partially torn down
+      reconciler.flushPassiveEffects()
+      reconciler.flushSyncWork()
+    } catch (error) {
+      reportDisposeError(error, { phase: "react-unmount", scope: appScope })
     }
 
     // Dispose the root app scope — runs every resource that registered
@@ -2894,7 +2899,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   })
 
-  // Now define exit function (needs exitResolve and cleanup)
+  // Now define exit function (needs cleanup)
   //
   // When called from within the event pump (key handler returns "exit"),
   // we send protocol disable sequences immediately but defer the full
@@ -2920,10 +2925,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // If we're outside (signal handler, etc.), do sync cleanup now.
     if (!inEventHandler) {
       cleanup()
-      exitResolve()
     }
-    // else: pump's finally block handles cleanup + exitResolve
+    // The pump's finally block is the sole exitPromise resolver. It joins
+    // root-scope async disposal before waitUntilExit() may complete.
   }
+  signalExit.handler = exit
+  if (signalExit.requested) exit()
 
   const panicApp = (reason: unknown, options?: PanicOptions) => {
     recordPanic(reason, options)
@@ -2954,7 +2961,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     if (cleanedUp) {
       flushPanicReports()
-      exitResolve()
       return
     }
     if (shouldExit) return
@@ -2969,7 +2975,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     void (async () => {
       await drainLateStdinBytes(PANIC_STDIN_DRAIN_MS)
       cleanup()
-      exitResolve()
     })()
   }
 
@@ -2988,6 +2993,24 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     })
     process.on("uncaughtException", processUncaughtHandler)
     process.on("unhandledRejection", processUnhandledRejectionHandler)
+  }
+
+  const standaloneFrameTasks = new Set<Promise<void>>()
+  const startStandaloneFrame = (): void => {
+    const task = renderStandaloneFrame()
+    standaloneFrameTasks.add(task)
+    void task.then(
+      () => standaloneFrameTasks.delete(task),
+      (error: unknown) => {
+        standaloneFrameTasks.delete(task)
+        panicApp(error, { title: "standalone render" })
+      },
+    )
+  }
+  const joinStandaloneFrames = async (): Promise<void> => {
+    while (standaloneFrameTasks.size > 0) {
+      await Promise.allSettled(standaloneFrameTasks)
+    }
   }
 
   // Create SilveryNode container.
@@ -3009,7 +3032,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         if (!pendingRerender) return
         if (isRendering) return
         pendingRerender = false
-        void renderStandaloneFrame()
+        startStandaloneFrame()
       })
     }
   })
@@ -3609,7 +3632,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     setImmediate(() => {
       followupFrameScheduled = false
       if (shouldExit) return
-      void renderStandaloneFrame()
+      startStandaloneFrame()
     })
   }
 
@@ -3632,6 +3655,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // the layout snapshot before checking the pending-rerender flag.
       // eslint-disable-next-line no-await-in-loop -- each iteration is one layout-commit boundary
       await Promise.resolve()
+      if (shouldExit) return commitRerenders
       reconciler.flushSyncWork()
       // `committedAdvanced` covers deferred-lane subscriber forceUpdates that
       // commitLayout fired but neither set `pendingRerender` nor surfaced via
@@ -3731,13 +3755,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Give those microtasks a chance to raise pendingRerender before the
       // commit drain decides the frame is stable.
       await Promise.resolve()
+      if (shouldExit) return
       const commitRerenders = await drainStandaloneCommitRerenders()
+      if (shouldExit) return
       rerenderedBeforePaint ||= commitRerenders > 0
       // One additional macrotask catches layout-feedback updates that React
       // schedules after layout effects have installed signal subscriptions.
       // This path is outside direct input handling; user input uses
       // processEventBatch and never pays this pre-paint coalescing delay.
       await new Promise<void>((resolve) => setImmediate(resolve))
+      if (shouldExit) return
       if (pendingRerender) {
         pendingRerender = false
         currentBuffer = doRender()
@@ -3806,7 +3833,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                   `SUBSCRIPTION: deferred microtask render (case 2, render #${renderer.renderCount() + 1})\n`,
                 )
             }
-            void renderStandaloneFrame()
+            startStandaloneFrame()
           }
         })
       }
@@ -3820,7 +3847,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           `SUBSCRIPTION: immediate render (case 3, render #${renderer.renderCount() + 1})\n`,
         )
     }
-    void renderStandaloneFrame()
+    startStandaloneFrame()
   })
 
   // Create namespaced event streams from all providers
@@ -5011,7 +5038,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Start pump in background — this synchronously runs the term-provider
     // generator body, which attaches the stdin data listener. After this call,
     // stdin is being consumed, so terminal responses won't leak as raw text.
-    pumpEvents().catch((err: unknown) => log.error?.(`pumpEvents failed: ${err}`))
+    const inputPumpPromise = pumpEvents().catch((err: unknown) => {
+      log.error?.(`pumpEvents failed: ${err}`)
+    })
     inputPumpStarted = true
     legacyBracketedPasteEnabled = hostOwnsStdin && modes.bracketedPaste()
 
@@ -5117,6 +5146,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         if (buf) emitFrame(buf)
       }
     } finally {
+      // Error exits reach this path without going through exit(). Stop every
+      // producer before beginning the joined teardown below.
+      controller.abort()
+
       // Mark frames as done and notify waiters
       framesDone = true
       if (frameResolve) {
@@ -5151,9 +5184,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
       }
 
-      // Cleanup and resolve exit promise
-      cleanup()
-      exitResolve()
+      // Synchronous cleanup restores the terminal and starts app-scope
+      // disposal. The memoized promise is the join for an in-flight disposal;
+      // calling Scope.asyncDispose() again would return early after `disposed`
+      // flips and therefore is not a barrier.
+      try {
+        cleanup()
+        await Promise.all([inputPumpPromise, disposeAppScope("app-exit"), joinStandaloneFrames()])
+      } finally {
+        exitResolve()
+      }
     }
   }
 

@@ -45,6 +45,7 @@ export class Scope extends AsyncDisposableStack {
   readonly name?: string
   readonly #children = new Set<Scope>()
   readonly #parent?: Scope
+  #disposePromise: Promise<void> | null = null
 
   constructor(parent?: Scope, name?: string) {
     super()
@@ -228,48 +229,59 @@ export class Scope extends AsyncDisposableStack {
    * stderr if any adopted handles remained undisposed after the inherited
    * stack ran (km-silvery.lifecycle-leak-detection Phase 2).
    */
-  override async [Symbol.asyncDispose](): Promise<void> {
-    if (this.disposed) return
+  override [Symbol.asyncDispose](): Promise<void> {
+    if (this.#disposePromise !== null) return this.#disposePromise
+    if (this.disposed) return Promise.resolve()
+    this.#disposePromise = this.#dispose()
+    return this.#disposePromise
+  }
+
+  async #dispose(): Promise<void> {
     const errors: unknown[] = []
+    try {
+      // Snapshot pre-close handle count for the trace diagnostic. WeakMap
+      // lookup is O(1) and only allocates a list on demand, so this is
+      // ~free even when tracing is off.
+      const preCount = _getAdoptedHandles(this).length
 
-    // Snapshot pre-close handle count for the trace diagnostic. WeakMap
-    // lookup is O(1) and only allocates a list on demand, so this is
-    // ~free even when tracing is off.
-    const preCount = _getAdoptedHandles(this).length
+      // 1. Dispose children first, most-recent first
+      const children = [...this.#children].reverse()
+      this.#children.clear()
+      for (const c of children) {
+        try {
+          await c[Symbol.asyncDispose]()
+        } catch (e) {
+          errors.push(e)
+        }
+      }
 
-    // 1. Dispose children first, most-recent first
-    const children = [...this.#children].reverse()
-    this.#children.clear()
-    for (const c of children) {
+      // 2. Inherited user disposer stack (LIFO over defer + use + adopt)
       try {
-        await c[Symbol.asyncDispose]()
+        await super[Symbol.asyncDispose]()
       } catch (e) {
         errors.push(e)
       }
-    }
 
-    // 2. Inherited user disposer stack (LIFO over defer + use + adopt)
-    try {
-      await super[Symbol.asyncDispose]()
-    } catch (e) {
-      errors.push(e)
-    }
+      // Handle-delta diagnostic — prints when SILVERY_SCOPE_TRACE=1 AND
+      // adopted handles remain undisposed. No output on balanced close.
+      const postCount = _getAdoptedHandles(this).length
+      reportScopeDelta(this.name, preCount, postCount)
 
-    // Handle-delta diagnostic — prints when SILVERY_SCOPE_TRACE=1 AND
-    // adopted handles remain undisposed. No output on balanced close.
-    const postCount = _getAdoptedHandles(this).length
-    reportScopeDelta(this.name, preCount, postCount)
+      // 3. Remove self from parent so early disposal releases the reference
+      if (this.#parent) this.#parent.#children.delete(this)
 
-    // 3. Remove self from parent so early disposal releases the reference
-    if (this.#parent) this.#parent.#children.delete(this)
+      _trackDispose(this)
 
-    _trackDispose(this)
-
-    if (errors.length === 1) throw errors[0]
-    if (errors.length > 1) {
-      throw errors.reduce(
-        (suppressed, e) => new SuppressedError(e, suppressed, "multiple dispose errors"),
-      )
+      if (errors.length === 1) throw errors[0]
+      if (errors.length > 1) {
+        throw errors.reduce(
+          (suppressed, e) => new SuppressedError(e, suppressed, "multiple dispose errors"),
+        )
+      }
+    } finally {
+      // Keep only an in-flight promise. Once teardown settles, inherited
+      // `disposed` preserves the standard sequential idempotence contract.
+      this.#disposePromise = null
     }
   }
 

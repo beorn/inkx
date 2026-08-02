@@ -647,8 +647,9 @@ export async function run(
             ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
           }))
     const optsMouseOption = await resolveMouseOption(optsProbeOwner, rest.mouse, mode !== "inline")
-    if (optsProbeOwner)
+    if (optsProbeOwner) {
       setInputOwnerMouseOptions(optsProbeOwner, mouseParseOptions(optsMouseOption))
+    }
     const caps: TerminalCaps = optsProfile.caps
     // Headless renders don't wrap in ThemeProvider — no OSC probe ran, no
     // theme was bundled. Non-headless renders with a theme wrap the element
@@ -726,11 +727,7 @@ function wrapHandle(
     ownedTerm[Symbol.dispose]()
   }
   const unmount = (): void => {
-    try {
-      handle.unmount()
-    } finally {
-      disposeOwnedTerm()
-    }
+    handle.unmount()
   }
   // `createApp()` owns and disposes its auto-created Term. The options form
   // injects a Term so startup probes and normal input can share one owner;

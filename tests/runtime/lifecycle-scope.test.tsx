@@ -23,7 +23,7 @@
  *      the child scope without affecting the handle's root.
  */
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { spawnSync } from "node:child_process"
 import { resolve } from "node:path"
 import { describe, expect, test } from "vitest"
@@ -142,6 +142,167 @@ describe("createApp/run wires @silvery/scope as the app root scope", () => {
     expect(handle.scope.disposed).toBe(true)
     // LIFO: second-registered ran first.
     expect(order).toEqual(["second-registered", "first-registered"])
+  })
+
+  test("waitUntilExit joins root-scope async disposal after unmount", async () => {
+    let registered = false
+    let disposalStarted!: () => void
+    let releaseDisposal!: () => void
+    const started = new Promise<void>((resolve) => {
+      disposalStarted = resolve
+    })
+    const heldDisposal = new Promise<void>((resolve) => {
+      releaseDisposal = resolve
+    })
+
+    function AsyncOwner(): React.ReactElement {
+      const scope = useAppScope()
+      if (!registered) {
+        registered = true
+        scope.use({
+          async [Symbol.asyncDispose]() {
+            disposalStarted()
+            await heldDisposal
+          },
+        })
+      }
+      return <Text>owned</Text>
+    }
+
+    using term = createTermless({ cols: 20, rows: 2 })
+    const handle = await run(<AsyncOwner />, term)
+    await settle()
+
+    handle.unmount()
+    await started
+
+    const joined = handle.waitUntilExit().then(() => "joined" as const)
+    const earlyOutcome = await Promise.race([
+      joined,
+      settle(25).then(() => "still-disposing" as const),
+    ])
+    try {
+      expect(earlyOutcome).toBe("still-disposing")
+    } finally {
+      releaseDisposal()
+      await joined
+    }
+  })
+
+  test("waitUntilExit flushes ordinary React effect cleanup", async () => {
+    let effectCleaned = false
+
+    function EffectOwner(): React.ReactElement {
+      useEffect(
+        () => () => {
+          effectCleaned = true
+        },
+        [],
+      )
+      return <Text>effect-owned</Text>
+    }
+
+    using term = createTermless({ cols: 20, rows: 2 })
+    const handle = await run(<EffectOwner />, term)
+    await settle()
+
+    handle.unmount()
+    await handle.waitUntilExit()
+    expect(effectCleaned).toBe(true)
+  })
+
+  test("waitUntilExit joins a child scope already disposing from React unmount", async () => {
+    let disposalStarted!: () => void
+    let releaseDisposal!: () => void
+    const started = new Promise<void>((resolve) => {
+      disposalStarted = resolve
+    })
+    const heldDisposal = new Promise<void>((resolve) => {
+      releaseDisposal = resolve
+    })
+
+    function ChildOwner(): React.ReactElement {
+      useScopeEffect((scope) => {
+        scope.use({
+          async [Symbol.asyncDispose]() {
+            disposalStarted()
+            await heldDisposal
+          },
+        })
+      }, [])
+      return <Text>child-owned</Text>
+    }
+
+    using term = createTermless({ cols: 20, rows: 2 })
+    const handle = await run(<ChildOwner />, term)
+    await settle()
+
+    handle.unmount()
+    await started
+    const joined = handle.waitUntilExit().then(() => "joined" as const)
+    const earlyOutcome = await Promise.race([
+      joined,
+      settle(25).then(() => "child-still-disposing" as const),
+    ])
+    try {
+      expect(earlyOutcome).toBe("child-still-disposing")
+    } finally {
+      releaseDisposal()
+      await joined
+    }
+  })
+
+  test("waitUntilExit joins the provider event pump after unmount", async () => {
+    let pumpStarted!: () => void
+    let providerDisposed!: () => void
+    let releasePump!: () => void
+    const started = new Promise<void>((resolve) => {
+      pumpStarted = resolve
+    })
+    const disposed = new Promise<void>((resolve) => {
+      providerDisposed = resolve
+    })
+    const heldPump = new Promise<void>((resolve) => {
+      releasePump = resolve
+    })
+    const provider = {
+      getState: () => ({}),
+      subscribe: () => () => {},
+      // oxlint-disable-next-line eslint/require-yield -- provider contract requires an async iterator; this probe intentionally holds next() in flight until disposal.
+      async *events() {
+        pumpStarted()
+        try {
+          await disposed
+        } finally {
+          await heldPump
+        }
+      },
+      [Symbol.dispose]() {},
+    }
+
+    const handle = await createApp(() => () => ({})).run(<Text>pump</Text>, {
+      cols: 20,
+      rows: 2,
+      writable: { write() {} },
+      provider,
+    })
+    await started
+
+    handle.unmount()
+    // Let the provider's outstanding `next()` observe cancellation. Its
+    // gated `finally` still keeps the runtime pump in flight.
+    providerDisposed()
+    const joined = handle.waitUntilExit().then(() => "joined" as const)
+    const earlyOutcome = await Promise.race([
+      joined,
+      settle(25).then(() => "pump-still-stopping" as const),
+    ])
+    try {
+      expect(earlyOutcome).toBe("pump-still-stopping")
+    } finally {
+      releasePump()
+      await joined
+    }
   })
 
   // --------------------------------------------------------------------------
