@@ -31,4 +31,20 @@ describe("Breadcrumb actionability", () => {
 
     expect(onPress).toHaveBeenCalledTimes(1)
   })
+
+  test("stays one row tall when actionable path segments exceed the available width", () => {
+    const render = createRenderer({ cols: 24, rows: 4 })
+    const app = render(
+      <Breadcrumb
+        items={[
+          { label: "a-very-long-segment", onPress: () => {} },
+          { label: "another-long-segment", onPress: () => {} },
+          { label: "current" },
+        ]}
+      />,
+    )
+
+    expect(app.lines[0]).not.toBe("")
+    expect(app.lines.slice(1).every((line) => line.trim() === "")).toBe(true)
+  })
 })

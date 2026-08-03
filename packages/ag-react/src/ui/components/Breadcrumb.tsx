@@ -17,13 +17,14 @@
  * // Renders: Home > Settings > Profile
  * ```
  */
-import React, { useId } from "react"
+import React, { useContext, useId } from "react"
 import { Box } from "../../components/Box"
 import { Link } from "../../components/Link"
 import { Text } from "../../components/Text"
 import { useFocusable } from "../../hooks/useFocusable"
 import { useInput } from "../../hooks/useInput"
 import type { LinkProps } from "../../components/Link"
+import { ChainAppContext } from "../../context"
 
 // =============================================================================
 // Types
@@ -38,6 +39,10 @@ export interface BreadcrumbItem {
   onPress?: () => void
   /** Optional separator rendered before this item. */
   separator?: string
+  /** Optional per-item text color. */
+  color?: string
+  /** Optional per-item emphasis override. */
+  bold?: boolean
 }
 
 export interface BreadcrumbProps {
@@ -65,27 +70,49 @@ export interface BreadcrumbProps {
 function BreadcrumbItemInteraction({
   item,
   variant,
+  isCurrent,
 }: {
   item: BreadcrumbItem
   variant: NonNullable<LinkProps["variant"]>
+  isCurrent: boolean
 }): React.ReactElement {
   const { focused } = useFocusable()
+  const chain = useContext(ChainAppContext)
+  const activate = (): void => {
+    if (item.onPress) item.onPress()
+    else if (item.href) chain?.events.emit("link:open", item.href)
+  }
 
   useInput(
     (input, key) => {
       if (key.return || (input === " " && !key.ctrl && !key.meta && !key.shift)) {
-        item.onPress?.()
+        activate()
       }
     },
-    { isActive: focused && item.onPress !== undefined },
+    { isActive: focused && (item.onPress !== undefined || item.href !== undefined) },
   )
 
   const label = item.href ? (
-    <Link href={item.href} variant={variant} onClick={() => item.onPress?.()} inverse={focused}>
+    <Link
+      href={item.href}
+      variant={variant}
+      onClick={() => item.onPress?.()}
+      inverse={focused}
+      wrap="truncate"
+      color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}
+      bold={item.bold ?? isCurrent}
+    >
       {item.label}
     </Link>
   ) : (
-    <Text color="$fg-link" inverse={focused} onClick={() => item.onPress?.()} mouseCursor="pointer">
+    <Text
+      inverse={focused}
+      onClick={() => item.onPress?.()}
+      mouseCursor="pointer"
+      wrap="truncate"
+      color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}
+      bold={item.bold ?? isCurrent}
+    >
       {item.label}
     </Text>
   )
@@ -96,14 +123,24 @@ function BreadcrumbItemInteraction({
 function ActionableBreadcrumbItem({
   item,
   variant,
+  isCurrent,
 }: {
   item: BreadcrumbItem
   variant: NonNullable<LinkProps["variant"]>
+  isCurrent: boolean
 }): React.ReactElement {
   const focusId = useId()
   return (
-    <Box testID={focusId} focusable={item.onPress !== undefined} mouseCursor="pointer">
-      <BreadcrumbItemInteraction item={item} variant={variant} />
+    <Box
+      testID={focusId}
+      focusable={item.onPress !== undefined || item.href !== undefined}
+      mouseCursor="pointer"
+      height={1}
+      minWidth={0}
+      flexShrink={1}
+      overflow="hidden"
+    >
+      <BreadcrumbItemInteraction item={item} variant={variant} isCurrent={isCurrent} />
     </Box>
   )
 }
@@ -115,22 +152,31 @@ export function Breadcrumb({
   currentIndex = items.length - 1,
 }: BreadcrumbProps): React.ReactElement {
   if (items.length === 0) {
-    return <Box />
+    return <Box height={1} />
   }
 
   return (
-    <Box>
+    <Box height={1} minWidth={0} flexShrink={1} overflow="hidden">
       {items.map((item, i) => {
         const isCurrent = i === currentIndex
         const isActionable = item.href !== undefined || item.onPress !== undefined
 
         return (
           <React.Fragment key={i}>
-            {i > 0 && <Text color="$fg-muted"> {item.separator ?? separator} </Text>}
+            {i > 0 && (
+              <Text color="$fg-muted" wrap="truncate">
+                {" "}
+                {item.separator ?? separator}{" "}
+              </Text>
+            )}
             {isActionable ? (
-              <ActionableBreadcrumbItem item={item} variant={linkVariant} />
+              <ActionableBreadcrumbItem item={item} variant={linkVariant} isCurrent={isCurrent} />
             ) : (
-              <Text color={isCurrent ? "$fg" : "$fg-muted"} bold={isCurrent}>
+              <Text
+                color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}
+                bold={item.bold ?? isCurrent}
+                wrap="truncate"
+              >
                 {item.label}
               </Text>
             )}
