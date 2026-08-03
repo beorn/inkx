@@ -1,7 +1,7 @@
 /**
  * Document style precedence.
  *
- * Structural foreground and selection background are stronger semantic
+ * Structural foreground and selection styling are stronger semantic
  * layers than inline-element styling. Link decoration remains visible.
  */
 
@@ -42,7 +42,7 @@ describe("DocumentView style precedence", () => {
     expect(cellAt(app, "linked-span").underline).toBe("dotted")
   })
 
-  test("selected background beats inline code background", () => {
+  test("selection styling beats inline code defaults", () => {
     const blocks: DocumentBlock[] = [
       {
         id: "selected",
@@ -57,6 +57,9 @@ describe("DocumentView style precedence", () => {
     const render = createRenderer({ cols: 60, rows: 8 })
     const app = render(<DocumentView blocks={blocks} selectedId="selected" />)
 
-    expect(cellAt(app, "code-span").bg).toEqual(cellAt(app, "plain-span").bg)
+    const code = cellAt(app, "code-span")
+    const prose = cellAt(app, "plain-span")
+    expect(code.fg).toEqual(prose.fg)
+    expect(code.bg).toEqual(prose.bg)
   })
 })
