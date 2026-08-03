@@ -93,6 +93,14 @@ const BORDER_CHARS: Record<string, BorderChars> = {
     horizontal: "━",
     vertical: "┃",
   },
+  narrow: {
+    topLeft: "▏",
+    topRight: "▏",
+    bottomLeft: "▏",
+    bottomRight: "▏",
+    horizontal: "▔",
+    vertical: "▏",
+  },
 }
 
 // ============================================================================

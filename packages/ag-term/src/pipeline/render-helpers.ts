@@ -246,6 +246,14 @@ const borders: Record<NonNullable<BoxProps["borderStyle"]>, BorderChars> = {
     horizontal: "-",
     vertical: "|",
   },
+  narrow: {
+    topLeft: "▏",
+    topRight: "▏",
+    bottomLeft: "▏",
+    bottomRight: "▏",
+    horizontal: "▔",
+    vertical: "▏",
+  },
 }
 
 /**

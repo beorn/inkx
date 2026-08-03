@@ -596,7 +596,15 @@ export interface BoxProps
     | "truncate-end"
     | "clip"
     | boolean
-  borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"
+  borderStyle?:
+    | "single"
+    | "double"
+    | "round"
+    | "bold"
+    | "singleDouble"
+    | "doubleSingle"
+    | "classic"
+    | "narrow"
   borderColor?: string
   /** Background color for all border sides (shorthand). Per-side props override this. */
   borderBackgroundColor?: string

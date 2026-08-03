@@ -300,15 +300,31 @@ describe("Inline code elements", () => {
 // ============================================================================
 
 describe("Block elements", () => {
-  test("Blockquote renders with │ prefix", () => {
+  test("Blockquote renders with an inset narrow structural rail", () => {
     const app = render(<Blockquote>Quoted text</Blockquote>)
-    expect(app.text).toContain("│")
+    expect(app.text).toContain("  ▏ Quoted text")
+    expect(app.text).not.toContain("│")
     expect(app.text).toContain("Quoted text")
+  })
+
+  test("Blockquote rail spans every wrapped row and preserves the right inset", () => {
+    const app = render(
+      <Box width={32}>
+        <Blockquote>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</Blockquote>
+      </Box>,
+    )
+    const rows = app.text.split("\n").filter((line) => line.trim().length > 0)
+
+    expect(rows.length).toBeGreaterThan(1)
+    for (const row of rows) {
+      expect(row.indexOf("▏")).toBe(2)
+      expect(row.trimEnd().length).toBeLessThanOrEqual(28)
+    }
   })
 
   test("Blockquote content is italic", () => {
     const app = render(<Blockquote>Quote</Blockquote>)
-    // Find the 'Q' in "Quote" — after "│ " (2 chars)
+    // Find the 'Q' in "Quote" — after margin + rail + gap (4 chars)
     const buffer = app.term.buffer
     let quoteCol = -1
     for (let x = 0; x < 80; x++) {
@@ -321,19 +337,21 @@ describe("Block elements", () => {
     expect(buffer.getCell(quoteCol, 0).attrs.italic).toBe(true)
   })
 
-  test("Blockquote │ uses $fg-muted color", () => {
+  test("Blockquote rail uses a dimmer semantic color than its $fg-muted body", () => {
     const app = render(<Blockquote>Text</Blockquote>)
     const buffer = app.term.buffer
-    // Find the │ character
+    // Find the structural rail and quote body.
     let barCol = -1
+    let textCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "│") {
-        barCol = x
-        break
-      }
+      const char = buffer.getCell(x, 0).char
+      if (char === "▏") barCol = x
+      if (char === "T") textCol = x
     }
     expect(barCol).toBeGreaterThanOrEqual(0)
+    expect(textCol).toBeGreaterThan(barCol)
     expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
+    expect(buffer.getCell(barCol, 0).fg).not.toEqual(buffer.getCell(textCol, 0).fg)
   })
 
   test("CodeBlock renders with │ prefix", () => {
@@ -409,12 +427,12 @@ describe("Block elements", () => {
     expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
   })
 
-  test("Blockquote and CodeBlock │ have different colors", () => {
+  test("Blockquote and CodeBlock rails have different colors", () => {
     const app1 = render(<Blockquote>a</Blockquote>)
     const buf1 = app1.term.buffer
     let bqBarFg = null
     for (let x = 0; x < 80; x++) {
-      if (buf1.getCell(x, 0).char === "│") {
+      if (buf1.getCell(x, 0).char === "▏") {
         bqBarFg = buf1.getCell(x, 0).fg
         break
       }
@@ -430,7 +448,7 @@ describe("Block elements", () => {
       }
     }
 
-    // $fg-muted and $border-default should be different colors
+    // $border-muted and $border-default should be different colors.
     expect(bqBarFg).not.toEqual(cbBarFg)
   })
 })
