@@ -76,6 +76,9 @@ export type { FillProps } from "../components/Fill"
 export { Link } from "../components/Link"
 export type { LinkProps } from "../components/Link"
 
+export { SyntaxHighlighter } from "./components/SyntaxHighlighter"
+export type { SyntaxHighlighterProps } from "./components/SyntaxHighlighter"
+
 export { ErrorBoundary } from "./components/ErrorBoundary"
 export type { ErrorBoundaryProps } from "./components/ErrorBoundary"
 

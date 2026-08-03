@@ -54,10 +54,16 @@ export interface TokenLine {
  */
 export const LANG_ALIASES: Record<string, string> = {
   ts: "typescript",
+  mts: "typescript",
+  cts: "typescript",
   tsx: "tsx",
   js: "javascript",
+  mjs: "javascript",
+  cjs: "javascript",
   jsx: "jsx",
   py: "python",
+  pyi: "python",
+  pyw: "python",
   rs: "rust",
   sh: "bash",
   bash: "bash",
@@ -77,6 +83,7 @@ export const LANG_ALIASES: Record<string, string> = {
   less: "less",
   sql: "sql",
   json: "json",
+  jsonc: "jsonc",
   yaml: "yaml",
   yml: "yaml",
   toml: "toml",
@@ -102,6 +109,8 @@ export const LANG_ALIASES: Record<string, string> = {
   perl: "perl",
   dart: "dart",
   c: "c",
+  h: "c",
+  hpp: "cpp",
   objc: "objective-c",
   m: "objective-c",
   scala: "scala",
@@ -109,6 +118,8 @@ export const LANG_ALIASES: Record<string, string> = {
   cmake: "cmake",
   powershell: "powershell",
   ps1: "powershell",
+  zsh: "bash",
+  fish: "fish",
   xml: "xml",
   svelte: "svelte",
   vue: "vue",
@@ -134,6 +145,30 @@ const _loadedLangs = new Set<string>()
  */
 export function canonicalLang(lang: string): string {
   return LANG_ALIASES[lang.toLowerCase()] ?? lang.toLowerCase()
+}
+
+const LANGUAGE_BY_FILENAME: Record<string, string> = {
+  dockerfile: "dockerfile",
+  makefile: "makefile",
+}
+
+/**
+ * Infer a canonical syntax language from a file path.
+ *
+ * This is deliberately React- and runtime-free so every renderer can share
+ * one filename contract. Unknown, dot-only, and extensionless names are plain
+ * text instead of being passed speculatively to Shiki.
+ */
+export function languageForPath(filePath: string): string {
+  const filename = filePath.replaceAll("\\", "/").split("/").pop()?.toLowerCase() ?? ""
+  const namedLanguage = LANGUAGE_BY_FILENAME[filename]
+  if (namedLanguage) return namedLanguage
+
+  const dot = filename.lastIndexOf(".")
+  if (dot <= 0 || dot === filename.length - 1) return "plain"
+  const extension = filename.slice(dot + 1)
+  const language = LANG_ALIASES[extension]
+  return language ? canonicalLang(language) : "plain"
 }
 
 /**

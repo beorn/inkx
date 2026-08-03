@@ -189,6 +189,8 @@ export { Text } from "./components/Text"
 
 export { Link } from "./components/Link"
 export type { LinkProps } from "./components/Link"
+export { SyntaxHighlighter } from "./ui/components/SyntaxHighlighter"
+export type { SyntaxHighlighterProps } from "./ui/components/SyntaxHighlighter"
 export { Transform } from "./components/Transform"
 export type { TransformProps } from "./components/Transform"
 export { Fill } from "./components/Fill"

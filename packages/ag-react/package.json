@@ -259,6 +259,7 @@
     "@silvery/create": "0.23.2",
     "@silvery/headless": "0.23.2",
     "@silvery/scope": "0.23.2",
+    "@silvery/syntax": "0.23.2",
     "@silvery/theme": "0.23.2",
     "loggily": "^0.10.0",
     "upng-js": "^2.1.0"
