@@ -5,7 +5,7 @@
  * paragraph join into one logical line and re-wrap to the container width — the
  * terminal, not the author, decides where lines break. Plus emphasis / inline
  * code / heading / list styling via Typography presets + semantic tokens
- * (`strong`→bold, `em`→italic, `code`→`$bg-muted`, headings bold).
+ * (`strong`→bold, `em`→italic, `code`→`$fg-info`, headings bold).
  *
  * Assertions render the buffer and check what the user sees (The Silvery Way
  * §10); one parser unit test pins the reflow join at the source. Runs at
@@ -15,7 +15,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Content, DocumentView, MarkdownView, type DocumentBlock } from "silvery"
+import { Box, Content, DocumentView, MarkdownView, Text, type DocumentBlock } from "silvery"
 import { parseMarkdownBlocks } from "../../packages/ag-react/src/ui/components/MarkdownView"
 
 const DEFAULT_WIDTH = 80
@@ -97,17 +97,17 @@ describe("MarkdownView — inline emphasis (Typography presets)", () => {
     expect(app.text).not.toContain("*")
   })
 
-  test("`inline code` renders with a background token and strips the backticks", () => {
+  test("`inline code` renders as unpadded $fg-info prose and strips the backticks", () => {
     const app = render("run `bun fix` now")
     expect(app.text).toContain("bun fix")
     expect(app.text).not.toContain("`")
-    // "run " is cols 0-3; Code inserts a padding space, so "b" of "bun" lands at
-    // col 5 and carries the code variant's $bg-muted background.
-    const codeCell = app.cell(5, 0)
+    // "run " is cols 0-3; inline code begins immediately at col 4.
+    const codeCell = app.cell(4, 0)
+    const expected = createRenderer({ cols: 10, rows: 1 })(<Text color="$fg-info">b</Text>).cell(0, 0)
     expect(codeCell.char).toBe("b")
-    expect(codeCell.bg).not.toBeNull()
-    // A plain body cell has no background — proves the styling is scoped.
-    expect(app.cell(0, 0).bg).toBeNull()
+    expect(expected.fg).not.toBeNull()
+    expect(codeCell.fg).toEqual(expected.fg)
+    expect(codeCell.bg).toBeNull()
   })
 })
 

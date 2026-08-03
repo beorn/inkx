@@ -26,6 +26,7 @@ import {
   OL,
   LI,
   Box,
+  Text,
 } from "silvery"
 
 const render = createRenderer({ cols: 80, rows: 10 })
@@ -198,17 +199,22 @@ describe("Inline emphasis", () => {
 // ============================================================================
 
 describe("Inline code elements", () => {
-  test("Code wraps content with padding spaces", () => {
+  test("Code renders prose-width content without chip padding", () => {
     const app = render(<Code>fn()</Code>)
-    expect(app.text).toContain(" fn() ")
+    expect(app.text.split("\n")[0]?.trimEnd()).toBe("fn()")
   })
 
-  test("Code has $bg-muted background", () => {
+  test("Code uses $fg-info without a background", () => {
     const app = render(<Code>x</Code>)
-    // Find the 'x' character — it's at col 1 because of leading space
-    const cell = app.term.buffer.getCell(1, 0)
+    const expected = render(<Text color="$fg-info">x</Text>).term.buffer.getCell(0, 0)
+    const codeCol = Array.from({ length: 80 }, (_, x) => x).find((x) => app.term.buffer.getCell(x, 0).char === "x")
+    if (codeCol == null) throw new Error("inline code cell was not rendered")
+    expect(codeCol).toBe(0)
+    const cell = app.term.buffer.getCell(codeCol, 0)
     expect(cell.char).toBe("x")
-    expect(cell.bg).not.toBeNull()
+    expect(expected.fg).not.toBeNull()
+    expect(cell.fg).toEqual(expected.fg)
+    expect(cell.bg).toBeNull()
   })
 
   test("Kbd wraps content with padding spaces", () => {
@@ -226,7 +232,7 @@ describe("Inline code elements", () => {
 
   test("Code is not bold, Kbd is bold", () => {
     const app1 = render(<Code>a</Code>)
-    const codeCell = app1.term.buffer.getCell(1, 0)
+    const codeCell = app1.term.buffer.getCell(0, 0)
     expect(codeCell.attrs.bold).toBeFalsy()
 
     const app2 = render(<Kbd>a</Kbd>)
@@ -234,10 +240,14 @@ describe("Inline code elements", () => {
     expect(kbdCell.attrs.bold).toBe(true)
   })
 
-  test("Code and Kbd accept color override", () => {
+  test("Code caller color overrides the $fg-info default", () => {
     const app = render(<Code color="$fg-success">ok</Code>)
-    const cell = app.term.buffer.getCell(1, 0)
-    expect(cell.fg).not.toBeNull()
+    const expected = render(<Text color="$fg-success">o</Text>).term.buffer.getCell(0, 0)
+    const codeCol = Array.from({ length: 80 }, (_, x) => x).find((x) => app.term.buffer.getCell(x, 0).char === "o")
+    if (codeCol == null) throw new Error("inline code override cell was not rendered")
+    expect(codeCol).toBe(0)
+    expect(expected.fg).not.toBeNull()
+    expect(app.term.buffer.getCell(codeCol, 0).fg).toEqual(expected.fg)
   })
 
   // Tracking: @km/silvery/15086-inline-code-nowrap-default.
@@ -245,14 +255,14 @@ describe("Inline code elements", () => {
   // the middle (GitHub-style) instead of wrapping mid-identifier.
   test("Code defaults to truncate-middle on overflow (long identifier in narrow container)", () => {
     const longId = "getPolygonInterValForBand"
-    // 18-wide container: padded " <id> " is 27 chars → must truncate.
+    // 18-wide container: the identifier is 25 chars → must truncate.
     const app = render(
       <Box width={18}>
         <Code>{longId}</Code>
       </Box>,
     )
     // Truncate-middle uses U+2026 (…) ellipsis. The original identifier
-    // must NOT appear verbatim (since it's >18 chars including padding),
+    // must NOT appear verbatim (since it's >18 chars),
     // and the rendered text must contain the ellipsis character.
     expect(app.text).toContain("…")
     expect(app.text).not.toContain(longId)

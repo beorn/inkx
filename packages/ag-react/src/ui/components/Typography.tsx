@@ -157,8 +157,9 @@ export function Em({ children, color, ...rest }: TypographyProps) {
 // ============================================================================
 
 /**
- * Inline code — `$bg-muted` background with padding. Inherits foreground
- * from parent. Defaults to `wrap="truncate-middle"` (GitHub-style):
+ * Inline code — `$fg-info` prose, without chip padding or background. An
+ * explicit color still wins (for example, selected document content).
+ * Defaults to `wrap="truncate-middle"` (GitHub-style):
  * inline code is one unbroken token, so when it overflows the container
  * we keep the start and end visible (`getPolygonInt…rBand`) instead of
  * wrapping mid-identifier. Callers can override via the spread `wrap=…`
@@ -167,12 +168,13 @@ export function Em({ children, color, ...rest }: TypographyProps) {
 export function Code({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="code" color={color} wrap="truncate-middle" {...rest}>
-      {` ${children} `}
+      {children}
     </Text>
   )
 }
 
-/** Keyboard shortcut badge — $bg-muted background + bold. Inherits foreground from parent. */
+/** Keyboard shortcut badge — intentionally remains a padded `$bg-muted` chip;
+ * unlike inline code, a key is a discrete UI control rather than prose. */
 export function Kbd({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="kbd" color={color} {...rest}>

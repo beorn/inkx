@@ -74,7 +74,7 @@ import {
 
 | Component     | Default Style                 | Use For                 |
 | ------------- | ----------------------------- | ----------------------- |
-| `<Code>`      | `$bg-muted` background        | Inline code             |
+| `<Code>`      | `$fg-info` foreground         | Inline code in prose    |
 | `<Kbd>`       | `$bg-muted` + bold            | Keyboard shortcut badge |
 | `<CodeBlock>` | `$border-default` left border | Multi-line code block   |
 

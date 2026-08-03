@@ -117,16 +117,18 @@ describe("Text variant prop", () => {
   })
 
   // =============================================================================
-  // Test 6: variant="code" → backgroundColor from $mutedbg
+  // Test 6: variant="code" → foreground from $fg-info
   // =============================================================================
 
-  test("variant='code' → bg non-null from $mutedbg", () => {
+  test("variant='code' → $fg-info foreground without a background", () => {
     const code = createRenderer({ cols: 40, rows: 3 })
-    const app = code(<Text variant="code"> hello </Text>)
-    // The space before 'h' should have a non-null background from $mutedbg
+    const app = code(<Text variant="code">hello</Text>)
+    const expected = code(<Text color="$fg-info">h</Text>).cell(0, 0)
     const cell = app.cell(0, 0)
-    expect(cell.char).toBe(" ")
-    expect(cell.bg).not.toBeNull()
+    expect(cell.char).toBe("h")
+    expect(expected.fg).not.toBeNull()
+    expect(cell.fg).toEqual(expected.fg)
+    expect(cell.bg).toBeNull()
   })
 
   // =============================================================================

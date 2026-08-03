@@ -36,8 +36,8 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<Muted>`              | `$fg-muted` text                                                           |
 | `<Small>`              | `$fg-muted` (pre-dimmed at truecolor)                                      |
 | `<Lead>`               | `italic` text                                                              |
-| `<Code>`               | `$bg-muted` background                                                     |
-| `<Blockquote>`         | `$fg-muted` border + italic                                                |
+| `<Code>`               | `$fg-info` foreground; no chip background or padding                       |
+| `<Blockquote>`         | `$border-muted` rail + italic `$fg-muted` body                             |
 | `<P>`                  | body text (semantic wrapper)                                               |
 | `<LI>`                 | `•` bullet + indented content                                              |
 
@@ -163,7 +163,7 @@ import { H1, H2, H3, Muted, Small, Lead, Code, Blockquote, P, LI } from "silvery
 <Muted>Requires restart</Muted>       // $fg-muted
 <Small>Last updated 2 hours ago</Small> // $fg-muted (pre-dimmed)
 <Lead>Welcome to the app</Lead>       // italic
-<Code>npm install silvery</Code>      // $bg-muted background
+<Code>npm install silvery</Code>      // $fg-info prose, no chip padding
 <Blockquote>Less is more.</Blockquote> // inset ▏ rail + italic muted body
 <LI>First item</LI>                   // • bullet
 <LI>Second item</LI>

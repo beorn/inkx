@@ -79,7 +79,7 @@ export const DEFAULT_VARIANTS: Record<string, Variant> = {
   em: { italic: true },
   link: { color: "$fg-accent", underlineStyle: "dotted" },
   key: { color: "$fg-accent", bold: true },
-  code: { backgroundColor: "$bg-muted" },
+  code: { color: "$fg-info" },
   kbd: { backgroundColor: "$bg-muted", color: "$fg-accent", bold: true },
 }
 
