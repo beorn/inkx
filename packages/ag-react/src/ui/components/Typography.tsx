@@ -221,23 +221,60 @@ export function CodeBlock({ children, color }: TypographyProps) {
   )
 }
 
-/** Horizontal rule — thin line across the available width. */
 /**
- * Thematic break.
+ * Widest rule we ever draw, in columns. Past this the rule stops tracking the
+ * container: on a wide terminal a full-bleed rule reads as a page divider
+ * rather than a break between paragraphs.
+ */
+const RULE_MAX_WIDTH = 60
+
+/** Fraction of the container the rule spans below the cap. */
+const RULE_INSET = "67%"
+
+/**
+ * Oversized fill, clipped to the box. Long enough that the rule is solid at any
+ * terminal width; never a width calculation, which is what `RULE_INSET` and the
+ * layout engine are for.
+ */
+const RULE_FILL = "─".repeat(200)
+
+/**
+ * Thematic break — an inset rule, leading-aligned.
+ *
+ * ## Two rules, both learned the hard way
  *
  * `wrap="clip"`, never `"truncate"` — CHROME IS CLIPPED, PROSE IS TRUNCATED.
  * U+2026 is a claim that content was cut off; a rule carries zero characters,
  * so appending one makes the render lie about the document. `clip` cuts the
- * fill without making that claim. Any chrome drawn as repeat-a-glyph has the
- * same rule: it is filler to be clipped, not content to be truncated.
+ * fill without making that claim. Any chrome drawn as repeat-a-glyph inherits
+ * this: it is filler to be clipped, not content to be truncated.
  *
- * Bead: @km/tui/22744-hr-truncated-in-prose-lane
+ * The width is `min(67%, 60)`, expressed as `width` + `maxWidth` because that
+ * is CSS's own decomposition of `min()` — and because the engine does not honor
+ * `min()`/`calc()` through the `width` prop (measured: bare `50%` applies,
+ * `calc(50%)` is ignored and the element goes full-bleed). Do not "simplify"
+ * this pair back into a `min()` string; it silently becomes no constraint at
+ * all. Percent also keeps this working under `SILVERY_ENGINE=yoga`, which the
+ * `cqi` container-query form would not — `containerType` throws at first paint
+ * there, and yoga is the documented way to isolate a rendering bug.
+ *
+ * Leading alignment (the Box's default) is deliberate: a centred rule would not
+ * line up with the left-aligned prose it divides.
+ *
+ * Widths are the engine's, which ROUNDS rather than floors (0.67 × 80 = 53.6
+ * draws 54). Monotonic across 10..120 columns regardless, so the rule never
+ * shrinks as a pane widens — no jitter on resize. Pinned by test, since that
+ * is a property of the engine's rounding and not of this component.
+ *
+ * Beads: @km/tui/22744-hr-truncated-in-prose-lane
  */
 export function HR({ color, ...rest }: Omit<TypographyProps, "children">) {
   return (
-    <Text color={color ?? "$border-default"} wrap="clip" {...rest}>
-      {"─".repeat(200)}
-    </Text>
+    <Box width={RULE_INSET} maxWidth={RULE_MAX_WIDTH}>
+      <Text color={color ?? "$border-default"} wrap="clip" {...rest}>
+        {RULE_FILL}
+      </Text>
+    </Box>
   )
 }
 
