@@ -106,3 +106,77 @@ describe("HR via DocumentView — maddoc's actual path (@km/tui/22744)", () => {
     })
   }
 })
+
+/**
+ * Acceptance 2 — the inset: `min(67%, 60)`, leading-aligned.
+ *
+ * A full-bleed rule reads as a page divider; a break between paragraphs should
+ * be visibly narrower than the text it divides. The cap matters separately from
+ * the fraction: on a wide terminal 67% is still enormous.
+ *
+ * Written as `width` + `maxWidth` because the engine ignores `min()`/`calc()`
+ * in the `width` prop — measured, not assumed: bare `50%` applies while
+ * `calc(50%)` silently goes full-bleed. These tests pin the OUTCOME, so the
+ * pair cannot be "simplified" into a `min()` string that constrains nothing.
+ */
+describe("HR inset — min(67%, 60), leading-aligned (@km/tui/22744 acceptance 2)", () => {
+  test("spans ~67% of a narrow container, well short of full bleed", () => {
+    const cols = 40
+    const render = createRenderer({ cols, rows: 3 })
+    const drawn = ruleWidth(render(<HR />).text)
+    // 0.67 * 40 = 26.8; the engine rounds. Allow ±1 rather than pinning the
+    // engine's rounding mode — monotonicity is asserted separately, and that is
+    // the property anyone actually depends on.
+    expect(drawn).toBeGreaterThanOrEqual(26)
+    expect(drawn).toBeLessThanOrEqual(28)
+  })
+
+  test("caps at 60 columns however wide the terminal gets", () => {
+    for (const cols of [100, 120, 200]) {
+      const render = createRenderer({ cols, rows: 3 })
+      expect(ruleWidth(render(<HR />).text)).toBe(60)
+    }
+  })
+
+  test("the cap is a real constraint, not an artifact of the fill length", () => {
+    // Guard against a vacuous cap: if the rule were capped by RULE_FILL running
+    // out rather than by maxWidth, this would still read 60 at every width.
+    const render = createRenderer({ cols: 80, rows: 3 })
+    const drawn = ruleWidth(render(<HR />).text)
+    expect(drawn).toBeGreaterThan(0)
+    expect(drawn).toBeLessThan(60)
+  })
+
+  test("is leading-aligned — the rule starts at the container's left edge", () => {
+    // A centred rule would not line up with the left-aligned prose it divides.
+    const render = createRenderer({ cols: 80, rows: 3 })
+    const line = render(<HR />)
+      .text.split("\n")
+      .find((l) => l.includes("─"))
+    expect(line).toBeDefined()
+    expect(line?.indexOf("─")).toBe(0)
+  })
+
+  test("never shrinks as the container widens — no jitter on resize", () => {
+    // The monotonicity guard now has teeth: before the inset the rule simply
+    // filled, so it was monotonic for free. With a percentage it is a claim
+    // about the engine's rounding, across the cap boundary at ~89 columns.
+    let previous = 0
+    for (let cols = 10; cols <= 120; cols++) {
+      const render = createRenderer({ cols, rows: 3 })
+      const drawn = ruleWidth(render(<HR />).text)
+      expect(drawn).toBeGreaterThanOrEqual(previous)
+      previous = drawn
+    }
+    expect(previous).toBe(60)
+  })
+
+  test("still no ellipsis at any width, now that a real constraint clips it", () => {
+    // The inset makes the fill overflow at EVERY width, not just in a prose
+    // lane — so this is where a regression to wrap="truncate" would surface.
+    for (const cols of [20, 40, 80, 120]) {
+      const render = createRenderer({ cols, rows: 3 })
+      expect(render(<HR />).text).not.toContain(ELLIPSIS)
+    }
+  })
+})
