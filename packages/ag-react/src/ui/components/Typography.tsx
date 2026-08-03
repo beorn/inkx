@@ -222,9 +222,20 @@ export function CodeBlock({ children, color }: TypographyProps) {
 }
 
 /** Horizontal rule — thin line across the available width. */
+/**
+ * Thematic break.
+ *
+ * `wrap="clip"`, never `"truncate"` — CHROME IS CLIPPED, PROSE IS TRUNCATED.
+ * U+2026 is a claim that content was cut off; a rule carries zero characters,
+ * so appending one makes the render lie about the document. `clip` cuts the
+ * fill without making that claim. Any chrome drawn as repeat-a-glyph has the
+ * same rule: it is filler to be clipped, not content to be truncated.
+ *
+ * Bead: @km/tui/22744-hr-truncated-in-prose-lane
+ */
 export function HR({ color, ...rest }: Omit<TypographyProps, "children">) {
   return (
-    <Text color={color ?? "$border-default"} wrap="truncate" {...rest}>
+    <Text color={color ?? "$border-default"} wrap="clip" {...rest}>
       {"─".repeat(200)}
     </Text>
   )

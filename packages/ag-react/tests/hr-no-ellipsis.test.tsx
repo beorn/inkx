@@ -26,6 +26,7 @@ import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { HR } from "../src/ui/components/Typography"
 import { Content } from "../src/ui/components/Content"
+import { DocumentView } from "../src/ui/components/DocumentView"
 
 const ELLIPSIS = "…"
 
@@ -91,6 +92,16 @@ describe("HR inside a prose lane — the reported context (@km/tui/22744)", () =
           </Content.Row>
         </Content.Layout>,
       )
+      expect(app.text).not.toContain(ELLIPSIS)
+    })
+  }
+})
+
+describe("HR via DocumentView — maddoc's actual path (@km/tui/22744)", () => {
+  for (const cols of [20, 40, 80, 120]) {
+    test(`no U+2026 via DocumentView rule block at ${cols} cols`, () => {
+      const render = createRenderer({ cols, rows: 6 })
+      const app = render(<DocumentView blocks={[{ id: "r1", kind: "rule" }]} />)
       expect(app.text).not.toContain(ELLIPSIS)
     })
   }
