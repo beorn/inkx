@@ -269,7 +269,8 @@ Higher-level pre-styled components using `$token` semantic colors. Import from `
 | `Toast` / `useToast()`                  | Auto-dismiss notifications with severity levels      |
 | `CommandPalette`                        | Fuzzy-search command palette (Ctrl+K pattern)        |
 | `TreeView`                              | Expandable/collapsible tree with keyboard navigation |
-| `Breadcrumb`                            | Path breadcrumb with separator customization         |
+| `Breadcrumb`                            | Actionable path trail with mouse, keyboard, and focus navigation |
+| `SyntaxHighlighter`                     | Shiki-backed live source-code presentation            |
 | `Tabs` / `TabList` / `Tab` / `TabPanel` | Tabbed interface with keyboard navigation            |
 | `Tooltip`                               | Contextual tooltip overlay                           |
 | `Skeleton`                              | Loading placeholder with configurable width/lines    |

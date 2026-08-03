@@ -83,7 +83,7 @@ import chalk from "silvery/chalk"
 
 Re-exports the application-facing surface from `@silvery/ag-react`. This is the primary import for most applications.
 
-**Components**: Box, Text, Newline, Spacer, Static, Transform, Island, TextInput, TextArea, SelectList, Toggle, Button, Spinner, Pulse, ProgressBar, Table, Badge, Divider, VirtualList, VirtualView, Console, Image, Link, Form, FormField, Toast, CommandPalette, TreeView, Breadcrumb, Tabs, TabList, Tab, TabPanel, Tooltip, Skeleton, ErrorBoundary, ModalDialog, PickerDialog, PickerList, SplitPane, SplitView, ThemeProvider.
+**Components**: Box, Text, Newline, Spacer, Static, Transform, Island, TextInput, TextArea, SelectList, Toggle, Button, Spinner, Pulse, ProgressBar, Table, Badge, Divider, VirtualList, VirtualView, Console, Image, Link, Form, FormField, Toast, CommandPalette, TreeView, Breadcrumb, SyntaxHighlighter, Tabs, TabList, Tab, TabPanel, Tooltip, Skeleton, ErrorBoundary, ModalDialog, PickerDialog, PickerList, SplitPane, SplitView, ThemeProvider.
 
 **Hooks**: useBoxRect, useScrollRect, useInput, useApp, useStdout, useFocus, useFocusManager, useFocusWithin, usePaste, useCursor, useAnimation, useAnimatedTransition, usePulse, useSynchronizedPhase, useScrollback, useToast.
 

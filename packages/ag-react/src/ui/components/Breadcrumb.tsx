@@ -96,7 +96,12 @@ function BreadcrumbItemInteraction({
     <Link
       href={item.href}
       variant={variant}
-      onClick={() => item.onPress?.()}
+      onClick={(event) => {
+        if (item.onPress) {
+          event.preventDefault()
+          item.onPress()
+        }
+      }}
       inverse={focused}
       wrap="truncate"
       color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}

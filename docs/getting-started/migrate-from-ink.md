@@ -139,7 +139,7 @@ When swapping an Ink ecosystem component, check if Silvery has a native equivale
 | `ink-spinner`          | `Spinner`         | Built-in; `Spinner.start("…")` CLI helper too                     |
 | `ink-table`            | `Table`           | Responsive columns, search/filter                                 |
 | `ink-progress-bar`     | `ProgressBar`     | Full-featured, theme-aware                                        |
-| `ink-syntax-highlight` | _(no equivalent)_ | Use a syntax-highlighter library and render via `<Text>` directly |
+| `ink-syntax-highlight` | `SyntaxHighlighter` | Use `languageForPath` from `@silvery/syntax` when inferring from filenames |
 
 ## Want the full feature comparison?
 

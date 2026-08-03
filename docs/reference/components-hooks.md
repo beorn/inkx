@@ -65,7 +65,8 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 | [PickerDialog / PickerList](/guides/components)       | Selection dialog                      | UI  |
 | [Tooltip](/guides/components)                         | Contextual tooltip overlay            | UI  |
 | [Tabs / TabList / Tab / TabPanel](/guides/components) | Tabbed interface                      | UI  |
-| [Breadcrumb](/guides/components)                      | Path breadcrumb with separators       | UI  |
+| [Breadcrumb](/components/Breadcrumb)                  | Actionable single-line path trail      | UI  |
+| [SyntaxHighlighter](/components/SyntaxHighlighter)    | Shiki-backed source presentation       | UI  |
 
 ### Layout Wrappers
 

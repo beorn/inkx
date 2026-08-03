@@ -30,14 +30,24 @@ All `TextProps` style props (bold, italic, etc.) are also accepted.
 <Link href="https://example.com" variant="arm-on-hover">Always Clickable</Link>
 
 // Internal link with custom handler
-<Link href="app://node/abc123" onClick={(e) => navigate(e)}>Internal Link</Link>
+<Link
+  href="app://node/abc123"
+  onClick={(event) => {
+    event.preventDefault()
+    navigate("abc123")
+  }}
+>
+  Internal Link
+</Link>
 ```
 
 ## Behavior
 
 - **`arm-on-cmd-hover`** (default): Link underlines and becomes clickable when hovered while holding Cmd/Super.
 - **`arm-on-hover`**: Link underlines and becomes clickable on plain hover (no modifier needed).
-- On click (when armed), emits a `"link:open"` event via RuntimeContext.
+- The `onClick` callback runs first. If it calls `preventDefault()`, it owns the
+  activation; otherwise an armed click emits `"link:open"` through the app
+  event chain.
 
 ## See Also
 

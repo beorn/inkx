@@ -20,6 +20,7 @@ For core components (Box, Text, SelectList, TextInput, TextArea, ListView, Tabs,
 - [Image](/components/Image) -- Bitmap images (Kitty/Sixel)
 - [Link](/components/Link) -- OSC 8 terminal hyperlinks
 - [Skeleton](/components/Skeleton) -- Loading placeholder
+- [SyntaxHighlighter](/components/SyntaxHighlighter) -- Shiki-backed source presentation
 - [Tooltip](/components/Tooltip) -- Contextual help text
 - [Typography](/components/typography) -- Semantic text presets (H1-H3, P, Lead, Muted, Code, etc.)
 - [Prose](/components/Prose) -- Text-wrapping container primitive (encapsulates flex chain for `<Text wrap="wrap">`)

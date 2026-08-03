@@ -27,6 +27,7 @@ API reference for all silvery components. Import from `"silvery"` (the public ba
 | [CursorLine](./CursorLine.md) | Single-line cursor rendering                                                                                            |
 | [Image](./Image.md)           | Bitmap images (Kitty/Sixel)                                                                                             |
 | [Skeleton](./Skeleton.md)     | Loading placeholder                                                                                                     |
+| [SyntaxHighlighter](./SyntaxHighlighter.md) | Shiki-backed source-code presentation                                                                       |
 | [Tooltip](./Tooltip.md)       | Contextual help text                                                                                                    |
 
 ## Input

@@ -16,7 +16,7 @@
  * ```tsx
  * <Link href="https://example.com">Visit Example</Link>
  * <Link href="https://example.com" variant="arm-on-hover">Always Clickable</Link>
- * <Link href="km://node/abc123" onClick={(e) => navigate(e)}>Internal Link</Link>
+ * <Link href="km://node/abc123" onClick={(e) => { e.preventDefault(); navigate(e) }}>Internal Link</Link>
  * ```
  */
 
@@ -77,16 +77,17 @@ export function Link({
   const armed = hovered && (needsModifier ? cmdHeld : true)
   if (armed) rest.underline = true
 
-  // Click emits "link:open" when armed. For arm-on-cmd-hover, e.metaKey is accurate
+  // Give app routing first refusal. If it does not prevent the default, an
+  // armed click emits link:open. For arm-on-cmd-hover, e.metaKey is accurate
   // thanks to keyboard modifier tracking merged into mouse events by silvery's runtime.
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
       const isArmed = armed || (needsModifier && hovered && e.metaKey)
-      if (isArmed) {
+      onClick?.(e)
+      if (isArmed && !e.defaultPrevented) {
         chain?.events.emit("link:open", href)
         e.preventDefault()
       }
-      onClick?.(e)
     },
     [armed, needsModifier, hovered, href, onClick, chain],
   )
