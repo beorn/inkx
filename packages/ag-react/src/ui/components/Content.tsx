@@ -347,7 +347,7 @@ function rowLaneFlags(middle: readonly React.ReactNode[]): RowLaneFlags {
 
 function resolveRowLaneWidth(ctx: ContentLayoutContextValue, flags: RowLaneFlags): number {
   if (flags.hasDirectFullLane || flags.hasDirectFullBody)
-    return ctx.full || ctx.available || ctx.wide
+    {return ctx.full || ctx.available || ctx.wide}
   if (flags.hasDirectProseLane || flags.hasDirectProseBody) return ctx.prose
   return ctx.wide
 }
@@ -585,7 +585,25 @@ function ProseLane({ children }: { children: React.ReactNode }): React.ReactElem
         flexShrink={0}
         minWidth={gutterMinWidth}
       />
-      <Box flexDirection="column" width={proseWidth} maxWidth={proseWidth} minWidth={0}>
+      {/*
+        `maxWidth="100%"`, not `maxWidth={proseWidth}` — the pair is
+        `min(proseWidth, 100%)` and the second half is load-bearing
+        (@km/tui/22752).
+
+        `proseWidth` derives from `paneCols`, which is the PANE's width. An
+        ancestor `<Box paddingLeft paddingRight>` shrinks the real containing
+        block without changing paneCols, so the lane came out `2 × padding`
+        too wide: text was laid out to `proseWidth`, the paint clipped at the
+        parent, and a word straddling the boundary silently lost its last
+        character. Measured at ~11% of terminal widths — sparse precisely
+        because it needs a word to end across the overflow.
+
+        A percentage fixes it because it resolves against the actual
+        containing block, padding already subtracted, and it stays correct
+        from frame 0 — no `useBoxRect` read, so this keeps the declarative
+        property that `Layout` deliberately avoids measurement for.
+      */}
+      <Box flexDirection="column" width={proseWidth} maxWidth="100%" minWidth={0}>
         {children}
       </Box>
       <Box
