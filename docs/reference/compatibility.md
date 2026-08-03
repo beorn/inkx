@@ -103,7 +103,7 @@ All flexbox props work identically:
 
 ### Border Styles
 
-All border styles work identically: `single`, `double`, `round`, `bold`, `classic`, `arrow`, `heavy`, `doubleSingle`, `singleDouble`.
+All border styles work identically: `single`, `double`, `round`, `bold`, `classic`, `narrow`, `arrow`, `heavy`, `doubleSingle`, `singleDouble`.
 
 ## Chalk Compatibility
 

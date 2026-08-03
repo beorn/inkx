@@ -164,7 +164,7 @@ import { H1, H2, H3, Muted, Small, Lead, Code, Blockquote, P, LI } from "silvery
 <Small>Last updated 2 hours ago</Small> // $fg-muted (pre-dimmed)
 <Lead>Welcome to the app</Lead>       // italic
 <Code>npm install silvery</Code>      // $bg-muted background
-<Blockquote>Less is more.</Blockquote> // │ border + italic
+<Blockquote>Less is more.</Blockquote> // inset ▏ rail + italic muted body
 <LI>First item</LI>                   // • bullet
 <LI>Second item</LI>
 ```

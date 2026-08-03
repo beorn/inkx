@@ -97,7 +97,7 @@ import { Box } from "silvery"
 
 | Prop           | Type                                                                                         | Default | Description        |
 | -------------- | -------------------------------------------------------------------------------------------- | ------- | ------------------ |
-| `borderStyle`  | `"single" \| "double" \| "round" \| "bold" \| "singleDouble" \| "doubleSingle" \| "classic"` | -       | Border style       |
+| `borderStyle`  | `"single" \| "double" \| "round" \| "bold" \| "singleDouble" \| "doubleSingle" \| "classic" \| "narrow"` | -       | Border style       |
 | `borderColor`  | `string`                                                                                     | -       | Border color       |
 | `borderTop`    | `boolean`                                                                                    | `true`  | Show top border    |
 | `borderBottom` | `boolean`                                                                                    | `true`  | Show bottom border |
@@ -159,6 +159,7 @@ interface ComputedLayout {
 | `singleDouble` | `╓─╖`<br>`║ ║`<br>`╙─╜`   | Single horizontal, double vertical |
 | `doubleSingle` | `╒═╕`<br>`│ │`<br>`╘═╛`   | Double horizontal, single vertical |
 | `classic`      | `+-+`<br>`\| \|`<br>`+-+` | ASCII characters only              |
+| `narrow`       | `▏`                       | Hairline rail for selected sides   |
 
 ## Examples
 

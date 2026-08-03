@@ -83,7 +83,7 @@ import { Box } from "silvery"
 
 | Prop              | Type                                                                                         | Default | Description                                             |
 | ----------------- | -------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------- |
-| `borderStyle`     | `"single" \| "double" \| "round" \| "bold" \| "singleDouble" \| "doubleSingle" \| "classic"` | --      | Border style                                            |
+| `borderStyle`     | `"single" \| "double" \| "round" \| "bold" \| "singleDouble" \| "doubleSingle" \| "classic" \| "narrow"` | --      | Border style                                            |
 | `borderColor`     | `string`                                                                                     | --      | Border color                                            |
 | `borderTop`       | `boolean`                                                                                    | --      | Show top border                                         |
 | `borderBottom`    | `boolean`                                                                                    | --      | Show bottom border                                      |
