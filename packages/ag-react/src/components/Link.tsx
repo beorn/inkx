@@ -50,81 +50,49 @@ interface ArmedTextProps extends Omit<TextProps, "children" | "onClick"> {
   onArmedClick: (event: SilveryMouseEvent, armed: boolean) => void
 }
 
-function ArmedTextPresentation({
-  armed,
+function ModifierArmedState({
+  hovered,
+  render,
+}: {
+  hovered: boolean
+  render: (armed: boolean) => React.ReactElement
+}): React.ReactElement {
+  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
+  return render(hovered && cmdHeld)
+}
+
+/** Shared internal presentation for links and action-only navigation text. */
+export function ArmedText({
+  variant,
   children,
   onArmedClick,
   onMouseEnter,
   onMouseLeave,
   ...rest
-}: Omit<ArmedTextProps, "variant"> & { armed: boolean }): React.ReactElement {
-  return (
+}: ArmedTextProps): React.ReactElement {
+  const [hovered, setHovered] = useState(false)
+  const render = (armed: boolean): React.ReactElement => (
     <Text
       mouseCursor={armed ? "pointer" : undefined}
       {...rest}
       underline={armed ? true : rest.underline}
       onClick={(event) => onArmedClick(event, armed)}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={(event) => {
+        setHovered(true)
+        onMouseEnter?.(event)
+      }}
+      onMouseLeave={(event) => {
+        setHovered(false)
+        onMouseLeave?.(event)
+      }}
     >
       {children}
     </Text>
   )
-}
-
-function PlainHoverArmedText({
-  variant: _variant,
-  onMouseEnter,
-  onMouseLeave,
-  ...props
-}: ArmedTextProps): React.ReactElement {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <ArmedTextPresentation
-      {...props}
-      armed={hovered}
-      onMouseEnter={(event) => {
-        setHovered(true)
-        onMouseEnter?.(event)
-      }}
-      onMouseLeave={(event) => {
-        setHovered(false)
-        onMouseLeave?.(event)
-      }}
-    />
-  )
-}
-
-function ModifierHoverArmedText({
-  variant: _variant,
-  onMouseEnter,
-  onMouseLeave,
-  ...props
-}: ArmedTextProps): React.ReactElement {
-  const [hovered, setHovered] = useState(false)
-  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
-  return (
-    <ArmedTextPresentation
-      {...props}
-      armed={hovered && cmdHeld}
-      onMouseEnter={(event) => {
-        setHovered(true)
-        onMouseEnter?.(event)
-      }}
-      onMouseLeave={(event) => {
-        setHovered(false)
-        onMouseLeave?.(event)
-      }}
-    />
-  )
-}
-
-/** Shared internal presentation for links and action-only navigation text. */
-export function ArmedText(props: ArmedTextProps): React.ReactElement {
-  return props.variant === "arm-on-hover" ? (
-    <PlainHoverArmedText {...props} />
+  return variant === "arm-on-hover" ? (
+    render(hovered)
   ) : (
-    <ModifierHoverArmedText {...props} />
+    <ModifierArmedState hovered={hovered} render={render} />
   )
 }
 
