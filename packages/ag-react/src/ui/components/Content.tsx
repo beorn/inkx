@@ -928,7 +928,16 @@ function TableGridRoot({
   // centering offset. Mirrors what ProseLane (line ~469) and Wide (line
   // ~501) do via `justifyContent={laneJustify(ctx.align)}` on their outers.
   // Bead: @km/code/15652 (#undead 3rd recurrence).
-  const tableAlignSelf: "flex-start" | "center" = ctx.align === "center" ? "center" : "flex-start"
+  // Centre with AUTO MARGINS, never `alignSelf: center` (@si/content/22774).
+  // Centring distributes free space equally, so a table WIDER than its lane is
+  // pushed past BOTH edges: the first column loses its head and the last loses
+  // its tail, while the middle looks intact and nothing marks the loss. Auto
+  // margins are CSS's own answer to exactly that — they absorb POSITIVE free
+  // space (centring, which is what 15652 above requires) and resolve to ZERO
+  // when free space is negative, leaving the table start-aligned so a reader
+  // never loses a row's label. `width` is set below, which auto margins need in
+  // order to centre at all.
+  const centred = ctx.align === "center"
   const headerRule = gridWidths
     .map((width) => "─".repeat(width + TABLE_CELL_PADDING_X * 2))
     .join("┼")
@@ -959,7 +968,9 @@ function TableGridRoot({
   return (
     <Box
       flexDirection="column"
-      alignSelf={tableAlignSelf}
+      alignSelf="flex-start"
+      marginLeft={centred ? "auto" : undefined}
+      marginRight={centred ? "auto" : undefined}
       width={gridBoxWidth}
       maxWidth={gridBoxWidth}
     >
