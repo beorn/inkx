@@ -108,15 +108,26 @@ describe("Link", () => {
 
     expect(app.term.cell(column, 0).hyperlink).toBeUndefined()
     expect(app.ansi).not.toContain("https://ancestor.example")
+    expect(app.ansi).not.toContain("silvery:hyperlink-clear")
   })
 
   test("supports app-owned actions without painting an OSC 8 destination", async () => {
     const onClick = vi.fn()
+    const emit = vi.fn()
+    const chain = {
+      input: { register: () => () => {}, setActive: () => {} },
+      paste: { register: () => () => {} },
+      rawKeys: { register: () => () => {} },
+      focusEvents: { register: () => () => {} },
+      events: { on: () => () => {}, emit },
+    } as ChainAppContextValue
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
-      <Link variant="arm-on-hover" onClick={onClick}>
-        Action
-      </Link>,
+      <ChainAppContext.Provider value={chain}>
+        <Link variant="arm-on-hover" onClick={onClick}>
+          Action
+        </Link>
+      </ChainAppContext.Provider>,
     )
     const column = app.text.indexOf("Action")
 
@@ -125,6 +136,7 @@ describe("Link", () => {
     await app.click(column, 0)
 
     expect(onClick).toHaveBeenCalledTimes(1)
+    expect(emit).not.toHaveBeenCalled()
   })
 
   test("renders link text without underline by default", () => {

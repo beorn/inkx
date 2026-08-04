@@ -10,7 +10,7 @@
  */
 import React from "react"
 import { describe, test, expect } from "vitest"
-import { Box, Text } from "@silvery/ag-react"
+import { Box, Link, Text } from "@silvery/ag-react"
 import { renderPhaseAdapter } from "@silvery/ag-term/pipeline/render-phase-adapter"
 import { setRenderAdapter, hasRenderAdapter } from "@silvery/ag-term/render-adapter"
 import { terminalAdapter, TerminalRenderBuffer } from "@silvery/ag-term/adapters/terminal-adapter"
@@ -90,6 +90,22 @@ function rowText(buffer: TerminalRenderBuffer, row: number): string {
 // ============================================================================
 
 describe("render-phase-adapter nested text styles", () => {
+  test("action-only Link clears an inherited OSC 8 destination", () => {
+    const buffer = renderViaAdapter(
+      <Link href="https://ancestor.example">
+        <Link variant="arm-on-hover" onClick={() => {}}>
+          Action
+        </Link>
+      </Link>,
+      40,
+      5,
+    )
+
+    const tb = buffer.getTerminalBuffer()
+    expect(rowText(buffer, 0)).toContain("Action")
+    expect(tb.getCell(0, 0).hyperlink).toBeUndefined()
+  })
+
   test("nested bold Text applies bold attribute to buffer cells", () => {
     const buffer = renderViaAdapter(
       <Box width={30}>
