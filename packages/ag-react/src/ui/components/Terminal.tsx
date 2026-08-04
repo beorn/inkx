@@ -11,10 +11,18 @@
  * See `docs/design/terminal-component.md` for the full API rationale and
  * the `render({ input: false })` companion escape hatch that lets a host
  * process keep stdin for its own PTY pipe while silvery renders visuals
- * around it. The motivating consumer is `termless rec`'s live-overlay
- * (`vendor/termless/packages/cli/src/rec-live-overlay.ts`) — after this
- * component lands, ~80% of that file collapses to a thin shim over
- * <Terminal>.
+ * around it. `termless rec`'s live overlay (`@termless/cli`) is the
+ * motivating consumer of that escape hatch.
+ *
+ * That overlay does NOT build on <Terminal>, and the reason is the useful
+ * part of this note. It composes <Island> with an xterm.js guest, because it
+ * needs an OPAQUE guest that owns its own emulator and protocol modes — the
+ * recorder snoops the child's mouse-mode toggles off the PTY and mirrors
+ * exactly those modes to the host terminal itself, which is ownership
+ * <Terminal> deliberately does not take. <Terminal> is the other case: the
+ * host already holds a readable cell grid and wants it drawn as part of the
+ * silvery tree. Pick by who owns the emulator — guest owns it, use <Island>;
+ * host owns it, use <Terminal>.
  */
 
 import React, { useEffect, useMemo, useRef } from "react"
@@ -94,7 +102,7 @@ export interface TerminalMouseEvent {
 
 // ════════════════════════════════════════════════════════════════════════════
 // Per-row ANSI encoder — deduplicated SGR delta, padded to exact width.
-// Modelled after termless's `rowToAnsi` (vendor/termless/src/render/ansi.ts).
+// Modelled after `rowToAnsi` in the `termless` package (src/render/ansi.ts).
 // Kept inline because (a) it's small, (b) silvery has no dep on termless,
 // (c) the encoder rarely changes and the cell-shape coupling is already
 // part of the public API.
