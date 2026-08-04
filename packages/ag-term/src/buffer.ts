@@ -526,6 +526,49 @@ export class TerminalBuffer {
   }
 
   /**
+   * Preserve the invariant that wide leads and continuation cells are always
+   * replaced as a pair when a write crosses their boundary.
+   */
+  private clearBisectedWidePair(
+    x: number,
+    y: number,
+    replacementWide: boolean,
+    replacementContinuation: boolean,
+  ): void {
+    const idx = this.index(x, y)
+    const previous = this.cells[idx] ?? 0
+
+    if (!replacementContinuation && (previous & CONTINUATION_FLAG) !== 0 && x > 0) {
+      const leadIdx = idx - 1
+      this.cells[leadIdx] = (this.cells[leadIdx] ?? 0) & ~WIDE_FLAG
+      this.chars[leadIdx] = " "
+    }
+
+    if (!replacementWide && (previous & WIDE_FLAG) !== 0 && x + 1 < this.width) {
+      const continuationIdx = idx + 1
+      this.cells[continuationIdx] = (this.cells[continuationIdx] ?? 0) & ~CONTINUATION_FLAG
+      this.chars[continuationIdx] = " "
+    }
+  }
+
+  private clearWideHalfAsBlank(x: number, y: number): void {
+    const cell = this.getCell(x, y)
+    this.setCell(x, y, {
+      ...cell,
+      char: " ",
+      wide: false,
+      continuation: false,
+      selectable: this.isCellSelectable(x, y),
+    })
+  }
+
+  /** Replace half-cells copied without their partner with styled blanks. */
+  private clearOrphanedWideEdges(startX: number, endX: number, y: number): void {
+    if (this.isCellContinuation(startX, y)) this.clearWideHalfAsBlank(startX, y)
+    if (this.isCellWide(endX - 1, y)) this.clearWideHalfAsBlank(endX - 1, y)
+  }
+
+  /**
    * Check if coordinates are within bounds.
    */
   inBounds(x: number, y: number): boolean {
@@ -809,33 +852,9 @@ export class TerminalBuffer {
 
     const idx = this.index(x, y)
 
-    // Wide character consistency: when overwriting a continuation cell (second
-    // half of a wide char), the leading main cell at x-1 must be replaced with
-    // a space (matching Ink's overlay boundary clearing — see ink/output.ts).
-    // Otherwise the buffer would have a wide-char glyph with no continuation,
-    // and the terminal would render a half-visible wide character past the
-    // overlay. When overwriting a wide char's main cell with a non-wide char,
-    // clear the continuation cell at x+1 the same way.
-    if (!(cell.continuation ?? false)) {
-      const prevPacked = this.cells[idx]
-      if (prevPacked !== undefined && (prevPacked & CONTINUATION_FLAG) !== 0 && x > 0) {
-        // Overwriting a continuation cell — replace the leading wide-char cell
-        // at x-1 with a space and clear its wide flag. This matches Ink's
-        // pre-write boundary cleanup (ink/output.ts: currentLine[offsetX-1] = spaceCell).
-        const prevIdx = idx - 1
-        this.cells[prevIdx] = this.cells[prevIdx]! & ~WIDE_FLAG
-        this.chars[prevIdx] = " "
-      }
-    }
-    if (!(cell.wide ?? false)) {
-      const prevPacked = this.cells[idx]
-      if (prevPacked !== undefined && (prevPacked & WIDE_FLAG) !== 0 && x + 1 < this.width) {
-        // Overwriting a wide cell with a non-wide char — clear continuation at x+1
-        const nextIdx = idx + 1
-        this.cells[nextIdx] = this.cells[nextIdx]! & ~CONTINUATION_FLAG
-        this.chars[nextIdx] = " "
-      }
-    }
+    // Match Ink's overlay-boundary clearing: a write that replaces either half
+    // of a wide cell must also clear the other half.
+    this.clearBisectedWidePair(x, y, cell.wide ?? false, cell.continuation ?? false)
 
     // Resolve properties with defaults (no intermediate object)
     const char = cell.char ?? " "
@@ -922,6 +941,16 @@ export class TerminalBuffer {
     const attrs = cell.attrs ?? {}
     const wide = cell.wide ?? false
     const continuation = cell.continuation ?? false
+
+    // Direct bulk assignment bypasses setCell(), so repair only the two
+    // horizontal rectangle boundaries. Every cell inside the rectangle is
+    // overwritten together; only a pair straddling either edge can survive.
+    for (let cy = startY; cy < endY; cy++) {
+      this.clearBisectedWidePair(startX, cy, wide, continuation)
+      if (endX - 1 !== startX) {
+        this.clearBisectedWidePair(endX - 1, cy, wide, continuation)
+      }
+    }
 
     // Pack metadata once for the entire fill region
     const fullCell: Cell = {
@@ -1273,6 +1302,8 @@ export class TerminalBuffer {
     const cell = createMutableCell()
     for (let dy = 0; dy < height; dy++) {
       const dstY = destY + dy
+      let firstCopiedX = -1
+      let lastCopiedX = -1
       if (dstY >= 0 && dstY < this.height) {
         this._dirtyRows[dstY] = 1
         if (this._minDirtyRow === -1 || dstY < this._minDirtyRow) this._minDirtyRow = dstY
@@ -1286,7 +1317,12 @@ export class TerminalBuffer {
         if (source.inBounds(sx, sy) && this.inBounds(dX, dstY)) {
           source.readCellInto(sx, sy, cell)
           this.setCell(dX, dstY, { ...cell, selectable: source.isCellSelectable(sx, sy) })
+          if (firstCopiedX === -1) firstCopiedX = dX
+          lastCopiedX = dX
         }
+      }
+      if (firstCopiedX !== -1) {
+        this.clearOrphanedWideEdges(firstCopiedX, lastCopiedX + 1, dstY)
       }
     }
   }
@@ -1344,6 +1380,20 @@ export class TerminalBuffer {
       for (let row = startY; row < endY - absDelta; row++) {
         const dstBase = row * w
         const srcBase = (row + absDelta) * w
+        const sourceStart = this.cells[srcBase + startX] ?? 0
+        const sourceEnd = this.cells[srcBase + endX - 1] ?? 0
+        this.clearBisectedWidePair(
+          startX,
+          row,
+          unpackWide(sourceStart),
+          unpackContinuation(sourceStart),
+        )
+        this.clearBisectedWidePair(
+          endX - 1,
+          row,
+          unpackWide(sourceEnd),
+          unpackContinuation(sourceEnd),
+        )
         // Copy cells and chars for the region columns
         this.cells.copyWithin(dstBase + startX, srcBase + startX, srcBase + endX)
         for (let cx = startX; cx < endX; cx++) {
@@ -1380,6 +1430,7 @@ export class TerminalBuffer {
             this.hyperlinks.delete(dstIdx)
           }
         }
+        this.clearOrphanedWideEdges(startX, endX, row)
       }
       // Clear exposed rows at bottom
       this.fill(startX, endY - absDelta, clampedWidth, absDelta, {
@@ -1392,6 +1443,20 @@ export class TerminalBuffer {
       for (let row = endY - 1; row >= startY + absDelta; row--) {
         const dstBase = row * w
         const srcBase = (row - absDelta) * w
+        const sourceStart = this.cells[srcBase + startX] ?? 0
+        const sourceEnd = this.cells[srcBase + endX - 1] ?? 0
+        this.clearBisectedWidePair(
+          startX,
+          row,
+          unpackWide(sourceStart),
+          unpackContinuation(sourceStart),
+        )
+        this.clearBisectedWidePair(
+          endX - 1,
+          row,
+          unpackWide(sourceEnd),
+          unpackContinuation(sourceEnd),
+        )
         this.cells.copyWithin(dstBase + startX, srcBase + startX, srcBase + endX)
         for (let cx = startX; cx < endX; cx++) {
           this.chars[dstBase + cx] = this.chars[srcBase + cx]!
@@ -1426,6 +1491,7 @@ export class TerminalBuffer {
             this.hyperlinks.delete(dstIdx)
           }
         }
+        this.clearOrphanedWideEdges(startX, endX, row)
       }
       // Clear exposed rows at top
       this.fill(startX, startY, clampedWidth, absDelta, {
