@@ -1,16 +1,16 @@
 /**
- * Link Component — OSC 8 Terminal Hyperlinks
+ * Link Component — Armed URLs and App Actions
  *
- * Renders clickable hyperlinks using the OSC 8 terminal escape sequence.
- * Text inside `<Link>` is underlined by default and wrapped in OSC 8 sequences,
- * making it clickable in supporting terminals (iTerm2, Ghostty, Kitty, etc.).
+ * Renders clickable text that arms with an underline and pointer. When `href`
+ * is present, Link also paints an OSC 8 terminal hyperlink; action-only links
+ * omit `href` and leave activation entirely to `onClick`.
  *
  * Two arming variants:
  * - `arm-on-cmd-hover` (default): Arms on Cmd+hover (Kitty protocol) or Ctrl+click (SGR)
  * - `arm-on-hover`: Arms on plain hover (no modifier needed)
  *
- * On click (when armed), emits a `"link:open"` event via RuntimeContext. The app
- * handles the actual URL opening (keeps silvery runtime-agnostic).
+ * An armed URL click emits `"link:open"` through the app event chain. App-owned
+ * actions run their `onClick` handler without emitting a destination.
  *
  * @example
  * ```tsx
@@ -42,6 +42,48 @@ export interface LinkProps extends Omit<TextProps, "children"> {
    * - `'arm-on-hover'`: Arms on plain hover (no modifier needed)
    */
   variant?: "arm-on-cmd-hover" | "arm-on-hover"
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export function Link({
+  href,
+  children,
+  color = "$fg-link",
+  variant = "arm-on-cmd-hover",
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  ...rest
+}: LinkProps) {
+  const chain = useContext(ChainAppContext)
+  const handleClick = useCallback(
+    (event: SilveryMouseEvent, armed: boolean) => {
+      const isArmed = armed || (variant === "arm-on-cmd-hover" && event.metaKey)
+      onClick?.(event)
+      if (isArmed && href !== undefined && !event.defaultPrevented) {
+        chain?.events.emit("link:open", href)
+        event.preventDefault()
+      }
+    },
+    [variant, href, onClick, chain],
+  )
+
+  return (
+    <ArmedText
+      color={color}
+      internal_hyperlink={href}
+      variant={variant}
+      {...rest}
+      onArmedClick={handleClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </ArmedText>
+  )
 }
 
 interface ArmedTextProps extends Omit<TextProps, "children" | "onClick"> {
@@ -93,61 +135,5 @@ function ArmedText({
     render(hovered)
   ) : (
     <ModifierArmedState hovered={hovered} render={render} />
-  )
-}
-
-// ============================================================================
-// Component
-// ============================================================================
-
-/**
- * Renders a terminal hyperlink using OSC 8 escape sequences.
- *
- * The text is wrapped in OSC 8 open/close sequences so supporting terminals
- * render it as a clickable link. The component also registers an onClick
- * handler for mouse-driven interaction within silvery.
- *
- * Supports Cmd+hover armed state: when hovered and Cmd is held, shows underline.
- * Only the hovered link subscribes to modifier keys — zero cost for others.
- */
-export function Link({
-  href,
-  children,
-  color = "$fg-link",
-  variant = "arm-on-cmd-hover",
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
-  ...rest
-}: LinkProps) {
-  const chain = useContext(ChainAppContext)
-
-  // Give app routing first refusal. If it does not prevent the default, an
-  // armed click emits link:open. For arm-on-cmd-hover, e.metaKey is accurate
-  // thanks to keyboard modifier tracking merged into mouse events by silvery's runtime.
-  const handleClick = useCallback(
-    (e: SilveryMouseEvent, armed: boolean) => {
-      const isArmed = armed || (variant === "arm-on-cmd-hover" && e.metaKey)
-      onClick?.(e)
-      if (isArmed && href !== undefined && !e.defaultPrevented) {
-        chain?.events.emit("link:open", href)
-        e.preventDefault()
-      }
-    },
-    [variant, href, onClick, chain],
-  )
-
-  return (
-    <ArmedText
-      color={color}
-      internal_hyperlink={href}
-      variant={variant}
-      {...rest}
-      onArmedClick={handleClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      {children}
-    </ArmedText>
   )
 }
