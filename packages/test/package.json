@@ -57,7 +57,8 @@
     "@termless/core": "^0.8.1",
     "@termless/ghostty": "^0.8.2",
     "@termless/ghostty-native": "^0.8.1",
-    "@termless/xtermjs": "^0.8.1"
+    "@termless/xtermjs": "^0.8.1",
+    "//@termless/xtermjs": "REFERENCE-ONLY: the differential oracle for the ANSI-fidelity harness (createTermless + STRICT cross-check). Production shell guest is vterm (@si/vterm/21016). Removing this deletes the proof that vterm is correct. @pm/22783 Track 2."
   },
   "tsdown": {
     "clean": true,

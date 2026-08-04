@@ -134,6 +134,7 @@
     "@termless/ghostty-native": "^0.8.1",
     "@termless/test": "^0.8.1",
     "@termless/xtermjs": "^0.8.1",
+    "//@termless/xtermjs": "REFERENCE-ONLY: the differential oracle for the ANSI-fidelity harness (createTermless + STRICT cross-check). Production shell guest is vterm (@si/vterm/21016). Removing this deletes the proof that vterm is correct. @pm/22783 Track 2.",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
     "@vue/server-renderer": "^3.5.31",
@@ -173,6 +174,7 @@
     "@termless/ghostty-native": "^0.8.1",
     "@termless/test": "^0.8.1",
     "@termless/xtermjs": "^0.8.1",
+    "//@termless/xtermjs": "REFERENCE-ONLY: the differential oracle for the ANSI-fidelity harness (createTermless + STRICT cross-check). Production shell guest is vterm (@si/vterm/21016). Removing this deletes the proof that vterm is correct. @pm/22783 Track 2.",
     "playwright": ">=1.40.0",
     "react": "^18.0.0 || ^19.0.0"
   },
