@@ -1263,6 +1263,7 @@ export function keyToName(key: Key): string {
   if (key.pageDown) return "PageDown"
   if (key.home) return "Home"
   if (key.end) return "End"
+  if (key.text === " ") return "Space"
   return ""
 }
 

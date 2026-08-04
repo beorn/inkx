@@ -168,11 +168,15 @@ describe("input boundary hooks", () => {
   test("useHotkeyMap dispatches several command bindings through one hook", () => {
     const up = vi.fn()
     const submit = vi.fn()
+    const pageDown = vi.fn()
+    const space = vi.fn()
 
     function Probe(): React.ReactElement {
       useHotkeyMap({
         "ctrl+p": up,
         Enter: submit,
+        PageDown: pageDown,
+        Space: space,
       })
       return <Text>probe</Text>
     }
@@ -180,9 +184,13 @@ describe("input boundary hooks", () => {
     const chain = renderWithChain(<Probe />)
     chain.press("p", { ctrl: true })
     chain.press("\r", { return: true })
+    chain.press("", { pageDown: true })
+    chain.press(" ", { text: " " })
 
     expect(up).toHaveBeenCalledTimes(1)
     expect(submit).toHaveBeenCalledTimes(1)
+    expect(pageDown).toHaveBeenCalledTimes(1)
+    expect(space).toHaveBeenCalledTimes(1)
   })
 
   test("useTextInput emits typed text, graphemes, and paste text without command keys", () => {
