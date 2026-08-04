@@ -834,7 +834,6 @@ type TableProps = {
 
 type TableGridProps = TableProps & {
   widths?: number[]
-  separator?: string
 }
 
 function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactElement {
