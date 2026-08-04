@@ -422,13 +422,21 @@ export interface FlexboxProps {
   paddingRight?: number
   paddingX?: number
   paddingY?: number
-  margin?: number
-  marginTop?: number
-  marginBottom?: number
-  marginLeft?: number
-  marginRight?: number
-  marginX?: number
-  marginY?: number
+  /**
+   * Margins accept `"auto"`, which is CSS's original spelling of `safe center`:
+   * an auto margin absorbs POSITIVE free space (centring the box) and resolves
+   * to ZERO when free space is negative (leaving it start-aligned). Prefer it
+   * over `alignSelf: "center"` for anything that may overflow — centring an
+   * overflowing box pushes it past BOTH edges, silently cutting the head as
+   * well as the tail. Padding has no `"auto"`, in CSS or here.
+   */
+  margin?: number | "auto"
+  marginTop?: number | "auto"
+  marginBottom?: number | "auto"
+  marginLeft?: number | "auto"
+  marginRight?: number | "auto"
+  marginX?: number | "auto"
+  marginY?: number | "auto"
   gap?: number
   columnGap?: number
   rowGap?: number

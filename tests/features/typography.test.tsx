@@ -458,13 +458,28 @@ describe("HR", () => {
     expect(cell.fg).not.toBeNull()
   })
 
-  test("fills available width with ─", () => {
-    const narrowRender = createRenderer({ cols: 20, rows: 5 })
+  /**
+   * HR is INSET, not full-bleed (@km/tui/22744): it renders at
+   * `min(container * 0.67, 60)`, so asserting every column is a rule character
+   * pins the pre-22744 behaviour and fails by design. This asserts the property
+   * instead — the rule starts at the left edge, is continuous, and stops SHORT
+   * of the container — which survives any retune of the inset fraction.
+   */
+  test("draws a continuous rule that is inset from the container", () => {
+    const cols = 20
+    const narrowRender = createRenderer({ cols, rows: 5 })
     const app = narrowRender(<HR />)
-    // Most columns should be ─ (last may be ellipsis from wrap="truncate")
-    for (let x = 0; x < 19; x++) {
-      expect(app.term.buffer.getCell(x, 0).char).toBe("─")
-    }
+
+    const row = Array.from({ length: cols }, (_, x) => app.term.buffer.getCell(x, 0).char)
+    const ruleLength = row.findIndex((ch) => ch !== "─")
+
+    // Non-empty and continuous from column 0 — no gaps, no leading blank.
+    expect(ruleLength).toBeGreaterThan(0)
+    // Inset: it must not reach the container edge, which is the whole point.
+    expect(ruleLength).toBeLessThan(cols)
+    // Everything past the rule is blank, never a truncation ellipsis: a rule
+    // has no content to lose, so an ellipsis would be claiming otherwise.
+    expect(row.slice(ruleLength).every((ch) => ch === " ")).toBe(true)
   })
 })
 

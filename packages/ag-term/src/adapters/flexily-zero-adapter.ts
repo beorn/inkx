@@ -261,6 +261,9 @@ class FlexilyZeroNodeAdapter implements LayoutNode {
   setMargin(edge: number, value: number): void {
     this.node.setMargin(edge, value)
   }
+  setMarginAuto(edge: number): void {
+    this.node.setMarginAuto(edge)
+  }
   setBorder(edge: number, value: number): void {
     this.node.setBorder(edge, value)
   }

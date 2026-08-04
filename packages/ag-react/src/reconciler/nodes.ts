@@ -1129,18 +1129,31 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
  */
 function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props: BoxProps): void {
   const c = getConstants()
-  const set =
+  // `"auto"` is margin-only, and must reach the engine's dedicated auto path —
+  // passing the string through setMargin produces NaN and collapses the row.
+  // Padding keeps the numeric setter, because CSS has no auto padding.
+  const set: (edge: number, value: number | "auto") => void =
     type === "padding"
-      ? layoutNode.setPadding.bind(layoutNode)
-      : layoutNode.setMargin.bind(layoutNode)
+      ? (edge, value): void => {
+          // CSS has no auto padding and BoxProps types padding as `number`, so
+          // this is unreachable by construction. Throw rather than coerce: a
+          // silent 0 would turn a caller's type error into a layout mystery.
+          if (value === "auto") throw new Error('padding does not accept "auto" (CSS has no auto padding)')
+          layoutNode.setPadding(edge, value)
+        }
+      : (edge, value): void => {
+          if (value === "auto") layoutNode.setMarginAuto(edge)
+          else layoutNode.setMargin(edge, value)
+        }
 
-  const all = props[type] as number | undefined
-  const x = props[`${type}X` as keyof BoxProps] as number | undefined
-  const yy = props[`${type}Y` as keyof BoxProps] as number | undefined
-  const top = props[`${type}Top` as keyof BoxProps] as number | undefined
-  const bottom = props[`${type}Bottom` as keyof BoxProps] as number | undefined
-  const left = props[`${type}Left` as keyof BoxProps] as number | undefined
-  const right = props[`${type}Right` as keyof BoxProps] as number | undefined
+  type Spacing = number | "auto" | undefined
+  const all = props[type] as Spacing
+  const x = props[`${type}X` as keyof BoxProps] as Spacing
+  const yy = props[`${type}Y` as keyof BoxProps] as Spacing
+  const top = props[`${type}Top` as keyof BoxProps] as Spacing
+  const bottom = props[`${type}Bottom` as keyof BoxProps] as Spacing
+  const left = props[`${type}Left` as keyof BoxProps] as Spacing
+  const right = props[`${type}Right` as keyof BoxProps] as Spacing
 
   // Compute effective value per edge, resolving CSS-like specificity cascade:
   // individual > axis (X/Y) > all > 0

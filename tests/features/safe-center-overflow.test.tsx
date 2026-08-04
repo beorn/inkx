@@ -61,7 +61,7 @@ describe("@si/content/22774 — overflow must not be centred", () => {
     expect(line.includes("abcde") && line.includes("56789")).toBe(false)
   })
 
-  test.fails("GAP: auto margins would keep the HEAD, but BoxProps rejects \"auto\"", () => {
+  test("auto margins keep the HEAD when the item overflows", () => {
     const line = render({ marginLeft: "auto", marginRight: "auto" })
 
     // `safe center` semantics: negative free space resolves auto margins to
@@ -71,12 +71,20 @@ describe("@si/content/22774 — overflow must not be centred", () => {
     expect(line).toContain("abcde")
   })
 
-  test.fails("GAP: auto margins would still CENTRE when the item fits (15652)", () => {
+  /**
+   * NOTE, found the hard way: the inner Box needs an explicit `width` here.
+   * A content-sized Box with auto side margins does NOT centre — it stretches
+   * to fill the cross axis, so there is no free space for the auto margins to
+   * absorb and the content stays flush left. That is a sizing question, not an
+   * alignment one, and it is why this case pins a width while the overflow
+   * case above does not need to.
+   */
+  test("auto margins still CENTRE when the item fits — 15652 must survive", () => {
     const short = "xy"
     const renderer = createRenderer({ cols: CONTAINER, rows: 4 })
     const app = renderer(
       <Box width={CONTAINER} flexDirection="column">
-        <Box marginLeft="auto" marginRight="auto">
+        <Box width={2} marginLeft="auto" marginRight="auto">
           <Text wrap={false}>{short}</Text>
         </Box>
       </Box>,

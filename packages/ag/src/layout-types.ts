@@ -109,6 +109,8 @@ export interface LayoutNode {
   // Spacing
   setPadding(edge: number, value: number): void
   setMargin(edge: number, value: number): void
+  /** CSS `margin: auto` — absorbs positive free space, resolves to 0 when negative. */
+  setMarginAuto(edge: number): void
   setBorder(edge: number, value: number): void
   setGap(gutter: number, value: number): void
 

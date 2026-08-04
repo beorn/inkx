@@ -225,6 +225,10 @@ class YogaNodeAdapter implements LayoutNode {
     // LayoutEngine uses plain numbers; Yoga uses branded Edge type
     this.node.setMargin(edge as Edge, value)
   }
+  setMarginAuto(edge: number): void {
+    // LayoutEngine uses plain numbers; Yoga uses branded Edge type
+    this.node.setMarginAuto(edge as Edge)
+  }
   setBorder(edge: number, value: number): void {
     // LayoutEngine uses plain numbers; Yoga uses branded Edge type
     this.node.setBorder(edge as Edge, value)
