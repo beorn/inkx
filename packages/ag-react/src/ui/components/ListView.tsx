@@ -2469,7 +2469,6 @@ function ListViewInner<T>(
         if (!query) return []
         const currentItems = itemsRef.current
         const currentGetText = getTextRef.current
-        const lowerQuery = query.toLowerCase()
         const matches: SearchMatch[] = []
         let row = 0
         for (let i = 0; i < currentItems.length; i++) {
@@ -2478,13 +2477,12 @@ function ListViewInner<T>(
           const lines = text.split("\n")
           for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
             const line = lines[lineIdx]!
-            const lowerLine = line.toLowerCase()
-            let col = 0
-            while (col < lowerLine.length) {
-              const found = lowerLine.indexOf(lowerQuery, col)
-              if (found === -1) break
-              matches.push({ row: row + lineIdx, startCol: found, endCol: found + query.length })
-              col = found + 1
+            for (const range of computeMatchRanges(line, query)) {
+              matches.push({
+                row: row + lineIdx,
+                startCol: range.start,
+                endCol: range.end,
+              })
             }
           }
           row += lines.length
