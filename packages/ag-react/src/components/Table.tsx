@@ -53,6 +53,15 @@ type TableImplementationProps<T> = Omit<TableProps<T>, "frame"> & {
   presentation: TablePresentation
 }
 
+export function Table<T>({ frame = false, ...props }: TableProps<T>): React.ReactElement {
+  return <TableImplementation {...props} presentation={frame ? "framed" : "plain"} />
+}
+
+/** @internal Document chrome for Content.Table; intentionally not re-exported from the package API. */
+export function DocumentTable<T>(props: Omit<TableProps<T>, "frame">): React.ReactElement {
+  return <TableImplementation {...props} presentation="document" />
+}
+
 type Track = Readonly<{
   basis: number
   fixed: boolean
@@ -283,13 +292,4 @@ function TableImplementation<T>({
       )}
     </Box>
   )
-}
-
-export function Table<T>({ frame = false, ...props }: TableProps<T>): React.ReactElement {
-  return <TableImplementation {...props} presentation={frame ? "framed" : "plain"} />
-}
-
-/** @internal Document chrome for Content.Table; intentionally not re-exported from the package API. */
-export function DocumentTable<T>(props: Omit<TableProps<T>, "frame">): React.ReactElement {
-  return <TableImplementation {...props} presentation="document" />
 }
