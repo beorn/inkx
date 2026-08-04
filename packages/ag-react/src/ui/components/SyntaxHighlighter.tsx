@@ -12,6 +12,8 @@ export interface SyntaxHighlighterProps {
   bare?: boolean
   backgroundColor?: string
   bold?: boolean
+  /** Reports each semantic source line at its measured visual y origin. */
+  onLineLayout?: (lineIndex: number, y: number) => void
 }
 
 function useSyntaxTokens(code: string, language: string, theme: string): TokenLine[] {
@@ -21,9 +23,7 @@ function useSyntaxTokens(code: string, language: string, theme: string): TokenLi
 
   useEffect(() => {
     let cancelled = false
-    void highlight(code, language, theme).then((result) => {
-      if (!cancelled) setLines(result)
-    })
+    void highlight(code, language, theme).then((result) => (cancelled ? undefined : setLines(result)))
     return () => {
       cancelled = true
     }
@@ -44,25 +44,33 @@ export function SyntaxHighlighter({
   bare = false,
   backgroundColor,
   bold: forceBold = false,
+  onLineLayout,
 }: SyntaxHighlighterProps): ReactElement {
   const lang = (language || "plain").toLowerCase()
   const hover = useHover()
   const lines = useSyntaxTokens(code, lang, theme)
   const lineWrap = isDiffLanguage(lang) ? "truncate" : "hard"
   const body = lines.map((line, lineIndex) => (
-    <Text key={lineIndex} wrap={lineWrap} backgroundColor={backgroundColor}>
-      {line.tokens.map((token, tokenIndex) => (
-        <Text
-          key={tokenIndex}
-          color={token.color}
-          bold={forceBold || token.bold}
-          italic={token.italic}
-          backgroundColor={backgroundColor}
-        >
-          {token.text}
-        </Text>
-      ))}
-    </Text>
+    <Box
+      key={lineIndex}
+      minWidth={0}
+      flexDirection="row"
+      onLayout={onLineLayout ? (rect) => onLineLayout(lineIndex, rect.y) : undefined}
+    >
+      <Text wrap={lineWrap} backgroundColor={backgroundColor}>
+        {line.tokens.map((token, tokenIndex) => (
+          <Text
+            key={tokenIndex}
+            color={token.color}
+            bold={forceBold || token.bold}
+            italic={token.italic}
+            backgroundColor={backgroundColor}
+          >
+            {token.text}
+          </Text>
+        ))}
+      </Text>
+    </Box>
   ))
 
   if (bare) return <Box flexDirection="column">{body}</Box>

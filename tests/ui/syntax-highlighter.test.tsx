@@ -20,4 +20,23 @@ describe("SyntaxHighlighter", () => {
       { timeout: 5_000 },
     )
   })
+
+  test("reports each semantic source line at its measured visual origin", async () => {
+    const lineOrigins = new Map<number, number>()
+    const render = createRenderer({ cols: 20, rows: 8, autoRender: true })
+
+    render(
+      <SyntaxHighlighter
+        language="typescript"
+        code={`${"x".repeat(48)}\nconst second = true`}
+        bare
+        onLineLayout={(lineIndex, y) => lineOrigins.set(lineIndex, y)}
+      />,
+    )
+
+    await vi.waitFor(() => {
+      expect(lineOrigins.get(0)).toBe(0)
+      expect(lineOrigins.get(1)).toBeGreaterThan(lineOrigins.get(0) ?? 0)
+    })
+  })
 })
