@@ -10,7 +10,7 @@
 import React, { useRef } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Text } from "../../src/index.js"
+import { Box, DocumentView, ScrollArea, Text, useScrollController } from "../../src/index.js"
 import { SearchProvider, useSearch } from "../../packages/ag-react/src/providers/SearchProvider"
 import type {
   Searchable,
@@ -41,6 +41,60 @@ const flush = () => new Promise<void>((r) => setTimeout(r, 10))
 // ============================================================================
 
 describe("SearchProvider", () => {
+  test("DocumentView registers semantic text and reveals the measured matching block", async () => {
+    const blocks = Array.from({ length: 18 }, (_, index) => ({
+      id: `block-${index}`,
+      kind: "paragraph" as const,
+      content: index === 15 ? "the unique needle" : `ordinary row ${index}`,
+    }))
+    let ctx: SearchContextValue | null = null
+    let observedOffset = 0
+
+    function Inspector() {
+      ctx = useSearch()
+      return null
+    }
+
+    function SearchableDocument() {
+      const controller = useScrollController()
+      observedOffset = controller.scrollOffset
+      return (
+        <Box width={40} height={6} flexDirection="column">
+          <ScrollArea controller={controller}>
+            <DocumentView
+              blocks={blocks}
+              search={{
+                id: "document",
+                getText: (block) => String("content" in block ? block.content : ""),
+                scrollController: controller,
+              }}
+            />
+          </ScrollArea>
+        </Box>
+      )
+    }
+
+    const render = createRenderer({ cols: 40, rows: 6, autoRender: true })
+    const app = render(
+      <SearchProvider>
+        <Inspector />
+        <SearchableDocument />
+      </SearchProvider>,
+    )
+
+    ctx!.open()
+    for (const char of "needle") ctx!.input(char)
+
+    await vi.waitFor(() => {
+      expect(ctx!.matches).toHaveLength(1)
+      expect(observedOffset).toBeGreaterThan(0)
+      const props = app.getByTestId("block-15").first().resolve()?.props as
+        | Record<string, unknown>
+        | undefined
+      expect(props?.["data-cursor"]).toBe(true)
+    })
+  })
+
   test("provides default inactive state", () => {
     function Inspector() {
       const search = useSearch()

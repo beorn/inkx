@@ -691,26 +691,6 @@ export {
 export { extractHtml } from "./extract-html"
 
 // =============================================================================
-// Find (re-exported from @silvery/headless)
-// =============================================================================
-
-export {
-  findUpdate,
-  createFindState,
-  searchBuffer,
-  type FindState,
-  type FindMatch,
-  type FindResult,
-  type FindProvider,
-  type FindAction,
-  type FindEffect,
-} from "@silvery/headless/find"
-
-// FindFeature service
-export { createFindFeature } from "./find-feature"
-export type { FindFeature, FindFeatureOptions } from "./find-feature"
-
-// =============================================================================
 // Copy Mode (re-exported from @silvery/headless)
 // =============================================================================
 

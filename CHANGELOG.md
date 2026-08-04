@@ -617,7 +617,7 @@ at construction. Token resolution simplifies to a direct-lookup path.
 - **Long-lived `Ag` renderer in `createApp`** — reuse Ag instance across frames instead of creating per-render. Combined with dirty node SET optimization for O(1) layout-dirty checks.
 - **Dirty node SET + propsEqual collapse** — per-node dirty tracking with independent flags, 3-pass prop comparison collapsed into 1 pass. Yields measurable perf win on kanban and memo'd workloads.
 - **Atomicity framing in docs + blog** — docs now explain the three axes of atomicity (time, space, content) that the layout-first pipeline + cell-level diff + DEC mode 2026 enable. See the updated homepage, `silvery-vs-ink.md`, and the forthcoming blog post on Claude Code's rendering dilemma.
-- **Interactions runtime** — selection, find, copy-mode, and drag as composable runtime features (`SelectionFeature`, `FindFeature`, `CopyModeFeature`, `DragFeature`) in `@silvery/ag-term/features/`. Each feature is wired automatically by its provider (`withDomEvents` for selection and drag, `withFocus` for find and copy-mode).
+- **Interactions runtime** — selection, copy-mode, and drag as composable runtime features (`SelectionFeature`, `CopyModeFeature`, `DragFeature`) in `@silvery/ag-term/features/`. Each feature is wired automatically by its provider (`withDomEvents` for selection and drag, `withFocus` for copy-mode).
 - **InputRouter** — centralized input routing in `@silvery/create/internal/` dispatches keyboard and mouse events to registered feature handlers with priority ordering.
 - **CapabilityRegistry** — runtime capability discovery in `@silvery/create/internal/`. Features register themselves; React components access them via `CapabilityRegistryContext`.
 - **`useSelection` hook** — reads selection state from the CapabilityRegistry. Replaces the old `useTerminalSelection` + `TerminalSelectionProvider` pattern.
@@ -653,9 +653,9 @@ at construction. Token resolution simplifies to a direct-lookup path.
 
 ### Breaking Changes
 
-- **Removed hooks** — `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider` are superseded by the feature-based architecture. The old hooks still exist for backwards compatibility but are no longer the recommended API.
+- **Removed hooks** — legacy interaction hooks were superseded by the feature-based architecture; search is now consolidated under `SearchProvider` and `search-overlay`.
 - **Text selection** now activates automatically via `withDomEvents()` — no explicit hook setup required.
-- **Find** now activates automatically via `withFocus()` with `Ctrl+F` — no explicit `useFind` setup required.
+- **Search** is owned by `SearchProvider`; focus composition no longer installs a parallel search feature.
 - **Copy-mode** now activates automatically via `withFocus()` with `Esc, v` — no explicit `useCopyMode` setup required.
 - **Rect hook rename** (see Added): if you use `contentRect` / `renderRect` / `screenRect` names, they've been renamed. See the Layout Coordinates guide for the migration.
 

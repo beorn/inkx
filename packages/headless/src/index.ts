@@ -67,19 +67,6 @@ export {
   type PointerDoubleClickState,
 } from "./pointer"
 
-// Find — visible-buffer search state machine
-export {
-  findUpdate,
-  createFindState,
-  searchBuffer,
-  type FindState,
-  type FindMatch,
-  type FindResult,
-  type FindProvider,
-  type FindAction,
-  type FindEffect,
-} from "./find"
-
 // Copy Mode — keyboard-driven selection state machine
 export {
   copyModeUpdate,

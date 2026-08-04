@@ -1,10 +1,13 @@
-import React from "react"
+import React, { useEffect, useId, useRef } from "react"
+import { computeMatchRanges, type SearchMatch } from "@silvery/ag-term/search-overlay"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Blockquote, CodeBlock, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
 import { Prose } from "./Prose"
 import { Content, type ContentBodyWidth, useHasContentLayout } from "./Content"
 import { StylePriorityProvider } from "../../style-priority"
+import { useSearchOptional } from "../../providers/SearchProvider"
+import type { ScrollController } from "./ScrollArea"
 
 export type DocumentBlockId = string | number
 export type DocumentLane = ContentBodyWidth
@@ -88,12 +91,23 @@ export type DocumentBlock =
   | DocumentTableBlock
   | DocumentExtensionBlock
 
+export interface DocumentViewSearchConfig {
+  /** Stable routing id when more than one searchable is mounted. */
+  readonly id?: string
+  /** Project one semantic block into searchable plain text. */
+  readonly getText: (block: DocumentBlock, index: number) => string
+  /** Measured viewport controller used to reveal the matching block. */
+  readonly scrollController: ScrollController
+}
+
 export interface DocumentViewProps {
   readonly blocks: readonly DocumentBlock[]
   readonly selectedId?: DocumentBlockId | null
   readonly empty?: React.ReactNode
   /** Default lane for blocks without an explicit lane. */
   readonly lane?: DocumentLane
+  /** Register this semantic document with the enclosing SearchProvider. */
+  readonly search?: DocumentViewSearchConfig
 }
 
 interface ResolvedListItem {
@@ -154,6 +168,7 @@ function BlockFrame({
   lane,
   marginTop,
   marginBottom,
+  onLayout,
   children,
 }: {
   block: DocumentBlock
@@ -161,6 +176,7 @@ function BlockFrame({
   lane: DocumentLane
   marginTop?: number
   marginBottom?: number
+  onLayout?: (y: number) => void
   children: React.ReactNode
 }): React.ReactElement {
   return (
@@ -176,6 +192,7 @@ function BlockFrame({
           minWidth={0}
           marginTop={marginTop}
           marginBottom={marginBottom}
+          onLayout={onLayout ? (rect) => onLayout(rect.y) : undefined}
           backgroundColor={selected ? "$bg-selected" : undefined}
           color={selected ? "$fg-on-selected" : undefined}
         >
@@ -197,15 +214,17 @@ function ListItemRow({
   item,
   selected,
   lane,
+  onLayout,
 }: {
   block: DocumentListItemBlock
   item: ResolvedListItem
   selected: boolean
   lane: DocumentLane
+  onLayout?: (y: number) => void
 }): React.ReactElement {
   const color = selected ? "$fg-on-selected" : undefined
   return (
-    <BlockFrame block={block} selected={selected} lane={lane}>
+    <BlockFrame block={block} selected={selected} lane={lane} onLayout={onLayout}>
       <Box
         flexDirection="row"
         width="100%"
@@ -236,8 +255,11 @@ function DocumentBlocks({
   selectedId,
   empty,
   lane,
+  onBlockLayout,
 }: Required<Pick<DocumentViewProps, "blocks" | "lane">> &
-  Pick<DocumentViewProps, "selectedId" | "empty">): React.ReactElement {
+  Pick<DocumentViewProps, "selectedId" | "empty"> & {
+    onBlockLayout?: (id: DocumentBlockId, y: number) => void
+  }): React.ReactElement {
   const resolvedLists = resolveListItems(blocks)
   if (blocks.length === 0) {
     return (
@@ -269,6 +291,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Heading color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
                   {block.content}
@@ -288,6 +311,7 @@ function DocumentBlocks({
                 item={item}
                 selected={selected}
                 lane={blockLane}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               />
             )
           }
@@ -300,6 +324,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <HR />
               </BlockFrame>
@@ -313,6 +338,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Blockquote color={selected ? "$fg-on-selected" : undefined}>
                   {block.content}
@@ -328,6 +354,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <CodeBlock color={selected ? "$fg-on-selected" : undefined}>
                   {block.content}
@@ -343,6 +370,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Content.Table
                   headers={[...block.headers]}
@@ -361,6 +389,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Text color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
                   {block.content}
@@ -384,10 +413,62 @@ export function DocumentView({
   selectedId = null,
   empty,
   lane = "prose",
+  search,
 }: DocumentViewProps): React.ReactElement {
   const hasContentLayout = useHasContentLayout()
+  const searchContext = useSearchOptional()
+  const autoSearchId = useId()
+  const searchId = search?.id ?? autoSearchId
+  const registerSearchable = searchContext?.registerSearchable
+  const searchEnabled = search !== undefined
+  const blocksRef = useRef(blocks)
+  const searchRef = useRef(search)
+  const rowOffsetsRef = useRef(new Map<DocumentBlockId, number>())
+  blocksRef.current = blocks
+  searchRef.current = search
+
+  useEffect(() => {
+    if (!searchEnabled || !registerSearchable) return
+    return registerSearchable(searchId, {
+      search(query: string): SearchMatch[] {
+        const currentSearch = searchRef.current
+        if (!currentSearch || query === "") return []
+        return blocksRef.current.flatMap((block, row) =>
+          computeMatchRanges(currentSearch.getText(block, row), query).map((range) => ({
+            row,
+            startCol: range.start,
+            endCol: range.end,
+          })),
+        )
+      },
+      reveal(match: SearchMatch): void {
+        const currentBlocks = blocksRef.current
+        const block = currentBlocks[match.row]
+        const first = currentBlocks[0]
+        const currentSearch = searchRef.current
+        if (!block || !first || !currentSearch) return
+        const y = rowOffsetsRef.current.get(block.id)
+        const firstY = rowOffsetsRef.current.get(first.id)
+        if (y === undefined || firstY === undefined) return
+        currentSearch.scrollController.setScrollOffset(Math.max(0, y - firstY))
+      },
+    })
+  }, [registerSearchable, searchEnabled, searchId])
+
+  const currentSearchMatch =
+    searchContext && searchContext.currentMatch >= 0
+      ? searchContext.matches[searchContext.currentMatch]
+      : undefined
+  const searchSelectedId =
+    search && currentSearchMatch ? blocks[currentSearchMatch.row]?.id : undefined
   const document = (
-    <DocumentBlocks blocks={blocks} selectedId={selectedId} empty={empty} lane={lane} />
+    <DocumentBlocks
+      blocks={blocks}
+      selectedId={searchSelectedId ?? selectedId}
+      empty={empty}
+      lane={lane}
+      onBlockLayout={(id, y) => rowOffsetsRef.current.set(id, y)}
+    />
   )
   if (hasContentLayout) return document
   return <Content.Layout fill={false}>{document}</Content.Layout>

@@ -324,6 +324,7 @@ export type {
   DocumentQuoteBlock,
   DocumentRuleBlock,
   DocumentTableBlock,
+  DocumentViewSearchConfig,
   DocumentViewProps,
 } from "./ui/components"
 
@@ -793,13 +794,12 @@ export type { ListItemContext } from "./hooks/useListItem"
 export { useInteractiveState } from "./hooks/useInteractiveState"
 export { useSelection } from "./hooks/useSelection"
 export { useSelectionActions, type SelectionActions } from "./hooks/useSelectionActions"
-export { useFindState } from "./hooks/useFindState"
 export { useCopyModeState } from "./hooks/useCopyModeState"
 export { useDragState } from "./hooks/useDragState"
 
 // App-level Providers (Phase 4)
 export { SearchProvider, useSearch, useSearchOptional } from "./providers/SearchProvider"
-export type { Searchable, SearchContextValue } from "./providers/SearchProvider"
+export type { Searchable, SearchContextValue, SearchProviderProps } from "./providers/SearchProvider"
 export { SearchBar } from "./ui/components"
 
 // Match-range utility + type — used by consumers that render multi-segment

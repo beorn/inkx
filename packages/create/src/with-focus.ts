@@ -7,14 +7,13 @@
  * ## 1. `withFocus(options)` — test-harness plugin (ag-term)
  *
  * Wraps the {@link App} returned by `createApp(...)` with focus
- * navigation (Tab / Shift+Tab / Escape) and optional features such as
- * keyboard copy-mode (`Esc+v`) and Ctrl+F find. Attaches
- * `app.focusManager`, `app.copyModeFeature`, `app.find`.
+ * navigation (Tab / Shift+Tab / Escape) and optional keyboard copy-mode
+ * (`Esc+v`). Attaches `app.focusManager` and `app.copyModeFeature`.
  *
  * This is what you compose in test / harness code:
  *
  * ```tsx
- * const app = pipe(baseApp, withFocus({ copyMode: true, find: true }))
+ * const app = pipe(baseApp, withFocus({ copyMode: true }))
  * await app.press("Tab")
  * ```
  *

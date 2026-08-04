@@ -1,206 +1,95 @@
-# Find
+# Search
 
-Silvery provides text search at two levels: buffer-level search for visible content, and FindProvider for virtual lists where off-screen items need model-level search.
+Silvery has one search state machine: `search-overlay`. React applications use it through
+`SearchProvider`; searchable views register their semantic data and reveal matches through their
+own measured scroll surface. Search is therefore not limited to the currently painted terminal
+buffer and works for virtualized or off-screen content.
 
-## How It's Activated
+## ListView
 
-Find (`Ctrl+F`) ships as part of the shipped `render(...).run()` runtime — no plugin wiring needed today. Just render your app:
+Wrap the searchable surface and `SearchBar` in one provider, then enable `ListView` search with a
+plain-text projection:
 
 ```tsx
-import { render, Box, Text } from "silvery"
+import { ListView, SearchBar, SearchProvider } from "@silvery/ag-react"
 
-function App() {
+function Files({ files }) {
   return (
-    <Box>
-      <Text>Lots of text to search through…</Text>
-    </Box>
-  )
-}
-
-await render(<App />).run()
-```
-
-Press `Ctrl+F` to open the find bar, type a query, use `n`/`N` to navigate matches, `Enter` to select the current match, and `Esc` to close.
-
-The `useFind` hook is available for custom find UIs (see below).
-
-::: tip Coming soon
-A future Silvertea release (`@silvery/create`) will expose Find as a composable `withFocus()` plugin so app authors can opt in/out per app. Until then, it's bundled into `render().run()`.
-:::
-
-## Buffer-Level Find
-
-Search the rendered terminal buffer for text matches. Matches are highlighted in the output using style composition — the same pipeline as selection highlights.
-
-### Legacy useFind Hook
-
-The `useFind` hook provides programmatic access to find state for custom find UIs:
-
-```tsx
-import { useFind } from "silvery"
-
-function App() {
-  const { findState, search, next, prev, close, selectCurrent } = useFind({
-    onScrollTo(row) {
-      // Scroll to make the match visible
-    },
-    onSetSelection(match) {
-      // Set selection to the matched range
-    },
-  })
-
-  // Open find with a query
-  search("hello", buffer)
-
-  // Navigate matches
-  next() // go to next match
-  prev() // go to previous match
-
-  // Select current match (for copying)
-  selectCurrent()
-
-  // Close find mode
-  close()
-}
-```
-
-### FindState
-
-```typescript
-interface FindState {
-  query: string | null // current search query
-  matches: FindMatch[] // all matches in the buffer
-  currentIndex: number // index of the focused match
-  active: boolean // whether find mode is open
-}
-
-interface FindMatch {
-  row: number
-  startCol: number
-  endCol: number
-}
-```
-
-### Workflow
-
-```
-Ctrl+F → open find bar
-       → type query → matches highlighted in buffer
-       → n/N navigate between matches (auto-scroll)
-       → Enter → set selection to current match
-       → Esc → clear find, close bar
-```
-
-### Style Precedence
-
-When both selection and find are active on the same cell:
-
-- **Selection wins** — it's the user's explicit action
-- Find matches outside the selection use the find highlight style
-- Find matches inside the selection use the selection style
-
-## Buffer Search Function
-
-For programmatic buffer search without the hook:
-
-```typescript
-import { searchBuffer } from "@silvery/ag-term"
-
-const matches = searchBuffer(buffer, "hello")
-// Returns FindMatch[] — row, startCol, endCol for each match
-```
-
-This searches the visible terminal buffer cells for text matches. It handles wide characters and grapheme clusters correctly.
-
-## FindProvider for Virtual Lists
-
-Virtual lists only render visible items — off-screen content is not in the buffer. For full-content search, register a `FindProvider` that searches your data model.
-
-### FindProvider Interface
-
-```typescript
-interface FindProvider {
-  /** Search the full model for matches */
-  search(query: string): FindResult[] | Promise<FindResult[]>
-
-  /** Scroll to make a result visible on screen */
-  reveal(result: FindResult): void | Promise<void>
-
-  /** Optional: return total count for "N of M" display */
-  totalCount?(query: string): number | Promise<number>
-}
-
-interface FindResult {
-  itemId: string // virtual list item identifier
-  offset: number // character offset within item text
-  length: number // match length
-}
-```
-
-### Integration
-
-```tsx
-import { SearchProvider } from "silvery"
-
-function VirtualListApp({ items }) {
-  const findProvider: FindProvider = {
-    search(query) {
-      // Search all items, not just visible ones
-      return items.flatMap((item, i) => {
-        const idx = item.text.indexOf(query)
-        if (idx === -1) return []
-        return [{ itemId: item.id, offset: idx, length: query.length }]
-      })
-    },
-
-    reveal(result) {
-      // Scroll the list to show this item
-      scrollToItem(result.itemId)
-    },
-
-    totalCount(query) {
-      return items.filter((i) => i.text.includes(query)).length
-    },
-  }
-
-  return (
-    <SearchProvider value={findProvider}>
+    <SearchProvider>
       <ListView
-        items={items}
-        getKey={(item) => item.id}
-        renderItem={(item) => <Text>{item.text}</Text>}
+        items={files}
+        search={{ getText: (file) => file.name }}
+        renderItem={(file) => file.name}
       />
+      <SearchBar />
     </SearchProvider>
   )
 }
 ```
 
-### How It Works
+`Ctrl+F` opens search by default. While the bar is active, typing updates the query, `Enter` moves
+to the next match, `Shift+Enter` moves to the previous match, and `Escape` closes the bar while
+retaining results. Hosts with less/vim bindings can call `useSearch().open()`, `.next()`, and
+`.prev()` from `/`, `n`, and `N`. Set `openOnCtrlF={false}` when the host reserves `Ctrl+F` for a
+different command.
 
-1. User types a query in the find bar
-2. Silvery calls `provider.search(query)` to get all matches
-3. User presses `n` — Silvery calls `provider.reveal(nextResult)`
-4. Provider scrolls the list to make the item visible
-5. Once the item is on screen, Silvery highlights the match in the buffer
+## DocumentView
 
-This two-phase approach (model search → reveal → buffer highlight) means the framework handles the visual layer while the app handles the data layer.
+`DocumentView` searches semantic blocks and reveals the matching block from measured layout
+offsets:
 
-### Find Scope
+```tsx
+const controller = useScrollController()
 
-- **Global**: Default — searches all visible buffer content
-- **Within contain boundary**: A find bar inside a `userSelect="contain"` scope searches only that scope
-- **Virtual list**: FindProvider searches the full data model, not just visible items
+<SearchProvider>
+  <ScrollArea controller={controller}>
+    <DocumentView
+      blocks={blocks}
+      search={{
+        scrollController: controller,
+        getText: (block) => plainTextFor(block),
+      }}
+    />
+  </ScrollArea>
+  <SearchBar />
+</SearchProvider>
+```
 
-## Selection Integration
+Adapters such as `KNodeDocumentView` provide the semantic text projection, so applications do not
+need to parse rendered React children or terminal cells.
 
-Find and selection work together:
+## Custom searchable surfaces
 
-- **Enter** on a find match sets the selection to that match
-- The selected match can then be copied with `y` or your app's copy command
-- Selection and find highlights compose via the same style composition pipeline
+Use `registerSearchable()` for a surface that is neither a `ListView` nor a `DocumentView`:
 
-## See Also
+```tsx
+const search = useSearch()
 
-- [Text Selection](/guide/text-selection) — userSelect prop, mouse selection, copy-mode
-- [Clipboard](/guide/clipboard) — clipboard backends, semantic copy, paste handling
-- [Scrolling](/guide/scrolling) — scroll containers, virtual lists
+useEffect(
+  () =>
+    search.registerSearchable("timeline", {
+      search(query) {
+        return rows.flatMap((row, index) =>
+          computeMatchRanges(row.text, query).map((range) => ({
+            row: index,
+            startCol: range.start,
+            endCol: range.end,
+          })),
+        )
+      },
+      reveal(match) {
+        scrollToRow(match.row)
+      },
+    }),
+  [search.registerSearchable, rows],
+)
+```
+
+Always use `computeMatchRanges` from `@silvery/ag-term/search-overlay`; it is the canonical
+case-insensitive, overlap-preserving matcher shared by the provider integrations.
+
+## See also
+
+- [ListView](/components/list-view)
+- [Scrolling](/guide/scrolling)
+- [Text selection](/guide/text-selection)

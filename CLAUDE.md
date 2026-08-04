@@ -201,7 +201,7 @@ const app = pipe(
   createApp(store), // base app with zustand store
   withReact(<Board />), // React reconciler
   withTerminal(process), // terminal I/O (alt screen, raw mode, resize)
-  withFocus(), // Tab/Escape focus + Find (Ctrl+F) + CopyMode (Esc,v)
+  withFocus(), // Tab/Escape focus + CopyMode (Esc,v)
   withDomEvents(), // mouse dispatch + drag
 )
 await app.run()
@@ -727,7 +727,6 @@ Interactive features (selection, find, copy-mode, drag) are implemented as runti
 | ------------------ | ----------------- | ----------------------- | ---------------- |
 | `SelectionFeature` | `createApp.run()` | mouse drag              | `useSelection()` |
 | `DragFeature`      | `withDomEvents()` | mouse drag on draggable | —                |
-| `FindFeature`      | `withFocus()`     | `Ctrl+F`                | —                |
 | `CopyModeFeature`  | `withFocus()`     | `Esc, v`                | —                |
 
 Selection is handled by create-app's inline event loop and exposed via a bridge `SelectionFeature` registered in the capability registry. The `useSelection()` hook reads from this bridge — no provider wrapper needed. Copy-mode (`withFocus`) accesses the same bridge to drive keyboard selection.

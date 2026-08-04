@@ -37,7 +37,7 @@ function SelectionIndicator() {
 Returns `TerminalSelectionState | undefined` — `undefined` when no selection feature is registered.
 
 ::: info Legacy hooks
-The following hooks are superseded by the feature-based architecture but still exist for backwards compatibility: `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider`. New code should use `useSelection()` and the capabilities installed by the shipped `run()` runtime.
+Legacy search hooks are no longer part of the public surface; use `SearchProvider`, `useSearch()`, and a registered semantic searchable. Other superseded interaction hooks remain compatibility-only. New selection code should use `useSelection()` and the capabilities installed by the shipped `run()` runtime.
 :::
 
 ## useBoxRect

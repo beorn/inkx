@@ -250,6 +250,7 @@ export type {
   DocumentQuoteBlock,
   DocumentRuleBlock,
   DocumentTableBlock,
+  DocumentViewSearchConfig,
   DocumentViewProps,
 } from "./components/DocumentView"
 

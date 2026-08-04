@@ -31,10 +31,6 @@
         "types": "./dist/copy-mode.d.mts",
         "import": "./dist/copy-mode.mjs"
       },
-      "./find": {
-        "types": "./dist/find.d.mts",
-        "import": "./dist/find.mjs"
-      },
       "./machine": {
         "types": "./dist/machine.d.mts",
         "import": "./dist/machine.mjs"
