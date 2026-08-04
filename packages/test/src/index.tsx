@@ -177,7 +177,16 @@ import { preloadStrictTerminalBackends } from "@silvery/ag-term/strict-terminal-
 import { warnOnce } from "@silvery/ansi"
 import { createGhosttyBackend } from "@termless/ghostty"
 import { createGhosttyNativeBackend } from "@termless/ghostty-native"
-import { createXtermBackend } from "@termless/xtermjs"
+import { createXtermBackend } from "@termless/xtermjs" // REFERENCE-ONLY — see below; do not remove
+// ┌─ WHY @termless/xtermjs IS HERE, for anyone sweeping xterm references ─────────┐
+// │ This is NOT a production xterm dependency and NOT a leftover. createTermless  │
+// │ IS silvery's ANSI-fidelity harness, and xterm.js is the differential          │
+// │ REFERENCE it measures against — including the STRICT terminal cross-check.    │
+// │ Deleting it does not retire xterm; it deletes the oracle that proves vterm    │
+// │ correct, and every backend divergence becomes undetectable.                   │
+// │ Production shell guest = vterm (@si/vterm/21016). Reference = xterm. Both     │
+// │ are load-bearing, for different reasons. @pm/22783 Track 2, class 2.          │
+// └──────────────────────────────────────────────────────────────────────────────┘
 
 // Preload the @termless emulator backends into ag-term's strict-verify cache so
 // the SYNCHRONOUS SILVERY_STRICT_TERMINAL / cursor verifiers (output-verify.ts,
