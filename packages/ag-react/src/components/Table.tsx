@@ -43,8 +43,14 @@ export type TableProps<T> = {
   frame?: boolean
   /** Body-cell overflow behavior (default truncate). */
   cellWrap?: TextProps["wrap"]
-  /** Draw rules between framed body rows. */
+  /** Draw rules between direct body rows. */
   rowSeparators?: boolean
+}
+
+type TablePresentation = "plain" | "framed" | "document"
+
+type TableImplementationProps<T> = Omit<TableProps<T>, "frame"> & {
+  presentation: TablePresentation
 }
 
 type Track = Readonly<{
@@ -74,10 +80,10 @@ function computeTracks<T>(
   columns: readonly Column<T>[],
   data: readonly T[],
   padding: number,
-  frame: boolean,
+  columnSeparators: boolean,
 ): Track[] {
   return columns.map((column, columnIndex) => {
-    const separatorWidth = frame && columnIndex > 0 ? 1 : 0
+    const separatorWidth = columnSeparators && columnIndex > 0 ? 1 : 0
     if (column.width !== undefined) {
       return { basis: column.width + separatorWidth, fixed: true }
     }
@@ -108,23 +114,26 @@ function TableRule({ color }: { color: string }): React.ReactElement {
   )
 }
 
-export function Table<T>({
+function TableImplementation<T>({
   data,
   columns,
   headerColor = "$fg-accent",
   showHeader = true,
   padding = 2,
-  frame = false,
   cellWrap = "truncate",
   rowSeparators = false,
-}: TableProps<T>): React.ReactElement {
+  presentation,
+}: TableImplementationProps<T>): React.ReactElement {
+  const directRows = presentation !== "plain"
+  const framed = presentation === "framed"
   const tracks = useMemo(
-    () => computeTracks(columns, data, padding, frame),
-    [columns, data, frame, padding],
+    () => computeTracks(columns, data, padding, framed),
+    [columns, data, framed, padding],
   )
   const borderColor = "$border"
-  const leftPadding = frame ? Math.floor(padding / 2) : 0
-  const rightPadding = frame ? padding - leftPadding : padding
+  const ruleColor = presentation === "document" ? "$border-muted" : borderColor
+  const leftPadding = directRows ? Math.floor(padding / 2) : 0
+  const rightPadding = directRows ? padding - leftPadding : padding
 
   const trackProps = (column: Column<T>, track: Track) => {
     const canShrink = column.shrink ?? column.grow ?? false
@@ -149,7 +158,7 @@ export function Table<T>({
   }
 
   const cellBorderProps = (columnIndex: number) =>
-    frame && columnIndex > 0
+    framed && columnIndex > 0
       ? {
           borderStyle: "single" as const,
           borderColor,
@@ -201,8 +210,8 @@ export function Table<T>({
     <Box
       key={itemIndex}
       flexDirection="row"
-      width={frame ? undefined : "100%"}
-      alignSelf={frame ? "stretch" : undefined}
+      width={directRows ? undefined : "100%"}
+      alignSelf={directRows ? "stretch" : undefined}
       minWidth={0}
       overflow="hidden"
     >
@@ -215,8 +224,8 @@ export function Table<T>({
   const header = showHeader ? (
     <Box
       flexDirection="row"
-      width={frame ? undefined : "100%"}
-      alignSelf={frame ? "stretch" : undefined}
+      width={directRows ? undefined : "100%"}
+      alignSelf={directRows ? "stretch" : undefined}
       minWidth={0}
       overflow="hidden"
     >
@@ -238,8 +247,8 @@ export function Table<T>({
     </Box>
   ) : null
 
-  if (frame) {
-    const intrinsicWidth = tracks.reduce((sum, track) => sum + track.basis, 0) + 2
+  if (directRows) {
+    const intrinsicWidth = tracks.reduce((sum, track) => sum + track.basis, 0) + (framed ? 2 : 0)
     return (
       <Box
         data-component="content-table-grid"
@@ -249,15 +258,15 @@ export function Table<T>({
         minWidth={0}
         marginLeft="auto"
         marginRight="auto"
-        borderStyle="single"
-        borderColor={borderColor}
+        borderStyle={framed ? "single" : undefined}
+        borderColor={framed ? borderColor : undefined}
         overflow="hidden"
       >
         {header}
-        {header && data.length > 0 ? <TableRule color={borderColor} /> : null}
+        {header && data.length > 0 ? <TableRule color={ruleColor} /> : null}
         {data.map((item, itemIndex) => (
           <React.Fragment key={itemIndex}>
-            {rowSeparators && itemIndex > 0 ? <TableRule color={borderColor} /> : null}
+            {rowSeparators && itemIndex > 0 ? <TableRule color={ruleColor} /> : null}
             {renderRow(item, itemIndex)}
           </React.Fragment>
         ))}
@@ -274,4 +283,13 @@ export function Table<T>({
       )}
     </Box>
   )
+}
+
+export function Table<T>({ frame = false, ...props }: TableProps<T>): React.ReactElement {
+  return <TableImplementation {...props} presentation={frame ? "framed" : "plain"} />
+}
+
+/** @internal Document chrome for Content.Table; intentionally not re-exported from the package API. */
+export function DocumentTable<T>(props: Omit<TableProps<T>, "frame">): React.ReactElement {
+  return <TableImplementation {...props} presentation="document" />
 }

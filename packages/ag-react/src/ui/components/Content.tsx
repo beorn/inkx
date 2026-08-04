@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { createLogger } from "loggily"
 import { Box } from "../../components/Box"
-import { Table as DataTable, type Column as DataTableColumn } from "../../components/Table"
+import { DocumentTable as DataTable, type Column as DataTableColumn } from "../../components/Table"
 import { Text } from "../../components/Text"
 import { useOnBoxRectCommitted } from "../../hooks/useLayout"
 import { type Breakpoint, DEFAULT_BREAKPOINTS } from "../../hooks/useResponsiveValue"
@@ -853,20 +853,11 @@ function TableGridRoot({
       render: (row) => row[columnIndex] ?? "",
       align: alignments[columnIndex] ?? undefined,
       width: width === undefined ? undefined : width + 2,
-      minWidth: columnIndex === 0 ? 3 : 0,
+      minWidth: 3,
       shrink: true,
     }
   })
-  return (
-    <DataTable
-      columns={columns}
-      data={rows}
-      frame
-      cellWrap="wrap"
-      rowSeparators
-      headerColor="$fg"
-    />
-  )
+  return <DataTable columns={columns} data={rows} cellWrap="wrap" rowSeparators headerColor="$fg" />
 }
 
 function TableBlocksRoot({ headers, rows }: TableProps): React.ReactElement {
