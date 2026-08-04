@@ -5,6 +5,7 @@
  */
 
 import type { DragEventProps } from "./drag-event-types"
+import type { BuiltInBorderStyle } from "./border-presets"
 import type { FocusEventProps } from "./focus-events"
 import type { LayoutNode } from "./layout-types"
 import type { MouseEventProps } from "./mouse-event-types"
@@ -604,15 +605,7 @@ export interface BoxProps
     | "truncate-end"
     | "clip"
     | boolean
-  borderStyle?:
-    | "single"
-    | "double"
-    | "round"
-    | "bold"
-    | "singleDouble"
-    | "doubleSingle"
-    | "classic"
-    | "hairline"
+  borderStyle?: BuiltInBorderStyle
   borderColor?: string
   /** Background color for all border sides (shorthand). Per-side props override this. */
   borderBackgroundColor?: string

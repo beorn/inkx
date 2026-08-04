@@ -27,6 +27,7 @@ import type {
   TextMeasureStyle,
   TextMeasurer,
 } from "../render-adapter"
+import { builtInBorderPreset } from "@silvery/ag"
 
 // ============================================================================
 // Configuration
@@ -54,53 +55,6 @@ const DEFAULT_CONFIG: Required<DOMAdapterConfig> = {
   backgroundColor: "#1e1e1e",
   foregroundColor: "#d4d4d4",
   classPrefix: "silvery",
-}
-
-// ============================================================================
-// Border Characters (same as terminal/canvas for consistency)
-// ============================================================================
-
-const BORDER_CHARS: Record<string, BorderChars> = {
-  single: {
-    topLeft: "┌",
-    topRight: "┐",
-    bottomLeft: "└",
-    bottomRight: "┘",
-    horizontal: "─",
-    vertical: "│",
-  },
-  double: {
-    topLeft: "╔",
-    topRight: "╗",
-    bottomLeft: "╚",
-    bottomRight: "╝",
-    horizontal: "═",
-    vertical: "║",
-  },
-  round: {
-    topLeft: "╭",
-    topRight: "╮",
-    bottomLeft: "╰",
-    bottomRight: "╯",
-    horizontal: "─",
-    vertical: "│",
-  },
-  bold: {
-    topLeft: "┏",
-    topRight: "┓",
-    bottomLeft: "┗",
-    bottomRight: "┛",
-    horizontal: "━",
-    vertical: "┃",
-  },
-  hairline: {
-    topLeft: "▏",
-    topRight: "▏",
-    bottomLeft: "▏",
-    bottomRight: "▏",
-    horizontal: "▔",
-    vertical: "▏",
-  },
 }
 
 // ============================================================================
@@ -422,7 +376,7 @@ export function createDOMAdapter(config: DOMAdapterConfig = {}): RenderAdapter {
     },
 
     getBorderChars(style: string): BorderChars {
-      return BORDER_CHARS[style] ?? BORDER_CHARS.single!
+      return builtInBorderPreset(style)
     },
   }
 }

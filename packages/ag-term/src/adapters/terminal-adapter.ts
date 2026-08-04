@@ -8,6 +8,7 @@
 import { type Color, TerminalBuffer } from "../buffer"
 import { getActiveTheme } from "../pipeline/state"
 import { resolveThemeColor } from "@silvery/ansi"
+import { builtInBorderPreset } from "@silvery/ag"
 import { outputPhase } from "../pipeline/output-phase"
 import type {
   BorderChars,
@@ -19,77 +20,6 @@ import type {
   TextMeasurer,
 } from "../render-adapter"
 import { type Measurer, displayWidth } from "../unicode"
-
-// ============================================================================
-// Border Characters
-// ============================================================================
-
-const BORDER_CHARS: Record<string, BorderChars> = {
-  single: {
-    topLeft: "┌",
-    topRight: "┐",
-    bottomLeft: "└",
-    bottomRight: "┘",
-    horizontal: "─",
-    vertical: "│",
-  },
-  double: {
-    topLeft: "╔",
-    topRight: "╗",
-    bottomLeft: "╚",
-    bottomRight: "╝",
-    horizontal: "═",
-    vertical: "║",
-  },
-  round: {
-    topLeft: "╭",
-    topRight: "╮",
-    bottomLeft: "╰",
-    bottomRight: "╯",
-    horizontal: "─",
-    vertical: "│",
-  },
-  bold: {
-    topLeft: "┏",
-    topRight: "┓",
-    bottomLeft: "┗",
-    bottomRight: "┛",
-    horizontal: "━",
-    vertical: "┃",
-  },
-  singleDouble: {
-    topLeft: "╓",
-    topRight: "╖",
-    bottomLeft: "╙",
-    bottomRight: "╜",
-    horizontal: "─",
-    vertical: "║",
-  },
-  doubleSingle: {
-    topLeft: "╒",
-    topRight: "╕",
-    bottomLeft: "╘",
-    bottomRight: "╛",
-    horizontal: "═",
-    vertical: "│",
-  },
-  classic: {
-    topLeft: "+",
-    topRight: "+",
-    bottomLeft: "+",
-    bottomRight: "+",
-    horizontal: "-",
-    vertical: "|",
-  },
-  hairline: {
-    topLeft: "▏",
-    topRight: "▏",
-    bottomLeft: "▏",
-    bottomRight: "▏",
-    horizontal: "▔",
-    vertical: "▏",
-  },
-}
 
 // ============================================================================
 // Terminal Measurer
@@ -321,6 +251,6 @@ export const terminalAdapter: RenderAdapter = {
   },
 
   getBorderChars(style: string): BorderChars {
-    return BORDER_CHARS[style] ?? BORDER_CHARS.single!
+    return builtInBorderPreset(style)
   },
 }

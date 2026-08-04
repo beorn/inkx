@@ -11,6 +11,8 @@
  */
 
 // Types
+export { BUILT_IN_BORDER_PRESETS, builtInBorderPreset } from "./border-presets"
+export type { BorderPreset, BuiltInBorderStyle } from "./border-presets"
 export { rectEqual } from "./types"
 export type {
   Rect,

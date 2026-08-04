@@ -18,6 +18,7 @@ import type {
 } from "../render-adapter"
 import type { Measurer } from "../unicode"
 import { wrapTextWithMeasurer, stripAnsi } from "../unicode"
+import { builtInBorderPreset } from "@silvery/ag"
 
 // ============================================================================
 // Configuration
@@ -48,53 +49,6 @@ const DEFAULT_CONFIG: Required<CanvasAdapterConfig> = {
   foregroundColor: "#d4d4d4",
   monospace: true,
   dpr: 1,
-}
-
-// ============================================================================
-// Border Characters (same as terminal for consistency)
-// ============================================================================
-
-const BORDER_CHARS: Record<string, BorderChars> = {
-  single: {
-    topLeft: "┌",
-    topRight: "┐",
-    bottomLeft: "└",
-    bottomRight: "┘",
-    horizontal: "─",
-    vertical: "│",
-  },
-  double: {
-    topLeft: "╔",
-    topRight: "╗",
-    bottomLeft: "╚",
-    bottomRight: "╝",
-    horizontal: "═",
-    vertical: "║",
-  },
-  round: {
-    topLeft: "╭",
-    topRight: "╮",
-    bottomLeft: "╰",
-    bottomRight: "╯",
-    horizontal: "─",
-    vertical: "│",
-  },
-  bold: {
-    topLeft: "┏",
-    topRight: "┓",
-    bottomLeft: "┗",
-    bottomRight: "┛",
-    horizontal: "━",
-    vertical: "┃",
-  },
-  hairline: {
-    topLeft: "▏",
-    topRight: "▏",
-    bottomLeft: "▏",
-    bottomRight: "▏",
-    horizontal: "▔",
-    vertical: "▏",
-  },
 }
 
 // ============================================================================
@@ -561,7 +515,7 @@ export function createCanvasAdapter(config: CanvasAdapterConfig = {}): RenderAda
     },
 
     getBorderChars(style: string): BorderChars {
-      return BORDER_CHARS[style] ?? BORDER_CHARS.single!
+      return builtInBorderPreset(style)
     },
   }
 }
