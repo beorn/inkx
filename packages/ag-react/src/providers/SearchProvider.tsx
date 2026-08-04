@@ -99,7 +99,16 @@ const SearchContext = createContext<SearchContextValue | null>(null)
 // Provider
 // ============================================================================
 
-export function SearchProvider({ children }: { children: ReactNode }): ReactElement {
+export interface SearchProviderProps {
+  children: ReactNode
+  /** Whether Ctrl+F opens search. Disable when the host reserves it (for example, less paging). */
+  openOnCtrlF?: boolean
+}
+
+export function SearchProvider({
+  children,
+  openOnCtrlF = true,
+}: SearchProviderProps): ReactElement {
   const [state, setState] = useState<SearchState>(createSearchState)
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -110,7 +119,10 @@ export function SearchProvider({ children }: { children: ReactNode }): ReactElem
     if (!id) {
       // Fall back to the only registered searchable (single-pane apps)
       const entries = searchablesRef.current
-      if (entries.size === 1) return entries.values().next().value!
+      if (entries.size === 1) {
+        const first = entries.values().next()
+        return first.done ? null : first.value
+      }
       return null
     }
     return searchablesRef.current.get(id) ?? null
@@ -288,7 +300,7 @@ export function SearchProvider({ children }: { children: ReactNode }): ReactElem
   return React.createElement(
     SearchContext.Provider,
     { value },
-    React.createElement(SearchBindings, { ctx: value }),
+    React.createElement(SearchBindings, { ctx: value, openOnCtrlF }),
     children,
   )
 }
@@ -297,11 +309,17 @@ export function SearchProvider({ children }: { children: ReactNode }): ReactElem
 // Input Bindings
 // ============================================================================
 
-function SearchBindings({ ctx }: { ctx: SearchContextValue }) {
+function SearchBindings({
+  ctx,
+  openOnCtrlF,
+}: {
+  ctx: SearchContextValue
+  openOnCtrlF: boolean
+}) {
   useInput(
     (input, key) => {
       if (!ctx.isActive) {
-        if (key.ctrl && input === "f") {
+        if (openOnCtrlF && key.ctrl && input === "f") {
           ctx.open()
           return
         }

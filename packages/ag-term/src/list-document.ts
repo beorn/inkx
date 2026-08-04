@@ -7,7 +7,7 @@
  */
 
 import type { HistoryBuffer } from "./history-buffer"
-import type { SearchMatch } from "./search-overlay"
+import { computeMatchRanges, type SearchMatch } from "./search-overlay"
 
 export interface LiveItemBlock {
   key: string | number
@@ -134,7 +134,6 @@ export function createListDocument(
 
     search(query: string): SearchMatch[] {
       if (!query) return []
-      const lowerQuery = query.toLowerCase()
       const matches: SearchMatch[] = []
       const frozen = history.totalRows
 
@@ -142,11 +141,8 @@ export function createListDocument(
       const frozenRowMatches = history.search(query)
       for (const row of frozenRowMatches) {
         const plainRows = history.getPlainTextRows(row, 1)
-        const line = plainRows[0]!.toLowerCase()
-        let pos = line.indexOf(lowerQuery)
-        while (pos !== -1) {
-          matches.push({ row, startCol: pos, endCol: pos + query.length })
-          pos = line.indexOf(lowerQuery, pos + 1)
+        for (const range of computeMatchRanges(plainRows[0] ?? "", query)) {
+          matches.push({ row, startCol: range.start, endCol: range.end })
         }
       }
 
@@ -154,11 +150,12 @@ export function createListDocument(
       let rowOffset = 0
       for (const block of getLiveItems()) {
         for (let i = 0; i < block.plainTextRows.length; i++) {
-          const line = block.plainTextRows[i]!.toLowerCase()
-          let pos = line.indexOf(lowerQuery)
-          while (pos !== -1) {
-            matches.push({ row: frozen + rowOffset + i, startCol: pos, endCol: pos + query.length })
-            pos = line.indexOf(lowerQuery, pos + 1)
+          for (const range of computeMatchRanges(block.plainTextRows[i] ?? "", query)) {
+            matches.push({
+              row: frozen + rowOffset + i,
+              startCol: range.start,
+              endCol: range.end,
+            })
           }
         }
         rowOffset += block.plainTextRows.length

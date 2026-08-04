@@ -4,7 +4,7 @@
 
 ## Apply Chain and Feature Registration
 
-Under the hood, Silvery routes typed input operations through its apply chain. Runtime features such as `SelectionFeature`, `FindFeature`, `CopyModeFeature`, and `DragFeature` publish their observable state through the **CapabilityRegistry**. Mouse-enabled `run()` composition installs the relevant capabilities automatically — applications don't configure the registry directly.
+Under the hood, Silvery routes typed input operations through its apply chain. Runtime features such as `SelectionFeature`, `CopyModeFeature`, and `DragFeature` publish their observable state through the **CapabilityRegistry**. Mouse-enabled `run()` composition installs the relevant capabilities automatically — applications don't configure the registry directly.
 
 The `CapabilityRegistry` also powers React hooks like `useSelection()`, which read feature state without needing provider wrappers.
 

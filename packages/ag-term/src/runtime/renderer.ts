@@ -41,7 +41,12 @@ import {
   FRESH_LAYOUT_STRICT_MIN_TIER,
 } from "../pipeline"
 import { emitRenderDispatched, isRenderTraceEnabled } from "./render-trace"
-import { createSearchState, renderSearchBarPlain, type SearchMatch } from "../search-overlay"
+import {
+  computeMatchRanges,
+  createSearchState,
+  renderSearchBarPlain,
+  type SearchMatch,
+} from "../search-overlay"
 import {
   applySelectionToBuffer,
   composeSearchHighlightCells,
@@ -940,7 +945,6 @@ export function createSearchScrollback(
   return (query: string): SearchMatch[] => {
     if (!scrollback || !query) return []
     const matchingLines = scrollback.search(query)
-    const lowerQuery = query.toLowerCase()
     const matches: SearchMatch[] = []
     for (const lineIdx of matchingLines) {
       const rows = scrollback.getVisibleRows(scrollback.totalLines - lineIdx - 1, 1)
@@ -949,10 +953,9 @@ export function createSearchScrollback(
         new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[a-zA-Z]`, "g"),
         "",
       )
-      let col = plain.toLowerCase().indexOf(lowerQuery)
-      while (col !== -1) {
-        matches.push({ row: lineIdx, startCol: col, endCol: col + query.length - 1 })
-        col = plain.toLowerCase().indexOf(lowerQuery, col + 1)
+      for (const range of computeMatchRanges(plain, query)) {
+        // Runtime paint ranges are inclusive; canonical text ranges are exclusive.
+        matches.push({ row: lineIdx, startCol: range.start, endCol: range.end - 1 })
       }
     }
     return matches

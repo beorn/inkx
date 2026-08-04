@@ -64,7 +64,7 @@ import { pipe, withFocus, withDomEvents, withTerminal } from "@silvery/create/pl
 const fullApp = pipe(
   app,
   withTerminal(process, { mouse: true, kitty: true }),
-  withFocus({ copyMode: true, find: true }),
+  withFocus({ copyMode: true }),
   withDomEvents({ dragThreshold: 3 }),
 )
 await fullApp.run(<Board />)
@@ -111,7 +111,7 @@ Silvery ships two plugin families that compose via `pipe()` and coexist in the p
 Imported from `@silvery/ag-term/plugins` (or the re-export barrel `@silvery/create/plugins`). These wrap the `App` handle returned by `createApp({...})` / `withApp()` and extend its keyboard test surface:
 
 - `withTerminal(process, options)` — raw mode / alt-screen / paste / mouse / kitty setup; attaches `app.term`.
-- `withFocus(options)` — Tab/Shift+Tab cycling, Escape blur, optional copy-mode (Esc+v) and Ctrl+F find. Attaches `app.focusManager`.
+- `withFocus(options)` — Tab/Shift+Tab cycling, Escape blur, and optional copy-mode (Esc+v). Attaches `app.focusManager`.
 - `withCommands`, `withKeybindings`, `withDomEvents`, `withDiagnostics`, `withLinks`, `withRender` — each wraps a slice of the harness API.
 
 ### 2. Runtime apply-chain plugins (wrap `BaseApp.apply(op)`)
