@@ -264,6 +264,12 @@ function hyperlinkOpen(href: string): string {
 }
 
 const HYPERLINK_CLOSE = "\x1b]8;;\x1b\\"
+// Nested Text is serialized to ANSI and parsed back before cells are painted.
+// OSC 8 close otherwise becomes indistinguishable from "no hyperlink override",
+// causing mergeAnsiStyle() to inherit the outer destination again. This private
+// marker carries an explicit clear across that internal round trip; it never
+// reaches the output buffer.
+const INTERNAL_HYPERLINK_CLEAR = "\0silvery:hyperlink-clear"
 
 /**
  * Merge child props into parent context.
@@ -341,7 +347,7 @@ function applyTextStyleAnsi(
     ? ""
     : childStyle.hyperlink === undefined
       ? HYPERLINK_CLOSE
-      : hyperlinkOpen(childStyle.hyperlink)
+      : hyperlinkOpen(childStyle.hyperlink || INTERNAL_HYPERLINK_CLEAR)
   const restoreLink = !linkChanged
     ? ""
     : parentStyle.hyperlink === undefined
@@ -1973,8 +1979,9 @@ function mergeAnsiStyle(
   )
 
   // Pass through OSC 8 hyperlink from segment (not an SGR attribute)
-  if (segment.hyperlink) {
-    merged.hyperlink = segment.hyperlink
+  if (segment.hyperlink !== undefined) {
+    merged.hyperlink =
+      segment.hyperlink === INTERNAL_HYPERLINK_CLEAR ? "" : segment.hyperlink
   }
 
   return merged
@@ -2520,10 +2527,10 @@ function restyleTextSegments(
   const layoutRight = x + width
   // Horizontal clip mirrors renderText's maxCol/minCol.
   const maxCol =
-    clipBounds && clipBounds.right !== undefined
+    clipBounds?.right !== undefined
       ? Math.min(layoutRight, clipBounds.right)
       : layoutRight
-  const minCol = clipBounds && clipBounds.left !== undefined ? clipBounds.left : undefined
+  const minCol = clipBounds?.left !== undefined ? clipBounds.left : undefined
   const leftClip = minCol !== undefined ? Math.max(minCol, 0) : 0
 
   // Route through the sink (not buffer) so the op is captured into the render

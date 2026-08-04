@@ -95,6 +95,21 @@ describe("useModifierKeys", () => {
 // ============================================================================
 
 describe("Link", () => {
+  test("action-only links suppress an inherited OSC 8 destination", () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(
+      <Link href="https://ancestor.example">
+        <Link variant="arm-on-hover" onClick={() => {}}>
+          Action
+        </Link>
+      </Link>,
+    )
+    const column = app.text.indexOf("Action")
+
+    expect(app.term.cell(column, 0).hyperlink).toBeUndefined()
+    expect(app.ansi).not.toContain("https://ancestor.example")
+  })
+
   test("supports app-owned actions without painting an OSC 8 destination", async () => {
     const onClick = vi.fn()
     const render = createRenderer({ cols: 40, rows: 5 })

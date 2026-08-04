@@ -31,9 +31,7 @@ import { ChainAppContext } from "../context"
 // Props
 // ============================================================================
 
-export interface LinkProps extends Omit<TextProps, "children"> {
-  /** Optional URL exposed as an OSC 8 hyperlink. Omit for app-owned actions. */
-  href?: string
+interface LinkSharedProps extends Omit<TextProps, "children" | "onClick"> {
   /** Link text content */
   children?: ReactNode
   /**
@@ -43,6 +41,13 @@ export interface LinkProps extends Omit<TextProps, "children"> {
    */
   variant?: "arm-on-cmd-hover" | "arm-on-hover"
 }
+
+/** A URL link may also intercept activation; an action-only link must handle it. */
+export type LinkProps = LinkSharedProps &
+  (
+    | { href: string; onClick?: TextProps["onClick"] }
+    | { href?: undefined; onClick: NonNullable<TextProps["onClick"]> }
+  )
 
 // ============================================================================
 // Component
@@ -74,7 +79,9 @@ export function Link({
   return (
     <ArmedText
       color={color}
-      internal_hyperlink={href}
+      // Empty string is the explicit "no destination" value: it blocks
+      // hyperlink inheritance while remaining falsey to OSC 8 emission.
+      internal_hyperlink={href ?? ""}
       variant={variant}
       {...rest}
       onArmedClick={handleClick}
