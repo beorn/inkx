@@ -72,11 +72,11 @@ import {
 
 ## Code & Keys
 
-| Component     | Default Style                 | Use For                 |
-| ------------- | ----------------------------- | ----------------------- |
+| Component     | Default Style                  | Use For                 |
+| ------------- | ------------------------------ | ----------------------- |
 | `<Code>`      | `$fg-info`, no chip or padding | Inline code             |
-| `<Kbd>`       | `$bg-muted` + bold            | Keyboard shortcut badge |
-| `<CodeBlock>` | `$border-default` left border | Multi-line code block   |
+| `<Kbd>`       | `$bg-muted` + bold             | Keyboard shortcut badge |
+| `<CodeBlock>` | `$border-default` left border  | Multi-line code block   |
 
 ```tsx
 <Code>npm install silvery</Code>      // inline code
@@ -95,7 +95,7 @@ on two nearby shades. An explicit `color` on `<Code>` still overrides
 | Component      | Default Style                                            | Use For         |
 | -------------- | -------------------------------------------------------- | --------------- |
 | `<Blockquote>` | `$fg-muted` italic body + `$fg-faint` hairline left rail | Quotations      |
-| `<HR>`         | `$border-default` dashes                               | Horizontal rule |
+| `<HR>`         | `$border-default` dashes                                 | Horizontal rule |
 
 ```tsx
 <Blockquote>Less is more.</Blockquote>
