@@ -1,107 +1,112 @@
 /**
- * Table Component
+ * Generic tabular layout with one Flexily-owned track geometry path.
  *
- * A generic data table with auto-sizing columns, custom renderers, and alignment.
- * Thin composition over ListView — each data row is a ListView item, column headers
- * are rendered above. Gets nav/cache/search from ListView for free.
- *
- * @example
- * ```tsx
- * <Table
- *   columns={[
- *     { header: "Name", key: "name" },
- *     { header: "Age", key: "age", align: "right" },
- *     { header: "Bio", key: "bio", grow: true },
- *   ]}
- *   data={[
- *     { name: "Alice", age: 30 },
- *     { name: "Bob", age: 25 },
- *   ]}
- * />
- * ```
+ * The default presentation is the compact data table used by applications.
+ * `frame` adds document-table chrome and wrapping without introducing another
+ * width allocator: both presentations share the same tracks and cells.
  */
 import React, { useMemo } from "react"
+import { displayWidth } from "@silvery/ag-term/unicode"
 import { Box } from "./Box"
-import { Text } from "./Text"
+import { Text, type TextProps } from "./Text"
 import { ListView } from "../ui/components/ListView"
 
-// =============================================================================
-// Types
-// =============================================================================
-
 export type Column<T> = {
-  /** Column header text */
+  /** Column header text. */
   header: string
-  /** Key to read from data item (simple string access) */
+  /** Key to read from the data item. */
   key?: keyof T & string
-  /** Custom render function (takes precedence over key) */
+  /** Custom renderer; a returned string also participates in intrinsic sizing. */
   render?: (item: T, index: number) => React.ReactNode
-  /** Text alignment: left (default) or right */
-  align?: "left" | "right"
-  /** Fixed width (overrides auto-sizing) */
+  /** Text alignment. */
+  align?: "left" | "right" | "center"
+  /** Fixed total track width. */
   width?: number
-  /** Smallest width Flexily may assign to this column */
+  /** Smallest total width Flexily may assign to this track. */
   minWidth?: number
-  /** Largest width Flexily may assign to this column */
+  /** Largest total width Flexily may assign to this track. */
   maxWidth?: number
-  /** Allow this column to grow to fill remaining space */
+  /** Allow this track to consume positive free space. */
   grow?: boolean
+  /** Allow this track to yield under negative free space. */
+  shrink?: boolean
 }
 
 export type TableProps<T> = {
-  /** Data rows */
   data: readonly T[]
-  /** Column definitions */
   columns: readonly Column<T>[]
-  /** Header text color (default: "$fg-accent") */
   headerColor?: string
-  /** Show header row (default: true) */
   showHeader?: boolean
-  /** Minimum column padding between columns (default: 2) */
+  /** Total horizontal padding per cell (default 2). */
   padding?: number
+  /** Draw document-table chrome and direct rows instead of a ListView. */
+  frame?: boolean
+  /** Body-cell overflow behavior (default truncate). */
+  cellWrap?: TextProps["wrap"]
+  /** Draw rules between framed body rows. */
+  rowSeparators?: boolean
 }
-
-// =============================================================================
-// Helpers
-// =============================================================================
 
 type Track = Readonly<{
   basis: number
   fixed: boolean
 }>
 
+function trackAt(tracks: readonly Track[], index: number): Track {
+  const track = tracks[index]
+  if (track === undefined) throw new RangeError(`Missing table track ${index}`)
+  return track
+}
+
 function clamp(value: number, min: number, max: number | undefined): number {
   return Math.max(min, max === undefined ? value : Math.min(value, max))
+}
+
+function plainCellValue<T>(column: Column<T>, item: T, index: number): string {
+  if (column.render) {
+    const rendered = column.render(item, index)
+    if (typeof rendered === "string" || typeof rendered === "number") return String(rendered)
+  }
+  return column.key ? String(item[column.key] ?? "") : ""
 }
 
 function computeTracks<T>(
   columns: readonly Column<T>[],
   data: readonly T[],
   padding: number,
+  frame: boolean,
 ): Track[] {
-  return columns.map((col) => {
-    if (col.width !== undefined) return { basis: col.width, fixed: true }
-    const cellValues = data.map((item, i) => {
-      if (col.render) {
-        const rendered = col.render(item, i)
-        if (typeof rendered === "string") return rendered
-        // Styled cells can still share the plain value used by their column.
-        if (col.key) return String(item[col.key] ?? "")
-        return ""
-      }
-      return String((col.key ? item[col.key] : "") ?? "")
-    })
-    const intrinsic = Math.max(col.header.length, ...cellValues.map((v) => v.length)) + padding
+  return columns.map((column, columnIndex) => {
+    const separatorWidth = frame && columnIndex > 0 ? 1 : 0
+    if (column.width !== undefined) {
+      return { basis: column.width + separatorWidth, fixed: true }
+    }
+    const contentWidth = Math.max(
+      displayWidth(column.header),
+      ...data.map((item, itemIndex) => displayWidth(plainCellValue(column, item, itemIndex))),
+    )
+    const intrinsic = contentWidth + padding + separatorWidth
     return {
-      basis: clamp(intrinsic, col.minWidth ?? 0, col.maxWidth),
+      basis: clamp(intrinsic, column.minWidth ?? 0, column.maxWidth),
       fixed: false,
     }
   })
 }
 
-// =============================================================================
-// Component
-// =============================================================================
+function TableRule({ color }: { color: string }): React.ReactElement {
+  return (
+    <Box
+      height={1}
+      alignSelf="stretch"
+      flexShrink={0}
+      borderStyle="single"
+      borderColor={color}
+      borderLeft={false}
+      borderRight={false}
+      borderBottom={false}
+    />
+  )
+}
 
 export function Table<T>({
   data,
@@ -109,11 +114,21 @@ export function Table<T>({
   headerColor = "$fg-accent",
   showHeader = true,
   padding = 2,
+  frame = false,
+  cellWrap = "truncate",
+  rowSeparators = false,
 }: TableProps<T>): React.ReactElement {
-  const tracks = useMemo(() => computeTracks(columns, data, padding), [columns, data, padding])
+  const tracks = useMemo(
+    () => computeTracks(columns, data, padding, frame),
+    [columns, data, frame, padding],
+  )
+  const borderColor = "$border"
+  const leftPadding = frame ? Math.floor(padding / 2) : 0
+  const rightPadding = frame ? padding - leftPadding : padding
 
-  const trackProps = (col: Column<T>, track: Track) =>
-    track.fixed
+  const trackProps = (column: Column<T>, track: Track) => {
+    const canShrink = column.shrink ?? column.grow ?? false
+    return track.fixed
       ? {
           width: track.basis,
           minWidth: track.basis,
@@ -123,78 +138,137 @@ export function Table<T>({
         }
       : {
           flexBasis: track.basis,
-          minWidth: col.minWidth ?? 0,
-          maxWidth: col.maxWidth,
-          flexGrow: col.grow ? 1 : 0,
-          // Only a grow column gives way under overflow. Shrinking every track
-          // proportionally to its basis crushes small fixed siblings into
-          // one-glyph stubs the moment one long cell overflows the container;
-          // a column that declared no flexibility keeps its content width and
-          // the terminal edge truncates the flexible one instead.
-          flexShrink: col.grow ? 1 : 0,
+          minWidth: column.minWidth ?? 0,
+          maxWidth: column.maxWidth,
+          flexGrow: column.grow ? 1 : 0,
+          // Flexbox scales shrink by both flexShrink and flexBasis. Using the
+          // basis again makes long tracks yield quadratically before compact
+          // identifier/status tracks disappear.
+          flexShrink: canShrink ? track.basis : 0,
         }
+  }
 
-  const renderCell = (col: Column<T>, item: T, index: number, track: Track, last: boolean) => {
-    const rendered = col.render ? col.render(item, index) : null
+  const cellBorderProps = (columnIndex: number) =>
+    frame && columnIndex > 0
+      ? {
+          borderStyle: "single" as const,
+          borderColor,
+          borderTop: false,
+          borderRight: false,
+          borderBottom: false,
+        }
+      : {}
+
+  const cellJustify = (column: Column<T>) =>
+    column.align === "right"
+      ? ("flex-end" as const)
+      : column.align === "center"
+        ? ("center" as const)
+        : undefined
+
+  const renderCell = (
+    column: Column<T>,
+    item: T,
+    itemIndex: number,
+    track: Track,
+    columnIndex: number,
+  ) => {
+    const rendered = column.render ? column.render(item, itemIndex) : null
     const content =
-      rendered != null ? (
-        typeof rendered === "string" ? (
-          <Text minWidth={0} maxWidth="100%" wrap="truncate">
-            {rendered}
-          </Text>
-        ) : (
-          rendered
-        )
+      rendered != null && typeof rendered !== "string" && typeof rendered !== "number" ? (
+        rendered
       ) : (
-        <Text minWidth={0} maxWidth="100%" wrap="truncate">
-          {String((col.key ? item[col.key] : "") ?? "")}
+        <Text minWidth={0} maxWidth="100%" wrap={cellWrap}>
+          {rendered == null ? String((column.key ? item[column.key] : "") ?? "") : String(rendered)}
         </Text>
       )
-
     return (
       <Box
-        key={col.header}
-        {...trackProps(col, track)}
+        key={column.header}
+        {...trackProps(column, track)}
+        {...cellBorderProps(columnIndex)}
         overflow="hidden"
-        paddingRight={last ? 0 : padding}
-        justifyContent={col.align === "right" ? "flex-end" : undefined}
+        paddingLeft={leftPadding}
+        paddingRight={rightPadding}
+        justifyContent={cellJustify(column)}
       >
         {content}
       </Box>
     )
   }
 
-  const renderRow = (item: T, index: number) => (
-    <Box width="100%" minWidth={0} overflow="hidden">
-      {columns.map((col, colIndex) =>
-        renderCell(col, item, index, tracks[colIndex]!, colIndex === columns.length - 1),
+  const renderRow = (item: T, itemIndex: number) => (
+    <Box
+      key={itemIndex}
+      flexDirection="row"
+      width={frame ? undefined : "100%"}
+      alignSelf={frame ? "stretch" : undefined}
+      minWidth={0}
+      overflow="hidden"
+    >
+      {columns.map((column, columnIndex) =>
+        renderCell(column, item, itemIndex, trackAt(tracks, columnIndex), columnIndex),
       )}
     </Box>
   )
 
-  // Viewport height = number of data rows (show all, no scrolling)
-  // Minimum 1 to avoid zero-height viewport when data is empty
-  const viewportHeight = Math.max(data.length, 1)
+  const header = showHeader ? (
+    <Box
+      flexDirection="row"
+      width={frame ? undefined : "100%"}
+      alignSelf={frame ? "stretch" : undefined}
+      minWidth={0}
+      overflow="hidden"
+    >
+      {columns.map((column, columnIndex) => (
+        <Box
+          key={column.header}
+          {...trackProps(column, trackAt(tracks, columnIndex))}
+          {...cellBorderProps(columnIndex)}
+          overflow="hidden"
+          paddingLeft={leftPadding}
+          paddingRight={rightPadding}
+          justifyContent={cellJustify(column)}
+        >
+          <Text bold color={headerColor} minWidth={0} maxWidth="100%" wrap="truncate">
+            {column.header}
+          </Text>
+        </Box>
+      ))}
+    </Box>
+  ) : null
 
+  if (frame) {
+    const intrinsicWidth = tracks.reduce((sum, track) => sum + track.basis, 0) + 2
+    return (
+      <Box
+        data-component="content-table-grid"
+        flexDirection="column"
+        width={intrinsicWidth}
+        maxWidth="100%"
+        minWidth={0}
+        marginLeft="auto"
+        marginRight="auto"
+        borderStyle="single"
+        borderColor={borderColor}
+        overflow="hidden"
+      >
+        {header}
+        {header && data.length > 0 ? <TableRule color={borderColor} /> : null}
+        {data.map((item, itemIndex) => (
+          <React.Fragment key={itemIndex}>
+            {rowSeparators && itemIndex > 0 ? <TableRule color={borderColor} /> : null}
+            {renderRow(item, itemIndex)}
+          </React.Fragment>
+        ))}
+      </Box>
+    )
+  }
+
+  const viewportHeight = Math.max(data.length, 1)
   return (
     <Box flexDirection="column" width="100%" minWidth={0} overflow="hidden">
-      {showHeader && (
-        <Box width="100%" minWidth={0} overflow="hidden">
-          {columns.map((col, i) => (
-            <Box
-              key={col.header}
-              {...trackProps(col, tracks[i]!)}
-              overflow="hidden"
-              paddingRight={i === columns.length - 1 ? 0 : padding}
-              justifyContent={col.align === "right" ? "flex-end" : undefined}
-            >
-              <Text bold color={headerColor} minWidth={0} maxWidth="100%" wrap="truncate">
-                {col.header}
-              </Text>
-            </Box>
-          ))}
-        </Box>
-      )}
+      {header}
       {data.length > 0 && (
         <ListView items={data} height={viewportHeight} estimateHeight={1} renderItem={renderRow} />
       )}

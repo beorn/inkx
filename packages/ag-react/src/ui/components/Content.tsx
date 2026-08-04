@@ -1,20 +1,14 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { createLogger } from "loggily"
 import { Box } from "../../components/Box"
+import { Table as DataTable, type Column as DataTableColumn } from "../../components/Table"
 import { Text } from "../../components/Text"
 import { useOnBoxRectCommitted } from "../../hooks/useLayout"
 import { type Breakpoint, DEFAULT_BREAKPOINTS } from "../../hooks/useResponsiveValue"
 import { useTerm } from "../../hooks/useTerm"
 import { densityForWidth } from "../density"
-import {
-  TABLE_CELL_PADDING_X,
-  padCellLine,
-  shrinkTableWidths,
-  tableFrameWidth,
-  tableNaturalWidths,
-  wrapCell,
-  type TableAlignment,
-} from "./table-layout.ts"
+
+type TableAlignment = "left" | "right" | "center" | null
 
 export type ContentResponsive<T> = T | ({ default: T } & Partial<Record<Breakpoint, T>>)
 export type ContentWidthValue = number | `${number}%`
@@ -346,8 +340,9 @@ function rowLaneFlags(middle: readonly React.ReactNode[]): RowLaneFlags {
 }
 
 function resolveRowLaneWidth(ctx: ContentLayoutContextValue, flags: RowLaneFlags): number {
-  if (flags.hasDirectFullLane || flags.hasDirectFullBody)
-    {return ctx.full || ctx.available || ctx.wide}
+  if (flags.hasDirectFullLane || flags.hasDirectFullBody) {
+    return ctx.full || ctx.available || ctx.wide
+  }
   if (flags.hasDirectProseLane || flags.hasDirectProseBody) return ctx.prose
   return ctx.wide
 }
@@ -843,68 +838,7 @@ type TableGridProps = TableProps & {
 }
 
 function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactElement {
-  const ctx = useContentLayout()
-  const row = useContext(ContentRowContext)
-  const separator = "│"
-  const naturalWidths = tableNaturalWidths(headers, rows)
-  const frameWidth = tableFrameWidth(naturalWidths, separator.length)
-  // Silvery Text clips the final border glyph when a table frame exactly fills
-  // its wrapping lane; require one spare column so `┐`/`┘` stay visible.
-  const rightBorderReserve = 1
-  const fullWidth = row?.available ?? ctx.full ?? ctx.available ?? ctx.wide
-  const fullLaneWidth = fullWidth > 2 ? fullWidth - 2 : fullWidth
-  const lanes: Array<{ width: number; wrap: (children: React.ReactNode) => React.ReactElement }> = [
-    { width: ctx.prose, wrap: (children) => <ProseLane>{children}</ProseLane> },
-    { width: ctx.wide, wrap: (children) => <Wide>{children}</Wide> },
-    { width: fullLaneWidth, wrap: (children) => <Full>{children}</Full> },
-  ]
-
-  for (const lane of lanes) {
-    if (frameWidth + rightBorderReserve > lane.width) continue
-    return lane.wrap(
-      <TableGridRoot
-        headers={headers}
-        rows={rows}
-        alignments={alignments}
-        widths={naturalWidths}
-        separator={separator}
-      />,
-    )
-  }
-
-  // Shrink-to-fit fallback. The target subtracts an extra 2 cols on top of
-  // `fullLaneWidth`'s existing -2 for `Full`'s left/right gutters. The extra
-  // 2 cols cover the case where `TableRoot` is rendered INSIDE a parent
-  // `Content.Body width="auto"` (= `AutoLane`) — `AutoLane`'s `fitWidth`
-  // Box has already snapped to a lane width of `fullLaneWidth`, so wrapping
-  // the table in `<Full>` again subtracts another pair of gutters that the
-  // shrink target didn't see. Without this, a wide table inside an agent
-  // message overflows its parent by exactly 2 cols and the right border
-  // (`┐`/`│`/`┘`) gets clipped by `Full`'s `overflow="hidden"`. The fix
-  // budgets for one nested `Full` wrapper without breaking the
-  // direct-`Content.Layout` callers (where the extra 2-col margin is
-  // invisible inside an 80+ col pane). Bead:
-  // @ag/code/15652-silvercode-markdown-table-indent-crop.
-  const nestedGutterReserve = 2
-  const shrinkTarget = Math.max(fullLaneWidth - nestedGutterReserve - rightBorderReserve, 16)
-  if (fullLaneWidth >= 64) {
-    const widths = shrinkTableWidths(naturalWidths, shrinkTarget, separator.length)
-    if (widths) {
-      return (
-        <Full>
-          <TableGridRoot
-            headers={headers}
-            rows={rows}
-            alignments={alignments}
-            widths={widths}
-            separator={separator}
-          />
-        </Full>
-      )
-    }
-  }
-
-  return <TableBlocksRoot headers={headers} rows={rows} alignments={alignments} />
+  return <TableGridRoot headers={headers} rows={rows} alignments={alignments} />
 }
 
 function TableGridRoot({
@@ -912,78 +846,27 @@ function TableGridRoot({
   rows,
   alignments = [],
   widths,
-  separator = "│",
 }: TableGridProps): React.ReactElement {
-  const ctx = useContentLayout()
-  const gridWidths = widths ?? tableNaturalWidths(headers, rows)
-  const frameWidth = tableFrameWidth(gridWidths, separator.length)
-  const gridBoxWidth = frameWidth + 1
-  // alignSelf must follow ctx.align so the table center-aligns when the
-  // surrounding chat layout center-aligns (the silvercode default).
-  // Pre-fix the table used `alignSelf="flex-start"` unconditionally — inside
-  // `<Full>`'s `flexGrow={1}` inner column, that stuck the table to col 1
-  // while prose (going through `<ProseLane>` with `justifyContent=center`)
-  // sat in the centered prose lane. User saw the table flush-left at wide
-  // terminal widths (≥160 cols) when prose was indented by the prose-lane
-  // centering offset. Mirrors what ProseLane (line ~469) and Wide (line
-  // ~501) do via `justifyContent={laneJustify(ctx.align)}` on their outers.
-  // Bead: @km/code/15652 (#undead 3rd recurrence).
-  const tableAlignSelf: "flex-start" | "center" = ctx.align === "center" ? "center" : "flex-start"
-  const headerRule = gridWidths
-    .map((width) => "─".repeat(width + TABLE_CELL_PADDING_X * 2))
-    .join("┼")
-  const topRule = gridWidths.map((width) => "─".repeat(width + TABLE_CELL_PADDING_X * 2)).join("┬")
-  const bottomRule = gridWidths
-    .map((width) => "─".repeat(width + TABLE_CELL_PADDING_X * 2))
-    .join("┴")
-  const renderCells = (cells: readonly string[], bold = false): React.ReactElement[] => {
-    const wrapped = headers.map((_, col) => wrapCell(cells[col] ?? "", gridWidths[col] ?? 0))
-    const height = Math.max(1, ...wrapped.map((lines) => lines.length))
-    return Array.from({ length: height }, (_, lineIndex) => (
-      <Text key={lineIndex} wrap={false}>
-        <Text color="$border">│</Text>
-        {headers.map((_, col) => (
-          <React.Fragment key={col}>
-            {col > 0 && <Text color="$border">{separator}</Text>}
-            <Text bold={bold}>
-              {" ".repeat(TABLE_CELL_PADDING_X)}
-              {padCellLine(wrapped[col]?.[lineIndex] ?? "", gridWidths[col] ?? 0, alignments[col])}
-              {" ".repeat(TABLE_CELL_PADDING_X)}
-            </Text>
-          </React.Fragment>
-        ))}
-        <Text color="$border">│</Text>
-      </Text>
-    ))
-  }
+  const columns: DataTableColumn<string[]>[] = headers.map((header, columnIndex) => {
+    const width = widths?.[columnIndex]
+    return {
+      header,
+      render: (row) => row[columnIndex] ?? "",
+      align: alignments[columnIndex] ?? undefined,
+      width: width === undefined ? undefined : width + 2,
+      minWidth: columnIndex === 0 ? 3 : 0,
+      shrink: true,
+    }
+  })
   return (
-    <Box
-      flexDirection="column"
-      alignSelf={tableAlignSelf}
-      width={gridBoxWidth}
-      maxWidth={gridBoxWidth}
-    >
-      <Text color="$border" wrap={false}>
-        ┌{topRule}┐
-      </Text>
-      {renderCells(headers, true)}
-      <Text color="$border" wrap={false}>
-        ├{headerRule}┤
-      </Text>
-      {rows.map((row, rowIdx) => (
-        <React.Fragment key={rowIdx}>
-          {rowIdx > 0 ? (
-            <Text color="$border" wrap={false}>
-              ├{headerRule}┤
-            </Text>
-          ) : null}
-          {renderCells(row)}
-        </React.Fragment>
-      ))}
-      <Text color="$border" wrap={false}>
-        └{bottomRule}┘
-      </Text>
-    </Box>
+    <DataTable
+      columns={columns}
+      data={rows}
+      frame
+      cellWrap="wrap"
+      rowSeparators
+      headerColor="$fg"
+    />
   )
 }
 

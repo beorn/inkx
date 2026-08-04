@@ -6,6 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest"
+import { displayWidth } from "@silvery/ag-term/unicode"
 import { createRenderer } from "@silvery/test"
 import { Text, Table } from "silvery"
 
@@ -381,5 +382,60 @@ describe("Table", () => {
     expect(app.lines[1]).toContain("task/x")
     expect(app.lines[1]).toContain("…")
     expect(app.lines[1]).toMatch(/… {2}task\/x/u)
+  })
+
+  test("framed tables wrap long tracks without hiding compact columns", () => {
+    const narrow = createRenderer({ cols: 40, rows: 20 })
+    const app = narrow(
+      <Table
+        frame
+        cellWrap="wrap"
+        columns={[
+          { header: "Model", key: "model", shrink: true },
+          { header: "Owner", key: "owner", shrink: true },
+          { header: "Mechanism", key: "mechanism", shrink: true },
+        ]}
+        data={[
+          {
+            model: "Human sees km inside the agent cockpit",
+            owner: "ag",
+            mechanism: "views/panes/components",
+          },
+        ]}
+      />,
+    )
+
+    expect(app.text).toContain("Own…")
+    expect(app.text).toContain("ag")
+    expect(app.text).toContain("components")
+    expect(app.text).toContain("┐")
+    expect(app.text).toContain("┘")
+  })
+
+  test("framed tracks align emoji, CJK, combining marks, and ZWJ sequences", () => {
+    const app = render(
+      <Table
+        frame
+        columns={[
+          { header: "Kind", key: "kind" },
+          { header: "Value", key: "value" },
+        ]}
+        data={[
+          { kind: "emoji", value: "🚀" },
+          { kind: "CJK", value: "中文" },
+          { kind: "combining", value: "é" },
+          { kind: "family", value: "👨‍👩‍👧" },
+        ]}
+      />,
+    )
+
+    const framedLines = app.lines.map((line) => line.trim()).filter((line) => /^[┌├│└]/u.test(line))
+    const frameWidths = framedLines.map(displayWidth)
+
+    expect(new Set(frameWidths)).toEqual(new Set([frameWidths[0]]))
+    expect(app.text).toContain("🚀")
+    expect(app.text).toContain("中文")
+    expect(app.text).toContain("é")
+    expect(app.text).toContain("👨‍👩‍👧")
   })
 })

@@ -14,7 +14,7 @@ import { Box } from "../src/components/Box"
 import { Content } from "../src/ui/components/Content"
 
 const TOOL_HEADERS = ["tool", "what it is"]
-const TOOL_ROWS = [
+const TOOL_ROWS: [string, string][] = [
   ["ag", "agent host — all agents, all accounts, all together in your terminal"],
   ["hab", "local habitat workspace for humans and agents"],
   ["dutiful", "watcher and pane supervisor; bare commands stay live, -n reruns on a grid"],
@@ -68,6 +68,44 @@ function widthTrace(
   return JSON.stringify(trace, null, 2)
 }
 
+function componentRect(
+  app: ReturnType<ReturnType<typeof createRenderer>>,
+  sourceText: string,
+  component: string,
+): { x: number; y: number; width: number; height: number } {
+  let node = app.getByText(sourceText).resolve()
+  while (node) {
+    if ((node.props as Record<string, unknown>)["data-component"] === component) {
+      if (node.boxRect === null) {
+        throw new Error(`${component} has no computed box for ${JSON.stringify(sourceText)}`)
+      }
+      return node.boxRect
+    }
+    node = node.parent
+  }
+  throw new Error(`No ${component} ancestor for ${JSON.stringify(sourceText)}`)
+}
+
+function visibleContent(text: string): string {
+  return text.replace(/[┌┬┐├┼┤└┴┘│─]/gu, "").replace(/\s/gu, "")
+}
+
+function visibleNodeContent(
+  app: ReturnType<ReturnType<typeof createRenderer>>,
+  sourceText: string,
+): string {
+  const node = app.getByText(sourceText).resolve()
+  if (node === null) throw new Error(`No rendered node for ${JSON.stringify(sourceText)}`)
+  if (node.boxRect === null) throw new Error(`No computed box for ${JSON.stringify(sourceText)}`)
+  const { x, y, width, height } = node.boxRect
+  return visibleContent(
+    app.lines
+      .slice(y, y + height)
+      .map((line) => line.slice(x, x + width))
+      .join("\n"),
+  )
+}
+
 describe("Content.Table width monotonicity (@si/content/22774)", () => {
   test("widening 87 → 88 never hides first-column labels", () => {
     const at87 = renderTable(87, TOOL_HEADERS, TOOL_ROWS)
@@ -88,5 +126,35 @@ describe("Content.Table width monotonicity (@si/content/22774)", () => {
     expect(at80.text, trace).toContain("instance")
     expect(at140.text, trace).toContain("instance")
     expect(at140.text, trace).toContain("the live process")
+  })
+
+  test("a fitting table is centered on frame zero without measurement", () => {
+    const app = renderTable(160, TOOL_HEADERS, TOOL_ROWS)
+    const rect = componentRect(app, "tool", "content-table-grid")
+    const leftGap = rect.x
+    const rightGap = 160 - (rect.x + rect.width)
+
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1)
+    expect(rect.x).toBeGreaterThan(0)
+  })
+
+  test("a constrained table wraps instead of losing cell content", () => {
+    const app = renderTable(30, TOOL_HEADERS, TOOL_ROWS)
+    const trace = widthTrace(app, "tool")
+
+    for (const label of TOOL_HEADERS.slice(0, 1).concat(TOOL_ROWS.map(([label]) => label!))) {
+      expect(visibleNodeContent(app, label), trace).toContain(visibleContent(label))
+    }
+    for (const [, content] of TOOL_ROWS) {
+      expect(visibleNodeContent(app, content), trace).toContain(visibleContent(content))
+    }
+  })
+
+  test("an impossible width marks loss before exposing unlabeled middle content", () => {
+    const app = renderTable(8, TOOL_HEADERS, TOOL_ROWS)
+
+    expect(app.text).toContain("…")
+    expect(app.text).not.toContain("agent host")
+    expect(componentRect(app, "tool", "content-table-grid").x).toBeGreaterThanOrEqual(0)
   })
 })
