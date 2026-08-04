@@ -177,7 +177,8 @@ export function Code({ children, color, ...rest }: TypographyProps) {
 export function Kbd({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="kbd" color={color} {...rest}>
-      {` ${children} `}
+      {" "}
+      {children}{" "}
     </Text>
   )
 }
@@ -238,17 +239,17 @@ export function CodeBlock({ children, color }: TypographyProps) {
 const RULE_MAX_WIDTH = 60
 
 /** Fraction of the container the rule spans below the cap. */
-const RULE_INSET = "67%"
+const RULE_WIDTH = "67%"
 
 /**
  * Oversized fill, clipped to the box. Long enough that the rule is solid at any
- * terminal width; never a width calculation, which is what `RULE_INSET` and the
+ * terminal width; never a width calculation, which is what `RULE_WIDTH` and the
  * layout engine are for.
  */
 const RULE_FILL = "─".repeat(200)
 
 /**
- * Thematic break — an inset rule, leading-aligned.
+ * Thematic break — a centred rule with an inset measure.
  *
  * ## Two rules, both learned the hard way
  *
@@ -267,8 +268,11 @@ const RULE_FILL = "─".repeat(200)
  * `cqi` container-query form would not — `containerType` throws at first paint
  * there, and yoga is the documented way to isolate a rendering bug.
  *
- * Leading alignment (the Box's default) is deliberate: a centred rule would not
- * line up with the left-aligned prose it divides.
+ * Auto inline margins centre the measure so the rule reads as a thematic
+ * division, not as an underline attached to the preceding prose. `alignSelf`
+ * is not the equivalent here: DocumentView's BlockFrame is a row, so its cross
+ * axis is vertical. Fractional slack is distributed by the layout engine; the
+ * two margins therefore differ by at most one column.
  *
  * Widths are the engine's, which ROUNDS rather than floors (0.67 × 80 = 53.6
  * draws 54). Monotonic across 10..120 columns regardless, so the rule never
@@ -279,8 +283,8 @@ const RULE_FILL = "─".repeat(200)
  */
 export function HR({ color, ...rest }: Omit<TypographyProps, "children">) {
   return (
-    <Box width={RULE_INSET} maxWidth={RULE_MAX_WIDTH}>
-      <Text color={color ?? "$border-default"} wrap="clip" {...rest}>
+    <Box width={RULE_WIDTH} maxWidth={RULE_MAX_WIDTH} marginLeft="auto" marginRight="auto">
+      <Text color={color ?? "$border-muted"} wrap="clip" {...rest}>
         {RULE_FILL}
       </Text>
     </Box>

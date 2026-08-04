@@ -78,6 +78,12 @@ export { Divider } from "../components/Divider"
 export { Form, FormField } from "../components/Form"
 export { ListView } from "../components/ListView"
 export { ModalDialog } from "../components/ModalDialog"
+export { ShortcutHelpDialog } from "../components/ShortcutHelpDialog"
+export type {
+  ShortcutHelpDialogProps,
+  ShortcutHelpRow,
+  ShortcutHelpSection,
+} from "../components/ShortcutHelpDialog"
 export { PickerDialog } from "../components/PickerDialog"
 export { Meter } from "../components/Meter"
 export { ProgressBar } from "../components/ProgressBar"
@@ -450,7 +456,7 @@ export function renderToCanvas(
     const themed = React.createElement(ThemeProvider, { theme, children: withCursor })
 
     if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue)
-      return themed
+      {return themed}
     return React.createElement(
       FocusManagerContext.Provider,
       { value: focusManager },

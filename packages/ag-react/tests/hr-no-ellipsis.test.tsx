@@ -24,6 +24,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
+import { parseColor } from "@silvery/ag-term/pipeline/render-helpers"
 import { HR } from "../src/ui/components/Typography"
 import { Content } from "../src/ui/components/Content"
 import { DocumentView } from "../src/ui/components/DocumentView"
@@ -32,6 +33,20 @@ const ELLIPSIS = "…"
 
 function ruleWidth(text: string): number {
   return Math.max(0, ...text.split("\n").map((line) => line.match(/─+/u)?.[0].length ?? 0))
+}
+
+function ruleSpan(text: string): { start: number; width: number } {
+  const line = text.split("\n").find((candidate) => candidate.includes("─"))
+  if (line === undefined) throw new Error("expected a rendered thematic break")
+  return { start: line.indexOf("─"), width: line.match(/─+/u)?.[0].length ?? 0 }
+}
+
+function resolveRgb(color: string): { r: number; g: number; b: number } {
+  const resolved = parseColor(color)
+  if (resolved === null || typeof resolved === "number") {
+    throw new Error(`expected ${color} to resolve to RGB, got ${JSON.stringify(resolved)}`)
+  }
+  return resolved
 }
 
 describe("HR — no ellipsis at any width (@km/tui/22744)", () => {
@@ -62,8 +77,7 @@ describe("HR — no ellipsis at any width (@km/tui/22744)", () => {
   test("is stable across adjacent container widths — never jitters", () => {
     // Monotonicity: widening the container by one column may grow the rule by
     // one, never shrink it. A rule that oscillates by a column as a pane
-    // resizes is its own defect, which is why the inset floors rather than
-    // rounds.
+    // resizes is its own defect regardless of the engine's rounding mode.
     let previous = 0
     for (let cols = 10; cols <= 90; cols++) {
       const render = createRenderer({ cols, rows: 3 })
@@ -105,10 +119,35 @@ describe("HR via DocumentView — maddoc's actual path (@km/tui/22744)", () => {
       expect(app.text).not.toContain(ELLIPSIS)
     })
   }
+
+  test("centres inside DocumentView's real block frame", () => {
+    const render = createRenderer({ cols: 80, rows: 8 })
+    const app = render(
+      <DocumentView
+        blocks={[
+          { id: "p1", kind: "paragraph", content: "x".repeat(200) },
+          { id: "r1", kind: "rule" },
+        ]}
+      />,
+    )
+    const proseLine = app.lines.find((line) => line.includes("x"))
+    const ruleLine = app.lines.find((line) => line.includes("─"))
+    if (proseLine === undefined || ruleLine === undefined) {
+      throw new Error("expected both prose and thematic-break rows")
+    }
+    const proseStart = proseLine.indexOf("x")
+    const proseWidth = proseLine.match(/x+/u)?.[0].length ?? 0
+    const ruleStart = ruleLine.indexOf("─")
+    const width = ruleLine.match(/─+/u)?.[0].length ?? 0
+    const leading = ruleStart - proseStart
+    const trailing = proseStart + proseWidth - ruleStart - width
+    expect(leading).toBeGreaterThan(0)
+    expect(Math.abs(leading - trailing)).toBeLessThanOrEqual(1)
+  })
 })
 
 /**
- * Acceptance 2 — the inset: `min(67%, 60)`, leading-aligned.
+ * Acceptance 2 — the measure: `min(67%, 60)`, centred.
  *
  * A full-bleed rule reads as a page divider; a break between paragraphs should
  * be visibly narrower than the text it divides. The cap matters separately from
@@ -119,7 +158,7 @@ describe("HR via DocumentView — maddoc's actual path (@km/tui/22744)", () => {
  * `calc(50%)` silently goes full-bleed. These tests pin the OUTCOME, so the
  * pair cannot be "simplified" into a `min()` string that constrains nothing.
  */
-describe("HR inset — min(67%, 60), leading-aligned (@km/tui/22744 acceptance 2)", () => {
+describe("HR measure — min(67%, 60), centred (@km/tui/22744 acceptance 2)", () => {
   test("spans ~67% of a narrow container, well short of full bleed", () => {
     const cols = 40
     const render = createRenderer({ cols, rows: 3 })
@@ -147,14 +186,25 @@ describe("HR inset — min(67%, 60), leading-aligned (@km/tui/22744 acceptance 2
     expect(drawn).toBeLessThan(60)
   })
 
-  test("is leading-aligned — the rule starts at the container's left edge", () => {
-    // A centred rule would not line up with the left-aligned prose it divides.
+  test("is centred with at most one column of rounding asymmetry", () => {
+    for (const cols of [20, 40, 80, 120]) {
+      const render = createRenderer({ cols, rows: 3 })
+      const { start, width } = ruleSpan(render(<HR />).text)
+      const trailing = cols - start - width
+      expect(start).toBeGreaterThan(0)
+      expect(Math.abs(start - trailing)).toBeLessThanOrEqual(1)
+    }
+  })
+
+  test("uses the faint divider token by default while preserving overrides", () => {
     const render = createRenderer({ cols: 80, rows: 3 })
-    const line = render(<HR />)
-      .text.split("\n")
-      .find((l) => l.includes("─"))
-    expect(line).toBeDefined()
-    expect(line?.indexOf("─")).toBe(0)
+    const defaultRule = render(<HR />)
+    const { start } = ruleSpan(defaultRule.text)
+    expect(defaultRule.cell(start, 0).fg).toEqual(resolveRgb("$border-muted"))
+
+    const overridden = render(<HR color="$fg-success" />)
+    const overriddenStart = ruleSpan(overridden.text).start
+    expect(overridden.cell(overriddenStart, 0).fg).toEqual(resolveRgb("$fg-success"))
   })
 
   test("never shrinks as the container widens — no jitter on resize", () => {
