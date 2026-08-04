@@ -95,6 +95,23 @@ describe("useModifierKeys", () => {
 // ============================================================================
 
 describe("Link", () => {
+  test("supports app-owned actions without painting an OSC 8 destination", async () => {
+    const onClick = vi.fn()
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(
+      <Link variant="arm-on-hover" onClick={onClick}>
+        Action
+      </Link>,
+    )
+    const column = app.text.indexOf("Action")
+
+    expect(app.term.cell(column, 0).hyperlink).toBeUndefined()
+    await app.hover(column, 0)
+    await app.click(column, 0)
+
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
   test("renders link text without underline by default", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(

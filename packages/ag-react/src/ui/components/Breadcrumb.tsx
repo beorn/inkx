@@ -19,7 +19,7 @@
  */
 import React, { useContext, useId } from "react"
 import { Box } from "../../components/Box"
-import { ArmedText, Link } from "../../components/Link"
+import { Link } from "../../components/Link"
 import { Text } from "../../components/Text"
 import { useFocusable } from "../../hooks/useFocusable"
 import { useInput } from "../../hooks/useInput"
@@ -92,12 +92,12 @@ function BreadcrumbItemInteraction({
     { isActive: focused && (item.onPress !== undefined || item.href !== undefined) },
   )
 
-  const label = item.href ? (
+  return (
     <Link
       href={item.href}
       variant={variant}
       onClick={(event) => {
-        if (item.onPress) {
+        if (item.onPress !== undefined) {
           event.preventDefault()
           item.onPress()
         }
@@ -109,20 +109,7 @@ function BreadcrumbItemInteraction({
     >
       {item.label}
     </Link>
-  ) : (
-    <ArmedText
-      variant={variant}
-      inverse={focused}
-      onArmedClick={() => item.onPress?.()}
-      wrap="truncate"
-      color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}
-      bold={item.bold ?? isCurrent}
-    >
-      {item.label}
-    </ArmedText>
   )
-
-  return label
 }
 
 function ActionableBreadcrumbItem({

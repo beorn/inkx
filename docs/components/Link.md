@@ -1,6 +1,6 @@
 # Link
 
-Renders clickable hyperlinks using the OSC 8 terminal escape sequence. Text inside `<Link>` is wrapped in OSC 8 sequences, making it clickable in supporting terminals (iTerm2, Ghostty, Kitty, etc.).
+Renders armed link text for URLs or app-owned actions. When `href` is present, the text is wrapped in an OSC 8 hyperlink for supporting terminals (iTerm2, Ghostty, Kitty, etc.).
 
 ## Import
 
@@ -12,12 +12,12 @@ import { Link } from "silvery"
 
 `LinkProps` extends `TextProps` (excluding `children`).
 
-| Prop       | Type                                   | Default              | Description                                                           |
-| ---------- | -------------------------------------- | -------------------- | --------------------------------------------------------------------- |
-| `href`     | `string`                               | **required**         | URL to link to (http/https for external, custom schemes for internal) |
-| `children` | `ReactNode`                            | --                   | Link text content                                                     |
-| `variant`  | `"arm-on-cmd-hover" \| "arm-on-hover"` | `"arm-on-cmd-hover"` | How the link arms for clicking                                        |
-| `color`    | `string`                               | `"$link"`            | Link text color                                                       |
+| Prop       | Type                                   | Default              | Description                                      |
+| ---------- | -------------------------------------- | -------------------- | ------------------------------------------------ |
+| `href`     | `string`                               | --                   | Optional OSC 8 URL; omit for an app-owned action |
+| `children` | `ReactNode`                            | --                   | Link text content                                |
+| `variant`  | `"arm-on-cmd-hover" \| "arm-on-hover"` | `"arm-on-cmd-hover"` | How the link arms for clicking                   |
+| `color`    | `string`                               | `"$fg-link"`         | Link text color                                  |
 
 All `TextProps` style props (bold, italic, etc.) are also accepted.
 
@@ -39,6 +39,11 @@ All `TextProps` style props (bold, italic, etc.) are also accepted.
 >
   Internal Link
 </Link>
+
+// App-owned action with no OSC 8 destination
+<Link variant="arm-on-hover" onClick={() => navigateBack()}>
+  Back
+</Link>
 ```
 
 ## Behavior
@@ -47,7 +52,8 @@ All `TextProps` style props (bold, italic, etc.) are also accepted.
 - **`arm-on-hover`**: Link underlines and becomes clickable on plain hover (no modifier needed).
 - The `onClick` callback runs first. If it calls `preventDefault()`, it owns the
   activation; otherwise an armed click emits `"link:open"` through the app
-  event chain.
+  event chain when `href` is present. An action-only Link with no `href` never
+  emits `"link:open"` or paints an OSC 8 destination.
 
 ## See Also
 

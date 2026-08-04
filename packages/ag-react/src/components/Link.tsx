@@ -16,7 +16,7 @@
  * ```tsx
  * <Link href="https://example.com">Visit Example</Link>
  * <Link href="https://example.com" variant="arm-on-hover">Always Clickable</Link>
- * <Link href="km://node/abc123" onClick={(e) => { e.preventDefault(); navigate(e) }}>Internal Link</Link>
+ * <Link variant="arm-on-hover" onClick={() => navigate()}>Action-only link</Link>
  * ```
  */
 
@@ -32,8 +32,8 @@ import { ChainAppContext } from "../context"
 // ============================================================================
 
 export interface LinkProps extends Omit<TextProps, "children"> {
-  /** The URL to link to (http/https for external, custom schemes for internal) */
-  href: string
+  /** Optional URL exposed as an OSC 8 hyperlink. Omit for app-owned actions. */
+  href?: string
   /** Link text content */
   children?: ReactNode
   /**
@@ -62,7 +62,7 @@ function ModifierArmedState({
 }
 
 /** Shared internal presentation for links and action-only navigation text. */
-export function ArmedText({
+function ArmedText({
   variant,
   children,
   onArmedClick,
@@ -129,7 +129,7 @@ export function Link({
     (e: SilveryMouseEvent, armed: boolean) => {
       const isArmed = armed || (variant === "arm-on-cmd-hover" && e.metaKey)
       onClick?.(e)
-      if (isArmed && !e.defaultPrevented) {
+      if (isArmed && href !== undefined && !e.defaultPrevented) {
         chain?.events.emit("link:open", href)
         e.preventDefault()
       }
