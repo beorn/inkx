@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { ReactElement } from "react"
+import { computeMatchRanges, type SearchMatch } from "@silvery/ag-term/search-overlay"
 import { highlight, type TokenLine } from "@silvery/syntax"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useHover } from "../../hooks/useHover"
+import { useSearchOptional } from "../../providers/SearchProvider"
+import type { ScrollController } from "./ScrollArea"
 
 export interface SyntaxHighlighterProps {
   language: string
@@ -12,8 +15,11 @@ export interface SyntaxHighlighterProps {
   bare?: boolean
   backgroundColor?: string
   bold?: boolean
-  /** Reports each semantic source line at its measured visual y origin. */
-  onLineLayout?: (lineIndex: number, y: number) => void
+  /** Register this source with the enclosing SearchProvider. */
+  search?: {
+    readonly id?: string
+    readonly scrollController: ScrollController
+  }
 }
 
 function useSyntaxTokens(code: string, language: string, theme: string): TokenLine[] {
@@ -36,6 +42,90 @@ function isDiffLanguage(language: string): boolean {
   return ["diff", "patch", "udiff", "gitdiff", "git-diff"].includes(language)
 }
 
+interface SearchableSyntaxLinesProps {
+  readonly code: string
+  readonly lines: readonly TokenLine[]
+  readonly lineWrap: "hard" | "truncate"
+  readonly backgroundColor?: string
+  readonly forceBold: boolean
+  readonly search: NonNullable<SyntaxHighlighterProps["search"]>
+}
+
+function SearchableSyntaxLines({
+  code,
+  lines,
+  lineWrap,
+  backgroundColor,
+  forceBold,
+  search,
+}: SearchableSyntaxLinesProps): ReactElement {
+  const searchContext = useSearchOptional()
+  const autoSearchId = useId()
+  const searchId = search.id ?? autoSearchId
+  const registerSearchable = searchContext?.registerSearchable
+  const codeRef = useRef(code)
+  const searchRef = useRef(search)
+  const layoutRef = useRef({ code, origins: new Map<number, number>() })
+  codeRef.current = code
+  searchRef.current = search
+  if (layoutRef.current.code !== code) {
+    layoutRef.current = { code, origins: new Map() }
+  }
+  const recordLineOrigin = useCallback((lineIndex: number, y: number) => {
+    layoutRef.current.origins.set(lineIndex, y)
+  }, [])
+
+  useEffect(() => {
+    if (!registerSearchable) return
+    return registerSearchable(searchId, {
+      search(query: string): SearchMatch[] {
+        if (query === "") return []
+        return codeRef.current.split("\n").flatMap((line, row) =>
+          computeMatchRanges(line, query).map((range) => ({
+            row,
+            startCol: range.start,
+            endCol: range.end,
+          })),
+        )
+      },
+      reveal(match: SearchMatch): void {
+        const origins = layoutRef.current.origins
+        const y = origins.get(match.row)
+        const firstY = origins.get(0)
+        if (y === undefined || firstY === undefined) return
+        searchRef.current.scrollController.setScrollOffset(Math.max(0, y - firstY))
+      },
+    })
+  }, [registerSearchable, searchId])
+
+  return (
+    <>
+      {lines.map((line, lineIndex) => (
+        <Box
+          key={lineIndex}
+          minWidth={0}
+          flexDirection="row"
+          onLayout={(rect) => recordLineOrigin(lineIndex, rect.y)}
+        >
+          <Text wrap={lineWrap} backgroundColor={backgroundColor}>
+            {line.tokens.map((token, tokenIndex) => (
+              <Text
+                key={tokenIndex}
+                color={token.color}
+                bold={forceBold || token.bold}
+                italic={token.italic}
+                backgroundColor={backgroundColor}
+              >
+                {token.text}
+              </Text>
+            ))}
+          </Text>
+        </Box>
+      ))}
+    </>
+  )
+}
+
 /** Shiki-backed source renderer with an immediate plain-text first frame. */
 export function SyntaxHighlighter({
   language,
@@ -44,15 +134,24 @@ export function SyntaxHighlighter({
   bare = false,
   backgroundColor,
   bold: forceBold = false,
-  onLineLayout,
+  search,
 }: SyntaxHighlighterProps): ReactElement {
   const lang = (language || "plain").toLowerCase()
   const hover = useHover()
   const lines = useSyntaxTokens(code, lang, theme)
   const lineWrap = isDiffLanguage(lang) ? "truncate" : "hard"
-  const body = lines.map((line, lineIndex) => {
-    const content = (
-      <Text key={onLineLayout ? undefined : lineIndex} wrap={lineWrap} backgroundColor={backgroundColor}>
+  const body = search ? (
+    <SearchableSyntaxLines
+      code={code}
+      lines={lines}
+      lineWrap={lineWrap}
+      backgroundColor={backgroundColor}
+      forceBold={forceBold}
+      search={search}
+    />
+  ) : (
+    lines.map((line, lineIndex) => (
+      <Text key={lineIndex} wrap={lineWrap} backgroundColor={backgroundColor}>
         {line.tokens.map((token, tokenIndex) => (
           <Text
             key={tokenIndex}
@@ -65,19 +164,8 @@ export function SyntaxHighlighter({
           </Text>
         ))}
       </Text>
-    )
-    if (!onLineLayout) return content
-    return (
-      <Box
-        key={lineIndex}
-        minWidth={0}
-        flexDirection="row"
-        onLayout={(rect) => onLineLayout(lineIndex, rect.y)}
-      >
-        {content}
-      </Box>
-    )
-  })
+    ))
+  )
 
   if (bare) return <Box flexDirection="column">{body}</Box>
 

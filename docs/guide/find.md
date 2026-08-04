@@ -58,6 +58,29 @@ const controller = useScrollController()
 Adapters such as `KNodeDocumentView` provide the semantic text projection, so applications do not
 need to parse rendered React children or terminal cells.
 
+## SyntaxHighlighter
+
+`SyntaxHighlighter` owns semantic source-line matching and measured reveal after hard wrapping.
+Pass the same controller to its enclosing `ScrollArea` and its search config:
+
+```tsx
+const controller = useScrollController()
+
+<SearchProvider>
+  <ScrollArea controller={controller}>
+    <SyntaxHighlighter
+      language="typescript"
+      code={source}
+      search={{ id: path, scrollController: controller }}
+    />
+  </ScrollArea>
+  <SearchBar />
+</SearchProvider>
+```
+
+Without `search`, the component takes its original render path: no provider lookup, registration,
+or per-line measurement.
+
 ## Custom searchable surfaces
 
 Use `registerSearchable()` for a surface that is neither a `ListView` nor a `DocumentView`:
