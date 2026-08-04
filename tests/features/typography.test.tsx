@@ -471,16 +471,18 @@ describe("HR", () => {
     expect(app.text).toContain("─")
   })
 
-  test("uses $border-default color", () => {
+  test("uses $border-muted color", () => {
     const app = render(<HR />)
-    const cell = app.term.buffer.getCell(0, 0)
+    const ruleStart = app.lines[0]!.indexOf("─")
+    const cell = app.term.buffer.getCell(ruleStart, 0)
     expect(cell.char).toBe("─")
     expect(cell.fg).not.toBeNull()
   })
 
   test("accepts color override", () => {
     const app = render(<HR color="$fg-success" />)
-    const cell = app.term.buffer.getCell(0, 0)
+    const ruleStart = app.lines[0]!.indexOf("─")
+    const cell = app.term.buffer.getCell(ruleStart, 0)
     expect(cell.fg).not.toBeNull()
   })
 
@@ -488,8 +490,8 @@ describe("HR", () => {
    * HR is INSET, not full-bleed (@km/tui/22744): it renders at
    * `min(container * 0.67, 60)`, so asserting every column is a rule character
    * pins the pre-22744 behaviour and fails by design. This asserts the property
-   * instead — the rule starts at the left edge, is continuous, and stops SHORT
-   * of the container — which survives any retune of the inset fraction.
+   * instead — the rule is continuous, centred, and stops SHORT of the
+   * container — which survives any retune of the measure fraction.
    */
   test("draws a continuous rule that is inset from the container", () => {
     const cols = 20
@@ -497,15 +499,20 @@ describe("HR", () => {
     const app = narrowRender(<HR />)
 
     const row = Array.from({ length: cols }, (_, x) => app.term.buffer.getCell(x, 0).char)
-    const ruleLength = row.findIndex((ch) => ch !== "─")
+    const ruleStart = row.findIndex((ch) => ch === "─")
+    const ruleEnd = row.findLastIndex((ch) => ch === "─")
+    const ruleLength = ruleEnd - ruleStart + 1
 
-    // Non-empty and continuous from column 0 — no gaps, no leading blank.
-    expect(ruleLength).toBeGreaterThan(0)
+    // Non-empty, continuous, and centred rather than attached to either edge.
+    expect(ruleStart).toBeGreaterThan(0)
+    expect(row.slice(ruleStart, ruleEnd + 1).every((ch) => ch === "─")).toBe(true)
+    expect(Math.abs(ruleStart - (cols - ruleEnd - 1))).toBeLessThanOrEqual(1)
     // Inset: it must not reach the container edge, which is the whole point.
     expect(ruleLength).toBeLessThan(cols)
     // Everything past the rule is blank, never a truncation ellipsis: a rule
     // has no content to lose, so an ellipsis would be claiming otherwise.
-    expect(row.slice(ruleLength).every((ch) => ch === " ")).toBe(true)
+    expect(row.slice(0, ruleStart).every((ch) => ch === " ")).toBe(true)
+    expect(row.slice(ruleEnd + 1).every((ch) => ch === " ")).toBe(true)
   })
 })
 
