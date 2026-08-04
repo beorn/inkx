@@ -44,6 +44,90 @@ export interface LinkProps extends Omit<TextProps, "children"> {
   variant?: "arm-on-cmd-hover" | "arm-on-hover"
 }
 
+interface ArmedTextProps extends Omit<TextProps, "children" | "onClick"> {
+  children?: ReactNode
+  variant: NonNullable<LinkProps["variant"]>
+  onArmedClick: (event: SilveryMouseEvent, armed: boolean) => void
+}
+
+function ArmedTextPresentation({
+  armed,
+  children,
+  onArmedClick,
+  onMouseEnter,
+  onMouseLeave,
+  ...rest
+}: Omit<ArmedTextProps, "variant"> & { armed: boolean }): React.ReactElement {
+  return (
+    <Text
+      mouseCursor={armed ? "pointer" : undefined}
+      {...rest}
+      underline={armed ? true : rest.underline}
+      onClick={(event) => onArmedClick(event, armed)}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </Text>
+  )
+}
+
+function PlainHoverArmedText({
+  variant: _variant,
+  onMouseEnter,
+  onMouseLeave,
+  ...props
+}: ArmedTextProps): React.ReactElement {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <ArmedTextPresentation
+      {...props}
+      armed={hovered}
+      onMouseEnter={(event) => {
+        setHovered(true)
+        onMouseEnter?.(event)
+      }}
+      onMouseLeave={(event) => {
+        setHovered(false)
+        onMouseLeave?.(event)
+      }}
+    />
+  )
+}
+
+function ModifierHoverArmedText({
+  variant: _variant,
+  onMouseEnter,
+  onMouseLeave,
+  ...props
+}: ArmedTextProps): React.ReactElement {
+  const [hovered, setHovered] = useState(false)
+  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
+  return (
+    <ArmedTextPresentation
+      {...props}
+      armed={hovered && cmdHeld}
+      onMouseEnter={(event) => {
+        setHovered(true)
+        onMouseEnter?.(event)
+      }}
+      onMouseLeave={(event) => {
+        setHovered(false)
+        onMouseLeave?.(event)
+      }}
+    />
+  )
+}
+
+/** Shared internal presentation for links and action-only navigation text. */
+export function ArmedText(props: ArmedTextProps): React.ReactElement {
+  return props.variant === "arm-on-hover" ? (
+    <PlainHoverArmedText {...props} />
+  ) : (
+    <ModifierHoverArmedText {...props} />
+  )
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -68,47 +152,34 @@ export function Link({
   onMouseLeave,
   ...rest
 }: LinkProps) {
-  const [hovered, setHovered] = useState(false)
   const chain = useContext(ChainAppContext)
-  // Only subscribe to modifiers when hovered and variant needs it — zero cost for non-hovered links
-  const needsModifier = variant === "arm-on-cmd-hover"
-  const { super: cmdHeld } = useModifierKeys({ enabled: hovered && needsModifier })
-  // Determine armed state based on variant
-  const armed = hovered && (needsModifier ? cmdHeld : true)
-  if (armed) rest.underline = true
 
   // Give app routing first refusal. If it does not prevent the default, an
   // armed click emits link:open. For arm-on-cmd-hover, e.metaKey is accurate
   // thanks to keyboard modifier tracking merged into mouse events by silvery's runtime.
   const handleClick = useCallback(
-    (e: SilveryMouseEvent) => {
-      const isArmed = armed || (needsModifier && hovered && e.metaKey)
+    (e: SilveryMouseEvent, armed: boolean) => {
+      const isArmed = armed || (variant === "arm-on-cmd-hover" && e.metaKey)
       onClick?.(e)
       if (isArmed && !e.defaultPrevented) {
         chain?.events.emit("link:open", href)
         e.preventDefault()
       }
     },
-    [armed, needsModifier, hovered, href, onClick, chain],
+    [variant, href, onClick, chain],
   )
 
   return (
-    <Text
+    <ArmedText
       color={color}
       internal_hyperlink={href}
-      mouseCursor={armed ? "pointer" : undefined}
+      variant={variant}
       {...rest}
-      onClick={handleClick}
-      onMouseEnter={(e: SilveryMouseEvent) => {
-        setHovered(true)
-        onMouseEnter?.(e)
-      }}
-      onMouseLeave={(e: SilveryMouseEvent) => {
-        setHovered(false)
-        onMouseLeave?.(e)
-      }}
+      onArmedClick={handleClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {children}
-    </Text>
+    </ArmedText>
   )
 }

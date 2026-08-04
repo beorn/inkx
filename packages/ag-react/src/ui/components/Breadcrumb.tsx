@@ -19,7 +19,7 @@
  */
 import React, { useContext, useId } from "react"
 import { Box } from "../../components/Box"
-import { Link } from "../../components/Link"
+import { ArmedText, Link } from "../../components/Link"
 import { Text } from "../../components/Text"
 import { useFocusable } from "../../hooks/useFocusable"
 import { useInput } from "../../hooks/useInput"
@@ -110,16 +110,16 @@ function BreadcrumbItemInteraction({
       {item.label}
     </Link>
   ) : (
-    <Text
+    <ArmedText
+      variant={variant}
       inverse={focused}
-      onClick={() => item.onPress?.()}
-      mouseCursor="pointer"
+      onArmedClick={() => item.onPress?.()}
       wrap="truncate"
       color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}
       bold={item.bold ?? isCurrent}
     >
       {item.label}
-    </Text>
+    </ArmedText>
   )
 
   return label

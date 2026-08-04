@@ -8,8 +8,17 @@
 
 import React, { useState } from "react"
 import { describe, test, expect, vi } from "vitest"
-import { createRenderer } from "@silvery/test"
-import { Box, Text, Link, useModifierKeys, useMouseCursor } from "@silvery/ag-react"
+import { createRenderer, createTermless, waitFor } from "@silvery/test"
+import {
+  Box,
+  ChainAppContext,
+  Link,
+  Text,
+  type ChainAppContextValue,
+  useModifierKeys,
+  useMouseCursor,
+} from "@silvery/ag-react"
+import { run } from "../../packages/ag-term/src/runtime/run"
 
 // ============================================================================
 // useModifierKeys
@@ -170,6 +179,34 @@ describe("Link", () => {
 // ============================================================================
 
 describe("Link variant='arm-on-hover'", () => {
+  test("does not register modifier observers while idle or hovered", async () => {
+    const registerRawKey = vi.fn(() => () => {})
+    const registerFocus = vi.fn(() => () => {})
+    const chain = {
+      input: { register: () => () => {}, setActive: () => {} },
+      paste: { register: () => () => {} },
+      rawKeys: { register: registerRawKey },
+      focusEvents: { register: registerFocus },
+      events: { on: () => () => {}, emit: () => {} },
+    } as ChainAppContextValue
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(
+      <ChainAppContext.Provider value={chain}>
+        <Link href="https://example.com" variant="arm-on-hover">
+          Plain hover
+        </Link>
+      </ChainAppContext.Provider>,
+    )
+
+    expect(registerRawKey).not.toHaveBeenCalled()
+    expect(registerFocus).not.toHaveBeenCalled()
+
+    await app.hover(app.text.indexOf("Plain hover"), 0)
+
+    expect(registerRawKey).not.toHaveBeenCalled()
+    expect(registerFocus).not.toHaveBeenCalled()
+  })
+
   test("plain hover underlines without Cmd", async () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
@@ -186,6 +223,32 @@ describe("Link variant='arm-on-hover'", () => {
 
     const cell = app.term.cell(col, 0)
     expect(cell.attrs.underline).toBe(true)
+  })
+
+  test("plain hover repaints through the terminal runtime", async () => {
+    using term = createTermless({ cols: 40, rows: 5 })
+    using _handle = await run(
+      <Box flexDirection="column">
+        <Link href="https://example.com" variant="arm-on-hover">
+          Runtime link
+        </Link>
+        <Text>Other</Text>
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    await waitFor(() => term.out.containsOutput("Runtime link"))
+
+    term.out.clear()
+    await React.act(async () => term.mouse.move(0, 0))
+
+    const underlinedRuntimeLink = new RegExp(
+      `${String.fromCharCode(27)}\\[[0-9;:]*4mRuntime link`,
+      "u",
+    )
+    await waitFor(() => underlinedRuntimeLink.test(term.out.getText()))
+    expect(term.out.getText()).toMatch(underlinedRuntimeLink)
+    expect(term.out.containsOutput("\x1b]22;pointer\x07")).toBe(true)
   })
 
   test("mouse leave clears armed state", async () => {
