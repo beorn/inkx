@@ -140,16 +140,14 @@ function SearchableSyntaxLines({
   const autoSearchId = useId()
   const searchId = search.id ?? autoSearchId
   const registerSearchable = searchContext?.registerSearchable
-  const codeRef = useRef(code)
   const searchRef = useRef(search)
-  const layoutRef = useRef({ code, origins: new Map<number, number>() })
-  codeRef.current = code
+  const sourceRef = useRef({ code, lines: code.split("\n"), origins: new Map<number, number>() })
   searchRef.current = search
-  if (layoutRef.current.code !== code) {
-    layoutRef.current = { code, origins: new Map() }
+  if (sourceRef.current.code !== code) {
+    sourceRef.current = { code, lines: code.split("\n"), origins: new Map() }
   }
   const recordLineOrigin = useCallback((lineIndex: number, y: number) => {
-    layoutRef.current.origins.set(lineIndex, y)
+    sourceRef.current.origins.set(lineIndex, y)
   }, [])
 
   useEffect(() => {
@@ -157,7 +155,7 @@ function SearchableSyntaxLines({
     return registerSearchable(searchId, {
       search(query: string): SearchMatch[] {
         if (query === "") return []
-        return codeRef.current.split("\n").flatMap((line, row) =>
+        return sourceRef.current.lines.flatMap((line, row) =>
           computeMatchRanges(line, query).map((range) => ({
             row,
             startCol: range.start,
@@ -166,7 +164,7 @@ function SearchableSyntaxLines({
         )
       },
       reveal(match: SearchMatch): void {
-        const origins = layoutRef.current.origins
+        const origins = sourceRef.current.origins
         const y = origins.get(match.row)
         const firstY = origins.get(0)
         if (y === undefined || firstY === undefined) return
