@@ -36,8 +36,8 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<Muted>`              | `$fg-muted` text                                                           |
 | `<Small>`              | `$fg-muted` (pre-dimmed at truecolor)                                      |
 | `<Lead>`               | `italic` text                                                              |
-| `<Code>`               | `$bg-muted` background                                                     |
-| `<Blockquote>`         | `$fg-muted` border + italic                                                |
+| `<Code>`               | `$fg-info`, no background chip or padding                                  |
+| `<Blockquote>`         | `$fg-faint` hairline rail + `$fg-muted` italic body                        |
 | `<P>`                  | body text (semantic wrapper)                                               |
 | `<LI>`                 | `•` bullet + indented content                                              |
 

@@ -144,7 +144,7 @@ Every "surface" comes as a `bg-X` background paired with `$fg` (text) or `$fg-on
 | `$bg-surface-overlay`            | Tooltips, dropdowns, overlays                 |
 | `$bg-inverse` / `$fg-on-inverse` | Status bars, footers                          |
 | `$bg-inverse-hover`              | Hover for inverse controls; AA with base text |
-| `$bg-muted` / `$fg`              | Inline muted chips, code                      |
+| `$bg-muted` / `$fg`              | Inline muted chips                            |
 
 ### Accent (the canonical interactive role)
 
