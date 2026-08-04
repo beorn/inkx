@@ -74,7 +74,7 @@ import {
 
 | Component     | Default Style                 | Use For                 |
 | ------------- | ----------------------------- | ----------------------- |
-| `<Code>`      | `$bg-muted` background        | Inline code             |
+| `<Code>`      | `$fg-info`, no chip or padding | Inline code             |
 | `<Kbd>`       | `$bg-muted` + bold            | Keyboard shortcut badge |
 | `<CodeBlock>` | `$border-default` left border | Multi-line code block   |
 
@@ -84,17 +84,28 @@ import {
 <CodeBlock>{"const x = 1\nconst y = 2"}</CodeBlock>
 ```
 
+Inline code and links may share a blue-family hue, but they remain distinct by
+decoration: links use a dotted underline while code does not. This survives
+theme retuning, dim terminals, and color-vision differences better than relying
+on two nearby shades. An explicit `color` on `<Code>` still overrides
+`$fg-info`; `<Kbd>` deliberately keeps its padded background badge.
+
 ## Block Elements
 
-| Component      | Default Style               | Use For         |
-| -------------- | --------------------------- | --------------- |
-| `<Blockquote>` | `$fg-muted` border + italic | Quotations      |
-| `<HR>`         | `$border-default` dashes    | Horizontal rule |
+| Component      | Default Style                                            | Use For         |
+| -------------- | -------------------------------------------------------- | --------------- |
+| `<Blockquote>` | `$fg-muted` italic body + `$fg-faint` hairline left rail | Quotations      |
+| `<HR>`         | `$border-default` dashes                               | Horizontal rule |
 
 ```tsx
 <Blockquote>Less is more.</Blockquote>
 <HR />
 ```
+
+`<Blockquote>` uses a structural Box border (`▏` on terminal targets), not a
+text prefix. The border therefore continues across wrapped and nested content.
+Its two-column left margin, one-column body gap, and four-column right margin
+keep quoted prose inset on both sides of its surrounding measure.
 
 ## Lists
 

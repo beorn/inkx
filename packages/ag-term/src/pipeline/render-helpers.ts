@@ -189,7 +189,7 @@ export function parseColor(color: string): Color {
  * Border character sets by style. Hoisted to module scope to avoid
  * re-allocating 7 objects on every call.
  */
-const borders: Record<NonNullable<BoxProps["borderStyle"]>, BorderChars> = {
+const borders: Record<Extract<NonNullable<BoxProps["borderStyle"]>, string>, BorderChars> = {
   single: {
     topLeft: "\u250c",
     topRight: "\u2510",
@@ -245,6 +245,14 @@ const borders: Record<NonNullable<BoxProps["borderStyle"]>, BorderChars> = {
     bottomRight: "+",
     horizontal: "-",
     vertical: "|",
+  },
+  hairline: {
+    topLeft: "▏",
+    topRight: "▏",
+    bottomLeft: "▏",
+    bottomRight: "▏",
+    horizontal: "▔",
+    vertical: "▏",
   },
 }
 

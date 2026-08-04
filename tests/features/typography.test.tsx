@@ -26,6 +26,7 @@ import {
   OL,
   LI,
   Box,
+  Text,
 } from "silvery"
 
 const render = createRenderer({ cols: 80, rows: 10 })
@@ -198,17 +199,19 @@ describe("Inline emphasis", () => {
 // ============================================================================
 
 describe("Inline code elements", () => {
-  test("Code wraps content with padding spaces", () => {
+  test("Code renders without padding spaces", () => {
     const app = render(<Code>fn()</Code>)
-    expect(app.text).toContain(" fn() ")
+    expect(app.term.buffer.getCell(0, 0).char).toBe("f")
+    expect(app.text).not.toContain(" fn() ")
   })
 
-  test("Code has $bg-muted background", () => {
+  test("Code uses $fg-info without a background chip", () => {
     const app = render(<Code>x</Code>)
-    // Find the 'x' character — it's at col 1 because of leading space
-    const cell = app.term.buffer.getCell(1, 0)
+    const info = render(<Text color="$fg-info">x</Text>)
+    const cell = app.term.buffer.getCell(0, 0)
     expect(cell.char).toBe("x")
-    expect(cell.bg).not.toBeNull()
+    expect(cell.fg).toEqual(info.term.buffer.getCell(0, 0).fg)
+    expect(cell.bg).toBeNull()
   })
 
   test("Kbd wraps content with padding spaces", () => {
@@ -226,7 +229,7 @@ describe("Inline code elements", () => {
 
   test("Code is not bold, Kbd is bold", () => {
     const app1 = render(<Code>a</Code>)
-    const codeCell = app1.term.buffer.getCell(1, 0)
+    const codeCell = app1.term.buffer.getCell(0, 0)
     expect(codeCell.attrs.bold).toBeFalsy()
 
     const app2 = render(<Kbd>a</Kbd>)
@@ -234,10 +237,10 @@ describe("Inline code elements", () => {
     expect(kbdCell.attrs.bold).toBe(true)
   })
 
-  test("Code and Kbd accept color override", () => {
+  test("Code caller color overrides $fg-info", () => {
     const app = render(<Code color="$fg-success">ok</Code>)
-    const cell = app.term.buffer.getCell(1, 0)
-    expect(cell.fg).not.toBeNull()
+    const override = render(<Text color="$fg-success">ok</Text>)
+    expect(app.term.buffer.getCell(0, 0).fg).toEqual(override.term.buffer.getCell(0, 0).fg)
   })
 
   // Tracking: @km/silvery/15086-inline-code-nowrap-default.
@@ -300,10 +303,30 @@ describe("Inline code elements", () => {
 // ============================================================================
 
 describe("Block elements", () => {
-  test("Blockquote renders with │ prefix", () => {
+  test("Blockquote renders with a hairline left rail", () => {
     const app = render(<Blockquote>Quoted text</Blockquote>)
-    expect(app.text).toContain("│")
+    expect(app.text).toContain("▏")
+    expect(app.text).not.toContain("│")
     expect(app.text).toContain("Quoted text")
+  })
+
+  test("Blockquote rail spans wrapped rows with balanced prose insets", () => {
+    const narrow = createRenderer({ cols: 32, rows: 10 })
+    const app = narrow(
+      <Box width={32}>
+        <Blockquote>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda.</Blockquote>
+      </Box>,
+    )
+    const rows = app.lines
+      .map((line, row) => ({ line, row }))
+      .filter(({ line }) => line.trim().length > 0)
+
+    expect(rows.length).toBeGreaterThan(1)
+    for (const { line } of rows) {
+      expect(line[2]).toBe("▏")
+      expect(line[3]).toBe(" ")
+      expect(line.slice(28).trim()).toBe("")
+    }
   })
 
   test("Blockquote content is italic", () => {
@@ -321,19 +344,22 @@ describe("Block elements", () => {
     expect(buffer.getCell(quoteCol, 0).attrs.italic).toBe(true)
   })
 
-  test("Blockquote │ uses $fg-muted color", () => {
-    const app = render(<Blockquote>Text</Blockquote>)
+  test("Blockquote rail uses $fg-faint below the $fg-muted body", () => {
+    const localRender = createRenderer({ cols: 80, rows: 4 })
+    const app = localRender(<Blockquote>Text</Blockquote>)
+    const faint = createRenderer({ cols: 4, rows: 2 })(<Text color="$fg-faint">x</Text>)
+    const muted = createRenderer({ cols: 4, rows: 2 })(<Text color="$fg-muted">x</Text>)
     const buffer = app.term.buffer
-    // Find the │ character
     let barCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "│") {
+      if (buffer.getCell(x, 0).char === "▏") {
         barCol = x
         break
       }
     }
     expect(barCol).toBeGreaterThanOrEqual(0)
-    expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
+    expect(buffer.getCell(barCol, 0).fg).toEqual(faint.term.buffer.getCell(0, 0).fg)
+    expect(buffer.getCell(barCol + 2, 0).fg).toEqual(muted.term.buffer.getCell(0, 0).fg)
   })
 
   test("CodeBlock renders with │ prefix", () => {
@@ -409,12 +435,12 @@ describe("Block elements", () => {
     expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
   })
 
-  test("Blockquote and CodeBlock │ have different colors", () => {
+  test("Blockquote hairline and CodeBlock rail have different colors", () => {
     const app1 = render(<Blockquote>a</Blockquote>)
     const buf1 = app1.term.buffer
     let bqBarFg = null
     for (let x = 0; x < 80; x++) {
-      if (buf1.getCell(x, 0).char === "│") {
+      if (buf1.getCell(x, 0).char === "▏") {
         bqBarFg = buf1.getCell(x, 0).fg
         break
       }
