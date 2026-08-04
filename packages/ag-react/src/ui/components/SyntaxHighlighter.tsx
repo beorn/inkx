@@ -50,14 +50,9 @@ export function SyntaxHighlighter({
   const hover = useHover()
   const lines = useSyntaxTokens(code, lang, theme)
   const lineWrap = isDiffLanguage(lang) ? "truncate" : "hard"
-  const body = lines.map((line, lineIndex) => (
-    <Box
-      key={lineIndex}
-      minWidth={0}
-      flexDirection="row"
-      onLayout={onLineLayout ? (rect) => onLineLayout(lineIndex, rect.y) : undefined}
-    >
-      <Text wrap={lineWrap} backgroundColor={backgroundColor}>
+  const body = lines.map((line, lineIndex) => {
+    const content = (
+      <Text key={onLineLayout ? undefined : lineIndex} wrap={lineWrap} backgroundColor={backgroundColor}>
         {line.tokens.map((token, tokenIndex) => (
           <Text
             key={tokenIndex}
@@ -70,8 +65,19 @@ export function SyntaxHighlighter({
           </Text>
         ))}
       </Text>
-    </Box>
-  ))
+    )
+    if (!onLineLayout) return content
+    return (
+      <Box
+        key={lineIndex}
+        minWidth={0}
+        flexDirection="row"
+        onLayout={(rect) => onLineLayout(lineIndex, rect.y)}
+      >
+        {content}
+      </Box>
+    )
+  })
 
   if (bare) return <Box flexDirection="column">{body}</Box>
 
