@@ -49,6 +49,25 @@ Applications may supply a leaf `marker` (for example, a checkbox) and its
 `markerWidth`. DocumentView still owns the marker cell, gap, body column, and
 wrapping.
 
+## Measured reveal
+
+Hosts can reveal a semantic block without estimating its rendered row. Pass
+the controller from the enclosing `ScrollArea`, the target block identity, and
+a stable operation identity:
+
+```tsx
+<ScrollArea controller={controller}>
+  <DocumentView
+    blocks={blocks}
+    reveal={{ operationId: navigationEntry.id, blockId: "target", scrollController: controller }}
+  />
+</ScrollArea>
+```
+
+DocumentView waits for layout and scrolls from the same measured block geometry
+used by document search. Change `operationId` to issue a new reveal operation,
+including when revealing the same `blockId` again.
+
 ## Extension boundary
 
 `content`, `marker`, and `accessory` accept React nodes as leaf or inline
