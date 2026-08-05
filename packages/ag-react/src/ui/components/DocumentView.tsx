@@ -108,6 +108,12 @@ export interface DocumentViewProps {
   readonly lane?: DocumentLane
   /** Register this semantic document with the enclosing SearchProvider. */
   readonly search?: DocumentViewSearchConfig
+  /** Reveal one semantic block from the same measured geometry used by search. */
+  readonly reveal?: {
+    readonly operationId: string | number
+    readonly blockId: DocumentBlockId
+    readonly scrollController: ScrollController
+  }
 }
 
 interface ResolvedListItem {
@@ -160,6 +166,24 @@ function resolveListItems(
 
 function isListBlock(block: DocumentBlock | undefined): block is DocumentListItemBlock {
   return block?.kind === "list-item"
+}
+
+function revealDocumentBlock(
+  blocks: readonly DocumentBlock[],
+  rowOffsets: ReadonlyMap<DocumentBlockId, number>,
+  blockId: DocumentBlockId,
+  scrollController: ScrollController,
+): boolean {
+  if (scrollController.viewportHeight === 0) return false
+  const first = blocks[0]
+  if (!first) return false
+  const y = rowOffsets.get(blockId)
+  const firstY = rowOffsets.get(first.id)
+  if (y === undefined || firstY === undefined) return false
+  const offset = Math.max(0, y - firstY)
+  if (scrollController.contentHeight <= offset) return false
+  scrollController.setScrollOffset(offset)
+  return true
 }
 
 function BlockFrame({
@@ -414,6 +438,7 @@ export function DocumentView({
   empty,
   lane = "prose",
   search,
+  reveal,
 }: DocumentViewProps): React.ReactElement {
   const hasContentLayout = useHasContentLayout()
   const searchContext = useSearchOptional()
@@ -423,9 +448,12 @@ export function DocumentView({
   const searchEnabled = search !== undefined
   const blocksRef = useRef(blocks)
   const searchRef = useRef(search)
+  const revealRef = useRef(reveal)
+  const revealedOperationRef = useRef<string | number | null>(null)
   const rowOffsetsRef = useRef(new Map<DocumentBlockId, number>())
   blocksRef.current = blocks
   searchRef.current = search
+  revealRef.current = reveal
 
   useEffect(() => {
     if (!searchEnabled || !registerSearchable) return
@@ -444,16 +472,36 @@ export function DocumentView({
       reveal(match: SearchMatch): void {
         const currentBlocks = blocksRef.current
         const block = currentBlocks[match.row]
-        const first = currentBlocks[0]
         const currentSearch = searchRef.current
-        if (!block || !first || !currentSearch) return
-        const y = rowOffsetsRef.current.get(block.id)
-        const firstY = rowOffsetsRef.current.get(first.id)
-        if (y === undefined || firstY === undefined) return
-        currentSearch.scrollController.setScrollOffset(Math.max(0, y - firstY))
+        if (!block || !currentSearch) return
+        revealDocumentBlock(
+          currentBlocks,
+          rowOffsetsRef.current,
+          block.id,
+          currentSearch.scrollController,
+        )
       },
     })
   }, [registerSearchable, searchEnabled, searchId])
+
+  useEffect(() => {
+    const currentReveal = revealRef.current
+    if (!currentReveal || revealedOperationRef.current === currentReveal.operationId) return
+    if (
+      revealDocumentBlock(
+        blocksRef.current,
+        rowOffsetsRef.current,
+        currentReveal.blockId,
+        currentReveal.scrollController,
+      )
+    ) {
+      revealedOperationRef.current = currentReveal.operationId
+    }
+  }, [
+    reveal?.operationId,
+    reveal?.scrollController.contentHeight,
+    reveal?.scrollController.viewportHeight,
+  ])
 
   const currentSearchMatch =
     searchContext && searchContext.currentMatch >= 0
@@ -467,7 +515,21 @@ export function DocumentView({
       selectedId={searchSelectedId ?? selectedId}
       empty={empty}
       lane={lane}
-      onBlockLayout={(id, y) => rowOffsetsRef.current.set(id, y)}
+      onBlockLayout={(id, y) => {
+        rowOffsetsRef.current.set(id, y)
+        const currentReveal = revealRef.current
+        if (!currentReveal || revealedOperationRef.current === currentReveal.operationId) return
+        if (
+          revealDocumentBlock(
+            blocksRef.current,
+            rowOffsetsRef.current,
+            currentReveal.blockId,
+            currentReveal.scrollController,
+          )
+        ) {
+          revealedOperationRef.current = currentReveal.operationId
+        }
+      }}
     />
   )
   if (hasContentLayout) return document

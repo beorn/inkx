@@ -15,7 +15,16 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Content, DocumentView, MarkdownView, Text, type DocumentBlock } from "silvery"
+import {
+  Box,
+  Content,
+  DocumentView,
+  MarkdownView,
+  ScrollArea,
+  Text,
+  type DocumentBlock,
+  useScrollController,
+} from "silvery"
 import { parseMarkdownBlocks } from "../../packages/ag-react/src/ui/components/MarkdownView"
 
 const DEFAULT_WIDTH = 80
@@ -158,6 +167,40 @@ describe("MarkdownView — block elements", () => {
 })
 
 describe("DocumentView — shared document geometry", () => {
+  test("reveals an off-screen block from its measured wrapped-row origin", async () => {
+    const blocks: readonly DocumentBlock[] = [
+      {
+        id: "wrapped",
+        kind: "paragraph",
+        content:
+          "This deliberately long paragraph wraps across several terminal rows so a semantic block index cannot stand in for measured geometry.",
+      },
+      { id: "target", kind: "heading", level: 2, content: "Measured target" },
+    ]
+    let observedOffset = 0
+    function RevealedDocument(): React.ReactElement {
+      const scrollController = useScrollController()
+      observedOffset = scrollController.scrollOffset
+      return (
+        <Box width={24} height={4}>
+          <ScrollArea controller={scrollController}>
+            <Content.Layout fill={false} prose="100%" align="start">
+              <DocumentView
+                blocks={blocks}
+                reveal={{ operationId: 1, blockId: "target", scrollController }}
+              />
+            </Content.Layout>
+          </ScrollArea>
+        </Box>
+      )
+    }
+
+    const render = createRenderer({ cols: 24, rows: 4, autoRender: true })
+    render(<RevealedDocument />)
+
+    await expect.poll(() => observedOffset).toBeGreaterThan(1)
+  })
+
   test("ordered counters advance while every body shares one hanging-indent column", () => {
     const list = {
       groupId: "steps",
