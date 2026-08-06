@@ -29,6 +29,9 @@ API reference for all silvery components. Import from `"silvery"` (the public ba
 | [Skeleton](./Skeleton.md)     | Loading placeholder                                                                                                     |
 | [SyntaxHighlighter](./SyntaxHighlighter.md) | Shiki-backed source-code presentation                                                                       |
 | [Tooltip](./Tooltip.md)       | Contextual help text                                                                                                    |
+| [Prose](./Prose.md)           | Text-wrapping container                                                                                                 |
+| [Content](./Content.md)       | Responsive prose, wide, full, and auto content lanes                                                                   |
+| [DocumentView](./DocumentView.md) | Store-neutral semantic document presenter                                                                          |
 
 ## Input
 
