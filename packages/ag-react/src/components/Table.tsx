@@ -219,7 +219,7 @@ function TableImplementation<T>({
     <Box
       key={itemIndex}
       flexDirection="row"
-      width={directRows ? undefined : "100%"}
+      width="100%"
       alignSelf={directRows ? "stretch" : undefined}
       minWidth={0}
       overflow="hidden"
@@ -233,7 +233,7 @@ function TableImplementation<T>({
   const header = showHeader ? (
     <Box
       flexDirection="row"
-      width={directRows ? undefined : "100%"}
+      width="100%"
       alignSelf={directRows ? "stretch" : undefined}
       minWidth={0}
       overflow="hidden"

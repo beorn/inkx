@@ -42,6 +42,17 @@ function renderDocumentTable() {
   )
 }
 
+function parentRect(
+  app: ReturnType<ReturnType<typeof createRenderer>>,
+  text: string,
+): { x: number; y: number; width: number; height: number } {
+  const cell = app.getByText(text).first().resolve()?.parent
+  if (cell?.boxRect === null || cell?.boxRect === undefined) {
+    throw new Error(`expected a measured table cell for ${JSON.stringify(text)}`)
+  }
+  return cell.boxRect
+}
+
 describe("Content.Table document presentation (@km/tui/22807)", () => {
   test("uses an emphasized header and faint row rules without a box or junctions", () => {
     const app = renderDocumentTable()
@@ -66,5 +77,23 @@ describe("Content.Table document presentation (@km/tui/22807)", () => {
     const headerRow = app.lines.findIndex((line) => line.includes("Name"))
     const headerColumn = app.lines[headerRow]!.indexOf("Name")
     expect(app.cell(headerColumn, headerRow).bold).toBe(true)
+  })
+
+  test("keeps one measured track geometry across Unicode cell shapes", () => {
+    const render = createRenderer({ cols: 80, rows: 20 })
+    const glyphs = ["ab", "🚀", "中文", "e\u0301", "👨‍👩‍👧"]
+    const app = render(
+      <Content.Table
+        headers={["Kind", "Glyph", "Tail"]}
+        rows={glyphs.map((glyph, index) => [`row-${index}`, glyph, `end-${index}`])}
+      />,
+    )
+
+    const glyphCells = glyphs.map((glyph) => parentRect(app, glyph))
+    const tailCells = glyphs.map((_, index) => parentRect(app, `end-${index}`))
+
+    expect(new Set(glyphCells.map(({ x }) => x)).size).toBe(1)
+    expect(new Set(glyphCells.map(({ width }) => width)).size).toBe(1)
+    expect(new Set(tailCells.map(({ x }) => x)).size).toBe(1)
   })
 })
