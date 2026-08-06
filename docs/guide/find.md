@@ -113,6 +113,6 @@ case-insensitive, overlap-preserving matcher shared by the provider integrations
 
 ## See also
 
-- [ListView](/components/list-view)
+- [ListView](/components/ListView)
 - [Scrolling](/guide/scrolling)
 - [Text selection](/guide/text-selection)
