@@ -22,7 +22,7 @@
 import React from "react"
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Text, H1, H2, Box } from "silvery"
+import { Text, H1, H2, H4, H5, H6, Box } from "silvery"
 import { ThemeProvider } from "silvery"
 import { defaultDarkTheme } from "@silvery/theme/schemes"
 import { KNOWN_VARIANTS } from "@silvery/ansi"
@@ -34,6 +34,18 @@ const r = createRenderer({ cols: 80, rows: 5 })
 // =============================================================================
 
 describe("Text variant prop", () => {
+  test("H4-H6 presets resolve built-in variants without warnings", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const h4 = r(<H4>Four</H4>)
+    expect(h4.cell(0, 0).bold).toBe(true)
+    const h5 = r(<H5>Five</H5>)
+    expect(h5.cell(0, 0).italic).toBe(true)
+    r(<H6>Six</H6>)
+
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
   test("variant='h1' → bold=true, fg non-null", () => {
     const app = r(<Text variant="h1">Title</Text>)
     const cell = app.cell(0, 0)
@@ -181,12 +193,15 @@ describe("Text variant prop", () => {
   // Test 8: KNOWN_VARIANTS runtime constant matches VariantName values
   // =============================================================================
 
-  test("KNOWN_VARIANTS runtime constant has all 12 known variant names", () => {
-    expect(KNOWN_VARIANTS).toHaveLength(12)
+  test("KNOWN_VARIANTS runtime constant has all 15 known variant names", () => {
+    expect(KNOWN_VARIANTS).toHaveLength(15)
     const expected = [
       "h1",
       "h2",
       "h3",
+      "h4",
+      "h5",
+      "h6",
       "body",
       "body-muted",
       "fine-print",

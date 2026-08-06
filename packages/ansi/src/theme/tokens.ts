@@ -144,6 +144,9 @@ export type VariantName =
   | "h1"
   | "h2"
   | "h3"
+  | "h4"
+  | "h5"
+  | "h6"
   | "body"
   | "body-muted"
   | "fine-print"
@@ -162,7 +165,7 @@ export type VariantName =
 export type KnownVariant = VariantName | (string & {})
 
 /**
- * Runtime constant — the 12 built-in variant names shipped by silvery.
+ * Runtime constant — the 15 built-in variant names shipped by silvery.
  *
  * Used in dev warnings when an unknown variant is looked up in Text.tsx:
  * ```
@@ -175,6 +178,9 @@ export const KNOWN_VARIANTS: readonly VariantName[] = [
   "h1",
   "h2",
   "h3",
+  "h4",
+  "h5",
+  "h6",
   "body",
   "body-muted",
   "fine-print",
