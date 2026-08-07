@@ -50,7 +50,10 @@ const ROWS: string[][] = [
 const CELL_CHROME = 2
 
 const maxContent = (columnIndex: number): number =>
-  Math.max(displayWidth(HEADERS[columnIndex]!), ...ROWS.map((row) => displayWidth(row[columnIndex]!)))
+  Math.max(
+    displayWidth(HEADERS[columnIndex]!),
+    ...ROWS.map((row) => displayWidth(row[columnIndex]!)),
+  )
 
 const minContent = (columnIndex: number): number =>
   Math.max(
@@ -81,7 +84,8 @@ function cellWidth(app: App, text: string): number {
   while (node) {
     const props = node.props as Record<string, unknown>
     if (props.overflow === "hidden" && props.paddingRight !== undefined) {
-      if (node.boxRect === null) throw new Error(`cell for ${JSON.stringify(text)} has no computed box`)
+      if (node.boxRect === null)
+        throw new Error(`cell for ${JSON.stringify(text)} has no computed box`)
       return node.boxRect.width
     }
     node = node.parent
@@ -91,7 +95,8 @@ function cellWidth(app: App, text: string): number {
 
 function textHeight(app: App, text: string): number {
   const node = app.getByText(text).resolve()
-  if (node === null || node.boxRect === null) throw new Error(`no rendered box for ${JSON.stringify(text)}`)
+  if (node === null || node.boxRect === null)
+    throw new Error(`no rendered box for ${JSON.stringify(text)}`)
   return node.boxRect.height
 }
 

@@ -4,9 +4,20 @@
  * The default presentation is the compact data table used by applications.
  * `frame` adds document-table chrome and wrapping without introducing another
  * width allocator: both presentations share the same tracks and cells.
+ *
+ * Column widths come from the shared `apportion()` allocator (@silvery/ag):
+ * each track carries a [min-content, max-content] band and the measured
+ * container width is distributed css-tables-3 style — shrink proportional to
+ * shrinkability, floors respected, house-monotone integer rounding. When even
+ * the floors do not fit, wrap-capable columns degrade legibly to
+ * character-level wrapping and re-allocate; when nothing fits, cells fall
+ * back to truncation with visible loss marking. The table never silently
+ * renders an allocation that violates its own floors while looking fine.
  */
 import React, { useMemo } from "react"
-import { displayWidth } from "@silvery/ag-term/unicode"
+import { apportion, type ApportionTrack } from "@silvery/ag"
+import { displayWidth, intrinsicWidths } from "@silvery/ag-term/unicode"
+import { useBoxRectDangerously } from "../hooks/useLayout"
 import { Box } from "./Box"
 import { Text, type TextProps } from "./Text"
 import { ListView } from "../ui/components/ListView"
@@ -22,9 +33,9 @@ export type Column<T> = {
   align?: "left" | "right" | "center"
   /** Fixed total track width. */
   width?: number
-  /** Smallest total width Flexily may assign to this track. */
+  /** Smallest total width the allocator may assign to this track. */
   minWidth?: number
-  /** Largest total width Flexily may assign to this track. */
+  /** Largest total width the allocator may assign to this track. */
   maxWidth?: number
   /** Allow this track to consume positive free space. */
   grow?: boolean
@@ -63,18 +74,26 @@ export function DocumentTable<T>(props: Omit<TableProps<T>, "frame">): React.Rea
 }
 
 type Track = Readonly<{
-  basis: number
+  /** Band floor: min-content + chrome (or the author's explicit floor if larger). */
+  min: number
+  /** Band cap: max-content + chrome, capped by an explicit maxWidth. */
+  max: number
+  /** Cell chrome inside the track: padding + column separator. */
+  chrome: number
+  /** Explicit author width — the band is a single point and never degrades. */
   fixed: boolean
+}>
+
+type Allocation = Readonly<{
+  widths: readonly number[]
+  /** True when floors only fit after degrading wrap-capable cells to character wrapping. */
+  degraded: boolean
 }>
 
 function trackAt(tracks: readonly Track[], index: number): Track {
   const track = tracks[index]
   if (track === undefined) throw new RangeError(`Missing table track ${index}`)
   return track
-}
-
-function clamp(value: number, min: number, max: number | undefined): number {
-  return Math.max(min, max === undefined ? value : Math.min(value, max))
 }
 
 function plainCellValue<T>(column: Column<T>, item: T, index: number): string {
@@ -85,27 +104,82 @@ function plainCellValue<T>(column: Column<T>, item: T, index: number): string {
   return column.key ? String(item[column.key] ?? "") : ""
 }
 
+/** Wrap modes whose min-content is the longest unbreakable segment (they cannot mark loss). */
+function isWrapCapable(cellWrap: TextProps["wrap"]): boolean {
+  return !(
+    cellWrap === "truncate" ||
+    cellWrap === "truncate-start" ||
+    cellWrap === "truncate-middle" ||
+    cellWrap === "truncate-end" ||
+    cellWrap === "clip" ||
+    cellWrap === false ||
+    cellWrap === "hard"
+  )
+}
+
 function computeTracks<T>(
   columns: readonly Column<T>[],
   data: readonly T[],
   padding: number,
   columnSeparators: boolean,
+  cellWrap: TextProps["wrap"],
 ): Track[] {
   return columns.map((column, columnIndex) => {
     const separatorWidth = columnSeparators && columnIndex > 0 ? 1 : 0
+    const chrome = padding + separatorWidth
     if (column.width !== undefined) {
-      return { basis: column.width + separatorWidth, fixed: true }
+      const total = column.width + separatorWidth
+      return { min: total, max: total, chrome, fixed: true }
     }
-    const contentWidth = Math.max(
-      displayWidth(column.header),
-      ...data.map((item, itemIndex) => displayWidth(plainCellValue(column, item, itemIndex))),
-    )
-    const intrinsic = contentWidth + padding + separatorWidth
-    return {
-      basis: clamp(intrinsic, column.minWidth ?? 0, column.maxWidth),
-      fixed: false,
+    // Intrinsic sizing reads the RENDERED cell text (a render() that returns a
+    // string participates), never the source data — a cell rendering a long
+    // source down to a short label must not inflate the floor.
+    let minContent = intrinsicWidths(column.header, "truncate").minContentWidth
+    let maxContent = displayWidth(column.header)
+    for (let itemIndex = 0; itemIndex < data.length; itemIndex++) {
+      const value = plainCellValue(column, data[itemIndex]!, itemIndex)
+      const iw = intrinsicWidths(value, cellWrap)
+      if (iw.minContentWidth > minContent) minContent = iw.minContentWidth
+      if (iw.maxContentWidth > maxContent) maxContent = iw.maxContentWidth
     }
+    const max = Math.min(maxContent + chrome, column.maxWidth ?? Number.MAX_SAFE_INTEGER)
+    const min = Math.min(Math.max(minContent + chrome, column.minWidth ?? 0), max)
+    return { min, max, chrome, fixed: false }
   })
+}
+
+/**
+ * Allocate the measured width across tracks, escalating LEGIBLY when the
+ * floors do not fit:
+ *
+ * 1. Bands as computed — the normal case.
+ * 2. Floors exceed the width: wrap-capable tracks drop their floor to one
+ *    cell (character wrapping can break anywhere) and re-allocate. The
+ *    degradation is visible — text breaks mid-word — never a silent squeeze
+ *    below a floor.
+ * 3. Even one-cell floors do not fit: no legal allocation exists. Returns
+ *    null; cells fall back to flex truncation, whose ellipsis marks the loss.
+ */
+function allocateTracks(
+  tracks: readonly Track[],
+  available: number,
+  cellWrap: TextProps["wrap"],
+): Allocation | null {
+  if (tracks.length === 0) return null
+  const bands: ApportionTrack[] = tracks.map((track) => ({ min: track.min, max: track.max }))
+  const first = apportion(bands, available)
+  if (first.feasible) return { widths: first.widths, degraded: false }
+
+  if (isWrapCapable(cellWrap)) {
+    const degradedBands: ApportionTrack[] = tracks.map((track) =>
+      track.fixed
+        ? { min: track.min, max: track.max }
+        : { min: Math.min(track.chrome + 1, track.max), max: track.max },
+    )
+    const second = apportion(degradedBands, available)
+    if (second.feasible) return { widths: second.widths, degraded: true }
+  }
+  return null
 }
 
 function TableRule({ color }: { color: string }): React.ReactElement {
@@ -136,34 +210,54 @@ function TableImplementation<T>({
   const directRows = presentation !== "plain"
   const framed = presentation === "framed"
   const tracks = useMemo(
-    () => computeTracks(columns, data, padding, framed),
-    [columns, data, framed, padding],
+    () => computeTracks(columns, data, padding, framed, cellWrap),
+    [cellWrap, columns, data, framed, padding],
+  )
+  // The committed inner rect of the CONTAINING Box (NodeContext) — the width
+  // the table is being laid into. Batch-invariant, so allocating from it
+  // cannot oscillate: a content-sized parent measures Σmax, and
+  // apportion(Σmax) returns exactly the max widths — a fixpoint.
+  const container = useBoxRectDangerously()
+  const available = container.width > 0 ? container.width - (framed ? 2 : 0) : null
+  const allocation = useMemo(
+    () => (available === null ? null : allocateTracks(tracks, available, cellWrap)),
+    [available, cellWrap, tracks],
   )
   const borderColor = "$border"
   const ruleColor = presentation === "document" ? "$border-muted" : borderColor
   const leftPadding = directRows ? Math.floor(padding / 2) : 0
   const rightPadding = directRows ? padding - leftPadding : padding
+  const bodyWrap: TextProps["wrap"] = allocation?.degraded ? "hard" : cellWrap
 
-  const trackProps = (column: Column<T>, track: Track) => {
+  const trackProps = (column: Column<T>, track: Track, columnIndex: number) => {
+    if (track.fixed) {
+      return {
+        width: track.max,
+        minWidth: track.max,
+        maxWidth: track.max,
+        flexGrow: 0,
+        flexShrink: 0,
+      }
+    }
+    if (allocation !== null) {
+      const width = allocation.widths[columnIndex]!
+      // Grow columns keep taking positive free space beyond their allocation.
+      return column.grow
+        ? { flexBasis: width, minWidth: width, flexGrow: 1, flexShrink: 0 }
+        : { width, minWidth: width, maxWidth: width, flexGrow: 0, flexShrink: 0 }
+    }
+    // Unmeasured first frame, or no legal allocation exists (hard overflow):
+    // natural-width tracks that flex-shrink linearly; overflow="hidden" plus
+    // truncation marks the loss. Shrink weight is the band's shrinkability so
+    // rigid tracks hold and prose yields — same model as the allocator.
     const canShrink = column.shrink ?? column.grow ?? false
-    return track.fixed
-      ? {
-          width: track.basis,
-          minWidth: track.basis,
-          maxWidth: track.basis,
-          flexGrow: 0,
-          flexShrink: 0,
-        }
-      : {
-          flexBasis: track.basis,
-          minWidth: column.minWidth ?? 0,
-          maxWidth: column.maxWidth,
-          flexGrow: column.grow ? 1 : 0,
-          // Flexbox scales shrink by both flexShrink and flexBasis. Using the
-          // basis again makes long tracks yield quadratically before compact
-          // identifier/status tracks disappear.
-          flexShrink: canShrink ? track.basis : 0,
-        }
+    return {
+      flexBasis: track.max,
+      minWidth: column.minWidth ?? 0,
+      maxWidth: column.maxWidth,
+      flexGrow: column.grow ? 1 : 0,
+      flexShrink: canShrink ? Math.max(track.max - track.min, 1) : 0,
+    }
   }
 
   const cellBorderProps = (columnIndex: number) =>
@@ -196,14 +290,14 @@ function TableImplementation<T>({
       rendered != null && typeof rendered !== "string" && typeof rendered !== "number" ? (
         rendered
       ) : (
-        <Text minWidth={0} maxWidth="100%" wrap={cellWrap}>
+        <Text minWidth={0} maxWidth="100%" wrap={bodyWrap}>
           {rendered == null ? String((column.key ? item[column.key] : "") ?? "") : String(rendered)}
         </Text>
       )
     return (
       <Box
         key={column.header}
-        {...trackProps(column, track)}
+        {...trackProps(column, track, columnIndex)}
         {...cellBorderProps(columnIndex)}
         overflow="hidden"
         paddingLeft={leftPadding}
@@ -241,7 +335,7 @@ function TableImplementation<T>({
       {columns.map((column, columnIndex) => (
         <Box
           key={column.header}
-          {...trackProps(column, trackAt(tracks, columnIndex))}
+          {...trackProps(column, trackAt(tracks, columnIndex), columnIndex)}
           {...cellBorderProps(columnIndex)}
           overflow="hidden"
           paddingLeft={leftPadding}
@@ -257,7 +351,10 @@ function TableImplementation<T>({
   ) : null
 
   if (directRows) {
-    const intrinsicWidth = tracks.reduce((sum, track) => sum + track.basis, 0) + (framed ? 2 : 0)
+    const intrinsicWidth =
+      (allocation === null
+        ? tracks.reduce((sum, track) => sum + track.max, 0)
+        : allocation.widths.reduce((sum, width) => sum + width, 0)) + (framed ? 2 : 0)
     return (
       <Box
         data-component="content-table-grid"

@@ -773,6 +773,85 @@ export function isSoftBreakPoint(grapheme: string): boolean {
 }
 
 /**
+ * Longest unbreakable run of one source line under word-aware wrapping — the
+ * per-line CSS min-content. Hard break opportunities (space, tab, hyphen) end
+ * a segment BEFORE the breaking character; soft break points
+ * (`isSoftBreakPoint`) end the segment INCLUDING the separator, because wrap
+ * breaks after it.
+ *
+ * This is the one home of the segmentation; the reconciler's min-content
+ * measure query and table column sizing both call it. The per-character loop
+ * is conservative for multi-codepoint graphemes (width still comes from the
+ * supplied `dw`), matching the measure path it was extracted from.
+ */
+export function longestUnbreakableSegment(
+  line: string,
+  dw: (text: string) => number = displayWidth,
+): number {
+  let longest = 0
+  let segment = 0
+  for (let pos = 0; pos < line.length; pos++) {
+    const ch = line[pos]!
+    if (ch === " " || ch === "\t" || ch === "-") {
+      if (segment > longest) longest = segment
+      segment = 0
+      continue
+    }
+    segment += dw(ch)
+    if (isSoftBreakPoint(ch)) {
+      if (segment > longest) longest = segment
+      segment = 0
+    }
+  }
+  return segment > longest ? segment : longest
+}
+
+export type IntrinsicWidths = {
+  /** Longest unbreakable run the wrap mode cannot break — the narrowest useful width. */
+  minContentWidth: number
+  /** Unwrapped natural width — the widest useful width. */
+  maxContentWidth: number
+}
+
+/**
+ * CSS-style intrinsic widths of a text under a Text wrap mode. Mirrors the
+ * reconciler's measure-query semantics:
+ *
+ * - truncate family (`truncate*`, `clip`, `false`): min-content is 1 cell —
+ *   the element declares it can collapse to an ellipsis at any width.
+ * - `hard`: any character can break, so min-content is 1 cell.
+ * - wrappable (everything else): min-content is the longest unbreakable
+ *   segment between break opportunities (`longestUnbreakableSegment`).
+ *
+ * max-content is always the natural (unwrapped) width. Multi-line input takes
+ * the max across lines.
+ */
+export function intrinsicWidths(
+  text: string,
+  wrap: string | boolean | undefined,
+  dw: (text: string) => number = displayWidth,
+): IntrinsicWidths {
+  const isTruncate =
+    wrap === "truncate" ||
+    wrap === "truncate-start" ||
+    wrap === "truncate-middle" ||
+    wrap === "truncate-end" ||
+    wrap === "clip" ||
+    wrap === false
+  const isHardWrap = wrap === "hard"
+  let minContentWidth = 0
+  let maxContentWidth = 0
+  for (const line of text.split("\n")) {
+    const lineWidth = dw(line)
+    maxContentWidth = Math.max(maxContentWidth, lineWidth)
+    const lineMin =
+      isTruncate || isHardWrap ? (lineWidth > 0 ? 1 : 0) : longestUnbreakableSegment(line, dw)
+    minContentWidth = Math.max(minContentWidth, lineMin)
+  }
+  return { minContentWidth, maxContentWidth }
+}
+
+/**
  * Look ahead from a space to check if the next word is a single-character
  * operator (like +, =, *, /, etc.) followed by another space. Breaking before
  * such operators looks bad — e.g. "$12k\n+ $400" — so we suppress the break

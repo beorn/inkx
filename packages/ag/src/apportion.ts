@@ -58,7 +58,8 @@ const clamp = (x: number, lo: number, hi: number): number => (x < lo ? lo : x > 
 
 /** Integer cell grid only: fractional bands are a programming error, not a rounding job. */
 function validate(tracks: readonly ApportionTrack[], width: number): void {
-  if (!Number.isInteger(width)) throw new Error(`apportion: width must be an integer (got ${width})`)
+  if (!Number.isInteger(width))
+    throw new Error(`apportion: width must be an integer (got ${width})`)
   for (let i = 0; i < tracks.length; i++) {
     const { min, max } = tracks[i]!
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
@@ -112,7 +113,11 @@ export function apportionRealWidths(
  * tie-breaks change WHICH track gets the extra cell, not correctness) — do
  * not fold a different tie-break in here silently.
  */
-function websterApportion(weights: readonly number[], caps: readonly number[], units: number): number[] {
+function websterApportion(
+  weights: readonly number[],
+  caps: readonly number[],
+  units: number,
+): number[] {
   const n = weights.length
   const awarded = new Array<number>(n).fill(0)
   if (units <= 0 || n === 0) return awarded

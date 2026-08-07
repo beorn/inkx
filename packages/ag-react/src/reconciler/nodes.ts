@@ -20,7 +20,7 @@ import type { ViewportProps } from "@silvery/ag/viewport-types"
 import {
   type Measurer,
   displayWidth,
-  isSoftBreakPoint,
+  longestUnbreakableSegment,
   wrapText,
   getActiveLineHeight,
 } from "@silvery/ag-term/unicode"
@@ -342,30 +342,7 @@ export function createNode(
           // Strategy: split on whitespace (primary) and on soft-break
           // points (secondary). The widest segment between any two
           // break opportunities is the true min-content for wrap.
-          let longestSegment = 0
-          let segmentWidth = 0
-          for (let pos = 0; pos < line.length; pos++) {
-            const ch = line[pos]!
-            if (ch === " " || ch === "\t" || ch === "-") {
-              // Hard break: segment ends BEFORE this char (next segment
-              // starts after).
-              if (segmentWidth > longestSegment) longestSegment = segmentWidth
-              segmentWidth = 0
-              continue
-            }
-            // Account for the grapheme width (not just `1` — wide chars,
-            // CJK etc.). For ASCII this is 1; for multi-codepoint
-            // graphemes the loop step is conservative (per-char) but
-            // the width contribution comes from `dw(ch)`.
-            segmentWidth += dw(ch)
-            if (isSoftBreakPoint(ch)) {
-              // Soft break: segment INCLUDES the separator (we break
-              // AFTER it). Reset for the next segment.
-              if (segmentWidth > longestSegment) longestSegment = segmentWidth
-              segmentWidth = 0
-            }
-          }
-          if (segmentWidth > longestSegment) longestSegment = segmentWidth
+          const longestSegment = longestUnbreakableSegment(line, dw)
           // Height at min-content: a single line per source line. Actual
           // wrapped height is computed when the layout pass measures with
           // the assigned width.
@@ -1138,7 +1115,8 @@ function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props:
           // CSS has no auto padding and BoxProps types padding as `number`, so
           // this is unreachable by construction. Throw rather than coerce: a
           // silent 0 would turn a caller's type error into a layout mystery.
-          if (value === "auto") throw new Error('padding does not accept "auto" (CSS has no auto padding)')
+          if (value === "auto")
+            throw new Error('padding does not accept "auto" (CSS has no auto padding)')
           layoutNode.setPadding(edge, value)
         }
       : (edge, value): void => {

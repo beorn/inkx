@@ -16,7 +16,8 @@ import {
 } from "../src/apportion"
 
 const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0)
-const show = (tracks: ApportionTrack[]): string => `[${tracks.map((c) => `${c.min}-${c.max}`).join(",")}]`
+const show = (tracks: ApportionTrack[]): string =>
+  `[${tracks.map((c) => `${c.min}-${c.max}`).join(",")}]`
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0
@@ -69,7 +70,12 @@ function checkPoint(tracks: ApportionTrack[], width: number, options: ApportionO
 }
 
 /** Sweep properties P1 (monotone) and P7 (one-cell steps) across consecutive widths. */
-function checkSweep(tracks: ApportionTrack[], from: number, to: number, options: ApportionOptions): void {
+function checkSweep(
+  tracks: ApportionTrack[],
+  from: number,
+  to: number,
+  options: ApportionOptions,
+): void {
   const stretch = options.stretch ?? false
   let prev = apportion(tracks, from, options)
   for (let width = from + 1; width <= to; width++) {
@@ -149,7 +155,16 @@ describe("apportion properties", () => {
       const hi = sum(tracks.map((c) => c.max))
       for (const stretch of [false, true]) {
         const options = { stretch }
-        for (const width of [0, Math.max(0, lo - 1), lo, Math.floor((lo + hi) / 2), hi, hi + 1, hi + 7, hi + 100]) {
+        for (const width of [
+          0,
+          Math.max(0, lo - 1),
+          lo,
+          Math.floor((lo + hi) / 2),
+          hi,
+          hi + 1,
+          hi + 7,
+          hi + 100,
+        ]) {
           checkPoint(tracks, width, options)
         }
         checkSweep(tracks, Math.max(0, lo - 3), hi + 12, options)
@@ -178,7 +193,14 @@ describe("apportion properties", () => {
       const lo = sum(tracks.map((c) => c.min))
       const hi = sum(tracks.map((c) => c.max))
       for (const stretch of [false, true]) {
-        for (const width of [0, lo - 1, lo, hi, hi + 1, lo + Math.floor(rnd() * Math.max(1, hi - lo))]) {
+        for (const width of [
+          0,
+          lo - 1,
+          lo,
+          hi,
+          hi + 1,
+          lo + Math.floor(rnd() * Math.max(1, hi - lo)),
+        ]) {
           checkPoint(tracks, Math.max(0, width), { stretch })
         }
         const start = Math.max(0, lo - 5 + Math.floor(rnd() * Math.max(1, hi - lo)))
