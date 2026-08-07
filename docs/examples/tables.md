@@ -31,15 +31,15 @@ vp @silvery/examples data-explorer
 
 :::
 
-Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. Silvery provides the primitives: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useBoxRect()` for responsive column sizing, and `TextInput` for real-time filtering.
+Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. Silvery provides the primitives: a `Table` component with column alignment and self-allocating column widths, `VirtualList` for constant-memory rendering of massive datasets, and `TextInput` for real-time filtering.
 
 ## Key Benefits
 
-- **Table component** — Built-in `Table` with header alignment, column separators, and per-column `align` ("left", "right", "center"). Column widths auto-size to content when omitted, or accept explicit widths.
+- **Table component** — Built-in `Table` with header alignment, column separators, and per-column `align` ("left", "right", "center"). Columns auto-size from their measured content when `width` is omitted; when the terminal is too narrow for every column's floor, the table degrades legibly — wrap-capable cells break mid-word, and past that cells truncate with a visible ellipsis rather than silently overflowing. See [Width Allocation](/guide/width-allocation).
 
 - **VirtualList for massive datasets** — Render millions of rows with constant memory. Only items within the visible viewport (plus configurable overscan) are mounted. Supports fixed and variable-height items, gap/separator rendering, and imperative `scrollToItem()`.
 
-- **Responsive with `useBoxRect()`** — Components query their computed dimensions at render time. Columns auto-size to the terminal width. No width prop drilling.
+- **Responsive by default** — `Table` measures its container and allocates column widths itself. You describe intent with `minWidth` / `maxWidth` / `grow`; there is no width prop drilling and no proportional math to write.
 
 - **TextInput for search** — Combine `TextInput` with `useDeferredValue` from React 19 to build responsive filter interfaces. The input stays snappy while expensive filtering runs at lower priority.
 
@@ -59,7 +59,6 @@ import {
   Table,
   TextInput,
   VirtualList,
-  useBoxRect,
   render,
   useApp,
   createTerm,
@@ -76,7 +75,6 @@ const processes = Array.from({ length: 500 }, (_, i) => ({
 
 function App() {
   const { exit } = useApp()
-  const { width, height } = useBoxRect()
   const [query, setQuery] = useState("")
   const deferredQuery = useDeferredValue(query)
 
@@ -87,10 +85,6 @@ function App() {
       String(p.pid).includes(deferredQuery) ||
       p.status.includes(deferredQuery),
   )
-
-  // Responsive column widths
-  const nameWidth = Math.max(8, Math.floor(width * 0.3))
-  const statusWidth = Math.max(8, Math.floor(width * 0.2))
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
@@ -107,10 +101,10 @@ function App() {
         <Table
           columns={[
             { header: "PID", key: "pid", width: 7, align: "right" },
-            { header: "Name", key: "name", width: nameWidth },
+            { header: "Name", key: "name", minWidth: 8, grow: true },
             { header: "CPU %", key: "cpu", width: 8, align: "right" },
             { header: "Mem MB", key: "mem", width: 9, align: "right" },
-            { header: "Status", key: "status", width: statusWidth },
+            { header: "Status", key: "status", minWidth: 8 },
           ]}
           data={filtered}
         />
@@ -135,13 +129,22 @@ await render(<App />, term)
 
 ### Responsive Column Widths
 
-`useBoxRect()` gives the terminal width at render time. Columns scale proportionally:
+Don't compute column widths yourself. `Table` measures each column's `[min-content, max-content]` band from the rendered cell text and hands the container width to the shared `apportion()` allocator, which slides every column across its own band together — wide prose yields, short columns hold, and no column shrinks as the terminal widens. Omit `width` and the table is already responsive:
 
 ```tsx
-const { width } = useBoxRect()
-const nameWidth = Math.max(8, Math.floor(width * 0.3))
-const statusWidth = Math.max(8, Math.floor(width * 0.2))
+<Table
+  data={filtered}
+  columns={[
+    { header: "PID", key: "pid", width: 7, align: "right" }, // pinned — ids are fixed-width
+    { header: "Name", key: "name", minWidth: 12 }, // floor raised
+    { header: "Command", key: "cmd", grow: true }, // absorbs leftover space
+  ]}
+/>
 ```
+
+Use `minWidth` / `maxWidth` to clamp a band and `grow` to pick the column that takes slack. Proportional math like `Math.floor(width * 0.3)` is what the allocator replaces — it rounds each column independently, so columns jitter and shrink at some widths in the sweep.
+
+See [Width Allocation](/guide/width-allocation) for the full model, including what happens when the columns cannot fit.
 
 ### Deferred Search
 
@@ -175,9 +178,9 @@ The Table component handles header alignment and separators:
 <Table
   columns={[
     { header: "PID", key: "pid", width: 7, align: "right" },
-    { header: "Name", key: "name", width: nameWidth },
+    { header: "Name", key: "name", minWidth: 8, grow: true },
     { header: "CPU %", key: "cpu", width: 8, align: "right" },
-    { header: "Status", key: "status", width: statusWidth },
+    { header: "Status", key: "status", minWidth: 8 },
   ]}
   data={filtered}
 />
@@ -185,14 +188,14 @@ The Table component handles header alignment and separators:
 
 ## Features Used
 
-| Feature            | Usage                                       |
-| ------------------ | ------------------------------------------- |
-| `Table`            | Column alignment and headers                |
-| `VirtualList`      | Constant-memory rendering of large datasets |
-| `useBoxRect()`     | Responsive column widths                    |
-| `TextInput`        | Real-time search filter                     |
-| `useDeferredValue` | Non-blocking filter during typing           |
-| `useInput()`       | Keyboard navigation                         |
+| Feature             | Usage                                       |
+| ------------------- | ------------------------------------------- |
+| `Table`             | Column alignment and headers                |
+| `VirtualList`       | Constant-memory rendering of large datasets |
+| `minWidth` / `grow` | Per-column control over the width allocator |
+| `TextInput`         | Real-time search filter                     |
+| `useDeferredValue`  | Non-blocking filter during typing           |
+| `useInput()`        | Keyboard navigation                         |
 
 ## Exercises
 
