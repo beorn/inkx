@@ -405,7 +405,10 @@ describe("Table", () => {
       />,
     )
 
-    expect(app.text).toContain("Own…")
+    // The apportioned allocation keeps the compact header WHOLE — under the
+    // retired quadratic-shrink tracks this asserted the truncation artifact
+    // "Own…"; nothing is hidden or truncated now, the long track wraps.
+    expect(app.text).toContain("Owner")
     expect(app.text).toContain("ag")
     expect(app.text).toContain("components")
     expect(app.text).toContain("┐")
