@@ -7,6 +7,7 @@ import { useOnBoxRectCommitted } from "../../hooks/useLayout"
 import { type Breakpoint, DEFAULT_BREAKPOINTS } from "../../hooks/useResponsiveValue"
 import { useTerm } from "../../hooks/useTerm"
 import { densityForWidth } from "../density"
+import { computeRowSideGeometry } from "./content-row-geometry"
 
 type TableAlignment = "left" | "right" | "center" | null
 
@@ -381,15 +382,14 @@ function Row({
   const available = ctx.available > 0 ? ctx.available : laneWidth
   const paneChrome = contentSideSpacingForWidth(available)
   const hasSideSlots = left.length > 0 || right.length > 0
-  const sideGap = hasSideSlots && available >= 32 ? paneChrome.sideGapCells : 0
-  const sideSlotWidth = hasSideSlots
-    ? Math.max(
-        0,
-        Math.min(paneChrome.sideSlotMaxWidthCells, Math.floor((available - 24) / 2) - sideGap),
-      )
-    : 0
-  const sideReserve = hasSideSlots && sideSlotWidth > 0 ? (sideSlotWidth + sideGap) * 2 : 0
-  const middleAvailable = ctx.available > 0 ? Math.max(1, available - sideReserve) : laneWidth
+  const sideGeometry = computeRowSideGeometry({
+    available,
+    hasSideSlots,
+    sideGapCells: paneChrome.sideGapCells,
+    sideSlotMaxWidthCells: paneChrome.sideSlotMaxWidthCells,
+  })
+  const { sideGap, sideSlotWidth, sideReserve } = sideGeometry
+  const middleAvailable = ctx.available > 0 ? sideGeometry.middleAvailable : laneWidth
   const width = ctx.available > 0 ? Math.min(laneWidth, middleAvailable) : laneWidth
   const middleSelfAligns = rowMiddleSelfAligns(laneFlags)
   const middleWidth = hasSideSlots ? width : middleSelfAligns ? middleAvailable : width
