@@ -240,3 +240,13 @@ export { placeFloating } from "./place-floating"
 
 // OverlayLayer per-frame artifact (Phase 4c — overlay-anchor v1)
 export { collectOverlayLayer, type OverlayLayer } from "./overlay-layer"
+
+// Shared integer width apportionment (one allocator for tables, boards, lanes)
+export {
+  apportion,
+  apportionRealWidths,
+  apportionTension,
+  type ApportionOptions,
+  type ApportionResult,
+  type ApportionTrack,
+} from "./apportion"
