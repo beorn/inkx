@@ -97,7 +97,7 @@ Built-in slugs: `incremental` (tier 1, the historical incremental≡fresh check)
 
 Two different jobs, both load-bearing: **production guest = vterm, reference = xterm.** A grep for `xterm` cannot tell them apart, which is exactly why this is written down here and inline at the import and dependency sites. Tracked under `@pm/22783` Track 2, consumer class 2.
 
-Related trap: "xterm" the terminal *protocol* and "xterm.js" the *library* are different nouns. `packages/ag-term/src/xterm/` is protocol handling and imports no xterm.js at all.
+Related trap: "xterm" the terminal _protocol_ and "xterm.js" the _library_ are different nouns. `packages/ag-term/src/xterm/` is protocol handling and imports no xterm.js at all.
 
 ## Mandatory: New Props Require Tests
 

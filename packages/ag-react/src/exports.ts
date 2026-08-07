@@ -243,11 +243,7 @@ export { ModalDialog, formatTitleWithHotkey } from "./ui/components"
 export type { ModalDialogProps } from "./ui/components"
 
 export { ShortcutHelpDialog } from "./ui/components"
-export type {
-  ShortcutHelpDialogProps,
-  ShortcutHelpRow,
-  ShortcutHelpSection,
-} from "./ui/components"
+export type { ShortcutHelpDialogProps, ShortcutHelpRow, ShortcutHelpSection } from "./ui/components"
 
 export { ModalOverlay } from "./ui/components"
 export type { ModalOverlayProps } from "./ui/components"
@@ -806,7 +802,11 @@ export { useDragState } from "./hooks/useDragState"
 
 // App-level Providers (Phase 4)
 export { SearchProvider, useSearch, useSearchOptional } from "./providers/SearchProvider"
-export type { Searchable, SearchContextValue, SearchProviderProps } from "./providers/SearchProvider"
+export type {
+  Searchable,
+  SearchContextValue,
+  SearchProviderProps,
+} from "./providers/SearchProvider"
 export { SearchBar } from "./ui/components"
 
 // Match-range utility + type — used by consumers that render multi-segment

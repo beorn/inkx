@@ -309,13 +309,7 @@ export function SearchProvider({
 // Input Bindings
 // ============================================================================
 
-function SearchBindings({
-  ctx,
-  openOnCtrlF,
-}: {
-  ctx: SearchContextValue
-  openOnCtrlF: boolean
-}) {
+function SearchBindings({ ctx, openOnCtrlF }: { ctx: SearchContextValue; openOnCtrlF: boolean }) {
   useInput(
     (input, key) => {
       if (!ctx.isActive) {

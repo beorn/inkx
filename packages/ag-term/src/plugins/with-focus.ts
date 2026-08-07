@@ -44,10 +44,7 @@ import { createSelectionFeature, type SelectionFeature } from "../features/selec
 import { createCopyModeFeature, type CopyModeFeature } from "../features/copy-mode"
 import type { CapabilityRegistry } from "@silvery/create/internal/capability-registry"
 import type { InputRouter } from "@silvery/create/internal/input-router"
-import {
-  SELECTION_CAPABILITY,
-  COPY_MODE_CAPABILITY,
-} from "@silvery/create/internal/capabilities"
+import { SELECTION_CAPABILITY, COPY_MODE_CAPABILITY } from "@silvery/create/internal/capabilities"
 
 // =============================================================================
 // Types

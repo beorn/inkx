@@ -16,22 +16,22 @@ API reference for all silvery components. Import from `"silvery"` (the public ba
 
 ## Text & Display
 
-| Component                     | Description                                                                                                             |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [Text](./Text.md)             | Text rendering primitive with styling                                                                                   |
-| [Link](./Link.md)             | OSC 8 terminal hyperlinks                                                                                               |
-| [Transform](./Transform.md)   | Line-by-line text transformation                                                                                        |
-| [Typography](./typography.md) | Semantic text presets (H1, H2, H3, P, Lead, Muted, Small, Strong, Em, Code, Kbd, Blockquote, CodeBlock, HR, UL, OL, LI) |
-| [Badge](./Badge.md)           | Inline status label                                                                                                     |
-| [Divider](./Divider.md)       | Horizontal separator with optional title                                                                                |
-| [CursorLine](./CursorLine.md) | Single-line cursor rendering                                                                                            |
-| [Image](./Image.md)           | Bitmap images (Kitty/Sixel)                                                                                             |
-| [Skeleton](./Skeleton.md)     | Loading placeholder                                                                                                     |
-| [SyntaxHighlighter](./SyntaxHighlighter.md) | Shiki-backed source-code presentation                                                                       |
-| [Tooltip](./Tooltip.md)       | Contextual help text                                                                                                    |
-| [Prose](./Prose.md)           | Text-wrapping container                                                                                                 |
-| [Content](./Content.md)       | Responsive prose, wide, full, and auto content lanes                                                                   |
-| [DocumentView](./DocumentView.md) | Store-neutral semantic document presenter                                                                          |
+| Component                                   | Description                                                                                                             |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [Text](./Text.md)                           | Text rendering primitive with styling                                                                                   |
+| [Link](./Link.md)                           | OSC 8 terminal hyperlinks                                                                                               |
+| [Transform](./Transform.md)                 | Line-by-line text transformation                                                                                        |
+| [Typography](./typography.md)               | Semantic text presets (H1, H2, H3, P, Lead, Muted, Small, Strong, Em, Code, Kbd, Blockquote, CodeBlock, HR, UL, OL, LI) |
+| [Badge](./Badge.md)                         | Inline status label                                                                                                     |
+| [Divider](./Divider.md)                     | Horizontal separator with optional title                                                                                |
+| [CursorLine](./CursorLine.md)               | Single-line cursor rendering                                                                                            |
+| [Image](./Image.md)                         | Bitmap images (Kitty/Sixel)                                                                                             |
+| [Skeleton](./Skeleton.md)                   | Loading placeholder                                                                                                     |
+| [SyntaxHighlighter](./SyntaxHighlighter.md) | Shiki-backed source-code presentation                                                                                   |
+| [Tooltip](./Tooltip.md)                     | Contextual help text                                                                                                    |
+| [Prose](./Prose.md)                         | Text-wrapping container                                                                                                 |
+| [Content](./Content.md)                     | Responsive prose, wide, full, and auto content lanes                                                                    |
+| [DocumentView](./DocumentView.md)           | Store-neutral semantic document presenter                                                                               |
 
 ## Input
 

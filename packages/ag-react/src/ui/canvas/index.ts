@@ -455,8 +455,9 @@ export function renderToCanvas(
     const withCursor = React.createElement(CursorProvider, { store: cursorStore }, el)
     const themed = React.createElement(ThemeProvider, { theme, children: withCursor })
 
-    if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue)
-      {return themed}
+    if (!inputEnabled || !runtimeContextValue || !focusManager || !chainAppContextValue) {
+      return themed
+    }
     return React.createElement(
       FocusManagerContext.Provider,
       { value: focusManager },

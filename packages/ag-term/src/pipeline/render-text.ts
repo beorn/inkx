@@ -1980,8 +1980,7 @@ function mergeAnsiStyle(
 
   // Pass through OSC 8 hyperlink from segment (not an SGR attribute)
   if (segment.hyperlink !== undefined) {
-    merged.hyperlink =
-      segment.hyperlink === INTERNAL_HYPERLINK_CLEAR ? "" : segment.hyperlink
+    merged.hyperlink = segment.hyperlink === INTERNAL_HYPERLINK_CLEAR ? "" : segment.hyperlink
   }
 
   return merged
@@ -2527,9 +2526,7 @@ function restyleTextSegments(
   const layoutRight = x + width
   // Horizontal clip mirrors renderText's maxCol/minCol.
   const maxCol =
-    clipBounds?.right !== undefined
-      ? Math.min(layoutRight, clipBounds.right)
-      : layoutRight
+    clipBounds?.right !== undefined ? Math.min(layoutRight, clipBounds.right) : layoutRight
   const minCol = clipBounds?.left !== undefined ? clipBounds.left : undefined
   const leftClip = minCol !== undefined ? Math.max(minCol, 0) : 0
 

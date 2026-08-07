@@ -263,20 +263,20 @@ Simple interactive primitives for boolean toggles and clickable buttons.
 
 Higher-level pre-styled components using `$token` semantic colors. Import from `silvery`:
 
-| Component                               | Description                                          |
-| --------------------------------------- | ---------------------------------------------------- |
-| `Form` / `FormField`                    | Form layout with label, description, error message   |
-| `Toast` / `useToast()`                  | Auto-dismiss notifications with severity levels      |
-| `CommandPalette`                        | Fuzzy-search command palette (Ctrl+K pattern)        |
-| `TreeView`                              | Expandable/collapsible tree with keyboard navigation |
+| Component                               | Description                                                      |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `Form` / `FormField`                    | Form layout with label, description, error message               |
+| `Toast` / `useToast()`                  | Auto-dismiss notifications with severity levels                  |
+| `CommandPalette`                        | Fuzzy-search command palette (Ctrl+K pattern)                    |
+| `TreeView`                              | Expandable/collapsible tree with keyboard navigation             |
 | `Breadcrumb`                            | Actionable path trail with mouse, keyboard, and focus navigation |
-| `SyntaxHighlighter`                     | Shiki-backed live source-code presentation            |
-| `Tabs` / `TabList` / `Tab` / `TabPanel` | Tabbed interface with keyboard navigation            |
-| `Tooltip`                               | Contextual tooltip overlay                           |
-| `Skeleton`                              | Loading placeholder with configurable width/lines    |
-| `ErrorBoundary`                         | React error boundary with `resetKeys` and `fallback` |
-| `ModalDialog`                           | Modal overlay with focus trapping                    |
-| `PickerDialog` / `PickerList`           | Selection dialog                                     |
+| `SyntaxHighlighter`                     | Shiki-backed live source-code presentation                       |
+| `Tabs` / `TabList` / `Tab` / `TabPanel` | Tabbed interface with keyboard navigation                        |
+| `Tooltip`                               | Contextual tooltip overlay                                       |
+| `Skeleton`                              | Loading placeholder with configurable width/lines                |
+| `ErrorBoundary`                         | React error boundary with `resetKeys` and `fallback`             |
+| `ModalDialog`                           | Modal overlay with focus trapping                                |
+| `PickerDialog` / `PickerList`           | Selection dialog                                                 |
 
 These components use the theming system — wrap your app in `ThemeProvider` with `defaultDarkTheme` or `defaultLightTheme` and the components will use semantic colors automatically. Any color prop starting with `$` is resolved against the active theme (e.g. `color="$primary"`, `backgroundColor="$surface-bg"`).
 
