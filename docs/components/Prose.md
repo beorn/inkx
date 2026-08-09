@@ -86,6 +86,8 @@ Pre-CSS-defaults, the wrap chain required threading `flexShrink={1} minWidth={0}
 
 Both forms now wrap correctly — `<Prose>` survives as documentation of typography intent, not as a wrap-enablement primitive.
 
+What is obsolete is **threading the incantation down a chain**; `minWidth={0}` itself is not. It remains the deliberate opt-out when a container is narrower than the longest unbreakable token and you want clipping rather than overflow. See [Minimum Width](/guide/min-width).
+
 ## See Also
 
 - [Box](./Box.md) -- the primitive Prose wraps.

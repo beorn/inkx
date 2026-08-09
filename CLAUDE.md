@@ -488,10 +488,9 @@ inside `<Box>` wrappers when the container width exceeds the longest
 unbreakable word. `<Prose>` is optional typography sugar rather than a
 wrap-enablement primitive.
 
-**`minWidth={0}` is still the canonical CSS escape hatch** for two cases:
+**`minWidth={0}` is the canonical CSS escape hatch for ONE case** — containers narrower than the longest unbreakable word: when the parent might be smaller than `Box(<Text wrap="wrap">)`'s recursive min-content (longest token), add `minWidth={0}` (on the Box, or on the Text via `TextFlexItemProps`) to opt out of the auto-min floor and clip instead of overflow.
 
-1. **Non-wrappable Text** (`wrap="truncate" | "clip" | false`): `min-content == max-content == naturalWidth`, so a Box wrapping a long truncate-Text still pins the row at the Text's natural width. Add `minWidth={0}` on the Box (or on the Text itself via `TextFlexItemProps`) to let the row shrink past natural width and let truncation kick in.
-2. **Containers narrower than the longest unbreakable word**: when the parent might be smaller than `Box(<Text wrap="wrap">)`'s recursive min-content (longest token), add `minWidth={0}` to opt out of the auto-min floor entirely.
+**Non-wrappable Text does NOT need it.** `wrap="truncate" | "clip" | false` report min-content **1**, not naturalWidth, so a Box around a long truncate-Text already shrinks to its container and `minWidth={0}` is a measured no-op. The `min-content == max-content == naturalWidth` behavior that made the hatch necessary was the 2026-05-11 bug (`@km/silvery/text-truncation-mid-word-no-ellipsis`) — the parent got pinned at natural width and hard-clipped mid-word with no ellipsis. Full protocol: [docs/guide/min-width.md](docs/guide/min-width.md); pinned by `tests/features/min-width-protocol.test.tsx`.
 
 The Yoga preset is reachable from flexily directly (`createFlexily({ defaults: "yoga" })`)
 for projects that want drop-in Yoga compatibility. silvery's Ink-compat layer

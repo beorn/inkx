@@ -169,6 +169,7 @@ export default withMermaid(
             // "State Management" gated: documents Silvertea (@silvery/create), not yet shipped — see /guides/state-management
             { text: "Layouts", link: "/guide/layouts" },
             { text: "Responsive Layout", link: "/guide/responsive-layout" },
+            { text: "Minimum Width", link: "/guide/min-width" },
             { text: "Styling", link: "/guide/styling" },
             { text: "Scrolling", link: "/guide/scrolling" },
             { text: "Text Selection", link: "/guide/text-selection" },
@@ -237,6 +238,7 @@ export default withMermaid(
             // "State Management" gated: documents Silvertea (@silvery/create), not yet shipped — see /guides/state-management
             { text: "Layouts", link: "/guide/layouts" },
             { text: "Responsive Layout", link: "/guide/responsive-layout" },
+            { text: "Minimum Width", link: "/guide/min-width" },
             { text: "Styling", link: "/guide/styling" },
             { text: "Scrolling", link: "/guide/scrolling" },
             { text: "Text Selection", link: "/guide/text-selection" },
