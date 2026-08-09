@@ -58,10 +58,95 @@ export function stripAnsi(text: string): string {
  * displayLength('\x1b[31mhello\x1b[0m') // 5
  * displayLength('hello') // 5
  * displayLength('한글') // 4 (2 chars × 2 cells each)
+ * displayLength('⚠') // 2 (text-presentation emoji, painted wide)
  * ```
  */
 export function displayLength(text: string): number {
-  return stringWidth(stripAnsi(text))
+  const stripped = stripAnsi(text)
+  // Fast path: nothing in range to correct, so string-width is already right.
+  if (!MAY_CONTAIN_TEXT_EMOJI.test(stripped)) return stringWidth(stripped)
+  let width = 0
+  for (const { segment } of graphemeSegmenter.segment(stripped)) {
+    width += graphemeDisplayWidth(segment)
+  }
+  return width
+}
+
+// =============================================================================
+// Text-presentation emoji width correction
+//
+// This lives HERE, at the bottom of the dependency graph, because it is the one
+// place every width consumer can reach. `@silvery/ansi` depends on nothing but
+// `@silvery/color` and `string-width`; `@silvery/ag-term` depends on THIS. While
+// the correction lived only in ag-term, `displayLength` could not reach it and
+// grew its own uncorrected answer — a duplicate that was structurally forced
+// rather than careless, which is why the fix had to be structural too.
+//
+// ag-term layers its cache and per-`Measurer` scoping on top of these. The
+// private-use-area correction deliberately stays up there: it is gated on a
+// probed terminal capability, not on Unicode properties alone.
+// =============================================================================
+
+/** Stateless and reusable; the correction keys on grapheme segmentation. */
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+
+/**
+ * Extended_Pictographic characters WITHOUT Emoji_Presentation: `string-width`
+ * reports 1 (per Unicode East Asian Width) and terminals paint 2.
+ * Examples: ⚠ (U+26A0), ☑ (U+2611), ✈ (U+2708), ❤ (U+2764).
+ * Counter-example: 📁 (U+1F4C1) HAS Emoji_Presentation, so string-width is right.
+ */
+const EXTENDED_PICTOGRAPHIC_RE = /^\p{Extended_Pictographic}$/u
+const EMOJI_PRESENTATION_RE = /^\p{Emoji_Presentation}$/u
+const RGI_EMOJI_RE = /^\p{RGI_Emoji}$/v
+
+/** Memoized by first code point — only ever consulted for single-codepoint graphemes. */
+const textPresentationEmojiCache = new Map<number, boolean>()
+
+/**
+ * Fast pre-check for strings that could contain a text-presentation emoji, so
+ * the common case never pays for grapheme segmentation. Exported because
+ * `@silvery/ag-term` gates its own scoped measurers on the same set — a second
+ * copy of this range list is exactly the drift this consolidation removes.
+ */
+export const MAY_CONTAIN_TEXT_EMOJI =
+  /[‼⁉™ℹ↔-↙↩↪⌨⏏⏭-⏯⏱⏲⏸-⏺▪▫▶◀◻-◾☀-☄☎☑☔☕☘☝☠☢☣☦☪☮☯☸-☺♀♂♈-♓♟♠♣♥♦♨♻♾♿⚒-⚗⚙⚛⚜⚠⚡⚧⚪⚫⚰⚱⚽⚾⛄⛅⛈⛎⛏⛑⛓⛔⛩⛪⛰-⛵⛷-⛺⛽✂✅✈-✍✏✒✔✖✝✡✨✳✴❄❇❌❎❓-❕❗❣❤➕-➗➡➰➿⤴⤵⬅-⬇⬛⬜⭐⭕〰〽㊗㊙]/
+
+/**
+ * True for a grapheme that terminals render two columns wide but `string-width`
+ * calls one: Extended_Pictographic, not Emoji_Presentation, and RGI once VS16
+ * (U+FE0F) is appended.
+ */
+export function isTextPresentationEmoji(grapheme: string): boolean {
+  const cp = grapheme.codePointAt(0)
+  if (cp === undefined) return false
+
+  // Multi-codepoint graphemes (VS15/VS16, ZWJ sequences) are already correct in
+  // string-width. This gate MUST run before the cache: "⏸︎" and bare
+  // "⏸" share a first code point but not their width semantics, so caching
+  // a cluster by its base code point would make width depend on call order.
+  const singleChar = String.fromCodePoint(cp)
+  if (singleChar.length !== grapheme.length) return false
+
+  const cached = textPresentationEmojiCache.get(cp)
+  if (cached !== undefined) return cached
+
+  if (!EXTENDED_PICTOGRAPHIC_RE.test(grapheme) || EMOJI_PRESENTATION_RE.test(grapheme)) {
+    textPresentationEmojiCache.set(cp, false)
+    return false
+  }
+
+  const result = RGI_EMOJI_RE.test(grapheme + "️")
+  textPresentationEmojiCache.set(cp, result)
+  return result
+}
+
+/** Width of ONE grapheme in terminal columns, with the emoji correction applied. */
+export function graphemeDisplayWidth(grapheme: string): number {
+  const width = stringWidth(grapheme)
+  // Trust string-width when it already says 0 or 2.
+  if (width !== 1) return width
+  return isTextPresentationEmoji(grapheme) ? 2 : width
 }
 
 // =============================================================================

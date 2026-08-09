@@ -38,6 +38,33 @@ is breaking for anyone importing the named surface:
 
 ### Fixed
 
+- **`displayLength()` from `@silvery/ansi` returned the wrong width for
+  text-presentation emoji, and now returns the right one.** Characters that are
+  Extended_Pictographic without Emoji_Presentation — `⚠` (U+26A0), `☑` (U+2611),
+  `✈` (U+2708), `❤` (U+2764) — are one column per Unicode East Asian Width and
+  two columns in every modern terminal. `displayLength` reported the former, so
+  `displayLength("⚠")` was `1` and is now `2`.
+
+  **This changes observable output.** Anything that aligned columns, padded, or
+  truncated using `displayLength` on strings containing these characters was
+  measuring one cell short per occurrence and will now measure correctly; layout
+  built to compensate for the old value will shift by that much. The old values
+  were wrong — `@silvery/ag-term`'s `displayWidth()`, which is what the renderer
+  actually paints with, has always applied this correction, so the two disagreed
+  on the same input.
+
+  The duplication was structural rather than careless: `@silvery/ansi` sits below
+  `@silvery/ag-term` in the dependency graph and could not import the correction.
+  It now lives in `@silvery/ansi` (alongside `stripAnsi` and the `string-width`
+  dependency), newly exported as `isTextPresentationEmoji`,
+  `graphemeDisplayWidth`, and `MAY_CONTAIN_TEXT_EMOJI`, with `ag-term` layering
+  its cache and per-`Measurer` scoping on top. One rule, one home.
+
+  Three raw `.length` width sites were corrected in the same pass:
+  `@silvery/commander`'s help-column alignment, `DocumentView`'s list-marker
+  indent, and the CLI progress bar's terminal-width guard — each of which
+  counted ANSI bytes and called wide glyphs one cell.
+
 - Terminal startup now keeps one uninterrupted `term.input` owner across
   profile, mouse-cell, text-sizing, DEC-width, and Kitty probes. Probe replies
   no longer race a second stdin listener into normal input, and negotiated

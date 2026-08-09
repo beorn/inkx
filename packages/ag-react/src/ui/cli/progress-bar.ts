@@ -3,6 +3,7 @@
  */
 
 import chalk from "@silvery/ink/chalk"
+import { displayLength } from "@silvery/ansi"
 import type { ProgressBarOptions } from "../types.js"
 import {
   CURSOR_HIDE,
@@ -196,9 +197,22 @@ export class ProgressBar {
       }
     }
 
-    // Truncate to terminal width
+    // Truncate to terminal width.
+    //
+    // `output` carries chalk colour, so the OLD `output.length` counted escape
+    // bytes as cells and fired on bars that fit comfortably. `displayLength`
+    // measures the columns actually painted.
+    //
+    // NAMED OPT-OUT — the cut below is still by code unit, not by column. Doing
+    // it correctly needs ANSI-aware slicing (`sliceByWidth`), which lives in
+    // `@silvery/ag-term`, and `silvery/ui/cli` deliberately imports from neither
+    // ag-term nor React. Pulling that in is a dependency decision for this
+    // surface's owner, not something to slip into a width fix. The guard above
+    // now fires only when the line is genuinely too wide, so this cut is rare;
+    // when it does fire on coloured output it can still sever an escape.
+    // Tracked with the width consolidation (@si/apportion-consolidation).
     const termWidth = getTerminalWidth(this.stream)
-    if (output.length > termWidth) {
+    if (displayLength(output) > termWidth) {
       output = output.slice(0, termWidth - 1)
     }
 

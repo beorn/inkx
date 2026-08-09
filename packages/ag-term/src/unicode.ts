@@ -24,6 +24,7 @@ import {
   styleResetCodes,
 } from "./buffer"
 import { isPrivateUseArea } from "./text-sizing"
+import { isTextPresentationEmoji, MAY_CONTAIN_TEXT_EMOJI } from "@silvery/ansi"
 
 // Re-export for consumers of silvery
 export { BG_OVERRIDE_CODE }
@@ -387,70 +388,15 @@ export function graphemeCount(text: string): number {
 // ============================================================================
 
 /**
- * Regex for Extended_Pictographic characters that have default text presentation.
- * These characters are reported as width 1 by string-width (per Unicode EAW),
- * but most modern terminals render them as 2 columns wide using emoji glyphs.
+ * The text-presentation emoji correction now lives in `@silvery/ansi`, the
+ * lowest package every width consumer can reach. It used to live here, which
+ * put it out of reach of `@silvery/ansi`'s own `displayLength` and forced that
+ * function to grow a second, uncorrected answer to the same question.
  *
- * Specifically: Extended_Pictographic AND NOT Emoji_Presentation.
- * Examples: ⚠ (U+26A0), ☑ (U+2611), ✈ (U+2708), ❤ (U+2764)
- * Counter-examples: 📁 (U+1F4C1) has Emoji_Presentation so string-width is correct.
- *
- * Uses the RGI_Emoji regex with VS16 to detect characters that support
- * emoji presentation -- if char+VS16 is RGI emoji, the terminal likely
- * renders the bare char as 2-wide.
+ * Re-exported so existing importers of `@silvery/ag-term/unicode` keep working;
+ * the rule itself has exactly one home.
  */
-const TEXT_PRESENTATION_EMOJI_REGEX = /^\p{Extended_Pictographic}$/u
-const EMOJI_PRESENTATION_REGEX = /^\p{Emoji_Presentation}$/u
-const RGI_EMOJI_REGEX = /^\p{RGI_Emoji}$/v
-
-/**
- * Cache for isTextPresentationEmoji results.
- * Maps first code point to boolean.
- */
-const textPresentationEmojiCache = new Map<number, boolean>()
-
-/**
- * Check if a grapheme is a text-presentation emoji that terminals render wide.
- *
- * Returns true for characters that are Extended_Pictographic, do NOT have
- * the Emoji_Presentation property, but become RGI emoji when followed by
- * VS16 (U+FE0F). These characters are rendered as 2 columns in most
- * modern terminals despite string-width reporting width 1.
- */
-export function isTextPresentationEmoji(grapheme: string): boolean {
-  const cp = grapheme.codePointAt(0)
-  if (cp === undefined) return false
-
-  // Multi-codepoint graphemes (with VS16, ZWJ, etc.) are already handled
-  // correctly by string-width. Only check single-codepoint graphemes.
-  //
-  // Important: this gate must run before the codepoint cache. U+FE0E
-  // text-presentation clusters such as "⏸︎" share the same first codepoint
-  // as bare "⏸", but have different width semantics. Caching by base
-  // codepoint for multi-codepoint clusters makes width depend on call order.
-  const singleChar = String.fromCodePoint(cp)
-  if (singleChar.length !== grapheme.length) {
-    return false
-  }
-
-  // Check cache for single-codepoint graphemes only.
-  const cached = textPresentationEmojiCache.get(cp)
-  if (cached !== undefined) return cached
-
-  // Must be Extended_Pictographic but NOT Emoji_Presentation
-  const isExtPict = TEXT_PRESENTATION_EMOJI_REGEX.test(grapheme)
-  const isEmojiPres = EMOJI_PRESENTATION_REGEX.test(grapheme)
-  if (!isExtPict || isEmojiPres) {
-    textPresentationEmojiCache.set(cp, false)
-    return false
-  }
-
-  // Check if adding VS16 makes it an RGI emoji sequence
-  const withVs16 = grapheme + "\uFE0F"
-  const result = RGI_EMOJI_REGEX.test(withVs16)
-  textPresentationEmojiCache.set(cp, result)
-  return result
-}
+export { isTextPresentationEmoji }
 
 // ============================================================================
 // Private Use Area (PUA) — Nerdfont / Powerline Icons
@@ -479,19 +425,6 @@ export function ensureEmojiPresentation(char: string): string {
 // ============================================================================
 // Display Width Calculation
 // ============================================================================
-
-/**
- * Regex to detect strings that MAY contain text-presentation emoji.
- * Used as a fast pre-check before the more expensive grapheme-based calculation.
- * Covers the Unicode blocks where Extended_Pictographic characters live:
- * - Miscellaneous Technical (U+2300-U+23FF)
- * - Miscellaneous Symbols (U+2600-U+26FF)
- * - Dingbats (U+2700-U+27BF)
- * - Miscellaneous Symbols and Arrows (U+2B00-U+2BFF)
- * - Other scattered ranges
- */
-const MAY_CONTAIN_TEXT_EMOJI =
-  /[\u203C\u2049\u2122\u2139\u2194-\u2199\u21A9\u21AA\u2328\u23CF\u23ED-\u23EF\u23F1\u23F2\u23F8-\u23FA\u25AA\u25AB\u25B6\u25C0\u25FB-\u25FE\u2600-\u2604\u260E\u2611\u2614\u2615\u2618\u261D\u2620\u2622\u2623\u2626\u262A\u262E\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u265F\u2660\u2663\u2665\u2666\u2668\u267B\u267E\u267F\u2692-\u2697\u2699\u269B\u269C\u26A0\u26A1\u26A7\u26AA\u26AB\u26B0\u26B1\u26BD\u26BE\u26C4\u26C5\u26C8\u26CE\u26CF\u26D1\u26D3\u26D4\u26E9\u26EA\u26F0-\u26F5\u26F7-\u26FA\u26FD\u2702\u2705\u2708-\u270D\u270F\u2712\u2714\u2716\u271D\u2721\u2728\u2733\u2734\u2744\u2747\u274C\u274E\u2753-\u2755\u2757\u2763\u2764\u2795-\u2797\u27A1\u27B0\u27BF\u2934\u2935\u2B05-\u2B07\u2B1B\u2B1C\u2B50\u2B55\u3030\u303D\u3297\u3299]/
 
 /**
  * Fast pre-check regex for BMP Private Use Area characters (U+E000-U+F8FF).

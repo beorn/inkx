@@ -104,7 +104,16 @@ export { fgColorCode, bgColorCode } from "./sgr-codes"
 // Utilities
 // =============================================================================
 
-export { ANSI_REGEX, stripAnsi, displayLength, warnOnce, _resetWarnOnceForTesting } from "./utils"
+export {
+  ANSI_REGEX,
+  stripAnsi,
+  displayLength,
+  graphemeDisplayWidth,
+  isTextPresentationEmoji,
+  MAY_CONTAIN_TEXT_EMOJI,
+  warnOnce,
+  _resetWarnOnceForTesting,
+} from "./utils"
 
 // =============================================================================
 // Color Maps & Quantization

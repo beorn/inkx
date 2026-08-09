@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from "react"
 import { computeMatchRanges, type SearchMatch } from "@silvery/ag-term/search-overlay"
+import { displayLength } from "@silvery/ansi"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Blockquote, CodeBlock, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
@@ -124,8 +125,11 @@ interface ResolvedListItem {
 const UNORDERED_MARKERS = ["•", "◦", "▸"] as const
 
 function textMarkerWidth(marker: React.ReactNode): number | null {
-  if (typeof marker === "string") return marker.length
-  if (typeof marker === "number") return String(marker).length
+  // `displayLength`, not `.length`: this width indents every line of the list
+  // item, so it is terminal columns. The built-in markers are all one cell, but
+  // a caller-supplied emoji or CJK marker is two and would shift the whole block.
+  if (typeof marker === "string") return displayLength(marker)
+  if (typeof marker === "number") return displayLength(String(marker))
   return null
 }
 

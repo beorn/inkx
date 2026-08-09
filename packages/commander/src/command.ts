@@ -51,6 +51,7 @@ import {
   type HelpConfiguration,
 } from "commander"
 import { colorizeHelp, shouldColorize } from "./colorize.ts"
+import { displayLength } from "@silvery/ansi"
 import type { CLIType, StandardSchemaV1 } from "./presets.ts"
 import { tokenizeCmdline, isShellLine, type CmdlineToken } from "./tokenize.ts"
 
@@ -457,7 +458,11 @@ function styleCmdlineTokens(tokens: CmdlineToken[], helper: any): string {
 function maxLineWidth(term: string): number {
   let max = 0
   for (const line of term.split("\n")) {
-    if (line.length > max) max = line.length
+    // `displayLength`, not `.length`: this aligns HELP COLUMNS, so it has to be
+    // terminal columns. Raw string length counts ANSI bytes and calls a CJK or
+    // emoji glyph one cell wide, which mis-aligns every following column.
+    const width = displayLength(line)
+    if (width > max) max = width
   }
   return max
 }
