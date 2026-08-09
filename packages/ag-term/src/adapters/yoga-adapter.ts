@@ -115,10 +115,27 @@ class YogaNodeAdapter implements LayoutNode {
     return this.node.isDirty()
   }
 
+  /**
+   * Yoga's numeric measure mode → our string mode.
+   *
+   * The catch-all is `throw`, not `"undefined"`. Yoga has exactly three modes
+   * and `min-content` is not among them, so an unrecognized value means the
+   * engine handed us a mode this adapter does not model — a wasm/binding
+   * version skew, or a `min-content` measurement that only flexily can serve.
+   * Mapping that to `"undefined"` would silently downgrade one width mode into
+   * another and produce a plausible wrong layout instead of an error.
+   */
   private measureModeToString(mode: number): MeasureMode {
     if (mode === this.yoga.MEASURE_MODE_EXACTLY) return "exactly"
     if (mode === this.yoga.MEASURE_MODE_AT_MOST) return "at-most"
-    return "undefined"
+    if (mode === this.yoga.MEASURE_MODE_UNDEFINED) return "undefined"
+    throw new Error(
+      `yoga adapter: unrecognized measure mode ${String(mode)} (known: ` +
+        `${String(this.yoga.MEASURE_MODE_UNDEFINED)}=undefined, ` +
+        `${String(this.yoga.MEASURE_MODE_EXACTLY)}=exactly, ` +
+        `${String(this.yoga.MEASURE_MODE_AT_MOST)}=at-most). ` +
+        `min-content sizing is flexily-only — run with SILVERY_ENGINE=flexily.`,
+    )
   }
 
   // Dimension setters
