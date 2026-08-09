@@ -15,7 +15,7 @@
  * renders an allocation that violates its own floors while looking fine.
  */
 import React, { useMemo } from "react"
-import { apportion, type ApportionTrack } from "@silvery/ag"
+import { apportion, TRACK_BAND_ATTR, type ApportionTrack } from "@silvery/ag"
 import { displayWidth, intrinsicWidths } from "@silvery/ag-term/unicode"
 import { useBoxRectDangerously } from "../hooks/useLayout"
 import { Box } from "./Box"
@@ -229,7 +229,18 @@ function TableImplementation<T>({
   const rightPadding = directRows ? padding - leftPadding : padding
   const bodyWrap: TextProps["wrap"] = allocation?.degraded ? "hard" : cellWrap
 
-  const trackProps = (column: Column<T>, track: Track, columnIndex: number) => {
+  // The band the allocator worked under, carried onto the rendered track so the
+  // `apportion-bands` STRICT check can compare the width the layout engine
+  // actually realized against the width the allocation promised. The flex props
+  // below are exactly where that promise can be broken — a `grow` track carries
+  // no maxWidth, and the unmeasured/no-legal-allocation fallback floors tracks
+  // at the author's minWidth rather than the track's own min-content.
+  const trackProps = (column: Column<T>, track: Track, columnIndex: number) => ({
+    [TRACK_BAND_ATTR]: `${track.min},${track.max}`,
+    ...trackFlexProps(column, track, columnIndex),
+  })
+
+  const trackFlexProps = (column: Column<T>, track: Track, columnIndex: number) => {
     if (track.fixed) {
       return {
         width: track.max,

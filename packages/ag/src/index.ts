@@ -246,7 +246,12 @@ export {
   apportion,
   apportionRealWidths,
   apportionTension,
+  findApportionBandViolation,
+  parseTrackBand,
+  TRACK_BAND_ATTR,
+  type ApportionBandViolation,
   type ApportionOptions,
   type ApportionResult,
   type ApportionTrack,
+  type RealizedTrack,
 } from "./apportion"

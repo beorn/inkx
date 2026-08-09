@@ -53,6 +53,87 @@ export type ApportionOptions = {
   stretch?: boolean
 }
 
+/**
+ * Marker carrying a track's band to the renderer, as `"min,max"`.
+ *
+ * `apportion()` establishes a band contract; the widths it returns then become
+ * layout props and the layout engine has the final say. The band has to travel
+ * with the node for anything downstream to tell a correct allocation from one
+ * the engine overrode. Stamping this marker opts a surface into the
+ * `apportion-bands` runtime check (see `strictApportionBandsCheck`).
+ *
+ * Band values are the track's TOTAL width including cell chrome — the same
+ * quantity the allocator apportions and the layout engine realizes. A band
+ * expressed in content-only units would compare against the wrong number.
+ */
+export const TRACK_BAND_ATTR = "data-track-band"
+
+/**
+ * Parse a `data-track-band` marker value.
+ *
+ * Absent ⇒ null (the node simply isn't a track). Present but unparseable ⇒
+ * throws: a marker that silently fails to parse turns the whole check into a
+ * guard that is wired, documented, and empty.
+ */
+export function parseTrackBand(value: unknown): ApportionTrack | null {
+  if (value === undefined || value === null) return null
+  if (typeof value !== "string")
+    throw new Error(`${TRACK_BAND_ATTR}: expected a "min,max" string (got ${typeof value})`)
+  const parts = value.split(",")
+  if (parts.length !== 2) throw new Error(`${TRACK_BAND_ATTR}: expected "min,max" (got "${value}")`)
+  const min = Number(parts[0])
+  const max = Number(parts[1])
+  if (!Number.isInteger(min) || !Number.isInteger(max))
+    throw new Error(`${TRACK_BAND_ATTR}: min/max must be integers (got "${value}")`)
+  if (!(min >= 0 && min <= max))
+    throw new Error(`${TRACK_BAND_ATTR}: requires 0 <= min <= max (got "${value}")`)
+  return { min, max }
+}
+
+/** A realized track: the band it was allocated under and the width it actually got. */
+export type RealizedTrack = ApportionTrack & { width: number }
+
+export type ApportionBandViolation = {
+  /** Index of the track rendered below its band floor. */
+  starved: number
+  /** Index of the sibling rendered above its band ceiling. */
+  donor: number
+}
+
+/**
+ * The apportionment invariant over REALIZED widths: no track below its minimum
+ * while a sibling exceeds its maximum. Returns the first such pair, or null.
+ *
+ * The conjunction is the whole point, and neither half is a defect alone:
+ *
+ * - Below-min alone is legible degradation. When the floors genuinely do not
+ *   fit, a surface is supposed to lower them visibly (character wrapping,
+ *   truncation with an ellipsis) rather than pretend. `apportion()` reports
+ *   `feasible: false` precisely so the caller can do that on purpose.
+ * - Above-max alone is a `grow` track absorbing free space nobody else wants.
+ *
+ * Together they mean width was taken from a track that needed it and handed to
+ * one that could not use it — the measured defect class behind this allocator's
+ * consolidation, and the shape no amount of screenshotting catches because it
+ * only appears at particular widths.
+ *
+ * Pure and target-agnostic: cells today, px on canvas/DOM later. The strictness
+ * gate and the per-frame walk live with the renderer, not here.
+ */
+export function findApportionBandViolation(
+  tracks: readonly RealizedTrack[],
+): ApportionBandViolation | null {
+  let starved = -1
+  let donor = -1
+  for (let i = 0; i < tracks.length; i++) {
+    const t = tracks[i]!
+    if (starved < 0 && t.width < t.min) starved = i
+    if (donor < 0 && t.width > t.max) donor = i
+  }
+  if (starved < 0 || donor < 0 || starved === donor) return null
+  return { starved, donor }
+}
+
 const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0)
 const clamp = (x: number, lo: number, hi: number): number => (x < lo ? lo : x > hi ? hi : x)
 

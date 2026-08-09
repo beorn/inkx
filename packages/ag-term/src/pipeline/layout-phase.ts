@@ -7,6 +7,12 @@
 import { createLogger } from "loggily"
 import { measureStats } from "./measure-stats"
 import { type BoxProps, type AgNode, type Rect, rectEqual } from "@silvery/ag/types"
+import {
+  findApportionBandViolation,
+  parseTrackBand,
+  TRACK_BAND_ATTR,
+  type RealizedTrack,
+} from "@silvery/ag/apportion"
 // Layout dirty gate: Flexily's root.layoutNode.isDirty() is the sole source
 // of truth. No silvery-side layout dirty tracking needed.
 import {
@@ -58,6 +64,32 @@ export const LAYOUT_OVERFLOW_STRICT_MIN_TIER = 2
 /** Scroll/sticky offset + visibility invariants (warn at tier 1, throw at tier 2). */
 export const SCROLL_INVARIANTS_STRICT_SLUG = "scroll-invariants"
 export const SCROLL_INVARIANTS_STRICT_MIN_TIER = 2
+
+/**
+ * `apportion-bands` (tier 2): no track below its band minimum while a sibling
+ * exceeds its band maximum, over REALIZED widths, every frame. Warn at tier 1,
+ * throw at tier 2 — the layout-invariant convention.
+ *
+ * Why the check lives HERE and not inside `apportion()`: the allocator's own
+ * postcondition is provable, so checking it against itself is a tautology that
+ * can never fire. Every branch returns `min_i <= w_i <= max_i` (or `>= max_i`
+ * for ALL tracks under `stretch`, which cannot starve anyone), so the
+ * conjunction is unreachable by construction. What is NOT provable is what
+ * happens to those widths afterwards: they become flex props and the engine has
+ * the final say — `flexGrow` with no `maxWidth`, a shrink fallback floored at
+ * the author's `minWidth` rather than the track's min-content, a measurement
+ * round-trip that lags a frame. And a surface that still splits width with its
+ * own arithmetic — the fifth splitter `@si/apportion-consolidation` exists to
+ * prevent — breaks the contract without going near the allocator at all.
+ *
+ * Realized geometry lives in the layout phase, so the check does too. That also
+ * dissolves the layering question the allocator's placement raises: `@silvery/ag`
+ * does not import `@silvery/ag-term`, and it does not need to. It owns the
+ * band marker and the pure predicate (target-agnostic integer math); the
+ * strictness gate stays where every other strictness gate is.
+ */
+export const APPORTION_BANDS_STRICT_SLUG = "apportion-bands"
+export const APPORTION_BANDS_STRICT_MIN_TIER = 2
 
 /**
  * `fresh-layout` (tier 2): the STRICT incremental oracle's fresh-render baseline
@@ -891,6 +923,83 @@ export function strictLayoutOverflowCheck(root: AgNode): void {
 
       walk(child)
     }
+  }
+
+  walk(root)
+}
+
+// ============================================================================
+// STRICT Apportionment Band Invariant
+// ============================================================================
+
+/**
+ * Verify, per frame, that no `data-track-band` track rendered below its band
+ * minimum while a sibling rendered above its band maximum.
+ *
+ * Tracks are grouped by parent, because "sibling" is the whole claim: a starved
+ * track next to a hoarding one is a misallocation, whereas the same starvation
+ * next to tracks that are all within band is deliberate degradation.
+ *
+ * - SILVERY_STRICT=1: console.warn on violation
+ * - SILVERY_STRICT=2: throw on violation
+ *
+ * Only nodes that carry the marker participate — a surface opts in by stamping
+ * the band it allocated under. Nodes whose layout has not been computed yet
+ * (null boxRect) are skipped; there is no width to judge.
+ */
+export function strictApportionBandsCheck(root: AgNode): void {
+  // Runs at tier 1 (warn) and above; throws at the slug's min-tier (2) and above.
+  if (!isStrictEnabled(APPORTION_BANDS_STRICT_SLUG, 1)) return
+
+  const shouldThrow = isStrictEnabled(APPORTION_BANDS_STRICT_SLUG, APPORTION_BANDS_STRICT_MIN_TIER)
+
+  function report(parent: AgNode, group: readonly AgNode[], realized: RealizedTrack[]): void {
+    const violation = findApportionBandViolation(realized)
+    if (violation === null) return
+
+    const starved = realized[violation.starved]!
+    const donor = realized[violation.donor]!
+    const detail = {
+      container: nodeIdent(parent),
+      containerPath: nodePath(parent),
+      containerBox: parent.boxRect,
+      starved: nodeIdent(group[violation.starved]!),
+      donor: nodeIdent(group[violation.donor]!),
+      tracks: realized,
+    }
+    const msg =
+      `[SILVERY_STRICT] apportion band violation in "${nodeIdent(parent)}": track ` +
+      `"${detail.starved}" rendered ${starved.width} cells, below its minimum ${starved.min}, ` +
+      `while sibling "${detail.donor}" rendered ${donor.width} cells, above its maximum ` +
+      `${donor.max} (bands ${realized.map((t) => `[${t.min},${t.max}]->${t.width}`).join(" ")}, ` +
+      `path: ${detail.containerPath})`
+
+    if (shouldThrow) {
+      throw new Error(msg)
+    } else {
+      log.debug?.("apportion band violation", detail)
+      console.warn(msg)
+    }
+  }
+
+  function walk(node: AgNode): void {
+    let group: AgNode[] | null = null
+    let realized: RealizedTrack[] | null = null
+
+    for (const child of node.children) {
+      const props = child.props as Record<string, unknown> | undefined
+      const band = parseTrackBand(props?.[TRACK_BAND_ATTR])
+      if (band !== null && child.boxRect !== null) {
+        group ??= []
+        realized ??= []
+        group.push(child)
+        realized.push({ min: band.min, max: band.max, width: child.boxRect.width })
+      }
+      walk(child)
+    }
+
+    // A lone track has no sibling to have taken width from.
+    if (group !== null && realized !== null && realized.length > 1) report(node, group, realized)
   }
 
   walk(root)

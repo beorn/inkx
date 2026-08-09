@@ -38,6 +38,7 @@ import {
   scrollrectPhaseSimple,
   notifyLayoutSubscribers,
   detectPipelineFeatures,
+  strictApportionBandsCheck,
   strictLayoutOverflowCheck,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
@@ -421,6 +422,12 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     // STRICT invariant: verify no child overflows its parent's inner width.
     // Catches fit-content/snug-content/measure-phase bugs at the source.
     strictLayoutOverflowCheck(root)
+
+    // STRICT invariant: verify no apportioned track rendered below its band
+    // minimum while a sibling rendered above its maximum. Runs here, on the
+    // realized rects, because the defect is what the layout engine did to the
+    // allocation — not what the allocator returned.
+    strictApportionBandsCheck(root)
 
     // Detect features for phase skipping. One-way merge: false → true only.
     // This scan runs every layout pass to catch newly mounted components.
