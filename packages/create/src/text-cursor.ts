@@ -22,6 +22,7 @@
  * ```
  */
 import { type Measurer, displayWidth as measureWidth, wrapText } from "@silvery/ag-term/unicode"
+import { ANSI_REGEX, stripAnsi } from "@silvery/ansi"
 
 // =============================================================================
 // Types
@@ -118,6 +119,64 @@ function displayWidth(text: string, measurer?: Measurer): number {
   return measurer ? measurer.displayWidth(text) : measureWidth(text)
 }
 
+/** ANSI escapes occupy source offsets but contribute no visible characters. */
+const ANSI_AT = new RegExp(ANSI_REGEX.source, "y")
+
+/** First visible (non-ANSI) character of a wrapped fragment, or "" if it has none. */
+function firstVisibleChar(fragment: string): string {
+  return stripAnsi(fragment).slice(0, 1)
+}
+
+/**
+ * Advance past exactly the SOURCE characters that produced `fragment`'s visible
+ * text, never past `limit` (the logical line's end).
+ *
+ * The subtle part, and the reason this cannot just be `offset += fragment.length`:
+ * **a wrapped fragment is not a substring of the source.** `wrapText` runs
+ * `fixSgrAcrossWrappedLines` whenever a styled logical line splits into more
+ * than one fragment, re-opening the active colour/attr at the start of each
+ * continuation and closing it at the end, so every fragment stands alone when
+ * painted (@km/code/v0.2/19690-status-tuple-wrap-color). Those injected bytes
+ * exist only in the output. Counting them as source characters walks the offset
+ * past the end of the buffer.
+ *
+ * That injection is also the whole shape of the old drift: the fix runs only
+ * under `lines.length > 1 && text.includes("\x1b[")`, so at a width where every
+ * logical line still fits on one row nothing is injected and the offsets were
+ * always exact — which is why the defect vanished at wide terminals and grew as
+ * the wrap width shrank and more styled lines split.
+ *
+ * So: match the fragment's VISIBLE characters against the source, stepping over
+ * source ANSI (which does occupy offsets) and ignoring injected ANSI (which
+ * never matches because it is not there). Stop on divergence rather than
+ * guessing — the caller's snap to the logical line end keeps a stop bounded.
+ */
+function consumeSource(text: string, from: number, fragment: string, limit: number): number {
+  const visible = stripAnsi(fragment)
+  let i = from
+  let v = 0
+  while (v < visible.length && i < limit) {
+    ANSI_AT.lastIndex = i
+    const m = ANSI_AT.exec(text)
+    if (m !== null && m[0].length > 0) {
+      i += m[0].length
+      continue
+    }
+    if (text[i] !== visible[v]) break
+    i++
+    v++
+  }
+  // Claim any source ANSI sitting immediately after the matched text (a closing
+  // reset at the fragment's tail belongs to this fragment, not the next one).
+  while (i < limit) {
+    ANSI_AT.lastIndex = i
+    const m = ANSI_AT.exec(text)
+    if (m === null || m[0].length === 0) break
+    i += m[0].length
+  }
+  return i
+}
+
 /**
  * Get all wrapped display lines with their starting character offsets.
  *
@@ -155,12 +214,12 @@ export function getWrappedLines(
         offset < text.length &&
         text[offset] === " " &&
         wLine.length > 0 &&
-        text[offset] !== wLine[0]
+        firstVisibleChar(wLine) !== " "
       ) {
         offset++
       }
       result.push({ line: wLine, startOffset: offset })
-      offset += wLine.length
+      offset = consumeSource(text, offset, wLine, logicalLineEnd)
     }
     // Text editing cannot drop trailing spaces the way prose rendering can:
     // the caret must advance through spaces typed at a soft-wrap boundary.
@@ -178,6 +237,11 @@ export function getWrappedLines(
     if (li === logicalLines.length - 1 && last && displayWidth(last.line, measurer) >= wrapWidth) {
       result.push({ line: "", startOffset: offset })
     }
+    // Snap to the logical line's known end before crossing the newline. Each
+    // logical line's offsets are bounded by [lineStart, lineStart + line.length]
+    // BY CONSTRUCTION, so a residue inside one line (trailing source ANSI the
+    // last fragment did not claim, say) can never accumulate into the next.
+    offset = logicalLineEnd
     offset++ // for \n
   }
 

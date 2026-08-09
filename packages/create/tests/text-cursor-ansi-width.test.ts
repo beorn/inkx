@@ -87,28 +87,34 @@ describe("text-cursor width measurement", () => {
   })
 
   /**
-   * SEPARATE PRE-EXISTING DEFECT — not the width consolidation, and not fixed
-   * by it. Skipped deliberately rather than deleted, so the measurement is not
-   * lost.
+   * Was skipped while the cause was open; fixed and un-skipped.
    *
-   * `getWrappedLines` maps each visual row back to a character offset by
-   * accumulating `offset += wLine.length` and skipping trimmed spaces. On
-   * styled multi-line buffers that bookkeeping runs PAST the end of the string:
-   * on the fixture above the last row's mapped offset overshoots the buffer
-   * length by 52 characters at width 14, 41 at 16, 39 at 18 and 20, 12 at 30
-   * and 40 — and lands exactly at 0 at width 60. A caret at end-of-buffer then
-   * matches an earlier row (35 instead of 38 at width 14).
+   * `getWrappedLines` mapped each visual row back to a character offset with
+   * `offset += wLine.length`, which assumes a wrapped fragment is a substring
+   * of the source. It is not. When a STYLED logical line splits, `wrapText`
+   * runs `fixSgrAcrossWrappedLines` — re-opening the active colour/attr at each
+   * continuation and closing it at the fragment's end so every line stands
+   * alone when painted (@km/code/v0.2/19690-status-tuple-wrap-color). Those
+   * bytes exist only in the output, and counting them as source characters
+   * walked the offset past the end of the buffer: +52 chars at width 14, +41 at
+   * 16, +39 at 18 and 20, +12 at 30 and 40, and exactly 0 at 60.
    *
-   * Not the ANSI width bug: the drift is byte-identical at `origin/main` and
-   * after this change (verified by running both revisions over this fixture),
-   * and it survives with every width comparison routed through the canonical
-   * measurement. `wrapText` is not re-emitting SGR either — its output is
-   * SHORTER than the source, so the overshoot comes from the offset arithmetic
-   * itself, not from the wrapper.
+   * The zero at width 60 is the tell, and any correct account has to produce
+   * it: the SGR fix is gated on `lines.length > 1 && text.includes("\x1b[")`,
+   * so at a width where every logical line still fits on one row, nothing
+   * splits, nothing is injected, and the offsets were always exact. Measured
+   * injection tracked the drift across the whole curve (48 injected bytes
+   * against 52 drift at width 14; 0 against 0 at width 60), the residue being
+   * the separate trailing-space bookkeeping.
    *
-   * Un-skip when the offset mapping is fixed; the assertion is already correct.
+   * An earlier note in this file claimed wrapText was NOT re-emitting SGR,
+   * reasoning that its output is shorter than its input. That was wrong — the
+   * measurement had been taken on a line whose styled span did not straddle a
+   * break, so nothing was injected and the consumed separator spaces made the
+   * total shorter. Both things happen at once: separators are consumed AND
+   * codes are injected.
    */
-  test.skip("the caret at end-of-buffer lands on the same row with and without styling", () => {
+  test("the caret at end-of-buffer lands on the same row with and without styling", () => {
     const mismatches: string[] = []
     for (const width of WIDTHS) {
       const styled = cursorToRowCol(STYLED_DOC, STYLED_DOC.length, width)
@@ -121,6 +127,36 @@ describe("text-cursor width measurement", () => {
       }
     }
     expect(mismatches, `\n${mismatches.join("\n")}`).toEqual([])
+  })
+
+  test("every visual row maps to a real span of the source buffer", () => {
+    // The offset invariant the caret test above depends on, asserted directly.
+    // A wrapped fragment is NOT a substring of the source — `wrapText` re-opens
+    // and closes the active SGR on each fragment when a styled line splits, so
+    // advancing offsets by fragment length walks past the end of the buffer.
+    // The old drift was exactly the injected byte count: +52 at width 14 down
+    // to 0 at width 60, where nothing splits and nothing is injected.
+    const violations: string[] = []
+    for (const width of WIDTHS) {
+      const rows = getWrappedLines(STYLED_DOC, width)
+      for (const row of rows) {
+        if (row.startOffset < 0 || row.startOffset > STYLED_DOC.length) {
+          violations.push(
+            `width ${width}: startOffset ${row.startOffset} outside [0, ${STYLED_DOC.length}]`,
+          )
+          break
+        }
+      }
+      const last = rows[rows.length - 1]!
+      const end = last.startOffset + last.line.length
+      if (end > STYLED_DOC.length) {
+        violations.push(
+          `width ${width}: last row ends at ${end}, past the ${STYLED_DOC.length}-char buffer ` +
+            `(drift +${end - STYLED_DOC.length})`,
+        )
+      }
+    }
+    expect(violations, `\n${violations.join("\n")}`).toEqual([])
   })
 
   test("no phantom trailing row when a styled final line is visibly short", () => {
