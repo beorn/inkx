@@ -21,7 +21,7 @@
  * // next = 12 (moved to row 1, col 3 → "foo"[3] = end)
  * ```
  */
-import { type Measurer, graphemeWidth, splitGraphemes, wrapText } from "@silvery/ag-term/unicode"
+import { type Measurer, displayWidth as measureWidth, wrapText } from "@silvery/ag-term/unicode"
 
 // =============================================================================
 // Types
@@ -104,11 +104,18 @@ function cursorToRowColFromLines(
   return { row: Math.max(0, lines.length - 1), col: 0 }
 }
 
+/**
+ * Width as the RENDERER measures it — the one home, not a local re-derivation.
+ *
+ * This used to sum `graphemeWidth` over every grapheme without stripping ANSI,
+ * so a styled line's SGR bytes counted as visible cells. `wrapText` (which this
+ * module already uses for the wrapping itself) treats ANSI as zero-width, so
+ * the two disagreed by exactly the escape bytes and a visibly short line could
+ * read as full. Cursor math and rendering must measure identically or the caret
+ * sits on a row the renderer never draws.
+ */
 function displayWidth(text: string, measurer?: Measurer): number {
-  const widthOf = measurer ? measurer.graphemeWidth.bind(measurer) : graphemeWidth
-  let width = 0
-  for (const grapheme of splitGraphemes(text)) width += widthOf(grapheme)
-  return width
+  return measurer ? measurer.displayWidth(text) : measureWidth(text)
 }
 
 /**

@@ -149,7 +149,7 @@ stripAnsi("\x1b[4:3mwavy\x1b[4:0m") // "wavy"
 
 ### `displayLength(text)`
 
-Get the display width of a string in terminal columns, excluding ANSI codes. Handles CJK characters, emoji, and wide characters correctly:
+Get the display width of a string in terminal columns, excluding ANSI codes. Handles CJK and emoji-presentation characters:
 
 ```typescript
 import { displayLength } from "@silvery/ansi"
@@ -158,6 +158,21 @@ displayLength("\x1b[31mhello\x1b[0m") // 5
 displayLength("hello") // 5
 displayLength("\u97D3\u8A9E") // 4 (2 chars x 2 cells each)
 ```
+
+::: warning Not the renderer's measurement
+
+`displayLength` is raw `string-width` over the ANSI-stripped text. It does **not** apply the text-presentation-emoji correction that the render pipeline applies, so it disagrees with what silvery actually paints for characters like `\u26A0` (U+26A0) and `\u2611` (U+2611), which most terminals draw two columns wide:
+
+```typescript
+displayLength("\u26A0") // 1  \u2014 raw Unicode East Asian Width
+displayWidth("\u26A0") // 2  \u2014 what the renderer paints
+```
+
+Use it for ANSI-aware string bookkeeping in low-level code. **For anything whose result must line up with rendered output \u2014 layout, wrapping, column allocation, cursor math \u2014 use `displayWidth` from `@silvery/ag-term/unicode`**, which is the one home for width as the renderer measures it (cache, emoji correction, private-use-area handling, and per-`Measurer` scoping).
+
+The two exist separately because `@silvery/ansi` sits _below_ `@silvery/ag-term` in the dependency graph and cannot import it. Consolidating them means moving the corrected primitive down into `@silvery/ansi`; tracked under `@si/apportion-consolidation`.
+
+:::
 
 ### `ANSI_REGEX`
 
