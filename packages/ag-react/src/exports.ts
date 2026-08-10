@@ -765,7 +765,9 @@ export { useWindowSize } from "./hooks/useWindowSize"
 export { useHover } from "./hooks/useHover"
 export type { UseHoverReturn } from "./hooks/useHover"
 export { useInteractionTreatment } from "./hooks/useInteractionTreatment"
-export { DIRECTORY_ICON, FILE_ICON, NAV_BACK_ICON, NAV_FORWARD_ICON } from "./ui/icons"
+export { fileBrowserIcons, NAV_BACK_ICON, NAV_FORWARD_ICON } from "./ui/icons"
+export type { FileBrowserIcons } from "./ui/icons"
+export { useFileBrowserIcons } from "./hooks/useFileBrowserIcons"
 export {
   PopoverProvider,
   usePopover,
