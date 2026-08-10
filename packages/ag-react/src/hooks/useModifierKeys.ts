@@ -17,8 +17,8 @@
  *   const [hovered, setHovered] = useState(false)
  *   // Only subscribe when hovered — zero cost for non-hovered links
  *   const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
- *   const armed = hovered && cmdHeld
- *   return <Text underline={armed} onMouseEnter={() => setHovered(true)} ...>
+ *   const revealed = hovered && cmdHeld
+ *   return <Text underline="dotted" color={revealed ? "$fg" : "$fg-link"} onMouseEnter={() => setHovered(true)} ...>
  * }
  * ```
  */

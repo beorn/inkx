@@ -11,6 +11,7 @@ import type { SilveryMouseEvent } from "@silvery/ag/mouse-event-types"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useHover } from "../../hooks/useHover"
+import { resolveInteractionTreatment } from "@silvery/ag"
 
 export type PaneDividerOrientation = "vertical" | "horizontal"
 
@@ -151,7 +152,22 @@ export function PaneDivider({
   const isDragging = active || dragging
   const isHoverArmed = !disabled && isHovered && !isDragging
   const showGlyph = isDragging || isHoverArmed || idleStyle === "line"
-  const glyphColor = isDragging || isHoverArmed ? activeColor : color
+  const treatment = resolveInteractionTreatment(
+    {
+      hovered: isHoverArmed,
+      armed: isDragging,
+      selected: false,
+      focused: false,
+      dropTarget: false,
+    },
+    "control",
+    {
+      idle: { color },
+      revealed: { color: activeColor },
+      armed: { color: activeColor },
+    },
+  )
+  const glyphColor = treatment.color
   const safeSize = Math.max(1, Math.floor(size))
   const dottedHover = isHoverArmed && idleStyle === "hidden"
   const verticalGlyph = dottedHover ? hoverVerticalChar : verticalChar

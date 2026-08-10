@@ -31,6 +31,7 @@ import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useHover } from "../../hooks/useHover"
 import type { SilveryMouseEvent } from "@silvery/ag/mouse-event-types"
+import { resolveInteractionTreatment } from "@silvery/ag"
 
 export interface ScrollbarProps {
   /** Height of the track in rows. Typically equals the scrollable
@@ -201,9 +202,23 @@ export function Scrollbar({
   // track or actively dragging. The `$primary` swap matches the
   // macOS-style "this is interactive" affordance and signals the
   // user can start a drag.
-  const armed = isThumbHovered || isDragging
-  const thumbColor = armed ? "$primary" : "$muted"
-  const thumbBg = armed ? "$primary" : "$muted"
+  const thumbTreatment = resolveInteractionTreatment(
+    {
+      hovered: isThumbHovered,
+      armed: isDragging,
+      selected: false,
+      focused: false,
+      dropTarget: false,
+    },
+    "control",
+    {
+      idle: { color: "$muted", backgroundColor: "$muted" },
+      revealed: { color: "$primary", backgroundColor: "$primary" },
+      armed: { color: "$primary", backgroundColor: "$primary" },
+    },
+  )
+  const thumbColor = thumbTreatment.color
+  const thumbBg = thumbTreatment.backgroundColor
   const fracInverseFg = "$bg"
 
   const rows: JSX.Element[] = []
