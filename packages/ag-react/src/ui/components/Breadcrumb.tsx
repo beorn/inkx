@@ -54,6 +54,21 @@ export interface BreadcrumbProps {
   linkVariant?: LinkProps["variant"]
   /** Item rendered as the current location (default: the last item). */
   currentIndex?: number
+  /**
+   * Render separators with no surrounding spaces, so a trail reads `a/b/c`
+   * rather than `a / b / c`.
+   *
+   * Filesystem paths want the compact form — the spaces make one location
+   * scan as several separate names. Navigational trails (`Home > Settings`)
+   * want the airy default, which is why this is opt-in rather than a change
+   * of behaviour.
+   *
+   * The separator keeps its own colour either way, so it stays visually
+   * distinct from the labels it divides.
+   *
+   * @default false
+   */
+  compact?: boolean
 }
 
 // =============================================================================
@@ -142,6 +157,7 @@ export function Breadcrumb({
   separator = "/",
   linkVariant = "arm-on-hover",
   currentIndex = items.length - 1,
+  compact = false,
 }: BreadcrumbProps): React.ReactElement {
   if (items.length === 0) {
     return <Box height={1} />
@@ -157,8 +173,7 @@ export function Breadcrumb({
           <React.Fragment key={i}>
             {i > 0 && (
               <Text color="$fg-muted" wrap="truncate">
-                {" "}
-                {item.separator ?? separator}{" "}
+                {compact ? (item.separator ?? separator) : ` ${item.separator ?? separator} `}
               </Text>
             )}
             {isActionable ? (
