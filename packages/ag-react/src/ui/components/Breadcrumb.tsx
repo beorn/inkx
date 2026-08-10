@@ -23,7 +23,6 @@ import { Link } from "../../components/Link"
 import { Text } from "../../components/Text"
 import { useFocusable } from "../../hooks/useFocusable"
 import { useInput } from "../../hooks/useInput"
-import type { LinkProps } from "../../components/Link"
 import { ChainAppContext } from "../../context"
 
 // =============================================================================
@@ -41,6 +40,8 @@ export interface BreadcrumbItem {
   separator?: string
   /** Optional per-item text color. */
   color?: string
+  /** Optional foreground while the actionable item is hovered. */
+  revealColor?: string
   /** Optional per-item emphasis override. */
   bold?: boolean
 }
@@ -50,8 +51,10 @@ export interface BreadcrumbProps {
   items: BreadcrumbItem[]
   /** Separator character between items (default: "/") */
   separator?: string
-  /** Link arming behavior for actionable items (default: plain hover). */
-  linkVariant?: LinkProps["variant"]
+  /** Separator spacing (default: readable spaces around the glyph). */
+  separatorSpacing?: "spaced" | "compact"
+  /** Separator foreground, independent from segment foreground. */
+  separatorColor?: string
   /** Item rendered as the current location (default: the last item). */
   currentIndex?: number
 }
@@ -69,11 +72,9 @@ export interface BreadcrumbProps {
  */
 function BreadcrumbItemInteraction({
   item,
-  variant,
   isCurrent,
 }: {
   item: BreadcrumbItem
-  variant: NonNullable<LinkProps["variant"]>
   isCurrent: boolean
 }): React.ReactElement {
   const { focused } = useFocusable()
@@ -95,7 +96,8 @@ function BreadcrumbItemInteraction({
   return (
     <Link
       href={item.href}
-      variant={variant}
+      role="control"
+      revealColor={item.revealColor ?? "$fg"}
       onClick={(event) => {
         if (item.onPress !== undefined) {
           event.preventDefault()
@@ -114,11 +116,9 @@ function BreadcrumbItemInteraction({
 
 function ActionableBreadcrumbItem({
   item,
-  variant,
   isCurrent,
 }: {
   item: BreadcrumbItem
-  variant: NonNullable<LinkProps["variant"]>
   isCurrent: boolean
 }): React.ReactElement {
   const focusId = useId()
@@ -132,7 +132,7 @@ function ActionableBreadcrumbItem({
       flexShrink={1}
       overflow="hidden"
     >
-      <BreadcrumbItemInteraction item={item} variant={variant} isCurrent={isCurrent} />
+      <BreadcrumbItemInteraction item={item} isCurrent={isCurrent} />
     </Box>
   )
 }
@@ -140,7 +140,8 @@ function ActionableBreadcrumbItem({
 export function Breadcrumb({
   items,
   separator = "/",
-  linkVariant = "arm-on-hover",
+  separatorSpacing = "spaced",
+  separatorColor = "$fg-muted",
   currentIndex = items.length - 1,
 }: BreadcrumbProps): React.ReactElement {
   if (items.length === 0) {
@@ -156,13 +157,14 @@ export function Breadcrumb({
         return (
           <React.Fragment key={i}>
             {i > 0 && (
-              <Text color="$fg-muted" wrap="truncate">
-                {" "}
-                {item.separator ?? separator}{" "}
+              <Text color={separatorColor} wrap="truncate">
+                {separatorSpacing === "spaced" ? " " : ""}
+                {item.separator ?? separator}
+                {separatorSpacing === "spaced" ? " " : ""}
               </Text>
             )}
             {isActionable ? (
-              <ActionableBreadcrumbItem item={item} variant={linkVariant} isCurrent={isCurrent} />
+              <ActionableBreadcrumbItem item={item} isCurrent={isCurrent} />
             ) : (
               <Text
                 color={item.color ?? (isCurrent ? "$fg" : "$fg-muted")}

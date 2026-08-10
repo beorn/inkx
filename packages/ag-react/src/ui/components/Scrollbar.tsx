@@ -204,7 +204,7 @@ export function Scrollbar({
   const armed = isThumbHovered || isDragging
   const thumbColor = armed ? "$primary" : "$muted"
   const thumbBg = armed ? "$primary" : "$muted"
-  const fracInverseFg = armed ? "$bg" : "$bg"
+  const fracInverseFg = "$bg"
 
   const rows: JSX.Element[] = []
   for (let r = firstRow; r <= lastRow; r++) {
@@ -217,7 +217,7 @@ export function Scrollbar({
       const idx = Math.max(0, Math.round(portion * 8) - 1)
       rows.push(
         <Text key={r} color={thumbColor}>
-          {EIGHTHS[idx]!}
+          {EIGHTHS[idx] ?? "▁"}
         </Text>,
       )
     } else if (fractionalBottom) {
@@ -225,7 +225,7 @@ export function Scrollbar({
       const idx = Math.max(0, Math.round((1 - portion) * 8) - 1)
       rows.push(
         <Text key={r} color={fracInverseFg} backgroundColor={thumbBg}>
-          {EIGHTHS[idx]!}
+          {EIGHTHS[idx] ?? "▁"}
         </Text>,
       )
     } else {

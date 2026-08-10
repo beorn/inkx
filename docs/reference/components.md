@@ -384,18 +384,18 @@ import { Link } from "silvery"
 <Link href="https://example.com">Visit Example</Link>
 <Link href="https://example.com" color="green">Green Link</Link>
 <Link href="app://node/abc123" onClick={(e) => navigate(e)}>Internal Link</Link>
-<Link variant="arm-on-hover" onClick={() => navigateBack()}>Back</Link>
+<Link onClick={() => navigateBack()}>Back</Link>
 ```
 
-| Prop        | Type                                   | Description                                                                     |
-| ----------- | -------------------------------------- | ------------------------------------------------------------------------------- |
-| `href`      | `string`                               | Optional OSC 8 URL; omit for an app-owned action                                |
-| `children`  | `ReactNode`                            | Link text content                                                               |
-| `variant`   | `"arm-on-cmd-hover" \| "arm-on-hover"` | How the link arms (default: `"arm-on-cmd-hover"`)                               |
-| `color`     | `string`                               | Text color (default: `"$fg-link"`). Use `"inherit"` to inherit from the parent. |
-| `underline` | `boolean`                              | Optional idle underline; armed hover always underlines                          |
-| `onClick`   | `(event: SilveryMouseEvent) => void`   | Click handler (preventDefault to skip navigation)                               |
-| `testID`    | `string`                               | Test ID for locator queries                                                     |
+| Prop          | Type                                 | Description                                                                     |
+| ------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `href`        | `string`                             | Optional OSC 8 URL; omit for an app-owned action                                |
+| `children`    | `ReactNode`                          | Link text content                                                               |
+| `color`       | `string`                             | Text color (default: `"$fg-link"`). Use `"inherit"` to inherit from the parent. |
+| `revealColor` | `string`                             | Brighter text color while the role-derived reveal condition is active           |
+| `underline`   | `boolean`                            | Stable link underline; hover never changes it                                   |
+| `onClick`     | `(event: SilveryMouseEvent) => void` | Click handler (preventDefault to skip navigation)                               |
+| `testID`      | `string`                             | Test ID for locator queries                                                     |
 
 ## Transform
 

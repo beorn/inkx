@@ -68,7 +68,7 @@ import { makeMeasureKey } from "../../hooks/useVirtualizer"
 import { useBoxSize } from "../../hooks/useLayout"
 import { useScrollState } from "../../hooks/useScrollState"
 import { useInput } from "../../hooks/useInput"
-import { useHover } from "../../hooks/useHover"
+import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
 import { Box, type BoxHandle } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Scrollbar } from "./Scrollbar"
@@ -3747,9 +3747,10 @@ function ScrollToBottomButton({
   onClick: () => void
   onWheel: (event: { deltaY: number; timeStamp?: number }) => void
 }): React.ReactElement {
-  const { isHovered, onMouseEnter, onMouseLeave } = useHover()
-  const bg = isHovered ? "$primary" : "$mutedbg"
-  const fg = isHovered ? "$bg" : "$muted"
+  const interaction = useInteractionTreatment("control", {
+    idle: { backgroundColor: "$mutedbg", color: "$muted" },
+    revealed: { backgroundColor: "$primary", color: "$bg" },
+  })
   // The outer wrapper is the bottom-row centering container. We do
   // NOT set `pointerEvents="none"` on it — silvery's hit test skips
   // the entire subtree of a `pointerEvents="none"` absolute node, so
@@ -3776,12 +3777,12 @@ function ScrollToBottomButton({
       <Box
         flexDirection="row"
         paddingX={1}
-        backgroundColor={bg}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
+        backgroundColor={interaction.treatment.backgroundColor}
+        onMouseEnter={interaction.onMouseEnter}
+        onMouseLeave={interaction.onMouseLeave}
         onClick={onClick}
       >
-        <Text color={fg}>↓ Latest</Text>
+        <Text color={interaction.treatment.color}>↓ Latest</Text>
       </Box>
     </Box>
   )

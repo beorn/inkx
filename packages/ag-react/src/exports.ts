@@ -273,6 +273,7 @@ export {
   Em,
   Code,
   Kbd,
+  DecoratedRegion,
   Blockquote,
   CodeBlock,
   HR,
@@ -280,7 +281,7 @@ export {
   OL,
   LI,
 } from "./ui/components"
-export type { TypographyProps } from "./ui/components"
+export type { DecoratedRegionProps, TypographyProps } from "./ui/components"
 
 // Shared noun#value.revision identity grammar.
 export { formatNounId, NounId } from "./ui/components"
@@ -763,6 +764,8 @@ export { densityForWidth, DEFAULT_COMPACT_MAX_WIDTH, type Density } from "./ui/d
 export { useWindowSize } from "./hooks/useWindowSize"
 export { useHover } from "./hooks/useHover"
 export type { UseHoverReturn } from "./hooks/useHover"
+export { useInteractionTreatment } from "./hooks/useInteractionTreatment"
+export { DIRECTORY_ICON, FILE_ICON, NAV_BACK_ICON, NAV_FORWARD_ICON } from "./ui/icons"
 export {
   PopoverProvider,
   usePopover,

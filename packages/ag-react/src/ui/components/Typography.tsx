@@ -35,7 +35,7 @@
  */
 import type { ReactNode } from "react"
 import { createContext, useContext, Children, cloneElement, isValidElement } from "react"
-import { Box } from "../../components/Box"
+import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 import type { TextProps } from "../../components/Text"
 import { useTheme } from "../../ThemeContext"
@@ -43,6 +43,11 @@ import { StylePriorityProvider } from "../../style-priority"
 
 export interface TypographyProps extends Omit<TextProps, "children"> {
   children?: ReactNode
+}
+
+export interface DecoratedRegionProps extends Omit<BoxProps, "children"> {
+  children?: ReactNode
+  railColor?: string
 }
 
 // ============================================================================
@@ -187,28 +192,41 @@ export function Kbd({ children, color, ...rest }: TypographyProps) {
 // Block Elements
 // ============================================================================
 
-/** Blockquote — an inset structural hairline around italic muted prose.
- * The rail is a Box border rather than a text prefix, so it spans every
- * wrapped row and encloses nested content. `$fg-faint` keeps decoration one
- * semantic tier below the `$fg-muted` body. */
-export function Blockquote({ children, color }: TypographyProps) {
-  const muted = color ?? "$fg-muted"
+/**
+ * A region with a structural left rail. The rail is layout chrome rather than
+ * a text prefix, so it spans authored and wrapped rows alike.
+ */
+export function DecoratedRegion({
+  children,
+  railColor = "$border-default",
+  ...props
+}: DecoratedRegionProps) {
   return (
     <Box
       flexShrink={1}
-      marginLeft={2}
-      marginRight={4}
+      minWidth={0}
       paddingLeft={1}
       borderStyle="hairline"
-      borderColor="$fg-faint"
+      borderColor={railColor}
       borderTop={false}
       borderBottom={false}
       borderRight={false}
+      {...props}
     >
+      {children}
+    </Box>
+  )
+}
+
+/** Blockquote — an inset structural hairline around italic muted prose. */
+export function Blockquote({ children, color }: TypographyProps) {
+  const muted = color ?? "$fg-muted"
+  return (
+    <DecoratedRegion marginLeft={2} marginRight={4} railColor="$fg-faint">
       <Text color={muted} italic wrap="wrap">
         {children}
       </Text>
-    </Box>
+    </DecoratedRegion>
   )
 }
 
@@ -222,12 +240,9 @@ export function Blockquote({ children, color }: TypographyProps) {
  */
 export function CodeBlock({ children, color }: TypographyProps) {
   return (
-    <Box>
-      <Text color={color ?? "$border-default"}>│ </Text>
-      <Box flexShrink={1}>
-        <Text wrap="hard">{children}</Text>
-      </Box>
-    </Box>
+    <DecoratedRegion railColor={color ?? "$border-default"}>
+      <Text wrap="hard">{children}</Text>
+    </DecoratedRegion>
   )
 }
 

@@ -93,9 +93,7 @@ describe("render-phase-adapter nested text styles", () => {
   test("action-only Link clears an inherited OSC 8 destination", () => {
     const buffer = renderViaAdapter(
       <Link href="https://ancestor.example">
-        <Link variant="arm-on-hover" onClick={() => {}}>
-          Action
-        </Link>
+        <Link onClick={() => {}}>Action</Link>
       </Link>,
       40,
       5,

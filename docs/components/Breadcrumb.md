@@ -11,12 +11,13 @@ import { Breadcrumb } from "silvery"
 
 ## Props
 
-| Prop           | Type                                   | Default          | Description                                 |
-| -------------- | -------------------------------------- | ---------------- | ------------------------------------------- |
-| `items`        | `BreadcrumbItem[]`                     | **required**     | Breadcrumb items from left to right         |
-| `separator`    | `string`                               | `"/"`            | Default separator before each later item    |
-| `currentIndex` | `number`                               | last item        | Item styled as the current location         |
-| `linkVariant`  | `"arm-on-hover" \| "arm-on-cmd-hover"` | `"arm-on-hover"` | Pointer arming behavior for linked segments |
+| Prop               | Type                    | Default       | Description                                |
+| ------------------ | ----------------------- | ------------- | ------------------------------------------ |
+| `items`            | `BreadcrumbItem[]`      | **required**  | Breadcrumb items from left to right        |
+| `separator`        | `string`                | `"/"`         | Default separator before each later item   |
+| `currentIndex`     | `number`                | last item     | Item styled as the current location        |
+| `separatorSpacing` | `"spaced" \| "compact"` | `"spaced"`    | Whether separators have surrounding spaces |
+| `separatorColor`   | `string`                | `"$fg-faint"` | Separator color                            |
 
 ### BreadcrumbItem
 
@@ -28,6 +29,7 @@ interface BreadcrumbItem {
   separator?: string
   color?: string
   bold?: boolean
+  revealColor?: string
 }
 ```
 

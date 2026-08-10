@@ -1,17 +1,19 @@
 /**
  * useHover — track whether the mouse is currently over an element.
  *
- * Returns `{ isHovered, onMouseEnter, onMouseLeave }`. Spread the handlers on
- * a Box (or other host element) and use `isHovered` to drive visual feedback
- * — typically a distinct `backgroundColor` to signal "this is clickable".
+ * Returns `{ isHovered, onMouseEnter, onMouseLeave }`. This hook reports
+ * pointer geometry only. Components that paint interaction feedback use
+ * `useInteractionTreatment`, which derives the visual treatment from role.
  *
  * ```tsx
- * const { isHovered, onMouseEnter, onMouseLeave } = useHover()
+ * const interaction = useInteractionTreatment("control", {
+ *   revealed: { backgroundColor: "$bg-surface-hover" },
+ * })
  * return (
  *   <Box
- *     onMouseEnter={onMouseEnter}
- *     onMouseLeave={onMouseLeave}
- *     backgroundColor={isHovered ? "$bg-surface-hover" : undefined}
+ *     onMouseEnter={interaction.onMouseEnter}
+ *     onMouseLeave={interaction.onMouseLeave}
+ *     backgroundColor={interaction.treatment.backgroundColor}
  *     onClick={doStuff}
  *   >
  *     …

@@ -59,4 +59,20 @@ describe("Breadcrumb actionability", () => {
     expect(app.lines[0]).not.toBe("")
     expect(app.lines.slice(1).every((line) => line.trim() === "")).toBe(true)
   })
+
+  test("can render compact separators with their own visual weight", () => {
+    const render = createRenderer({ cols: 32, rows: 2 })
+    const app = render(
+      <Breadcrumb
+        items={[{ label: "repo" }, { label: "pm" }, { label: "status.md" }]}
+        separatorSpacing="compact"
+        separatorColor="$fg-disabled"
+      />,
+    )
+
+    expect(app.lines[0]?.trim()).toBe("repo/pm/status.md")
+    const slash = app.lines[0]?.indexOf("/") ?? -1
+    expect(slash).toBeGreaterThan(0)
+    expect(app.cell(slash, 0).fg).not.toEqual(app.cell(slash - 1, 0).fg)
+  })
 })

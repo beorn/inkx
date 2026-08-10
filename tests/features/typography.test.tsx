@@ -362,9 +362,9 @@ describe("Block elements", () => {
     expect(buffer.getCell(barCol + 2, 0).fg).toEqual(muted.term.buffer.getCell(0, 0).fg)
   })
 
-  test("CodeBlock renders with │ prefix", () => {
+  test("CodeBlock renders with a structural hairline rail", () => {
     const app = render(<CodeBlock>const x = 1</CodeBlock>)
-    expect(app.text).toContain("│")
+    expect(app.text).toContain("▏")
     expect(app.text).toContain("const x = 1")
   })
 
@@ -389,7 +389,7 @@ describe("Block elements", () => {
   // default for fenced code.
   test("CodeBlock defaults to wrap='hard' (long identifier wraps mid-token)", () => {
     const longId = "getPolygonIntervalForBandWithFloatingPointPrecision"
-    // 20-wide container — the bar │ + space prefix leaves ~17 cols for body.
+    // 20-wide container — the rail + padding leaves ~18 cols for body.
     const app = render(
       <Box width={20}>
         <CodeBlock>{longId}</CodeBlock>
@@ -402,10 +402,16 @@ describe("Block elements", () => {
     // The identifier is 51 chars — must span multiple rendered rows.
     const linesWithContent = app.text.split("\n").filter((l) => l.trim().length > 0).length
     expect(linesWithContent).toBeGreaterThan(1)
+    expect(
+      app.text
+        .split("\n")
+        .filter((line) => /[A-Za-z]/.test(line))
+        .every((line) => line.includes("▏")),
+    ).toBe(true)
     // Hard-wrap doesn't insert ellipsis — fully visible content.
     expect(app.text).not.toContain("…")
     // All identifier characters preserved on screen.
-    const joined = app.text.replace(/[│\s]/g, "")
+    const joined = app.text.replace(/[▏\s]/g, "")
     for (const ch of "abcdefghijklmnopqrstuvwxyz") {
       if (longId.includes(ch)) {
         expect(joined, `char '${ch}' missing from rendered output`).toContain(ch)
@@ -420,12 +426,12 @@ describe("Block elements", () => {
     expect(linesWithContent).toBe(1)
   })
 
-  test("CodeBlock │ uses $border-default color", () => {
+  test("CodeBlock rail uses $border-default color", () => {
     const app = render(<CodeBlock>x</CodeBlock>)
     const buffer = app.term.buffer
     let barCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "│") {
+      if (buffer.getCell(x, 0).char === "▏") {
         barCol = x
         break
       }

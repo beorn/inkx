@@ -1,6 +1,6 @@
 # Link
 
-Renders armed link text for URLs or app-owned actions. When `href` is present, the text is wrapped in an OSC 8 hyperlink for supporting terminals (iTerm2, Ghostty, Kitty, etc.).
+Renders link text for URLs or app-owned actions. When `href` is present, the text is wrapped in an OSC 8 hyperlink for supporting terminals (iTerm2, Ghostty, Kitty, etc.).
 
 ## Import
 
@@ -12,12 +12,12 @@ import { Link } from "silvery"
 
 `LinkProps` extends `TextProps` (excluding `children`).
 
-| Prop       | Type                                   | Default              | Description                                      |
-| ---------- | -------------------------------------- | -------------------- | ------------------------------------------------ |
-| `href`     | `string`                               | --                   | Optional OSC 8 URL; omit for an app-owned action |
-| `children` | `ReactNode`                            | --                   | Link text content                                |
-| `variant`  | `"arm-on-cmd-hover" \| "arm-on-hover"` | `"arm-on-cmd-hover"` | How the link arms for clicking                   |
-| `color`    | `string`                               | `"$fg-link"`         | Link text color                                  |
+| Prop          | Type        | Default      | Description                                      |
+| ------------- | ----------- | ------------ | ------------------------------------------------ |
+| `href`        | `string`    | --           | Optional OSC 8 URL; omit for an app-owned action |
+| `children`    | `ReactNode` | --           | Link text content                                |
+| `color`       | `string`    | `"$fg-link"` | Link text color                                  |
+| `revealColor` | `string`    | `"$fg"`      | Brighter color used when the role reveals        |
 
 All `TextProps` style props (bold, italic, etc.) are also accepted.
 
@@ -25,9 +25,6 @@ All `TextProps` style props (bold, italic, etc.) are also accepted.
 
 ```tsx
 <Link href="https://example.com">Visit Example</Link>
-
-// Always clickable on hover (no modifier needed)
-<Link href="https://example.com" variant="arm-on-hover">Always Clickable</Link>
 
 // Internal link with custom handler
 <Link
@@ -41,17 +38,19 @@ All `TextProps` style props (bold, italic, etc.) are also accepted.
 </Link>
 
 // App-owned action with no OSC 8 destination
-<Link variant="arm-on-hover" onClick={() => navigateBack()}>
+<Link onClick={() => navigateBack()}>
   Back
 </Link>
 ```
 
 ## Behavior
 
-- **`arm-on-cmd-hover`** (default): Link underlines and becomes clickable when hovered while holding Cmd/Super.
-- **`arm-on-hover`**: Link underlines and becomes clickable on plain hover (no modifier needed).
+- Role derives reveal policy: an `href` is a content link and reveals on
+  Cmd/Super-hover; an action-only link is a control and reveals on plain hover.
+- Reveal brightens the text. Underline is stable link semantics: it may be
+  always present or always absent, but never changes because of hover.
 - The `onClick` callback runs first. If it calls `preventDefault()`, it owns the
-  activation; otherwise an armed click emits `"link:open"` through the app
+  activation; otherwise a revealed click emits `"link:open"` through the app
   event chain when `href` is present. An action-only Link with no `href` never
   emits `"link:open"` or paints an OSC 8 destination.
 

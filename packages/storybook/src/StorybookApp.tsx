@@ -31,7 +31,7 @@ import {
   Text,
   useApp,
   useFocusManager,
-  useHover,
+  useInteractionTreatment,
   useInput,
   useScrollController,
   useTerm,
@@ -79,26 +79,29 @@ function StoryNavRow({
   onClick: () => void
   selected: boolean
 }): React.ReactElement {
-  const hover = useHover()
+  const interaction = useInteractionTreatment(
+    "control",
+    {
+      idle: { color: STORYBOOK_CHROME_FG },
+      revealed: { backgroundColor: STORYBOOK_CHROME_HOVER_BG },
+      selected: {
+        backgroundColor: STORYBOOK_CHROME_SELECTED_BG,
+        color: STORYBOOK_CHROME_ACTIVE_FG,
+        bold: true,
+      },
+    },
+    true,
+    { selected },
+  )
   return (
     <Box
       width="100%"
-      backgroundColor={
-        selected
-          ? STORYBOOK_CHROME_SELECTED_BG
-          : hover.isHovered
-            ? STORYBOOK_CHROME_HOVER_BG
-            : undefined
-      }
+      backgroundColor={interaction.treatment.backgroundColor}
       onClick={onClick}
-      onMouseEnter={hover.onMouseEnter}
-      onMouseLeave={hover.onMouseLeave}
+      onMouseEnter={interaction.onMouseEnter}
+      onMouseLeave={interaction.onMouseLeave}
     >
-      <Text
-        color={selected ? STORYBOOK_CHROME_ACTIVE_FG : STORYBOOK_CHROME_FG}
-        bold={selected}
-        wrap="truncate"
-      >
+      <Text color={interaction.treatment.color} bold={interaction.treatment.bold} wrap="truncate">
         {label}
       </Text>
     </Box>

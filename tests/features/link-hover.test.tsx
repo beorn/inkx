@@ -1,7 +1,7 @@
 /**
  * Link Hover Effects — Cmd+hover armed state + modifier-aware mouse cursors.
  *
- * Verifies that <Link> shows underline when hovered with Cmd held,
+ * Verifies that <Link> brightens without changing underline on reveal,
  * that useModifierKeys tracks modifier state correctly, and that
  * useMouseCursor writes the correct OSC 22 escape sequences.
  */
@@ -99,9 +99,7 @@ describe("Link", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <Link href="https://ancestor.example">
-        <Link variant="arm-on-hover" onClick={() => {}}>
-          Action
-        </Link>
+        <Link onClick={() => {}}>Action</Link>
       </Link>,
     )
     const column = app.text.indexOf("Action")
@@ -124,9 +122,7 @@ describe("Link", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <ChainAppContext.Provider value={chain}>
-        <Link variant="arm-on-hover" onClick={onClick}>
-          Action
-        </Link>
+        <Link onClick={onClick}>Action</Link>
       </ChainAppContext.Provider>,
     )
     const column = app.text.indexOf("Action")
@@ -219,10 +215,10 @@ describe("Link", () => {
 })
 
 // ============================================================================
-// Link variant="arm-on-hover"
+// Role-derived reveal
 // ============================================================================
 
-describe("Link variant='arm-on-hover'", () => {
+describe("Link role-derived reveal", () => {
   test("does not register modifier observers while idle or hovered", async () => {
     const registerRawKey = vi.fn(() => () => {})
     const registerFocus = vi.fn(() => () => {})
@@ -236,7 +232,7 @@ describe("Link variant='arm-on-hover'", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <ChainAppContext.Provider value={chain}>
-        <Link href="https://example.com" variant="arm-on-hover">
+        <Link href="https://example.com" role="control">
           Plain hover
         </Link>
       </ChainAppContext.Provider>,
@@ -251,29 +247,29 @@ describe("Link variant='arm-on-hover'", () => {
     expect(registerFocus).not.toHaveBeenCalled()
   })
 
-  test("plain hover underlines without Cmd", async () => {
+  test("action-only links brighten on plain hover without changing underline", async () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <Box flexDirection="column">
-        <Link href="https://example.com" variant="arm-on-hover">
-          Hover Link
-        </Link>
+        <Link onClick={() => {}}>Hover Link</Link>
         <Text>Other</Text>
       </Box>,
     )
 
     const col = app.text.indexOf("Hover Link")
+    const idleForeground = app.cell(col, 0).fg
     await app.hover(col, 0)
 
     const cell = app.term.cell(col, 0)
-    expect(cell.attrs.underline).toBe(true)
+    expect(cell.attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
   })
 
   test("plain hover repaints through the terminal runtime", async () => {
     using term = createTermless({ cols: 40, rows: 5 })
     using _handle = await run(
       <Box flexDirection="column">
-        <Link href="https://example.com" variant="arm-on-hover">
+        <Link href="https://example.com" role="control">
           Runtime link
         </Link>
         <Text>Other</Text>
@@ -286,12 +282,8 @@ describe("Link variant='arm-on-hover'", () => {
     term.out.clear()
     await React.act(async () => term.mouse.move(0, 0))
 
-    const underlinedRuntimeLink = new RegExp(
-      `${String.fromCharCode(27)}\\[[0-9;:]*4mRuntime link`,
-      "u",
-    )
-    await waitFor(() => underlinedRuntimeLink.test(term.out.getText()))
-    expect(term.out.getText()).toMatch(underlinedRuntimeLink)
+    await waitFor(() => term.out.containsOutput("Runtime link"))
+    expect(term.out.getText()).not.toMatch(/\x1b\[[0-9;:]*4mRuntime link/u)
     expect(term.out.containsOutput("\x1b]22;pointer\x07")).toBe(true)
   })
 
@@ -299,7 +291,7 @@ describe("Link variant='arm-on-hover'", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <Box flexDirection="column">
-        <Link href="https://example.com" variant="arm-on-hover">
+        <Link href="https://example.com" role="control">
           Hover Link
         </Link>
         <Text>Other</Text>
@@ -307,11 +299,14 @@ describe("Link variant='arm-on-hover'", () => {
     )
 
     const col = app.text.indexOf("Hover Link")
+    const idleForeground = app.cell(col, 0).fg
     await app.hover(col, 0)
-    expect(app.term.cell(col, 0).attrs.underline).toBe(true)
+    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
 
     await app.hover(0, 1)
     expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).toEqual(idleForeground)
   })
 
   test("default variant still requires Cmd", async () => {
@@ -343,6 +338,7 @@ describe("Link Cmd+hover armed state", () => {
     )
 
     const col = app.text.indexOf("Click Me")
+    const idleForeground = app.cell(col, 0).fg
 
     // Hover over the link
     await app.hover(col, 0)
@@ -352,7 +348,7 @@ describe("Link Cmd+hover armed state", () => {
     expect(cell.attrs.underline).toBeFalsy()
   })
 
-  test("Cmd+hover shows underline (armed)", async () => {
+  test("Cmd+hover brightens a content link without changing underline", async () => {
     const render = createRenderer({ cols: 40, rows: 5, kittyMode: true })
     const app = render(
       <Box>
@@ -361,6 +357,7 @@ describe("Link Cmd+hover armed state", () => {
     )
 
     const col = app.text.indexOf("Click Me")
+    const idleForeground = app.cell(col, 0).fg
 
     // Hover over the link
     await app.hover(col, 0)
@@ -368,9 +365,10 @@ describe("Link Cmd+hover armed state", () => {
     // Press a key with Super held (simulates Cmd press)
     await app.press("Super+a")
 
-    // Now armed: hovered + Cmd held → underline
+    // Revealed content links brighten; underline remains a stable link property.
     const cell = app.term.cell(col, 0)
-    expect(cell.attrs.underline).toBe(true)
+    expect(cell.attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
   })
 
   test("moving mouse away clears armed state", async () => {
@@ -387,7 +385,7 @@ describe("Link Cmd+hover armed state", () => {
     // Hover + Cmd
     await app.hover(col, 0)
     await app.press("Super+a")
-    expect(app.term.cell(col, 0).attrs.underline).toBe(true)
+    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
 
     // Move to sibling (must be a real node for hitTest to produce a leave)
     await app.hover(0, 1)
@@ -396,9 +394,7 @@ describe("Link Cmd+hover armed state", () => {
     expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
   })
 
-  test("underline={false} IS overridden by armed state (Cmd+hover)", async () => {
-    // This is the real-world case: InlineLink passes underline={false} as default,
-    // but armed state (Cmd+hover) should still show underline as hover feedback
+  test("underline={false} remains false during Cmd+hover", async () => {
     const render = createRenderer({ cols: 40, rows: 5, kittyMode: true })
     const app = render(
       <Box flexDirection="column">
@@ -411,10 +407,10 @@ describe("Link Cmd+hover armed state", () => {
 
     const col = app.text.indexOf("LinkText")
 
-    // Hover + Cmd → armed → underline should appear
+    // Hover + Cmd changes colour, never the underline decision.
     await app.hover(col, 0)
     await app.press("Super+a")
-    expect(app.term.cell(col, 0).attrs.underline).toBe(true)
+    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
   })
 })
 
@@ -541,6 +537,7 @@ describe("Link modifier-aware mouse cursor", () => {
     )
 
     const col = app.text.indexOf("Click Me")
+    const idleForeground = app.cell(col, 0).fg
 
     // Hover over the link
     await app.hover(col, 0)
@@ -548,8 +545,8 @@ describe("Link modifier-aware mouse cursor", () => {
     // Press a key with Super held (simulates Cmd press)
     await app.press("Super+a")
 
-    // The Link should be armed (underline) and useMouseCursor("pointer") active
-    expect(app.term.cell(col, 0).attrs.underline).toBe(true)
+    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
   })
 
   test("moving away from armed Link resets cursor (no crash)", async () => {
@@ -562,14 +559,17 @@ describe("Link modifier-aware mouse cursor", () => {
     )
 
     const col = app.text.indexOf("Click Me")
+    const idleForeground = app.cell(col, 0).fg
 
     // Arm the link
     await app.hover(col, 0)
     await app.press("Super+a")
-    expect(app.term.cell(col, 0).attrs.underline).toBe(true)
+    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
 
     // Move away — disarms, cursor should reset
     await app.hover(0, 1)
     expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).toEqual(idleForeground)
   })
 })

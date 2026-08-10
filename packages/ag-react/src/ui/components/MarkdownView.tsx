@@ -36,7 +36,20 @@
 import { Fragment, type JSX, type ReactNode } from "react"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
-import { Blockquote, Code, Em, H1, H2, H3, H4, H5, H6, HR, Strong } from "./Typography"
+import {
+  Blockquote,
+  Code,
+  DecoratedRegion,
+  Em,
+  H1,
+  H2,
+  H3,
+  H4,
+  H5,
+  H6,
+  HR,
+  Strong,
+} from "./Typography"
 
 // ============================================================================
 // Block model
@@ -463,23 +476,18 @@ function renderList(list: MdList, keyPrefix: string, depth = 0): JSX.Element {
 
 /**
  * A fenced code block, rendered verbatim: one `<Text wrap="hard">` per source
- * line (breaks preserved, long lines char-wrap) behind a muted `│` gutter —
- * matching the `CodeBlock` preset's bar convention but per line.
+ * line behind the shared structural rail. The rail remains present when a
+ * source line wraps.
  */
 function CodeFence({ lines }: { lines: string[] }): JSX.Element {
   return (
-    <Box flexDirection="column" minWidth={0}>
+    <DecoratedRegion flexDirection="column">
       {lines.map((line, index) => (
-        <Box key={index} flexDirection="row" minWidth={0}>
-          <Text color="$border-default" flexShrink={0}>
-            {"│ "}
-          </Text>
-          <Text wrap="hard" minWidth={0}>
-            {line === "" ? " " : line}
-          </Text>
-        </Box>
+        <Text key={index} wrap="hard" minWidth={0}>
+          {line === "" ? " " : line}
+        </Text>
       ))}
-    </Box>
+    </DecoratedRegion>
   )
 }
 

@@ -18,7 +18,7 @@
  * ```
  */
 import React, { createContext, useContext } from "react"
-import { useHover } from "../../hooks/useHover"
+import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
 import { Box } from "../../components/Box"
 import type { BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
@@ -102,12 +102,14 @@ export function TogglePill({
   activeHoverColor = "$fg-accent",
   ...rest
 }: TogglePillProps): React.ReactElement {
-  const hover = useHover()
+  const interaction = useInteractionTreatment("control", {
+    revealed: { backgroundColor: "$bg-surface-hover" },
+  })
   const groupHovered = useContext(TogglePillGroupContext)
   const color = togglePillColor({
     active,
     groupHovered,
-    itemHovered: hover.isHovered,
+    itemHovered: interaction.isHovered,
     activeColor,
     activeHoverColor,
   })
@@ -117,9 +119,9 @@ export function TogglePill({
       flexShrink={0}
       minWidth={0}
       onClick={onToggle}
-      onMouseEnter={hover.onMouseEnter}
-      onMouseLeave={hover.onMouseLeave}
-      backgroundColor={hover.isHovered ? "$bg-surface-hover" : undefined}
+      onMouseEnter={interaction.onMouseEnter}
+      onMouseLeave={interaction.onMouseLeave}
+      backgroundColor={interaction.treatment.backgroundColor}
       {...rest}
     >
       {boldFirstLetter && label.length > 0 ? (
@@ -160,21 +162,22 @@ export function TogglePillGroup({
   gap = 1,
   ...rest
 }: TogglePillGroupProps): React.ReactElement {
-  const hover = useHover()
+  const interaction = useInteractionTreatment("control", {
+    idle: { color: PILL_IDLE_COLOR },
+    revealed: { color: PILL_ACTIVE_IDLE_COLOR },
+  })
   return (
-    <TogglePillGroupContext.Provider value={hover.isHovered}>
+    <TogglePillGroupContext.Provider value={interaction.isHovered}>
       <Box
         flexDirection="row"
         flexShrink={0}
         minWidth={0}
         gap={gap}
-        onMouseEnter={hover.onMouseEnter}
-        onMouseLeave={hover.onMouseLeave}
+        onMouseEnter={interaction.onMouseEnter}
+        onMouseLeave={interaction.onMouseLeave}
         {...rest}
       >
-        {label !== undefined && (
-          <Text color={hover.isHovered ? PILL_ACTIVE_IDLE_COLOR : PILL_IDLE_COLOR}>{label}</Text>
-        )}
+        {label !== undefined && <Text color={interaction.treatment.color}>{label}</Text>}
         {children}
       </Box>
     </TogglePillGroupContext.Provider>
