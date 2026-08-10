@@ -56,6 +56,10 @@ export type TableProps<T> = {
   cellWrap?: TextProps["wrap"]
   /** Draw rules between direct body rows. */
   rowSeparators?: boolean
+  /** Responsive presentation policy (document tables default to auto). */
+  layout?: "grid" | "auto" | "blocks"
+  /** Host-declared width, used before a committed layout rectangle exists. */
+  availableWidth?: number
 }
 
 type TablePresentation = "plain" | "framed" | "document"
@@ -64,13 +68,22 @@ type TableImplementationProps<T> = Omit<TableProps<T>, "frame"> & {
   presentation: TablePresentation
 }
 
-export function Table<T>({ frame = false, ...props }: TableProps<T>): React.ReactElement {
-  return <TableImplementation {...props} presentation={frame ? "framed" : "plain"} />
+export function Table<T>({
+  frame = false,
+  layout = "grid",
+  ...props
+}: TableProps<T>): React.ReactElement {
+  return (
+    <TableImplementation {...props} layout={layout} presentation={frame ? "framed" : "plain"} />
+  )
 }
 
 /** @internal Document chrome for Content.Table; intentionally not re-exported from the package API. */
-export function DocumentTable<T>(props: Omit<TableProps<T>, "frame">): React.ReactElement {
-  return <TableImplementation {...props} presentation="document" />
+export function DocumentTable<T>({
+  layout = "auto",
+  ...props
+}: Omit<TableProps<T>, "frame">): React.ReactElement {
+  return <TableImplementation {...props} layout={layout} presentation="document" />
 }
 
 type Track = Readonly<{
@@ -137,7 +150,9 @@ function computeTracks<T>(
     let minContent = intrinsicWidths(column.header, "truncate").minContentWidth
     let maxContent = displayWidth(column.header)
     for (let itemIndex = 0; itemIndex < data.length; itemIndex++) {
-      const value = plainCellValue(column, data[itemIndex]!, itemIndex)
+      const item = data[itemIndex]
+      if (item === undefined) continue
+      const value = plainCellValue(column, item, itemIndex)
       const iw = intrinsicWidths(value, cellWrap)
       if (iw.minContentWidth > minContent) minContent = iw.minContentWidth
       if (iw.maxContentWidth > maxContent) maxContent = iw.maxContentWidth
@@ -205,6 +220,8 @@ function TableImplementation<T>({
   padding = 2,
   cellWrap = "truncate",
   rowSeparators = false,
+  layout,
+  availableWidth,
   presentation,
 }: TableImplementationProps<T>): React.ReactElement {
   const directRows = presentation !== "plain"
@@ -218,7 +235,13 @@ function TableImplementation<T>({
   // cannot oscillate: a content-sized parent measures Σmax, and
   // apportion(Σmax) returns exactly the max widths — a fixpoint.
   const container = useBoxRectDangerously()
-  const available = container.width > 0 ? container.width - (framed ? 2 : 0) : null
+  const declaredAvailable =
+    container.width > 0
+      ? container.width
+      : availableWidth !== undefined && availableWidth > 0
+        ? availableWidth
+        : 0
+  const available = declaredAvailable > 0 ? declaredAvailable - (framed ? 2 : 0) : null
   const allocation = useMemo(
     () => (available === null ? null : allocateTracks(tracks, available, cellWrap)),
     [available, cellWrap, tracks],
@@ -228,6 +251,11 @@ function TableImplementation<T>({
   const leftPadding = directRows ? Math.floor(padding / 2) : 0
   const rightPadding = directRows ? padding - leftPadding : padding
   const bodyWrap: TextProps["wrap"] = allocation?.degraded ? "hard" : cellWrap
+  const blocks =
+    layout === "blocks" ||
+    (layout === "auto" &&
+      available !== null &&
+      (container.width <= 0 || allocation === null || allocation.degraded))
 
   // The band the allocator worked under, carried onto the rendered track so the
   // `apportion-bands` STRICT check can compare the width the layout engine
@@ -251,7 +279,7 @@ function TableImplementation<T>({
       }
     }
     if (allocation !== null) {
-      const width = allocation.widths[columnIndex]!
+      const width = allocation.widths[columnIndex] ?? track.min
       // Grow columns keep taking positive free space beyond their allocation.
       return column.grow
         ? { flexBasis: width, minWidth: width, flexGrow: 1, flexShrink: 0 }
@@ -334,6 +362,42 @@ function TableImplementation<T>({
       )}
     </Box>
   )
+
+  if (blocks) {
+    return (
+      <Box
+        data-component="content-table-blocks"
+        flexDirection="column"
+        width="100%"
+        minWidth={0}
+        gap={1}
+      >
+        {data.map((item, itemIndex) => (
+          <Box key={itemIndex} flexDirection="column" minWidth={0}>
+            {columns.map((column) => {
+              const rendered = column.render ? column.render(item, itemIndex) : null
+              const value =
+                rendered == null ? String((column.key ? item[column.key] : "") ?? "") : rendered
+              return (
+                <Box key={column.header} flexDirection="column" width="100%" minWidth={0}>
+                  <Text bold color={headerColor} flexShrink={0}>
+                    {column.header}:
+                  </Text>
+                  {typeof value === "string" || typeof value === "number" ? (
+                    <Text minWidth={0} wrap="wrap">
+                      {String(value)}
+                    </Text>
+                  ) : (
+                    value
+                  )}
+                </Box>
+              )
+            })}
+          </Box>
+        ))}
+      </Box>
+    )
+  }
 
   const header = showHeader ? (
     <Box

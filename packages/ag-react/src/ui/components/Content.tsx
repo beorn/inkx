@@ -834,10 +834,11 @@ type TableProps = {
 
 type TableGridProps = TableProps & {
   widths?: number[]
+  layout?: "grid" | "auto" | "blocks"
 }
 
 function TableRoot({ headers, rows, alignments = [] }: TableProps): React.ReactElement {
-  return <TableGridRoot headers={headers} rows={rows} alignments={alignments} />
+  return <TableGridRoot headers={headers} rows={rows} alignments={alignments} layout="auto" />
 }
 
 function TableGridRoot({
@@ -845,7 +846,9 @@ function TableGridRoot({
   rows,
   alignments = [],
   widths,
+  layout = "grid",
 }: TableGridProps): React.ReactElement {
+  const availableWidth = useContentRowWidth()
   const columns: DataTableColumn<string[]>[] = headers.map((header, columnIndex) => {
     const width = widths?.[columnIndex]
     return {
@@ -857,25 +860,21 @@ function TableGridRoot({
       shrink: true,
     }
   })
-  return <DataTable columns={columns} data={rows} cellWrap="wrap" rowSeparators headerColor="$fg" />
+  return (
+    <DataTable
+      columns={columns}
+      data={rows}
+      cellWrap="wrap"
+      rowSeparators
+      headerColor="$fg"
+      layout={layout}
+      availableWidth={availableWidth > 0 ? availableWidth : undefined}
+    />
+  )
 }
 
 function TableBlocksRoot({ headers, rows }: TableProps): React.ReactElement {
-  return (
-    <Full>
-      <Box flexDirection="column" gap={1} borderStyle="single" borderColor="$border" paddingX={1}>
-        {rows.map((row, rowIdx) => (
-          <Box key={rowIdx} flexDirection="column">
-            {headers.map((header, col) => (
-              <Text key={col} wrap="wrap">
-                <Text bold>{header}:</Text> {row[col] ?? ""}
-              </Text>
-            ))}
-          </Box>
-        ))}
-      </Box>
-    </Full>
-  )
+  return <TableGridRoot headers={headers} rows={rows} layout="blocks" />
 }
 
 const Table = Object.assign(TableRoot, {

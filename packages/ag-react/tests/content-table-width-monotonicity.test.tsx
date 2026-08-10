@@ -150,11 +150,11 @@ describe("Content.Table width monotonicity (@si/content/22774)", () => {
     }
   })
 
-  test("an impossible width marks loss before exposing unlabeled middle content", () => {
+  test("an impossible grid width keeps labels by switching to blocks", () => {
     const app = renderTable(8, TOOL_HEADERS, TOOL_ROWS)
 
-    expect(app.text).toContain("…")
-    expect(app.text).not.toContain("agent host")
-    expect(componentRect(app, "tool", "content-table-grid").x).toBeGreaterThanOrEqual(0)
+    expect(app.text).toContain("tool:")
+    expect(app.text).toContain("what")
+    expect(componentRect(app, "tool", "content-table-blocks").x).toBeGreaterThanOrEqual(0)
   })
 })
