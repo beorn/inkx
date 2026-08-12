@@ -28,7 +28,7 @@ import {
   Text,
   ListView,
   Divider,
-  useBoxRect,
+  useBoxRectDangerously,
   useInput,
   useApp,
   createTerm,
@@ -42,7 +42,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Dev Tools",
   description: "Log viewer with severity levels, ListView, and keyboard-driven log injection",
-  features: ["ListView", "useInput()", "useBoxRect()", "keyboard navigation"],
+  features: ["ListView", "useInput()", "useBoxRectDangerously()", "keyboard navigation"],
 }
 
 // ============================================================================
@@ -242,9 +242,9 @@ function LevelCounts({ entries }: { entries: LogEntry[] }) {
   )
 }
 
-/** Inner component that reads the flex container's height via useBoxRect */
+/** Inner component that reads the flex container's height via useBoxRectDangerously */
 function LogListArea({ entries, cursor }: { entries: LogEntry[]; cursor: number }) {
-  const { height } = useBoxRect()
+  const { height } = useBoxRectDangerously()
 
   return (
     <ListView

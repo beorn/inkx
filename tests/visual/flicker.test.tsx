@@ -4,12 +4,12 @@
  * Bead: km-silvery.flicker-tests
  *
  * Validates that silvery does not produce visible flicker:
- * - useBoxRect reports correct dimensions via locator (React tree)
+ * - useBoxRectDangerously reports correct dimensions via locator (React tree)
  * - Rapid state changes coalesce (no intermediate partial frames)
  * - First render shows content, not empty
  * - Incremental rendering matches fresh rendering
  *
- * Note: useBoxRect initial dimensions appear as 0x0 in the buffer text
+ * Note: useBoxRectDangerously initial dimensions appear as 0x0 in the buffer text
  * because the first render pass captures the pre-layout state. The React
  * tree (accessible via locators) reflects the stabilized dimensions.
  * This is tracked as a known limitation of the test renderer.
@@ -18,18 +18,18 @@
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, render, normalizeFrame, bufferToText } from "@silvery/test"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRectDangerously } from "@silvery/ag-react"
 import { SimpleBox, ComplexLayout, ResponsiveBox, ChalkStyledContent } from "../fixtures/index.tsx"
 
 // ============================================================================
-// useBoxRect Stabilization
+// useBoxRectDangerously Stabilization
 // ============================================================================
 
-describe("flicker: useBoxRect stabilization", () => {
-  test("useBoxRect reports dimensions via locator after initial render", () => {
-    /** Component that displays its dimensions via useBoxRect. */
+describe("flicker: useBoxRectDangerously stabilization", () => {
+  test("useBoxRectDangerously reports dimensions via locator after initial render", () => {
+    /** Component that displays its dimensions via useBoxRectDangerously. */
     function SizedPanel() {
-      const { width, height } = useBoxRect()
+      const { width, height } = useBoxRectDangerously()
       return React.createElement(Text, { testID: "dims" }, `Panel: ${width}x${height}`)
     }
 
@@ -56,9 +56,9 @@ describe("flicker: useBoxRect stabilization", () => {
     expect(parseInt(match![2]!)).toBeGreaterThan(0)
   })
 
-  test("useBoxRect value in React tree is non-zero", () => {
+  test("useBoxRectDangerously value in React tree is non-zero", () => {
     function DimensionDisplay() {
-      const { width, height } = useBoxRect()
+      const { width, height } = useBoxRectDangerously()
       return React.createElement(
         Box,
         { testID: "container" },

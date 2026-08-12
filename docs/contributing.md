@@ -176,7 +176,7 @@ Key style rules:
 ```tsx
 // Good: Factory function + using cleanup
 function MyComponent() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const [selected, setSelected] = useState(0)
 
   useInput((input, key) => {
@@ -218,7 +218,7 @@ bun run test
 Follow [Conventional Commits](https://conventionalcommits.org):
 
 ```
-feat(hooks): add useBoxRect for dimension feedback
+feat(hooks): add useBoxRectDangerously for dimension feedback
 fix(output): correct wide character diffing in buffer
 refactor(pipeline): extract render phase into separate module
 docs: update components reference
@@ -292,7 +292,7 @@ For feature requests, please include:
 silvery/
 ├── src/
 │ ├── components/ # Box, Text, Newline, Spacer, Static
-│ ├── hooks/ # useBoxRect, useInput, useApp, etc.
+│ ├── hooks/ # useBoxRectDangerously, useInput, useApp, etc.
 │ ├── testing/ # Test utilities (createRenderer)
 │ ├── reconciler.ts # React reconciler
 │ ├── pipeline.ts # Render pipeline

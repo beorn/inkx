@@ -37,11 +37,11 @@ Along the way, three principles emerged. Take the best from the web, stay true t
 
 ## How It Works
 
-**Layout first, then render.** Silvery inverts the pipeline: [Flexily](https://beorn.codes/flexily) (a Yoga-compatible layout engine) calculates positions and sizes, then React renders components with their actual content box available via `useBoxRect()`:
+**Layout first, then render.** Silvery inverts the pipeline: [Flexily](https://beorn.codes/flexily) (a Yoga-compatible layout engine) calculates positions and sizes, then React renders components with their actual content box available via `useBoxRectDangerously()`:
 
 ```tsx
 function IssueCard({ issue }: { issue: Issue }) {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return width >= 32 ? <FullCard issue={issue} /> : <CompactCard issue={issue} />
 }
 ```
@@ -98,7 +98,7 @@ Silvery stands on the shoulders of many great projects:
 - **[Ratatui](https://ratatui.rs/)** — the cell-level buffer model and immediate-mode rendering approach.
 - **[SlateJS](https://www.slatejs.org/)** — plugin composition via `pipe()`, operations-as-data, middleware transforms.
 - **[The Elm Architecture](https://guide.elm-lang.org/architecture/) / [BubbleTea](https://github.com/charmbracelet/bubbletea)** — TEA state machines: `(action, state) → [state, effects]`.
-- **CSS/Web platform** — flexbox layout, container queries (`useBoxRect`), DOM-style events, focus scopes, `overflow: scroll`, `position: sticky`.
+- **CSS/Web platform** — flexbox layout, container queries (`useBoxRectDangerously`), DOM-style events, focus scopes, `overflow: scroll`, `position: sticky`.
 - **[VS Code](https://code.visualstudio.com/)** — command palette, keybinding system with when-predicates.
 - **[Playwright](https://playwright.dev/)** — locator-based testing API (`getByText`, `press()`).
 - **[ProseMirror](https://prosemirror.net/)** — selection model and state machine approach to editing.

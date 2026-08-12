@@ -12,7 +12,7 @@ Silvery grew out of building a complex terminal app where components needed to k
 
 The biggest differences at a glance:
 
-- **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`, not after. Ink's `useBoxMetrics()` returns 0×0 on first render.
+- **Layout-first rendering** — components know their size _during_ render via `useBoxRectDangerously()`, not after. Ink's `useBoxMetrics()` returns 0×0 on first render.
 - **Cell-level ANSI compositing** — proper style stacking and color blending. Ink concatenates strings.
 - **Incremental rendering in inline mode** — only changed cells emit; native scrollback preserved. Ink does a full redraw every frame by default (has an `incrementalRendering` option for line-level diff).
 - **Blurred inline/fullscreen boundary** — inline mode gets fullscreen-level performance (cell-level incremental, no flicker, dynamic scrollback graduation). Fullscreen mode gets inline-level UX (app-managed scrollback, history access). Ink has a hard split between the two.
@@ -43,7 +43,7 @@ Ink first, Silvery second. Features marked "core" are built into the framework; 
 | **ANSI compositing**                    | String concatenation; no compositing layer                                                                     | Cell-level buffer with style stacking + color blending                                                        |
 | **Incremental rendering (fullscreen)**  | Line-level diff; any change rewrites entire line                                                               | Cell-level dirty tracking (7 flags/node), cell-level buffer diff                                              |
 | **Incremental rendering (inline mode)** | Full redraw every frame by default (`incrementalRendering` option for line-level diff)                         | Cell-level diff works in inline mode with native scrollback                                                   |
-| **Responsive layout**                   | `useBoxMetrics()` — post-layout via `useEffect`, returns 0×0 first                                             | `useBoxRect()` — dimensions available _during_ render, first pass                                             |
+| **Responsive layout**                   | `useBoxMetrics()` — post-layout via `useEffect`, returns 0×0 first                                             | `useBoxRectDangerously()` — dimensions available _during_ render, first pass                                  |
 | **Scrollable containers**               | `visible`/`hidden` only; ecosystem packages available ([#222](https://github.com/vadimdemedes/ink/issues/222)) | `overflow="scroll"` + `scrollTo` — core framework, handles clipping                                           |
 | **Sticky headers**                      | None                                                                                                           | `position="sticky"` in scroll containers                                                                      |
 | **Dynamic scrollback**                  | All items stay in render tree                                                                                  | Items automatically graduate to terminal history; Cmd+F works                                                 |
@@ -222,7 +222,7 @@ If you need exact Yoga layout parity, Silvery supports Yoga as a pluggable engin
 
 The core architectural difference — think [CSS container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) for terminals. On the web, container queries were the #1 requested feature for a decade because the alternatives (media queries + ResizeObserver) meant rendering first, measuring after, then re-rendering with correct values. Terminal UIs hit the same wall.
 
-Ink renders components, then runs Yoga layout. `useBoxMetrics()` provides dimensions _after_ layout via `useEffect`, meaning the first render always sees `{width: 0, height: 0}`. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle — N nesting levels, N visible flickers. Silvery runs layout first, then renders all components with actual dimensions via `useBoxRect()` in one batch.
+Ink renders components, then runs Yoga layout. `useBoxMetrics()` provides dimensions _after_ layout via `useEffect`, meaning the first render always sees `{width: 0, height: 0}`. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle — N nesting levels, N visible flickers. Silvery runs layout first, then renders all components with actual dimensions via `useBoxRectDangerously()` in one batch.
 
 ```tsx
 // Ink: useBoxMetrics returns 0x0 on first render, updates via effect
@@ -242,9 +242,9 @@ function Card() {
   )
 }
 
-// Silvery: useBoxRect returns actual dimensions immediately
+// Silvery: useBoxRectDangerously returns actual dimensions immediately
 function Card() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return <Text>{truncate(title, width)}</Text>
 }
 ```
@@ -465,7 +465,7 @@ Both are good tools. The right choice depends on what you're building.
 Components need to know their dimensions to render content appropriately (charts, tables, wrapped text).
 
 - **Ink**: Use `useBoxMetrics` (post-layout, starts at 0x0). Re-render entire tree on resize.
-- **Silvery**: Each pane reads `useBoxRect()` and adapts immediately. Resize triggers layout-only pass (21 us for 1000 nodes).
+- **Silvery**: Each pane reads `useBoxRectDangerously()` and adapts immediately. Resize triggers layout-only pass (21 us for 1000 nodes).
 
 ### Scrollable Task List
 
@@ -486,7 +486,7 @@ A list of 500+ items where the user navigates with j/k.
 Type-ahead search with debounced results rendering.
 
 - **Ink**: `useInput` for text capture, manual list rendering. No input isolation between search box and results.
-- **Silvery**: `InputLayerProvider` for text input isolation, `useBoxRect` for result count fitting, `useDeferredValue` for responsive filtering.
+- **Silvery**: `InputLayerProvider` for text input isolation, `useBoxRectDangerously` for result count fitting, `useDeferredValue` for responsive filtering.
 
 ### Simple CLI Prompt
 

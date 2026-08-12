@@ -14,10 +14,10 @@
  * @example
  * ```tsx
  * import { Terminal } from "@xterm/xterm"
- * import { renderToXterm, Box, Text, useBoxRect } from '@silvery/ag-term/xterm';
+ * import { renderToXterm, Box, Text, useBoxRectDangerously } from '@silvery/ag-term/xterm';
  *
  * function App() {
- *   const { width, height } = useBoxRect();
+ *   const { width, height } = useBoxRectDangerously();
  *   return (
  *     <Box flexDirection="column">
  *       <Text>Terminal size: {width} cols x {height} rows</Text>
@@ -85,7 +85,7 @@ export {
   type TextInputHandle,
 } from "@silvery/ag-react/ui/components/TextInput"
 export { Spinner, type SpinnerProps } from "@silvery/ag-react/ui/components/Spinner"
-export { useBoxRectDangerously, useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
+export { useBoxRectDangerously, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
 export { useApp } from "@silvery/ag-react/hooks/useApp"
 export {
   useInput,

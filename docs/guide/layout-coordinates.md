@@ -4,21 +4,21 @@ Every silvery node has three rects. They differ only in how scroll and sticky of
 
 ## The three rects
 
-| Rect         | Hook              | What it represents                                                      | CSS analogue                 |
-| ------------ | ----------------- | ----------------------------------------------------------------------- | ---------------------------- |
-| `boxRect`    | `useBoxRect()`    | Layout position within the node's flow. Border-box sized.               | `offsetLeft/Top` + size      |
-| `scrollRect` | `useScrollRect()` | Scroll-adjusted position **before** sticky clamping. Can go off-screen. | _(no direct CSS equivalent)_ |
-| `screenRect` | `useScreenRect()` | Actual paint position on the terminal screen.                           | `getBoundingClientRect()`    |
+| Rect         | Hook                      | What it represents                                                      | CSS analogue                 |
+| ------------ | ------------------------- | ----------------------------------------------------------------------- | ---------------------------- |
+| `boxRect`    | `useBoxRectDangerously()` | Layout position within the node's flow. Border-box sized.               | `offsetLeft/Top` + size      |
+| `scrollRect` | `useScrollRect()`         | Scroll-adjusted position **before** sticky clamping. Can go off-screen. | _(no direct CSS equivalent)_ |
+| `screenRect` | `useScreenRect()`         | Actual paint position on the terminal screen.                           | `getBoundingClientRect()`    |
 
 All three are `{ x, y, width, height }`. The width and height are identical across all three (they're the same box, just in different coordinate systems). Only `x` and `y` change between them.
 
 ## When to use each
 
-Use `useBoxRect()` when you need the node's **own layout dimensions** — width/height for responsive rendering, position within the parent for relative math. This is the most common hook.
+Use `useBoxRectDangerously()` when you need the node's **own layout dimensions** — width/height for responsive rendering, position within the parent for relative math. This is the most common hook.
 
 ```tsx
 function Header() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return <Text>{"=".repeat(width)}</Text>
 }
 ```
@@ -83,16 +83,16 @@ That's the whole reason for having two hooks. `scrollRect` gives you the "true" 
 
 Silvery is the only React TUI framework that distinguishes all three coordinate systems:
 
-| Framework        | Size                          | Layout position               | Scroll-adjusted            | Paint position         |
-| ---------------- | ----------------------------- | ----------------------------- | -------------------------- | ---------------------- |
-| **Silvery**      | `useBoxRect()` (width/height) | `useBoxRect()` (x/y)          | `useScrollRect()`          | `useScreenRect()`      |
-| Ink (7.0)        | `useBoxMetrics(ref)`          | `useBoxMetrics(ref)`          | _(no scroll)_              | _(no scroll)_          |
-| Textual (Python) | `Size`                        | `Widget.region`               | `Widget.virtual_region`    | `Widget.window_region` |
-| blessed          | `.width`/`.height`            | `.left`/`.top` + `.atop` etc. | `.childBase` + `.childOff` | `.aleft`/`.atop`       |
-| Ratatui (Rust)   | `Rect`                        | `Rect`                        | per-widget `offset`        | —                      |
-| Bubble Tea       | `WindowSizeMsg`               | _(manual)_                    | `viewport.YOffset`         | _(manual)_             |
+| Framework        | Size                                     | Layout position                 | Scroll-adjusted            | Paint position         |
+| ---------------- | ---------------------------------------- | ------------------------------- | -------------------------- | ---------------------- |
+| **Silvery**      | `useBoxRectDangerously()` (width/height) | `useBoxRectDangerously()` (x/y) | `useScrollRect()`          | `useScreenRect()`      |
+| Ink (7.0)        | `useBoxMetrics(ref)`                     | `useBoxMetrics(ref)`            | _(no scroll)_              | _(no scroll)_          |
+| Textual (Python) | `Size`                                   | `Widget.region`                 | `Widget.virtual_region`    | `Widget.window_region` |
+| blessed          | `.width`/`.height`                       | `.left`/`.top` + `.atop` etc.   | `.childBase` + `.childOff` | `.aleft`/`.atop`       |
+| Ratatui (Rust)   | `Rect`                                   | `Rect`                          | per-widget `offset`        | —                      |
+| Bubble Tea       | `WindowSizeMsg`                          | _(manual)_                      | `viewport.YOffset`         | _(manual)_             |
 
-Ink has no scroll concept, so its single `useBoxMetrics` hook is equivalent to silvery's `useBoxRect` in unscrolled contexts. Textual has the closest vocabulary to silvery's, with distinct types for each coordinate system.
+Ink has no scroll concept, so its single `useBoxMetrics` hook is equivalent to silvery's `useBoxRectDangerously` in unscrolled contexts. Textual has the closest vocabulary to silvery's, with distinct types for each coordinate system.
 
 ## Design notes
 

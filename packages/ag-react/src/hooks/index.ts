@@ -11,7 +11,7 @@ export { useAgNode, type AgNodeHandle } from "./useAgNode"
 export { useSignal } from "./useSignal"
 
 // Layout
-export { useBoxRect, useScrollRect, useScreenRect, type Rect } from "./useLayout"
+export { useBoxRectDangerously, useScrollRect, useScreenRect, type Rect } from "./useLayout"
 
 // Scroll state (reactive subscription to layout-phase scroll container state —
 // the single source of truth for what's visible in an overflow="scroll" node)

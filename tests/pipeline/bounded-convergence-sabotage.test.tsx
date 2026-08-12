@@ -25,7 +25,7 @@
 import React, { useLayoutEffect, useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRectDangerously } from "@silvery/ag-react"
 import {
   MAX_CONVERGENCE_PASSES,
   resetPassRing,
@@ -149,7 +149,7 @@ describe("bounded-convergence: sabotage (real feedback loop)", () => {
 /**
  * Always-on violation ring fed through the REAL pipeline (@si/render/19436).
  * Proves the lightweight capture in notifyLayoutSubscribers fires WITHOUT
- * SILVERY_INSTRUMENT — a layout-affecting rerender of a `useBoxRect`-subscribed
+ * SILVERY_INSTRUMENT — a layout-affecting rerender of a `useBoxRectDangerously`-subscribed
  * box records a `layout-invalidate / boxSize` cause that the violation path can
  * read. This is the end-to-end complement to the direct-call tests in
  * bounded-convergence.test.ts.
@@ -158,7 +158,7 @@ describe("bounded-convergence: violation ring populated by the real pipeline (IN
   test("a boxSize change on a subscribed node records layout-invalidate", () => {
     const widths: number[] = []
     function Probe() {
-      const { width } = useBoxRect() // subscribes the enclosing box's boxSize
+      const { width } = useBoxRectDangerously() // subscribes the enclosing box's boxSize
       widths.push(width)
       return <Text>w={width}</Text>
     }

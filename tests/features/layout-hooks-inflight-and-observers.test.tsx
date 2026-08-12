@@ -1,6 +1,6 @@
 /**
  * Layout hook contract tests for the in-flight escape hatch + commit-boundary
- * callback observers introduced alongside the deferred-only `useBoxRect()`
+ * callback observers introduced alongside the deferred-only `useBoxRectDangerously()`
  * family.
  *
  *  - `useBoxRectInFlight()` / `useScrollRectInFlight()` / `useScreenRectInFlight()`
@@ -18,7 +18,7 @@ import { createRenderer } from "@silvery/test"
 import {
   Box,
   Text,
-  useBoxRect,
+  useBoxRectDangerously,
   useBoxRectInFlight,
   useOnBoxRectCommitted,
   useScrollRect,
@@ -56,12 +56,12 @@ describe("useBoxRectInFlight / useOnBoxRectCommitted", () => {
     expect(observedWidthsInFlight.some((w) => w === 40)).toBe(true)
   })
 
-  test("useBoxRect (deferred form) starts at 0 and advances at the next commit", () => {
+  test("useBoxRectDangerously (deferred form) starts at 0 and advances at the next commit", () => {
     const r = createRenderer({ cols: 80, rows: 4 })
 
     const observedWidthsDeferred: number[] = []
     function ProbeDeferred() {
-      const { width } = useBoxRect()
+      const { width } = useBoxRectDangerously()
       observedWidthsDeferred.push(width)
       return <Text>w-deferred={width}</Text>
     }
@@ -100,7 +100,7 @@ describe("useBoxRectInFlight / useOnBoxRectCommitted", () => {
     let deferredRenderCount = 0
     function Deferred() {
       deferredRenderCount++
-      const { width } = useBoxRect()
+      const { width } = useBoxRectDangerously()
       return <Text>def-{width}</Text>
     }
 

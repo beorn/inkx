@@ -14,7 +14,7 @@ The biggest differences at a glance:
 
 - **React declarative vs curses imperative** — Silvery uses JSX, hooks, and React's component model. Blessed uses `create → set → append → render()` with manual state mutation. The declarative approach eliminates a class of bugs: forgotten `render()` calls, out-of-order widget mutations, orphaned event listeners.
 - **CSS flexbox layout** — `flexGrow`, `flexWrap`, `gap`, `alignItems`, `justifyContent` via the Flexily engine. Blessed uses manual absolute/percentage positioning with coordinate math.
-- **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`, not after. Blessed has no equivalent.
+- **Layout-first rendering** — components know their size _during_ render via `useBoxRectDangerously()`, not after. Blessed has no equivalent.
 - **Cell-level incremental rendering** — per-node dirty tracking (7 flags/node), cell-level buffer diff, minimal ANSI output. Blessed uses a screen damage buffer with region-level diffing; Silvery's cell-level tracking is more granular.
 - **Modern terminal protocols** — Kitty keyboard (all 5 flags), SGR mouse, OSC 52 clipboard, Kitty graphics + Sixel, synchronized output (DEC 2026), extended underlines. Blessed was built for the 2013 terminal landscape.
 - **45+ built-in components** — VirtualList, Table, TreeView, CommandPalette, Toast, Tabs, SplitView, TextArea, ModalDialog, and more.
@@ -95,14 +95,14 @@ Blessed first, Silvery second. Features marked "core" are built into the framewo
 
 ### Layout
 
-| Feature                   | Blessed                                                       | Silvery                                                                     |
-| ------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Positioning model**     | Manual absolute/percentage (`top`, `left`, `width`, `height`) | CSS flexbox (Flexily engine)                                                |
-| **Flex layout**           | Experimental Layout element (inline/grid); no flexbox         | `flexGrow`, `flexShrink`, `flexWrap`, `gap`, `alignItems`, `justifyContent` |
-| **Responsive layout**     | Manual resize handling                                        | `useBoxRect()` — dimensions available _during_ render, first pass           |
-| **Scrollable containers** | Built-in scroll on widgets (`.scrollTo()`, `.scroll()`)       | `overflow="scroll"` + `scrollTo` — framework-level, handles clipping        |
-| **Sticky headers**        | Not supported                                                 | `position="sticky"` in scroll containers                                    |
-| **Nested layouts**        | Careful coordinate math for each level                        | Nested flex containers — automatic                                          |
+| Feature                   | Blessed                                                       | Silvery                                                                      |
+| ------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Positioning model**     | Manual absolute/percentage (`top`, `left`, `width`, `height`) | CSS flexbox (Flexily engine)                                                 |
+| **Flex layout**           | Experimental Layout element (inline/grid); no flexbox         | `flexGrow`, `flexShrink`, `flexWrap`, `gap`, `alignItems`, `justifyContent`  |
+| **Responsive layout**     | Manual resize handling                                        | `useBoxRectDangerously()` — dimensions available _during_ render, first pass |
+| **Scrollable containers** | Built-in scroll on widgets (`.scrollTo()`, `.scroll()`)       | `overflow="scroll"` + `scrollTo` — framework-level, handles clipping         |
+| **Sticky headers**        | Not supported                                                 | `position="sticky"` in scroll containers                                     |
+| **Nested layouts**        | Careful coordinate math for each level                        | Nested flex containers — automatic                                           |
 
 ### Rendering
 
@@ -230,7 +230,7 @@ Layout is manual arithmetic -- you calculate positions and sizes yourself. Perce
 </Box>
 ```
 
-The Flexily layout engine handles flexbox automatically -- `flexGrow`, `flexShrink`, `flexWrap`, `gap`, `alignItems`, `justifyContent`, `padding`, `margin`, and `border`. Components can read their computed dimensions during render via `useBoxRect()`.
+The Flexily layout engine handles flexbox automatically -- `flexGrow`, `flexShrink`, `flexWrap`, `gap`, `alignItems`, `justifyContent`, `padding`, `margin`, and `border`. Components can read their computed dimensions during render via `useBoxRectDangerously()`.
 
 For anything beyond trivial layouts, the difference is substantial. A three-column kanban board with variable-height cards in Blessed requires tracking positions for every element. In Silvery, it's nested flex containers.
 

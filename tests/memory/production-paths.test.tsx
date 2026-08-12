@@ -43,7 +43,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { create, pipe, withAg, withTerm, withReact, createTerm } from "@silvery/ag-term"
 import { ensureLayoutEngine } from "@silvery/ag-term/runtime"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRectDangerously } from "@silvery/ag-react"
 import { MountUnmountCycle } from "../fixtures/index.tsx"
 
 // ============================================================================
@@ -97,11 +97,11 @@ describe("memory: withReact compose path", () => {
 
     let cleanupCalls = 0
     function Probe() {
-      // useBoxRect subscribes to a layout signal via useLayoutEffect.
+      // useBoxRectDangerously subscribes to a layout signal via useLayoutEffect.
       // The cleanup increments a counter — we read it back after
       // [Symbol.dispose]() to verify the cleanup ran inside the dispose
       // call, not asynchronously after.
-      const rect = useBoxRect()
+      const rect = useBoxRectDangerously()
       React.useEffect(() => {
         return () => {
           cleanupCalls++
@@ -177,7 +177,7 @@ describe("memory: ag-term run() runtime path", () => {
 
 describe("memory: regression sentinel for the unmount asymmetry leak", () => {
   // This test deliberately exercises the exact shape that leaked before
-  // 9b81b87d / 9cf6ab86: many useBoxRect-using components that mount and
+  // 9b81b87d / 9cf6ab86: many useBoxRectDangerously-using components that mount and
   // unmount in tight cycles. If someone reverts the unmountFiberRoot
   // helper to async updateContainer(null, ...), this is the test that
   // should fail loudly.
@@ -186,7 +186,7 @@ describe("memory: regression sentinel for the unmount asymmetry leak", () => {
   // callbacks did NOT fire synchronously. cleanupCount < N would occur.
   // Post-fix: sync unmount, cleanupCount === N exactly.
   test(
-    "useBoxRect-heavy mount/unmount — 200 cycles, each cleanup fires exactly once",
+    "useBoxRectDangerously-heavy mount/unmount — 200 cycles, each cleanup fires exactly once",
     { timeout: 30_000 },
     async () => {
       await ensureLayoutEngine()
@@ -195,13 +195,13 @@ describe("memory: regression sentinel for the unmount asymmetry leak", () => {
       const N = 200
 
       function HeavySubscriber() {
-        // Five useBoxRect subscriptions per render — pre-fix this leaked
+        // Five useBoxRectDangerously subscriptions per render — pre-fix this leaked
         // five signal-effect closures per mount cycle.
-        const r1 = useBoxRect()
-        const r2 = useBoxRect()
-        const r3 = useBoxRect()
-        const r4 = useBoxRect()
-        const r5 = useBoxRect()
+        const r1 = useBoxRectDangerously()
+        const r2 = useBoxRectDangerously()
+        const r3 = useBoxRectDangerously()
+        const r4 = useBoxRectDangerously()
+        const r5 = useBoxRectDangerously()
         React.useEffect(() => {
           return () => {
             cleanupCount++

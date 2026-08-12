@@ -24,16 +24,16 @@ vp @silvery/examples
 
 ## By Feature
 
-| Example                                  | What it teaches                 | Key components                         |
-| ---------------------------------------- | ------------------------------- | -------------------------------------- |
-| [Components](/examples/components)       | 30+ ready-made widgets          | SelectList, Tabs, ProgressBar, Spinner |
-| [Layout](/examples/layout)               | CSS flexbox for terminals       | Box, flexGrow, gap, justifyContent     |
-| [Forms & Input](/examples/forms)         | Interactive forms and wizards   | SelectList, TextInput, focusScope      |
-| [Tables & Data](/examples/tables)        | Data exploration and filtering  | Table, VirtualList, useBoxRect()       |
-| [Scrollback](/examples/scrollback)       | Dynamic inline mode (unique)    | ScrollbackList, ScrollbackView         |
-| [Terminal Protocols](/examples/terminal) | Kitty keyboard, mouse, images   | Image, Canvas, parseHotkey()           |
-| [AI Coding Agent](/examples/ai-chat)     | Streaming and real-time updates | VirtualList, TextInput, tool calls     |
-| [Testing](/examples/testing)             | Headless testing API            | createRenderer, press(), getByText()   |
+| Example                                  | What it teaches                 | Key components                              |
+| ---------------------------------------- | ------------------------------- | ------------------------------------------- |
+| [Components](/examples/components)       | 30+ ready-made widgets          | SelectList, Tabs, ProgressBar, Spinner      |
+| [Layout](/examples/layout)               | CSS flexbox for terminals       | Box, flexGrow, gap, justifyContent          |
+| [Forms & Input](/examples/forms)         | Interactive forms and wizards   | SelectList, TextInput, focusScope           |
+| [Tables & Data](/examples/tables)        | Data exploration and filtering  | Table, VirtualList, useBoxRectDangerously() |
+| [Scrollback](/examples/scrollback)       | Dynamic inline mode (unique)    | ScrollbackList, ScrollbackView              |
+| [Terminal Protocols](/examples/terminal) | Kitty keyboard, mouse, images   | Image, Canvas, parseHotkey()                |
+| [AI Coding Agent](/examples/ai-chat)     | Streaming and real-time updates | VirtualList, TextInput, tool calls          |
+| [Testing](/examples/testing)             | Headless testing API            | createRenderer, press(), getByText()        |
 
 ## Running Examples
 
@@ -69,6 +69,6 @@ All examples follow the same patterns:
 
 1. Use `SelectList` for selection prompts (not manual cursor tracking)
 2. Use `TextInput` for text entry (built-in readline with Emacs keybindings)
-3. Use `useBoxRect()` for responsive dimensions
+3. Use `useBoxRectDangerously()` for responsive dimensions
 4. Use `overflow="scroll"` + `scrollTo` for scrolling
 5. Use `$token` colors for consistent theming

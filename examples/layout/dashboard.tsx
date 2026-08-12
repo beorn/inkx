@@ -4,7 +4,7 @@
  * A btop-style responsive dashboard demonstrating:
  * - Multi-pane flexbox layout with round borders
  * - Live-updating metrics with sparklines and progress bars
- * - Responsive 2-column / tabbed layout via useBoxRect()
+ * - Responsive 2-column / tabbed layout via useBoxRectDangerously()
  * - Semantic theme colors with severity-based color coding
  * - Process table with sorting
  */
@@ -19,7 +19,7 @@ import {
   TabList,
   Tab,
   TabPanel,
-  useBoxRect,
+  useBoxRectDangerously,
   useInput,
   useApp,
   useInterval,
@@ -32,7 +32,7 @@ export const meta: ExampleMeta = {
   name: "Dashboard",
   description: "Responsive multi-pane dashboard with live metrics and charts",
   demo: true,
-  features: ["Box flexGrow", "useBoxRect()", "responsive", "live data", "sparklines"],
+  features: ["Box flexGrow", "useBoxRectDangerously()", "responsive", "live data", "sparklines"],
 }
 
 // ============================================================================
@@ -911,7 +911,7 @@ function NarrowLayout({ state }: { state: DashboardState }) {
 
 export function Dashboard({ static: isStatic }: { static?: boolean } = {}) {
   const { exit } = useApp()
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const [state, setState] = useState(createInitialState)
   // Process table needs ~135 cols; below that switch to tabbed layout
   const isNarrow = width > 0 && width < 130

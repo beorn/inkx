@@ -2,7 +2,7 @@
  * Data Explorer — Process Table Example
  *
  * A process explorer with a searchable, scrollable table demonstrating:
- * - Table-like display with responsive column widths via useBoxRect()
+ * - Table-like display with responsive column widths via useBoxRectDangerously()
  * - TextInput for live search/filter with useDeferredValue
  * - ListView for smooth scrolling through 500+ rows
  * - Keyboard navigation with j/k and vim-style jumps
@@ -27,7 +27,7 @@ import {
   ListView,
   TextInput,
   Divider,
-  useBoxRect,
+  useBoxRectDangerously,
   useInput,
   useApp,
   createTerm,
@@ -41,7 +41,13 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Data Explorer",
   description: "Process explorer table with search, ListView, and responsive column widths",
-  features: ["useBoxRect()", "TextInput", "useInput()", "responsive layout", "useDeferredValue"],
+  features: [
+    "useBoxRectDangerously()",
+    "TextInput",
+    "useInput()",
+    "responsive layout",
+    "useDeferredValue",
+  ],
 }
 
 // ============================================================================
@@ -327,7 +333,7 @@ function ProcessListArea({
   cursor: number
   width: number
 }) {
-  const { height } = useBoxRect()
+  const { height } = useBoxRectDangerously()
 
   return (
     <ListView
@@ -349,7 +355,7 @@ function ProcessListArea({
 
 export function DataExplorer() {
   const { exit } = useApp()
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const [cursor, setCursor] = useState(0)
   const [searchMode, setSearchMode] = useState(false)
   const [query, setQuery] = useState("")

@@ -90,7 +90,7 @@ const stop = effect(() => {
 // stop() to unsubscribe
 ```
 
-Inside React, `useBoxRect` and the runtime context already read through `term.size`. Components get dimension updates without subscribing directly.
+Inside React, `useBoxRectDangerously` and the runtime context already read through `term.size`. Components get dimension updates without subscribing directly.
 
 ## Fallbacks
 

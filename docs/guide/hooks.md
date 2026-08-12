@@ -40,15 +40,15 @@ Returns `TerminalSelectionState | undefined` — `undefined` when no selection f
 Legacy search hooks are no longer part of the public surface; use `SearchProvider`, `useSearch()`, and a registered semantic searchable. Other superseded interaction hooks remain compatibility-only. New selection code should use `useSelection()` and the capabilities installed by the shipped `run()` runtime.
 :::
 
-## useBoxRect
+## useBoxRectDangerously
 
 Returns the computed dimensions of the component's content area — width, height, and position.
 
 ```tsx
-import { Box, Text, useBoxRect } from "silvery"
+import { Box, Text, useBoxRectDangerously } from "silvery"
 
 function SizedBox() {
-  const { width, height, x, y } = useBoxRect()
+  const { width, height, x, y } = useBoxRectDangerously()
 
   return (
     <Box borderStyle="single">
@@ -62,10 +62,6 @@ function SizedBox() {
   )
 }
 ```
-
-::: info Note
-`useLayout` is a deprecated alias for `useBoxRect`. Both work identically, but prefer `useBoxRect` for new code.
-:::
 
 ### Return Value
 
@@ -82,7 +78,7 @@ On the first render, dimensions are `{ width: 0, height: 0, x: 0, y: 0 }`. This 
 
 ```tsx
 function Header() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
 
   // Guard against first render if needed
   if (width === 0) return null
@@ -95,7 +91,7 @@ In practice, both renders happen before the first paint, so this is usually invi
 
 ### MeasuredBox primitive
 
-For the common pattern of "render based on my own measured size," use the [`<MeasuredBox>`](../api/measured-box.md) primitive instead of writing the `useBoxRect() + width > 0 ? <Inner /> : null` dance by hand:
+For the common pattern of "render based on my own measured size," use the [`<MeasuredBox>`](../api/measured-box.md) primitive instead of writing the `useBoxRectDangerously() + width > 0 ? <Inner /> : null` dance by hand:
 
 ```tsx
 import { MeasuredBox } from "silvery"

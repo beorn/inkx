@@ -16,7 +16,7 @@ import { MeasuredBox } from "silvery"
 </MeasuredBox>
 ```
 
-The render-prop children receive the measured rect as `{ width, height }` and are not invoked until measurement is available — eliminating the empty-frame flash that the hand-rolled `useBoxRect() + width > 0 ? <Inner /> : null` pattern produces.
+The render-prop children receive the measured rect as `{ width, height }` and are not invoked until measurement is available — eliminating the empty-frame flash that the hand-rolled `useBoxRectDangerously() + width > 0 ? <Inner /> : null` pattern produces.
 
 ## Props
 
@@ -49,5 +49,5 @@ If you pass plain children instead of a render function, they are deferred until
 
 ## See also
 
-- [`useBoxRect`](../guide/hooks.md#useboxrect) — the underlying hook
+- [`useBoxRectDangerously`](../guide/hooks.md#useboxrect) — the underlying hook
 - [`<Box>`](./box.md) — the layout primitive `MeasuredBox` wraps

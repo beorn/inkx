@@ -86,4 +86,4 @@ For Box-prop spread, prefer [`useResponsiveBoxProps`](/api/use-responsive-box-pr
 ## See also
 
 - [`useResponsiveBoxProps`](/api/use-responsive-box-props) — declarative `Box`-prop spread for responsive layout
-- [`useBoxRect`](/api/use-box-rect) — measured rect for container-query patterns
+- [`useBoxRectDangerously`](/api/use-box-rect) — measured rect for container-query patterns

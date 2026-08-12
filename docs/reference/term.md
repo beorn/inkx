@@ -105,7 +105,7 @@ const stop = effect(() => {
 // stop() to unsubscribe
 ```
 
-Inside React, `useBoxRect` and the runtime context already read through `term.size` — components get rect updates without subscribing directly.
+Inside React, `useBoxRectDangerously` and the runtime context already read through `term.size` — components get rect updates without subscribing directly.
 
 ### Capture `console.*` during the TUI session
 

@@ -13,7 +13,7 @@ Silvery grew out of building a complex terminal app where components needed to k
 The biggest differences at a glance:
 
 - **CSS flexbox layout** — components auto-size with flex-grow, wrapping, gap, and alignment. Bubble Tea has no layout engine; you join strings manually with Lip Gloss and thread widths/heights yourself.
-- **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`. Bubble Tea v2's `View()` returns a `tea.View` struct (not just a string), but there is no layout feedback — you must pass sizes down through model state.
+- **Layout-first rendering** — components know their size _during_ render via `useBoxRectDangerously()`. Bubble Tea v2's `View()` returns a `tea.View` struct (not just a string), but there is no layout feedback — you must pass sizes down through model state.
 - **React component model** — hooks, context, Suspense, third-party React libraries all work. Bubble Tea uses Go structs with manual message routing.
 - **45+ built-in components** — VirtualList, Table, CommandPalette, TreeView, Toast, Tabs, SplitView, ModalDialog, Image, TextArea, and more. Bubbles provides ~12 components.
 - **Incremental rendering** — cell-level dirty tracking skips unchanged nodes. Bubble Tea v2's cell-based renderer diffs at the cell level too, but re-runs `View()` for the full tree on every update.
@@ -42,7 +42,7 @@ Bubble Tea first, Silvery second. Features marked "core" are built into the fram
 | Feature                      | Bubble Tea v2                                                                          | Silvery                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | **Layout engine**            | None — manual string joining via Lip Gloss (`JoinHorizontal`, `JoinVertical`, `Place`) | CSS flexbox (Flexily) — flex-grow, wrap, gap, padding, margin, alignment             |
-| **Responsive layout**        | Manual: pass `SetWidth`/`SetHeight` to child models, recalculate on resize             | `useBoxRect()` — dimensions available _during_ render, first pass                    |
+| **Responsive layout**        | Manual: pass `SetWidth`/`SetHeight` to child models, recalculate on resize             | `useBoxRectDangerously()` — dimensions available _during_ render, first pass         |
 | **Rendering approach**       | Cell-based renderer (v2): `View()` returns `tea.View` struct, framework diffs cells    | Cell-level buffer with style stacking, 7 dirty flags/node, incremental skip          |
 | **Incremental rendering**    | Re-runs full `View()` on every message, then cell-diffs the output                     | Per-node dirty tracking — unchanged subtrees skip render + diff entirely             |
 | **Scrollable containers**    | Viewport bubble (manual sizing, scroll offset management)                              | `overflow="scroll"` + `scrollTo` — core framework, handles clipping                  |
@@ -131,7 +131,7 @@ You must calculate widths and heights yourself, pass them down to child models w
 </Box>
 ```
 
-Components can read their computed dimensions during render via `useBoxRect()`. No manual size threading, no resize handlers calculating widths. The layout engine handles flex-grow, flex-shrink, wrapping, padding, margin, borders, gap, and alignment automatically.
+Components can read their computed dimensions during render via `useBoxRectDangerously()`. No manual size threading, no resize handlers calculating widths. The layout engine handles flex-grow, flex-shrink, wrapping, padding, margin, borders, gap, and alignment automatically.
 
 For simple UIs (a list, a form, a spinner), this difference barely matters. For complex UIs (multi-pane dashboards, kanban boards, text editors with sidebars), it's substantial.
 
@@ -172,7 +172,7 @@ Silvery uses React for the component tree and rendering, with TEA available as a
 ```tsx
 // Silvery: React components, optional TEA for state
 function App() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const [items] = useState(loadItems)
 
   return (

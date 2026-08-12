@@ -47,7 +47,7 @@ try {
 reconciler.updateContainer(null, fiberRoot, null, () => {})
 ```
 
-**Why it breaks**: `createFiberRoot` creates a `ConcurrentRoot` (mode 1). React's async `updateContainer(null, …)` does **not** run `useLayoutEffect` cleanups synchronously on a ConcurrentRoot. That keeps `useBoxRect` signal-effect disposers pending past unmount; signal subscriptions stay live; the React tree stays reachable; the `FiberRoot` keeps a `containerInfo` pointer to our `Container`; `Container.onRender` closes over the enclosing render-instance graph. Net: every host (test renderer, ag-react render class, withReact plugin, browser/canvas one-shot) leaks across cycles. 200 mount/unmount cycles in `tests/memory/memory.test.tsx` overshot a 15 MB budget by 2.5×.
+**Why it breaks**: `createFiberRoot` creates a `ConcurrentRoot` (mode 1). React's async `updateContainer(null, …)` does **not** run `useLayoutEffect` cleanups synchronously on a ConcurrentRoot. That keeps `useBoxRectDangerously` signal-effect disposers pending past unmount; signal subscriptions stay live; the React tree stays reachable; the `FiberRoot` keeps a `containerInfo` pointer to our `Container`; `Container.onRender` closes over the enclosing render-instance graph. Net: every host (test renderer, ag-react render class, withReact plugin, browser/canvas one-shot) leaks across cycles. 200 mount/unmount cycles in `tests/memory/memory.test.tsx` overshot a 15 MB budget by 2.5×.
 
 **The structural fix is `unmountFiberRoot`** from `@silvery/ag-react/reconciler`:
 
@@ -424,7 +424,7 @@ CSS flexbox via Flexily. Let the layout engine compute positions and sizes.
 
 ### The three-primitive responsive contract (A0 substrate, shipped)
 
-For container-relative responsive design, silvery exposes three engine-native primitives. **Use these instead of `useBoxRect()` + manual measurement.** The measurement-then-React-rerender dance that pre-A0 consumers needed is what produced the "snap-left" flash class of bugs.
+For container-relative responsive design, silvery exposes three engine-native primitives. **Use these instead of `useBoxRectDangerously()` + manual measurement.** The measurement-then-React-rerender dance that pre-A0 consumers needed is what produced the "snap-left" flash class of bugs.
 
 1. **`containerType` + `containSize`** — declare a Box as a CSS container-query container. Phase 1 supports `"inline-size"`.
 
@@ -453,11 +453,11 @@ For container-relative responsive design, silvery exposes three engine-native pr
 
 **Reference**: the two-phase layout contract that makes these primitives sound is documented in `vendor/flexily/docs/two-phase-layout.md`. The dragon bead `@km/silvery/responsive-layout-architecture-reframe` has the full Phase A0 / A / B / C plan.
 
-### Escape hatch: `useBoxRect()` (formerly the default — now reserved for last-resort cases)
+### Escape hatch: `useBoxRectDangerously()` (formerly the default — now reserved for last-resort cases)
 
-`useBoxRect()` still exists as the imperative escape valve when no declarative primitive covers the need. **Prefer the three primitives above** — they avoid the measure → React-rerender → re-layout round-trip that causes visible flash. Reach for `useBoxRect()` only when you need to read a measured size into JavaScript control flow (animation, autoscroll thresholds, etc.), not for size-driven layout decisions.
+`useBoxRectDangerously()` still exists as the imperative escape valve when no declarative primitive covers the need. **Prefer the three primitives above** — they avoid the measure → React-rerender → re-layout round-trip that causes visible flash. Reach for `useBoxRectDangerously()` only when you need to read a measured size into JavaScript control flow (animation, autoscroll thresholds, etc.), not for size-driven layout decisions.
 
-Phase A of the responsive-layout reframe renames `useBoxRect` to `useBoxRectDangerously` with a lint rule + path-fence — track in the dragon bead.
+Phase A of the responsive-layout reframe renamed `useBoxRect` to `useBoxRectDangerously` with a lint rule + path-fence (bead `@km/silvery/responsive-layout-architecture-reframe`, landed 2026-05-13). The deprecated `useBoxRect` alias that carried the rename over one release cycle has since been deleted — `useBoxRectDangerously` is the only name.
 
 ### Responsive breakpoints
 
@@ -471,7 +471,7 @@ Default breakpoint thresholds are terminal columns:
 - `lg`: 120
 - `xl`: 150
 
-`useResponsiveValue()` resolves from the global terminal width (`term.size.cols()`), which is right for app chrome such as side panels, command bars, and global navigation. For content that lives inside split panes, cards, or document surfaces, prefer container-scoped resolution from the component's measured width (`useBoxRect()`) using the same breakpoint vocabulary and thresholds. A half-width pane in a 220-column terminal should not behave like an `xl` surface.
+`useResponsiveValue()` resolves from the global terminal width (`term.size.cols()`), which is right for app chrome such as side panels, command bars, and global navigation. For content that lives inside split panes, cards, or document surfaces, prefer container-scoped resolution from the component's measured width (`useBoxRectDangerously()`) using the same breakpoint vocabulary and thresholds. A half-width pane in a 220-column terminal should not behave like an `xl` surface.
 
 When designing new layout primitives, expose responsive values using the existing shape (`{ default, xs, sm, md, lg, xl }`) and share the resolver rather than creating a second breakpoint vocabulary.
 
@@ -625,7 +625,7 @@ AutoLocator methods: `resolve()`, `resolveAll()`, `count()`, `textContent()`, `g
 
 **Specifying default colors** — Components already use correct colors. Don't write `<Text color="$fg">` or `<SelectList color="$primary">`.
 
-**Reading `useBoxRect()` and writing layout-affecting props is structurally safe.** The reactive layout hooks (`useBoxRect()` / `useScrollRect()` / `useScreenRect()`) return the **committed** rect — the value as of the most recent event-batch commit boundary. Within a single batch the returned rect is invariant across every convergence pass, so a render that reads the rect and writes a layout-affecting prop based on it produces the same output every pass. The convergence loop terminates in one pass; no feedback edge can form by construction.
+**Reading `useBoxRectDangerously()` and writing layout-affecting props is structurally safe.** The reactive layout hooks (`useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()`) return the **committed** rect — the value as of the most recent event-batch commit boundary. Within a single batch the returned rect is invariant across every convergence pass, so a render that reads the rect and writes a layout-affecting prop based on it produces the same output every pass. The convergence loop terminates in one pass; no feedback edge can form by construction.
 
 **Use `useResponsiveBoxProps` for responsive layout.** It's the canonical primitive — pass a flat `Partial<BoxProps>` or a `{ default, xs?, sm?, md?, lg?, xl? }` mobile-first cascade and spread into a `<Box>`:
 
@@ -640,12 +640,12 @@ return <Box {...layout}>{children}</Box>
 
 // Also fine: read the committed rect and branch on it.
 function Panel() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return width >= 90 ? <Wide /> : <Narrow /> // safe — committed rect is batch-invariant
 }
 ```
 
-A note on multi-layer measurement chains (e.g. `<MeasuredBox>` wrapping a child that itself reads `useBoxRect`): each layer settles in one event batch. A two-layer chain shows the empty-rect fallback on its first paint and the measured layout on the second; that's the deferred contract, not a regression. Use `useResponsiveBoxProps` to avoid measurement chains entirely.
+A note on multi-layer measurement chains (e.g. `<MeasuredBox>` wrapping a child that itself reads `useBoxRectDangerously`): each layer settles in one event batch. A two-layer chain shows the empty-rect fallback on its first paint and the measured layout on the second; that's the deferred contract, not a regression. Use `useResponsiveBoxProps` to avoid measurement chains entirely.
 
 ---
 
@@ -788,13 +788,13 @@ Subpath imports available from `silvery`:
 
 These are workspace packages for development. Users do not import from them directly — the `silvery` barrel re-exports their public APIs. All marked `"private": true`.
 
-| Package             | What                                                                      |
-| ------------------- | ------------------------------------------------------------------------- |
-| `@silvery/ag`       | Core types, layout-signals (framework-agnostic reactive layer)            |
-| `@silvery/ag-react` | React reconciler, hooks (useSignal, useAgNode, useBoxRect), UI components |
-| `@silvery/ag-term`  | Terminal runtime, ANSI output, pipeline, syncRectSignals bridge           |
-| `@silvery/theme`    | Theme tokens, 84 color schemes, theme CLI                                 |
-| `@silvery/ink`      | Ink/Chalk compatibility layers                                            |
+| Package             | What                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `@silvery/ag`       | Core types, layout-signals (framework-agnostic reactive layer)                       |
+| `@silvery/ag-react` | React reconciler, hooks (useSignal, useAgNode, useBoxRectDangerously), UI components |
+| `@silvery/ag-term`  | Terminal runtime, ANSI output, pipeline, syncRectSignals bridge                      |
+| `@silvery/theme`    | Theme tokens, 84 color schemes, theme CLI                                            |
+| `@silvery/ink`      | Ink/Chalk compatibility layers                                                       |
 
 ## Structure
 
@@ -809,22 +809,22 @@ These are workspace packages for development. Users do not import from them dire
 
 ## Key Internals
 
-| File                                            | What                                                       |
-| ----------------------------------------------- | ---------------------------------------------------------- |
-| `packages/ag/src/layout-signals.ts`             | All node signals (rects + textContent + focused) — Layer 1 |
-| `packages/ag-react/src/hooks/useSignal.ts`      | alien-signals → React bridge — Layer 2                     |
-| `packages/ag-react/src/hooks/useLayout.ts`      | useBoxRect, useScrollRect, useScreenRect — Layer 3         |
-| `packages/ag-react/src/hooks/useAgNode.ts`      | Raw AgNode + signals access for components                 |
-| `packages/ag/src/text-frame.ts`                 | TextFrame + FrameCell type definitions                     |
-| `packages/ag-term/src/ansi/term.ts`             | Term type and createTerm() — the central abstraction       |
-| `packages/ag-term/src/runtime/term-provider.ts` | Terminal as Provider (state, events, input parsing)        |
-| `packages/ag-term/src/runtime/run.tsx`          | Layer 2 entry point — run(<App />, term)                   |
-| `packages/ag-term/src/runtime/create-app.tsx`   | Layer 3 — multi-provider apps with zustand store           |
-| `packages/ag-term/src/pipeline/render-phase.ts` | Incremental rendering (most complex)                       |
-| `packages/ag-term/src/buffer.ts`                | TerminalBuffer + createTextFrame() snapshot factory        |
-| `packages/ag-term/src/pipeline/output-phase.ts` | Buffer diff, ANSI output generation                        |
-| `packages/ag-term/src/pipeline/layout-phase.ts` | Layout, scroll, sticky, screen rects                       |
-| `packages/ag-term/src/pipeline/CLAUDE.md`       | Pipeline internals docs (read before editing)              |
+| File                                            | What                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `packages/ag/src/layout-signals.ts`             | All node signals (rects + textContent + focused) — Layer 1    |
+| `packages/ag-react/src/hooks/useSignal.ts`      | alien-signals → React bridge — Layer 2                        |
+| `packages/ag-react/src/hooks/useLayout.ts`      | useBoxRectDangerously, useScrollRect, useScreenRect — Layer 3 |
+| `packages/ag-react/src/hooks/useAgNode.ts`      | Raw AgNode + signals access for components                    |
+| `packages/ag/src/text-frame.ts`                 | TextFrame + FrameCell type definitions                        |
+| `packages/ag-term/src/ansi/term.ts`             | Term type and createTerm() — the central abstraction          |
+| `packages/ag-term/src/runtime/term-provider.ts` | Terminal as Provider (state, events, input parsing)           |
+| `packages/ag-term/src/runtime/run.tsx`          | Layer 2 entry point — run(<App />, term)                      |
+| `packages/ag-term/src/runtime/create-app.tsx`   | Layer 3 — multi-provider apps with zustand store              |
+| `packages/ag-term/src/pipeline/render-phase.ts` | Incremental rendering (most complex)                          |
+| `packages/ag-term/src/buffer.ts`                | TerminalBuffer + createTextFrame() snapshot factory           |
+| `packages/ag-term/src/pipeline/output-phase.ts` | Buffer diff, ANSI output generation                           |
+| `packages/ag-term/src/pipeline/layout-phase.ts` | Layout, scroll, sticky, screen rects                          |
+| `packages/ag-term/src/pipeline/CLAUDE.md`       | Pipeline internals docs (read before editing)                 |
 
 ## Documentation Site
 

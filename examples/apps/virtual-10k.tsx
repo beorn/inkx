@@ -7,7 +7,7 @@
  * Demonstrates:
  * - ListView with 10,000 items and variable heights
  * - Smooth j/k navigation with position indicator
- * - useBoxRect() for adaptive column count
+ * - useBoxRectDangerously() for adaptive column count
  * - Page up/down with large jumps
  * - Visual item variety (priorities, tags, progress bars)
  *
@@ -22,14 +22,14 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import { Box, Text, Strong, Kbd, Muted, Divider, ListView, useBoxRect } from "silvery"
+import { Box, Text, Strong, Kbd, Muted, Divider, ListView, useBoxRectDangerously } from "silvery"
 import { run, useInput, type Key } from "silvery/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Virtual 10K",
   description: "ListView scrolling through 10,000 items with instant navigation",
-  features: ["ListView", "10K items", "useBoxRect()", "variable estimateHeight"],
+  features: ["ListView", "10K items", "useBoxRectDangerously()", "variable estimateHeight"],
 }
 
 // ============================================================================
@@ -307,7 +307,7 @@ function StatsBar({ items }: { items: Item[] }) {
 // ============================================================================
 
 function VirtualBenchmark() {
-  const { width, height } = useBoxRect()
+  const { width, height } = useBoxRectDangerously()
   const [cursor, setCursor] = useState(0)
   const [showDetail, setShowDetail] = useState(false)
 

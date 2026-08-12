@@ -63,7 +63,7 @@ export { Box, type BoxProps } from "../../components/Box"
 export { Text, type TextProps } from "../../components/Text"
 
 // Re-export hooks
-export { useBoxRect, useScrollRect, useScreenRect } from "../../hooks/useLayout"
+export { useBoxRectDangerously, useScrollRect, useScreenRect } from "../../hooks/useLayout"
 export { useApp } from "../../hooks/useApp"
 export { useFocusable } from "../../hooks/useFocusable"
 export { useFocusManager } from "../../hooks/useFocusManager"

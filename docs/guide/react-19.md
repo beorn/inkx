@@ -49,13 +49,13 @@ All standard React hooks work correctly:
 
 ```tsx
 import { useState, useEffect, useTransition, useDeferredValue } from "react"
-import { Box, Text, useInput, useBoxRect } from "silvery"
+import { Box, Text, useInput, useBoxRectDangerously } from "silvery"
 
 function App() {
   const [count, setCount] = useState(0)
   const [isPending, startTransition] = useTransition()
   const deferredCount = useDeferredValue(count)
-  const { width, height } = useBoxRect()
+  const { width, height } = useBoxRectDangerously()
 
   useInput((input, key) => {
     if (key.return) {

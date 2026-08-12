@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { describe, test, expect, afterEach } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
-import { Box, Text, useBoxRect, useHover } from "silvery"
+import { Box, Text, useBoxRectDangerously, useHover } from "silvery"
 import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 
 const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms))
@@ -176,9 +176,9 @@ describe("regression: status bar stale text (km-silvery.aichat-incr)", () => {
     expect(app.lines[row]).toContain("right edge")
   })
 
-  test("useBoxRect-delayed flex gutters paint right-aligned background padding", () => {
+  test("useBoxRectDangerously-delayed flex gutters paint right-aligned background padding", () => {
     function MeasuredFlexGutterBubble() {
-      const rect = useBoxRect()
+      const rect = useBoxRectDangerously()
       const available = Math.round(rect.width)
       if (available <= 0) {
         return <Box flexDirection="column" width="100%" />

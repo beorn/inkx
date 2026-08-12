@@ -17,7 +17,7 @@
 import React from "react"
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { createRenderer, render, getActiveRenderCount } from "@silvery/test"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text } from "@silvery/ag-react"
 import {
   createScope,
   defineHandle,

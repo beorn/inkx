@@ -52,7 +52,7 @@ The hook is reactive on viewport-size changes — same backing store as [`useRes
 | ------------------------------------------------------------ | --------------------------------- |
 | Spread a Box-prop bag based on viewport width                | `useResponsiveBoxProps`           |
 | Pick a non-Box-prop value (string, enum, callback)           | `useResponsiveValue`              |
-| Read the **measured** rect of the current Box                | `useBoxRect`                      |
+| Read the **measured** rect of the current Box                | `useBoxRectDangerously`           |
 | Position something on the screen relative to scroll / sticky | `useScrollRect` / `useScreenRect` |
 
 ## Examples
@@ -107,19 +107,19 @@ return <Box {...layout}>...</Box>
 
 Same mobile-first cascade. The mental model translates directly: each breakpoint adds to (overrides keys in) the previous one.
 
-## Why prefer `useResponsiveBoxProps` over reading `useBoxRect`
+## Why prefer `useResponsiveBoxProps` over reading `useBoxRectDangerously`
 
-Reading `useBoxRect` and branching on width is safe under [deferred-rect semantics](/api/use-box-rect#first-render-behavior--one-frame-late-by-design) — the committed rect is batch-invariant — but it has two downsides for layout decisions:
+Reading `useBoxRectDangerously` and branching on width is safe under [deferred-rect semantics](/api/use-box-rect#first-render-behavior--one-frame-late-by-design) — the committed rect is batch-invariant — but it has two downsides for layout decisions:
 
 1. **One-frame-late on mount.** The first render returns a zero rect; the measured rect arrives one batch later. For app chrome decisions (sidebar visible, columns vs rows) this produces a visible flash on mount.
-2. **Multi-layer chains accumulate frame delay.** `<MeasuredBox>` wrapping a child that itself reads `useBoxRect` needs one batch per layer to settle. Each layer = one extra paint at startup.
+2. **Multi-layer chains accumulate frame delay.** `<MeasuredBox>` wrapping a child that itself reads `useBoxRectDangerously` needs one batch per layer to settle. Each layer = one extra paint at startup.
 
 `useResponsiveBoxProps` reads the global terminal width directly via `useResponsiveValue` — no layout pass dependency. The first paint already shows the correct breakpoint variant.
 
-For decisions that genuinely depend on the parent's measured size (not the global terminal width), `useBoxRect` is the right tool; the deferred contract still applies.
+For decisions that genuinely depend on the parent's measured size (not the global terminal width), `useBoxRectDangerously` is the right tool; the deferred contract still applies.
 
 ## See also
 
 - [`useResponsiveValue`](/api/use-responsive-value) — for non-Box-prop responsive values
-- [`useBoxRect`](/api/use-box-rect) — read the committed rect of the current Box
+- [`useBoxRectDangerously`](/api/use-box-rect) — read the committed rect of the current Box
 - [Responsive layout guide](/guide/responsive-layout) — how to think about layout in silvery

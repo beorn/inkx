@@ -60,7 +60,7 @@ You'll spend a week reimplementing what [`SelectList`](/guides/components#select
 
 ## 2. Think in Flexbox
 
-Silvery uses CSS flexbox via [Flexily](/guide/layout-engine) — same mental model as web development. Let the layout engine compute positions and sizes. For responsive layout, reach for [`useResponsiveBoxProps`](/api/use-responsive-box-props) (declarative, no measurement reads). When you genuinely need a component's measured size, [`useBoxRect()`](/api/use-box-rect) returns the deferred (committed) rect — invariant across every convergence pass within one event batch, so layout decisions can't form feedback loops.
+Silvery uses CSS flexbox via [Flexily](/guide/layout-engine) — same mental model as web development. Let the layout engine compute positions and sizes. For responsive layout, reach for [`useResponsiveBoxProps`](/api/use-responsive-box-props) (declarative, no measurement reads). When you genuinely need a component's measured size, [`useBoxRectDangerously()`](/api/use-box-rect) returns the deferred (committed) rect — invariant across every convergence pass within one event batch, so layout decisions can't form feedback loops.
 
 ::: tip ✨ Shiny
 
@@ -86,17 +86,17 @@ function AppShell({ sidebar, main }) {
 
 // Measured-rect decisions — when the parent's measured size is the input.
 function Panel() {
-  const { width } = useBoxRect()           // committed rect, batch-invariant
+  const { width } = useBoxRectDangerously()           // committed rect, batch-invariant
   return width < 40 ? <Compact /> : <Full />
 }
 ```
 
-`flexGrow` fills space. `padding`/`paddingX` for internal spacing. `gap` between children. `justifyContent="flex-end"` pins to bottom. `useResponsiveBoxProps` for global-viewport responsive layout. `useBoxRect()` when the decision depends on the parent's measured size.
+`flexGrow` fills space. `padding`/`paddingX` for internal spacing. `gap` between children. `justifyContent="flex-end"` pins to bottom. `useResponsiveBoxProps` for global-viewport responsive layout. `useBoxRectDangerously()` when the decision depends on the parent's measured size.
 :::
 
 ::: tip ⚠ Reading layout on mount
 
-The reactive layout hooks (`useBoxRect`, `useScrollRect`, `useScreenRect`) return the COMMITTED rect — the value as of the most recent event-batch commit. On the very first render the rect is `{0,0,0,0}`; the measured value arrives one batch later. For layout decisions that need to be correct on the first paint, prefer `useResponsiveBoxProps` — it reads the global viewport directly, no layout-pass dependency.
+The reactive layout hooks (`useBoxRectDangerously`, `useScrollRect`, `useScreenRect`) return the COMMITTED rect — the value as of the most recent event-batch commit. On the very first render the rect is `{0,0,0,0}`; the measured value arrives one batch later. For layout decisions that need to be correct on the first paint, prefer `useResponsiveBoxProps` — it reads the global viewport directly, no layout-pass dependency.
 
 For framework primitives that must publish positioned terminal escapes on the same frame the host node lays out (e.g. `Image` writing Kitty graphics escapes), read `node.boxRect` from `useAgNode()` inside a `useLayoutEffect`. That's the in-flight value, written every layout pass. This is recommended only for leaf primitives in silvery itself, not application code.
 :::
@@ -119,7 +119,7 @@ For framework primitives that must publish positioned terminal escapes on the sa
 If you're doing arithmetic with widths, you're fighting the layout engine instead of using it.
 :::
 
-→ [Layout engine](/guide/layout-engine) · [Responsive layout](/guide/responsive-layout) · [useBoxRect](/api/use-box-rect) · [useResponsiveBoxProps](/api/use-responsive-box-props) · [Box](/api/box) · [Layout examples](/examples/layout)
+→ [Layout engine](/guide/layout-engine) · [Responsive layout](/guide/responsive-layout) · [useBoxRectDangerously](/api/use-box-rect) · [useResponsiveBoxProps](/api/use-responsive-box-props) · [Box](/api/box) · [Layout examples](/examples/layout)
 
 ## 3. Let the Framework Scroll
 

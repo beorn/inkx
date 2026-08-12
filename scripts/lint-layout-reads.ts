@@ -8,7 +8,7 @@
  * that snapshot layout state at render time produce stale-frame zero reads
  * across conditional mounts:
  *
- *   - `useBoxRect()` / `useScrollRect()` / `useScreenRect()` — return the
+ *   - `useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()` — return the
  *     PRIOR layout pass's rect at render time. First-frame after mount sees
  *     null/zero. Same effect-chain bug class that broke the cursor
  *     positioning in `km-silvercode.cursor-startup-position`.
@@ -46,7 +46,7 @@ import { join, relative, resolve, sep } from "node:path"
  * out by the per-line filters below.
  */
 const TARGET_HOOKS = [
-  "useBoxRect",
+  "useBoxRectDangerously",
   "useScrollRect",
   "useScreenRect",
   "useCursor",
@@ -109,8 +109,9 @@ interface Violation {
 }
 
 function buildHookRegex(): RegExp {
-  // Word boundary on both sides — match `useBoxRect(` but not `myUseBoxRect(`
-  // and not `useBoxRectSnapshot(` (a future split-off API). The trailing `(`
+  // Word boundary on both sides — match `useBoxRectDangerously(` but not
+  // `myUseBoxRectDangerously(` and not `useBoxRectSnapshot(` (a future
+  // split-off API). The trailing `(`
   // confirms it's a call, filtering out type imports and re-exports.
   return new RegExp(`\\b(${TARGET_HOOKS.join("|")})\\b\\s*\\(`, "g")
 }
@@ -122,19 +123,24 @@ function buildHookRegex(): RegExp {
  *
  * Layout-rect hooks are now zero-argument only (deferred semantics — see
  * `vendor/silvery/packages/ag-react/src/hooks/useLayout.ts`):
- *   const rect = useBoxRect()                  // canonical
+ *   const rect = useBoxRectDangerously()        // canonical
  *
  * Heuristic: scan from the open paren on the first match line forward; if
  * the call has a non-empty argument list, treat it as a non-rect overload.
  * Multi-line invocations are followed by reading subsequent lines until the
  * matching close paren is found. Whitespace and comments inside the parens
- * are ignored. Empty parens (`useBoxRect()`) are the snapshot form — flag.
+ * are ignored. Empty parens (`useBoxRectDangerously()`) are the snapshot
+ * form — flag.
  *
- * Note: only `useBoxRect`, `useScrollRect`, `useScreenRect` have the
- * callback overload. `useFocus`, `useSelection`, and `useCursor` are
+ * Note: only `useBoxRectDangerously`, `useScrollRect`, `useScreenRect` have
+ * the callback overload. `useFocus`, `useSelection`, and `useCursor` are
  * always snapshot reads and are flagged unconditionally.
  */
-const CALLBACK_CAPABLE_HOOKS = new Set<TargetHook>(["useBoxRect", "useScrollRect", "useScreenRect"])
+const CALLBACK_CAPABLE_HOOKS = new Set<TargetHook>([
+  "useBoxRectDangerously",
+  "useScrollRect",
+  "useScreenRect",
+])
 
 function isCallbackForm(
   hook: TargetHook,

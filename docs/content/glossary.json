@@ -210,7 +210,7 @@
     "tooltip": "Hook for accessing the stdout stream"
   },
   {
-    "term": "useBoxRect",
+    "term": "useBoxRectDangerously",
     "href": "/api/use-box-rect",
     "tooltip": "Hook that reports a component's measured content rectangle (width, height)"
   },
@@ -538,7 +538,7 @@
   {
     "term": "useBoxMetrics",
     "href": "/guide/silvery-vs-ink#rendering",
-    "tooltip": "Ink's post-layout hook for component dimensions — returns 0×0 on first render, updates via useEffect. Compare with silvery's useBoxRect()."
+    "tooltip": "Ink's post-layout hook for component dimensions — returns 0×0 on first render, updates via useEffect. Compare with silvery's useBoxRectDangerously()."
   },
   {
     "term": "useAnimation",

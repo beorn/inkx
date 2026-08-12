@@ -16,7 +16,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, TextArea, useTextArea } from "silvery"
-import { useBoxRect } from "@silvery/ag-react"
+import { useBoxRectDangerously } from "@silvery/ag-react"
 
 describe("TextArea wrap default", () => {
   test("long single-line input wraps to multiple visual rows by default", () => {
@@ -110,7 +110,7 @@ describe("TextArea wrap default", () => {
     let observedWrappedLineCount = 0
 
     function HookProbe() {
-      const { width } = useBoxRect()
+      const { width } = useBoxRectDangerously()
       const ta = useTextArea({
         defaultValue: "a".repeat(30),
         height: 5,

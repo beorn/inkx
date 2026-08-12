@@ -11,7 +11,7 @@ next:
 
 # Layout
 
-Silvery brings CSS-like flexbox to the terminal. Proportional sizing, gap spacing, `justifyContent`, `alignItems`, responsive breakpoints via `useBoxRect()` — the same layout model you know from the web, working in every terminal.
+Silvery brings CSS-like flexbox to the terminal. Proportional sizing, gap spacing, `justifyContent`, `alignItems`, responsive breakpoints via `useBoxRectDangerously()` — the same layout model you know from the web, working in every terminal.
 
 ::: code-group
 
@@ -39,7 +39,7 @@ vp @silvery/examples dashboard
 - **Tab navigation** — left/right arrows switch between panels
 - **Progress bars** — `flexGrow` sized proportionally to values (no manual width math)
 - **Scrollable list** — `overflow="scroll"` with `scrollTo` for keyboard navigation
-- **Responsive sizing** — `useBoxRect()` provides dimensions at render time
+- **Responsive sizing** — `useBoxRectDangerously()` provides dimensions at render time
 
 ## Source Code
 
@@ -140,13 +140,13 @@ Instead of calculating bar widths manually, use `flexGrow` proportionally. The t
 </Box>
 ```
 
-### Responsive Layout with `useBoxRect()`
+### Responsive Layout with `useBoxRectDangerously()`
 
 Components query their computed dimensions at render time. No prop drilling, no `useEffect`:
 
 ```tsx
 function ResponsivePanel() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const columns = width > 100 ? 3 : width > 60 ? 2 : 1
   return <Grid columns={columns}>...</Grid>
 }
@@ -195,19 +195,19 @@ Equal-width columns via `flexGrow`. Each column scrolls independently:
 
 ## Features Used
 
-| Feature             | Usage                                       |
-| ------------------- | ------------------------------------------- |
-| `flexGrow`          | Proportional progress bars and panel sizing |
-| `justifyContent`    | Spacing between labels and values           |
-| `gap`               | Consistent spacing between items            |
-| `overflow="scroll"` | Scrollable containers with auto-indicators  |
-| `scrollTo={index}`  | Keep selected item visible                  |
-| `useBoxRect()`      | Responsive layout feedback at render time   |
-| `useInput()`        | Tab switching and list navigation           |
+| Feature                   | Usage                                       |
+| ------------------------- | ------------------------------------------- |
+| `flexGrow`                | Proportional progress bars and panel sizing |
+| `justifyContent`          | Spacing between labels and values           |
+| `gap`                     | Consistent spacing between items            |
+| `overflow="scroll"`       | Scrollable containers with auto-indicators  |
+| `scrollTo={index}`        | Keep selected item visible                  |
+| `useBoxRectDangerously()` | Responsive layout feedback at render time   |
+| `useInput()`              | Tab switching and list navigation           |
 
 ## Exercises
 
-1. **Responsive tabs** — Stack tabs vertically on narrow terminals using `useBoxRect()`
+1. **Responsive tabs** — Stack tabs vertically on narrow terminals using `useBoxRectDangerously()`
 2. **Multi-pane dashboard** — Use `flexGrow` ratios (2:1) for main/sidebar panels
 3. **Nested scroll** — Put a scrollable list inside a scrollable panel
 4. **Live updates** — Use `useEffect` + `setInterval` to animate stat values

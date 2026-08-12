@@ -290,7 +290,7 @@ export default withMermaid(
               text: "Hooks",
               collapsed: false,
               items: [
-                { text: "useBoxRect", link: "/api/use-box-rect" },
+                { text: "useBoxRectDangerously", link: "/api/use-box-rect" },
                 { text: "useScrollRect", link: "/api/use-scroll-rect" },
                 { text: "useScreenRect", link: "/api/use-screen-rect" },
                 { text: "useResponsiveBoxProps", link: "/api/use-responsive-box-props" },

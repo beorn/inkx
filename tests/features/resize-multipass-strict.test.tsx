@@ -1,18 +1,18 @@
 /**
  * Regression test for SILVERY_STRICT incremental-vs-fresh mismatch on
- * resize when useBoxRect-driven props affect render output.
+ * resize when useBoxRectDangerously-driven props affect render output.
  *
  * Bead: km-yej6 (column-resize-incremental-mismatch).
  *
  * Repro pattern (from km-tui CardColumn → Card): a child component
- * receives a prop derived from its parent's measured `useBoxRect()`
+ * receives a prop derived from its parent's measured `useBoxRectDangerously()`
  * height. When the terminal resizes, the parent's box rect changes, the
  * layout subscriber fires, the child re-renders with a new prop value,
  * and the child's render output (visible-row count) changes.
  *
  * The bug: at production-matching `singlePassLayout: true`, doRender's
  * multi-pass loop has MAX_CONVERGENCE_PASSES=2. On resize, the layout
- * feedback (useBoxRect → setState → re-render → yoga dirty) needs more
+ * feedback (useBoxRectDangerously → setState → re-render → yoga dirty) needs more
  * than 2 passes to fully drain. The internal SILVERY_STRICT check then
  * compared the not-yet-stable incremental buffer against a fresh render
  * that re-runs calculateLayout against the post-commit React tree —
@@ -30,7 +30,7 @@
  * feedback that doesn't drain in this tick queues another doRender on
  * the next event-loop turn.
  *
- * NOTE: A simpler synthetic repro (a useBoxRect-driven row count in a
+ * NOTE: A simpler synthetic repro (a useBoxRectDangerously-driven row count in a
  * generic Box tree) can hit a separate, latent dirty-flag-propagation
  * bug that this fix does NOT address; that's why this regression test
  * is intentionally narrow and runs through the km-tui-shaped driver
@@ -43,15 +43,15 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRectDangerously } from "@silvery/ag-react"
 
 /**
  * Component that subscribes to its own box rect (the layout-feedback
- * trigger). Mirrors km-tui CardColumn's `useBoxRect()` usage which
+ * trigger). Mirrors km-tui CardColumn's `useBoxRectDangerously()` usage which
  * drives the per-Card columnHeight prop.
  */
 function MeasuredColumn({ items }: { items: string[] }) {
-  const rect = useBoxRect()
+  const rect = useBoxRectDangerously()
   // Read height to register the layout subscription. We don't need to
   // act on it — just having the subscription is enough to drive the
   // layout-feedback path doRender's multi-pass loop must drain.

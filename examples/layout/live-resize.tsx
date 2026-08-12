@@ -4,7 +4,7 @@
  * THE showcase demo for silvery's unique capability: components that know their size.
  *
  * Demonstrates:
- * - useBoxRect() providing real-time width/height during render
+ * - useBoxRectDangerously() providing real-time width/height during render
  * - Multi-column layout that reflows from 1 to 2 to 3 columns based on width
  * - Responsive breakpoints with visual feedback
  * - Content that adapts its presentation based on available space
@@ -19,7 +19,7 @@
  */
 
 import React from "react"
-import { Box, Text, H1, H3, Kbd, Muted, Small, useBoxRect } from "silvery"
+import { Box, Text, H1, H3, Kbd, Muted, Small, useBoxRectDangerously } from "silvery"
 import { run, useInput, type Key } from "silvery/runtime"
 import { useCallback } from "react"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -27,7 +27,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Live Resize",
   description: "Responsive multi-column grid that reflows based on terminal width",
-  features: ["useBoxRect()", "responsive breakpoints", "Box flexDirection"],
+  features: ["useBoxRectDangerously()", "responsive breakpoints", "Box flexDirection"],
 }
 
 // ============================================================================
@@ -233,7 +233,8 @@ function CodeSnippet({ width }: { width: number }) {
       <H1 color="yellow">How it works:</H1>
       <Text color="gray">
         {"  "}
-        <Text color="magenta">const</Text> {"{"} width {"}"} = <Text color="cyan">useBoxRect</Text>
+        <Text color="magenta">const</Text> {"{"} width {"}"} ={" "}
+        <Text color="cyan">useBoxRectDangerously</Text>
         ()
       </Text>
       <Text color="gray">
@@ -253,7 +254,7 @@ function CodeSnippet({ width }: { width: number }) {
 // ============================================================================
 
 function LiveResize() {
-  const { width, height } = useBoxRect()
+  const { width, height } = useBoxRectDangerously()
 
   // Responsive breakpoints
   const columns = width >= 100 ? 3 : width >= 60 ? 2 : 1

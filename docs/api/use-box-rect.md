@@ -1,22 +1,22 @@
-# useBoxRect
+# useBoxRectDangerously
 
 Returns the computed dimensions of the component's content area — width, height, and position. Components use this to adapt to their available space during render.
 
 The hook returns the **committed** rect: the value as of the most recent event-batch commit boundary. Within a single batch the returned rect is invariant across every convergence pass; React renders see one stable value per batch. After the batch's commit boundary fires, the next batch sees the new value.
 
-This is the structural fix for the "render reads useBoxRect AND writes a layout-affecting prop based on it" feedback loop. A render that branches on the read value produces the same output every pass, so the convergence loop terminates in one pass — no feedback edge can form by construction.
+This is the structural fix for the "render reads useBoxRectDangerously AND writes a layout-affecting prop based on it" feedback loop. A render that branches on the read value produces the same output every pass, so the convergence loop terminates in one pass — no feedback edge can form by construction.
 
 ## Import
 
 ```tsx
-import { useBoxRect } from "silvery"
+import { useBoxRectDangerously } from "silvery"
 ```
 
 ## Usage
 
 ```tsx
 function SizedBox() {
-  const { width, height } = useBoxRect()
+  const { width, height } = useBoxRectDangerously()
 
   return (
     <Box borderStyle="single">
@@ -31,7 +31,7 @@ function SizedBox() {
 ## Signature
 
 ```ts
-function useBoxRect(): Rect
+function useBoxRectDangerously(): Rect
 ```
 
 | Property | Type     | Description                        |
@@ -43,11 +43,11 @@ function useBoxRect(): Rect
 
 ## First Render Behavior — one frame late by design
 
-On the first render, `useBoxRect()` returns `{ width: 0, height: 0, x: 0, y: 0 }`. After the first commit boundary, the hook re-renders with the measured dimensions. Both renders happen before the first paint reaches the terminal in the typical case, so the empty-rect frame is invisible — but components that build on top of measurement (e.g. a banner that picks an ASCII-art tier from the available width) may show their fallback for one frame on mount.
+On the first render, `useBoxRectDangerously()` returns `{ width: 0, height: 0, x: 0, y: 0 }`. After the first commit boundary, the hook re-renders with the measured dimensions. Both renders happen before the first paint reaches the terminal in the typical case, so the empty-rect frame is invisible — but components that build on top of measurement (e.g. a banner that picks an ASCII-art tier from the available width) may show their fallback for one frame on mount.
 
 ```tsx
 function Header() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
 
   if (width === 0) return null // skip the empty-rect frame
 
@@ -82,11 +82,11 @@ function ResponsiveBox({ children }: { children: React.ReactNode }) {
 }
 ```
 
-When the breakpoint logic genuinely depends on a measured rect (not the global terminal width), branching on `useBoxRect()` is safe under deferred semantics:
+When the breakpoint logic genuinely depends on a measured rect (not the global terminal width), branching on `useBoxRectDangerously()` is safe under deferred semantics:
 
 ```tsx
 function ResponsiveCard() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const direction = width < 60 ? "column" : "row"
   return (
     <Box flexDirection={direction}>
@@ -107,7 +107,7 @@ The committed rect is invariant within a batch, so the render produces the same 
 
 ```tsx
 function CenteredText({ children }: { children: string }) {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
 
   const padding = Math.max(0, Math.floor((width - children.length) / 2))
 
@@ -124,7 +124,7 @@ function CenteredText({ children }: { children: string }) {
 
 ```tsx
 function TruncatedTitle({ title }: { title: string }) {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
 
   if (title.length <= width) {
     return <Text>{title}</Text>
@@ -138,7 +138,7 @@ function TruncatedTitle({ title }: { title: string }) {
 
 ```tsx
 function DebugOverlay({ children }: { children: React.ReactNode }) {
-  const { width, height, x, y } = useBoxRect()
+  const { width, height, x, y } = useBoxRectDangerously()
 
   return (
     <Box flexDirection="column">
@@ -155,7 +155,7 @@ function DebugOverlay({ children }: { children: React.ReactNode }) {
 
 ```tsx
 function ProportionalColumns() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
 
   // 30% / 70% split
   const leftWidth = Math.floor(width * 0.3)
@@ -224,7 +224,7 @@ function Content() {
 }
 
 function Column() {
-  const { width } = useBoxRect() // Only query where actually needed
+  const { width } = useBoxRectDangerously() // Only query where actually needed
   // Use width for truncation, responsive behavior, etc.
 }
 ```

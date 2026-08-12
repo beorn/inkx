@@ -29,7 +29,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { create, pipe, withAg, withTerm, withReact, createTerm } from "@silvery/ag-term"
 import { ensureLayoutEngine } from "@silvery/ag-term/runtime"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRectDangerously } from "@silvery/ag-react"
 
 // ============================================================================
 // PRNG — deterministic seeded random (mulberry32)
@@ -65,12 +65,12 @@ describe("memory: structural canary (large-scale cycles)", () => {
       const N = 500
 
       function Probe() {
-        // Three useBoxRect subscriptions per render — the pre-fix shape that
+        // Three useBoxRectDangerously subscriptions per render — the pre-fix shape that
         // accumulated signal-effect closures across cycles. Post-fix the
         // cleanup runs synchronously inside dispose.
-        const r1 = useBoxRect()
-        const r2 = useBoxRect()
-        const r3 = useBoxRect()
+        const r1 = useBoxRectDangerously()
+        const r2 = useBoxRectDangerously()
+        const r3 = useBoxRectDangerously()
         React.useEffect(() => {
           return () => {
             cleanupCount++
@@ -115,9 +115,9 @@ describe("memory: structural canary (large-scale cycles)", () => {
       // (async unmount skips cleanups); post-fix it's exactly linear.
 
       function Counter({ onCleanup }: { onCleanup: () => void }) {
-        useBoxRect()
-        useBoxRect()
-        useBoxRect()
+        useBoxRectDangerously()
+        useBoxRectDangerously()
+        useBoxRectDangerously()
         React.useEffect(() => {
           return () => {
             onCleanup()
@@ -178,8 +178,8 @@ describe("memory: fuzz — random withReact create/dispose orderings", () => {
         let cleanupCount = 0
 
         function TrackedProbe() {
-          useBoxRect()
-          useBoxRect()
+          useBoxRectDangerously()
+          useBoxRectDangerously()
           React.useEffect(() => {
             return () => {
               cleanupCount++
@@ -215,7 +215,7 @@ describe("memory: fuzz — random withReact create/dispose orderings", () => {
         return function Probe() {
           for (let i = 0; i < boxRectCount; i++) {
             // eslint-disable-next-line react-hooks/rules-of-hooks
-            useBoxRect()
+            useBoxRectDangerously()
           }
           React.useEffect(() => {
             return () => {

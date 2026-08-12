@@ -3,14 +3,14 @@
  * children until its own measured rect is non-zero.
  *
  * Eliminates the "render with width=0 then re-render with real width" flash
- * that consumers using `useBoxRect()` hand-roll today.
+ * that consumers using `useBoxRectDangerously()` hand-roll today.
  *
  * Source: bead km-silvery.measuredbox-primitive (P0).
  */
 import { describe, test, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, MeasuredBox, useBoxRect } from "silvery"
+import { Box, Text, MeasuredBox, useBoxRectDangerously } from "silvery"
 
 describe("MeasuredBox", () => {
   test("never renders children with width=0", () => {
@@ -59,13 +59,13 @@ describe("MeasuredBox", () => {
     expect(app.text).toContain("inner-w=36")
   })
 
-  test("function-children rect values match useBoxRect", () => {
+  test("function-children rect values match useBoxRectDangerously", () => {
     const r = createRenderer({ cols: 60, rows: 8 })
 
     let useBoxRectWidth = -1
 
     function HookProbe() {
-      const { width } = useBoxRect()
+      const { width } = useBoxRectDangerously()
       if (width > 0) useBoxRectWidth = width
       return null
     }

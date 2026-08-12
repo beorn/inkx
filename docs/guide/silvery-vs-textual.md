@@ -13,7 +13,7 @@ Silvery grew out of building a complex terminal app where components needed to k
 The biggest differences at a glance:
 
 - **React ecosystem** — JavaScript/TypeScript, npm, hooks, context, Suspense, concurrent mode. Textual is Python with its own widget lifecycle and reactive attributes.
-- **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`. Textual widgets query `self.size` after layout, similar to web components.
+- **Layout-first rendering** — components know their size _during_ render via `useBoxRectDangerously()`. Textual widgets query `self.size` after layout, similar to web components.
 - **Cell-level incremental rendering** — per-node dirty tracking (7 flags/node), cell-level buffer diff. Textual uses Rich's rendering pipeline with careful caching.
 - **Multi-target** — terminal, Canvas 2D, DOM (experimental). Textual has a mature web target via Textual Web (serve TUI in browser).
 - **Fast incremental rendering** — cell-level dirty tracking with per-node dirty flags. Performance is comparable to Ink 7.0 — see [benchmarks](/guide/silvery-vs-ink#performance-size) for details. No direct Textual benchmarks; in practice, all three frameworks are fast enough for most TUI apps.
@@ -169,7 +169,7 @@ Silvery uses CSS flexbox exclusively:
 
 No grid layout, no dock. Everything is flexbox. This is limiting compared to Textual's layout variety, but flexbox handles most TUI layouts well — and if you know CSS flexbox from web development, there is nothing new to learn.
 
-Silvery's key layout advantage is `useBoxRect()` — components know their dimensions during render, not after. Textual widgets can query their size via `self.size` but this is set during the layout phase, similar to how web components work.
+Silvery's key layout advantage is `useBoxRectDangerously()` — components know their dimensions during render, not after. Textual widgets can query their size via `self.size` but this is set during the layout phase, similar to how web components work.
 
 ## Widget Libraries
 

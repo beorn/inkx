@@ -3,9 +3,9 @@ title: FAQ
 description: "Frequently asked questions about Silvery — installation, Ink compatibility, performance, components, testing, and terminal support."
 faq:
   - q: "What is Silvery?"
-    a: "Polished terminal apps in React. Silvery provides 45+ components, layout-first rendering with per-node dirty tracking, responsive layout via useBoxRect(), and full support for modern terminal protocols. Three principles guide the project: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance. It works with Bun and Node.js (23.6+)."
+    a: "Polished terminal apps in React. Silvery provides 45+ components, layout-first rendering with per-node dirty tracking, responsive layout via useBoxRectDangerously(), and full support for modern terminal protocols. Three principles guide the project: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance. It works with Bun and Node.js (23.6+)."
   - q: "How does Silvery compare to Ink?"
-    a: "Both use React for terminal UIs. Silvery's key differences are layout-first rendering (components know their size during render via useBoxRect()), comparable performance with different strengths (Silvery faster on cursor/selection, Ink faster on content updates), bundle-parity with Ink+Yoga (114.9 KB vs 116.6 KB gzipped), a larger component library (45+ vs Ink's 6 core + @inkjs/ui's 13), and comprehensive terminal protocol support (Kitty keyboard, SGR mouse, graphics, synchronized output). Ink has a larger ecosystem and is the established standard."
+    a: "Both use React for terminal UIs. Silvery's key differences are layout-first rendering (components know their size during render via useBoxRectDangerously()), comparable performance with different strengths (Silvery faster on cursor/selection, Ink faster on content updates), bundle-parity with Ink+Yoga (114.9 KB vs 116.6 KB gzipped), a larger component library (45+ vs Ink's 6 core + @inkjs/ui's 13), and comprehensive terminal protocol support (Kitty keyboard, SGR mouse, graphics, synchronized output). Ink has a larger ecosystem and is the established standard."
   - q: "Is Silvery compatible with existing Ink code?"
     a: "Yes. Silvery provides a compatibility layer via silvery/ink and silvery/chalk that passes ~99% of Ink 7.0's test suite (918/931 tests). Most Ink code works with import path changes."
   - q: "How fast is Silvery compared to Ink?"
@@ -27,7 +27,7 @@ faq:
   - q: "Does Silvery have TypeScript support?"
     a: "Silvery is written entirely in TypeScript with strict mode enabled. All components, hooks, and APIs are fully typed. The package ships TypeScript source directly (no compiled JavaScript), which works with Bun natively and Node.js 23.6+ with type stripping."
   - q: "How does the layout engine work?"
-    a: "Silvery uses Flexily, a Yoga-compatible flexbox layout engine written in pure TypeScript. Layout runs before rendering, so components can access their dimensions via useBoxRect(). This enables responsive layouts, native scrollable containers, and automatic text truncation without post-render measurement."
+    a: "Silvery uses Flexily, a Yoga-compatible flexbox layout engine written in pure TypeScript. Layout runs before rendering, so components can access their dimensions via useBoxRectDangerously(). This enables responsive layouts, native scrollable containers, and automatic text truncation without post-render measurement."
   - q: "Can I use Silvery for fullscreen terminal apps?"
     a: "Yes. Silvery supports both fullscreen mode (alternate screen buffer, absolute positioning, incremental diff) and inline mode (normal scrollback, relative positioning). Fullscreen is the default. Both modes use incremental rendering for efficient updates."
 ---
@@ -38,7 +38,7 @@ Frequently asked questions about Silvery.
 
 ## What is Silvery?
 
-Polished terminal apps in React. Silvery provides 45+ components, layout-first rendering with per-node dirty tracking, responsive layout via `useBoxRect()`, and full support for modern terminal protocols. It works with Bun and Node.js (23.6+).
+Polished terminal apps in React. Silvery provides 45+ components, layout-first rendering with per-node dirty tracking, responsive layout via `useBoxRectDangerously()`, and full support for modern terminal protocols. It works with Bun and Node.js (23.6+).
 
 If you know React, you know Silvery -- the core API (`Box`, `Text`, `useInput`, `render`) is familiar. What's different is the rendering pipeline: layout runs first, so components know their size during render, and only changed nodes are re-rendered.
 
@@ -48,7 +48,7 @@ Three principles guide the project: take the best from the web, stay true to the
 
 Both use React for terminal UIs. Silvery differs in several key ways:
 
-- **Layout-first rendering** — layout runs before content render, so components know their size during render via `useBoxRect()`. No components rendering at `width: 0`, no cascading measure→rerender cycles. See [Silvery vs Ink](/guide/silvery-vs-ink#responsive-layout).
+- **Layout-first rendering** — layout runs before content render, so components know their size during render via `useBoxRectDangerously()`. No components rendering at `width: 0`, no cascading measure→rerender cycles. See [Silvery vs Ink](/guide/silvery-vs-ink#responsive-layout).
 - **Fast incremental rendering** — cell-level dirty tracking. 3–27× faster (typically 15–20×) than Ink in our mounted rerender benchmarks. See the [detailed benchmarks](/guide/silvery-vs-ink#performance--size).
 - **Bundle parity with Ink+Yoga** — 114.9 KB gzipped runtime vs Ink+Yoga's 116.6 KB. Pure TypeScript, zero WASM, zero native dependencies.
 - **Larger component library** — 45+ components (vs Ink's 6 core + [@inkjs/ui](https://github.com/vadimdemedes/ink-ui)'s 13), including VirtualList, CommandPalette, TreeView, SplitView, Table, and Form
@@ -194,7 +194,7 @@ Silvery is written entirely in TypeScript with strict mode enabled. All componen
 Silvery uses [Flexily](https://beorn.codes/flexily), a Yoga-compatible flexbox layout engine written in pure TypeScript. The key difference from other terminal frameworks:
 
 1. **Layout runs first** -- Flexily calculates positions and sizes before React renders components
-2. **Components access dimensions** -- `useBoxRect()` provides width, height, x, y during render
+2. **Components access dimensions** -- `useBoxRectDangerously()` provides width, height, x, y during render
 3. **Flexbox model** -- standard CSS flexbox properties (`flexDirection`, `justifyContent`, `alignItems`, `flexGrow`, `flexShrink`, `gap`, etc.)
 4. **No WASM** -- pure TypeScript, 2.5× faster than Yoga WASM for typical terminal layouts
 

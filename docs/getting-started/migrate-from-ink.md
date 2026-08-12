@@ -70,19 +70,19 @@ Once the import swap works, you can adopt Silvery-native features incrementally.
 + import { Box, Text } from "silvery"
 ```
 
-The native `silvery` exports are the same `Box` and `Text` — the compat layer is a thin shim. Imports from `silvery` give you access to the broader API (`useBoxRect`, native focus, scroll containers, etc.) in the same file.
+The native `silvery` exports are the same `Box` and `Text` — the compat layer is a thin shim. Imports from `silvery` give you access to the broader API (`useBoxRectDangerously`, native focus, scroll containers, etc.) in the same file.
 
-### Responsive layout — `useBoxRect()` returns real dimensions during render
+### Responsive layout — `useBoxRectDangerously()` returns real dimensions during render
 
 In Ink, `useBoxMetrics()` returns `{ width: 0, height: 0 }` on the first render and updates via `useEffect`. That means N nesting levels = N visible flickers.
 
-Silvery's `useBoxRect()` returns actual dimensions on the first render — no `width: 0` flash:
+Silvery's `useBoxRectDangerously()` returns actual dimensions on the first render — no `width: 0` flash:
 
 ```tsx
-import { Box, Text, useBoxRect } from "silvery"
+import { Box, Text, useBoxRectDangerously } from "silvery"
 
 function Card({ title }: { title: string }) {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return (
     <Box>
       <Text>{width >= 32 ? title : title.slice(0, width - 1) + "…"}</Text>

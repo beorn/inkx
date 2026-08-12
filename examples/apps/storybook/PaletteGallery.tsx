@@ -18,7 +18,17 @@
  */
 
 import React, { useMemo, useState } from "react"
-import { Box, Text, Muted, Strong, Divider, Kbd, useInput, useBoxRect, type Key } from "silvery"
+import {
+  Box,
+  Text,
+  Muted,
+  Strong,
+  Divider,
+  Kbd,
+  useInput,
+  useBoxRectDangerously,
+  type Key,
+} from "silvery"
 import { sterling, type SterlingTheme } from "@silvery/theme"
 import type { ColorScheme } from "@silvery/ansi"
 import { quantizeSterlingTheme } from "./shared/quantize.ts"
@@ -70,7 +80,7 @@ export function PaletteGallery({
 
   // Page size derives from the gallery's measured height minus chrome —
   // silverized (no hardcoded heights; reflows when the terminal resizes).
-  const galleryRect = useBoxRect()
+  const galleryRect = useBoxRectDangerously()
   const PAGE = Math.max(MIN_PAGE, (galleryRect?.height ?? MIN_PAGE + CHROME_ROWS) - CHROME_ROWS)
   const visibleStart = scroll
   const visibleEnd = Math.min(rows.length, scroll + PAGE)

@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRectDangerously } from "@silvery/ag-react"
 import type { ReactElement } from "react"
 
 // ============================================================================
@@ -33,9 +33,9 @@ export function StyledItem({ label, index }: { label: string; index: number }): 
   )
 }
 
-/** Component that uses useBoxRect — triggers two-phase rendering. */
+/** Component that uses useBoxRectDangerously — triggers two-phase rendering. */
 export function ResponsiveItem({ label }: { label: string }): ReactElement {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return (
     <Box>
       <Text>{width > 0 ? `${label} (w=${width})` : label}</Text>

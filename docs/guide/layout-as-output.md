@@ -76,7 +76,7 @@ decoration on the owner that needs the geometry:
 the placement axis, `alignOffset` nudges along the alignment axis, and
 `collisionStrategy` opts into viewport-aware flip/shift/hide behavior during
 the layout-signal pass. The geometry is resolved in the same frame as the
-anchor rect; component code does not call `useBoxRect()` to position the
+anchor rect; component code does not call `useBoxRectDangerously()` to position the
 overlay.
 
 For the common "render this fixed-size overlay at that anchor" case, use
@@ -105,13 +105,13 @@ position.
 
 ## Migration patterns
 
-### "I was reading `useBoxRect().width` for sizing" → use flex props
+### "I was reading `useBoxRectDangerously().width` for sizing" → use flex props
 
 If you wrote:
 
 ```tsx
 function MyBox() {
-  const { width } = useBoxRect() // ⚠ stale-frame zero on first mount
+  const { width } = useBoxRectDangerously() // ⚠ stale-frame zero on first mount
   return <Text>{"─".repeat(width)}</Text>
 }
 ```
@@ -131,13 +131,13 @@ function MyBox() {
 
 Use `width="100%"`, `flexGrow={1}`, or explicit `width={N}` props on the
 parent Box. Flexily resolves them; the renderer uses the resolved cell
-width. No `useBoxRect()` call needed.
+width. No `useBoxRectDangerously()` call needed.
 
 ### "I was reading rect for hit-test / position registry" → use the deferred reactive form + useEffect
 
 If you need a rect to register a position with a coordinator (mouse
 hit-test, scroll anchor, drag target), read the deferred (committed)
-rect via `useBoxRect()` / `useScrollRect()` and publish via `useEffect`.
+rect via `useBoxRectDangerously()` / `useScrollRect()` and publish via `useEffect`.
 The committed rect advances at each event-batch commit boundary —
 idempotent across convergence passes, one frame late on mount:
 
@@ -166,12 +166,12 @@ cell count:
 - **`Divider`** / **`ProgressBar`** repeat fill characters across a
   resolved cell width to produce string content.
 
-These are the (c) class. They keep `useBoxRect()` and tag the call with
+These are the (c) class. They keep `useBoxRectDangerously()` and tag the call with
 an explicit comment marker so the lint rule accepts them:
 
 ```tsx
 // LAYOUT_READ_AT_RENDER: parentWidth feeds soft-wrap math in useTextArea
-const { width: parentWidth } = useBoxRect()
+const { width: parentWidth } = useBoxRectDangerously()
 ```
 
 The marker can sit on the same line as the call (trailing comment) or
@@ -184,12 +184,12 @@ disguise; the annotation is the audit trail.
 
 ## Why this is the way
 
-**Stale-frame reads.** The historical pattern — `useBoxRect()` returning
+**Stale-frame reads.** The historical pattern — `useBoxRectDangerously()` returning
 the in-flight rect at render time — produced a first-frame zero read
 across conditional mounts and could form a feedback loop with the
 renderer's convergence loop when components branched on the rect. Both
 classes were fixed by switching to deferred (committed) semantics:
-`useBoxRect()` now returns the value as of the most recent event-batch
+`useBoxRectDangerously()` now returns the value as of the most recent event-batch
 commit boundary, invariant across every convergence pass within one
 batch. The first paint still shows the empty-rect fallback (one frame
 late on mount), and the measured value arrives on the next batch — the
@@ -233,7 +233,7 @@ What it flags:
 
 What it skips:
 
-- `useBoxRect()` / `useScrollRect()` / `useScreenRect()` — under deferred
+- `useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()` — under deferred
   semantics there's no stale-frame class to lint against; the reads
   are batch-invariant and feedback-loop-free
 - Hook implementations themselves (`packages/ag-react/src/hooks/`)

@@ -15,7 +15,7 @@ React tree → AgNode tree → Measure → Layout → Render → ANSI output
 
 **Measure** — React reconciler produces an `AgNode` tree. Each node's box props (width, height, flex, padding, etc.) become Flexily layout constraints.
 
-**Layout** — Flexily (pure JS flexbox, Yoga-compatible) calculates positions and sizes. Results land on `AgNode.layout` as `Rect { x, y, width, height }`. Also computes scroll offsets, sticky positions, and screen-relative rects. Components receive layout via `useBoxRect()` / `useScrollRect()`.
+**Layout** — Flexily (pure JS flexbox, Yoga-compatible) calculates positions and sizes. Results land on `AgNode.layout` as `Rect { x, y, width, height }`. Also computes scroll offsets, sticky positions, and screen-relative rects. Components receive layout via `useBoxRectDangerously()` / `useScrollRect()`.
 
 **Render** — Incremental content render to `TerminalBuffer`. Dirty flags (`contentDirty`, `stylePropsDirty`, `bgDirty`, `subtreeDirty`, `childrenDirty`) control which nodes re-render. Previous frame buffer is cloned; only dirty subtrees are re-rendered. Output phase diffs current vs previous buffer to produce minimal ANSI escape sequences. Layout dirty is tracked by Flexily (`node.layoutNode.isDirty()`) — no separate silvery-side flag.
 
@@ -29,13 +29,13 @@ Layout and reactivity are handled by two separate systems with a one-way sync br
 
 **@silvery/ag** (framework-agnostic signals) exposes layout results as reactive signals. After Flexily completes layout, `syncRectSignals()` copies node rects into writable signals (`boxRect`, `scrollRect`, `screenRect`). Similarly, `syncTextContentSignal()` and `syncFocusedSignal()` bridge reconciler and focus mutations into signals. Signals are WeakMap-backed and lazily created — nodes without subscribers pay no cost.
 
-**@silvery/ag-react** bridges signals to React. `useSignal(signal)` subscribes to any alien-signal and triggers re-renders on change. Semantic layout hooks (`useBoxRect()`, `useScreenRect()`, `useScrollRect()`) read the **committed** rect signal — the value as of the most recent event-batch commit boundary, invariant across every convergence pass within one batch. The runtime calls `commitLayoutSnapshot(root)` at each batch's commit boundary to advance the committed signals; reactive consumers see one stable value per batch and can't form feedback loops with the convergence loop. Use [`useResponsiveBoxProps`](/api/use-responsive-box-props) for declarative responsive layout (no measurement reads).
+**@silvery/ag-react** bridges signals to React. `useSignal(signal)` subscribes to any alien-signal and triggers re-renders on change. Semantic layout hooks (`useBoxRectDangerously()`, `useScreenRect()`, `useScrollRect()`) read the **committed** rect signal — the value as of the most recent event-batch commit boundary, invariant across every convergence pass within one batch. The runtime calls `commitLayoutSnapshot(root)` at each batch's commit boundary to advance the committed signals; reactive consumers see one stable value per batch and can't form feedback loops with the convergence loop. Use [`useResponsiveBoxProps`](/api/use-responsive-box-props) for declarative responsive layout (no measurement reads).
 
 ```
 Layer 0: alien-signals (signal, computed, effect)       — pure reactive primitives
 Layer 1: getLayoutSignals                               — @silvery/ag, framework-agnostic
 Layer 2: useSignal(signal)                              — @silvery/ag-react, React bridge
-Layer 3: useBoxRect, useScreenRect, useAgNode           — semantic convenience hooks
+Layer 3: useBoxRectDangerously, useScreenRect, useAgNode           — semantic convenience hooks
 ```
 
 The boundary is intentional: Flexily's `isDirty()` propagation is reliable and fast. Wrapping it in signals would create a parallel dirty-tracking system — signals are for _consumers_ of layout, not for the layout engine itself. This also keeps Flexily portable: signals in `@silvery/ag` work for React, Solid, canvas, DOM, or any future adapter.
@@ -93,7 +93,7 @@ Public packages (users install directly):
 
 - `useInput(handler)` — Keyboard/mouse input
 - `useLayout()` — Current node's layout rect
-- `useBoxRect()` / `useScrollRect()` — Content and screen-relative rects
+- `useBoxRectDangerously()` / `useScrollRect()` — Content and screen-relative rects
 - `useFocusable()` / `useFocusManager()` — Focus management
 - `useVirtualization()` — Virtual scrolling state
 - `useScrollRegion()` — Scroll containers

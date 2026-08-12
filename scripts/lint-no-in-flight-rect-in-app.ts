@@ -8,14 +8,14 @@
  * recent layout pass within the current convergence cycle). Reading them
  * during render AND writing a layout-affecting prop based on the read can
  * form a feedback edge with the convergence loop — the very feedback loop
- * that the deferred-only `useBoxRect()` contract was designed to eliminate
+ * that the deferred-only `useBoxRectDangerously()` contract was designed to eliminate
  * (silvery 63938779b6).
  *
  * The InFlight escape hatch exists for silvery framework internals that
  * genuinely need first-paint measurement and don't drive layout-affecting
  * props back into the React tree (Image, useCursor, useGridPosition,
  * AutoFit's intrinsic-measurement primitive). App code (silvercode, km-tui,
- * downstream consumers) must NOT import these — use `useBoxRect()` (deferred)
+ * downstream consumers) must NOT import these — use `useBoxRectDangerously()` (deferred)
  * or `useResponsiveBoxProps()` / `useResponsiveValue()` instead. See
  * [The Silvery Way §2](docs/guide/the-silvery-way.md).
  *
@@ -174,7 +174,9 @@ function main(): number {
     console.error(`    ${v.text}`)
   }
   console.error("")
-  console.error("Use the deferred form (`useBoxRect()` / `useScrollRect()` / `useScreenRect()`) or")
+  console.error(
+    "Use the deferred form (`useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()`) or",
+  )
   console.error(
     "the responsive primitives (`useResponsiveBoxProps()` / `useResponsiveValue()`) in app code.",
   )

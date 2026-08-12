@@ -2,7 +2,7 @@
  * Silvery - Next-gen Terminal UI Renderer with Layout Feedback
  *
  * React-based terminal UI framework. Ink-compatible API with components
- * that know their size via useBoxRect/useScrollRect hooks.
+ * that know their size via useBoxRectDangerously/useScrollRect hooks.
  *
  * ## Import Syntax
  *
@@ -10,7 +10,7 @@
  *
  * ```tsx
  * // Components and hooks
- * import { Box, Text, useBoxRect, useInput, useApp, render, createTerm, term } from '@silvery/ag-react'
+ * import { Box, Text, useBoxRectDangerously, useInput, useApp, render, createTerm, term } from '@silvery/ag-react'
  *
  * // Testing utilities
  * import { createRenderer, createAutoLocator } from '@silvery/test'
@@ -556,10 +556,6 @@ export type { SixelImageData } from "./ui/image/index"
  * when JS control flow legitimately needs a measured rect that does NOT
  * drive layout-affecting props back into the React tree.
  *
- * `useBoxRect` (no suffix) is kept as a deprecated alias for one release
- * cycle. It logs a dev-mode `console.warn` per call site so consumers see
- * the deprecation without spam. Will be removed in the next major.
- *
  * Bead: `@km/silvery/responsive-layout-architecture-reframe` (Phase A.1).
  *
  * @example
@@ -572,14 +568,14 @@ export type { SixelImageData } from "./ui/image/index"
  * }
  * ```
  */
-export { useBoxRectDangerously, useBoxRect, useScrollRect, useScreenRect } from "./hooks/useLayout"
+export { useBoxRectDangerously, useScrollRect, useScreenRect } from "./hooks/useLayout"
 
 /**
  * In-flight rect hooks — escape hatches for silvery framework internals
  * that need first-paint measurement and don't drive layout-affecting props
  * back into the React tree. Lint-gated to silvery internals via the
  * `silvery/no-in-flight-rect-in-app` ESLint rule. App code must use the
- * deferred form (`useBoxRect`) or `useResponsiveBoxProps`/`useResponsiveValue`
+ * deferred form (`useBoxRectDangerously`) or `useResponsiveBoxProps`/`useResponsiveValue`
  * instead. See [The Silvery Way §2](../../docs/guide/the-silvery-way.md).
  */
 export { useBoxRectInFlight, useScrollRectInFlight, useScreenRectInFlight } from "./hooks/useLayout"

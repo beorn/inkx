@@ -4,9 +4,10 @@
  * Every silvery node has three rects that differ only by how scroll and
  * sticky offsets are applied. Pick the one that matches your use case:
  *
- * - `useBoxRect()`    — layout position (border-box sized, minus padding/border).
- *                       Use for responsive sizing inside a component. Matches
- *                       CSS `clientWidth`/`clientHeight` for the content area.
+ * - `useBoxRectDangerously()` — layout position (border-box sized, minus
+ *                       padding/border). Use for responsive sizing inside a
+ *                       component. Matches CSS `clientWidth`/`clientHeight`
+ *                       for the content area.
  * - `useScrollRect()` — scroll-adjusted position, **pre** sticky clamping.
  *                       Use when you need the "natural" position of a node
  *                       in scrolled coordinates (can go off-screen).
@@ -23,8 +24,8 @@
  * React renders see one value per batch. After the batch's commit boundary
  * fires, the next batch sees the new value.
  *
- * This is the structural fix for the "render reads useBoxRect AND writes
- * a layout-affecting prop based on it" feedback loop. Under the in-flight
+ * This is the structural fix for the "render reads useBoxRectDangerously AND
+ * writes a layout-affecting prop based on it" feedback loop. Under the in-flight
  * model that preceded this hook (pre 2026-05-06), the read returned the
  * latest measurement during the same batch, which could differ between
  * the first and second convergence passes — causing the write to flip
@@ -134,8 +135,9 @@ const IN_FLIGHT_RECT_OBSERVED_KEY: Record<InFlightRectSignalKey, ObservedLayoutS
  * rect derived from the committed value via `getCommittedRect`.
  *
  * Within a single event batch the committed signal does not change — every
- * convergence pass sees the same value, so a render that reads useBoxRect
- * and writes a layout-affecting prop converges in one pass. After the
+ * convergence pass sees the same value, so a render that reads
+ * useBoxRectDangerously and writes a layout-affecting prop converges in one
+ * pass. After the
  * batch's commit boundary (handled by the runtime via
  * `commitLayoutSnapshot`), the next batch's first render sees the new
  * value.
@@ -232,34 +234,12 @@ export function useBoxRectDangerously(): Rect {
 }
 
 /**
- * @deprecated Renamed to `useBoxRectDangerously`. The original name read as
- * "the normal hook for getting your rect" — exactly the framing the Phase
- * A.1 rename is intended to break. App authors should reach for declarative
- * primitives first; this alias remains for one release cycle and logs a
- * dev-time warning per call site. Will be removed in the next major.
- *
- * Bead: `@km/silvery/responsive-layout-architecture-reframe`.
- */
-export function useBoxRect(): Rect {
-  // Deprecation warning fires once per call site in development. Skipped in
-  // production (won't ship) AND test (vitest's fail-on-console policy would
-  // trip on every test that exercises the legacy alias — including the very
-  // tests that verify backward-compat). Silvery's own internal call sites
-  // are migrated to `useBoxRectDangerously` as part of Phase A.1, so test
-  // suites don't see the warning either way.
-  if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
-    warnUseBoxRectDeprecation()
-  }
-  return useReactiveRect((committed, node) => deriveInnerRect(node, committed), "boxRectCommitted")
-}
-
-/**
  * Internal dimensions-only variant of the deferred box rect read.
  *
  * This is for framework primitives that build width/height-derived text
  * (Divider, ProgressBar, TextArea wrapping) but do not care where their
  * parent sits on screen. It subscribes to the same committed boxRect signal
- * as `useBoxRect()`, but only re-renders when the derived inner
+ * as `useBoxRectDangerously()`, but only re-renders when the derived inner
  * `{width,height}` changes. Scrolling and virtual-window spacer movement
  * often change x/y without changing dimensions; full-rect subscriptions wake
  * these primitives on every such frame and steal scroll budget.
@@ -292,32 +272,6 @@ export function useBoxSize(): BoxSize {
   markObservedLayoutSignal(node, "boxSize")
   const rect = deriveInnerRect(node, getLayoutSignals(node).boxRectCommitted())
   return rect ? { width: rect.width, height: rect.height } : EMPTY_SIZE
-}
-
-const useBoxRectWarnedCallSites = new Set<string>()
-
-function warnUseBoxRectDeprecation(): void {
-  // Dedupe per-call-site so the warning fires once per source location, not
-  // once per render. The first stack frame outside this file is the consumer.
-  const stack = new Error().stack ?? ""
-  const lines = stack.split("\n")
-  let consumerFrame = ""
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i] ?? ""
-    if (!line.includes("useLayout.ts") && line.trim().startsWith("at ")) {
-      consumerFrame = line.trim()
-      break
-    }
-  }
-  const key = consumerFrame || "<unknown>"
-  if (useBoxRectWarnedCallSites.has(key)) return
-  useBoxRectWarnedCallSites.add(key)
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[silvery] useBoxRect() is deprecated — rename to useBoxRectDangerously(), or migrate to a declarative primitive ` +
-      `(<Box fitWidth>, useResponsiveBoxProps, useResponsiveValue, useOnBoxRectCommitted). ` +
-      `See @km/silvery/responsive-layout-architecture-reframe. Call site: ${key}`,
-  )
 }
 
 // ============================================================================
@@ -377,7 +331,7 @@ export function useScreenRect(): Rect {
 // In-flight escape hatches — read the live (mid-batch) rect signal
 // ============================================================================
 //
-// The reactive `useBoxRect()` / `useScrollRect()` / `useScreenRect()` hooks
+// The reactive `useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()` hooks
 // return the COMMITTED rect (one frame deferred) — see this file's docstring
 // for the contract. The committed-only contract eliminates render → write →
 // re-measure feedback loops by construction, but it forces components that
@@ -421,7 +375,7 @@ export function useScreenRect(): Rect {
  * Use only inside silvery framework internals where first-paint measurement
  * is required and the consumer does not write layout-affecting props
  * derived from the read. App code must use the deferred form
- * (`useBoxRect()` / `useScrollRect()` / `useScreenRect()`) or
+ * (`useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()`) or
  * `useResponsiveBoxProps`/`useResponsiveValue` instead.
  */
 function useReactiveRectInFlight(
@@ -474,10 +428,11 @@ function useReactiveRectInFlight(
  * signal — the value as of the most recent layout pass, which may change
  * between convergence passes within an event batch.
  *
- * Silvery framework internals only — app code must use {@link useBoxRect}
- * (deferred) or `useResponsiveBoxProps`/`useResponsiveValue` instead.
+ * Silvery framework internals only — app code must use
+ * {@link useBoxRectDangerously} (deferred) or
+ * `useResponsiveBoxProps`/`useResponsiveValue` instead.
  *
- * Unlike {@link useBoxRect} (the deferred form), this hook returns the
+ * Unlike {@link useBoxRectDangerously} (the deferred form), this hook returns the
  * measured value on the first render after layout — there is no one-frame
  * fallback. The cost is that a render reading this hook AND writing a
  * layout-affecting prop can form a convergence-loop feedback edge; the
@@ -516,7 +471,7 @@ export function useScreenRectInFlight(): Rect {
 // Callback observers — fire on commit boundary without triggering re-render
 // ============================================================================
 //
-// The reactive `useBoxRect()` / `useScrollRect()` / `useScreenRect()` hooks
+// The reactive `useBoxRectDangerously()` / `useScrollRect()` / `useScreenRect()` hooks
 // re-render the consuming component every time the committed rect advances.
 // For hot paths where the rect change should NOT re-render the consumer
 // (cursor positioning, grid registry, decoration emission), the callback
@@ -575,8 +530,8 @@ function useOnRectCommitted(
 
 /**
  * Subscribes to the committed boxRect (inner content) and fires `cb` at
- * each commit boundary without re-rendering. See {@link useBoxRect} for
- * the deferred-rect contract; this is the observer form.
+ * each commit boundary without re-rendering. See {@link useBoxRectDangerously}
+ * for the deferred-rect contract; this is the observer form.
  */
 export function useOnBoxRectCommitted(cb: (rect: Rect) => void): void {
   useOnRectCommitted(cb, (committed, node) => deriveInnerRect(node, committed), "boxRectCommitted")

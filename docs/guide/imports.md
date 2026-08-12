@@ -19,7 +19,7 @@ import {
   snapshotGuest,
   useInput,
   useApp,
-  useBoxRect,
+  useBoxRectDangerously,
   createTerm,
 } from "silvery"
 
@@ -64,7 +64,7 @@ The app-facing package. Use this for components, hooks, render functions, themin
 ```tsx
 import { Box, Text, render, renderSync, renderStatic } from "silvery"
 import { Island, snapshotGuest, sandbox, createCellBuffer } from "silvery"
-import { useInput, useApp, useBoxRect, useFocusable } from "silvery"
+import { useInput, useApp, useBoxRectDangerously, useFocusable } from "silvery"
 import { TextInput, TextArea, ModalDialog, SelectList } from "silvery"
 import { ListView, ScrollbackView, SplitView, Table } from "silvery"
 import { ThemeProvider, useTheme, defaultDarkTheme } from "silvery"

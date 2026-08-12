@@ -789,7 +789,7 @@ CSS [`field-sizing`](https://developer.mozilla.org/en-US/docs/Web/CSS/field-sizi
 <TextArea value={code} fieldSizing="fixed" rows={16} />
 ```
 
-**Don't compute wrap math in your consumer.** A common anti-pattern is calling `useBoxRect` + `countVisualLines` to derive a `height={N}` for `<TextArea>`. Use `fieldSizing` / `minRows` / `maxRows` instead — the component knows about wrap, scroll, and clamping. Hand-rolled height math drifts from the wrap algorithm under width changes and IME input.
+**Don't compute wrap math in your consumer.** A common anti-pattern is calling `useBoxRectDangerously` + `countVisualLines` to derive a `height={N}` for `<TextArea>`. Use `fieldSizing` / `minRows` / `maxRows` instead — the component knows about wrap, scroll, and clamping. Hand-rolled height math drifts from the wrap algorithm under width changes and IME input.
 
 ## Theme System
 

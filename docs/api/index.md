@@ -49,7 +49,7 @@ Everything you need to build terminal UIs with Silvery.
 
 | Hook                                                   | Description                                                             |
 | ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| [useBoxRect](/api/use-box-rect)                        | Read the current Box's committed rect (border-box minus padding/border) |
+| [useBoxRectDangerously](/api/use-box-rect)             | Read the current Box's committed rect (border-box minus padding/border) |
 | [useScrollRect](/api/use-scroll-rect)                  | Scroll-adjusted rect — pre-sticky clamping                              |
 | [useScreenRect](/api/use-screen-rect)                  | Actual paint position on the terminal screen                            |
 | [useResponsiveBoxProps](/api/use-responsive-box-props) | Declarative responsive `<Box>` prop spread (canonical primitive)        |
@@ -92,7 +92,7 @@ import {
   Spinner,
   ProgressBar,
   render,
-  useBoxRect,
+  useBoxRectDangerously,
   useHotkey,
   useHotkeyMap,
   useTextInput,

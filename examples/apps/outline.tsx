@@ -9,7 +9,7 @@
  * - Left panel: Box with borderStyle — content area is smaller
  * - Right panel: Box with outlineStyle — content starts at edge
  * - Toggle between styles with Tab
- * - Live content dimensions via useBoxRect()
+ * - Live content dimensions via useBoxRectDangerously()
  *
  * Run: bun examples/apps/outline.tsx
  */
@@ -23,7 +23,7 @@ import {
   Muted,
   useInput,
   useApp,
-  useBoxRect,
+  useBoxRectDangerously,
   createTerm,
   type Key,
 } from "silvery"
@@ -32,7 +32,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Outline vs Border",
   description: "Side-by-side comparison showing outline (no layout impact) vs border",
-  features: ["outlineStyle", "borderStyle", "useBoxRect()", "layout dimensions"],
+  features: ["outlineStyle", "borderStyle", "useBoxRectDangerously()", "layout dimensions"],
 }
 
 // ============================================================================
@@ -48,7 +48,7 @@ const STYLES: StyleVariant[] = ["single", "double", "round", "bold"]
 // ============================================================================
 
 function ContentWithSize({ label }: { label: string }) {
-  const { width, height } = useBoxRect()
+  const { width, height } = useBoxRectDangerously()
 
   return (
     <Box flexDirection="column">

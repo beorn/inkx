@@ -4,7 +4,7 @@ Silvery supports responsive layout in three layers, ordered by how often you'll 
 
 1. **`useResponsiveBoxProps`** — declarative `<Box>`-prop spread driven by the global viewport. The canonical primitive for app chrome (sidebars, headers, multi-pane shells).
 2. **`useResponsiveValue`** — pick a non-Box-prop value (string, enum, callback) keyed by viewport breakpoint.
-3. **`useBoxRect` / `useScrollRect` / `useScreenRect`** — read the **committed** measured rect of the current Box. Use when the decision genuinely depends on the parent's measured size, not the global terminal width.
+3. **`useBoxRectDangerously` / `useScrollRect` / `useScreenRect`** — read the **committed** measured rect of the current Box. Use when the decision genuinely depends on the parent's measured size, not the global terminal width.
 
 ## The mental model
 
@@ -49,7 +49,7 @@ function AppShell({ sidebar, main }: { sidebar: React.ReactNode; main: React.Rea
 
 `useResponsiveBoxProps` accepts either a flat `Partial<BoxProps>` (no responsive variants — short-circuits without breakpoint resolution) or a `{ default, xs?, sm?, md?, lg?, xl? }` cascade. Each breakpoint variant merges on top of the previous one; you only specify the keys that change.
 
-This is the **canonical** responsive primitive — prefer it over reading `useBoxRect` for layout decisions.
+This is the **canonical** responsive primitive — prefer it over reading `useBoxRectDangerously` for layout decisions.
 
 ## Pattern 2: Non-Box-prop responsive values
 
@@ -72,11 +72,11 @@ const truncationLength = useResponsiveValue({
 
 ## Pattern 3: Measured-rect decisions
 
-When the responsive decision depends on the **measured rect of the current Box** (not the global terminal width), reach for `useBoxRect`:
+When the responsive decision depends on the **measured rect of the current Box** (not the global terminal width), reach for `useBoxRectDangerously`:
 
 ```tsx
 function ResponsiveCard() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   const direction = width < 60 ? "column" : "row"
   return (
     <Box flexDirection={direction}>
@@ -91,20 +91,20 @@ function ResponsiveCard() {
 }
 ```
 
-The reactive form of `useBoxRect` returns the **committed** rect: invariant across every convergence pass within one event batch. A render that branches on the read value produces the same output every pass — the convergence loop terminates in one pass. The historical "useBoxRect-driven width oscillation" feedback loop is impossible by construction.
+The reactive form of `useBoxRectDangerously` returns the **committed** rect: invariant across every convergence pass within one event batch. A render that branches on the read value produces the same output every pass — the convergence loop terminates in one pass. The historical "useBoxRectDangerously-driven width oscillation" feedback loop is impossible by construction.
 
 The cost is **one frame late on mount**: the first paint shows the empty-rect fallback (`{ width: 0, height: 0 }`), and the measured value arrives on the next render. For app chrome decisions where this flash is visible, prefer `useResponsiveBoxProps` — it doesn't depend on layout measurement.
 
 ## Migration from the old anti-pattern
 
-Pre-2026-05-06 silvery exposed the layout hooks with **in-flight** semantics — each rect read returned the latest measurement, which could change between convergence passes within a single batch. A render that branched on `useBoxRect` width and structurally mounted/unmounted a sidebar (`width >= 90 ? <WithSidebar/> : <NoSidebar/>`) could ping-pong: pass 1 measures 95 → renders WithSidebar → pass 2 measures 88 (sidebar took 7 cols) → renders NoSidebar → pass 3 measures 95 → loop until the convergence cap fired.
+Pre-2026-05-06 silvery exposed the layout hooks with **in-flight** semantics — each rect read returned the latest measurement, which could change between convergence passes within a single batch. A render that branched on `useBoxRectDangerously` width and structurally mounted/unmounted a sidebar (`width >= 90 ? <WithSidebar/> : <NoSidebar/>`) could ping-pong: pass 1 measures 95 → renders WithSidebar → pass 2 measures 88 (sidebar took 7 cols) → renders NoSidebar → pass 3 measures 95 → loop until the convergence cap fired.
 
 Under the deferred contract this can't happen. But the canonical fix for the pattern is still cleaner with `useResponsiveBoxProps`:
 
 ```tsx
 // Old anti-pattern (works under deferred semantics, but flashes on mount):
 function Panel() {
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
   return width >= 90 ? <WithSidebar /> : <NoSidebar />
 }
 
@@ -126,4 +126,4 @@ The declarative form has no first-frame flash and doesn't depend on layout measu
 
 - [`useResponsiveBoxProps`](/api/use-responsive-box-props)
 - [`useResponsiveValue`](/api/use-responsive-value)
-- [`useBoxRect`](/api/use-box-rect) / [`useScrollRect`](/api/use-scroll-rect) / [`useScreenRect`](/api/use-screen-rect)
+- [`useBoxRectDangerously`](/api/use-box-rect) / [`useScrollRect`](/api/use-scroll-rect) / [`useScreenRect`](/api/use-screen-rect)

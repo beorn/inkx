@@ -30,7 +30,16 @@ These are implementation details — you'll only need them for advanced use case
 Most apps import everything from `silvery`:
 
 ```tsx
-import { Box, Text, Island, snapshotGuest, render, useBoxRect, useInput, createTerm } from "silvery"
+import {
+  Box,
+  Text,
+  Island,
+  snapshotGuest,
+  render,
+  useBoxRectDangerously,
+  useInput,
+  createTerm,
+} from "silvery"
 ```
 
 ### Power-User Imports
@@ -85,7 +94,7 @@ Re-exports the application-facing surface from `@silvery/ag-react`. This is the 
 
 **Components**: Box, Text, Newline, Spacer, Static, Transform, Island, TextInput, TextArea, SelectList, Toggle, Button, Spinner, Pulse, ProgressBar, Table, Badge, Divider, VirtualList, VirtualView, Console, Image, Link, Form, FormField, Toast, CommandPalette, TreeView, Breadcrumb, SyntaxHighlighter, Tabs, TabList, Tab, TabPanel, Tooltip, Skeleton, ErrorBoundary, ModalDialog, PickerDialog, PickerList, SplitPane, SplitView, ThemeProvider.
 
-**Hooks**: useBoxRect, useScrollRect, useInput, useApp, useStdout, useFocus, useFocusManager, useFocusWithin, usePaste, useCursor, useAnimation, useAnimatedTransition, usePulse, useSynchronizedPhase, useScrollback, useToast.
+**Hooks**: useBoxRectDangerously, useScrollRect, useInput, useApp, useStdout, useFocus, useFocusManager, useFocusWithin, usePaste, useCursor, useAnimation, useAnimatedTransition, usePulse, useSynchronizedPhase, useScrollback, useToast.
 
 **Functions**: render, renderSync, renderToString, createTerm, createCellBuffer, createIsland, snapshotGuest, sandbox.
 

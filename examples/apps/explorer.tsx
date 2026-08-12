@@ -32,7 +32,7 @@ import {
   TabList,
   Tab,
   Divider,
-  useBoxRect,
+  useBoxRectDangerously,
   useInput,
   useApp,
   createTerm,
@@ -46,7 +46,7 @@ export const meta: ExampleMeta = {
   name: "Explorer",
   description: "Log viewer and process explorer with ListView search",
   demo: true,
-  features: ["ListView", "TextInput", "useBoxRect()", "useDeferredValue", "2000+ rows"],
+  features: ["ListView", "TextInput", "useBoxRectDangerously()", "useDeferredValue", "2000+ rows"],
 }
 
 // ============================================================================
@@ -309,7 +309,7 @@ function LogRow({ entry, isSelected }: { entry: LogEntry; isSelected: boolean })
 }
 
 function LogListArea({ entries, cursor }: { entries: LogEntry[]; cursor: number }) {
-  const { height } = useBoxRect()
+  const { height } = useBoxRectDangerously()
 
   return (
     <ListView
@@ -425,7 +425,7 @@ function ProcessListArea({
   cursor: number
   width: number
 }) {
-  const { height } = useBoxRect()
+  const { height } = useBoxRectDangerously()
 
   return (
     <ListView
@@ -447,7 +447,7 @@ function ProcessListArea({
 
 export function Explorer() {
   const { exit } = useApp()
-  const { width } = useBoxRect()
+  const { width } = useBoxRectDangerously()
 
   // Tab state
   const [activeTab, setActiveTab] = useState("logs")

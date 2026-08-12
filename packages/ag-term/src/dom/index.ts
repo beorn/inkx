@@ -12,10 +12,10 @@
  *
  * @example
  * ```tsx
- * import { renderToDOM, Box, Text, useBoxRect } from '@silvery/ag-term/dom';
+ * import { renderToDOM, Box, Text, useBoxRectDangerously } from '@silvery/ag-term/dom';
  *
  * function App() {
- *   const { width, height } = useBoxRect();
+ *   const { width, height } = useBoxRectDangerously();
  *   return (
  *     <Box flexDirection="column">
  *       <Text>Container size: {width}px × {height}px</Text>
@@ -41,7 +41,7 @@ import type { RenderBuffer } from "../render-adapter"
 // Re-export components and hooks for convenience
 export { Box, type BoxProps } from "@silvery/ag-react/components/Box"
 export { Text, type TextProps } from "@silvery/ag-react/components/Text"
-export { useBoxRectDangerously, useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
+export { useBoxRectDangerously, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
 export { useApp } from "@silvery/ag-react/hooks/useApp"
 
 // Re-export adapter utilities
