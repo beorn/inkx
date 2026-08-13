@@ -539,7 +539,7 @@ export {
   isKittyGraphicsSupported,
 } from "./ui/image/index"
 export type { KittyImageOptions, KittyPlaceOptions } from "./ui/image/index"
-export { encodeSixel, isSixelSupported } from "./ui/image/index"
+export { decodePngToRgba, encodeSixel, isSixelSupported } from "./ui/image/index"
 export type { SixelImageData } from "./ui/image/index"
 
 // =============================================================================

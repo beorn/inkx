@@ -428,7 +428,9 @@ function DocumentBlocks({
                 marginBottom={1}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
-                {block.content}
+                <Box width="100%" flexDirection="column">
+                  {block.content}
+                </Box>
               </BlockFrame>
             )
           case "paragraph":
