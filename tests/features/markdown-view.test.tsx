@@ -13,7 +13,7 @@
  */
 
 import React from "react"
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
 import {
   Box,
@@ -167,6 +167,33 @@ describe("MarkdownView — block elements", () => {
 })
 
 describe("DocumentView — shared document geometry", () => {
+  test("renders geometric media as a block without nesting its Box inside Text", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    try {
+      const app = renderDocument(
+        [
+          {
+            id: "diagram",
+            kind: "media",
+            content: (
+              <Box testID="diagram-media" width={12} height={3}>
+                <Text>diagram fallback</Text>
+              </Box>
+            ),
+          },
+        ],
+        32,
+      )
+
+      expect(app.getByTestId("diagram-media").first().boundingBox()).toMatchObject({ width: 12, height: 3 })
+      expect(warn).not.toHaveBeenCalledWith(
+        expect.stringContaining("<Box> cannot be nested inside <Text>"),
+      )
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
   test("reveals an off-screen block from its measured wrapped-row origin", async () => {
     const blocks: readonly DocumentBlock[] = [
       {

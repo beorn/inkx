@@ -82,6 +82,15 @@ export interface DocumentExtensionBlock extends DocumentBlockBase {
   readonly content: React.ReactNode
 }
 
+/**
+ * Geometric document content such as a terminal image. Unlike paragraph and
+ * extension content, media is deliberately not wrapped in `<Text>`.
+ */
+export interface DocumentMediaBlock extends DocumentBlockBase {
+  readonly kind: "media"
+  readonly content: React.ReactNode
+}
+
 export type DocumentBlock =
   | DocumentHeadingBlock
   | DocumentParagraphBlock
@@ -91,6 +100,7 @@ export type DocumentBlock =
   | DocumentRuleBlock
   | DocumentTableBlock
   | DocumentExtensionBlock
+  | DocumentMediaBlock
 
 export interface DocumentViewSearchConfig {
   /** Stable routing id when more than one searchable is mounted. */
@@ -405,6 +415,20 @@ function DocumentBlocks({
                   rows={block.rows.map((row) => [...row])}
                   alignments={block.alignments === undefined ? undefined : [...block.alignments]}
                 />
+              </BlockFrame>
+            )
+          case "media":
+            return (
+              <BlockFrame
+                key={block.id}
+                block={block}
+                selected={selected}
+                lane={blockLane}
+                marginTop={afterList ? 1 : undefined}
+                marginBottom={1}
+                onLayout={(y) => onBlockLayout?.(block.id, y)}
+              >
+                {block.content}
               </BlockFrame>
             )
           case "paragraph":

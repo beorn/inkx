@@ -254,6 +254,7 @@ export type {
   DocumentLane,
   DocumentListItem,
   DocumentListItemBlock,
+  DocumentMediaBlock,
   DocumentParagraphBlock,
   DocumentQuoteBlock,
   DocumentRuleBlock,
