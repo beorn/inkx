@@ -47,39 +47,15 @@ export { measureStats }
 
 import { syncRectSignals } from "@silvery/ag/layout-signals"
 
-// ============================================================================
-// Ink-compat Text measureFunc shim
-// ============================================================================
-//
-// Silvery's Text measureFunc reports CSS-correct intrinsic sizes:
-//   - non-wrappable Text (wrap=truncate*|clip|false) reports natural width
-//     as both min-content and max-content. Truncation is a paint-phase
-//     concern (handled by render-text.ts:formatTextLines reading layout.width).
-//
-// Ink's historical behavior conflates intrinsic measurement with render-time
-// clipping: <Box width={N}><Text wrap="truncate">...</Text></Box> measures
-// the Text as `min(naturalWidth, N)` so the parent Box "feels" like it
-// constrained the child. Yoga-preset flex layout (Ink-compat) has
-// flexShrink:0 + min:0, so without this clamp, Text overflows the Box.
-//
-// We preserve Ink semantics behind a module-level flag toggled by
-// `initInkCompat()` (see `@silvery/ink/ink-render.ts`). When enabled, the
-// non-wrappable branch falls back to the old `min(lineWidth, maxWidth)`
-// clamp at intrinsic-sizing time. Spec-correct silvery code (the default)
-// stays untouched.
+// Non-wrappable Text (wrap=truncate*|clip|false) reports natural width as both
+// min-content and max-content — truncation itself is a paint-phase concern
+// (render-text.ts:formatTextLines clips at layout.width). What the measureFunc
+// must NOT do is report natural width against a DEFINITE width budget; see the
+// resultWidth clamp below. Ink's historical `min(naturalWidth, N)` behavior
+// used to need a shim here to get that clamp; the clamp is now unconditional,
+// so Ink-compat and spec-correct silvery agree and the shim is gone.
 //
 // Tracking bead: km-silvery.text-intrinsic-vs-render.
-let inkCompatTextMeasure = false
-
-/**
- * Enable the Ink-compat Text measureFunc shim. Called by `initInkCompat()`
- * when consumers import from `@silvery/ink`. Idempotent.
- *
- * @internal
- */
-export function setInkCompatTextMeasure(enabled: boolean): void {
-  inkCompatTextMeasure = enabled
-}
 
 // ============================================================================
 // Node Creation
@@ -384,18 +360,23 @@ export function createNode(
       //   - min-content query: return actualWidth as-is — the maxWidth
       //     clamp would zero out the longest-word answer (we set
       //     maxWidth=0 above for the min-content protocol).
-      //   - non-wrappable: natural width as-is (no maxWidth clamp — render
-      //     phase clips at paint time). Under the Ink-compat shim, fall
-      //     back to `min(actualWidth, maxWidth)` to preserve Ink's
-      //     conflated intrinsic-vs-render semantics.
-      //   - wrappable / hard: clamp to maxWidth so flex distribution sees
-      //     post-wrap width (e.g. wrapped "Hello world" at width=6 reports
-      //     width=5, the longest wrapped line).
-      const resultWidth = isMinContentQuery
-        ? actualWidth
-        : isTruncate && !inkCompatTextMeasure
-          ? actualWidth
-          : Math.min(actualWidth, maxWidth)
+      //   - everything else: clamp to maxWidth. For wrappable text that makes
+      //     flex distribution see post-wrap width (wrapped "Hello world" at
+      //     width=6 reports 5, the longest wrapped line). For non-wrappable
+      //     text the clamp is inert on the max-content query (maxWidth is
+      //     Infinity when widthMode is "undefined", so shrink-wrap parents
+      //     still size to full natural width) and load-bearing under a
+      //     DEFINITE budget: "at-most"/"exactly" is the container stating how
+      //     much room the item actually gets, which is a used-size question,
+      //     not an intrinsic one. Answering natural width there puts the item
+      //     outside its parent's content box — on the CROSS axis nothing ever
+      //     pulls it back, because flexily only issues the min-content query
+      //     that lets shrink rescue the MAIN axis. That is how a
+      //     `wrap="truncate"` Text in a bordered column painted straight over
+      //     the right border (@yrd RUNNER box, 2026-08-13). The height branch
+      //     directly above has honored "at-most" for the same reason since
+      //     text started overflowing into parent border ROWS.
+      const resultWidth = isMinContentQuery ? actualWidth : Math.min(actualWidth, maxWidth)
       const result = {
         width: resultWidth,
         height: resultHeight,
