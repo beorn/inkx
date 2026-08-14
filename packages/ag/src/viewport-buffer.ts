@@ -113,6 +113,7 @@ export function createCellBuffer(cols: number, rows: number): MutableCellBuffer 
           fg: c.fg,
           bg: c.bg,
           attrs: c.attrs,
+          hyperlink: c.hyperlink,
           wide: c.wide,
           continuation: c.continuation,
         }
