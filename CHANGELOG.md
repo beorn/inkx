@@ -174,7 +174,21 @@ input out of the box. `fieldSizing="fixed"` mirrors HTML
 `useTextArea(...)` (the headless hook) still takes `height: number` —
 consumers calling it directly choose the viewport height themselves.
 
-## 0.23.3 — Ship the truncate clip fix, and repair the gate that hid it
+## 0.24.0 — Ship the truncate clip fix, and repair the gate that hid it
+
+A minor, not a patch: 77 commits separate this from 0.23.2, including nine
+features and one removal of public surface (below). On 0.x the minor bump is the
+breaking-change signal.
+
+### Removed
+
+- The deprecated `useBoxRect` alias (from `@silvery/ag-react`). The hook was
+  renamed to `useBoxRectDangerously` in 0.15.0 and the old name kept as a
+  dev-warning alias; that grace period is over. Import
+  `useBoxRectDangerously`, or prefer the declarative responsive primitives
+  that replaced the measure-then-rerender pattern.
+
+### Fixed and added
 
 - Clip a truncating `Text` to a definite width budget on both axes, so elided
   text inside a shrinking row keeps its ellipsis marker instead of losing the

@@ -1,6 +1,6 @@
 {
   "name": "@silvery/test",
-  "version": "0.23.3",
+  "version": "0.24.0",
   "private": true,
   "description": "Testing utilities for silvery — virtual renderer, locators, assertions",
   "license": "MIT",
@@ -50,10 +50,10 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@silvery/ag": "0.23.3",
-    "@silvery/ag-react": "0.23.3",
-    "@silvery/ag-term": "0.23.3",
-    "@silvery/create": "0.23.3",
+    "@silvery/ag": "0.24.0",
+    "@silvery/ag-react": "0.24.0",
+    "@silvery/ag-term": "0.24.0",
+    "@silvery/create": "0.24.0",
     "@termless/core": "^0.8.1",
     "@termless/ghostty": "^0.8.2",
     "@termless/ghostty-native": "^0.8.1",
