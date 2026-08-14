@@ -87,6 +87,7 @@ import { recordOutputCursorDiagnostics } from "../cursor-diagnostics"
 import { computeManagedFrame, protectManagedCursorSuffix } from "../managed-caret"
 import { createBytesOutMonitor } from "../bytes-out-monitor"
 import { createMemMonitor } from "../mem-monitor"
+import { resolveTerminalLinkAt, type TerminalLinksOptions } from "../terminal-links"
 import {
   clearLastOutputPhaseDiagnostics,
   getLastOutputPhaseDiagnostics,
@@ -542,6 +543,8 @@ export interface AppRunOptions {
   /** Terminal dimensions (default: from process.stdout) */
   cols?: number
   rows?: number
+  /** Produce link:open events from visible terminal cells. */
+  terminalLinks?: TerminalLinksOptions
   /** Standard output (default: process.stdout) */
   stdout?: NodeJS.WriteStream
   /** Standard input (default: process.stdin) */
@@ -1061,6 +1064,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     onResize: explicitOnResize,
     resizeCoalesceMs: explicitResizeCoalesceMs,
     input: inputOption,
+    terminalLinks: terminalLinksOption,
     ...injectValues
   } = options
   // When the caller opts out (`input: false`), the runtime treats stdin
@@ -3978,6 +3982,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     event: NamespacedEvent,
     { skipSelection = false }: { skipSelection?: boolean } = {},
   ): boolean | "flush" {
+    const mouseDataForTerminalLink =
+      terminalLinksOption && event.type === "term:mouse" && event.data
+        ? (event.data as { action: string; button: number; x: number; y: number })
+        : null
+    const terminalLinkReleaseArmed =
+      mouseDataForTerminalLink?.action === "up" &&
+      mouseDataForTerminalLink.button === 0 &&
+      mouseEventState.mouseDownTarget !== null &&
+      mouseEventState.keyboardModifiers.super
     // Virtual inline: intercept search key events
     if (scrollback && searchState.active && event.type === "term:key") {
       const data = event.data as { input: string; key: Key }
@@ -4464,6 +4477,36 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           }
         }
         paintFrame()
+      }
+    }
+
+    // Terminal-cell links are a fallback producer on the existing link:open
+    // rail. This runs after selection and component dispatch: a drag returned
+    // above, while a Link/component that handled the click set
+    // lastClickPrevented. Only the pointed visible row is inspected.
+    if (
+      mouseDataForTerminalLink &&
+      currentBuffer &&
+      terminalLinksOption &&
+      (mouseDataForTerminalLink.action === "move" || terminalLinkReleaseArmed)
+    ) {
+      const href = resolveTerminalLinkAt(
+        currentBuffer._buffer,
+        mouseDataForTerminalLink.x,
+        mouseDataForTerminalLink.y,
+        terminalLinksOption,
+      )
+      if (
+        mouseDataForTerminalLink.action === "move" &&
+        mouseEventState.keyboardModifiers.super &&
+        href &&
+        mouseEventState.lastMouseCursor !== "pointer"
+      ) {
+        mouseEventState.lastMouseCursor = "pointer"
+        mouseEventState.onMouseCursorChange?.("pointer")
+      }
+      if (terminalLinkReleaseArmed && !mouseEventState.lastClickPrevented && href) {
+        chainApp.events.emit("link:open", href)
       }
     }
 

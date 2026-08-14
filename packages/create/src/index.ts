@@ -188,6 +188,14 @@ export type { AppWithReact, WithReactOptions, ViewFactory } from "./with-react"
 export { withTerminal } from "./with-terminal"
 export type { WithTerminalOptions, AppWithTerminal, ProcessLike } from "./with-terminal"
 
+export { withTerminalLinks } from "@silvery/ag-term/plugins/with-terminal-links"
+export type {
+  AppWithTerminalLinks,
+  TerminalLinkDetector,
+  TerminalLinkSpan,
+  TerminalLinksOptions,
+} from "@silvery/ag-term/plugins/with-terminal-links"
+
 export { withFocus } from "./with-focus"
 export type { WithFocusOptions, AppWithFocus } from "./with-focus"
 

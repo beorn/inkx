@@ -52,6 +52,7 @@ import type { ParseMouseOptions } from "../mouse"
 import { preloadStrictTerminalBackends } from "../strict-terminal-backends"
 import { strictTerminalBackends } from "../pipeline/output-verify"
 import { isCursorStrictEnabled } from "../cursor-diagnostics"
+import type { TerminalLinksOptions } from "../terminal-links"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
@@ -89,6 +90,8 @@ export interface RunOptionsCommon {
   /** Terminal dimensions (default: from process.stdout) */
   cols?: number
   rows?: number
+  /** Produce link:open events from visible terminal cells. */
+  terminalLinks?: TerminalLinksOptions
   /** Standard output (default: process.stdout) */
   stdout?: NodeJS.WriteStream
   /** Standard input (default: process.stdin) */
@@ -585,6 +588,7 @@ export async function run(
       focusReporting: true,
       textSizing: "auto",
       widthDetection: "auto",
+      terminalLinks: termOptions?.terminalLinks,
       // Forward the stdin opt-out so createApp's probes + cleanup paths
       // skip stdin ownership end-to-end.
       ...(termInputDisabled ? { input: false as const } : {}),
