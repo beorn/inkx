@@ -137,6 +137,6 @@ describe("truncate keeps the layout width it was given", () => {
     const app = renderBoxed("column", "truncate")
     const root = (app as unknown as { getContainer: () => { children: unknown[] } }).getContainer()
     const box = (root.children as { children: { boxRect: { width: number } | null }[] }[])[0]
-    expect(box.children[0]!.boxRect?.width).toBe(INNER_WIDTH)
+    expect(box!.children[0]!.boxRect?.width).toBe(INNER_WIDTH)
   })
 })
