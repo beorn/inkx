@@ -40,6 +40,12 @@ export interface NamespacedEvent {
   data: unknown
 }
 
+export type TerminalLinkActivation = (
+  event: NamespacedEvent,
+  mouseEventState: MouseEventProcessorState,
+  root: AgNode,
+) => boolean
+
 // ============================================================================
 // Handler Context
 // ============================================================================
@@ -524,11 +530,16 @@ export function invokeEventHandler<S>(
   ctx: EventHandlerContext<S>,
   mouseEventState: MouseEventProcessorState,
   container: Container,
+  activateTerminalLink?: TerminalLinkActivation,
 ): boolean | "flush" {
   // DOM-level mouse event dispatch FIRST — component handlers (onClick, etc.)
   // can call preventDefault() to suppress the app-level handler.
   const root = getContainerRoot(container)
   const prevented = dispatchMouseEventToTree(event, mouseEventState, root)
+
+  // Component veto wins; terminal activation then wins over guest routing.
+  // Selection drag is resolved by the runtime before reaching this function.
+  if (!prevented && activateTerminalLink?.(event, mouseEventState, root)) return true
 
   if (!prevented && routeMouseToFocusedIsland(event, ctx.focusManager)) return true
 

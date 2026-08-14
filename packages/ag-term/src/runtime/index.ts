@@ -86,6 +86,13 @@ export { writeStderrDurably, type WriteStderrDurablyDeps } from "./stderr-durabl
 // Layer 1: Runtime kernel
 export { createRuntime } from "./create-runtime"
 
+export {
+  withTerminalLinks,
+  type TerminalLinkSpan,
+  type TerminalLinksFeature,
+  type WithTerminalLinksOptions,
+} from "../features/terminal-links"
+
 // Layer 2 (themed shortcut): runThemed — detectScheme + ThemeProvider + run
 export { runThemed } from "./themed"
 export type { RunThemedOptions } from "./themed"

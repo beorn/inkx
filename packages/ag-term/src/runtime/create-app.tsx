@@ -152,6 +152,7 @@ import {
 import { detectKittyWithProbe } from "../kitty-detect"
 import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
 import type { Buffer, Dims, Provider, RenderTarget } from "./types"
+import type { TerminalLinksFeature } from "../features/terminal-links"
 import {
   createTerminalSelectionState,
   terminalSelectionUpdate,
@@ -594,6 +595,8 @@ export interface AppRunOptions {
    * Default: false
    */
   mouse?: boolean | ParseMouseOptions
+  /** Opt-in Island cell-link projection and modifier-click activation. */
+  terminalLinks?: TerminalLinksFeature
   /**
    * Enable virtual inline mode: alt screen with virtual scrollback buffer.
    * Provides scrollable history + search (Ctrl+F) while using fullscreen rendering.
@@ -1041,6 +1044,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // `mouse` (true / false / ParseMouseOptions) always wins. `alternateScreen`
     // is destructured just above, so this default reads its resolved value.
     mouse: mouseOption = alternateScreen,
+    terminalLinks: terminalLinksOption,
     virtualInline: virtualInlineOption = false,
     suspendOnCtrlZ: suspendOption = true,
     exitOnCtrlC: exitOnCtrlCOption = true,
@@ -3354,7 +3358,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     ansiTrace: _ansiTrace,
     perfLog: _perfLog,
   })
-  const doRender = renderer.doRender
+  // Keep the absent path call-for-call identical: no wrapper, Island walk, or
+  // detector exists unless the app explicitly installs the feature.
+  const doRender = terminalLinksOption
+    ? () => terminalLinksOption.decorate(getContainerRoot(container), renderer.doRender())
+    : renderer.doRender
 
   // Startup ordering — both invariants must hold:
   //
@@ -4411,7 +4419,36 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
 
     const ctx = createHandlerContext(store, focusManager, container)
-    const result = invokeEventHandler(event, handlers, ctx, mouseEventState, container)
+    const result = invokeEventHandler(
+      event,
+      handlers,
+      ctx,
+      mouseEventState,
+      container,
+      terminalLinksOption
+        ? (mouseEvent, state, root) => {
+            if (mouseEvent.event !== "mouse" || !mouseEvent.data) return false
+            const data = mouseEvent.data as {
+              action: string
+              button: number
+              x: number
+              y: number
+            }
+            if (data.action !== "up" || data.button !== 0 || !state.keyboardModifiers.super) {
+              return false
+            }
+            const href = terminalLinksOption.hrefAt(
+              root,
+              currentBuffer,
+              Math.floor(data.x),
+              Math.floor(data.y),
+            )
+            if (href === null) return false
+            chainApp.events.emit("link:open", href)
+            return true
+          }
+        : undefined,
+    )
 
     // Apply deferred word/line auto-select gated on the component tree's
     // defaultPrevented. Captured on mouseup-from-armed (clickCount >= 2);

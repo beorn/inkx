@@ -49,6 +49,7 @@ import type { TerminalCaps } from "../terminal-caps"
 import { setInputOwnerMouseOptions, type InputOwner } from "./input-owner"
 import { getInternalStreams } from "./term-internal"
 import type { ParseMouseOptions } from "../mouse"
+import type { TerminalLinksFeature } from "../features/terminal-links"
 import { preloadStrictTerminalBackends } from "../strict-terminal-backends"
 import { strictTerminalBackends } from "../pipeline/output-verify"
 import { isCursorStrictEnabled } from "../cursor-diagnostics"
@@ -118,6 +119,8 @@ export interface RunOptionsCommon {
    * lives in terminal scrollback and natural scrolling is expected).
    */
   mouse?: boolean | ParseMouseOptions
+  /** Opt-in Island cell-link projection and modifier-click activation. */
+  terminalLinks?: TerminalLinksFeature
   /**
    * Enable buffer-level text selection via mouse drag.
    * When enabled, left-mouse-drag selects text and mouse-up copies the
