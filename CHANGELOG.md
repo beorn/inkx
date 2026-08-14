@@ -174,6 +174,23 @@ input out of the box. `fieldSizing="fixed"` mirrors HTML
 `useTextArea(...)` (the headless hook) still takes `height: number` —
 consumers calling it directly choose the viewport height themselves.
 
+## 0.23.3 — Ship the truncate clip fix, and repair the gate that hid it
+
+- Clip a truncating `Text` to a definite width budget on both axes, so elided
+  text inside a shrinking row keeps its ellipsis marker instead of losing the
+  last cell. This landed on main as 58319a17f but was never published: the
+  release that would have carried it went out as 0.23.2 before the fix existed,
+  and no version bump followed, so npm's 0.23.2 has the bug.
+- Give document media blocks a definite width, and add geometric media blocks.
+- `@silvery/headless` no longer lists a deleted `src/find.ts` in its tsdown
+  entry list. That stale entry made `bun run build:all` — and therefore
+  `verify-publishable` — fail outright, so the pre-publish gate could not run at
+  all on any commit after the semantic-search consolidation.
+
+Note: the `[Unreleased]` section above has not been cut since 0.21.1 and mixes
+changes already shipped in 0.22.x/0.23.x with changes still pending. It is not a
+reliable record of what this release contains.
+
 ## 0.21.1 — Production imports and flexible tables
 
 - Load React through its namespace so production builds do not statically import

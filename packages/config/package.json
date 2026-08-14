@@ -1,6 +1,6 @@
 {
   "name": "@silvery/config",
-  "version": "0.23.2",
+  "version": "0.23.3",
   "description": "Generic config-tree + named-registry primitives with string ↔ object projection",
   "keywords": [
     "config",
@@ -48,7 +48,7 @@
     "yaml": ">=2.0.0"
   },
   "peerDependencies": {
-    "@silvery/commander": "0.23.2",
+    "@silvery/commander": "0.23.3",
     "zod": ">=3.0.0"
   },
   "peerDependenciesMeta": {

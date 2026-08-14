@@ -1,6 +1,6 @@
 {
   "name": "@silvery/ag-react",
-  "version": "0.23.2",
+  "version": "0.23.3",
   "private": true,
   "description": "Core React reconciler and runtime for silvery (internal — use silvery instead)",
   "license": "MIT",
@@ -254,13 +254,13 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@silvery/ag": "0.23.2",
-    "@silvery/ag-term": "0.23.2",
-    "@silvery/create": "0.23.2",
-    "@silvery/headless": "0.23.2",
-    "@silvery/scope": "0.23.2",
-    "@silvery/syntax": "0.23.2",
-    "@silvery/theme": "0.23.2",
+    "@silvery/ag": "0.23.3",
+    "@silvery/ag-term": "0.23.3",
+    "@silvery/create": "0.23.3",
+    "@silvery/headless": "0.23.3",
+    "@silvery/scope": "0.23.3",
+    "@silvery/syntax": "0.23.3",
+    "@silvery/theme": "0.23.3",
     "loggily": "^0.10.0",
     "upng-js": "^2.1.0"
   },
