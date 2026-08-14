@@ -62,6 +62,7 @@ function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
     fg: cell.fg === null ? null : (parseColor(cell.fg) as Color),
     bg: cell.bg === null ? inheritedBg : (parseColor(cell.bg) as Color),
     attrs: cell.attrs,
+    hyperlink: cell.hyperlink,
     wide: cell.wide,
     continuation: cell.continuation,
   }
