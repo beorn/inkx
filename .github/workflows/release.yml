@@ -103,6 +103,11 @@ jobs:
       # Pin to ${{ github.ref_name }} (e.g. v0.19.2 → 0.19.2) instead of
       # `npm install silvery` (which resolves the `latest` dist-tag and
       # races with CDN propagation immediately after publish).
+      # v0.24.0 exhausted a 60s window and the re-run passed minutes later,
+      # so the budget is 10 minutes with 5s backoff doubling to a 60s cap.
+      # Every attempt prints elapsed seconds, and a first-attempt miss is
+      # called out on success: a slow propagation must stay visible in the
+      # log rather than being smoothed away by the wider window.
       - name: Smoke test
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -110,20 +115,34 @@ jobs:
           cd "$dir"
           npm init -y --silent
           echo "Installing silvery@$version from npm..."
-          for attempt in {1..12}; do
+          budget=600
+          delay=5
+          attempt=0
+          start=$SECONDS
+          while :; do
+            attempt=$((attempt + 1))
+            elapsed=$((SECONDS - start))
+            echo "--- attempt $attempt at ${elapsed}s elapsed (budget ${budget}s) ---"
             if npm install --no-package-lock "silvery@$version" 2>&1; then
+              elapsed=$((SECONDS - start))
+              if [ "$attempt" -gt 1 ]; then
+                echo "::warning::silvery@$version needed $attempt attempts over ${elapsed}s to propagate to the registry"
+              fi
               break
             fi
-            if [ "$attempt" -eq 12 ]; then
-              echo "silvery@$version did not propagate to the registry in time"
+            elapsed=$((SECONDS - start))
+            if [ "$elapsed" -ge "$budget" ]; then
+              echo "silvery@$version did not propagate to the registry within ${budget}s ($attempt attempts, ${elapsed}s elapsed)"
               exit 1
             fi
-            echo "Registry has not propagated silvery@$version yet; retrying in 5s..."
-            sleep 5
+            echo "Registry has not propagated silvery@$version yet (${elapsed}s elapsed); retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$((delay * 2))
+            if [ "$delay" -gt 60 ]; then delay=60; fi
           done
           echo "Verifying import..."
           node --experimental-strip-types -e "import 'silvery'" 2>&1
-          echo "✅ Smoke test passed for silvery@$version"
+          echo "✅ Smoke test passed for silvery@$version after $((SECONDS - start))s"
           rm -rf "$dir"
 
       - name: Create GitHub Release
