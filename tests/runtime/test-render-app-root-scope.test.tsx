@@ -44,6 +44,30 @@ import {
 import { useScope, useAppScope, useScopeEffect } from "@silvery/ag-react/hooks"
 import { ScopeProvider } from "@silvery/ag-react/ScopeProvider"
 
+/**
+ * Drain queued microtasks until `predicate` holds, or give up after `limit`
+ * turns and let the caller's assertion report the failure.
+ *
+ * `unmount()` is sync and fire-and-forgets `renderScope[Symbol.asyncDispose]()`,
+ * so the root scope's `disposed` flag flips some microtasks later. HOW MANY is
+ * an implementation detail of `Scope`'s teardown — awaiting a fixed number of
+ * turns made this test brittle, and 5ea15c6c4 ("join app lifecycle teardown")
+ * broke it by memoizing the dispose promise, which lengthened the chain from
+ * two turns to five. Wait for the CONDITION instead of counting hops.
+ *
+ * This does not weaken the assertion: the test never disposes the scope
+ * itself, so a root scope that reaches `disposed` here was disposed by
+ * `unmount()` and nothing else. A genuinely leaking scope exhausts `limit`
+ * and still fails.
+ */
+async function drainMicrotasksUntil(predicate: () => boolean, limit = 100): Promise<void> {
+  for (let i = 0; i < limit; i++) {
+    if (predicate()) return
+    // eslint-disable-next-line no-await-in-loop -- draining turns is serial by nature
+    await Promise.resolve()
+  }
+}
+
 describe("createRenderer/render provides a per-render app-root scope", () => {
   // --------------------------------------------------------------------------
   // Test 1 + 2 — useScopeEffect renders without throwing; scope is real
@@ -118,16 +142,16 @@ describe("createRenderer/render provides a per-render app-root scope", () => {
       // child scope synchronously), then the renderer fires
       // `renderScope[Symbol.asyncDispose]()` fire-and-forget (sync unmount,
       // mirroring create-app). The root scope's dispose AWAITS its (already
-      // detached) child, so `.disposed` flips on the next microtask, not
-      // synchronously — the same `await settle()` shape the run()/createApp
-      // lifecycle-scope test uses. The child scope, disposed directly by
-      // fiber teardown, is already `disposed === true` here.
+      // detached) child, so `.disposed` flips a few microtasks later, not
+      // synchronously — see `drainMicrotasksUntil` above for why the exact
+      // number is not something this test may assume. The child scope,
+      // disposed directly by fiber teardown, is already `disposed === true`
+      // here.
       app.unmount()
       expect(setupScope!.disposed).toBe(true)
 
-      // Drain the fire-and-forget app-root dispose microtask.
-      await Promise.resolve()
-      await Promise.resolve()
+      // Drain the fire-and-forget app-root dispose microtasks.
+      await drainMicrotasksUntil(() => rootScope!.disposed)
       expect(rootScope!.disposed).toBe(true)
 
       // The timeout was cancelled by scope disposal — advancing well past

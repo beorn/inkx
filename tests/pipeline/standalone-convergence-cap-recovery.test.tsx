@@ -53,11 +53,11 @@
  */
 
 import React, { useEffect, useLayoutEffect, useState } from "react"
-import { describe, test, expect, beforeAll, afterAll } from "vitest"
+import { describe, test, expect, beforeAll, afterAll, vi } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text } from "../../src/index.js"
-import { run } from "../../packages/ag-term/src/runtime/run"
+import { _resetPanicCircuitBreaker, run } from "../../packages/ag-term/src/runtime/run"
 import {
   resetPassRing,
   formatPassRingBreakdown,
@@ -141,55 +141,77 @@ function PerpetualStream() {
 }
 
 /**
- * Drives PerpetualStream until the bounded-streak guard throws, returning the
- * captured "convergence bound exceeded" rejections. The guard makes the void-ed
- * standalone frame throw, so this scenario MUST produce real unhandled
- * rejections; we swap the process listeners for the drive so the deliberate
- * rejections are captured here rather than failing the vitest worker or racing
- * create-app's panic handler, then restore the originals.
+ * Drives PerpetualStream until the bounded-streak guard fires, returning the
+ * captured "convergence bound exceeded" panic reports.
+ *
+ * WHERE THE FAIL-LOUD SURFACES. The guard throws out of
+ * `drainStandaloneCommitRerenders`, which rejects the standalone frame's
+ * promise. `create-app.tsx`'s `startStandaloneFrame` attaches a rejection
+ * handler to that promise and routes the error to `panicApp(error, { title:
+ * "standalone render" })`, which records a panic report and flushes it to
+ * stderr. So the escalation is a PANIC, not an unhandled rejection.
+ *
+ * This harness used to sandbox `process.on("unhandledRejection")` and assert on
+ * what landed there. That channel was correct when the frame promise was
+ * genuinely void-ed with no handler, but 5ea15c6c4 ("join app lifecycle
+ * teardown") introduced `standaloneFrameTasks` + the panic-routing rejection
+ * handler — after which the rejection is HANDLED and no unhandled rejection is
+ * ever emitted. The test kept passing its own (empty) capture list to the
+ * assertion and went red. Observing stderr tracks the contract the test names:
+ * the edge must fail LOUD, and loud means the operator sees it.
+ *
+ * Swapping `process.stderr.write` is the supported seam — `writeStderrDurably`
+ * deliberately declines its `writeSync` fast path when the method has been
+ * intercepted, precisely so tests capture panic output instead of leaking it to
+ * the real terminal. Mirrors `tests/runtime/auto-panic-circuit-break.test.tsx`.
  */
-async function driveStandalonePerpetual(): Promise<unknown[]> {
-  const captured: unknown[] = []
-  const isConvergenceThrow = (r: unknown) => /convergence bound exceeded/i.test(String(r))
-  const capture = (r: unknown) => captured.push(r)
-  // Snapshot + silence every existing unhandledRejection listener (vitest's
-  // worker handler included) for the drive: the perpetual edge deliberately
-  // makes the void-ed standalone frame throw, so it MUST emit real rejections.
-  // We want ONLY our own capture to see them — otherwise vitest's handler fails
-  // the worker on the deliberate rejection.
-  const original = process.listeners("unhandledRejection")
+async function driveStandalonePerpetual(): Promise<string[]> {
+  const stderrChunks: string[] = []
+  const isConvergencePanic = (s: string) => /convergence bound exceeded/i.test(s)
+  const origStderrWrite = process.stderr.write
+  const origStdoutWrite = process.stdout.write
+  const origExitCode = process.exitCode
+  // Snapshot + silence existing unhandledRejection listeners (vitest's worker
+  // handler included) for the drive. The panic path is the expected route, but
+  // a deliberately-panicking app tearing down mid-frame can still surface a
+  // stray rejection, and that must not fail the worker.
+  const originalListeners = process.listeners("unhandledRejection")
   process.removeAllListeners("unhandledRejection")
-  process.on("unhandledRejection", capture)
+  process.stderr.write = ((chunk: unknown) => {
+    stderrChunks.push(typeof chunk === "string" ? chunk : String(chunk))
+    return true
+  }) as typeof process.stderr.write
+  process.stdout.write = ((_chunk: unknown) => true) as typeof process.stdout.write
+  // Production exits the process once the per-run dump cap trips; tests opt out
+  // so the runner survives a deliberate panic.
+  vi.stubEnv("SILVERY_AUTO_PANIC_TEST_NO_EXIT", "1")
+  _resetPanicCircuitBreaker()
   try {
     using term = createTermless({ cols: 40, rows: 20 })
     resetPassRing()
     const handle = await run(<PerpetualStream />, term)
-    // run() installed create-app's own unhandledRejection→panic handler. Strip
-    // it too so our deliberate rejections are captured cleanly instead of
-    // panicking (the panic logs during teardown → vitest EnvironmentTeardownError).
-    // The kick is a setTimeout(0) macrotask and the guard needs 6 consecutive
-    // frames, so no throw can fire before this runs.
-    for (const l of process.listeners("unhandledRejection")) {
-      if (l !== capture) process.off("unhandledRejection", l)
-    }
-    // Poll until the guard throws — terminate via the thrown error, not a
+    // Poll until the panic lands — terminate on the observed escalation, not a
     // wall-clock timeout. Each standalone frame yields at its setImmediate
     // boundary, so a few settles cover the > STANDALONE_CAP_STREAK_LIMIT (= 5)
-    // consecutive cap-exceed frames the guard needs before it escalates.
-    for (let i = 0; i < 12; i++) {
+    // consecutive cap-exceed frames the guard needs, plus panicApp's 75ms
+    // late-stdin drain before cleanup() flushes the report to stderr.
+    for (let i = 0; i < 30; i++) {
       // eslint-disable-next-line no-await-in-loop -- serial drive ticks
       await settle(20)
-      if (captured.some(isConvergenceThrow)) break
+      if (stderrChunks.some(isConvergencePanic)) break
     }
     handle.unmount()
-    // Drain any in-flight frame's rejection into our capture before restoring
-    // the original (vitest) listeners, so no late rejection escapes the sandbox.
+    // Let any in-flight frame's panic flush before we restore the real stderr.
     await settle(20)
     await settle(20)
-    return captured.filter(isConvergenceThrow)
+    return stderrChunks.filter(isConvergencePanic)
   } finally {
-    process.removeAllListeners("unhandledRejection")
-    for (const l of original) process.on("unhandledRejection", l as never)
+    process.stderr.write = origStderrWrite
+    process.stdout.write = origStdoutWrite
+    process.exitCode = origExitCode
+    vi.unstubAllEnvs()
+    _resetPanicCircuitBreaker()
+    for (const l of originalListeners) process.on("unhandledRejection", l as never)
   }
 }
 
@@ -302,18 +324,19 @@ describe("@si/silvercode/19383 — standalone convergence cap recovers non-lossi
     // a hard `assertBoundedConvergence` throw (SILVERY_STRICT=2 from beforeAll →
     // isStrictEnabled("incremental", 2) is true AND strict "2" makes the assert
     // throw) rather than scheduling yet another papering-over follow-up frame.
-    // The throw rejects the void-ed standalone frame promise, carrying the
-    // "convergence bound exceeded" message — the fail-loud is what TERMINATES the
-    // otherwise-perpetual soft-recovery loop.
-    const convergenceThrows = await driveStandalonePerpetual()
+    // The throw rejects the standalone frame promise, which create-app routes to
+    // `panicApp(…, { title: "standalone render" })` — so the "convergence bound
+    // exceeded" message reaches the operator on stderr. That panic is what
+    // TERMINATES the otherwise-perpetual soft-recovery loop.
+    const convergencePanics = await driveStandalonePerpetual()
     expect(
-      convergenceThrows.length,
+      convergencePanics.length,
       `the perpetual standalone feedback edge never tripped the bounded-streak ` +
         `fail-loud — drainStandaloneCommitRerenders kept soft-recovering forever ` +
         `instead of escalating to assertBoundedConvergence once the consecutive ` +
         `cap-exceed streak exceeded STANDALONE_CAP_STREAK_LIMIT (= 5). captured ` +
-        `convergence throws: ${convergenceThrows.map(String).join(" | ") || "(none)"}`,
+        `stderr panics: ${convergencePanics.join(" | ") || "(none)"}`,
     ).toBeGreaterThan(0)
-    expect(String(convergenceThrows[0])).toContain("convergence bound exceeded in standalone-flush")
+    expect(convergencePanics[0]).toContain("convergence bound exceeded in standalone-flush")
   })
 })
