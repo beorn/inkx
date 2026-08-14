@@ -79,6 +79,53 @@ describe("renderViewport", () => {
 })
 
 describe("renderIsland", () => {
+  it("carries guest hyperlinks and explicitly clears an unset guest hyperlink", () => {
+    const { sink, writes } = recordingSink(10, 6)
+    const href = "https://example.com"
+    const linkedCell: Cell = { ...cell("L"), hyperlink: href }
+    const unlinkedCell = cell("U")
+    const source: CellBuffer = {
+      cols: 2,
+      rows: 1,
+      getCell(col) {
+        return col === 0 ? linkedCell : unlinkedCell
+      },
+    }
+
+    renderIsland(
+      {
+        islandState: {
+          handle: {
+            size: {
+              cols: 2,
+              rows: 1,
+              subscribe: () => () => {},
+              requestResize: () => {},
+            },
+            output: {
+              buffer: source,
+              cursor: null,
+              cursorVisible: false,
+              subscribe: () => () => {},
+              writeCells: () => {},
+              invalidateAll: () => {},
+            },
+            dispose: () => {},
+          },
+        },
+      } as unknown as AgNode,
+      renderBuffer(),
+      sink,
+      rect(1, 1, 2, 1),
+      0,
+    )
+
+    expect(writeAt(writes, 1, 1).cell.hyperlink).toBe(href)
+    // Empty string is the non-nullish clear sentinel used by the terminal
+    // buffer. An omitted/undefined value can inherit an ancestor hyperlink.
+    expect(writeAt(writes, 2, 1).cell.hyperlink).toBe("")
+  })
+
   it("paints a pending island as an inherited-background opaque blank rect", () => {
     const { sink, writes } = recordingSink(10, 6)
     const inheritedBg: Color = 7

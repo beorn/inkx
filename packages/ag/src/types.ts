@@ -1476,6 +1476,8 @@ export interface Cell {
   bg: string | null
   /** Text attributes */
   attrs: CellAttrs
+  /** OSC 8 hyperlink URI carried by this cell, when present. */
+  hyperlink?: string
   /** True if this is a wide character (CJK) that takes 2 cells */
   wide: boolean
   /** True if this cell is the continuation of a wide character */
