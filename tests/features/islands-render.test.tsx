@@ -53,10 +53,14 @@ function makeCell(char: string, overrides?: Partial<Cell>): Cell {
   }
 }
 
-function fillBuffer(buf: MutableCellBuffer, char: string): MutableCellBuffer {
+function fillBuffer(
+  buf: MutableCellBuffer,
+  char: string,
+  overrides?: Partial<Cell>,
+): MutableCellBuffer {
   for (let r = 0; r < buf.rows; r++) {
     for (let c = 0; c < buf.cols; c++) {
-      buf.setCell(c, r, makeCell(char))
+      buf.setCell(c, r, makeCell(char, overrides))
     }
   }
   return buf
@@ -122,7 +126,7 @@ function asyncSnapshotGuest(initialChar = "L", delayMs = 10) {
   }
 }
 
-function snapshotGuest(initialChar = "A") {
+function snapshotGuest(initialChar = "A", cellOverrides?: Partial<Cell>) {
   let initCount = 0
   let disposeCount = 0
   const subscribers = new Set<() => void>()
@@ -133,7 +137,7 @@ function snapshotGuest(initialChar = "A") {
   const guest: IslandGuest = {
     init(ctx) {
       initCount++
-      const buf = fillBuffer(createCellBuffer(ctx.cols, ctx.rows), initialChar)
+      const buf = fillBuffer(createCellBuffer(ctx.cols, ctx.rows), initialChar, cellOverrides)
       let cols = ctx.cols
       let rows = ctx.rows
       const size: IslandSizeOwner = {
@@ -293,6 +297,26 @@ describe("Island — render-phase blit", () => {
     // swallow siblings.
     expect(app.text).toContain("footer")
     expect(g.initCount).toBe(1)
+  })
+
+  test("1b. carries guest hyperlinks through realistic chrome (50+ nodes)", async () => {
+    const render = createRenderer({ cols: 80, rows: 24 })
+    const wrap = makeTestScopeWrapper()
+    const href = "https://example.com/island"
+    // The test is written before the production Cell boundary is widened.
+    // Keep the red fixture structurally honest without pre-adding the field.
+    const g = snapshotGuest("H", { hyperlink: href } as unknown as Partial<Cell>)
+    const view = wrap(<BoardWithIsland guest={g.guest} cols={10} rows={3} />)
+    const app = render(view)
+
+    await flushMicrotasks()
+    app.rerender(view)
+
+    const island = app.locator("silvery-island").boundingBox()
+    expect(island).toBeTruthy()
+    expect(app.cell(island!.x, island!.y).char).toBe("H")
+    expect(app.cell(island!.x, island!.y).hyperlink).toBe(href)
+    expect(app.text).toContain("c3.5")
   })
 
   test("2b. async guest handle paints after delayed hydration without caller rerender", async () => {
