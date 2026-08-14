@@ -892,4 +892,3 @@ See [text-sizing.md](text-sizing.md) for full documentation.
 - [terminfo.dev](https://terminfo.dev) — comprehensive terminal feature compatibility data
 - [ANSI escape code (Wikipedia)](https://en.wikipedia.org/wiki/ANSI_escape_code)
 - [Escape Code Standards (Julia Evans)](https://jvns.ca/blog/2025/03/07/escape-code-standards/)
-- [The Chaos of Terminal Standards](https://or1k.net/posts/ansi-escape-codes-terminal-standards/)
