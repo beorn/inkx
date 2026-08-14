@@ -62,6 +62,9 @@ function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
     fg: cell.fg === null ? null : (parseColor(cell.fg) as Color),
     bg: cell.bg === null ? inheritedBg : (parseColor(cell.bg) as Color),
     attrs: cell.attrs,
+    // Empty string is the terminal buffer's explicit clear sentinel. Do not
+    // let an unset guest cell inherit a hyperlink from host ancestry.
+    hyperlink: cell.hyperlink ?? "",
     wide: cell.wide,
     continuation: cell.continuation,
   }
@@ -73,6 +76,7 @@ function blankCellToPatch(inheritedBg: Color = null): CellPatch {
     fg: null,
     bg: inheritedBg,
     attrs: {},
+    hyperlink: "",
     wide: false,
     continuation: false,
   }
