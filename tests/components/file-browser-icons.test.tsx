@@ -67,7 +67,9 @@ describe("useFileBrowserIcons", () => {
 
     const app = createRenderer({ cols: 40, rows: 3 })(<Probe />)
 
-    expect(app.text).toContain(`${fileBrowserIcons(false).directory}|${fileBrowserIcons(false).file}`)
+    expect(app.text).toContain(
+      `${fileBrowserIcons(false).directory}|${fileBrowserIcons(false).file}`,
+    )
     expect(app.text).not.toMatch(PRIVATE_USE_AREA)
   })
 })

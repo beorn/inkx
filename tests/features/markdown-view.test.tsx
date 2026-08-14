@@ -185,7 +185,10 @@ describe("DocumentView — shared document geometry", () => {
         32,
       )
 
-      expect(app.getByTestId("diagram-media").first().boundingBox()).toMatchObject({ width: 12, height: 3 })
+      expect(app.getByTestId("diagram-media").first().boundingBox()).toMatchObject({
+        width: 12,
+        height: 3,
+      })
       expect(warn).not.toHaveBeenCalledWith(
         expect.stringContaining("<Box> cannot be nested inside <Text>"),
       )

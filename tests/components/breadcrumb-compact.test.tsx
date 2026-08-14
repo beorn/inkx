@@ -49,7 +49,10 @@ describe("Breadcrumb compact", () => {
 
   test("compact honours a per-item separator override", () => {
     const app = render(
-      <Breadcrumb items={[{ label: "a" }, { label: "b", separator: "›" }, { label: "c" }]} separatorSpacing="compact" />,
+      <Breadcrumb
+        items={[{ label: "a" }, { label: "b", separator: "›" }, { label: "c" }]}
+        separatorSpacing="compact"
+      />,
     )
 
     expect(app.text).toContain("a›b/c")

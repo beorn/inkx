@@ -44,7 +44,9 @@ const SWEEP_MAX = 80
 function describeBadFields(line: string): string[] {
   const fields = line.split(SEPARATOR)
   if (fields.length !== LABELS.length) {
-    return [`row split into ${fields.length} segments, expected ${LABELS.length}: ${JSON.stringify(fields)}`]
+    return [
+      `row split into ${fields.length} segments, expected ${LABELS.length}: ${JSON.stringify(fields)}`,
+    ]
   }
   const bad: string[] = []
   for (const [index, label] of LABELS.entries()) {
@@ -61,7 +63,11 @@ function renderTrailAt(width: number): string {
   const app = render(
     <Box width={width} height={1}>
       <Box flexGrow={1} minWidth={0} overflow="hidden">
-        <Breadcrumb items={LABELS.map((label) => ({ label }))} currentIndex={-1} separatorSpacing="compact" />
+        <Breadcrumb
+          items={LABELS.map((label) => ({ label }))}
+          currentIndex={-1}
+          separatorSpacing="compact"
+        />
       </Box>
     </Box>,
   )
@@ -107,7 +113,11 @@ describe("shrinking row of truncating Text — elision sweep", () => {
     const trail = (width: number) => (
       <Box width={width} height={1}>
         <Box flexGrow={1} minWidth={0} overflow="hidden">
-          <Breadcrumb items={LABELS.map((label) => ({ label }))} currentIndex={-1} separatorSpacing="compact" />
+          <Breadcrumb
+            items={LABELS.map((label) => ({ label }))}
+            currentIndex={-1}
+            separatorSpacing="compact"
+          />
         </Box>
       </Box>
     )
@@ -120,9 +130,10 @@ describe("shrinking row of truncating Text — elision sweep", () => {
       const bad = describeBadFields(line)
       if (bad.length > 0) broken.push(`w=${width} [${line}] — ${bad.join(", ")}`)
     }
-    expect(broken, `content cut with no marker while shrinking live at ${broken.length} widths:\n${broken.join("\n")}`).toEqual(
-      [],
-    )
+    expect(
+      broken,
+      `content cut with no marker while shrinking live at ${broken.length} widths:\n${broken.join("\n")}`,
+    ).toEqual([])
   })
 
   test("a plain row of truncating Text is elided per segment, not silently cut", () => {
@@ -147,6 +158,9 @@ describe("shrinking row of truncating Text — elision sweep", () => {
       const bad = describeBadFields(line)
       if (bad.length > 0) broken.push(`w=${width} [${line}] — ${bad.join(", ")}`)
     }
-    expect(broken, `content cut with no marker at ${broken.length} widths:\n${broken.join("\n")}`).toEqual([])
+    expect(
+      broken,
+      `content cut with no marker at ${broken.length} widths:\n${broken.join("\n")}`,
+    ).toEqual([])
   })
 })
