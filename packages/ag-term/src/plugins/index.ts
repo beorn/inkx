@@ -42,6 +42,14 @@ export type { AppWithReact } from "@silvery/ag-react/with-react"
 export { withTerminal } from "./with-terminal"
 export type { WithTerminalOptions, AppWithTerminal, ProcessLike } from "./with-terminal"
 
+export { withTerminalLinks } from "./with-terminal-links"
+export type {
+  AppWithTerminalLinks,
+  TerminalLinkDetector,
+  TerminalLinkSpan,
+  TerminalLinksOptions,
+} from "./with-terminal-links"
+
 // =============================================================================
 // withFocus — Focus management
 // =============================================================================
