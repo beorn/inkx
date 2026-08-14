@@ -22,7 +22,7 @@ export interface TerminalLinkSpan {
 export interface WithTerminalLinksOptions {
   /** Detect links in one rendered Island row. Omit for explicit OSC 8 links only. */
   detect?: (text: string) => readonly TerminalLinkSpan[]
-  /** Return an allowed/normalized href, or null to suppress it. Defaults to identity. */
+  /** Return an allowed/normalized href, or null to suppress it. Omission denies every href. */
   resolveHref?: (href: string) => string | null
 }
 
@@ -66,7 +66,7 @@ function assertSpan(span: TerminalLinkSpan, textLength: number): void {
  * The returned object is inert until explicitly installed on a run.
  */
 export function withTerminalLinks(options: WithTerminalLinksOptions = {}): TerminalLinksFeature {
-  const resolveHref = options.resolveHref ?? ((href: string) => href)
+  const resolveHref = options.resolveHref ?? (() => null)
 
   return {
     decorate(root, frame) {

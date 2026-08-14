@@ -102,7 +102,7 @@ function islandRect(root: import("@silvery/ag/types").AgNode): {
   throw new Error("expected rendered Island")
 }
 
-function subscribeToOpenedLinks(opened: string[], sequence?: string[]): React.ReactElement | null {
+function useOpenedLinks(opened: string[], sequence?: string[]): React.ReactElement | null {
   const chain = useContext(ChainAppContext)
   useEffect(() => {
     return chain?.events.on("link:open", (href: unknown) => {
@@ -111,7 +111,7 @@ function subscribeToOpenedLinks(opened: string[], sequence?: string[]): React.Re
         sequence?.push(`open:${href}`)
       }
     })
-  }, [chain, opened])
+  }, [chain, opened, sequence])
   return null
 }
 
@@ -140,6 +140,36 @@ describe("withTerminalLinks", () => {
       expect(handle.text.slice(0, 20)).toBe("https://example.test")
       expect(handle.buffer?.getCell(rect.x, rect.y).hyperlink).toBeUndefined()
       expect(detect).not.toHaveBeenCalled()
+    } finally {
+      handle.unmount()
+    }
+  })
+
+  test.each([
+    {
+      name: "a policy-rejected guest OSC 8 link",
+      terminalLinks: withTerminalLinks({ resolveHref: () => null }),
+    },
+    {
+      name: "a guest OSC 8 link with no injected policy",
+      terminalLinks: withTerminalLinks(),
+    },
+  ])("strips $name before paint while preserving its text", async ({ terminalLinks }) => {
+    using term = createTermless({ cols: 40, rows: 4 })
+    const text = "VISIBLE"
+    const guest = textGuest(text, {
+      links: [{ start: 0, end: text.length, href: "shell://danger" }],
+    })
+
+    const handle = await run(<Island guest={guest} cols={text.length} rows={1} />, term, {
+      terminalLinks,
+    })
+    try {
+      await settle()
+      const rect = islandRect(handle.root)
+      expect(handle.text.slice(0, text.length)).toBe(text)
+      expect(handle.buffer?.getCell(rect.x, rect.y).hyperlink).toBeUndefined()
+      expect(term.out.getChunks().join("")).not.toContain("\x1b]8;")
     } finally {
       handle.unmount()
     }
@@ -197,7 +227,7 @@ describe("withTerminalLinks", () => {
     })
 
     function OpenObserver(): React.ReactElement | null {
-      return subscribeToOpenedLinks(opened, sequence)
+      return useOpenedLinks(opened, sequence)
     }
 
     function App(): React.ReactElement {
