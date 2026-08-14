@@ -87,6 +87,16 @@ describe("snapshotGuest — construction modes", () => {
     expect(handle.output.buffer.getCell(2, 2).char).toBe("X")
   })
 
+  test("mutable buffer snapshots preserve hyperlink metadata", () => {
+    const buffer = createCellBuffer(2, 1)
+    buffer.setCell(0, 0, makeCell("L", { hyperlink: "https://example.com/docs" }))
+
+    const snapshot = buffer.snapshot()
+
+    expect(snapshot.getCell(0, 0).hyperlink).toBe("https://example.com/docs")
+    expect(snapshot.getCell(1, 0).hyperlink).toBeUndefined()
+  })
+
   test("from cells literal populates buffer", async () => {
     const guest = snapshotGuest({
       cells: [
