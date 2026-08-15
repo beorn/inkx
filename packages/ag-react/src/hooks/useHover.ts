@@ -6,9 +6,7 @@
  * `useInteractionTreatment`, which derives the visual treatment from role.
  *
  * ```tsx
- * const interaction = useInteractionTreatment("control", {
- *   revealed: { backgroundColor: "$bg-surface-hover" },
- * })
+ * const interaction = useInteractionTreatment("control", "surfaceHover")
  * return (
  *   <Box
  *     onMouseEnter={interaction.onMouseEnter}

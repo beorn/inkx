@@ -296,6 +296,26 @@ Tokens avoid this. At truecolor, `$fg-muted` resolves to a specific pre-dimmed h
 
 :::
 
+### Interactive treatments are semantic too
+
+Use the shared interaction language instead of assembling hover colors at the call site:
+
+```tsx
+const interaction = useInteractionTreatment("control", "surfaceHover")
+
+<Box
+  backgroundColor={interaction.treatment.backgroundColor}
+  onMouseEnter={interaction.onMouseEnter}
+  onMouseLeave={interaction.onMouseLeave}
+>
+  Open
+</Box>
+```
+
+Roles own reveal policy: content links reveal on Cmd/Super-hover, controls reveal on plain hover, and regions reveal on plain hover with a structural gutter cue. `<Link href>` and action-only `<Link onClick>` derive the first two roles automatically. Use `<DecoratedRegion interactionSurface="surfaceHover">` for a self-contained regional treatment, or pass `interactionTreatment` when a parent owns the hover state. Underline is link semantics and never changes on hover.
+
+Named surfaces are the normal path. Exported recipe factories such as `actionFill()`, `textPair()`, `cardOutline()`, and `togglePillSurface()` centralize parameterized families; only genuinely runtime-computed visuals use `customInteractionSurface()`. Raw surface objects are rejected by the resolver types so a new one-off treatment cannot silently reintroduce the old pattern.
+
 `DocumentView` also resolves style precedence semantically. A heading's
 structural foreground wins over element foregrounds inside it, while link
 decoration remains visible through the `link` typography variant's dotted

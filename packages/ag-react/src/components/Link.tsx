@@ -19,16 +19,12 @@
  * ```
  */
 
-import { type ReactNode, useCallback, useContext, useState } from "react"
-import {
-  resolveInteractionTreatment,
-  type InteractionRole,
-  type InteractiveState,
-} from "@silvery/ag"
+import { type ReactNode, useCallback, useContext } from "react"
+import { textPair, type InteractionRole } from "@silvery/ag"
 import type { TextProps } from "./Text"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { Text } from "./Text"
-import { useModifierKeys } from "../hooks/useModifierKeys"
+import { useInteractionTreatment } from "../hooks/useInteractionTreatment"
 import { ChainAppContext } from "../context"
 
 // ============================================================================
@@ -67,99 +63,38 @@ export function Link({
   ...rest
 }: LinkProps) {
   const chain = useContext(ChainAppContext)
+  const interaction = useInteractionTreatment(role, textPair(color, revealColor))
   const handleClick = useCallback(
-    (event: SilveryMouseEvent, revealed: boolean) => {
-      const isRevealed = revealed || (role === "content-link" && event.metaKey)
+    (event: SilveryMouseEvent) => {
+      const isRevealed = interaction.isRevealActive || (role === "content-link" && event.metaKey)
       onClick?.(event)
       if (isRevealed && href !== undefined && !event.defaultPrevented) {
         chain?.events.emit("link:open", href)
         event.preventDefault()
       }
     },
-    [role, href, onClick, chain],
+    [interaction.isRevealActive, role, href, onClick, chain],
   )
 
   return (
-    <InteractiveText
+    <Text
       // Empty string is the explicit "no destination" value: it blocks
       // hyperlink inheritance while remaining falsey to OSC 8 emission.
       internal_hyperlink={href ?? ""}
-      role={role}
-      color={color}
-      revealColor={revealColor}
       {...rest}
-      onRevealedClick={handleClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      color={interaction.treatment.color}
+      mouseCursor={interaction.treatment.mouseCursor}
+      onClick={handleClick}
+      onMouseEnter={(event) => {
+        interaction.onMouseEnter(event)
+        onMouseEnter?.(event)
+      }}
+      onMouseLeave={(event) => {
+        interaction.onMouseLeave(event)
+        onMouseLeave?.(event)
+      }}
     >
       {children}
-    </InteractiveText>
-  )
-}
-
-interface InteractiveTextProps extends Omit<TextProps, "children" | "onClick"> {
-  children?: ReactNode
-  role: InteractionRole
-  revealColor: TextProps["color"]
-  onRevealedClick: (event: SilveryMouseEvent, revealed: boolean) => void
-}
-
-function ModifierReveal({
-  hovered,
-  render,
-}: {
-  hovered: boolean
-  render: (revealed: boolean) => React.ReactElement
-}): React.ReactElement {
-  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
-  return render(hovered && cmdHeld)
-}
-
-/** Shared internal presentation for links and action-only navigation text. */
-function InteractiveText({
-  role,
-  revealColor,
-  children,
-  onRevealedClick,
-  onMouseEnter,
-  onMouseLeave,
-  ...rest
-}: InteractiveTextProps): React.ReactElement {
-  const [hovered, setHovered] = useState(false)
-  const render = (revealed: boolean): React.ReactElement => {
-    const state: InteractiveState = {
-      hovered: revealed,
-      armed: false,
-      selected: false,
-      focused: false,
-      dropTarget: false,
-    }
-    const treatment = resolveInteractionTreatment(state, role, {
-      idle: { color: rest.color },
-      revealed: { color: revealColor },
-    })
-    return (
-      <Text
-        {...rest}
-        color={treatment.color}
-        mouseCursor={treatment.mouseCursor}
-        onClick={(event) => onRevealedClick(event, revealed)}
-        onMouseEnter={(event) => {
-          setHovered(true)
-          onMouseEnter?.(event)
-        }}
-        onMouseLeave={(event) => {
-          setHovered(false)
-          onMouseLeave?.(event)
-        }}
-      >
-        {children}
-      </Text>
-    )
-  }
-  return role === "content-link" ? (
-    <ModifierReveal hovered={hovered} render={render} />
-  ) : (
-    render(hovered)
+    </Text>
   )
 }

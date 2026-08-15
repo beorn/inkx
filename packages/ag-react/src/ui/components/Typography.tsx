@@ -35,9 +35,11 @@
  */
 import type { ReactNode } from "react"
 import { createContext, useContext, Children, cloneElement, isValidElement } from "react"
+import type { InteractionSurfaceInput, InteractionTreatment, InteractiveState } from "@silvery/ag"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 import type { TextProps } from "../../components/Text"
+import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
 import { useTheme } from "../../ThemeContext"
 import { StylePriorityProvider } from "../../style-priority"
 
@@ -45,10 +47,21 @@ export interface TypographyProps extends Omit<TextProps, "children"> {
   children?: ReactNode
 }
 
-export interface DecoratedRegionProps extends Omit<BoxProps, "children"> {
-  children?: ReactNode
-  railColor?: string
-}
+type RegionInteraction =
+  | { interactionSurface?: never; interactionTreatment?: never; interactionState?: never }
+  | {
+      interactionSurface: InteractionSurfaceInput
+      interactionTreatment?: never
+      interactionState?: Partial<Omit<InteractiveState, "hovered">>
+    }
+  | {
+      interactionSurface?: never
+      interactionTreatment: InteractionTreatment
+      interactionState?: never
+    }
+
+export type DecoratedRegionProps = Omit<BoxProps, "children"> &
+  RegionInteraction & { children?: ReactNode; railColor?: string; treatContent?: boolean }
 
 // ============================================================================
 // Headings
@@ -199,18 +212,68 @@ export function Kbd({ children, color, ...rest }: TypographyProps) {
 export function DecoratedRegion({
   children,
   railColor = "$border-default",
+  treatContent = true,
+  interactionSurface,
+  interactionTreatment,
+  interactionState,
+  onMouseEnter,
+  onMouseLeave,
+  color,
+  backgroundColor,
+  bold,
+  mouseCursor,
   ...props
 }: DecoratedRegionProps) {
+  const interaction = useInteractionTreatment(
+    "region",
+    interactionSurface ?? "bare",
+    interactionSurface !== undefined,
+    interactionState,
+  )
+  if (interactionSurface !== undefined && interactionTreatment !== undefined) {
+    throw new Error("DecoratedRegion accepts interactionSurface or interactionTreatment, not both")
+  }
+  if (interactionState !== undefined && interactionSurface === undefined) {
+    throw new Error("DecoratedRegion interactionState requires interactionSurface")
+  }
+  if (interactionTreatment !== undefined && interactionTreatment.extent !== "gutter") {
+    throw new Error("DecoratedRegion requires an external regional treatment with gutter extent")
+  }
+  const treatment = interactionTreatment ?? interaction.treatment
+  const treatedRailColor =
+    treatment.extent === "gutter" ? (treatment.gutterColor ?? railColor) : railColor
+  const contentTreatment = treatContent ? treatment : undefined
+  const enter: BoxProps["onMouseEnter"] =
+    interactionSurface === undefined
+      ? onMouseEnter
+      : (event) => {
+          interaction.onMouseEnter(event)
+          onMouseEnter?.(event)
+        }
+  const leave: BoxProps["onMouseLeave"] =
+    interactionSurface === undefined
+      ? onMouseLeave
+      : (event) => {
+          onMouseLeave?.(event)
+          interaction.onMouseLeave(event)
+        }
+
   return (
     <Box
       flexShrink={1}
       minWidth={0}
       paddingLeft={1}
       borderStyle="hairline"
-      borderColor={railColor}
+      borderColor={treatedRailColor}
       borderTop={false}
       borderBottom={false}
       borderRight={false}
+      color={color ?? contentTreatment?.color}
+      backgroundColor={backgroundColor ?? contentTreatment?.backgroundColor}
+      bold={bold ?? contentTreatment?.bold}
+      mouseCursor={mouseCursor ?? treatment.mouseCursor}
+      onMouseEnter={enter}
+      onMouseLeave={leave}
       {...props}
     >
       {children}

@@ -1,10 +1,11 @@
 import {
   resolveInteractionTreatment,
   type InteractionRole,
-  type InteractionSurface,
+  type InteractionSurfaceInput,
   type InteractiveState,
 } from "@silvery/ag"
 import { useHover, type UseHoverReturn } from "./useHover"
+import { useModifierKeys } from "./useModifierKeys"
 
 const INACTIVE: Omit<InteractiveState, "hovered"> = {
   armed: false,
@@ -16,15 +17,23 @@ const INACTIVE: Omit<InteractiveState, "hovered"> = {
 /** Hover tracking plus the canonical role/surface treatment resolver. */
 export function useInteractionTreatment(
   role: InteractionRole,
-  surface: InteractionSurface,
+  surface: InteractionSurfaceInput,
   enabled = true,
   state?: Partial<Omit<InteractiveState, "hovered">>,
-): UseHoverReturn & { treatment: ReturnType<typeof resolveInteractionTreatment> } {
+): UseHoverReturn & {
+  isRevealActive: boolean
+  treatment: ReturnType<typeof resolveInteractionTreatment>
+} {
   const hover = useHover()
+  const requiresModifier = role === "content-link"
+  const { super: commandHeld } = useModifierKeys({
+    enabled: enabled && requiresModifier && hover.isHovered,
+  })
+  const revealed = enabled && hover.isHovered && (!requiresModifier || commandHeld)
   const treatment = resolveInteractionTreatment(
-    { ...INACTIVE, ...state, hovered: enabled && hover.isHovered },
+    { ...INACTIVE, ...state, hovered: revealed },
     role,
     surface,
   )
-  return { ...hover, treatment }
+  return { ...hover, isRevealActive: revealed, treatment }
 }

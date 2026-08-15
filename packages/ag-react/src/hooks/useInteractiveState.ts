@@ -32,15 +32,10 @@ const DEFAULT_STATE: Readonly<InteractiveState> = Object.freeze({
  * ```tsx
  * function Button({ children }) {
  *   const state = useInteractiveState()
- *   const treatment = resolveInteractionTreatment(state, "control", {
- *     revealed: { backgroundColor: "$bg-surface-hover" },
- *     armed: { backgroundColor: "$bg-accent" },
- *     focused: { inverse: true },
- *   })
+ *   const treatment = resolveInteractionTreatment(state, "control", "surfaceHoverFocused")
  *   return (
  *     <Box
  *       backgroundColor={treatment.backgroundColor}
- *       inverse={treatment.inverse}
  *     >
  *       {children}
  *     </Box>

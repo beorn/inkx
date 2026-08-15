@@ -211,11 +211,7 @@ export function Scrollbar({
       dropTarget: false,
     },
     "control",
-    {
-      idle: { color: "$muted", backgroundColor: "$muted" },
-      revealed: { color: "$primary", backgroundColor: "$primary" },
-      armed: { color: "$primary", backgroundColor: "$primary" },
-    },
+    "dragHandle",
   )
   const thumbColor = thumbTreatment.color
   const thumbBg = thumbTreatment.backgroundColor
@@ -275,7 +271,7 @@ export function Scrollbar({
       // fire.
       userSelect="none"
       mouseCapture
-      mouseCursor={isDragging ? "grabbing" : "grab"}
+      mouseCursor={thumbTreatment.mouseCursor}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

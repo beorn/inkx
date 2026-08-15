@@ -8,6 +8,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
+import { customInteractionSurface, resolveInteractionTreatment } from "@silvery/ag"
 import {
   H1,
   H2,
@@ -19,6 +20,7 @@ import {
   Em,
   Code,
   Kbd,
+  DecoratedRegion,
   Blockquote,
   CodeBlock,
   HR,
@@ -303,6 +305,128 @@ describe("Inline code elements", () => {
 // ============================================================================
 
 describe("Block elements", () => {
+  test("DecoratedRegion renders and treats the regional gutter on hover", async () => {
+    const localRender = createRenderer({ cols: 24, rows: 4 })
+    const app = localRender(
+      <DecoratedRegion interactionSurface="surfaceHover">
+        <Text>Region</Text>
+      </DecoratedRegion>,
+    )
+    const firstLine = app.lines[0] ?? ""
+    const railColumn = firstLine.indexOf("▏")
+    const contentColumn = firstLine.indexOf("Region")
+    const idleRail = app.term.buffer.getCell(railColumn, 0).fg
+    const idleBackground = app.term.buffer.getCell(contentColumn, 0).bg
+
+    expect(railColumn).toBeGreaterThanOrEqual(0)
+    await app.hover(contentColumn, 0)
+
+    expect(app.term.buffer.getCell(railColumn, 0).fg).not.toEqual(idleRail)
+    expect(app.term.buffer.getCell(contentColumn, 0).bg).not.toEqual(idleBackground)
+  })
+
+  test("DecoratedRegion consumes an externally resolved regional treatment", () => {
+    const treatment = resolveInteractionTreatment(
+      { hovered: true, armed: false, selected: false, focused: false, dropTarget: false },
+      "region",
+      customInteractionSurface({ revealed: { gutterColor: "$fg-success" } }),
+    )
+    const localRender = createRenderer({ cols: 24, rows: 4 })
+    const app = localRender(
+      <DecoratedRegion interactionTreatment={treatment}>
+        <Text>External</Text>
+      </DecoratedRegion>,
+    )
+    const railColumn = (app.lines[0] ?? "").indexOf("▏")
+    const success = createRenderer({ cols: 2, rows: 1 })(<Text color="$fg-success">x</Text>)
+
+    expect(app.cell(railColumn, 0).fg).toEqual(success.cell(0, 0).fg)
+  })
+
+  test("DecoratedRegion can treat only its gutter and cursor without cascading content styles", async () => {
+    const localRender = createRenderer({ cols: 28, rows: 4 })
+    const app = localRender(
+      <DecoratedRegion
+        treatContent={false}
+        interactionSurface={customInteractionSurface({
+          revealed: {
+            color: "$fg-success",
+            backgroundColor: "$bg-surface-hover",
+            bold: true,
+            inverse: true,
+            gutterColor: "$fg-warning",
+          },
+        })}
+      >
+        <Text>Unstyled content</Text>
+      </DecoratedRegion>,
+    )
+    const row = app.lines.findIndex((line) => line.includes("Unstyled content"))
+    const contentColumn = app.lines[row]?.indexOf("Unstyled content") ?? -1
+    const railColumn = app.lines[row]?.indexOf("▏") ?? -1
+    const contentBefore = app.cell(contentColumn, row)
+    const railBefore = app.cell(railColumn, row).fg
+
+    await app.hover(contentColumn, row)
+
+    expect(app.cell(railColumn, row).fg).not.toEqual(railBefore)
+    expect(app.cell(contentColumn, row)).toMatchObject({
+      fg: contentBefore.fg,
+      bg: contentBefore.bg,
+      bold: contentBefore.bold,
+      inverse: contentBefore.inverse,
+    })
+    expect(app.getByText("Unstyled content").resolve()?.parent?.props.mouseCursor).toBe("pointer")
+  })
+
+  test("DecoratedRegion rejects an external non-regional treatment", () => {
+    const treatment = resolveInteractionTreatment(
+      { hovered: true, armed: false, selected: false, focused: false, dropTarget: false },
+      "control",
+      "surfaceHover",
+    )
+    const localRender = createRenderer({ cols: 24, rows: 4 })
+
+    expect(() =>
+      localRender(
+        <DecoratedRegion interactionTreatment={treatment}>
+          <Text>Invalid</Text>
+        </DecoratedRegion>,
+      ),
+    ).toThrow(/regional treatment/u)
+  })
+
+  test("DecoratedRegion rejects conflicting internal and external treatments", () => {
+    const treatment = resolveInteractionTreatment(
+      { hovered: true, armed: false, selected: false, focused: false, dropTarget: false },
+      "region",
+      "surfaceHover",
+    )
+    const localRender = createRenderer({ cols: 24, rows: 4 })
+
+    expect(() =>
+      localRender(
+        // @ts-expect-error internal and external treatments are mutually exclusive.
+        <DecoratedRegion interactionSurface="surfaceHover" interactionTreatment={treatment}>
+          <Text>Invalid</Text>
+        </DecoratedRegion>,
+      ),
+    ).toThrow(/interactionSurface or interactionTreatment/u)
+  })
+
+  test("DecoratedRegion rejects interaction state without a surface", () => {
+    const localRender = createRenderer({ cols: 24, rows: 4 })
+
+    expect(() =>
+      localRender(
+        // @ts-expect-error interaction state is valid only with interactionSurface.
+        <DecoratedRegion interactionState={{ selected: true }}>
+          <Text>Invalid</Text>
+        </DecoratedRegion>,
+      ),
+    ).toThrow(/requires interactionSurface/u)
+  })
+
   test("Blockquote renders with a hairline left rail", () => {
     const app = render(<Blockquote>Quoted text</Blockquote>)
     expect(app.text).toContain("▏")

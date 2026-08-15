@@ -13,13 +13,12 @@
  *
  * @example
  * ```tsx
- * function Link({ href, children }) {
- *   const [hovered, setHovered] = useState(false)
- *   // Only subscribe when hovered — zero cost for non-hovered links
- *   const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
- *   const revealed = hovered && cmdHeld
- *   return <Text underline="dotted" color={revealed ? "$fg" : "$fg-link"} onMouseEnter={() => setHovered(true)} ...>
- * }
+ * // Ordinary links and controls derive modifier/hover policy themselves:
+ * <Link href={href}>{children}</Link>
+ * const interaction = useInteractionTreatment("control", "surfaceHover")
+ *
+ * // Read modifiers directly only when the modifier itself is domain input:
+ * const { super: commandHeld } = useModifierKeys({ enabled: menuOpen })
  * ```
  */
 
@@ -207,9 +206,9 @@ const noopSubscribe = (_cb: () => void) => noopUnsubscribe
  * not subscribe to changes — the component never re-renders from modifier
  * key events. This enables the "only the hovered element subscribes" pattern.
  */
-// TODO: When silvery state is signal-based, derive `armed` as a computed signal
-// (hovered && cmdHeld) so the Link component never re-renders — only the
-// underline style subscription triggers a targeted repaint.
+// TODO: When silvery state is signal-based, derive `previewRevealed` as a computed
+// signal (hovered && cmdHeld) so Link never re-renders — only its reveal-style
+// subscription triggers a targeted repaint.
 export function useModifierKeys(opts?: UseModifierKeysOptions): ModifierState {
   const enabled = opts?.enabled ?? true
   const chain = useContext(ChainAppContext)
