@@ -17,8 +17,11 @@ import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
 import type { AgNode, BoxProps, Rect, TextProps, UserSelect } from "@silvery/ag/types"
 import type { SelectionScope } from "@silvery/headless/selection"
 import { setHovered, setArmed } from "@silvery/ag/interactive-signals"
-import { displayWidthAnsi, wrapText } from "./unicode"
+import { displayWidthAnsi, graphemeWidth, splitGraphemes, wrapTextWithOffsets } from "./unicode"
 import type { TerminalBuffer } from "./buffer"
+import { resolveUserSelect } from "./user-select"
+
+export { resolveUserSelect } from "./user-select"
 
 // Re-export canonical types from ag (avoid duplicate type definitions)
 export type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag/mouse-event-types"
@@ -285,23 +288,6 @@ export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
 // ============================================================================
 // Selection Hit Testing
 // ============================================================================
-
-/**
- * Resolve the effective userSelect value for a node.
- * "auto" inherits from parent; root defaults to "text".
- */
-export function resolveUserSelect(node: AgNode): "none" | "text" | "contain" {
-  let current: AgNode | null = node
-  while (current) {
-    const props = current.props as { userSelect?: UserSelect }
-    const value = props.userSelect
-    if (value === "none" || value === "text" || value === "contain") return value
-    // "auto" or undefined — walk up
-    current = current.parent
-  }
-  // Root default is "text"
-  return "text"
-}
 
 /**
  * Selection hit test: find the deepest node whose text is selectable at (x, y).
@@ -616,14 +602,63 @@ function nodeSelectionScope(node: AgNode): SelectionScope | null {
   }
 }
 
+function visitTextLeaves(node: AgNode, visit: (leaf: AgNode, text: string) => void): void {
+  if (node.type === "silvery-text" && node.textContent !== undefined) {
+    visit(node, node.textContent)
+    return
+  }
+  for (const child of node.children) visitTextLeaves(child, visit)
+}
+
 function collectText(node: AgNode): string {
-  if (node.type === "silvery-text" && node.textContent !== undefined) return node.textContent
   let out = ""
-  for (const child of node.children) out += collectText(child)
+  visitTextLeaves(node, (_leaf, text) => {
+    out += text
+  })
   return out
 }
 
-function renderedTextLines(node: AgNode): string[] {
+interface SelectableContentGrapheme {
+  text: string
+  selectable: boolean
+}
+
+function collectSelectableContentGraphemes(node: AgNode): SelectableContentGrapheme[] {
+  const runs: Array<{ start: number; end: number; selectable: boolean }> = []
+  let text = ""
+  visitTextLeaves(node, (leaf, leafText) => {
+    const start = text.length
+    text += leafText
+    runs.push({
+      start,
+      end: text.length,
+      selectable: resolveUserSelect(leaf) !== "none",
+    })
+  })
+
+  const result: SelectableContentGrapheme[] = []
+  let sourceOffset = 0
+  let runIndex = 0
+  for (const grapheme of splitGraphemes(text)) {
+    const endOffset = sourceOffset + grapheme.length
+    while (runs[runIndex] && runs[runIndex]!.end <= sourceOffset) runIndex++
+    let selectable = true
+    for (let index = runIndex; runs[index] && runs[index]!.start < endOffset; index++) {
+      selectable &&= runs[index]!.selectable
+    }
+    result.push({ text: grapheme, selectable })
+    sourceOffset = endOffset
+  }
+  return result
+}
+
+interface RenderedTextSlice {
+  text: string
+  startOffset: number
+  endOffset: number
+}
+
+function renderedTextSlices(node: AgNode): RenderedTextSlice[] {
   const rect = node.scrollRect
   if (!rect || rect.width <= 0) return []
   const text = collectText(node)
@@ -632,7 +667,34 @@ function renderedTextLines(node: AgNode): string[] {
   const wrap = props.wrap
   const shouldWrap =
     wrap !== false && wrap !== "truncate" && wrap !== "truncate-end" && wrap !== "clip"
-  return shouldWrap ? wrapText(text, rect.width, true, false) : text.split("\n")
+  const slices: RenderedTextSlice[] = []
+  let paragraphStart = 0
+  for (let index = 0; index <= text.length; index++) {
+    if (index < text.length && text.charCodeAt(index) !== 10) continue
+    const paragraph = text.slice(paragraphStart, index)
+    const wrapped = shouldWrap ? wrapTextWithOffsets(paragraph, rect.width) : []
+    if (wrapped.length === 0) {
+      slices.push({
+        text: paragraph,
+        startOffset: paragraphStart,
+        endOffset: paragraphStart + paragraph.length,
+      })
+    } else {
+      for (const slice of wrapped) {
+        slices.push({
+          text: slice.text,
+          startOffset: paragraphStart + slice.startOffset,
+          endOffset: paragraphStart + slice.endOffset,
+        })
+      }
+    }
+    paragraphStart = index + 1
+  }
+  return slices
+}
+
+function renderedTextLines(node: AgNode): string[] {
+  return renderedTextSlices(node).map((slice) => slice.text)
 }
 
 function renderedTextBounds(node: AgNode): { width: number; height: number } | null {
@@ -646,6 +708,317 @@ function renderedTextBounds(node: AgNode): { width: number; height: number } | n
   }
   if (maxWidth <= 0) return null
   return { width: maxWidth, height: Math.min(rect.height, lines.length) }
+}
+
+/** A document endpoint retained by node identity and a grapheme gap. */
+export interface ContentSelectionEndpoint {
+  node: AgNode
+  /** Gap index in `[0, graphemeCount]`, never a UTF-16 or terminal-cell offset. */
+  gap: number
+  /** Atomic invalidation witness: content replacement clears the selection. */
+  text: string
+}
+
+export interface ContentSelectionPoint {
+  before: ContentSelectionEndpoint
+  after: ContentSelectionEndpoint
+}
+
+function selectionContentNode(node: AgNode): AgNode | null {
+  let current: AgNode | null = node
+  while (current) {
+    const rect = current.scrollRect
+    if (
+      current.type === "silvery-text" &&
+      rect &&
+      rect.width > 0 &&
+      collectText(current).length > 0
+    ) {
+      return current
+    }
+    current = current.parent
+  }
+  return null
+}
+
+function gapAtSourceOffset(text: string, offset: number): number {
+  let sourceOffset = 0
+  let gap = 0
+  for (const grapheme of splitGraphemes(text)) {
+    if (sourceOffset + grapheme.length > offset) break
+    sourceOffset += grapheme.length
+    gap++
+  }
+  return gap
+}
+
+function sourceOffsetAtGap(text: string, gap: number): number {
+  const graphemes = splitGraphemes(text)
+  let offset = 0
+  for (let index = 0; index < Math.max(0, Math.min(gap, graphemes.length)); index++) {
+    offset += graphemes[index]!.length
+  }
+  return offset
+}
+
+/** Resolve a pointer cell to the adjacent semantic text gap on one mounted node. */
+export function contentSelectionEndpointFromPoint(
+  node: AgNode,
+  x: number,
+  y: number,
+  affinity: "before" | "after",
+): ContentSelectionEndpoint | null {
+  const contentNode = selectionContentNode(node)
+  if (!contentNode) return null
+  const rect = contentNode.scrollRect
+  if (!rect) return null
+  const slices = renderedTextSlices(contentNode)
+  const row = Math.max(0, Math.min(slices.length - 1, Math.floor(y - rect.y)))
+  const slice = slices[row]
+  if (!slice) return null
+
+  const localCol = Math.max(0, Math.floor(x - rect.x))
+  let visibleCol = 0
+  let localOffset = 0
+  for (const grapheme of splitGraphemes(slice.text)) {
+    const width = Math.max(0, graphemeWidth(grapheme))
+    if (localCol < visibleCol + Math.max(1, width)) {
+      const sourceOffset =
+        slice.startOffset + localOffset + (affinity === "after" ? grapheme.length : 0)
+      const text = collectText(contentNode)
+      return { node: contentNode, gap: gapAtSourceOffset(text, sourceOffset), text }
+    }
+    visibleCol += width
+    localOffset += grapheme.length
+  }
+
+  const text = collectText(contentNode)
+  return { node: contentNode, gap: gapAtSourceOffset(text, slice.endOffset), text }
+}
+
+/** Resolve both gaps surrounding the glyph under one pointer cell. */
+export function contentSelectionPointFromPoint(
+  node: AgNode,
+  x: number,
+  y: number,
+): ContentSelectionPoint | null {
+  const before = contentSelectionEndpointFromPoint(node, x, y, "before")
+  const after = contentSelectionEndpointFromPoint(node, x, y, "after")
+  return before && after ? { before, after } : null
+}
+
+function isNodeInTree(node: AgNode, root: AgNode): boolean {
+  let current: AgNode | null = node
+  while (current) {
+    if (current === root) return true
+    current = current.parent
+  }
+  return false
+}
+
+/** Content replacement and unmount invalidate a retained endpoint atomically. */
+export function isContentSelectionEndpointValid(
+  endpoint: ContentSelectionEndpoint,
+  root: AgNode,
+): boolean {
+  return isNodeInTree(endpoint.node, root) && collectText(endpoint.node) === endpoint.text
+}
+
+function selectableTextNodes(root: AgNode): AgNode[] {
+  const nodes: AgNode[] = []
+  const walk = (node: AgNode): void => {
+    if (resolveUserSelect(node) === "none") return
+    // Only layout-backed Text nodes own a content coordinate space. Raw and
+    // nested virtual text descendants are already folded into their nearest
+    // layout-backed ancestor by collectText(); visiting them again duplicates
+    // both document order and copied content.
+    if (
+      node.type === "silvery-text" &&
+      node.scrollRect &&
+      collectSelectableContentGraphemes(node).some((grapheme) => grapheme.selectable)
+    ) {
+      nodes.push(node)
+      return
+    }
+    for (const child of node.children) walk(child)
+  }
+  walk(root)
+  return nodes
+}
+
+function compareContentEndpoints(
+  nodes: readonly AgNode[],
+  left: ContentSelectionEndpoint,
+  right: ContentSelectionEndpoint,
+): number {
+  const leftIndex = nodes.indexOf(left.node)
+  const rightIndex = nodes.indexOf(right.node)
+  if (leftIndex !== rightIndex) return leftIndex - rightIndex
+  return left.gap - right.gap
+}
+
+/**
+ * Orient two pointer glyphs into a semantic half-open range. Forward drags
+ * use origin-before through head-after; reverse drags use origin-after through
+ * head-before, so both pointer glyphs remain included in either direction.
+ */
+export function orientContentSelectionRange(
+  root: AgNode,
+  candidates: {
+    anchorBefore: ContentSelectionEndpoint
+    anchorAfter: ContentSelectionEndpoint
+    headBefore: ContentSelectionEndpoint
+    headAfter: ContentSelectionEndpoint
+  },
+): { anchor: ContentSelectionEndpoint; head: ContentSelectionEndpoint } | null {
+  const { anchorBefore, anchorAfter, headBefore, headAfter } = candidates
+  if (
+    !isContentSelectionEndpointValid(anchorBefore, root) ||
+    !isContentSelectionEndpointValid(anchorAfter, root) ||
+    !isContentSelectionEndpointValid(headBefore, root) ||
+    !isContentSelectionEndpointValid(headAfter, root)
+  ) {
+    return null
+  }
+  const nodes = selectableTextNodes(root)
+  if (
+    !nodes.includes(anchorBefore.node) ||
+    !nodes.includes(anchorAfter.node) ||
+    !nodes.includes(headBefore.node) ||
+    !nodes.includes(headAfter.node)
+  ) {
+    return null
+  }
+  return compareContentEndpoints(nodes, anchorBefore, headBefore) <= 0
+    ? { anchor: anchorBefore, head: headAfter }
+    : { anchor: anchorAfter, head: headBefore }
+}
+
+function cellAtGrapheme(node: AgNode, graphemeIndex: number): SelectionCell | null {
+  const rect = node.scrollRect
+  if (!rect) return null
+  const text = collectText(node)
+  const offset = sourceOffsetAtGap(text, graphemeIndex)
+  const slices = renderedTextSlices(node)
+  let row = slices.findIndex(
+    (slice, index) =>
+      offset >= slice.startOffset &&
+      (offset < slice.endOffset || (index === slices.length - 1 && offset === slice.endOffset)),
+  )
+  if (row < 0) row = Math.max(0, slices.length - 1)
+  const slice = slices[row]
+  if (!slice) return null
+  // A soft wrap may consume a boundary space in the source without rendering
+  // it. Clamp the source-relative prefix to the actual visual slice instead
+  // of trimEnd(), which would also erase intentionally rendered spaces.
+  const visiblePrefixLength = Math.min(Math.max(0, offset - slice.startOffset), slice.text.length)
+  const localSource = slice.text.slice(0, visiblePrefixLength)
+  return {
+    col: Math.floor(rect.x + displayWidthAnsi(localSource)),
+    row: Math.floor(rect.y + row),
+  }
+}
+
+/**
+ * Project a semantic half-open range back to the terminal's inclusive cell
+ * range. Offscreen endpoints clamp to the frame; the semantic endpoints do not.
+ */
+export function projectContentSelectionRange(
+  root: AgNode,
+  anchor: ContentSelectionEndpoint,
+  head: ContentSelectionEndpoint,
+  width: number,
+  height: number,
+): { anchor: SelectionCell; head: SelectionCell } | null {
+  if (
+    !isContentSelectionEndpointValid(anchor, root) ||
+    !isContentSelectionEndpointValid(head, root)
+  ) {
+    return null
+  }
+  const nodes = selectableTextNodes(root)
+  if (!nodes.includes(anchor.node) || !nodes.includes(head.node)) return null
+  const [start, end] =
+    compareContentEndpoints(nodes, anchor, head) <= 0 ? [anchor, head] : [head, anchor]
+  const startGraphemes = splitGraphemes(start.text)
+  if (start.gap >= startGraphemes.length || end.gap <= 0) return null
+  const startCell = cellAtGrapheme(start.node, start.gap)
+  const endCell = cellAtGrapheme(end.node, end.gap - 1)
+  if (!startCell || !endCell) return null
+  const clamp = (cell: SelectionCell): SelectionCell => ({
+    col: Math.max(0, Math.min(width - 1, cell.col)),
+    row: Math.max(0, Math.min(height - 1, cell.row)),
+  })
+  return { anchor: clamp(startCell), head: clamp(endCell) }
+}
+
+/** Extract the retained document range, joining vertically distinct text nodes by newline. */
+export function extractContentSelectionText(
+  root: AgNode,
+  anchor: ContentSelectionEndpoint,
+  head: ContentSelectionEndpoint,
+): string | null {
+  if (
+    !isContentSelectionEndpointValid(anchor, root) ||
+    !isContentSelectionEndpointValid(head, root)
+  ) {
+    return null
+  }
+  const nodes = selectableTextNodes(root)
+  const [start, end] =
+    compareContentEndpoints(nodes, anchor, head) <= 0 ? [anchor, head] : [head, anchor]
+  const startIndex = nodes.indexOf(start.node)
+  const endIndex = nodes.indexOf(end.node)
+  if (startIndex < 0 || endIndex < startIndex) return null
+
+  const parts: string[] = []
+  for (let index = startIndex; index <= endIndex; index++) {
+    const node = nodes[index]!
+    const graphemes = collectSelectableContentGraphemes(node)
+    const from = index === startIndex ? start.gap : 0
+    const to = index === endIndex ? end.gap : graphemes.length
+    parts.push(
+      graphemes
+        .slice(from, to)
+        .filter((grapheme) => grapheme.selectable)
+        .map((grapheme) => grapheme.text)
+        .join(""),
+    )
+  }
+
+  let text = parts[0] ?? ""
+  for (let index = 1; index < parts.length; index++) {
+    const previous = nodes[startIndex + index - 1]?.boxRect
+    const current = nodes[startIndex + index]?.boxRect
+    text += previous && current && current.y > previous.y ? "\n" : ""
+    text += parts[index]
+  }
+  return text
+}
+
+/** Nearest scroll owner for a selection gesture; adapters remain component-owned. */
+export function findSelectionScrollOwner(node: AgNode | null, scopeRoot?: AgNode): AgNode | null {
+  let current = node
+  while (current) {
+    const props = current.props as BoxProps
+    const scroll = current.scrollState
+    if (props.overflow === "scroll" && scroll && scroll.contentHeight > scroll.viewportHeight) {
+      return current
+    }
+    if (current === scopeRoot) return null
+    current = current.parent
+  }
+  return null
+}
+
+/** The one pointer-selection edge policy; scroll motion stays in existing adapters. */
+export function selectionEdgeScrollDirection(owner: AgNode, pointerY: number): -1 | 0 | 1 {
+  const rect = owner.scrollRect
+  if (!rect || rect.height <= 0) return 0
+  const row = Math.floor(pointerY)
+  if (row <= Math.floor(rect.y)) return -1
+  if (row >= Math.ceil(rect.y + rect.height) - 1) return 1
+  return 0
 }
 
 function pointHitsRenderedTextRow(node: AgNode, y: number): boolean {

@@ -17,8 +17,9 @@ import { describe, test, expect } from "vitest"
 import { createTermless, type TermlessTerm } from "@silvery/test"
 import "@termless/test/matchers"
 import type { Term } from "../../packages/ag-term/src/ansi/term"
-import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
+import { run } from "../../packages/ag-term/src/runtime/run"
 import { Box, Text } from "../../src/index.js"
+import { ScrollArea } from "../../packages/ag-react/src/ui/components/ScrollArea"
 
 // ============================================================================
 // Helpers
@@ -54,11 +55,123 @@ function SelectableContent() {
   )
 }
 
+function ScrollableSelectionContent() {
+  return (
+    <Box width={20} height={4}>
+      <ScrollArea scrollbar={false}>
+        {Array.from({ length: 12 }, (_, index) => (
+          <Text key={index}>row-{String(index).padStart(2, "0")} selectable</Text>
+        ))}
+      </ScrollArea>
+    </Box>
+  )
+}
+
+function ScrollableNestedSelectionContent() {
+  return (
+    <Box width={24} height={4}>
+      <ScrollArea scrollbar={false}>
+        {Array.from({ length: 12 }, (_, index) => (
+          <Text key={index}>
+            row-{String(index).padStart(2, "0")} <Text userSelect="none">NO</Text> selectable
+          </Text>
+        ))}
+      </ScrollArea>
+    </Box>
+  )
+}
+
+function selectedRows(term: ReturnType<typeof createTermless>): number[] {
+  const { rows: rowCount, cols: colCount } = term
+  if (rowCount === undefined || colCount === undefined) {
+    throw new Error("selection fixture requires definite terminal dimensions")
+  }
+  const rows = new Set<number>()
+  for (let row = 0; row < rowCount; row++) {
+    for (let col = 0; col < colCount; col++) {
+      const cell = term.cell(row, col)
+      if (Boolean((cell as { inverse?: boolean }).inverse) || cell.bg !== null) {
+        rows.add(row)
+        break
+      }
+    }
+  }
+  return [...rows]
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
 
 describe("text selection (termless e2e)", { timeout: 10000 }, () => {
+  test("autoscroll clipboard excludes nested virtual userSelect=none spans", async () => {
+    using term = createTermless({ cols: 28, rows: 6 })
+    const handle = await run(<ScrollableNestedSelectionContent />, term, {
+      selection: true,
+      mouse: true,
+    } as any)
+    await settle()
+    term.clipboard.clear()
+
+    mouseDown(term, 1, 1)
+    await settle(50)
+    mouseMove(term, 20, 3)
+    await settle(650)
+    mouseUp(term, 20, 3)
+    await settle(200)
+
+    expect(term.screen).not.toContainText("row-00 NO selectable")
+    expect(term.clipboard.last).toMatch(/row-0[4-9]/)
+    expect(term.clipboard.last).not.toContain("NO")
+    expect(term.clipboard.last).toMatch(/row-0[4-9]  selectable/)
+
+    handle.unmount()
+  })
+
+  test("holding a drag at the bottom edge scrolls and extends into hidden content", async () => {
+    using term = createTermless({ cols: 24, rows: 6 })
+    const handle = await run(<ScrollableSelectionContent />, term, {
+      selection: true,
+      mouse: true,
+    } as any)
+    await settle()
+    expect(term.screen).toContainText("row-00 selectable")
+    term.clipboard.clear()
+
+    mouseDown(term, 1, 1)
+    await settle(50)
+    mouseMove(term, 10, 3)
+    await settle(650)
+    mouseUp(term, 10, 3)
+    await settle(200)
+
+    expect(term.screen).not.toContainText("row-00 selectable")
+    expect(term.clipboard.last).toMatch(/row-0[4-9] selectable/)
+
+    handle.unmount()
+  })
+
+  test("wheel scrolling reprojects finished endpoints onto their original content", async () => {
+    using term = createTermless({ cols: 24, rows: 6 })
+    const handle = await run(<ScrollableSelectionContent />, term, {
+      selection: true,
+      mouse: true,
+    } as any)
+    await settle()
+
+    await term.mouse.drag({ from: [0, 1], to: [4, 1] })
+    await settle(100)
+    expect(selectedRows(term)).toEqual([1])
+
+    await term.mouse.wheel(10, 2, 1)
+    await settle(250)
+
+    expect(term.screen).toContainText("row-01 selectable")
+    expect(selectedRows(term)).toEqual([0])
+
+    handle.unmount()
+  })
+
   test("content renders with mouse tracking enabled", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
     // selection + mouse go through termOptions spread into createApp

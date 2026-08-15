@@ -1109,6 +1109,11 @@ export type TextTruncateHook = (
 export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, MouseEventProps {
   children?: React.ReactNode
   /**
+   * CSS user-select equivalent for this text span. Uses the same inherited
+   * contract as {@link BoxProps.userSelect}, including nested overrides.
+   */
+  userSelect?: UserSelect
+  /**
    * Wrap / truncate mode. Each value bundles the CSS-equivalent
    * `white-space` + `overflow-wrap` + `text-overflow` axes into one
    * named composite. See `vendor/silvery/docs/components/Text.md` for the
