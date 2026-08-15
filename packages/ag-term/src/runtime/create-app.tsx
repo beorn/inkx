@@ -129,12 +129,22 @@ import {
   hitTest,
   refreshHoverPath,
   resolveSelectionAnchorFromPoint,
+  contentSelectionPointFromPoint,
+  dispatchMouseEvent,
+  createWheelEvent,
+  extractContentSelectionText,
+  findSelectionScrollOwner,
+  projectContentSelectionRange,
+  orientContentSelectionRange,
+  selectionEdgeScrollDirection,
   createClickCountState,
   checkClickCount,
+  type ContentSelectionEndpoint,
+  type ContentSelectionPoint,
   type SelectionBoundary,
 } from "../mouse-events"
 import { createClsMonitor } from "./cls-monitor"
-import type { ParseMouseOptions } from "../mouse"
+import type { ParsedMouse, ParseMouseOptions } from "../mouse"
 import { setArmed } from "@silvery/ag/interactive-signals"
 import {
   ANSI,
@@ -2236,6 +2246,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     downRow: number
     boundaries: SelectionBoundary[]
     forceBufferSelection: boolean
+    contentOrigin: ContentSelectionPoint | null
     /** Click-count this mousedown belongs to (1, 2, or 3).
      *  Determines what action to dispatch on the corresponding mouseUp:
      *  1 → no selection (plain click), 2 → startWord, 3 → startLine.
@@ -2259,6 +2270,125 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   } | null = null
   let activeSelectionBoundaries: SelectionBoundary[] = []
   let activeForceBufferSelection = false
+  let activeContentSelection: {
+    root: AgNode
+    origin: ContentSelectionPoint
+    anchor: ContentSelectionEndpoint
+    head: ContentSelectionEndpoint
+    scrolled: boolean
+  } | null = null
+  let activeSelectionPointer: { x: number; y: number } | null = null
+  let selectionAutoScrollTimer: ReturnType<typeof setInterval> | null = null
+  let selectionAutoScrollDirection: -1 | 0 | 1 = 0
+
+  function stopSelectionAutoScroll(): void {
+    if (selectionAutoScrollTimer !== null) clearInterval(selectionAutoScrollTimer)
+    selectionAutoScrollTimer = null
+    selectionAutoScrollDirection = 0
+    activeSelectionPointer = null
+  }
+
+  function dispatchSelectionAutoScrollTick(): void {
+    if (!selectionState.selecting || !activeContentSelection || !activeSelectionPointer) {
+      stopSelectionAutoScroll()
+      return
+    }
+    const owner = findSelectionScrollOwner(
+      activeContentSelection.head.node,
+      activeContentSelection.root,
+    )
+    if (!owner) {
+      stopSelectionAutoScroll()
+      return
+    }
+    const direction = selectionEdgeScrollDirection(owner, activeSelectionPointer.y)
+    const scroll = owner.scrollState
+    const maxScroll = scroll ? Math.max(0, scroll.contentHeight - scroll.viewportHeight) : 0
+    if (
+      direction === 0 ||
+      !scroll ||
+      (direction < 0 && scroll.offset <= 0) ||
+      (direction > 0 && scroll.offset >= maxScroll)
+    ) {
+      stopSelectionAutoScroll()
+      return
+    }
+    const parsed: ParsedMouse = {
+      button: 0,
+      x: activeSelectionPointer.x,
+      y: activeSelectionPointer.y,
+      coordinateMode: "cell",
+      action: "wheel",
+      delta: direction,
+      deltaX: 0,
+      shift: false,
+      meta: false,
+      ctrl: false,
+      receivedAt: performance.now(),
+    }
+    const wheel = createWheelEvent(
+      parsed.x,
+      parsed.y,
+      owner,
+      parsed,
+      mouseEventState.keyboardModifiers,
+    )
+    dispatchMouseEvent(wheel)
+    if (wheel.defaultPrevented) activeContentSelection.scrolled = true
+  }
+
+  function updateSelectionAutoScroll(x: number, y: number): void {
+    activeSelectionPointer = { x, y }
+    if (!selectionState.selecting || !activeContentSelection) {
+      stopSelectionAutoScroll()
+      return
+    }
+    const owner = findSelectionScrollOwner(
+      activeContentSelection.head.node,
+      activeContentSelection.root,
+    )
+    const direction = owner ? selectionEdgeScrollDirection(owner, y) : 0
+    if (direction === 0) {
+      stopSelectionAutoScroll()
+      return
+    }
+    if (selectionAutoScrollTimer !== null && selectionAutoScrollDirection === direction) return
+    if (selectionAutoScrollTimer !== null) clearInterval(selectionAutoScrollTimer)
+    selectionAutoScrollDirection = direction
+    selectionAutoScrollTimer = setInterval(dispatchSelectionAutoScrollTick, 50)
+    dispatchSelectionAutoScrollTick()
+  }
+
+  function resolveContentRangeAtPointer(
+    contentRoot: AgNode,
+    origin: ContentSelectionPoint,
+    x: number,
+    y: number,
+  ): { anchor: ContentSelectionEndpoint; head: ContentSelectionEndpoint } | null {
+    const root = getContainerRoot(container)
+    if (!root) return null
+    const resolved = resolveSelectionAnchorFromPoint({
+      root,
+      buffer: currentBuffer?._buffer ?? null,
+      x,
+      y,
+    })
+    const point = resolved?.node ? contentSelectionPointFromPoint(resolved.node, x, y) : null
+    const range = point
+      ? orientContentSelectionRange(contentRoot, {
+          anchorBefore: origin.before,
+          anchorAfter: origin.after,
+          headBefore: point.before,
+          headAfter: point.after,
+        })
+      : null
+    if (!range) return null
+    const originOwner = findSelectionScrollOwner(origin.before.node, contentRoot)
+    const headOwner = findSelectionScrollOwner(range.head.node, contentRoot)
+    return headOwner === originOwner ? range : null
+  }
+
+  appScope.defer(stopSelectionAutoScroll)
 
   function selectionCellFromPointer(x: number, y: number): { col: number; row: number } {
     return {
@@ -2330,6 +2460,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
       },
       setRange: (range) => {
+        activeContentSelection = null
+        stopSelectionAutoScroll()
         if (range === null) {
           const [next] = terminalSelectionUpdate({ type: "clear" }, selectionState)
           selectionState = next
@@ -2355,6 +2487,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       clear: () => {
         const [next] = terminalSelectionUpdate({ type: "clear" }, selectionState)
         selectionState = next
+        activeContentSelection = null
+        stopSelectionAutoScroll()
         notifySelectionListeners()
         if (currentBuffer) {
           runtime.invalidate()
@@ -3894,8 +4028,43 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // the initial render at startup calls paintFrame BEFORE this point in
   // source order. Closures over `currentBuffer` / `selectionState` /
   // `selectionEnabled` / `runtime` are by-reference, evaluated at call time.
+  function refreshContentSelectionProjection(): void {
+    if (!activeContentSelection || !currentBuffer) return
+
+    if (selectionState.selecting && activeSelectionPointer) {
+      const nextRange = resolveContentRangeAtPointer(
+        activeContentSelection.root,
+        activeContentSelection.origin,
+        activeSelectionPointer.x,
+        activeSelectionPointer.y,
+      )
+      if (nextRange) {
+        activeContentSelection.anchor = nextRange.anchor
+        activeContentSelection.head = nextRange.head
+      }
+    }
+
+    const projected = projectContentSelectionRange(
+      activeContentSelection.root,
+      activeContentSelection.anchor,
+      activeContentSelection.head,
+      currentBuffer._buffer.width,
+      currentBuffer._buffer.height,
+    )
+    if (!projected) {
+      const [cleared] = terminalSelectionUpdate({ type: "clear" }, selectionState)
+      selectionState = cleared
+      activeContentSelection = null
+      stopSelectionAutoScroll()
+      notifySelectionListeners()
+      return
+    }
+    selectionState = { ...selectionState, range: projected }
+  }
+
   function paintFrame(): void {
     if (!currentBuffer) return
+    refreshContentSelectionProjection()
     let fullscreenDamageRepairThisFrame = false
     if (fullscreenDamageRiskFromBlur && alternateScreen) {
       const now = performance.now()
@@ -4128,6 +4297,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             selectionState = cleared
             activeSelectionBoundaries = []
             activeForceBufferSelection = false
+            activeContentSelection = null
+            stopSelectionAutoScroll()
             notifySelectionListeners()
             // Force full re-render so the freshly cleared selection's
             // styling is removed from screen. Without runtime.invalidate(),
@@ -4175,6 +4346,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               downRow: resolvedAnchor.downCell.row,
               boundaries: resolvedAnchor.boundaries,
               forceBufferSelection: resolvedAnchor.forceBufferSelection,
+              contentOrigin:
+                resolvedAnchor.node && !resolvedAnchor.forceBufferSelection
+                  ? contentSelectionPointFromPoint(resolvedAnchor.node, mouseData.x, mouseData.y)
+                  : null,
               clickCount,
             }
           }
@@ -4249,6 +4424,29 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                 started,
               )
               selectionState = extended
+              if (anchor.clickCount === 1 && anchor.contentOrigin) {
+                const root = getContainerRoot(container)
+                const contentRoot =
+                  anchor.boundaries.find((boundary) => boundary.hardContain)?.node ?? root
+                const contentRange = resolveContentRangeAtPointer(
+                  contentRoot,
+                  anchor.contentOrigin,
+                  mouseData.x,
+                  mouseData.y,
+                )
+                if (contentRange) {
+                  activeContentSelection = {
+                    root: contentRoot,
+                    origin: anchor.contentOrigin,
+                    anchor: contentRange.anchor,
+                    head: contentRange.head,
+                    scrolled: false,
+                  }
+                  updateSelectionAutoScroll(mouseData.x, mouseData.y)
+                } else {
+                  activeContentSelection = null
+                }
+              }
               notifySelectionListeners()
               if (currentBuffer) {
                 paintFrame()
@@ -4283,6 +4481,19 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               selectionState,
             )
             selectionState = next
+            if (activeContentSelection) {
+              const contentRange = resolveContentRangeAtPointer(
+                activeContentSelection.root,
+                activeContentSelection.origin,
+                mouseData.x,
+                mouseData.y,
+              )
+              if (contentRange) {
+                activeContentSelection.anchor = contentRange.anchor
+                activeContentSelection.head = contentRange.head
+              }
+              updateSelectionAutoScroll(mouseData.x, mouseData.y)
+            }
             notifySelectionListeners()
             if (currentBuffer) {
               paintFrame()
@@ -4301,21 +4512,31 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             pendingSelectionDown = null
             activeSelectionBoundaries = []
             activeForceBufferSelection = false
+            stopSelectionAutoScroll()
             notifySelectionListeners()
 
             // Copy selected text via OSC 52 — gated on copyOnSelect.
             if (copyOnSelectEnabled && next.range && currentBuffer) {
-              const text = extractText(currentBuffer._buffer, next.range, {
-                scope: next.scope,
-                // Semantic copy: skip non-selectable margins/gutters/padding so
-                // the clipboard matches the highlight, which already filters by
-                // SELECTABLE_FLAG (renderer.ts). Shift+drag raw-buffer selection
-                // opts out and copies the screen rectangle verbatim.
-                respectSelectableFlag: !forceBufferSelection,
-                // Join soft-wrapped rows into their logical line + precise
-                // trailing-space trimming via per-row metadata.
-                rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
-              })
+              const retainedText = activeContentSelection?.scrolled
+                ? extractContentSelectionText(
+                    activeContentSelection.root,
+                    activeContentSelection.anchor,
+                    activeContentSelection.head,
+                  )
+                : null
+              const text =
+                retainedText ??
+                extractText(currentBuffer._buffer, next.range, {
+                  scope: next.scope,
+                  // Semantic copy: skip non-selectable margins/gutters/padding so
+                  // the clipboard matches the highlight, which already filters by
+                  // SELECTABLE_FLAG (renderer.ts). Shift+drag raw-buffer selection
+                  // opts out and copies the screen rectangle verbatim.
+                  respectSelectableFlag: !forceBufferSelection,
+                  // Join soft-wrapped rows into their logical line + precise
+                  // trailing-space trimming via per-row metadata.
+                  rowMetadata: currentBuffer._buffer.getRowMetadataArray(),
+                })
               if (text.length > 0) {
                 const base64 = globalThis.Buffer.from(text).toString("base64")
                 target.write(`\x1b]52;c;${base64}\x07`)
@@ -4394,6 +4615,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       selectionState = next
       activeSelectionBoundaries = []
       activeForceBufferSelection = false
+      activeContentSelection = null
+      stopSelectionAutoScroll()
       notifySelectionListeners()
       // Force full re-render. Selection just cleared, so paintFrame() goes
       // through the no-selection branch — runtime.render writes unstyled
