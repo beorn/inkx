@@ -187,13 +187,7 @@ export {
   setDropTarget,
   clearInteractiveState,
 } from "./interactive-signals"
-export { resolveInteractionTreatment } from "./interaction-treatment"
-export type {
-  InteractionRole,
-  InteractionSurface,
-  InteractionTreatment,
-  InteractionVisual,
-} from "./interaction-treatment"
+export * from "./interaction-treatment"
 
 // Tree Utilities
 export { getAncestorPath, pointInRect } from "./tree-utils"

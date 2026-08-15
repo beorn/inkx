@@ -31,6 +31,7 @@ import React, {
   useRef,
   useState,
 } from "react"
+import { resolveInteractionTreatment, type InteractionRole } from "@silvery/ag"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { Box } from "./Box"
 import { useHover } from "../hooks/useHover"
@@ -232,8 +233,13 @@ export function usePopoverHandlers(
 } {
   const popover = usePopover()
   const hover = useHover()
-  const trigger = options?.trigger ?? "cmd-hover"
-  const requiresCmd = trigger === "cmd-hover"
+  const role: InteractionRole = options?.trigger === "hover" ? "control" : "content-link"
+  const reveal = resolveInteractionTreatment(
+    { hovered: false, armed: false, selected: false, focused: false, dropTarget: false },
+    role,
+    "bare",
+  ).reveal
+  const requiresCmd = reveal === "cmd-hover"
   const { super: cmdHeld } = useModifierKeys({ enabled: requiresCmd && hover.isHovered })
   const pendingShowRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const anchorRef = useRef<PopoverAnchor | null>(null)
@@ -263,9 +269,9 @@ export function usePopoverHandlers(
     cmdHeldRef.current = cmdHeld
   }, [cmdHeld])
 
-  const isArmed = useCallback(
-    () => trigger === "hover" || cmdHeldRef.current || lastModifierState.super,
-    [trigger],
+  const isRevealActive = useCallback(
+    () => reveal === "hover" || cmdHeldRef.current || lastModifierState.super,
+    [reveal],
   )
 
   const clearPending = useCallback(() => {
@@ -278,19 +284,19 @@ export function usePopoverHandlers(
   const scheduleShow = useCallback(
     (anchor: PopoverAnchor) => {
       if (!popover) return
-      // An armed re-arm while the dwell is already pending must NOT restart
+      // A reveal-active recheck while dwell is already pending must NOT restart
       // the clock; the first complete dwell wins.
       if (pendingShowRef.current !== null) return
       pendingShowRef.current = setTimeout(() => {
         pendingShowRef.current = null
         if (!hoverRef.current) return
         if (anchorRef.current !== anchor) return
-        if (!isArmed()) return
+        if (!isRevealActive()) return
         shownRef.current = true
         popover.show(contentRef.current, anchor, ownerId)
       }, HOVER_SHOW_DELAY_MS)
     },
-    [popover, clearPending, isArmed, ownerId],
+    [popover, isRevealActive, ownerId],
   )
 
   const hideNow = useCallback(() => {
@@ -306,13 +312,22 @@ export function usePopoverHandlers(
       return
     }
     const anchor = anchorRef.current
-    if (isArmed() && anchor) {
+    if (isRevealActive() && anchor) {
       scheduleShow(anchor)
       return
     }
-    if (trigger === "hover") clearPending()
+    if (reveal === "hover") clearPending()
     hideNow()
-  }, [cmdHeld, hover.isHovered, popover, scheduleShow, clearPending, hideNow, isArmed, trigger])
+  }, [
+    cmdHeld,
+    hover.isHovered,
+    popover,
+    scheduleShow,
+    clearPending,
+    hideNow,
+    isRevealActive,
+    reveal,
+  ])
 
   // Content refresh: when the popover is already SHOWING for this anchor and
   // the consumer re-rendered with new content, swap the content in place —
@@ -346,7 +361,7 @@ export function usePopoverHandlers(
       clearPending()
       scheduleShow(anchor)
     },
-    [hover, popover, clearPending, scheduleShow, trigger],
+    [hover, popover, clearPending, scheduleShow],
   )
   const onMouseLeave = useCallback(
     (e: SilveryMouseEvent) => {

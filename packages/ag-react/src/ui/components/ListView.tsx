@@ -69,6 +69,7 @@ import { useBoxSize } from "../../hooks/useLayout"
 import { useScrollState } from "../../hooks/useScrollState"
 import { useInput } from "../../hooks/useInput"
 import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
+import { actionFill } from "@silvery/ag"
 import { Box, type BoxHandle } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Scrollbar } from "./Scrollbar"
@@ -3747,10 +3748,7 @@ function ScrollToBottomButton({
   onClick: () => void
   onWheel: (event: { deltaY: number; timeStamp?: number }) => void
 }): React.ReactElement {
-  const interaction = useInteractionTreatment("control", {
-    idle: { backgroundColor: "$mutedbg", color: "$muted" },
-    revealed: { backgroundColor: "$primary", color: "$bg" },
-  })
+  const interaction = useInteractionTreatment("control", actionFill("accent", "quiet"))
   // The outer wrapper is the bottom-row centering container. We do
   // NOT set `pointerEvents="none"` on it — silvery's hit test skips
   // the entire subtree of a `pointerEvents="none"` absolute node, so

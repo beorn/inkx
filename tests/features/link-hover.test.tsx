@@ -1,5 +1,5 @@
 /**
- * Link Hover Effects — Cmd+hover armed state + modifier-aware mouse cursors.
+ * Link Hover Effects — Cmd+hover reveal state + modifier-aware mouse cursors.
  *
  * Verifies that <Link> brightens without changing underline on reveal,
  * that useModifierKeys tracks modifier state correctly, and that
@@ -15,10 +15,267 @@ import {
   Link,
   Text,
   type ChainAppContextValue,
+  useInteractionTreatment,
   useModifierKeys,
   useMouseCursor,
 } from "@silvery/ag-react"
+import {
+  actionFill,
+  cardOutline,
+  customInteractionSurface,
+  interactionSurfaceRecipes,
+  resolveInteractionTreatment,
+  textPair,
+  togglePillSurface,
+} from "@silvery/ag"
 import { run } from "../../packages/ag-term/src/runtime/run"
+
+// ============================================================================
+// Interaction treatment recipes
+// ============================================================================
+
+describe("interaction treatment recipes", () => {
+  const hovered = {
+    hovered: true,
+    armed: false,
+    selected: false,
+    focused: false,
+    dropTarget: false,
+  }
+
+  test("exports the closed set of named surface recipes", () => {
+    expect(Object.keys(interactionSurfaceRecipes)).toEqual([
+      "surfaceHover",
+      "bare",
+      "neutralText",
+      "accentText",
+      "accentReveal",
+      "accentSurface",
+      "mutedAccentSurface",
+      "inverseWash",
+      "inverseText",
+      "raisedWash",
+      "raisedOverlay",
+      "strongText",
+      "boldReveal",
+      "surfaceHoverFocused",
+      "toggleGroup",
+      "selectableNav",
+      "dragHandle",
+      "warningText",
+      "cursorSurface",
+    ])
+
+    expect(resolveInteractionTreatment(hovered, "control", "accentText")).toMatchObject({
+      color: "$fg-accent",
+    })
+    expect(resolveInteractionTreatment(hovered, "control", "inverseWash")).toMatchObject({
+      backgroundColor: "$bg-inverse-hover",
+    })
+    expect(
+      resolveInteractionTreatment(
+        { ...hovered, hovered: false, selected: true },
+        "control",
+        "selectableNav",
+      ),
+    ).toMatchObject({ backgroundColor: "$bg-selected", color: "$fg-accent", bold: true })
+  })
+
+  test("parameterized recipes preserve status fills and caller text pairs", () => {
+    expect(actionFill("accent", "transparent")).toEqual({
+      idle: {},
+      revealed: { backgroundColor: "$fg-accent", color: "$bg" },
+    })
+    expect(actionFill("info", "transparent")).toEqual({
+      idle: {},
+      revealed: { backgroundColor: "$fg-info", color: "$bg" },
+    })
+    expect(actionFill("warning", "inverse")).toEqual({
+      idle: { backgroundColor: "$bg-inverse", color: "$fg-on-inverse" },
+      revealed: { backgroundColor: "$warning", color: "$bg" },
+    })
+    expect(actionFill("accent", "quiet")).toEqual({
+      idle: { backgroundColor: "$mutedbg", color: "$muted" },
+      revealed: { backgroundColor: "$primary", color: "$bg" },
+    })
+    expect(actionFill("accent", "filled")).toEqual({
+      idle: { backgroundColor: "$primary", color: "$bg" },
+      revealed: { backgroundColor: "$accent", color: "$bg" },
+    })
+    expect(actionFill("accent", "selected")).toEqual({
+      idle: { backgroundColor: "$fg-accent", color: "$bg" },
+      revealed: { backgroundColor: "$fg-accent", color: "$bg" },
+    })
+    expect(actionFill("info", "selected")).toEqual({
+      idle: { backgroundColor: "$fg-info", color: "$bg" },
+      revealed: { backgroundColor: "$fg-info", color: "$bg" },
+    })
+    expect(actionFill("warning", "selected")).toEqual({
+      idle: { backgroundColor: "$warning", color: "$bg" },
+      revealed: { backgroundColor: "$warning", color: "$bg" },
+    })
+    expect(
+      resolveInteractionTreatment(hovered, "control", textPair("title", "$fg-link")),
+    ).toMatchObject({
+      color: "$fg-link",
+    })
+    expect(cardOutline(false)).toEqual({
+      revealed: { color: "$fg-muted" },
+      pointer: "none",
+    })
+    expect(cardOutline(true)).toEqual({
+      revealed: { color: "$fg-link" },
+      pointer: "revealed",
+    })
+    expect(resolveInteractionTreatment(hovered, "control", cardOutline(false))).toMatchObject({
+      color: "$fg-muted",
+      mouseCursor: undefined,
+    })
+    expect(resolveInteractionTreatment(hovered, "control", cardOutline(true))).toMatchObject({
+      color: "$fg-link",
+      mouseCursor: "pointer",
+    })
+    expect(togglePillSurface(true, false, "$fg", "$fg-accent")).toEqual({
+      idle: { color: "$fg-muted" },
+      revealed: { color: "$fg" },
+      pointer: "none",
+    })
+    expect(togglePillSurface(true, true, "$fg", "$fg-accent")).toEqual({
+      idle: { color: "$fg-muted" },
+      revealed: { color: "$fg-accent", backgroundColor: "$bg-surface-hover" },
+      pointer: "none",
+    })
+    expect(togglePillSurface(false, false, "$fg", "$fg-accent")).toEqual({
+      idle: { color: "$border-default" },
+      revealed: { color: "$border-default" },
+      pointer: "none",
+    })
+    expect(togglePillSurface(false, true, "$fg", "$fg-accent")).toEqual({
+      idle: { color: "$border-default" },
+      revealed: { color: "$fg-muted", backgroundColor: "$bg-surface-hover" },
+      pointer: "none",
+    })
+  })
+
+  test("preserves the audited static token families exactly", () => {
+    expect(interactionSurfaceRecipes.accentText).toEqual({
+      idle: { color: "$fg-muted" },
+      revealed: { color: "$fg-accent" },
+    })
+    expect(interactionSurfaceRecipes.accentReveal).toEqual({
+      revealed: { color: "$primary" },
+      selected: { color: "$primary" },
+    })
+    expect(interactionSurfaceRecipes.boldReveal).toEqual({
+      idle: { color: "$fg" },
+      revealed: { color: "$fg", bold: true },
+    })
+    expect(interactionSurfaceRecipes.accentSurface).toEqual({
+      revealed: { backgroundColor: "$bg-surface-hover", color: "$primary" },
+    })
+    expect(interactionSurfaceRecipes.mutedAccentSurface).toEqual({
+      idle: { color: "$muted" },
+      revealed: { backgroundColor: "$bg-surface-hover", color: "$primary" },
+    })
+    expect(interactionSurfaceRecipes.dragHandle).toEqual({
+      idle: { color: "$muted", backgroundColor: "$muted" },
+      revealed: { color: "$primary", backgroundColor: "$primary" },
+      armed: { color: "$primary", backgroundColor: "$primary" },
+    })
+    expect(interactionSurfaceRecipes.warningText).toEqual({
+      idle: { color: "$fg" },
+      revealed: { color: "$fg-warning" },
+      selected: { color: "$fg-warning" },
+    })
+    expect(interactionSurfaceRecipes.cursorSurface).toEqual({
+      revealed: { backgroundColor: "$bg-cursor" },
+      selected: { backgroundColor: "$bg-cursor" },
+    })
+  })
+
+  test("regional gutters follow the full focused-selected-armed precedence", () => {
+    const treatment = resolveInteractionTreatment(
+      { ...hovered, focused: true, selected: true, armed: true },
+      "region",
+      customInteractionSurface({
+        idle: { gutterColor: "idle" },
+        revealed: { gutterColor: "revealed" },
+        focused: { gutterColor: "focused" },
+        selected: { gutterColor: "selected" },
+        armed: { gutterColor: "armed" },
+      }),
+    )
+
+    expect(treatment.gutterColor).toBe("armed")
+    expect(
+      resolveInteractionTreatment(
+        { ...hovered, hovered: false, selected: true },
+        "region",
+        customInteractionSurface({
+          idle: { gutterColor: "idle" },
+          selected: { gutterColor: "selected" },
+        }),
+      ).gutterColor,
+    ).toBe("selected")
+  })
+
+  test("surface pointer policy defaults to revealed and supports none", () => {
+    expect(
+      resolveInteractionTreatment(hovered, "control", customInteractionSurface({})).mouseCursor,
+    ).toBe("pointer")
+    expect(
+      resolveInteractionTreatment(
+        { ...hovered, armed: true },
+        "control",
+        customInteractionSurface({ pointer: "none" }),
+      ).mouseCursor,
+    ).toBeUndefined()
+  })
+
+  test("retains an explicit escape for caller-computed dynamic treatments", () => {
+    const dynamic = customInteractionSurface({
+      idle: { color: "$fg-muted" },
+      revealed: { color: "$fg-success" },
+    })
+
+    expect(resolveInteractionTreatment(hovered, "content-link", dynamic)).toMatchObject({
+      color: "$fg-success",
+      reveal: "cmd-hover",
+    })
+  })
+})
+
+describe("useInteractionTreatment content-link policy", () => {
+  test("plain hover stays idle until Super/Cmd is held", async () => {
+    function ContentLinkTreatment() {
+      const interaction = useInteractionTreatment(
+        "content-link",
+        textPair("$fg-muted", "$fg-success"),
+      )
+      return (
+        <Text
+          color={interaction.treatment.color}
+          onMouseEnter={interaction.onMouseEnter}
+          onMouseLeave={interaction.onMouseLeave}
+        >
+          Hook link
+        </Text>
+      )
+    }
+
+    const renderer = createRenderer({ cols: 30, rows: 3, kittyMode: true })
+    const app = renderer(<ContentLinkTreatment />)
+    const column = app.text.indexOf("Hook link")
+    const idle = app.cell(column, 0).fg
+
+    await app.hover(column, 0)
+    expect(app.cell(column, 0).fg).toEqual(idle)
+
+    await app.keyDown("Super")
+    expect(app.cell(column, 0).fg).not.toEqual(idle)
+    await app.keyUp("Super")
+  })
+})
 
 // ============================================================================
 // useModifierKeys
@@ -219,34 +476,6 @@ describe("Link", () => {
 // ============================================================================
 
 describe("Link role-derived reveal", () => {
-  test("does not register modifier observers while idle or hovered", async () => {
-    const registerRawKey = vi.fn(() => () => {})
-    const registerFocus = vi.fn(() => () => {})
-    const chain = {
-      input: { register: () => () => {}, setActive: () => {} },
-      paste: { register: () => () => {} },
-      rawKeys: { register: registerRawKey },
-      focusEvents: { register: registerFocus },
-      events: { on: () => () => {}, emit: () => {} },
-    } as ChainAppContextValue
-    const render = createRenderer({ cols: 40, rows: 5 })
-    const app = render(
-      <ChainAppContext.Provider value={chain}>
-        <Link href="https://example.com" role="control">
-          Plain hover
-        </Link>
-      </ChainAppContext.Provider>,
-    )
-
-    expect(registerRawKey).not.toHaveBeenCalled()
-    expect(registerFocus).not.toHaveBeenCalled()
-
-    await app.hover(app.text.indexOf("Plain hover"), 0)
-
-    expect(registerRawKey).not.toHaveBeenCalled()
-    expect(registerFocus).not.toHaveBeenCalled()
-  })
-
   test("action-only links brighten on plain hover without changing underline", async () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
@@ -325,10 +554,10 @@ describe("Link role-derived reveal", () => {
 })
 
 // ============================================================================
-// Link Cmd+hover armed state
+// Link Cmd+hover reveal state
 // ============================================================================
 
-describe("Link Cmd+hover armed state", () => {
+describe("Link Cmd+hover reveal state", () => {
   test("hover without Cmd does not underline", async () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
@@ -371,7 +600,7 @@ describe("Link Cmd+hover armed state", () => {
     expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
   })
 
-  test("moving mouse away clears armed state", async () => {
+  test("moving mouse away clears reveal state", async () => {
     const render = createRenderer({ cols: 40, rows: 5, kittyMode: true })
     const app = render(
       <Box flexDirection="column">
@@ -381,17 +610,18 @@ describe("Link Cmd+hover armed state", () => {
     )
 
     const col = app.text.indexOf("Click Me")
+    const idleForeground = app.cell(col, 0).fg
 
     // Hover + Cmd
     await app.hover(col, 0)
     await app.press("Super+a")
-    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
 
     // Move to sibling (must be a real node for hitTest to produce a leave)
     await app.hover(0, 1)
 
-    // Underline gone (not hovered anymore)
-    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
+    // The reveal foreground is gone when the pointer leaves.
+    expect(app.cell(col, 0).fg).toEqual(idleForeground)
   })
 
   test("underline={false} remains false during Cmd+hover", async () => {

@@ -26,6 +26,7 @@
  */
 import React, { createContext, useCallback, useContext, useState } from "react"
 import { useInput } from "../../hooks/useInput"
+import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 
@@ -141,13 +142,17 @@ export function Tabs({
 
       if (key.rightArrow || _input === "l") {
         const next = (currentIdx + 1) % tabValues.length
-        setActiveValue(tabValues[next]!)
+        const nextValue = tabValues[next]
+        if (nextValue === undefined) throw new Error("Tabs navigation resolved no next tab")
+        setActiveValue(nextValue)
         return
       }
 
       if (key.leftArrow || _input === "h") {
         const next = (currentIdx - 1 + tabValues.length) % tabValues.length
-        setActiveValue(tabValues[next]!)
+        const nextValue = tabValues[next]
+        if (nextValue === undefined) throw new Error("Tabs navigation resolved no previous tab")
+        setActiveValue(nextValue)
         return
       }
     },
@@ -196,24 +201,24 @@ export function TabList({ children, justifyContent, flexWrap }: TabListProps): R
 export function Tab({ value, children }: TabProps): React.ReactElement {
   const { activeValue, setActiveValue, registerTab } = useTabsContext()
   const isActive = activeValue === value
-  const [isHovered, setIsHovered] = useState(false)
+  const interaction = useInteractionTreatment("control", "warningText", true, {
+    selected: isActive,
+  })
 
   // Register this tab's value for keyboard navigation
   React.useEffect(() => {
     registerTab(value)
   }, [value, registerTab])
 
-  const color = isActive || isHovered ? "$fg-warning" : "$fg"
-
   return (
     <Box
       mouseCursor="pointer"
       onMouseDown={() => setActiveValue(value)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={interaction.onMouseEnter}
+      onMouseLeave={interaction.onMouseLeave}
       paddingRight={2}
     >
-      <Text color={color} bold>
+      <Text color={interaction.treatment.color} bold>
         {children}
       </Text>
     </Box>

@@ -44,12 +44,9 @@ import {
   type StorybookHostInjection,
 } from "./host-injection.tsx"
 import {
-  STORYBOOK_CHROME_ACTIVE_FG,
   STORYBOOK_CHROME_BG,
   STORYBOOK_CHROME_FG,
-  STORYBOOK_CHROME_HOVER_BG,
   STORYBOOK_CHROME_MUTED_FG,
-  STORYBOOK_CHROME_SELECTED_BG,
   Story,
   StoryScreen,
   type StoryLane,
@@ -81,15 +78,7 @@ function StoryNavRow({
 }): React.ReactElement {
   const interaction = useInteractionTreatment(
     "control",
-    {
-      idle: { color: STORYBOOK_CHROME_FG },
-      revealed: { backgroundColor: STORYBOOK_CHROME_HOVER_BG },
-      selected: {
-        backgroundColor: STORYBOOK_CHROME_SELECTED_BG,
-        color: STORYBOOK_CHROME_ACTIVE_FG,
-        bold: true,
-      },
-    },
+    "selectableNav",
     true,
     { selected },
   )

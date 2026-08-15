@@ -18,7 +18,9 @@
  * ```
  */
 import React, { createContext, useContext } from "react"
+import { resolveInteractionTreatment, togglePillSurface } from "@silvery/ag"
 import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
+import { useHover } from "../../hooks/useHover"
 import { Box } from "../../components/Box"
 import type { BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
@@ -34,11 +36,6 @@ const TogglePillGroupContext = createContext<boolean>(false)
 // Colour ladder
 // =============================================================================
 
-/** The idle "very dim" tone for an inactive pill / the group label. */
-const PILL_IDLE_COLOR = "$border-default"
-/** The idle tone for an ACTIVE pill — dim but still readable. */
-const PILL_ACTIVE_IDLE_COLOR = "$fg-muted"
-
 /**
  * Three-state colour ladder (idle → group-hover → item-hover), mirroring ag
  * code's `bottomBarToggleColor`. An idle inactive pill sits at the extra-muted
@@ -47,22 +44,39 @@ const PILL_ACTIVE_IDLE_COLOR = "$fg-muted"
  * reaches `activeHoverColor`. Inactive pills only ever brighten to `$fg-muted`,
  * so "on" always reads brighter than "off".
  */
-export function togglePillColor({
-  active,
-  groupHovered,
-  itemHovered,
-  activeColor,
-  activeHoverColor,
-}: {
+interface TogglePillTreatmentInput {
   active: boolean
   groupHovered: boolean
   itemHovered: boolean
   activeColor: string
   activeHoverColor: string
-}): string {
-  if (!groupHovered) return active ? PILL_ACTIVE_IDLE_COLOR : PILL_IDLE_COLOR
-  if (active) return itemHovered ? activeHoverColor : activeColor
-  return itemHovered ? PILL_ACTIVE_IDLE_COLOR : PILL_IDLE_COLOR
+}
+
+export function togglePillColor(input: TogglePillTreatmentInput): string {
+  const color = resolveTogglePillTreatment(input).color
+  if (color === undefined) throw new Error("TogglePill treatment must provide a foreground")
+  return color
+}
+
+function resolveTogglePillTreatment({
+  active,
+  groupHovered,
+  itemHovered,
+  activeColor,
+  activeHoverColor,
+}: TogglePillTreatmentInput) {
+  const surface = togglePillSurface(active, itemHovered, activeColor, activeHoverColor)
+  return resolveInteractionTreatment(
+    {
+      hovered: groupHovered || itemHovered,
+      armed: false,
+      selected: active,
+      focused: false,
+      dropTarget: false,
+    },
+    "control",
+    surface,
+  )
 }
 
 // =============================================================================
@@ -102,14 +116,12 @@ export function TogglePill({
   activeHoverColor = "$fg-accent",
   ...rest
 }: TogglePillProps): React.ReactElement {
-  const interaction = useInteractionTreatment("control", {
-    revealed: { backgroundColor: "$bg-surface-hover" },
-  })
+  const hover = useHover()
   const groupHovered = useContext(TogglePillGroupContext)
-  const color = togglePillColor({
+  const treatment = resolveTogglePillTreatment({
     active,
     groupHovered,
-    itemHovered: interaction.isHovered,
+    itemHovered: hover.isHovered,
     activeColor,
     activeHoverColor,
   })
@@ -119,20 +131,20 @@ export function TogglePill({
       flexShrink={0}
       minWidth={0}
       onClick={onToggle}
-      onMouseEnter={interaction.onMouseEnter}
-      onMouseLeave={interaction.onMouseLeave}
-      backgroundColor={interaction.treatment.backgroundColor}
+      onMouseEnter={hover.onMouseEnter}
+      onMouseLeave={hover.onMouseLeave}
+      backgroundColor={treatment.backgroundColor}
       {...rest}
     >
       {boldFirstLetter && label.length > 0 ? (
         <>
-          <Text color={color} bold>
+          <Text color={treatment.color} bold>
             {label.slice(0, 1)}
           </Text>
-          <Text color={color}>{label.slice(1)}</Text>
+          <Text color={treatment.color}>{label.slice(1)}</Text>
         </>
       ) : (
-        <Text color={color}>{label}</Text>
+        <Text color={treatment.color}>{label}</Text>
       )}
     </Box>
   )
@@ -162,10 +174,7 @@ export function TogglePillGroup({
   gap = 1,
   ...rest
 }: TogglePillGroupProps): React.ReactElement {
-  const interaction = useInteractionTreatment("control", {
-    idle: { color: PILL_IDLE_COLOR },
-    revealed: { color: PILL_ACTIVE_IDLE_COLOR },
-  })
+  const interaction = useInteractionTreatment("control", "toggleGroup")
   return (
     <TogglePillGroupContext.Provider value={interaction.isHovered}>
       <Box
