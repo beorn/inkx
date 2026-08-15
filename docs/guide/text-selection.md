@@ -135,10 +135,35 @@ Click and drag to select text. The selection highlight follows your mouse across
 ```
 mousedown → set anchor point
 mousemove → extend selection to cursor
-mouseup   → selection persists (explicit copy needed)
+mouseup   → selection persists (and copy-on-select emits by default)
 ```
 
 A small drag threshold (distance + time) prevents accidental selections on normal clicks.
+
+### Selection Edge Autoscroll
+
+Holding an ordinary character drag on the top or bottom row of a scrollable
+surface scrolls that surface and keeps extending the selection into newly
+revealed content. The selection retains AgNode identity plus grapheme-gap
+endpoints; scrolling only reprojects those endpoints into current terminal
+cells. Replacing or unmounting either endpoint's content invalidates the range
+atomically instead of leaving a highlight attached to different characters.
+
+There is one pointer-selection edge policy. It emits synthetic wheel events to
+the nearest existing scroll owner, so `ScrollArea`, a plain scrolling `Box`, and
+specialized virtualized adapters continue to own offsets, bounds, and motion.
+Three nearby facilities remain intentionally separate:
+
+- `AutoScrollingBox` is the default wheel-to-offset adapter for a plain
+  `overflow="scroll"` Box; it is not selection policy.
+- ListView `follow="end"` is append-time tail-follow policy; it does not respond
+  to a pointer selection gesture.
+- Copy-mode's keyboard auto-scroll moves its buffer cursor after keyboard
+  commands; it does not resolve document endpoints or dispatch pointer motion.
+
+Word/line click granularity and Shift+drag retain their existing buffer
+semantics. Edge autoscroll applies only to ordinary document-aware character
+drags.
 
 ### Word and Line Selection
 
@@ -256,13 +281,18 @@ Copy-mode shares the selection range with mouse selection. If you start a mouse 
 
 ## How It Works
 
-Selection operates with **component-tree scopes over buffer coordinates**. Components never re-render for selection changes; the runtime uses the AgNode tree to choose a scope, then the headless selection machine stores buffer coordinates.
+Selection operates with **component-tree scopes and semantic content
+endpoints**. Components never re-render for selection changes. The runtime uses
+the AgNode tree to choose a scope, retains ordinary mouse-drag endpoints as
+AgNode identity plus grapheme gaps, and projects the active range into buffer
+coordinates for the existing headless selection machine and renderer.
 
 1. **Render phase**: Text-origin cell writes carry a `SELECTABLE_FLAG` (bit 31) based on resolved `userSelect`; structural writes do not
 2. **Mouse input**: Resolves the anchor/focus AgNode chains and chooses the nearest common selectable ancestor, unless Shift requests raw buffer selection
-3. **Selection machine**: Updates a `SelectionRange` (anchor + head coordinates) clamped to the active scope
-4. **Style composition**: Selected cells get highlight styling before diff/output
-5. **Output**: Normal diff renderer outputs the composed cells — one pass, no overlay
+3. **Semantic range**: Ordinary character drags retain grapheme-gap endpoints; content replacement or unmount invalidates both, while raw/word/line modes keep their buffer contract
+4. **Selection machine**: Receives the current projected `SelectionRange` (anchor + head coordinates) clamped to the active scope
+5. **Style composition**: Selected cells get highlight styling before diff/output
+6. **Output**: Normal diff renderer outputs the composed cells — one pass, no overlay
 
 This means selection composes correctly with existing cell styles, wide characters, and find highlights — all handled by the normal renderer.
 
