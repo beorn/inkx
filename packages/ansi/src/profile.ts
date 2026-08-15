@@ -24,7 +24,7 @@ import { defaultEmulator, type TerminalEmulator } from "./emulator"
 import type { ColorLevel } from "./types"
 import { detectTheme } from "./theme/detect"
 import type { DetectThemeOptions, ProbeInputOwner } from "./theme/detect"
-import { probeKittyGraphics } from "./kitty-graphics-probe"
+import { probeTerminalGraphics } from "./kitty-graphics-probe"
 import type { Theme } from "./theme/types"
 import { pickColorLevel } from "./color-maps"
 
@@ -413,17 +413,14 @@ export async function probeTerminalProfile(
   // Promise — lets callers unify their entry-point flow on one async path.
   if (options.probeTheme === false) return profile
 
-  // 19668: env-derived `kittyGraphics` is a GUESS — a `ghostty`/`kitty`
-  // TERM_PROGRAM can front a sink that cannot paint Kitty graphics (a cmux
-  // proxy, a captured stream). When env CLAIMS Kitty support and we have an
-  // input owner to listen on, CONFIRM it with a runtime graphics query; an
-  // unconfirmed claim downgrades to false (the safe direction — a text banner,
-  // never an escape-flood). We only ever downgrade: a terminal env says is NOT
-  // Kitty-capable is never probed (no false positives, no wasted round-trip).
-  let kittyGraphics = profile.caps.kittyGraphics
-  if (kittyGraphics && options.input) {
-    kittyGraphics = (await probeKittyGraphics(options.input, options.timeoutMs ?? 150)) === true
-  }
+  // Env graphics flags are guesses: SSH commonly forwards TERM but not
+  // TERM_PROGRAM. One live Kitty-query + DA1-barrier transaction is therefore
+  // authoritative whenever the session has an InputOwner. It can upgrade a
+  // generic env, downgrade a stale graphics-capable env, and derives Sixel from
+  // DA1 attribute 4 without a second probe.
+  const graphics = options.input
+    ? await probeTerminalGraphics(options.input, options.timeoutMs ?? 150)
+    : { kittyGraphics: profile.caps.kittyGraphics, sixel: profile.caps.sixel }
 
   // Run the OSC probe. The detectTheme docstring documents its own fallbacks
   // (mono/ansi16 tiers skip the probe and return canned themes); we pass the
@@ -444,9 +441,11 @@ export async function probeTerminalProfile(
   // Re-freeze: the sync factory already froze `profile`, but `{ ...profile,
   // theme }` creates a fresh object that's not frozen. The theme-bundled
   // profile must keep the same immutability contract as the sync variant. When
-  // the runtime probe downgraded `kittyGraphics`, rebuild caps too (19668).
+  // the runtime transaction changes either graphics flag, rebuild caps too.
   const caps: TerminalCaps =
-    kittyGraphics === profile.caps.kittyGraphics ? profile.caps : { ...profile.caps, kittyGraphics }
+    graphics.kittyGraphics === profile.caps.kittyGraphics && graphics.sixel === profile.caps.sixel
+      ? profile.caps
+      : { ...profile.caps, ...graphics }
   return freezeProfileInDev({ ...profile, caps, theme: resolvedTheme })
 }
 

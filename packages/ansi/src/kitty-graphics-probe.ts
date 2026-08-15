@@ -1,21 +1,23 @@
 /**
- * Runtime Kitty-graphics capability probe (km bead 19668).
+ * Runtime graphics-capability probe (km beads 19668 + kitty-probe-env-gated).
  *
  * Env detection (`TERM_PROGRAM`/`TERM`) only GUESSES Kitty-graphics support, and
  * the guess is wrong for a sink that advertises a graphics-capable terminal but
  * cannot actually paint it — a cmux/proxied PTY, a captured or piped stream. An
  * `<Image>` that trusts the guess dumps raw graphics APC bytes (the welcome
  * escape-flood). The authoritative answer is a runtime query: send a tiny
- * graphics command with the query action (`a=q`) and wait for the terminal's
- * `\x1b_Gi=<id>;OK\x1b\` acknowledgement. A terminal that does not speak the
- * protocol sends nothing (and swallows the unknown APC), so the absence of a
- * response is itself the signal.
+ * graphics command with the query action (`a=q`), followed by a DA1 query that
+ * acts as the transaction barrier. A Kitty acknowledgement before that barrier
+ * confirms Kitty graphics; DA1 attribute 4 confirms Sixel. The barrier makes a
+ * missing Kitty reply authoritative without a separate timeout or probe.
  */
 
+import { parsePrimaryDAResponse } from "./device-attributes"
 import type { ProbeInputOwner } from "./theme/detect"
 
 const APC = "\x1b_G"
 const ST = "\x1b\\"
+const DA1_QUERY = "\x1b[c"
 
 /**
  * The image id used for the support query. Chosen well above the runtime image
@@ -48,27 +50,57 @@ export function parseKittyGraphicsResponse(
   return { result: body.trim() === "OK", consumed: end + ST.length }
 }
 
+export interface TerminalGraphicsCapabilities {
+  readonly kittyGraphics: boolean
+  readonly sixel: boolean
+}
+
 /**
- * Probe the terminal at runtime for Kitty graphics support. Resolves:
- *   - `true`      — the terminal acknowledged it can paint Kitty graphics.
- *   - `false`     — a non-`OK` response (the protocol is understood but refused).
- *   - `undefined` — no response within `timeoutMs` (the terminal does not speak
- *                   the protocol, or a proxy/capture that cannot paint it).
+ * Parse the one graphics transaction once its DA1 barrier arrives.
  *
- * The query is a 1×1 RGB query-only command, harmless to a terminal that ignores
- * unknown APC sequences. Routed through the session's {@link ProbeInputOwner}
- * (never `process.stdin` directly) so it is safe inside a running TUI.
+ * Terminal replies preserve command order, so a Kitty acknowledgement absent
+ * before the DA1 response is a definitive negative. Sixel is advertised by
+ * DA1 parameter 4 in that same response.
  */
-export async function probeKittyGraphics(
+export function parseTerminalGraphicsResponse(
+  acc: string,
+  id: number,
+): { result: TerminalGraphicsCapabilities; consumed: number } | null {
+  const da1 = parsePrimaryDAResponse(acc)
+  if (!da1) return null
+
+  const transaction = acc.slice(0, da1.consumed)
+  const kitty = parseKittyGraphicsResponse(transaction, id)
+  return {
+    result: {
+      kittyGraphics: kitty?.result === true,
+      sixel: da1.result.params.includes(4),
+    },
+    consumed: da1.consumed,
+  }
+}
+
+/**
+ * Probe the terminal at runtime for Kitty and Sixel graphics support.
+ * Resolves an honest all-false result when the bounded transaction times out.
+ *
+ * The Kitty portion is a 1×1 RGB query-only command, harmless to a terminal
+ * that ignores unknown APC sequences. DA1 is the ordered barrier and Sixel
+ * capability source. The transaction routes through the session's
+ * {@link ProbeInputOwner} (never `process.stdin` directly), so it is safe
+ * inside a running TUI.
+ */
+export async function probeTerminalGraphics(
   input: ProbeInputOwner,
   timeoutMs = 150,
-): Promise<boolean | undefined> {
+): Promise<TerminalGraphicsCapabilities> {
   // 1×1 RGB pixel = 3 zero bytes → base64 "AAAA"; `a=q` = query support.
-  const query = `${APC}i=${KITTY_PROBE_ID},s=1,v=1,a=q,t=d,f=24;AAAA${ST}`
-  const result = await input.probe<boolean>({
+  // DA1 is concatenated as the ordered barrier and carries Sixel attribute 4.
+  const query = `${APC}i=${KITTY_PROBE_ID},s=1,v=1,a=q,t=d,f=24;AAAA${ST}${DA1_QUERY}`
+  const result = await input.probe<TerminalGraphicsCapabilities>({
     query,
     timeoutMs,
-    parse: (acc) => parseKittyGraphicsResponse(acc, KITTY_PROBE_ID),
+    parse: (acc) => parseTerminalGraphicsResponse(acc, KITTY_PROBE_ID),
   })
-  return result ?? undefined
+  return result ?? { kittyGraphics: false, sixel: false }
 }
