@@ -11,7 +11,6 @@ import {
 } from "@silvery/headless/selection"
 import {
   TerminalBuffer,
-  SELECTABLE_FLAG,
   setSelectableFlag,
   isCellSelectable,
   clearSelectableFlag,
@@ -26,6 +25,11 @@ import {
   selectionHitTest,
   nearestSelectableCellFromPoint,
   resolveSelectionAnchorFromPoint,
+  contentSelectionEndpointFromPoint,
+  isContentSelectionEndpointValid,
+  orientContentSelectionRange,
+  projectContentSelectionRange,
+  findSelectionScrollOwner,
   findContainBoundary,
   findSelectionBoundaries,
 } from "@silvery/ag-term/mouse-events"
@@ -870,6 +874,73 @@ describe("resolveSelectionAnchorFromPoint", () => {
     expect(resolved?.downCell).toEqual({ col: 3, row: 1 })
     expect(resolved?.boundaries.map((boundary) => boundary.node)).toEqual([text, root])
     expect(resolved?.forceBufferSelection).toBe(false)
+  })
+
+  test("retains wide glyph endpoints as grapheme gaps and invalidates content replacement", () => {
+    const root = makeNode("silvery-root", { x: 0, y: 0, width: 40, height: 8 })
+    const text = makeNode("silvery-text", { x: 0, y: 0, width: 8, height: 1 }, {}, "a👩🏽‍💻b")
+    attach(root, text)
+
+    const anchor = contentSelectionEndpointFromPoint(text, 1, 0, "before")
+    const head = contentSelectionEndpointFromPoint(text, 1, 0, "after")
+
+    expect(anchor?.gap).toBe(1)
+    expect(head?.gap).toBe(2)
+    expect(projectContentSelectionRange(root, anchor!, head!, 40, 8)).toEqual({
+      anchor: { col: 1, row: 0 },
+      head: { col: 1, row: 0 },
+    })
+
+    text.textContent = "aXb"
+    expect(isContentSelectionEndpointValid(anchor!, root)).toBe(false)
+    expect(isContentSelectionEndpointValid(head!, root)).toBe(false)
+    expect(projectContentSelectionRange(root, anchor!, head!, 40, 8)).toBeNull()
+  })
+
+  test("orients half-open endpoints so reverse drags include both pointer glyphs", () => {
+    const root = makeNode("silvery-root", { x: 0, y: 0, width: 40, height: 8 })
+    const text = makeNode("silvery-text", { x: 0, y: 0, width: 8, height: 1 }, {}, "abcdef")
+    attach(root, text)
+    const anchorBefore = contentSelectionEndpointFromPoint(text, 4, 0, "before")!
+    const anchorAfter = contentSelectionEndpointFromPoint(text, 4, 0, "after")!
+    const headBefore = contentSelectionEndpointFromPoint(text, 1, 0, "before")!
+    const headAfter = contentSelectionEndpointFromPoint(text, 1, 0, "after")!
+
+    const oriented = orientContentSelectionRange(root, {
+      anchorBefore,
+      anchorAfter,
+      headBefore,
+      headAfter,
+    })
+
+    expect(oriented).toMatchObject({
+      anchor: { gap: 5 },
+      head: { gap: 1 },
+    })
+    expect(projectContentSelectionRange(root, oriented!.anchor, oriented!.head, 40, 8)).toEqual({
+      anchor: { col: 1, row: 0 },
+      head: { col: 4, row: 0 },
+    })
+  })
+
+  test("selection scroll-owner lookup never escapes a hard-contain scope", () => {
+    const root = makeNode(
+      "silvery-root",
+      { x: 0, y: 0, width: 40, height: 8 },
+      { overflow: "scroll" },
+    )
+    root.scrollState = { offset: 0, contentHeight: 20, viewportHeight: 8 } as any
+    const contained = makeNode(
+      "silvery-box",
+      { x: 0, y: 0, width: 20, height: 4 },
+      { userSelect: "contain" },
+    )
+    const text = makeNode("silvery-text", { x: 0, y: 0, width: 8, height: 1 }, {}, "inside")
+    attach(root, contained)
+    attach(contained, text)
+
+    expect(findSelectionScrollOwner(text)).toBe(root)
+    expect(findSelectionScrollOwner(text, contained)).toBeNull()
   })
 
   test("treats empty rendered text rows as document anchors", () => {
