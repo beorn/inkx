@@ -86,6 +86,43 @@ export interface FocusEvent {
   focused: boolean
 }
 
+/** Exact half-open span consumed by a probe transaction recognizer. */
+export interface ProbeTransactionSpan {
+  readonly start: number
+  readonly end: number
+}
+
+export type ProbeTransactionRecognition<T> =
+  | {
+      readonly status: "pending"
+      readonly consumed: readonly ProbeTransactionSpan[]
+    }
+  | {
+      readonly status: "complete"
+      readonly consumed: readonly ProbeTransactionSpan[]
+      readonly value: T
+    }
+
+export type ProbeTransactionResult<T> =
+  | { readonly status: "complete"; readonly value: T }
+  | { readonly status: "timeout" }
+  | { readonly status: "busy" }
+  | {
+      readonly status: "overflow"
+      readonly maxBufferBytes: number
+      readonly receivedBytes: number
+    }
+  | {
+      readonly status: "error"
+      readonly reason:
+        | "disposed"
+        | "invalid-options"
+        | "invalid-consumed-span"
+        | "recognizer-threw"
+        | "write-failed"
+      readonly message?: string
+    }
+
 export interface InputOwner extends Disposable {
   /**
    * Write a query to stdout, accumulate stdin response bytes, run `parse`
@@ -114,6 +151,30 @@ export interface InputOwner extends Disposable {
     /** Maximum wait in ms before resolving with `null`. */
     timeoutMs: number
   }): Promise<T | null>
+
+  /**
+   * Own one bounded multi-response query transaction until its recognizer
+   * reaches a completion barrier. Unlike {@link probe}, pending bytes remain
+   * transaction-exclusive instead of falling through to typed input.
+   *
+   * `consumed` spans are exact half-open offsets into the accumulated buffer.
+   * On close, bytes outside those spans replay through the typed parser once,
+   * in arrival order, before queued ordinary probes may write.
+   *
+   * A second transaction fails loud with `status: "busy"`. Buffer overflow,
+   * timeout, parser failure, and write failure are typed results rather than
+   * silent truncation or interleaving.
+   */
+  probeTransaction<T>(opts: {
+    /** One atomic stdout write containing the full query transaction. */
+    query: string
+    /** Recognize protocol spans and the transaction completion barrier. */
+    recognize: (acc: string) => ProbeTransactionRecognition<T>
+    /** Maximum wait in ms before returning typed `timeout`. */
+    timeoutMs: number
+    /** Hard byte bound for the transaction-exclusive response buffer. */
+    maxBufferBytes: number
+  }): Promise<ProbeTransactionResult<T>>
 
   /**
    * Subscribe to parsed key events (press, repeat, release — handler filters
@@ -226,6 +287,20 @@ interface ProbeEntry {
   resolve: (value: unknown) => void
   timer: ReturnType<typeof setTimeout>
   settled: boolean
+}
+
+interface ProbeTransactionEntry {
+  recognize: (acc: string) => ProbeTransactionRecognition<unknown>
+  resolve: (value: ProbeTransactionResult<unknown>) => void
+  timer: ReturnType<typeof setTimeout>
+  maxBufferBytes: number
+  consumed: readonly ProbeTransactionSpan[]
+  settled: boolean
+}
+
+interface QueuedProbeStart {
+  start: () => void
+  cancel: () => void
 }
 
 interface ConfigurableInputOwner extends InputOwner {
@@ -396,6 +471,8 @@ export function createInputOwner(
   let incompleteSequenceTimer: ReturnType<typeof setTimeout> | null = null
   let incompleteSequenceImmediate: ReturnType<typeof setImmediate> | null = null
   const probes: ProbeEntry[] = []
+  let transaction: ProbeTransactionEntry | null = null
+  const queuedProbeStarts: QueuedProbeStart[] = []
   const keyHandlers = new Set<(e: KeyEvent) => void>()
   const mouseHandlers = new Set<(e: ParsedMouse) => void>()
   const pasteHandlers = new Set<(e: PasteEvent) => void>()
@@ -489,11 +566,127 @@ export function createInputOwner(
     for (const raw of sequences) dispatchSequence(raw, receivedAt, inputBatchId)
   }
 
+  function validateConsumedSpans(
+    spans: readonly ProbeTransactionSpan[],
+    capturedLength: number,
+  ): readonly ProbeTransactionSpan[] | null {
+    let priorEnd = 0
+    for (const span of spans) {
+      if (
+        !Number.isInteger(span.start) ||
+        !Number.isInteger(span.end) ||
+        span.start < priorEnd ||
+        span.start < 0 ||
+        span.end <= span.start ||
+        span.end > capturedLength
+      ) {
+        return null
+      }
+      priorEnd = span.end
+    }
+    return spans
+  }
+
+  function unconsumedBytes(captured: string, spans: readonly ProbeTransactionSpan[]): string {
+    let cursor = 0
+    let replay = ""
+    for (const span of spans) {
+      replay += captured.slice(cursor, span.start)
+      cursor = span.end
+    }
+    return replay + captured.slice(cursor)
+  }
+
+  function startQueuedProbes(): void {
+    if (transaction !== null || queuedProbeStarts.length === 0) return
+    const queued = queuedProbeStarts.splice(0)
+    for (const entry of queued) entry.start()
+  }
+
+  function settleTransaction(
+    entry: ProbeTransactionEntry,
+    result: ProbeTransactionResult<unknown>,
+    spans: readonly ProbeTransactionSpan[],
+    receivedAt?: number,
+    inputBatchId?: number,
+  ): void {
+    if (entry.settled || transaction !== entry) return
+    entry.settled = true
+    clearTimeout(entry.timer)
+    transaction = null
+
+    const captured = buffer
+    buffer = unconsumedBytes(captured, spans)
+    entry.resolve(result)
+
+    // Replay closes before any queued ordinary probe can write. JavaScript's
+    // run-to-completion semantics ensure no fresh stdin callback can interleave
+    // between the close, replay, and queue activation.
+    if (buffer.length > 0) drain(receivedAt, inputBatchId)
+    startQueuedProbes()
+  }
+
   // Drain the current buffer against probes (in registration order). Anything
   // probes don't consume flows into the event parser, which fires typed
   // handlers for each parsed sequence.
   function drain(receivedAt?: number, inputBatchId?: number): void {
     if (disposed) return
+
+    if (transaction !== null) {
+      const entry = transaction
+      const receivedBytes = Buffer.byteLength(buffer, "utf8")
+      if (receivedBytes > entry.maxBufferBytes) {
+        settleTransaction(
+          entry,
+          {
+            status: "overflow",
+            maxBufferBytes: entry.maxBufferBytes,
+            receivedBytes,
+          },
+          entry.consumed,
+          receivedAt,
+          inputBatchId,
+        )
+        return
+      }
+
+      let recognized: ProbeTransactionRecognition<unknown>
+      try {
+        recognized = entry.recognize(buffer)
+      } catch (err) {
+        settleTransaction(
+          entry,
+          { status: "error", reason: "recognizer-threw", message: String(err) },
+          entry.consumed,
+          receivedAt,
+          inputBatchId,
+        )
+        return
+      }
+      const consumed = validateConsumedSpans(recognized.consumed, buffer.length)
+      if (consumed === null) {
+        settleTransaction(
+          entry,
+          { status: "error", reason: "invalid-consumed-span" },
+          [],
+          receivedAt,
+          inputBatchId,
+        )
+        return
+      }
+      entry.consumed = consumed
+      if (recognized.status === "complete") {
+        resolvedCount++
+        settleTransaction(
+          entry,
+          { status: "complete", value: recognized.value },
+          consumed,
+          receivedAt,
+          inputBatchId,
+        )
+      }
+      return
+    }
 
     // Loop because one probe resolving may leave bytes that unblock the next.
     let progress = true
@@ -646,54 +839,107 @@ export function createInputOwner(
     parse: (acc: string) => { result: T; consumed: number } | null
     timeoutMs: number
   }): Promise<T | null> {
-    if (disposed) return Promise.resolve(null)
-    if (!isTTY) {
-      // Non-TTY owners still accept probes — they just time out.
-      return new Promise((resolve) => setTimeout(() => resolve(null), opts.timeoutMs))
-    }
-
     return new Promise<T | null>((resolve) => {
-      let settled = false
-      const entry: ProbeEntry = {
-        parse: opts.parse as (acc: string) => { result: unknown; consumed: number } | null,
-        resolve: (value) => {
-          if (settled) return
-          settled = true
-          resolve(value as T | null)
-        },
-        timer: setTimeout(() => {
-          if (entry.settled) return
-          entry.settled = true
-          const idx = probes.indexOf(entry)
-          if (idx >= 0) probes.splice(idx, 1)
-          timedOutCount++
-          entry.resolve(null)
-        }, opts.timeoutMs),
-        settled: false,
-      }
-      probes.push(entry)
-
-      // Write the query AFTER registering. Terminal responses typically
-      // arrive async, but a mocked terminal may respond synchronously inside
-      // the write — we need the probe registered first so the response
-      // doesn't fall through to the event parser.
-      if (opts.query.length > 0) {
-        try {
-          writeStdout(opts.query)
-        } catch (err) {
-          log?.warn?.(`probe query write failed: ${String(err)}`)
-          clearTimeout(entry.timer)
-          entry.settled = true
-          const idx = probes.indexOf(entry)
-          if (idx >= 0) probes.splice(idx, 1)
-          entry.resolve(null)
+      const start = () => {
+        if (disposed) {
+          resolve(null)
           return
         }
+        if (!isTTY) {
+          setTimeout(() => resolve(null), opts.timeoutMs)
+          return
+        }
+
+        let settled = false
+        const entry: ProbeEntry = {
+          parse: opts.parse as (acc: string) => { result: unknown; consumed: number } | null,
+          resolve: (value) => {
+            if (settled) return
+            settled = true
+            resolve(value as T | null)
+          },
+          timer: setTimeout(() => {
+            if (entry.settled) return
+            entry.settled = true
+            const idx = probes.indexOf(entry)
+            if (idx >= 0) probes.splice(idx, 1)
+            timedOutCount++
+            entry.resolve(null)
+          }, opts.timeoutMs),
+          settled: false,
+        }
+        probes.push(entry)
+
+        // Write the query AFTER registering. Terminal responses typically
+        // arrive async, but a mocked terminal may respond synchronously inside
+        // the write — we need the probe registered first so the response
+        // doesn't fall through to the event parser.
+        if (opts.query.length > 0) {
+          try {
+            writeStdout(opts.query)
+          } catch (err) {
+            log?.warn?.(`probe query write failed: ${String(err)}`)
+            clearTimeout(entry.timer)
+            entry.settled = true
+            const idx = probes.indexOf(entry)
+            if (idx >= 0) probes.splice(idx, 1)
+            entry.resolve(null)
+            return
+          }
+        }
+
+        // Drain eagerly so a probe registered against already-buffered bytes
+        // resolves immediately.
+        if (buffer.length > 0) drain()
       }
 
-      // Drain eagerly so a probe registered against already-buffered bytes
-      // resolves immediately.
-      if (buffer.length > 0) drain()
+      if (transaction !== null) queuedProbeStarts.push({ start, cancel: () => resolve(null) })
+      else start()
+    })
+  }
+
+  function probeTransaction<T>(opts: {
+    query: string
+    recognize: (acc: string) => ProbeTransactionRecognition<T>
+    timeoutMs: number
+    maxBufferBytes: number
+  }): Promise<ProbeTransactionResult<T>> {
+    if (disposed) return Promise.resolve({ status: "error", reason: "disposed" })
+    if (
+      !Number.isFinite(opts.timeoutMs) ||
+      opts.timeoutMs < 0 ||
+      !Number.isSafeInteger(opts.maxBufferBytes) ||
+      opts.maxBufferBytes <= 0
+    ) {
+      return Promise.resolve({ status: "error", reason: "invalid-options" })
+    }
+    if (transaction !== null || probes.length > 0) return Promise.resolve({ status: "busy" })
+
+    return new Promise<ProbeTransactionResult<T>>((resolve) => {
+      const entry: ProbeTransactionEntry = {
+        recognize: opts.recognize as (acc: string) => ProbeTransactionRecognition<unknown>,
+        resolve: (value) => resolve(value as ProbeTransactionResult<T>),
+        timer: setTimeout(() => {
+          if (entry.settled || transaction !== entry) return
+          timedOutCount++
+          settleTransaction(entry, { status: "timeout" }, entry.consumed)
+        }, opts.timeoutMs),
+        maxBufferBytes: opts.maxBufferBytes,
+        consumed: [],
+        settled: false,
+      }
+      transaction = entry
+
+      if (!isTTY) return
+      try {
+        if (opts.query.length > 0) writeStdout(opts.query)
+      } catch (err) {
+        settleTransaction(
+          entry,
+          { status: "error", reason: "write-failed", message: String(err) },
+          [],
+        )
+      }
     })
   }
 
@@ -775,6 +1021,14 @@ export function createInputOwner(
       }
     }
     probes.length = 0
+    for (const queued of queuedProbeStarts.splice(0)) queued.cancel()
+    if (transaction !== null && !transaction.settled) {
+      const entry = transaction
+      transaction = null
+      entry.settled = true
+      clearTimeout(entry.timer)
+      entry.resolve({ status: "error", reason: "disposed" })
+    }
     keyHandlers.clear()
     mouseHandlers.clear()
     pasteHandlers.clear()
@@ -824,6 +1078,7 @@ export function createInputOwner(
 
   const owner: InputOwner = {
     probe,
+    probeTransaction,
     onKey,
     onMouse,
     onPaste,

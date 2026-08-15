@@ -33,6 +33,41 @@ export interface ProbeInputOwner {
     parse: (acc: string) => { result: T; consumed: number } | null
     timeoutMs: number
   }): Promise<T | null>
+  /**
+   * Optional multi-response owner transaction. Optional keeps older
+   * structural adapters source-compatible; capability probing treats absence
+   * as no live evidence and never installs a second stdin parser.
+   */
+  probeTransaction?<T>(opts: {
+    query: string
+    recognize: (acc: string) =>
+      | {
+          status: "pending"
+          consumed: readonly { readonly start: number; readonly end: number }[]
+        }
+      | {
+          status: "complete"
+          consumed: readonly { readonly start: number; readonly end: number }[]
+          value: T
+        }
+    timeoutMs: number
+    maxBufferBytes: number
+  }): Promise<
+    | { status: "complete"; value: T }
+    | { status: "timeout" }
+    | { status: "busy" }
+    | { status: "overflow"; maxBufferBytes: number; receivedBytes: number }
+    | {
+        status: "error"
+        reason:
+          | "disposed"
+          | "invalid-options"
+          | "invalid-consumed-span"
+          | "recognizer-threw"
+          | "write-failed"
+        message?: string
+      }
+  >
 }
 
 export interface ProbeColorsOptions {

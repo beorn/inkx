@@ -549,6 +549,10 @@ export async function run(
       (await probeTerminalProfile({
         colorLevel: termOptsAny?.colorLevel,
         caps: term.profile.caps,
+        capabilityProvenance: term.profile.capabilityProvenance,
+        emulator: term.profile.emulator,
+        stdout: termStdout,
+        stdin: termStdin,
         probeTheme: !termInputDisabled,
         fallbackDark: nord,
         fallbackLight: catppuccinLatte,
@@ -645,6 +649,8 @@ export async function run(
         : await probeTerminalProfile({
             colorLevel: colorLevelOption,
             caps: capsOption,
+            stdout: runStdout,
+            stdin: runStdin,
             probeTheme: !optsInputDisabled,
             fallbackDark: nord,
             fallbackLight: catppuccinLatte,

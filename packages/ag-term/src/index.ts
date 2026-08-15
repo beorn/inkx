@@ -259,6 +259,8 @@ export {
   probeTerminalProfile,
   type TerminalProfile,
   type ColorProvenance,
+  type CapabilityDecisionChannel,
+  type TerminalCapabilityProvenance,
   type CreateTerminalProfileOptions,
   type ProbeTerminalProfileOptions,
 } from "@silvery/ansi"

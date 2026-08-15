@@ -35,9 +35,9 @@ import { createTerminalProfile } from "@silvery/ansi"
 
 const profile = createTerminalProfile()
 // profile.colorLevel: "mono" | "ansi16" | "256" | "truecolor"
-// profile.colorForced: boolean (env or override displaced baseline)
-// profile.colorProvenance: "env" | "override" | "caller-caps" | "auto"
 // profile.caps: full TerminalCaps — colorLevel, kittyKeyboard, osc52, …
+// profile.capabilityProvenance.kittyGraphics:
+//   "explicit" | "live" | "corpus" | "default"
 ```
 
 Precedence (highest wins):
@@ -77,7 +77,11 @@ if (caps.underlineStyles) {
 }
 ```
 
-For async probe-based detection (adds `profile.theme`), use `probeTerminalProfile()`. Every entry point (`run`, `createApp().run()`, `render`, `createTerm`) accepts a pre-built `profile` option so the whole session flows from one resolved value.
+For async probe-based detection (adds `profile.theme`), use `probeTerminalProfile()`. In a live Silvery session it sends Kitty graphics, XTVERSION, and DA1 as one bounded `term.input` transaction. The DA1 response is the completion barrier; timeout and missing responses are no evidence, not negative evidence. DA1 parameter 4 is positive Sixel evidence, while DA1 without parameter 4 leaves the existing Sixel decision unchanged.
+
+Capability decisions follow one precedence order: caller/environment explicit values, positive or explicit-negative live evidence, terminal corpus heuristics, then framework defaults. `profile.capabilityProvenance` records the winning channel for every field in `profile.caps`. Pass both `caps` and `capabilityProvenance` when re-resolving an existing profile; otherwise supplied caps are intentionally treated as explicit caller choices.
+
+Every entry point (`run`, `createApp().run()`, `render`, `createTerm`) accepts a pre-built `profile` option so the whole session flows from one resolved value.
 
 Profiles are two-layer: `profile.emulator` carries identity (program/version/TERM) and `profile.caps` carries protocol flags + low-confidence `maybe*` heuristics.
 

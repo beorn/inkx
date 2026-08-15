@@ -6,22 +6,37 @@
  */
 
 import { describe, expect, test } from "vitest"
-import { parseTerminalVersionResponse, probeTerminalProfile, XTVERSION_QUERY } from "@silvery/ansi"
+import { parseTerminalVersionResponse, probeTerminalProfile } from "@silvery/ansi"
 import type { ProbeInputOwner } from "../src/theme/detect"
 
 const XTVERSION_GHOSTTY = "\x1bP>|ghostty(1.2.3)\x1b\\"
 const GENERIC_ENV = { TERM: "xterm-256color", COLORTERM: "truecolor" }
 const TTY = { isTTY: true, columns: 120, rows: 40 }
+const TTY_STDIN = { isTTY: true, setRawMode() {} }
 
 function terminalInput(response: string | null): ProbeInputOwner {
   return {
-    async probe<T>(opts: {
+    async probe<T>(_opts: {
       query: string
       parse: (acc: string) => { result: T; consumed: number } | null
       timeoutMs: number
     }): Promise<T | null> {
-      if (opts.query !== XTVERSION_QUERY || response === null) return null
-      return opts.parse(response)?.result ?? null
+      return null
+    },
+    async probeTransaction<T>(opts: {
+      recognize: (acc: string) =>
+        | { status: "pending"; consumed: readonly { start: number; end: number }[] }
+        | {
+            status: "complete"
+            consumed: readonly { start: number; end: number }[]
+            value: T
+          }
+    }) {
+      if (response === null) return { status: "timeout" }
+      const result = opts.recognize(`${response}\x1b[?1;22c`)
+      return result.status === "complete"
+        ? { status: "complete", value: result.value }
+        : { status: "timeout" }
     },
   }
 }
@@ -40,6 +55,7 @@ describe("probeTerminalProfile — Nerd Font identity", () => {
     const profile = await probeTerminalProfile({
       env: GENERIC_ENV,
       stdout: TTY,
+      stdin: TTY_STDIN,
       input: terminalInput(XTVERSION_GHOSTTY),
       timeoutMs: 5,
     })
@@ -51,6 +67,7 @@ describe("probeTerminalProfile — Nerd Font identity", () => {
     const profile = await probeTerminalProfile({
       env: { ...GENERIC_ENV, NERDFONT: "0" },
       stdout: TTY,
+      stdin: TTY_STDIN,
       input: terminalInput(XTVERSION_GHOSTTY),
       timeoutMs: 5,
     })
@@ -62,6 +79,7 @@ describe("probeTerminalProfile — Nerd Font identity", () => {
     const profile = await probeTerminalProfile({
       env: GENERIC_ENV,
       stdout: TTY,
+      stdin: TTY_STDIN,
       caps: { maybeNerdFont: false },
       input: terminalInput(XTVERSION_GHOSTTY),
       timeoutMs: 5,
@@ -74,6 +92,7 @@ describe("probeTerminalProfile — Nerd Font identity", () => {
     const profile = await probeTerminalProfile({
       env: GENERIC_ENV,
       stdout: TTY,
+      stdin: TTY_STDIN,
       input: terminalInput(null),
       timeoutMs: 5,
     })
@@ -85,6 +104,7 @@ describe("probeTerminalProfile — Nerd Font identity", () => {
     const profile = await probeTerminalProfile({
       env: GENERIC_ENV,
       stdout: TTY,
+      stdin: TTY_STDIN,
       input: terminalInput("\x1bP>|xterm(390)\x1b\\"),
       timeoutMs: 5,
     })

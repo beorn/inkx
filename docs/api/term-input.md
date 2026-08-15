@@ -13,6 +13,16 @@ interface Input extends Disposable {
     parse: (acc: string) => { result: T; consumed: number } | null
     timeoutMs: number
   }): Promise<T | null>
+  probeTransaction<T>(opts: {
+    query: string
+    recognize: (
+      acc: string,
+    ) =>
+      | { status: "pending"; consumed: readonly Span[] }
+      | { status: "complete"; consumed: readonly Span[]; value: T }
+    timeoutMs: number
+    maxBufferBytes: number
+  }): Promise<ProbeTransactionResult<T>>
   onKey(handler: (event: KeyEvent) => void): () => void
   onMouse(handler: (event: ParsedMouse) => void): () => void
   onPaste(handler: (event: PasteEvent) => void): () => void
@@ -89,6 +99,27 @@ Probes are order-sensitive: put strict parsers (fixed-length responses) before l
 
 A timed-out probe resolves with `null`. The shared buffer continues draining; a late response for the timed-out probe falls through to the typed event parser (which typically discards an unrecognized terminal reply).
 
+## `probeTransaction(opts)`
+
+Use a transaction when one atomic query produces several protocol responses and a final response acts as the completion barrier. The transaction has exclusive ownership of accumulated stdin bytes until it completes, times out, overflows, or fails. Its recognizer reports exact half-open spans for protocol bytes; every gap is replayed through the typed input parser once, in arrival order, before queued ordinary probes start.
+
+```ts
+const result = await term.input!.probeTransaction({
+  query: `${kittyQuery}${xtversionQuery}${da1Query}`,
+  recognize: recognizeTerminalCapabilities,
+  timeoutMs: 150,
+  maxBufferBytes: 4096,
+})
+
+if (result.status === "complete") {
+  useEvidence(result.value)
+}
+```
+
+The result is typed and fail-loud: `complete`, `timeout`, `busy`, `overflow`, or `error`. Starting a transaction while another transaction or an ordinary probe is active returns `busy` without writing its query. Ordinary probes requested during a transaction queue until replay finishes. Overflow reports both the configured bound and received byte count; it never silently truncates the buffer.
+
+Transactions are the only supported way to correlate several responses. Do not install a temporary stdin listener or run several ordinary probes in parallel for a protocol handshake—the session still has exactly one parser and one raw-mode owner.
+
 ## Typed event subscriptions
 
 Bytes no active probe consumes pass through the owner's canonical parser exactly once. Subscribe to the structured event family you need:
@@ -106,7 +137,7 @@ Each method returns an unsubscribe function. Multiple subscribers can coexist, b
 
 - `active` — `true` until `dispose()` runs.
 - `resolvedCount` / `timedOutCount` — cumulative counts for diagnostics.
-- `dispose()` (and `Symbol.dispose`) — restores the terminal state this owner activated, pauses stdin, removes the listener, resolves pending probes with `null`, and clears timers. Idempotent.
+- `dispose()` (and `Symbol.dispose`) — restores the terminal state this owner activated, pauses stdin, removes the listener, resolves ordinary probes with `null`, resolves an active transaction with typed `error: disposed`, and clears timers. Idempotent.
 
 The Term's own `dispose()` cascades to `term.input.dispose()` — normal `using term = createTerm()` usage requires no explicit disposal.
 

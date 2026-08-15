@@ -48,3 +48,287 @@ describe("createInputOwner clipboard paste parsing", () => {
     input[Symbol.dispose]()
   })
 })
+
+describe("createInputOwner probe transactions", () => {
+  it("retains split responses through a barrier and replays unrelated bytes once", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const keys: string[] = []
+    input.onKey((event) => keys.push(event.input))
+
+    const transaction = input.probeTransaction({
+      query: "QUERY+BARRIER",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize(buffer) {
+        const consumed: Array<{ start: number; end: number }> = []
+        const ackStart = buffer.indexOf("ACK")
+        if (ackStart >= 0) consumed.push({ start: ackStart, end: ackStart + 3 })
+        const barrierStart = buffer.indexOf("BARRIER")
+        if (barrierStart >= 0) consumed.push({ start: barrierStart, end: barrierStart + 7 })
+        return barrierStart >= 0
+          ? { status: "complete" as const, consumed, value: { acknowledged: ackStart >= 0 } }
+          : { status: "pending" as const, consumed }
+      },
+    })
+
+    expect(stdout.writes).toEqual(["QUERY+BARRIER"])
+    stdin.emit("data", "jACK")
+    expect(keys).toEqual([])
+    stdin.emit("data", "BARRIER")
+
+    await expect(transaction).resolves.toEqual({
+      status: "complete",
+      value: { acknowledged: true },
+    })
+    expect(keys).toEqual(["j"])
+    input[Symbol.dispose]()
+  })
+
+  it("fails a second transaction loud without writing its query", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const first = input.probeTransaction({
+      query: "FIRST",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize: () => ({ status: "pending", consumed: [] }),
+    })
+
+    await expect(
+      input.probeTransaction({
+        query: "SECOND",
+        timeoutMs: 100,
+        maxBufferBytes: 128,
+        recognize: () => ({ status: "pending", consumed: [] }),
+      }),
+    ).resolves.toEqual({ status: "busy" })
+    expect(stdout.writes).toEqual(["FIRST"])
+
+    input[Symbol.dispose]()
+    await expect(first).resolves.toEqual({ status: "error", reason: "disposed" })
+  })
+
+  it("fails overflow loud and replays known unrelated gaps in arrival order", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const keys: string[] = []
+    input.onKey((event) => keys.push(event.input))
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 100,
+      maxBufferBytes: 4,
+      recognize(buffer) {
+        const ackStart = buffer.indexOf("ACK")
+        return {
+          status: "pending" as const,
+          consumed: ackStart < 0 ? [] : [{ start: ackStart, end: ackStart + 3 }],
+        }
+      },
+    })
+
+    stdin.emit("data", "jACK")
+    expect(keys).toEqual([])
+    stdin.emit("data", "k")
+
+    await expect(transaction).resolves.toEqual({
+      status: "overflow",
+      maxBufferBytes: 4,
+      receivedBytes: 5,
+    })
+    expect(keys).toEqual(["j", "k"])
+    input[Symbol.dispose]()
+  })
+
+  it("returns typed timeout and treats it as no evidence while replaying gaps", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const keys: string[] = []
+    input.onKey((event) => keys.push(event.input))
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 5,
+      maxBufferBytes: 128,
+      recognize(buffer) {
+        const ackStart = buffer.indexOf("ACK")
+        return {
+          status: "pending" as const,
+          consumed: ackStart < 0 ? [] : [{ start: ackStart, end: ackStart + 3 }],
+        }
+      },
+    })
+
+    stdin.emit("data", "jACK")
+    await expect(transaction).resolves.toEqual({ status: "timeout" })
+    expect(keys).toEqual(["j"])
+    input[Symbol.dispose]()
+  })
+
+  it("writes queued ordinary probes only after transaction replay closes", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const transaction = input.probeTransaction({
+      query: "TRANSACTION",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize(buffer) {
+        const start = buffer.indexOf("BARRIER")
+        return start < 0
+          ? { status: "pending" as const, consumed: [] }
+          : {
+              status: "complete" as const,
+              consumed: [{ start, end: start + 7 }],
+              value: true,
+            }
+      },
+    })
+    const ordinary = input.probe({
+      query: "ORDINARY",
+      timeoutMs: 100,
+      parse: (buffer) =>
+        buffer === "RESPONSE" ? { result: "done", consumed: buffer.length } : null,
+    })
+    expect(stdout.writes).toEqual(["TRANSACTION"])
+
+    stdin.emit("data", "BARRIER")
+    await expect(transaction).resolves.toEqual({ status: "complete", value: true })
+    expect(stdout.writes).toEqual(["TRANSACTION", "ORDINARY"])
+    stdin.emit("data", "RESPONSE")
+    await expect(ordinary).resolves.toBe("done")
+    input[Symbol.dispose]()
+  })
+
+  it("resolves queued ordinary probes when disposal closes the transaction", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const transaction = input.probeTransaction({
+      query: "TRANSACTION",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize: () => ({ status: "pending", consumed: [] }),
+    })
+    const ordinary = input.probe({
+      query: "ORDINARY",
+      timeoutMs: 100,
+      parse: () => null,
+    })
+
+    input[Symbol.dispose]()
+
+    await expect(transaction).resolves.toEqual({ status: "error", reason: "disposed" })
+    await expect(
+      Promise.race([
+        ordinary,
+        new Promise<"hung">((resolve) => setTimeout(() => resolve("hung"), 10)),
+      ]),
+    ).resolves.toBeNull()
+  })
+
+  it("rejects an invalid bound before writing the transaction query", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+
+    await expect(
+      input.probeTransaction({
+        query: "UNBOUNDED",
+        timeoutMs: 100,
+        maxBufferBytes: Number.NaN,
+        recognize: () => ({ status: "pending", consumed: [] }),
+      }),
+    ).resolves.toEqual({ status: "error", reason: "invalid-options" })
+    expect(stdout.writes).toEqual([])
+    input[Symbol.dispose]()
+  })
+
+  it("fails invalid consumed spans loud and replays the full buffer", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const keys: string[] = []
+    input.onKey((event) => keys.push(event.input))
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize: () => ({
+        status: "complete",
+        consumed: [{ start: 0, end: 0 }],
+        value: true,
+      }),
+    })
+
+    stdin.emit("data", "j")
+
+    await expect(transaction).resolves.toEqual({
+      status: "error",
+      reason: "invalid-consumed-span",
+    })
+    expect(keys).toEqual(["j"])
+    input[Symbol.dispose]()
+  })
+
+  it("returns a typed recognizer error instead of throwing across stdin dispatch", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize: () => {
+        throw new Error("bad recognizer")
+      },
+    })
+
+    expect(() => stdin.emit("data", "j")).not.toThrow()
+    await expect(transaction).resolves.toMatchObject({
+      status: "error",
+      reason: "recognizer-threw",
+      message: "Error: bad recognizer",
+    })
+    input[Symbol.dispose]()
+  })
+})
