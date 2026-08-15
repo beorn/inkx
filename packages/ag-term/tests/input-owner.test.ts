@@ -90,6 +90,48 @@ describe("createInputOwner probe transactions", () => {
     input[Symbol.dispose]()
   })
 
+  it("replays each unrelated input chunk with its original batch metadata", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const batches: Array<number | undefined> = []
+    const timestamps: Array<number | undefined> = []
+    input.onMouse((event) => {
+      batches.push(event.inputBatchId)
+      timestamps.push(event.receivedAt)
+    })
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize(buffer) {
+        const consumed: Array<{ start: number; end: number }> = []
+        for (const token of ["ACK", "BARRIER"]) {
+          const start = buffer.indexOf(token)
+          if (start >= 0) consumed.push({ start, end: start + token.length })
+        }
+        return buffer.includes("BARRIER")
+          ? { status: "complete" as const, consumed, value: true }
+          : { status: "pending" as const, consumed }
+      },
+    })
+
+    stdin.emit("data", "\x1b[<35;2;1MACK")
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    stdin.emit("data", "\x1b[<35;3;1MBARRIER")
+
+    await expect(transaction).resolves.toEqual({ status: "complete", value: true })
+    expect(batches).toHaveLength(2)
+    expect(new Set(batches).size).toBe(2)
+    expect(timestamps.every((timestamp) => Number.isFinite(timestamp))).toBe(true)
+    expect(timestamps[0]).toBeLessThan(timestamps[1]!)
+    input[Symbol.dispose]()
+  })
+
   it("fails a second transaction loud without writing its query", async () => {
     const stdin = new FakeStdin()
     const stdout = new FakeStdout()
@@ -223,6 +265,32 @@ describe("createInputOwner probe transactions", () => {
     input[Symbol.dispose]()
   })
 
+  it("counts an ordinary probe timeout from the call instead of queue activation", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const transaction = input.probeTransaction({
+      query: "TRANSACTION",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize: () => ({ status: "pending", consumed: [] }),
+    })
+    const ordinary = input.probe({
+      query: "ORDINARY",
+      timeoutMs: 5,
+      parse: () => null,
+    })
+
+    await expect(ordinary).resolves.toBeNull()
+    expect(stdout.writes).toEqual(["TRANSACTION"])
+    input[Symbol.dispose]()
+    await expect(transaction).resolves.toEqual({ status: "error", reason: "disposed" })
+  })
+
   it("resolves queued ordinary probes when disposal closes the transaction", async () => {
     const stdin = new FakeStdin()
     const stdout = new FakeStdout()
@@ -303,6 +371,74 @@ describe("createInputOwner probe transactions", () => {
       reason: "invalid-consumed-span",
     })
     expect(keys).toEqual(["j"])
+    input[Symbol.dispose]()
+  })
+
+  it("keeps the last valid consumed spans when a later recognition is invalid", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const keys: string[] = []
+    input.onKey((event) => keys.push(event.input))
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 100,
+      maxBufferBytes: 128,
+      recognize(buffer) {
+        if (buffer.endsWith("k")) {
+          return { status: "pending" as const, consumed: [{ start: 0, end: buffer.length + 1 }] }
+        }
+        const ackStart = buffer.indexOf("ACK")
+        return {
+          status: "pending" as const,
+          consumed: ackStart < 0 ? [] : [{ start: ackStart, end: ackStart + 3 }],
+        }
+      },
+    })
+
+    stdin.emit("data", "jACK")
+    stdin.emit("data", "k")
+
+    await expect(transaction).resolves.toEqual({
+      status: "error",
+      reason: "invalid-consumed-span",
+    })
+    expect(keys).toEqual(["j", "k"])
+    input[Symbol.dispose]()
+  })
+
+  it("defines consumed spans as UTF-16 offsets while bounding the buffer in UTF-8 bytes", async () => {
+    const stdin = new FakeStdin()
+    const stdout = new FakeStdout()
+    const input = createInputOwner(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { enableBracketedPaste: false },
+    )
+    const keys: string[] = []
+    input.onKey((event) => keys.push(event.input))
+    const transaction = input.probeTransaction({
+      query: "QUERY",
+      timeoutMs: 100,
+      maxBufferBytes: 12,
+      recognize(buffer) {
+        const ackStart = buffer.indexOf("ACK")
+        return {
+          status: "complete" as const,
+          consumed: [{ start: ackStart, end: ackStart + 3 }],
+          value: true,
+        }
+      },
+    })
+
+    stdin.emit("data", "éACK")
+
+    await expect(transaction).resolves.toEqual({ status: "complete", value: true })
+    expect(keys).toEqual(["é"])
     input[Symbol.dispose]()
   })
 

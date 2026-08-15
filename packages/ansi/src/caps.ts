@@ -5,7 +5,7 @@
  * {@link TerminalCaps} is the single caps type across the stack. Renderers,
  * the measurer, and style factories all branch on it. Resolution is owned by
  * {@link ./profile} — call `createTerminalProfile()` (sync) or
- * `probeTerminalProfile()` (async, theme-aware) once and read `profile.caps`
+ * `probeTerminalProfile()` (async, live-capability + theme-aware) once and read `profile.caps`
  * everywhere downstream. No other module reads `process.env` to decide caps.
  *
  * History (post unicode-plateau, 2026-04-23):

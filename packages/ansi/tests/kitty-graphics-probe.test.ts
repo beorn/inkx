@@ -7,15 +7,15 @@
  * trusts the guess dumps raw graphics APC bytes (the welcome escape-flood).
  *
  * Live terminal evidence is gathered in one bounded transaction. An explicit
- * Kitty response can refine the environment corpus in either direction;
- * timeout or an absent response is no evidence and preserves the corpus value.
+ * Kitty response can refine the environment corpus in either direction. A
+ * transaction timeout is no evidence; a completed DA1 barrier closes the
+ * response window and makes a missing Kitty acknowledgement negative evidence.
  */
 
 import { describe, expect, test } from "vitest"
 import {
   KITTY_PROBE_ID,
   parseKittyGraphicsResponse,
-  probeKittyGraphics,
   recognizeTerminalCapabilityTransaction,
 } from "../src/kitty-graphics-probe"
 import { createTerminalProfile, probeTerminalProfile } from "../src/profile"
@@ -115,6 +115,7 @@ describe("recognizeTerminalCapabilityTransaction", () => {
       ],
       value: {
         kittyGraphics: true,
+        kittyGraphicsSource: "response",
         sixel: true,
         terminalVersion: "ghostty(1.2.3)",
       },
@@ -131,22 +132,25 @@ describe("recognizeTerminalCapabilityTransaction", () => {
       ],
       value: {
         kittyGraphics: true,
+        kittyGraphicsSource: "response",
         sixel: undefined,
         terminalVersion: undefined,
       },
     })
   })
-})
 
-describe("probeKittyGraphics", () => {
-  test("OK ack → true", async () => {
-    expect(await probeKittyGraphics(fakeInput(okResponse), 5)).toBe(true)
-  })
-  test("error ack → false", async () => {
-    expect(await probeKittyGraphics(fakeInput(errResponse), 5)).toBe(false)
-  })
-  test("no response (timeout) → undefined", async () => {
-    expect(await probeKittyGraphics(fakeInput(null), 5)).toBeUndefined()
+  test("completed DA1 without a Kitty acknowledgement is live-negative barrier evidence", () => {
+    const da1 = "\x1b[?1;22c"
+    expect(recognizeTerminalCapabilityTransaction(da1, KITTY_PROBE_ID)).toEqual({
+      status: "complete",
+      consumed: [{ start: 0, end: da1.length }],
+      value: {
+        kittyGraphics: false,
+        kittyGraphicsSource: "da1-barrier",
+        sixel: undefined,
+        terminalVersion: undefined,
+      },
+    })
   })
 })
 
@@ -199,5 +203,26 @@ describe("probeTerminalProfile refines corpus kittyGraphics from live evidence",
       probeTheme: false,
     })
     expect(profile.caps.kittyGraphics).toBe(true)
+  })
+
+  test("transaction overflow fails loud instead of becoming no evidence", async () => {
+    const input: ProbeInputOwner = {
+      probe: async () => null,
+      probeTransaction: async () => ({
+        status: "overflow",
+        maxBufferBytes: 4096,
+        receivedBytes: 4097,
+      }),
+    }
+
+    await expect(
+      probeTerminalProfile({
+        env: ghosttyEnv,
+        stdout: ttyStdout,
+        stdin: ttyStdin,
+        input,
+        timeoutMs: 5,
+      }),
+    ).rejects.toThrow(/terminal capability transaction overflow/iu)
   })
 })

@@ -35,6 +35,11 @@ is breaking for anyone importing the named surface:
 - `INITIAL_RENDER_MAX_PASSES` (from `@silvery/ag-term`) — dead runtime
   surface used only by internal convergence tests; inline `5` if you
   asserted against it.
+- `queryDeviceAttributes` / `DeviceAttributes` (from `@silvery/ag-term` and
+  the `@silvery/ag-react` re-export) — this convenience wrapper installed a
+  second raw-stdin owner. Issue individual dependency-injected query helpers,
+  or use `term.input.probeTransaction()` for an atomic multi-response query.
+  This removal is breaking for the next published version of both packages.
 
 ### Fixed
 

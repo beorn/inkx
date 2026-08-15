@@ -42,6 +42,18 @@
  */
 
 import { isProtocolError } from "@silvery/ansi"
+import type {
+  ProbeTransactionOptions,
+  ProbeTransactionRecognition,
+  ProbeTransactionResult,
+  ProbeTransactionSpan,
+} from "@silvery/ansi"
+export type {
+  ProbeTransactionOptions,
+  ProbeTransactionRecognition,
+  ProbeTransactionResult,
+  ProbeTransactionSpan,
+} from "@silvery/ansi"
 import { createLogger } from "loggily"
 import { type Key, parseKey } from "./keys"
 import {
@@ -86,50 +98,13 @@ export interface FocusEvent {
   focused: boolean
 }
 
-/** Exact half-open span consumed by a probe transaction recognizer. */
-export interface ProbeTransactionSpan {
-  readonly start: number
-  readonly end: number
-}
-
-export type ProbeTransactionRecognition<T> =
-  | {
-      readonly status: "pending"
-      readonly consumed: readonly ProbeTransactionSpan[]
-    }
-  | {
-      readonly status: "complete"
-      readonly consumed: readonly ProbeTransactionSpan[]
-      readonly value: T
-    }
-
-export type ProbeTransactionResult<T> =
-  | { readonly status: "complete"; readonly value: T }
-  | { readonly status: "timeout" }
-  | { readonly status: "busy" }
-  | {
-      readonly status: "overflow"
-      readonly maxBufferBytes: number
-      readonly receivedBytes: number
-    }
-  | {
-      readonly status: "error"
-      readonly reason:
-        | "disposed"
-        | "invalid-options"
-        | "invalid-consumed-span"
-        | "recognizer-threw"
-        | "write-failed"
-      readonly message?: string
-    }
-
 export interface InputOwner extends Disposable {
   /**
    * Write a query to stdout, accumulate stdin response bytes, run `parse`
    * against the accumulated buffer on each chunk. Resolves with the first
    * non-null parse result; resolves with `null` if `timeoutMs` elapses first.
    *
-   * Consumed bytes (`consumed` from the parse result) are spliced out of the
+   * Consumed UTF-16 code units (`consumed` from the parse result) are spliced out of the
    * shared buffer. Bytes before/after the consumed region remain available
    * to subsequent probes and/or the event parser.
    */
@@ -140,7 +115,7 @@ export interface InputOwner extends Disposable {
      * Run on the accumulated buffer each time new bytes arrive.
      * Return `null` when the buffer doesn't contain a parseable response yet;
      * return `{ result, consumed }` to resolve the probe with `result` and
-     * splice `consumed` bytes out of the buffer.
+     * splice `consumed` UTF-16 code units out of the buffer.
      *
      * NOTE: `consumed` need not equal the full buffer length; probes may
      * consume a prefix or a middle slice. The owner splices the FIRST
@@ -148,7 +123,7 @@ export interface InputOwner extends Disposable {
      * region should locate + return the exact consumed prefix length.
      */
     parse: (acc: string) => { result: T; consumed: number } | null
-    /** Maximum wait in ms before resolving with `null`. */
+    /** Maximum call-to-result wait, including any time queued behind a transaction. */
     timeoutMs: number
   }): Promise<T | null>
 
@@ -165,16 +140,7 @@ export interface InputOwner extends Disposable {
    * timeout, parser failure, and write failure are typed results rather than
    * silent truncation or interleaving.
    */
-  probeTransaction<T>(opts: {
-    /** One atomic stdout write containing the full query transaction. */
-    query: string
-    /** Recognize protocol spans and the transaction completion barrier. */
-    recognize: (acc: string) => ProbeTransactionRecognition<T>
-    /** Maximum wait in ms before returning typed `timeout`. */
-    timeoutMs: number
-    /** Hard byte bound for the transaction-exclusive response buffer. */
-    maxBufferBytes: number
-  }): Promise<ProbeTransactionResult<T>>
+  probeTransaction<T>(opts: ProbeTransactionOptions<T>): Promise<ProbeTransactionResult<T>>
 
   /**
    * Subscribe to parsed key events (press, repeat, release — handler filters
@@ -295,7 +261,15 @@ interface ProbeTransactionEntry {
   timer: ReturnType<typeof setTimeout>
   maxBufferBytes: number
   consumed: readonly ProbeTransactionSpan[]
+  chunks: CapturedInputChunk[]
   settled: boolean
+}
+
+interface CapturedInputChunk {
+  readonly start: number
+  readonly end: number
+  readonly receivedAt: number | undefined
+  readonly inputBatchId: number | undefined
 }
 
 interface QueuedProbeStart {
@@ -587,14 +561,22 @@ export function createInputOwner(
     return spans
   }
 
-  function unconsumedBytes(captured: string, spans: readonly ProbeTransactionSpan[]): string {
-    let cursor = 0
+  function unconsumedChunk(
+    captured: string,
+    chunk: CapturedInputChunk,
+    spans: readonly ProbeTransactionSpan[],
+  ): string {
+    let cursor = chunk.start
     let replay = ""
     for (const span of spans) {
-      replay += captured.slice(cursor, span.start)
-      cursor = span.end
+      if (span.end <= chunk.start) continue
+      if (span.start >= chunk.end) break
+      const consumedStart = Math.max(span.start, chunk.start)
+      const consumedEnd = Math.min(span.end, chunk.end)
+      replay += captured.slice(cursor, consumedStart)
+      cursor = Math.max(cursor, consumedEnd)
     }
-    return replay + captured.slice(cursor)
+    return replay + captured.slice(cursor, chunk.end)
   }
 
   function startQueuedProbes(): void {
@@ -607,8 +589,6 @@ export function createInputOwner(
     entry: ProbeTransactionEntry,
     result: ProbeTransactionResult<unknown>,
     spans: readonly ProbeTransactionSpan[],
-    receivedAt?: number,
-    inputBatchId?: number,
   ): void {
     if (entry.settled || transaction !== entry) return
     entry.settled = true
@@ -616,13 +596,21 @@ export function createInputOwner(
     transaction = null
 
     const captured = buffer
-    buffer = unconsumedBytes(captured, spans)
+    const replayChunks = entry.chunks.map((chunk) => ({
+      ...chunk,
+      text: unconsumedChunk(captured, chunk, spans),
+    }))
+    buffer = ""
     entry.resolve(result)
 
     // Replay closes before any queued ordinary probe can write. JavaScript's
     // run-to-completion semantics ensure no fresh stdin callback can interleave
     // between the close, replay, and queue activation.
-    if (buffer.length > 0) drain(receivedAt, inputBatchId)
+    for (const chunk of replayChunks) {
+      if (chunk.text.length === 0) continue
+      buffer += chunk.text
+      drain(chunk.receivedAt, chunk.inputBatchId)
+    }
     startQueuedProbes()
   }
 
@@ -644,8 +632,6 @@ export function createInputOwner(
             receivedBytes,
           },
           entry.consumed,
-          receivedAt,
-          inputBatchId,
         )
         return
       }
@@ -658,8 +644,6 @@ export function createInputOwner(
           entry,
           { status: "error", reason: "recognizer-threw", message: String(err) },
           entry.consumed,
-          receivedAt,
-          inputBatchId,
         )
         return
       }
@@ -668,22 +652,14 @@ export function createInputOwner(
         settleTransaction(
           entry,
           { status: "error", reason: "invalid-consumed-span" },
-          [],
-          receivedAt,
-          inputBatchId,
+          entry.consumed,
         )
         return
       }
       entry.consumed = consumed
       if (recognized.status === "complete") {
         resolvedCount++
-        settleTransaction(
-          entry,
-          { status: "complete", value: recognized.value },
-          consumed,
-          receivedAt,
-          inputBatchId,
-        )
+        settleTransaction(entry, { status: "complete", value: recognized.value }, consumed)
       }
       return
     }
@@ -828,7 +804,16 @@ export function createInputOwner(
     if (disposed) return
     const receivedAt = performance.now()
     const inputBatchId = ++inputBatchSeq
-    buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8")
+    const text = typeof chunk === "string" ? chunk : chunk.toString("utf8")
+    if (transaction !== null) {
+      transaction.chunks.push({
+        start: buffer.length,
+        end: buffer.length + text.length,
+        receivedAt,
+        inputBatchId,
+      })
+    }
+    buffer += text
     drain(receivedAt, inputBatchId)
   }
   const onChunk = (chunk: string | Buffer) => sendRaw(chunk)
@@ -840,13 +825,33 @@ export function createInputOwner(
     timeoutMs: number
   }): Promise<T | null> {
     return new Promise<T | null>((resolve) => {
+      const deadline = performance.now() + opts.timeoutMs
+      let resolved = false
+      let queuedTimer: ReturnType<typeof setTimeout> | null = null
+      const resolveOnce = (value: T | null) => {
+        if (resolved) return
+        resolved = true
+        if (queuedTimer !== null) clearTimeout(queuedTimer)
+        resolve(value)
+      }
       const start = () => {
+        if (resolved) return
+        if (queuedTimer !== null) {
+          clearTimeout(queuedTimer)
+          queuedTimer = null
+        }
+        const remainingMs = Math.max(0, deadline - performance.now())
+        if (remainingMs === 0) {
+          timedOutCount++
+          resolveOnce(null)
+          return
+        }
         if (disposed) {
-          resolve(null)
+          resolveOnce(null)
           return
         }
         if (!isTTY) {
-          setTimeout(() => resolve(null), opts.timeoutMs)
+          setTimeout(() => resolveOnce(null), remainingMs)
           return
         }
 
@@ -856,7 +861,7 @@ export function createInputOwner(
           resolve: (value) => {
             if (settled) return
             settled = true
-            resolve(value as T | null)
+            resolveOnce(value as T | null)
           },
           timer: setTimeout(() => {
             if (entry.settled) return
@@ -865,7 +870,7 @@ export function createInputOwner(
             if (idx >= 0) probes.splice(idx, 1)
             timedOutCount++
             entry.resolve(null)
-          }, opts.timeoutMs),
+          }, remainingMs),
           settled: false,
         }
         probes.push(entry)
@@ -893,17 +898,25 @@ export function createInputOwner(
         if (buffer.length > 0) drain()
       }
 
-      if (transaction !== null) queuedProbeStarts.push({ start, cancel: () => resolve(null) })
-      else start()
+      if (transaction !== null) {
+        const queued: QueuedProbeStart = {
+          start,
+          cancel: () => resolveOnce(null),
+        }
+        queuedTimer = setTimeout(() => {
+          const index = queuedProbeStarts.indexOf(queued)
+          if (index >= 0) queuedProbeStarts.splice(index, 1)
+          timedOutCount++
+          resolveOnce(null)
+        }, opts.timeoutMs)
+        queuedProbeStarts.push(queued)
+      } else start()
     })
   }
 
-  function probeTransaction<T>(opts: {
-    query: string
-    recognize: (acc: string) => ProbeTransactionRecognition<T>
-    timeoutMs: number
-    maxBufferBytes: number
-  }): Promise<ProbeTransactionResult<T>> {
+  function probeTransaction<T>(
+    opts: ProbeTransactionOptions<T>,
+  ): Promise<ProbeTransactionResult<T>> {
     if (disposed) return Promise.resolve({ status: "error", reason: "disposed" })
     if (
       !Number.isFinite(opts.timeoutMs) ||
@@ -926,6 +939,10 @@ export function createInputOwner(
         }, opts.timeoutMs),
         maxBufferBytes: opts.maxBufferBytes,
         consumed: [],
+        chunks:
+          buffer.length === 0
+            ? []
+            : [{ start: 0, end: buffer.length, receivedAt: undefined, inputBatchId: undefined }],
         settled: false,
       }
       transaction = entry

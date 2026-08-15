@@ -12,6 +12,7 @@ import {
 } from "./default-schemes.ts"
 import { queryMultiplePaletteColors, parsePaletteResponse } from "../osc-palette.ts"
 import { queryForegroundColor, queryBackgroundColor } from "../osc-colors.ts"
+import type { ProbeTransactionOptions, ProbeTransactionResult } from "../probe-transaction"
 
 export interface DetectedScheme {
   fg: string | null
@@ -38,36 +39,7 @@ export interface ProbeInputOwner {
    * structural adapters source-compatible; capability probing treats absence
    * as no live evidence and never installs a second stdin parser.
    */
-  probeTransaction?<T>(opts: {
-    query: string
-    recognize: (acc: string) =>
-      | {
-          status: "pending"
-          consumed: readonly { readonly start: number; readonly end: number }[]
-        }
-      | {
-          status: "complete"
-          consumed: readonly { readonly start: number; readonly end: number }[]
-          value: T
-        }
-    timeoutMs: number
-    maxBufferBytes: number
-  }): Promise<
-    | { status: "complete"; value: T }
-    | { status: "timeout" }
-    | { status: "busy" }
-    | { status: "overflow"; maxBufferBytes: number; receivedBytes: number }
-    | {
-        status: "error"
-        reason:
-          | "disposed"
-          | "invalid-options"
-          | "invalid-consumed-span"
-          | "recognizer-threw"
-          | "write-failed"
-        message?: string
-      }
-  >
+  probeTransaction?<T>(opts: ProbeTransactionOptions<T>): Promise<ProbeTransactionResult<T>>
 }
 
 export interface ProbeColorsOptions {

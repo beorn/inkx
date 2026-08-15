@@ -8,18 +8,17 @@
  * escape-flood). The authoritative answer is a runtime query: send a tiny
  * graphics command with the query action (`a=q`) and wait for the terminal's
  * `\x1b_Gi=<id>;OK\x1b\` acknowledgement. A terminal that does not speak the
- * protocol sends nothing (and swallows the unknown APC), so the absence of a
- * response is itself the signal.
+ * protocol sends nothing (and swallows the unknown APC). Silence is no live
+ * evidence; the profile resolver preserves its corpus/default decision.
  */
 
-import { recognizePrimaryDAResponse } from "./device-attributes"
+import { DA1_QUERY, recognizePrimaryDAResponse } from "./device-attributes"
 import { recognizeTerminalVersionResponse, XTVERSION_QUERY } from "./terminal-version-probe"
 import type { ProbeInputOwner } from "./theme/detect"
+import type { ProbeTransactionResult } from "./probe-transaction"
 
 const APC = "\x1b_G"
 const ST = "\x1b\\"
-export const DA1_QUERY = "\x1b[c"
-
 /**
  * The image id used for the support query. Chosen well above the runtime image
  * id range (1..255) so a probe ack can never be confused with a real image's
@@ -53,9 +52,8 @@ export function recognizeKittyGraphicsResponse(acc: string, id: number): KittyGr
  *   - `{ result: true }`  — `\x1b_Gi=<id>;OK\x1b\` → graphics supported.
  *   - `{ result: false }` — a well-formed response for our id that is NOT `OK`
  *                           (the terminal parsed the APC but rejected the query).
- *   - `null`              — no complete response for our id yet (the probe keeps
- *                           waiting; on timeout the caller treats this as
- *                           unsupported).
+ *   - `null`              — no complete response for our id yet; the transaction
+ *                           keeps waiting for its DA1 completion barrier.
  */
 export function parseKittyGraphicsResponse(
   acc: string,
@@ -66,8 +64,10 @@ export function parseKittyGraphicsResponse(
 }
 
 export interface TerminalCapabilityEvidence {
-  /** Present only when Kitty returned an explicit OK/error response. */
-  readonly kittyGraphics: boolean | undefined
+  /** DA1 closes the query window; no preceding Kitty acknowledgement is negative evidence. */
+  readonly kittyGraphics: boolean
+  /** Whether Kitty itself answered or the completed DA1 barrier established non-response. */
+  readonly kittyGraphicsSource: "response" | "da1-barrier"
   /** DA1 parameter 4 is positive evidence; its absence is no evidence. */
   readonly sixel: true | undefined
   /** Present only when XTVERSION returned a complete identity response. */
@@ -75,24 +75,7 @@ export interface TerminalCapabilityEvidence {
 }
 
 export type TerminalCapabilityProbeResult =
-  | { readonly status: "complete"; readonly value: TerminalCapabilityEvidence }
-  | { readonly status: "timeout" }
-  | { readonly status: "busy" }
-  | {
-      readonly status: "overflow"
-      readonly maxBufferBytes: number
-      readonly receivedBytes: number
-    }
-  | {
-      readonly status: "error"
-      readonly reason:
-        | "disposed"
-        | "invalid-options"
-        | "invalid-consumed-span"
-        | "recognizer-threw"
-        | "write-failed"
-      readonly message?: string
-    }
+  | ProbeTransactionResult<TerminalCapabilityEvidence>
   | { readonly status: "unavailable" }
 
 /**
@@ -127,7 +110,8 @@ export function recognizeTerminalCapabilityTransaction(
     status: "complete",
     consumed,
     value: {
-      kittyGraphics: kitty && kitty.span.end <= da1.span.end ? kitty.result : undefined,
+      kittyGraphics: kitty && kitty.span.end <= da1.span.end ? kitty.result : false,
+      kittyGraphicsSource: kitty && kitty.span.end <= da1.span.end ? "response" : "da1-barrier",
       sixel: da1.result.params.includes(4) ? true : undefined,
       terminalVersion: version && version.span.end <= da1.span.end ? version.result : undefined,
     },
@@ -152,29 +136,4 @@ export async function probeTerminalCapabilities(
     maxBufferBytes: TERMINAL_CAPABILITY_BUFFER_BYTES,
     recognize: (acc) => recognizeTerminalCapabilityTransaction(acc, KITTY_PROBE_ID),
   })
-}
-
-/**
- * Probe the terminal at runtime for Kitty graphics support. Resolves:
- *   - `true`      — the terminal acknowledged it can paint Kitty graphics.
- *   - `false`     — a non-`OK` response (the protocol is understood but refused).
- *   - `undefined` — no response within `timeoutMs` (the terminal does not speak
- *                   the protocol, or a proxy/capture that cannot paint it).
- *
- * The query is a 1×1 RGB query-only command, harmless to a terminal that ignores
- * unknown APC sequences. Routed through the session's {@link ProbeInputOwner}
- * (never `process.stdin` directly) so it is safe inside a running TUI.
- */
-export async function probeKittyGraphics(
-  input: ProbeInputOwner,
-  timeoutMs = 150,
-): Promise<boolean | undefined> {
-  // 1×1 RGB pixel = 3 zero bytes → base64 "AAAA"; `a=q` = query support.
-  const query = `${APC}i=${KITTY_PROBE_ID},s=1,v=1,a=q,t=d,f=24;AAAA${ST}`
-  const result = await input.probe<boolean>({
-    query,
-    timeoutMs,
-    parse: (acc) => parseKittyGraphicsResponse(acc, KITTY_PROBE_ID),
-  })
-  return result ?? undefined
 }

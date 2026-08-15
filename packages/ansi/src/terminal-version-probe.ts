@@ -7,8 +7,6 @@
  * while silence remains an honest unknown rather than a manufactured match.
  */
 
-import type { ProbeInputOwner } from "./theme/detect"
-
 /**
  * XTVERSION query bytes. Terminal-owning code must issue the query and own
  * its timeout; this constant does not perform I/O.
@@ -44,17 +42,4 @@ export function parseTerminalVersionResponse(
 ): { result: string; consumed: number } | null {
   const recognized = recognizeTerminalVersionResponse(acc)
   return recognized ? { result: recognized.result, consumed: recognized.span.end } : null
-}
-
-/** Query terminal identity through the session's single stdin owner. */
-export async function probeTerminalVersion(
-  input: ProbeInputOwner,
-  timeoutMs = 150,
-): Promise<string | undefined> {
-  const result = await input.probe<string>({
-    query: XTVERSION_QUERY,
-    timeoutMs,
-    parse: parseTerminalVersionResponse,
-  })
-  return result ?? undefined
 }

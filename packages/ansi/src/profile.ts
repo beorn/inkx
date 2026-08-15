@@ -52,7 +52,12 @@ import { pickColorLevel } from "./color-maps"
 export type ColorProvenance = "env" | "override" | "caller-caps" | "auto"
 
 /** Which evidence channel made a terminal-capability decision. */
-export type CapabilityDecisionChannel = "explicit" | "live" | "corpus" | "default"
+export type CapabilityDecisionChannel =
+  | "explicit"
+  | "live"
+  | "live-da1-barrier"
+  | "corpus"
+  | "default"
 
 /** Per-capability decision evidence carried with every profile snapshot. */
 export type TerminalCapabilityProvenance = Readonly<
@@ -388,7 +393,7 @@ function provenanceForCaps(
 
 /**
  * Options for {@link probeTerminalProfile}. Extends the sync factory options
- * with the async-only fields a theme probe needs.
+ * with the async-only fields capability and theme probes need.
  */
 export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOptions {
   /**
@@ -417,10 +422,9 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
   /**
    * Optional {@link ProbeInputOwner} (the structural type `detectTheme`
    * accepts). When provided, the probe routes OSC queries through the
-   * owner's `probe()` method instead of touching `process.stdin` directly —
+   * owner's probe methods instead of touching `process.stdin` directly —
    * required inside a running TUI session. Callers in `@silvery/ag-term`
-   * construct a transient `InputOwner` around this call; standalone callers
-   * can omit it.
+   * pass the session's canonical `InputOwner`; standalone callers can omit it.
    */
   input?: ProbeInputOwner
 }
@@ -432,13 +436,13 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  * responses on stdin. This is the Phase-H2 variant of
  * {@link createTerminalProfile} — everything the sync factory does, plus:
  *
- * 1. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
- * 2. When the env heuristic cannot identify Nerd Font support, use XTVERSION
- *    to recognize a live Ghostty renderer with built-in Nerd symbols.
- * 3. Pre-quantize the resulting theme via {@link pickColorLevel} when the
+ * 1. Gather Kitty, XTVERSION, and DA1 through one bounded owner transaction.
+ * 2. Use explicit live evidence to refine corpus graphics/font decisions.
+ * 3. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
+ * 4. Pre-quantize the resulting theme via {@link pickColorLevel} when the
  *    tier was forced ({@link TerminalCaps.colorForced} is `true`) so
  *    token hex values match what the pipeline will actually emit.
- * 4. Return the profile with `theme` populated — one detection, one profile
+ * 5. Return the profile with `theme` populated — one detection, one profile
  *    flowing end-to-end through run() / createApp().
  *
  * Call sites previously ran `createTerminalProfile(...)` + `detectTheme(...)`
@@ -493,7 +497,8 @@ export async function probeTerminalProfile(
         evidence.kittyGraphics !== undefined
       ) {
         kittyGraphics = evidence.kittyGraphics
-        capabilityProvenance.kittyGraphics = "live"
+        capabilityProvenance.kittyGraphics =
+          evidence.kittyGraphicsSource === "da1-barrier" ? "live-da1-barrier" : "live"
       }
       if (capabilityProvenance.sixel !== "explicit" && evidence.sixel === true) {
         sixel = true
@@ -507,6 +512,16 @@ export async function probeTerminalProfile(
         maybeNerdFont = true
         capabilityProvenance.maybeNerdFont = "live"
       }
+    } else if (result.status !== "timeout" && result.status !== "unavailable") {
+      const detail =
+        result.status === "overflow"
+          ? `${result.receivedBytes}/${result.maxBufferBytes} bytes`
+          : result.status === "error"
+            ? result.reason
+            : result.status
+      throw new Error(`terminal capability transaction ${result.status}: ${detail}`, {
+        cause: result,
+      })
     }
   }
 

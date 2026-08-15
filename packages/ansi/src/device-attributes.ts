@@ -2,6 +2,7 @@
 
 const ESC = String.fromCharCode(27)
 const DA1_RESPONSE_RE = new RegExp(`${ESC}\\[\\?([\\d;]+)c`)
+export const DA1_QUERY = "\x1b[c"
 
 export interface PrimaryDeviceAttributes {
   readonly params: number[]

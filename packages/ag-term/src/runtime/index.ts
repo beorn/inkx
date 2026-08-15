@@ -38,6 +38,7 @@ export {
   createInputOwner,
   type InputOwner,
   type InputOwnerOptions,
+  type ProbeTransactionOptions,
   type ProbeTransactionRecognition,
   type ProbeTransactionResult,
   type ProbeTransactionSpan,

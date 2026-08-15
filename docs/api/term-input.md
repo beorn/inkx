@@ -56,11 +56,11 @@ If raw mode is already set when the owner is constructed (e.g. a pre-session pro
 
 Issue a terminal query, accumulate response bytes into the shared buffer, run `parse` on each chunk, resolve with the first match.
 
-| Option      | Type                                            | Meaning                                                      |
-| ----------- | ----------------------------------------------- | ------------------------------------------------------------ |
-| `query`     | `string`                                        | Bytes to write to stdout. `""` for pure-listen probes.       |
-| `parse`     | `(acc: string) => { result; consumed } \| null` | Return `null` until the buffer is parseable.                 |
-| `timeoutMs` | `number`                                        | Resolves with `null` if no match arrives within this window. |
+| Option      | Type                                            | Meaning                                                                  |
+| ----------- | ----------------------------------------------- | ------------------------------------------------------------------------ |
+| `query`     | `string`                                        | Bytes to write to stdout. `""` for pure-listen probes.                   |
+| `parse`     | `(acc: string) => { result; consumed } \| null` | Return `null` until the buffer is parseable.                             |
+| `timeoutMs` | `number`                                        | Maximum call-to-result wait, including time queued behind a transaction. |
 
 ### OSC query pattern
 
@@ -93,7 +93,7 @@ Probes are order-sensitive: put strict parsers (fixed-length responses) before l
 
 ### Parse result `consumed`
 
-`consumed` is the number of bytes the owner should splice from the buffer front. It need not equal the full buffer length — parsers that match a non-prefix region should locate and return the exact prefix length to splice.
+`consumed` is the number of UTF-16 code units the owner should splice from the buffer front. It need not equal the full buffer length — parsers that match a non-prefix region should locate and return the exact prefix length to splice.
 
 ### Timeout semantics
 
@@ -101,7 +101,7 @@ A timed-out probe resolves with `null`. The shared buffer continues draining; a 
 
 ## `probeTransaction(opts)`
 
-Use a transaction when one atomic query produces several protocol responses and a final response acts as the completion barrier. The transaction has exclusive ownership of accumulated stdin bytes until it completes, times out, overflows, or fails. Its recognizer reports exact half-open spans for protocol bytes; every gap is replayed through the typed input parser once, in arrival order, before queued ordinary probes start.
+Use a transaction when one atomic query produces several protocol responses and a final response acts as the completion barrier. The transaction has exclusive ownership of accumulated stdin bytes until it completes, times out, overflows, or fails. Its recognizer reports exact half-open UTF-16 code-unit spans for protocol text; every gap is replayed through the typed input parser once, in its original input batch and arrival order, before queued ordinary probes start. `maxBufferBytes` remains a UTF-8 byte bound.
 
 ```ts
 const result = await term.input!.probeTransaction({
@@ -116,7 +116,7 @@ if (result.status === "complete") {
 }
 ```
 
-The result is typed and fail-loud: `complete`, `timeout`, `busy`, `overflow`, or `error`. Starting a transaction while another transaction or an ordinary probe is active returns `busy` without writing its query. Ordinary probes requested during a transaction queue until replay finishes. Overflow reports both the configured bound and received byte count; it never silently truncates the buffer.
+The result is typed and fail-loud: `complete`, `timeout`, `busy`, `overflow`, or `error`. Starting a transaction while another transaction or an ordinary probe is active returns `busy` without writing its query. Ordinary probes requested during a transaction queue until replay finishes, but their timeout still starts at the original call. Overflow reports both the configured bound and received byte count; it never silently truncates the buffer.
 
 Transactions are the only supported way to correlate several responses. Do not install a temporary stdin listener or run several ordinary probes in parallel for a protocol handshake—the session still has exactly one parser and one raw-mode owner.
 

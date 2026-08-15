@@ -1076,6 +1076,8 @@ export {
   defaultCaps,
   type TerminalProfile,
   type ColorProvenance,
+  type CapabilityDecisionChannel,
+  type TerminalCapabilityProvenance,
   type ProbeTerminalProfileOptions,
   type CreateTerminalProfileOptions,
 } from "@silvery/ansi"
@@ -1135,8 +1137,6 @@ export {
   querySecondaryDA,
   queryTertiaryDA,
   queryTerminalVersion,
-  queryDeviceAttributes,
-  type DeviceAttributes,
 } from "@silvery/ag-term/device-attrs"
 
 // Focus reporting (CSI ?1004h)

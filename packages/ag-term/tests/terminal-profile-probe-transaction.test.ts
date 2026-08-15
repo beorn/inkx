@@ -99,6 +99,8 @@ describe("probeTerminalProfile capability transaction", () => {
 
     expect(profile.caps.sixel).toBe(true)
     expect(profile.capabilityProvenance.sixel).toBe("corpus")
+    expect(profile.caps.kittyGraphics).toBe(false)
+    expect(profile.capabilityProvenance.kittyGraphics).toBe("live-da1-barrier")
   })
 
   it("treats transaction timeout as no evidence and preserves corpus Kitty support", async () => {

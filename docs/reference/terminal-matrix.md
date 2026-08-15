@@ -134,7 +134,7 @@ import { createTerminalProfile } from "@silvery/ag-term"
 const profile = createTerminalProfile()
 const caps = profile.caps
 // caps.colorLevel, caps.kittyKeyboard, caps.osc52, etc.
-// profile.colorLevel, profile.colorProvenance — resolved + attribution
+// profile.colorLevel, profile.caps.colorProvenance — resolved + attribution
 ```
 
 No I/O is performed -- detection is instant but limited to what env vars reveal. For runtime detection of specific protocols (like Kitty keyboard support), use:

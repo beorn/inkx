@@ -86,6 +86,12 @@ export {
   detectTerminalProfileFromEnv,
 } from "./profile"
 export type {
+  ProbeTransactionOptions,
+  ProbeTransactionRecognition,
+  ProbeTransactionResult,
+  ProbeTransactionSpan,
+} from "./probe-transaction"
+export type {
   TerminalProfile,
   ColorProvenance,
   CapabilityDecisionChannel,
@@ -106,6 +112,7 @@ export {
   type TerminalVersionMatch,
 } from "./terminal-version-probe"
 export {
+  DA1_QUERY,
   parsePrimaryDAResponse,
   recognizePrimaryDAResponse,
   type PrimaryDeviceAttributes,

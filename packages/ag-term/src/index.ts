@@ -356,8 +356,6 @@ export {
   querySecondaryDA,
   queryTertiaryDA,
   queryTerminalVersion,
-  queryDeviceAttributes,
-  type DeviceAttributes,
 } from "./device-attrs"
 
 // =============================================================================

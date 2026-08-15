@@ -248,7 +248,7 @@ export type RunOptionsProfileBranch =
        * Pre-built {@link TerminalProfile}. When supplied, `run()` skips its
        * own `createTerminalProfile()` call and uses this profile end-to-end
        * — the profile's `caps` feed the pipeline, and the pre-quantize gate
-       * reads `profile.colorForced` to decide whether the OSC-detected theme
+       * reads `profile.caps.colorForced` to decide whether the OSC-detected theme
        * should be re-quantized. This is the single-source-of-truth entry
        * point: callers that already built a profile (e.g. via a top-level
        * bootstrap, a test harness, or a Term adapter) pass it through
@@ -562,7 +562,7 @@ export async function run(
     if (probeOwner) setInputOwnerMouseOptions(probeOwner, mouseParseOptions(termMouseOption))
     const caps: TerminalCaps = termProfile.caps
     // `profile.theme` is populated by probeTerminalProfile (already
-    // pre-quantized when `profile.colorForced === true`). When a caller
+    // pre-quantized when `profile.caps.colorForced === true`). When a caller
     // supplied a pre-built profile without a theme, no ThemeProvider wrap
     // happens — the app uses whatever ThemeProvider higher up the tree or
     // the framework default.
@@ -939,7 +939,7 @@ interface EmulatorBackend {
 
 /**
  * Emulator-branch counterpart to `resolveMouseOption`. The real-PTY branch
- * runs the probe via a transient `InputOwner` bound to stdin/stdout; the
+ * runs the probe via the session's canonical `InputOwner`; the
  * emulator branch has no PTY, but the underlying backend exposes the same
  * 14t/18t window-op responses through `feed()` + `onResponse`.
  *

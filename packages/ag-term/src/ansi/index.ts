@@ -86,7 +86,7 @@ export type {
 
 // Post km-silvery.plateau-delete-legacy-shims (H6): `detectColor` and
 // `detectTerminalCaps` deleted — use `createTerminalProfile()` (sync) or
-// `probeTerminalProfile()` (async with theme) instead.
+// `probeTerminalProfile()` (async with live capabilities + theme) instead.
 export {
   defaultCaps,
   createTerminalProfile,
@@ -100,6 +100,8 @@ export type {
   TerminalCaps,
   TerminalProfile,
   ColorProvenance,
+  CapabilityDecisionChannel,
+  TerminalCapabilityProvenance,
   TerminalProfileStdout,
   CreateTerminalProfileOptions,
   ProbeTerminalProfileOptions,

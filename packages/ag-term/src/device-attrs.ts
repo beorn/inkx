@@ -27,6 +27,7 @@
  */
 
 import {
+  DA1_QUERY,
   parsePrimaryDAResponse,
   parseTerminalVersionResponse,
   XTVERSION_QUERY,
@@ -57,7 +58,7 @@ export async function queryPrimaryDA(
   read: (timeoutMs: number) => Promise<string | null>,
   timeoutMs = 200,
 ): Promise<{ params: number[] } | null> {
-  write("\x1b[c")
+  write(DA1_QUERY)
 
   const data = await read(timeoutMs)
   if (data == null) return null
@@ -158,72 +159,4 @@ export async function queryTerminalVersion(
   if (data == null) return null
 
   return parseTerminalVersionResponse(data)?.result ?? null
-}
-
-// ============================================================================
-// Combined Query
-// ============================================================================
-
-/** Combined device attributes result. */
-export interface DeviceAttributes {
-  da1: { params: number[] } | null
-  da2: { type: number; version: number; id: number } | null
-  version: string | null
-}
-
-/**
- * Query all device attributes: DA1, DA2, and XTVERSION.
- *
- * Convenience wrapper that queries all three sequentially.
- * DA3 is omitted from the combined query as it's rarely needed.
- *
- * @param stdout Writable stream (e.g., process.stdout)
- * @param stdin Readable stream (e.g., process.stdin)
- * @param timeoutMs Per-query timeout (default: 200ms)
- */
-export async function queryDeviceAttributes(
-  stdout: { write: (s: string) => boolean | void },
-  stdin: NodeJS.ReadStream,
-  timeoutMs = 200,
-): Promise<DeviceAttributes> {
-  // Race-safe rawMode toggle — see probeColors comment in
-  // vendor/silvery/packages/ansi/src/theme/detect.ts. If another consumer
-  // (e.g. silvery's term-provider) is on stdin, leave raw mode alone.
-  const otherListeners = stdin.listenerCount("data") > 0
-  const wasRaw = stdin.isRaw
-  let didSetRaw = false
-  if (!wasRaw && !otherListeners) {
-    stdin.setRawMode(true)
-    didSetRaw = true
-  }
-
-  try {
-    const write = (s: string) => {
-      stdout.write(s)
-    }
-
-    const read = (ms: number): Promise<string | null> =>
-      new Promise((resolve) => {
-        const timer = setTimeout(() => {
-          stdin.removeListener("data", onData)
-          resolve(null)
-        }, ms)
-
-        function onData(chunk: Buffer) {
-          clearTimeout(timer)
-          stdin.removeListener("data", onData)
-          resolve(chunk.toString())
-        }
-
-        stdin.on("data", onData)
-      })
-
-    const da1 = await queryPrimaryDA(write, read, timeoutMs)
-    const da2 = await querySecondaryDA(write, read, timeoutMs)
-    const version = await queryTerminalVersion(write, read, timeoutMs)
-
-    return { da1, da2, version }
-  } finally {
-    if (didSetRaw) stdin.setRawMode(false)
-  }
 }
