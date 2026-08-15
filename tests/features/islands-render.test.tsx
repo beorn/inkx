@@ -303,9 +303,7 @@ describe("Island — render-phase blit", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     const wrap = makeTestScopeWrapper()
     const href = "https://example.com/island"
-    // The test is written before the production Cell boundary is widened.
-    // Keep the red fixture structurally honest without pre-adding the field.
-    const g = snapshotGuest("H", { hyperlink: href } as unknown as Partial<Cell>)
+    const g = snapshotGuest("H", { hyperlink: href })
     const view = wrap(<BoardWithIsland guest={g.guest} cols={10} rows={3} />)
     const app = render(view)
 

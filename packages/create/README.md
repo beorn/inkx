@@ -11,12 +11,13 @@ $ npm install @silvery/create
 `pipe()` composes providers left-to-right. Each provider is a function `(app) => enhancedApp` that adds one capability — terminal I/O, React rendering, focus navigation, mouse dispatch, etc.
 
 ```typescript
-import { pipe, createApp, withReact, withTerminal, withFocus, withDomEvents } from '@silvery/create'
+import { pipe, createApp, withReact, withTerminal, withTerminalLinks, withFocus, withDomEvents } from '@silvery/create'
 
 const app = pipe(
   createApp(store),
   withReact(<Board />),
   withTerminal(process),
+  withTerminalLinks({ detect: detectLinks }),
   withFocus(),
   withDomEvents(),
 )
@@ -35,6 +36,7 @@ All follow the `with-*` naming convention (file) / `with*` (export):
 | `withReact(element)`    | React reconciler mount, virtual buffer                 |
 | `withRender(term)`      | Render pipeline from term capabilities                 |
 | `withTerminal(process)` | Terminal I/O — alternate screen, raw mode, resize      |
+| `withTerminalLinks()`   | Visible cell links → shared `link:open` events         |
 | `withFocus()`           | Tab/Shift+Tab/Escape focus navigation                  |
 | `withDomEvents()`       | Mouse dispatch — hit testing, bubbling, click-to-focus |
 | `withDiagnostics()`     | Debug overlays — incremental vs fresh render checks    |

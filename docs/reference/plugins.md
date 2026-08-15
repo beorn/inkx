@@ -27,10 +27,19 @@ Every built-in behavior is a plugin. `run()` composes them for you; `pipe()` let
 | Plugin                         | Role                       | What it does                                                                                                                                                                                                                                                                                                              |
 | ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `withTerminal(process, opts?)` | Source + Output + Protocol | **All terminal I/O in one plugin.** stdin → typed events (`term:key`, `term:mouse`, `term:paste`). stdout → alternate screen, raw mode, incremental diff output. SIGWINCH → `term:resize`. Lifecycle (Ctrl+Z suspend/resume, Ctrl+C exit). Protocols (SGR mouse, Kitty keyboard, bracketed paste) controlled via options. |
+| `withTerminalLinks(opts?)`     | Processing                 | Resolves visible cell links and emits `link:open` on modifier-click. Explicit OSC 8 destinations take precedence over the optional app-owned detector.                                                                                                                                                                    |
 
 Mouse, Kitty keyboard, and bracketed paste are **on by default** — no configuration needed. Options for disabling or customizing: `{ mouse?: boolean, kitty?: boolean | KittyFlags, paste?: boolean, onSuspend?, onResume?, onInterrupt? }`
 
 Internally, `withTerminal` composes the lower-level concerns (input parsing, output rendering, resize handling, protocol negotiation, lifecycle management). You never need to think about them separately unless you're building something exotic like a multiplexer or test harness.
+
+`withTerminalLinks()` adds no opener and no application-specific detection rules. Silvery projects explicit cell hyperlinks first; when a cell has no destination, an injected detector may return spans for that one visible row. Super/Cmd-click emits the existing `link:open` event after selection and component dispatch, so drags and `preventDefault()` retain first refusal.
+
+```tsx
+withTerminalLinks({
+  detect: (text) => detectLinks(text),
+})
+```
 
 ### Event Processing
 

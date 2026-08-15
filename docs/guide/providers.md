@@ -11,12 +11,13 @@ Silvery apps are built by composing **providers** — small functions that each 
 ## pipe() Composition
 
 ```typescript
-import { pipe, createApp, withReact, withTerminal, withFocus, withDomEvents } from '@silvery/create'
+import { pipe, createApp, withReact, withTerminal, withTerminalLinks, withFocus, withDomEvents } from '@silvery/create'
 
 const app = pipe(
   createApp(store),
   withReact(<Board />),
   withTerminal(process),
+  withTerminalLinks({ detect: detectLinks }),
   withFocus(),
   withDomEvents(),
 )
@@ -47,16 +48,17 @@ enhanced.custom() // typed!
 
 All providers live in `@silvery/create` and follow the `with-*` naming convention (file name) / `with*` (export name).
 
-| Provider                         | File                  | What it adds                                                             |
-| -------------------------------- | --------------------- | ------------------------------------------------------------------------ |
-| **withApp()**                    | `with-app.ts`         | Domain state registry (`models`), command tree (`commands`), keymaps     |
-| **withReact(element)**           | `with-react.ts`       | React reconciler mount, virtual buffer, component rendering              |
-| **withRender(term)**             | `with-render.ts`      | Render pipeline — `render()` and `renderStatic()` methods from term caps |
-| **withTerminal(process, opts?)** | `with-terminal.ts`    | Terminal I/O — alternate screen, raw mode, resize, cursor, cleanup       |
-| **withFocus()**                  | `with-focus.ts`       | Tab/Shift+Tab focus navigation, Escape to parent scope                   |
-| **withDomEvents()**              | `with-dom-events.ts`  | Mouse dispatch — hit testing, bubbling, click-to-focus, double-click     |
-| **withDiagnostics()**            | `with-diagnostics.ts` | Debug overlays — incremental vs fresh render checks after commands       |
-| **withLinks()**                  | `with-links.ts`       | Hyperlink event routing — `link:open` events from Link components        |
+| Provider                         | File                     | What it adds                                                             |
+| -------------------------------- | ------------------------ | ------------------------------------------------------------------------ |
+| **withApp()**                    | `with-app.ts`            | Domain state registry (`models`), command tree (`commands`), keymaps     |
+| **withReact(element)**           | `with-react.ts`          | React reconciler mount, virtual buffer, component rendering              |
+| **withRender(term)**             | `with-render.ts`         | Render pipeline — `render()` and `renderStatic()` methods from term caps |
+| **withTerminal(process, opts?)** | `with-terminal.ts`       | Terminal I/O — alternate screen, raw mode, resize, cursor, cleanup       |
+| **withTerminalLinks(opts?)**     | `with-terminal-links.ts` | Visible cell links on the shared `link:open` event rail                  |
+| **withFocus()**                  | `with-focus.ts`          | Tab/Shift+Tab focus navigation, Escape to parent scope                   |
+| **withDomEvents()**              | `with-dom-events.ts`     | Mouse dispatch — hit testing, bubbling, click-to-focus, double-click     |
+| **withDiagnostics()**            | `with-diagnostics.ts`    | Debug overlays — incremental vs fresh render checks after commands       |
+| **withLinks()**                  | `with-links.ts`          | Hyperlink event routing — `link:open` events from Link components        |
 
 ## Writing a Custom Provider
 
@@ -122,6 +124,7 @@ pipe(
   createApp(store),
   withReact(<App />),     // adds reconciler, buffer
   withTerminal(process),  // adds term I/O
+  withTerminalLinks({ detect: detectLinks }), // projects visible row links
   withFocus(),            // adds focus navigation (needs press())
   withDomEvents(),        // adds mouse dispatch (needs focus manager from withFocus)
 )
