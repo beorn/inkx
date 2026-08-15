@@ -93,6 +93,7 @@ export type {
   CreateTerminalProfileOptions,
   ProbeTerminalProfileOptions,
 } from "./profile"
+export { parsePrimaryDAResponse, type PrimaryDeviceAttributes } from "./device-attributes"
 
 // =============================================================================
 // SGR Codes

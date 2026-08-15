@@ -26,8 +26,7 @@
  * Supported by: xterm, Ghostty, Kitty, WezTerm, foot, VTE-based terminals
  */
 
-/** Regex for DA1 response: CSI ? params c */
-const DA1_RESPONSE_RE = /\x1b\[\?([\d;]+)c/
+import { parsePrimaryDAResponse } from "@silvery/ansi"
 
 /** Regex for DA2 response: CSI > params c */
 const DA2_RESPONSE_RE = /\x1b\[>([\d;]+)c/
@@ -62,11 +61,7 @@ export async function queryPrimaryDA(
   const data = await read(timeoutMs)
   if (data == null) return null
 
-  const match = DA1_RESPONSE_RE.exec(data)
-  if (!match) return null
-
-  const params = match[1]!.split(";").map((s) => parseInt(s, 10))
-  return { params }
+  return parsePrimaryDAResponse(data)?.result ?? null
 }
 
 // ============================================================================
