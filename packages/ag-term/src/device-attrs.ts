@@ -26,6 +26,8 @@
  * Supported by: xterm, Ghostty, Kitty, WezTerm, foot, VTE-based terminals
  */
 
+import { parseTerminalVersionResponse, XTVERSION_QUERY } from "@silvery/ansi"
+
 /** Regex for DA1 response: CSI ? params c */
 const DA1_RESPONSE_RE = /\x1b\[\?([\d;]+)c/
 
@@ -34,9 +36,6 @@ const DA2_RESPONSE_RE = /\x1b\[>([\d;]+)c/
 
 /** Regex for DA3 response: DCS ! | hex ST */
 const DA3_RESPONSE_RE = /\x1bP!\|([0-9a-fA-F]*)\x1b\\/
-
-/** Regex for XTVERSION response: DCS > | text ST */
-const XTVERSION_RESPONSE_RE = /\x1bP>\|([^\x1b]*)\x1b\\/
 
 // ============================================================================
 // DA1 — Primary Device Attributes
@@ -156,15 +155,12 @@ export async function queryTerminalVersion(
   read: (timeoutMs: number) => Promise<string | null>,
   timeoutMs = 200,
 ): Promise<string | null> {
-  write("\x1b[>0q")
+  write(XTVERSION_QUERY)
 
   const data = await read(timeoutMs)
   if (data == null) return null
 
-  const match = XTVERSION_RESPONSE_RE.exec(data)
-  if (!match) return null
-
-  return match[1]!
+  return parseTerminalVersionResponse(data)?.result ?? null
 }
 
 // ============================================================================

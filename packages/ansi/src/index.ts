@@ -94,6 +94,11 @@ export type {
   ProbeTerminalProfileOptions,
 } from "./profile"
 
+// XTVERSION wire vocabulary only. Callers that need a live answer must issue
+// the query through their terminal owner; the parser returns null until a
+// complete response has actually been observed.
+export { XTVERSION_QUERY, parseTerminalVersionResponse } from "./terminal-version-probe"
+
 // =============================================================================
 // SGR Codes
 // =============================================================================

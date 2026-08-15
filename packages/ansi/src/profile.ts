@@ -25,6 +25,7 @@ import type { ColorLevel } from "./types"
 import { detectTheme } from "./theme/detect"
 import type { DetectThemeOptions, ProbeInputOwner } from "./theme/detect"
 import { probeKittyGraphics } from "./kitty-graphics-probe"
+import { probeTerminalVersion } from "./terminal-version-probe"
 import type { Theme } from "./theme/types"
 import { pickColorLevel } from "./color-maps"
 
@@ -370,10 +371,12 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  * {@link createTerminalProfile} — everything the sync factory does, plus:
  *
  * 1. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
- * 2. Pre-quantize the resulting theme via {@link pickColorLevel} when the
+ * 2. When the env heuristic cannot identify Nerd Font support, use XTVERSION
+ *    to recognize a live Ghostty renderer with built-in Nerd symbols.
+ * 3. Pre-quantize the resulting theme via {@link pickColorLevel} when the
  *    tier was forced ({@link TerminalCaps.colorForced} is `true`) so
  *    token hex values match what the pipeline will actually emit.
- * 3. Return the profile with `theme` populated — one detection, one profile
+ * 4. Return the profile with `theme` populated — one detection, one profile
  *    flowing end-to-end through run() / createApp().
  *
  * Call sites previously ran `createTerminalProfile(...)` + `detectTheme(...)`
@@ -413,6 +416,25 @@ export async function probeTerminalProfile(
   // Promise — lets callers unify their entry-point flow on one async path.
   if (options.probeTheme === false) return profile
 
+  // Font coverage itself has no portable query. Ghostty is the useful
+  // exception for this resolver: its runtime identity is queryable and it
+  // ships Nerd Font symbols as a built-in fallback. SSH/Herdr commonly erase
+  // TERM_PROGRAM and normalize TERM to xterm-256color, so the synchronous
+  // heuristic says false even though the attached renderer can paint the PUA
+  // pair. Ask XTVERSION only for that unknown-looking case. A caller-supplied
+  // caps value and explicit NERDFONT=0 remain authoritative; silence keeps the
+  // portable branch.
+  const env = options.env ?? (process.env as Record<string, string | undefined>)
+  const nerdFontEnv = env.NERDFONT?.toLowerCase()
+  const nerdFontExplicitlyDisabled = nerdFontEnv === "0" || nerdFontEnv === "false"
+  const terminalVersionPromise =
+    options.input &&
+    !profile.caps.maybeNerdFont &&
+    options.caps?.maybeNerdFont === undefined &&
+    !nerdFontExplicitlyDisabled
+      ? probeTerminalVersion(options.input, options.timeoutMs ?? 150)
+      : Promise.resolve(undefined)
+
   // 19668: env-derived `kittyGraphics` is a GUESS — a `ghostty`/`kitty`
   // TERM_PROGRAM can front a sink that cannot paint Kitty graphics (a cmux
   // proxy, a captured stream). When env CLAIMS Kitty support and we have an
@@ -441,12 +463,19 @@ export async function probeTerminalProfile(
   // branches collapse to one `await probeTerminalProfile(...)` call.
   const resolvedTheme = profile.caps.colorForced ? pickColorLevel(theme, profile.colorLevel) : theme
 
+  const observedTerminalVersion = await terminalVersionPromise
+  const maybeNerdFont =
+    profile.caps.maybeNerdFont ||
+    (observedTerminalVersion !== undefined && /\bghostty\b/iu.test(observedTerminalVersion))
+
   // Re-freeze: the sync factory already froze `profile`, but `{ ...profile,
   // theme }` creates a fresh object that's not frozen. The theme-bundled
   // profile must keep the same immutability contract as the sync variant. When
   // the runtime probe downgraded `kittyGraphics`, rebuild caps too (19668).
   const caps: TerminalCaps =
-    kittyGraphics === profile.caps.kittyGraphics ? profile.caps : { ...profile.caps, kittyGraphics }
+    kittyGraphics === profile.caps.kittyGraphics && maybeNerdFont === profile.caps.maybeNerdFont
+      ? profile.caps
+      : { ...profile.caps, kittyGraphics, maybeNerdFont }
   return freezeProfileInDev({ ...profile, caps, theme: resolvedTheme })
 }
 
