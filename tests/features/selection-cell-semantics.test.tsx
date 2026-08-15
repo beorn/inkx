@@ -4,6 +4,48 @@ import { Box, Text } from "@silvery/ag-react"
 import { createRenderer, formatSelectableCells, readCellRow } from "@silvery/test"
 
 describe("selection cell semantics", () => {
+  test("nested virtual userSelect=none excludes only that text span", () => {
+    const render = createRenderer({ cols: 12, rows: 2 })
+    const app = render(
+      <Text>
+        A<Text userSelect="none">NO</Text>B
+      </Text>,
+    )
+    const buffer = app.lastBuffer()
+    if (!buffer) throw new Error("expected render buffer")
+
+    expect(
+      readCellRow(buffer, 0)
+        .slice(0, 4)
+        .map((cell) => cell.selectable),
+    ).toEqual([true, false, false, true])
+    expect(formatSelectableCells(buffer)).toMatchInlineSnapshot(`
+      "AnoB........"
+    `)
+
+    app.rerender(
+      <Text>
+        A<Text userSelect="text">NO</Text>B
+      </Text>,
+    )
+    expect(
+      readCellRow(app.lastBuffer()!, 0)
+        .slice(0, 4)
+        .map((cell) => cell.selectable),
+    ).toEqual([true, true, true, true])
+
+    app.rerender(
+      <Text>
+        A<Text userSelect="none">NO</Text>B
+      </Text>,
+    )
+    expect(
+      readCellRow(app.lastBuffer()!, 0)
+        .slice(0, 4)
+        .map((cell) => cell.selectable),
+    ).toEqual([true, false, false, true])
+  })
+
   test("table-driven invariant: text-origin cells selectable, structural cells not selectable", () => {
     const render = createRenderer({ cols: 24, rows: 6 })
     const app = render(

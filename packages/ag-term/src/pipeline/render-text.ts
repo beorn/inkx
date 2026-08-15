@@ -23,6 +23,7 @@ import type {
   TextTruncateHook,
   TextTruncateResult,
   TextMeasure,
+  UserSelect,
 } from "@silvery/ag/types"
 import {
   type StyledSegment,
@@ -57,6 +58,7 @@ import type { BgConflictMode, ClipBounds, NodeRenderState, PipelineContext } fro
 import { isStrictAnyEnabled } from "../strict-mode"
 import { assertBgCellHasTextPaint, isClipParityEnabled } from "../strict-clip-parity.js"
 import { createLogger } from "loggily"
+import { resolveUserSelect } from "../user-select"
 
 const log = createLogger("silvery:content")
 
@@ -522,7 +524,6 @@ function collectTextWithBg(
     if (child.type === "silvery-text" && child.props && !child.layoutNode) {
       const childProps = child.props as TextProps
       const childContext = mergeStyleContext(parentContext, childProps)
-
       // Recursively collect with child's context and budget
       const childResult = collectTextWithBg(child, childContext, currentOffset, childBudget, ctx)
 
@@ -596,6 +597,61 @@ function collectTextWithBg(
   return { text: result, bgSegments, childSpans, plainLen: displayWidthCollected }
 }
 
+function hasNestedUserSelectOverride(node: AgNode): boolean {
+  for (const child of node.children) {
+    const value = (child.props as { userSelect?: UserSelect }).userSelect
+    if (value === "none" || value === "text" || value === "contain") return true
+    if (hasNestedUserSelectOverride(child)) return true
+  }
+  return false
+}
+
+interface DisplayTextSegment {
+  start: number
+  end: number
+}
+
+/** Visit every rendered cell covered by display-width text segments. */
+function forEachTextSegmentCell<T extends DisplayTextSegment>(
+  segments: readonly T[],
+  x: number,
+  lineText: string,
+  lineCharStart: number,
+  lineCharEnd: number,
+  leftClip: number,
+  rightClip: number,
+  graphemeWidthFn: (grapheme: string) => number,
+  visit: (segment: T, col: number, width: number) => void,
+): void {
+  const graphemes = splitGraphemes(hasAnsi(lineText) ? stripAnsiForBg(lineText) : lineText)
+  for (const segment of segments) {
+    const overlapStart = Math.max(segment.start, lineCharStart)
+    const overlapEnd = Math.min(segment.end, lineCharEnd)
+    if (overlapStart >= overlapEnd) continue
+
+    const relStart = overlapStart - lineCharStart
+    const relEnd = overlapEnd - lineCharStart
+    let col = x
+    for (const grapheme of graphemes) {
+      const width = graphemeWidthFn(grapheme)
+      if (width === 0) continue
+
+      const displayOffset = col - x
+      if (
+        displayOffset >= relStart &&
+        displayOffset < relEnd &&
+        col >= leftClip &&
+        col < rightClip
+      ) {
+        visit(segment, col, Math.min(width, rightClip - col))
+      }
+
+      col += width
+      if (col - x >= relEnd || col >= rightClip) break
+    }
+  }
+}
+
 /**
  * Apply background segments to buffer cells for a single rendered line.
  *
@@ -648,78 +704,77 @@ function applyBgSegmentsToLine(
   const clipParityLinePreview =
     clipParityTextColumns === null ? undefined : previewClipParityLine(lineText)
 
-  // For each bg segment that overlaps this line's character range,
-  // calculate the screen columns and fill the bg
-  for (const seg of bgSegments) {
-    // Check overlap between segment [seg.start, seg.end) and line [lineCharStart, lineCharEnd)
-    const overlapStart = Math.max(seg.start, lineCharStart)
-    const overlapEnd = Math.min(seg.end, lineCharEnd)
-    if (overlapStart >= overlapEnd) continue
-
-    // Convert display-width offsets to column positions within the line.
-    // BgSegment offsets and lineCharStart/lineCharEnd are all in display-width
-    // coordinates, so relStart/relEnd are display-width offsets within the line.
-    const relStart = overlapStart - lineCharStart
-    const relEnd = overlapEnd - lineCharStart
-
-    // Walk through the line's visible characters to find screen columns.
-    // Use display-width offset (col - x) to match BgSegment coordinate system.
-    let col = x
-    const graphemes = splitGraphemes(hasAnsi(lineText) ? stripAnsiForBg(lineText) : lineText)
-
-    for (const grapheme of graphemes) {
-      const gWidth = gWidthFn(grapheme)
-      if (gWidth === 0) continue
-
-      const displayOffset = col - x
-      if (displayOffset >= relStart && displayOffset < relEnd) {
-        // Clip to the parent's visible region: skip cells past rightClip
-        // or before leftClip. This keeps bg paint aligned with what
-        // renderGraphemes actually writes — preventing bg leaks past the
-        // visible boundary in overflow=hidden / clipped-text scenarios.
-        if (col < rightClip && col >= leftClip) {
-          // This character is within the bg segment -- set bg on its cells.
-          // Use readCellInto to avoid allocating a new Cell per iteration.
-          // Note: this is a paint (bg overlay on existing chars). The read
-          // is an intra-frame buffer read that Phase 2 Step 6 will eliminate.
-          if (clipParityTextColumns !== null) {
-            assertBgCellHasTextPaint({
-              x: col,
-              y,
-              textPaintColumns: clipParityTextColumns,
-              leftClip,
-              rightClip,
-              bg: seg.bg,
-              lineTextPreview: clipParityLinePreview,
-            })
-          }
-          buffer.readCellInto(col, y, bgCell)
-          bgCell.bg = seg.bg
-          sink.emitSetCell(col, y, bgCell, selectable)
-          if (gWidth === 2 && col + 1 < sink.width && col + 1 < rightClip) {
-            if (clipParityTextColumns !== null) {
-              assertBgCellHasTextPaint({
-                x: col + 1,
-                y,
-                textPaintColumns: clipParityTextColumns,
-                leftClip,
-                rightClip,
-                bg: seg.bg,
-                lineTextPreview: clipParityLinePreview,
-              })
-            }
-            buffer.readCellInto(col + 1, y, bgCell)
-            bgCell.bg = seg.bg
-            sink.emitSetCell(col + 1, y, bgCell, selectable)
-          }
+  forEachTextSegmentCell(
+    bgSegments,
+    x,
+    lineText,
+    lineCharStart,
+    lineCharEnd,
+    leftClip,
+    rightClip,
+    gWidthFn,
+    (segment, col, width) => {
+      for (let offset = 0; offset < width; offset++) {
+        const cellX = col + offset
+        if (clipParityTextColumns !== null) {
+          assertBgCellHasTextPaint({
+            x: cellX,
+            y,
+            textPaintColumns: clipParityTextColumns,
+            leftClip,
+            rightClip,
+            bg: segment.bg,
+            lineTextPreview: clipParityLinePreview,
+          })
         }
+        buffer.readCellInto(cellX, y, bgCell)
+        bgCell.bg = segment.bg
+        sink.emitSetCell(cellX, y, bgCell, selectable)
       }
+    },
+  )
+}
 
-      col += gWidth
-      if (col - x >= relEnd) break
-      if (col >= rightClip) break
-    }
-  }
+/** Apply nested virtual Text userSelect overrides without repainting cell content. */
+function applySelectableSpansToLine(
+  buffer: TerminalBuffer,
+  x: number,
+  y: number,
+  lineText: string,
+  lineCharStart: number,
+  lineCharEnd: number,
+  childSpans: readonly ChildSpan[],
+  lineHasContent: boolean,
+  ctx?: PipelineContext,
+  maxCol?: number,
+  minCol?: number,
+): void {
+  if (childSpans.length === 0) return
+
+  const sink: RenderSink = createFrameSink(buffer)
+  if (y < 0 || y >= sink.height) return
+  const rightClip = maxCol !== undefined ? Math.min(maxCol, sink.width) : sink.width
+  const leftClip = minCol !== undefined ? Math.max(minCol, 0) : 0
+  const cell = createMutableCell()
+  const graphemeWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
+
+  forEachTextSegmentCell(
+    childSpans,
+    x,
+    lineText,
+    lineCharStart,
+    lineCharEnd,
+    leftClip,
+    rightClip,
+    graphemeWidthFn,
+    (span, col, width) => {
+      for (let offset = 0; offset < width; offset++) {
+        const cellX = col + offset
+        buffer.readCellInto(cellX, y, cell)
+        sink.emitSetCell(cellX, y, cell, lineHasContent && resolveUserSelect(span.node) !== "none")
+      }
+    },
+  )
 }
 
 function collectClipParityTextColumns(
@@ -2166,7 +2221,10 @@ export function renderText(
   // stale ANSI-encoded token colors in the cache (e.g., $primary → blue from
   // the first render), causing the new theme's green to be overridden.
   const contextTheme = getActiveTheme()
-  const cachedCollected = getCachedCollectedText(node, maxDisplayWidth, contextTheme)
+  const nestedUserSelectOverride = hasNestedUserSelectOverride(node)
+  const cachedCollected = nestedUserSelectOverride
+    ? null
+    : getCachedCollectedText(node, maxDisplayWidth, contextTheme)
   if (cachedCollected) {
     text = cachedCollected.text
     bgSegments = cachedCollected.bgSegments as BgSegment[]
@@ -2296,6 +2354,7 @@ export function renderText(
     !internalTransform &&
     !truncateHook &&
     !mayHaveMarker &&
+    !nestedUserSelectOverride &&
     lineOffsets.length > 0
   ) {
     restyleTextSegments(
@@ -2443,6 +2502,22 @@ export function renderText(
         maxCol,
         minCol,
         lineSelectable,
+      )
+    }
+    if (childSpans.length > 0 && lineIdx < lineOffsets.length) {
+      const { start, end } = lineOffsets[lineIdx]!
+      applySelectableSpansToLine(
+        buffer,
+        x,
+        lineY,
+        line,
+        start,
+        end,
+        childSpans,
+        lineHasContent,
+        ctx,
+        maxCol,
+        minCol,
       )
     }
   }

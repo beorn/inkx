@@ -19,6 +19,9 @@ import type { SelectionScope } from "@silvery/headless/selection"
 import { setHovered, setArmed } from "@silvery/ag/interactive-signals"
 import { displayWidthAnsi, graphemeWidth, splitGraphemes, wrapTextWithOffsets } from "./unicode"
 import type { TerminalBuffer } from "./buffer"
+import { resolveUserSelect } from "./user-select"
+
+export { resolveUserSelect } from "./user-select"
 
 // Re-export canonical types from ag (avoid duplicate type definitions)
 export type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag/mouse-event-types"
@@ -285,23 +288,6 @@ export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
 // ============================================================================
 // Selection Hit Testing
 // ============================================================================
-
-/**
- * Resolve the effective userSelect value for a node.
- * "auto" inherits from parent; root defaults to "text".
- */
-export function resolveUserSelect(node: AgNode): "none" | "text" | "contain" {
-  let current: AgNode | null = node
-  while (current) {
-    const props = current.props as { userSelect?: UserSelect }
-    const value = props.userSelect
-    if (value === "none" || value === "text" || value === "contain") return value
-    // "auto" or undefined — walk up
-    current = current.parent
-  }
-  // Root default is "text"
-  return "text"
-}
 
 /**
  * Selection hit test: find the deepest node whose text is selectable at (x, y).
@@ -616,11 +602,54 @@ function nodeSelectionScope(node: AgNode): SelectionScope | null {
   }
 }
 
+function visitTextLeaves(node: AgNode, visit: (leaf: AgNode, text: string) => void): void {
+  if (node.type === "silvery-text" && node.textContent !== undefined) {
+    visit(node, node.textContent)
+    return
+  }
+  for (const child of node.children) visitTextLeaves(child, visit)
+}
+
 function collectText(node: AgNode): string {
-  if (node.type === "silvery-text" && node.textContent !== undefined) return node.textContent
   let out = ""
-  for (const child of node.children) out += collectText(child)
+  visitTextLeaves(node, (_leaf, text) => {
+    out += text
+  })
   return out
+}
+
+interface SelectableContentGrapheme {
+  text: string
+  selectable: boolean
+}
+
+function collectSelectableContentGraphemes(node: AgNode): SelectableContentGrapheme[] {
+  const runs: Array<{ start: number; end: number; selectable: boolean }> = []
+  let text = ""
+  visitTextLeaves(node, (leaf, leafText) => {
+    const start = text.length
+    text += leafText
+    runs.push({
+      start,
+      end: text.length,
+      selectable: resolveUserSelect(leaf) !== "none",
+    })
+  })
+
+  const result: SelectableContentGrapheme[] = []
+  let sourceOffset = 0
+  let runIndex = 0
+  for (const grapheme of splitGraphemes(text)) {
+    const endOffset = sourceOffset + grapheme.length
+    while (runs[runIndex] && runs[runIndex]!.end <= sourceOffset) runIndex++
+    let selectable = true
+    for (let index = runIndex; runs[index] && runs[index]!.start < endOffset; index++) {
+      selectable &&= runs[index]!.selectable
+    }
+    result.push({ text: grapheme, selectable })
+    sourceOffset = endOffset
+  }
+  return result
 }
 
 interface RenderedTextSlice {
@@ -803,7 +832,11 @@ function selectableTextNodes(root: AgNode): AgNode[] {
     // nested virtual text descendants are already folded into their nearest
     // layout-backed ancestor by collectText(); visiting them again duplicates
     // both document order and copied content.
-    if (node.type === "silvery-text" && node.scrollRect && collectText(node).length > 0) {
+    if (
+      node.type === "silvery-text" &&
+      node.scrollRect &&
+      collectSelectableContentGraphemes(node).some((grapheme) => grapheme.selectable)
+    ) {
       nodes.push(node)
       return
     }
@@ -941,10 +974,16 @@ export function extractContentSelectionText(
   const parts: string[] = []
   for (let index = startIndex; index <= endIndex; index++) {
     const node = nodes[index]!
-    const graphemes = splitGraphemes(collectText(node))
+    const graphemes = collectSelectableContentGraphemes(node)
     const from = index === startIndex ? start.gap : 0
     const to = index === endIndex ? end.gap : graphemes.length
-    parts.push(graphemes.slice(from, to).join(""))
+    parts.push(
+      graphemes
+        .slice(from, to)
+        .filter((grapheme) => grapheme.selectable)
+        .map((grapheme) => grapheme.text)
+        .join(""),
+    )
   }
 
   let text = parts[0] ?? ""

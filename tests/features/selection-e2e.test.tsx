@@ -67,6 +67,20 @@ function ScrollableSelectionContent() {
   )
 }
 
+function ScrollableNestedSelectionContent() {
+  return (
+    <Box width={24} height={4}>
+      <ScrollArea scrollbar={false}>
+        {Array.from({ length: 12 }, (_, index) => (
+          <Text key={index}>
+            row-{String(index).padStart(2, "0")} <Text userSelect="none">NO</Text> selectable
+          </Text>
+        ))}
+      </ScrollArea>
+    </Box>
+  )
+}
+
 function selectedRows(term: ReturnType<typeof createTermless>): number[] {
   const rows = new Set<number>()
   for (let row = 0; row < term.rows; row++) {
@@ -86,6 +100,30 @@ function selectedRows(term: ReturnType<typeof createTermless>): number[] {
 // ============================================================================
 
 describe("text selection (termless e2e)", { timeout: 10000 }, () => {
+  test("autoscroll clipboard excludes nested virtual userSelect=none spans", async () => {
+    using term = createTermless({ cols: 28, rows: 6 })
+    const handle = await run(<ScrollableNestedSelectionContent />, term, {
+      selection: true,
+      mouse: true,
+    } as any)
+    await settle()
+    term.clipboard.clear()
+
+    mouseDown(term, 1, 1)
+    await settle(50)
+    mouseMove(term, 20, 3)
+    await settle(650)
+    mouseUp(term, 20, 3)
+    await settle(200)
+
+    expect(term.screen).not.toContainText("row-00 NO selectable")
+    expect(term.clipboard.last).toMatch(/row-0[4-9]/)
+    expect(term.clipboard.last).not.toContain("NO")
+    expect(term.clipboard.last).toMatch(/row-0[4-9]  selectable/)
+
+    handle.unmount()
+  })
+
   test("holding a drag at the bottom edge scrolls and extends into hidden content", async () => {
     using term = createTermless({ cols: 24, rows: 6 })
     const handle = await run(<ScrollableSelectionContent />, term, {
