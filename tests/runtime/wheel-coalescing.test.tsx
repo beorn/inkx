@@ -176,8 +176,15 @@ describe("runtime wheel coalescing", () => {
     try {
       si.sendInput(wheelUpBurst(2, 0, 1))
       let remaining = 12
+      let resolveEmission!: () => void
+      const emissionComplete = new Promise<void>((resolve) => {
+        resolveEmission = resolve
+      })
       const emitLater = () => {
-        if (remaining <= 0) return
+        if (remaining <= 0) {
+          resolveEmission()
+          return
+        }
         remaining--
         si.sendInput(wheelUpBurst(2, 0, 1))
         setImmediate(emitLater)
@@ -191,7 +198,8 @@ describe("runtime wheel coalescing", () => {
       expect(term.screen).toContainText("count=")
       expect(term.screen).not.toContainText("count=0")
 
-      await settle(120)
+      await emissionComplete
+      await immediate()
       expect(term.screen).toContainText("count=13")
     } finally {
       handle.unmount()
@@ -216,8 +224,15 @@ describe("runtime wheel coalescing", () => {
     try {
       await term.mouse.move(2, 0)
       let remaining = 12
+      let resolveEmission!: () => void
+      const emissionComplete = new Promise<void>((resolve) => {
+        resolveEmission = resolve
+      })
       const emitLater = () => {
-        if (remaining <= 0) return
+        if (remaining <= 0) {
+          resolveEmission()
+          return
+        }
         remaining--
         void term.mouse.move(2 + (remaining % 3), 0).then(() => {
           setImmediate(emitLater)
@@ -232,7 +247,8 @@ describe("runtime wheel coalescing", () => {
       expect(term.screen).toContainText("moves=")
       expect(term.screen).not.toContainText("moves=0")
 
-      await settle(120)
+      await emissionComplete
+      await immediate()
       expect(term.screen).toContainText("moves=13")
     } finally {
       handle.unmount()

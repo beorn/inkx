@@ -12,6 +12,7 @@ import {
 } from "./default-schemes.ts"
 import { queryMultiplePaletteColors, parsePaletteResponse } from "../osc-palette.ts"
 import { queryForegroundColor, queryBackgroundColor } from "../osc-colors.ts"
+import type { ProbeTransactionOptions, ProbeTransactionResult } from "../probe-transaction"
 
 export interface DetectedScheme {
   fg: string | null
@@ -33,6 +34,12 @@ export interface ProbeInputOwner {
     parse: (acc: string) => { result: T; consumed: number } | null
     timeoutMs: number
   }): Promise<T | null>
+  /**
+   * Optional multi-response owner transaction. Optional keeps older
+   * structural adapters source-compatible; capability probing treats absence
+   * as no live evidence and never installs a second stdin parser.
+   */
+  probeTransaction?<T>(opts: ProbeTransactionOptions<T>): Promise<ProbeTransactionResult<T>>
 }
 
 export interface ProbeColorsOptions {

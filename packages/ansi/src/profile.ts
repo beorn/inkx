@@ -24,8 +24,7 @@ import { defaultEmulator, type TerminalEmulator } from "./emulator"
 import type { ColorLevel } from "./types"
 import { detectTheme } from "./theme/detect"
 import type { DetectThemeOptions, ProbeInputOwner } from "./theme/detect"
-import { probeKittyGraphics } from "./kitty-graphics-probe"
-import { probeTerminalVersion } from "./terminal-version-probe"
+import { probeTerminalCapabilities } from "./kitty-graphics-probe"
 import type { Theme } from "./theme/types"
 import { pickColorLevel } from "./color-maps"
 
@@ -51,6 +50,19 @@ import { pickColorLevel } from "./color-maps"
  * provenance but only described color tier.
  */
 export type ColorProvenance = "env" | "override" | "caller-caps" | "auto"
+
+/** Which evidence channel made a terminal-capability decision. */
+export type CapabilityDecisionChannel =
+  | "explicit"
+  | "live"
+  | "live-da1-barrier"
+  | "corpus"
+  | "default"
+
+/** Per-capability decision evidence carried with every profile snapshot. */
+export type TerminalCapabilityProvenance = Readonly<
+  Record<keyof TerminalCaps, CapabilityDecisionChannel>
+>
 
 /**
  * A fully-resolved view of the current terminal.
@@ -84,6 +96,8 @@ export interface TerminalProfile {
    * because callers that only need the tier (e.g. `createStyle({ level })`)
    * shouldn't have to reach into the caps object. */
   readonly colorLevel: ColorLevel
+  /** Evidence channel that decided each field in {@link caps}. */
+  readonly capabilityProvenance: TerminalCapabilityProvenance
   /**
    * OSC-detected terminal theme, populated only when the profile was built via
    * {@link probeTerminalProfile}. Pre-quantized to {@link colorLevel} when the
@@ -111,6 +125,7 @@ export function defaultProfile(): TerminalProfile {
     emulator: defaultEmulator(),
     caps,
     colorLevel: caps.colorLevel,
+    capabilityProvenance: provenanceForCaps(caps, "default"),
   }
 }
 
@@ -171,6 +186,12 @@ export interface CreateTerminalProfileOptions {
    * - Tests want a known-good caps fixture → pass a fully-populated object.
    */
   caps?: Partial<TerminalCaps>
+  /**
+   * Evidence channels already attached to {@link caps}. Runtime entry points
+   * pass this when re-resolving a Term snapshot so heuristic facts do not get
+   * reclassified as caller-explicit commands.
+   */
+  capabilityProvenance?: Partial<TerminalCapabilityProvenance>
   /**
    * Base emulator identity. When provided, skips identity detection and uses
    * these values. Typical use: Term constructors that already resolved
@@ -297,10 +318,40 @@ export function createTerminalProfile(options: CreateTerminalProfileOptions = {}
     input: inputResolved,
   }
 
+  const capabilityProvenance: Record<keyof TerminalCaps, CapabilityDecisionChannel> = {} as Record<
+    keyof TerminalCaps,
+    CapabilityDecisionChannel
+  >
+  for (const key of Object.keys(caps) as Array<keyof TerminalCaps>) {
+    capabilityProvenance[key] =
+      options.capabilityProvenance?.[key] ??
+      (options.caps
+        ? Object.prototype.hasOwnProperty.call(options.caps, key)
+          ? "explicit"
+          : "default"
+        : "corpus")
+  }
+  if (options.caps?.input === undefined && options.capabilityProvenance?.input === undefined) {
+    capabilityProvenance.input = stdin === undefined ? "default" : "live"
+  }
+  if (
+    hasExplicitNerdFontOverride(env) &&
+    options.capabilityProvenance?.maybeNerdFont === undefined
+  ) {
+    capabilityProvenance.maybeNerdFont = "explicit"
+  }
+  const colorDecision: CapabilityDecisionChannel =
+    colorProvenance === "auto" ? "corpus" : "explicit"
+  capabilityProvenance.colorLevel = options.capabilityProvenance?.colorLevel ?? colorDecision
+  capabilityProvenance.colorForced = options.capabilityProvenance?.colorForced ?? colorDecision
+  capabilityProvenance.colorProvenance =
+    options.capabilityProvenance?.colorProvenance ?? colorDecision
+
   const profile: TerminalProfile = {
     emulator: baseEmulator,
     caps,
     colorLevel: resolvedTier,
+    capabilityProvenance,
   }
 
   return freezeProfileInDev(profile)
@@ -322,8 +373,18 @@ function freezeProfileInDev(profile: TerminalProfile): TerminalProfile {
   if (process.env.NODE_ENV === "production") return profile
   Object.freeze(profile.caps)
   Object.freeze(profile.emulator)
+  Object.freeze(profile.capabilityProvenance)
   Object.freeze(profile)
   return profile
+}
+
+function provenanceForCaps(
+  caps: TerminalCaps,
+  source: CapabilityDecisionChannel,
+): TerminalCapabilityProvenance {
+  return Object.fromEntries(
+    (Object.keys(caps) as Array<keyof TerminalCaps>).map((key) => [key, source]),
+  ) as TerminalCapabilityProvenance
 }
 
 // ============================================================================
@@ -332,7 +393,7 @@ function freezeProfileInDev(profile: TerminalProfile): TerminalProfile {
 
 /**
  * Options for {@link probeTerminalProfile}. Extends the sync factory options
- * with the async-only fields a theme probe needs.
+ * with the async-only fields capability and theme probes need.
  */
 export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOptions {
   /**
@@ -343,6 +404,12 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
    * identical to the sync path.
    */
   probeTheme?: boolean
+  /**
+   * Probe graphics plus terminal identity through one Kitty + XTVERSION +
+   * DA1 transaction. Default true when theme probing, input, and a live TTY
+   * are available. False preserves the sync profile with zero query bytes.
+   */
+  probeGraphics?: boolean
   /**
    * Fallback scheme when the OSC probe returns partial / no data. Matches
    * {@link DetectThemeOptions.fallbackDark}.
@@ -355,10 +422,9 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
   /**
    * Optional {@link ProbeInputOwner} (the structural type `detectTheme`
    * accepts). When provided, the probe routes OSC queries through the
-   * owner's `probe()` method instead of touching `process.stdin` directly —
+   * owner's probe methods instead of touching `process.stdin` directly —
    * required inside a running TUI session. Callers in `@silvery/ag-term`
-   * construct a transient `InputOwner` around this call; standalone callers
-   * can omit it.
+   * pass the session's canonical `InputOwner`; standalone callers can omit it.
    */
   input?: ProbeInputOwner
 }
@@ -370,13 +436,13 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  * responses on stdin. This is the Phase-H2 variant of
  * {@link createTerminalProfile} — everything the sync factory does, plus:
  *
- * 1. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
- * 2. When the env heuristic cannot identify Nerd Font support, use XTVERSION
- *    to recognize a live Ghostty renderer with built-in Nerd symbols.
- * 3. Pre-quantize the resulting theme via {@link pickColorLevel} when the
+ * 1. Gather Kitty, XTVERSION, and DA1 through one bounded owner transaction.
+ * 2. Use explicit live evidence to refine corpus graphics/font decisions.
+ * 3. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
+ * 4. Pre-quantize the resulting theme via {@link pickColorLevel} when the
  *    tier was forced ({@link TerminalCaps.colorForced} is `true`) so
  *    token hex values match what the pipeline will actually emit.
- * 4. Return the profile with `theme` populated — one detection, one profile
+ * 5. Return the profile with `theme` populated — one detection, one profile
  *    flowing end-to-end through run() / createApp().
  *
  * Call sites previously ran `createTerminalProfile(...)` + `detectTheme(...)`
@@ -416,35 +482,47 @@ export async function probeTerminalProfile(
   // Promise — lets callers unify their entry-point flow on one async path.
   if (options.probeTheme === false) return profile
 
-  // Font coverage itself has no portable query. Ghostty is the useful
-  // exception for this resolver: its runtime identity is queryable and it
-  // ships Nerd Font symbols as a built-in fallback. SSH/Herdr commonly erase
-  // TERM_PROGRAM and normalize TERM to xterm-256color, so the synchronous
-  // heuristic says false even though the attached renderer can paint the PUA
-  // pair. Ask XTVERSION only for that unknown-looking case. A caller-supplied
-  // caps value and explicit NERDFONT=0 remain authoritative; silence keeps the
-  // portable branch.
-  const env = options.env ?? (process.env as Record<string, string | undefined>)
-  const nerdFontEnv = env.NERDFONT?.toLowerCase()
-  const nerdFontExplicitlyDisabled = nerdFontEnv === "0" || nerdFontEnv === "false"
-  const terminalVersionPromise =
-    options.input &&
-    !profile.caps.maybeNerdFont &&
-    options.caps?.maybeNerdFont === undefined &&
-    !nerdFontExplicitlyDisabled
-      ? probeTerminalVersion(options.input, options.timeoutMs ?? 150)
-      : Promise.resolve(undefined)
-
-  // 19668: env-derived `kittyGraphics` is a GUESS — a `ghostty`/`kitty`
-  // TERM_PROGRAM can front a sink that cannot paint Kitty graphics (a cmux
-  // proxy, a captured stream). When env CLAIMS Kitty support and we have an
-  // input owner to listen on, CONFIRM it with a runtime graphics query; an
-  // unconfirmed claim downgrades to false (the safe direction — a text banner,
-  // never an escape-flood). We only ever downgrade: a terminal env says is NOT
-  // Kitty-capable is never probed (no false positives, no wasted round-trip).
   let kittyGraphics = profile.caps.kittyGraphics
-  if (kittyGraphics && options.input) {
-    kittyGraphics = (await probeKittyGraphics(options.input, options.timeoutMs ?? 150)) === true
+  let sixel = profile.caps.sixel
+  let maybeNerdFont = profile.caps.maybeNerdFont
+  const capabilityProvenance = { ...profile.capabilityProvenance }
+  const canProbeCapabilities =
+    options.probeGraphics !== false && profile.caps.input && options.input !== undefined
+  if (canProbeCapabilities) {
+    const result = await probeTerminalCapabilities(options.input!, options.timeoutMs ?? 150)
+    if (result.status === "complete") {
+      const evidence = result.value
+      if (
+        capabilityProvenance.kittyGraphics !== "explicit" &&
+        evidence.kittyGraphics !== undefined
+      ) {
+        kittyGraphics = evidence.kittyGraphics
+        capabilityProvenance.kittyGraphics =
+          evidence.kittyGraphicsSource === "da1-barrier" ? "live-da1-barrier" : "live"
+      }
+      if (capabilityProvenance.sixel !== "explicit" && evidence.sixel === true) {
+        sixel = true
+        capabilityProvenance.sixel = "live"
+      }
+      if (
+        capabilityProvenance.maybeNerdFont !== "explicit" &&
+        evidence.terminalVersion !== undefined &&
+        /\bghostty\b/iu.test(evidence.terminalVersion)
+      ) {
+        maybeNerdFont = true
+        capabilityProvenance.maybeNerdFont = "live"
+      }
+    } else if (result.status !== "timeout" && result.status !== "unavailable") {
+      const detail =
+        result.status === "overflow"
+          ? `${result.receivedBytes}/${result.maxBufferBytes} bytes`
+          : result.status === "error"
+            ? result.reason
+            : result.status
+      throw new Error(`terminal capability transaction ${result.status}: ${detail}`, {
+        cause: result,
+      })
+    }
   }
 
   // Run the OSC probe. The detectTheme docstring documents its own fallbacks
@@ -463,20 +541,17 @@ export async function probeTerminalProfile(
   // branches collapse to one `await probeTerminalProfile(...)` call.
   const resolvedTheme = profile.caps.colorForced ? pickColorLevel(theme, profile.colorLevel) : theme
 
-  const observedTerminalVersion = await terminalVersionPromise
-  const maybeNerdFont =
-    profile.caps.maybeNerdFont ||
-    (observedTerminalVersion !== undefined && /\bghostty\b/iu.test(observedTerminalVersion))
-
   // Re-freeze: the sync factory already froze `profile`, but `{ ...profile,
   // theme }` creates a fresh object that's not frozen. The theme-bundled
   // profile must keep the same immutability contract as the sync variant. When
   // the runtime probe downgraded `kittyGraphics`, rebuild caps too (19668).
   const caps: TerminalCaps =
-    kittyGraphics === profile.caps.kittyGraphics && maybeNerdFont === profile.caps.maybeNerdFont
+    kittyGraphics === profile.caps.kittyGraphics &&
+    sixel === profile.caps.sixel &&
+    maybeNerdFont === profile.caps.maybeNerdFont
       ? profile.caps
-      : { ...profile.caps, kittyGraphics, maybeNerdFont }
-  return freezeProfileInDev({ ...profile, caps, theme: resolvedTheme })
+      : { ...profile.caps, kittyGraphics, sixel, maybeNerdFont }
+  return freezeProfileInDev({ ...profile, caps, capabilityProvenance, theme: resolvedTheme })
 }
 
 // ============================================================================
@@ -551,6 +626,11 @@ function envColorTier(env: Record<string, string | undefined>): ColorLevel | und
   }
   if (env.NO_COLOR !== undefined) return "mono"
   return undefined
+}
+
+function hasExplicitNerdFontOverride(env: Record<string, string | undefined>): boolean {
+  const value = env.NERDFONT?.toLowerCase()
+  return value === "0" || value === "false" || value === "1" || value === "true"
 }
 
 /**
@@ -675,11 +755,21 @@ export function detectTerminalProfileFromEnv(
     maybeNerdFont,
     maybeWideEmojis: !isAppleTerminal,
   }
+  const capabilityProvenance = {
+    ...provenanceForCaps(caps, "corpus"),
+  } as Record<keyof TerminalCaps, CapabilityDecisionChannel>
+  if (hasExplicitNerdFontOverride(env)) capabilityProvenance.maybeNerdFont = "explicit"
+  if (envColorTier(env) !== undefined) {
+    capabilityProvenance.colorLevel = "explicit"
+    capabilityProvenance.colorForced = "explicit"
+    capabilityProvenance.colorProvenance = "explicit"
+  }
 
   return {
     emulator,
     caps,
     colorLevel,
+    capabilityProvenance,
   }
 }
 

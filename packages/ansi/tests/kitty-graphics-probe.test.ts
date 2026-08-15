@@ -6,17 +6,17 @@
  * graphics (a cmux proxy, a captured/piped stream) — and an `<Image>` that
  * trusts the guess dumps raw graphics APC bytes (the welcome escape-flood).
  *
- * The authoritative answer is a runtime query: send a tiny `a=q` graphics
- * command and wait for the terminal's `\x1b_Gi=<id>;OK\x1b\` acknowledgement.
- * `probeTerminalProfile` uses it to CONFIRM an env-claimed `kittyGraphics`,
- * downgrading to `false` on no/failed response (the safe direction).
+ * Live terminal evidence is gathered in one bounded transaction. An explicit
+ * Kitty response can refine the environment corpus in either direction. A
+ * transaction timeout is no evidence; a completed DA1 barrier closes the
+ * response window and makes a missing Kitty acknowledgement negative evidence.
  */
 
 import { describe, expect, test } from "vitest"
 import {
   KITTY_PROBE_ID,
   parseKittyGraphicsResponse,
-  probeKittyGraphics,
+  recognizeTerminalCapabilityTransaction,
 } from "../src/kitty-graphics-probe"
 import { createTerminalProfile, probeTerminalProfile } from "../src/profile"
 import type { ProbeInputOwner } from "../src/theme/detect"
@@ -44,6 +44,21 @@ function fakeInput(kittyResponse: string | null): ProbeInputOwner {
       }
       return null
     },
+    async probeTransaction<T>(opts: {
+      recognize: (acc: string) =>
+        | { status: "pending"; consumed: readonly { start: number; end: number }[] }
+        | {
+            status: "complete"
+            consumed: readonly { start: number; end: number }[]
+            value: T
+          }
+    }) {
+      if (kittyResponse === null) return { status: "timeout" }
+      const result = opts.recognize(`${kittyResponse}\x1b[?1;22c`)
+      return result.status === "complete"
+        ? { status: "complete", value: result.value }
+        : { status: "timeout" }
+    },
   }
 }
 
@@ -52,6 +67,9 @@ const ghosttyEnv = { TERM: "xterm-256color", TERM_PROGRAM: "ghostty" }
 const ttyStdout = { isTTY: true, columns: 80, rows: 24 } as unknown as NonNullable<
   Parameters<typeof createTerminalProfile>[0]
 >["stdout"]
+const ttyStdin = { isTTY: true, setRawMode() {} } as unknown as NonNullable<
+  Parameters<typeof createTerminalProfile>[0]
+>["stdin"]
 
 describe("parseKittyGraphicsResponse", () => {
   test("an OK ack for our id → supported", () => {
@@ -76,19 +94,67 @@ describe("parseKittyGraphicsResponse", () => {
   })
 })
 
-describe("probeKittyGraphics", () => {
-  test("OK ack → true", async () => {
-    expect(await probeKittyGraphics(fakeInput(okResponse), 5)).toBe(true)
+describe("recognizeTerminalCapabilityTransaction", () => {
+  test("returns exact spans for interleaved Kitty, XTVERSION, and DA1 responses", () => {
+    const version = "\x1bP>|ghostty(1.2.3)\x1b\\"
+    const da1 = "\x1b[?1;4;22c"
+    const buffer = `j${okResponse}k${version}m${da1}`
+
+    expect(recognizeTerminalCapabilityTransaction(buffer, KITTY_PROBE_ID)).toEqual({
+      status: "complete",
+      consumed: [
+        { start: 1, end: 1 + okResponse.length },
+        {
+          start: 2 + okResponse.length,
+          end: 2 + okResponse.length + version.length,
+        },
+        {
+          start: 3 + okResponse.length + version.length,
+          end: buffer.length,
+        },
+      ],
+      value: {
+        kittyGraphics: true,
+        kittyGraphicsSource: "response",
+        sixel: true,
+        terminalVersion: "ghostty(1.2.3)",
+      },
+    })
   })
-  test("error ack → false", async () => {
-    expect(await probeKittyGraphics(fakeInput(errResponse), 5)).toBe(false)
+
+  test("DA1 without parameter 4 completes with no Sixel evidence", () => {
+    const da1 = "\x1b[?1;22c"
+    expect(recognizeTerminalCapabilityTransaction(`${okResponse}${da1}`, KITTY_PROBE_ID)).toEqual({
+      status: "complete",
+      consumed: [
+        { start: 0, end: okResponse.length },
+        { start: okResponse.length, end: okResponse.length + da1.length },
+      ],
+      value: {
+        kittyGraphics: true,
+        kittyGraphicsSource: "response",
+        sixel: undefined,
+        terminalVersion: undefined,
+      },
+    })
   })
-  test("no response (timeout) → undefined", async () => {
-    expect(await probeKittyGraphics(fakeInput(null), 5)).toBeUndefined()
+
+  test("completed DA1 without a Kitty acknowledgement is live-negative barrier evidence", () => {
+    const da1 = "\x1b[?1;22c"
+    expect(recognizeTerminalCapabilityTransaction(da1, KITTY_PROBE_ID)).toEqual({
+      status: "complete",
+      consumed: [{ start: 0, end: da1.length }],
+      value: {
+        kittyGraphics: false,
+        kittyGraphicsSource: "da1-barrier",
+        sixel: undefined,
+        terminalVersion: undefined,
+      },
+    })
   })
 })
 
-describe("probeTerminalProfile confirms env-claimed kittyGraphics via the probe", () => {
+describe("probeTerminalProfile refines corpus kittyGraphics from live evidence", () => {
   test("sanity: ghostty env alone reports kittyGraphics=true", () => {
     expect(createTerminalProfile({ env: ghosttyEnv, stdout: ttyStdout }).caps.kittyGraphics).toBe(
       true,
@@ -99,20 +165,35 @@ describe("probeTerminalProfile confirms env-claimed kittyGraphics via the probe"
     const profile = await probeTerminalProfile({
       env: ghosttyEnv,
       stdout: ttyStdout,
+      stdin: ttyStdin,
       input: fakeInput(okResponse),
       timeoutMs: 5,
     })
     expect(profile.caps.kittyGraphics).toBe(true)
   })
 
-  test("probe timeout DOWNGRADES kittyGraphics to false despite ghostty env (the cmux fix)", async () => {
+  test("an explicit negative Kitty response overrides the positive corpus", async () => {
     const profile = await probeTerminalProfile({
       env: ghosttyEnv,
       stdout: ttyStdout,
-      input: fakeInput(null),
+      stdin: ttyStdin,
+      input: fakeInput(errResponse),
       timeoutMs: 5,
     })
     expect(profile.caps.kittyGraphics).toBe(false)
+    expect(profile.capabilityProvenance.kittyGraphics).toBe("live")
+  })
+
+  test("probe timeout is no evidence and preserves positive corpus support", async () => {
+    const profile = await probeTerminalProfile({
+      env: ghosttyEnv,
+      stdout: ttyStdout,
+      stdin: ttyStdin,
+      input: fakeInput(null),
+      timeoutMs: 5,
+    })
+    expect(profile.caps.kittyGraphics).toBe(true)
+    expect(profile.capabilityProvenance.kittyGraphics).toBe("corpus")
   })
 
   test("no input owner → cannot probe → env value preserved (no behavior change)", async () => {
@@ -122,5 +203,26 @@ describe("probeTerminalProfile confirms env-claimed kittyGraphics via the probe"
       probeTheme: false,
     })
     expect(profile.caps.kittyGraphics).toBe(true)
+  })
+
+  test("transaction overflow fails loud instead of becoming no evidence", async () => {
+    const input: ProbeInputOwner = {
+      probe: async () => null,
+      probeTransaction: async () => ({
+        status: "overflow",
+        maxBufferBytes: 4096,
+        receivedBytes: 4097,
+      }),
+    }
+
+    await expect(
+      probeTerminalProfile({
+        env: ghosttyEnv,
+        stdout: ttyStdout,
+        stdin: ttyStdin,
+        input,
+        timeoutMs: 5,
+      }),
+    ).rejects.toThrow(/terminal capability transaction overflow/iu)
   })
 })

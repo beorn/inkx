@@ -74,6 +74,8 @@ const bg = await term.input.probe({
 
 Multiple probes can run concurrently — the owner tries parsers in registration order and returns bytes one parser consumes to the shared buffer for the next.
 
+For one query that expects several responses, use `term.input.probeTransaction(…)`. It holds a bounded exclusive buffer until a recognizer reaches its completion barrier, replays every unconsumed gap through typed input exactly once, and reports timeout, overlap, overflow, disposal, and parser/write failures as typed results. A second transaction fails with `busy` before writing.
+
 ### Enter the alternate screen
 
 `term.modes.altScreen(true)` writes DEC 1049 through `term.output`, and `dispose()` restores it. Each mode on `term.modes` is an alien-signals `Signal` — call with no arguments to read, call with a value to write, subscribe via `effect(() => term.modes.altScreen())`.

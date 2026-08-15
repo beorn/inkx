@@ -34,7 +34,15 @@ export type {
 
 // Input owner — single-owner stdin mediator (mirrors Output for stdout).
 // See ./input-owner.ts for the wasRaw anti-pattern it replaces.
-export { createInputOwner, type InputOwner, type InputOwnerOptions } from "./input-owner"
+export {
+  createInputOwner,
+  type InputOwner,
+  type InputOwnerOptions,
+  type ProbeTransactionOptions,
+  type ProbeTransactionRecognition,
+  type ProbeTransactionResult,
+  type ProbeTransactionSpan,
+} from "./input-owner"
 
 // Modes — single owner for terminal protocol modes (raw, alt-screen,
 // bracketed paste, kitty keyboard, mouse, focus reporting).

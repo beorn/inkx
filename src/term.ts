@@ -97,6 +97,8 @@ export {
   defaultCaps,
   type TerminalProfile,
   type ColorProvenance,
+  type CapabilityDecisionChannel,
+  type TerminalCapabilityProvenance,
   type ProbeTerminalProfileOptions,
   type CreateTerminalProfileOptions,
 } from "@silvery/ansi"

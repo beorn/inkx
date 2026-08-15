@@ -23,6 +23,8 @@ export type {
   TerminalNotificationProtocol,
   TerminalProfile,
   ColorProvenance,
+  CapabilityDecisionChannel,
+  TerminalCapabilityProvenance,
   TerminalProfileStdout,
   CreateTerminalProfileOptions,
   ProbeTerminalProfileOptions,
