@@ -82,9 +82,13 @@ function ScrollableNestedSelectionContent() {
 }
 
 function selectedRows(term: ReturnType<typeof createTermless>): number[] {
+  const { rows: rowCount, cols: colCount } = term
+  if (rowCount === undefined || colCount === undefined) {
+    throw new Error("selection fixture requires definite terminal dimensions")
+  }
   const rows = new Set<number>()
-  for (let row = 0; row < term.rows; row++) {
-    for (let col = 0; col < term.cols; col++) {
+  for (let row = 0; row < rowCount; row++) {
+    for (let col = 0; col < colCount; col++) {
       const cell = term.cell(row, col)
       if (Boolean((cell as { inverse?: boolean }).inverse) || cell.bg !== null) {
         rows.add(row)

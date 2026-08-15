@@ -28,7 +28,8 @@ function SelectionStatus() {
 
 ## The `userSelect` Prop
 
-Control which elements are text-selectable with the `userSelect` prop on `Box`:
+Control which elements are text-selectable with the `userSelect` prop on `Box`
+and nested `Text` spans:
 
 ```tsx
 import { Box, Text } from "silvery"
@@ -43,6 +44,11 @@ function App() {
       <Box userSelect="none">
         <Text>Click me — no text selection</Text>
       </Box>
+
+      {/* Exclude only one nested text span */}
+      <Text>
+        Selectable <Text userSelect="none">excluded span</Text> selectable
+      </Text>
 
       {/* Selection stays inside this container */}
       <Box userSelect="contain">
