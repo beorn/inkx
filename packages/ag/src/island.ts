@@ -32,6 +32,7 @@
 import { ALL_RECONCILER_BITS, getRenderEpoch } from "./epoch.ts"
 import type {
   IslandCapabilities,
+  IslandArtifactCapabilities,
   IslandContext,
   IslandGuest,
   IslandHandle,
@@ -78,6 +79,8 @@ export interface CreateIslandOptions {
    * not to declare what the guest doesn't have.
    */
   capabilities?: IslandCapabilities
+  /** Host-owned structured artifact projection evidence. */
+  artifactCapabilities?: IslandArtifactCapabilities
   /** Lifecycle signal callback — fires on `ready` / `exit` / `error`. */
   onSignal?: (sig: IslandSignal) => void
   /**
@@ -214,6 +217,7 @@ export function createIsland(opts: CreateIslandOptions): CreateIslandResult {
     rows,
     focusable = false,
     capabilities: capabilityOverrides,
+    artifactCapabilities,
     palettePolicy: palettePolicyOverride,
     hydrate = "load",
     onSignal,
@@ -278,6 +282,7 @@ export function createIsland(opts: CreateIslandOptions): CreateIslandResult {
     return {
       cols,
       rows,
+      ...(artifactCapabilities ? { artifactCapabilities } : {}),
       emit(signal: IslandSignal): void {
         if (disposed) return
         if (signal.type === "ready" && nodeState.lifecycle === "pending") {

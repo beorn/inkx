@@ -116,6 +116,8 @@ export type TerminalFrameArtifact = {
   readonly owner: string
   readonly sequence: string
   readonly zIndex?: number
+  /** Rechecked at flush so unmounted, superseded, or moved owners cannot leak stale bytes. */
+  readonly valid?: () => boolean
 }
 
 export interface StderrContextValue {

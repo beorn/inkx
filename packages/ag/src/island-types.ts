@@ -67,6 +67,38 @@ export interface IslandCapabilities {
 }
 
 /**
+ * Host-owned evidence that an Island's structured output can be projected.
+ * Presence means a consumer is attached; protocol booleans come from the
+ * authoritative outer terminal profile, never guest self-report or env hints.
+ */
+export interface IslandArtifactCapabilities {
+  readonly terminalSequences: {
+    readonly kittyGraphics: boolean
+    readonly sixel: boolean
+  }
+}
+
+/** A terminal packet anchored in the guest's local cell grid. */
+export type IslandOutputArtifact = {
+  readonly kind: "terminal-sequence"
+  readonly protocol: "kitty" | "sixel"
+  readonly sequence: string
+  readonly row: number
+  readonly col: number
+  readonly zIndex?: number
+}
+
+/**
+ * Optional structured-output channel alongside the cell buffer. The guest
+ * retains bounded artifacts until `drain()` transfers ownership to the host;
+ * `subscribe()` announces that a drain can make progress.
+ */
+export interface IslandOutputArtifactOwner {
+  subscribe(listener: () => void): () => void
+  drain(): readonly IslandOutputArtifact[]
+}
+
+/**
  * Per-island hydration policy — Astro-borrowed. Default: `"load"`.
  *
  * - `"load"`: guest.init() fires synchronously at mount.
@@ -138,6 +170,8 @@ export interface IslandOutputOwner {
   readonly cursor: IslandCursorState | null
   /** True if guest wants its cursor painted in the host frame. */
   readonly cursorVisible: boolean
+  /** Optional bounded structured artifacts projected by the host renderer. */
+  readonly artifacts?: IslandOutputArtifactOwner
   /**
    * Subscribe to output-relevant changes (new cells, cursor move, mode
    * change). Host marks the island's rect dirty on each callback.
@@ -436,6 +470,11 @@ export interface IslandContext {
   /** Initial island dimensions in cells. */
   readonly cols: number
   readonly rows: number
+  /**
+   * Host projection evidence. Undefined means no artifact consumer is
+   * attached; a guest must preserve its non-graphics fallback in that case.
+   */
+  readonly artifactCapabilities?: IslandArtifactCapabilities
   /**
    * Emit a lifecycle signal. Host forwards to the `onSignal` callback set
    * on `createIsland({ onSignal })`.

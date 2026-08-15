@@ -1782,6 +1782,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const flushFrameArtifacts = (phase: "pre-paint" | "post-paint"): boolean => {
     let flushed = false
     if (frameArtifacts.length > 0) {
+      for (let i = frameArtifacts.length - 1; i >= 0; i--) {
+        if (frameArtifacts[i]!.valid?.() === false) frameArtifacts.splice(i, 1)
+      }
       const selected = frameArtifacts.filter((artifact) =>
         phase === "post-paint" ? artifact.kind === "terminal-sequence" : false,
       )
@@ -3289,7 +3292,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                     : (data: string) => {
                         writeOutOfBand(data)
                       },
-                  queueFrameArtifact: headless ? () => {} : queueFrameArtifact,
+                  queueFrameArtifact: headless ? undefined : queueFrameArtifact,
                   writeAfterFrame: headless ? () => {} : queuePostPaintWrite,
                   notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
                   promoteScrollback: (content: string, lines: number) =>

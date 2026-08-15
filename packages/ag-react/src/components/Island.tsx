@@ -30,12 +30,14 @@ import {
   useContext,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react"
 import { type CreateIslandResult, createIsland } from "@silvery/ag/island"
 import type {
   IslandCapabilities,
+  IslandArtifactCapabilities,
   IslandCommandPrefix,
   IslandGuest,
   IslandHandle,
@@ -48,7 +50,8 @@ import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/e
 import type { AgNode, UserSelect } from "@silvery/ag/types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
 import type { IslandLayoutProps } from "../reconciler/nodes"
-import { FocusManagerContext } from "../context"
+import { FocusManagerContext, StdoutContext } from "../context"
+import { useTerm } from "../hooks/useTerm"
 import { useScopeEffect } from "../hooks/useScopeEffect"
 
 // The `silvery-island` JSX intrinsic is declared in `@silvery/ag-react/jsx.d.ts`
@@ -204,6 +207,20 @@ export const Island = forwardRef(function Island(
 
   const nodeRef = useRef<AgNode | null>(null)
   const focusManager = useContext(FocusManagerContext)
+  const stdoutContext = useContext(StdoutContext)
+  const term = useTerm()
+  const artifactCapabilities = useMemo<IslandArtifactCapabilities | undefined>(
+    () =>
+      stdoutContext?.queueFrameArtifact
+        ? {
+            terminalSequences: {
+              kittyGraphics: term.caps.kittyGraphics,
+              sixel: term.caps.sixel,
+            },
+          }
+        : undefined,
+    [stdoutContext?.queueFrameArtifact, term.caps.kittyGraphics, term.caps.sixel],
+  )
 
   // The factory result — created once per hydrate / guest identity (and on
   // cols/rows change so the guest sees the right initial dims). Kept in a
@@ -294,6 +311,7 @@ export const Island = forwardRef(function Island(
         palettePolicy,
         hydrate,
         capabilities,
+        artifactCapabilities,
         onSignal: (sig) => {
           // Cascade to user callback FIRST, then mark dirty so any
           // ready-driven layout (e.g. spinner → real content) repaints.
@@ -346,6 +364,73 @@ export const Island = forwardRef(function Island(
           subscribed = true
           const unsub = handle.output.subscribe(requestIslandPaint)
           scope.defer(unsub)
+
+          const artifactOwner = handle.output.artifacts
+          if (artifactOwner) {
+            const drainArtifacts = (): void => {
+              if (!slot.alive) return
+              const rect = node.boxRect
+              if (!rect) {
+                requestIslandPaint()
+                return
+              }
+              const queueFrameArtifact = stdoutContext?.queueFrameArtifact
+              const packets = artifactOwner.drain()
+              for (const packet of packets) {
+                const protocolSupported =
+                  packet.protocol === "kitty"
+                    ? artifactCapabilities?.terminalSequences.kittyGraphics === true
+                    : artifactCapabilities?.terminalSequences.sixel === true
+                const anchorInRect =
+                  Number.isInteger(packet.row) &&
+                  Number.isInteger(packet.col) &&
+                  packet.row >= 0 &&
+                  packet.col >= 0 &&
+                  packet.row < rect.height &&
+                  packet.col < rect.width
+                if (!queueFrameArtifact || !protocolSupported || !anchorInRect) {
+                  console.error(
+                    `[silvery] refused island ${packet.protocol} artifact: ` +
+                      (!queueFrameArtifact
+                        ? "no frame-artifact consumer"
+                        : !protocolSupported
+                          ? "outer terminal capability unconfirmed"
+                          : "guest anchor outside committed rect"),
+                  )
+                  continue
+                }
+                const committedRect = {
+                  x: rect.x,
+                  y: rect.y,
+                  width: rect.width,
+                  height: rect.height,
+                }
+                const row = committedRect.y + packet.row
+                const col = committedRect.x + packet.col
+                queueFrameArtifact({
+                  kind: "terminal-sequence",
+                  owner: `island:${packet.protocol}`,
+                  sequence: `\x1b[${row + 1};${col + 1}H${packet.sequence}`,
+                  zIndex: packet.zIndex,
+                  valid: () => {
+                    const current = node.boxRect
+                    return (
+                      slot.alive &&
+                      current !== null &&
+                      current.x === committedRect.x &&
+                      current.y === committedRect.y &&
+                      current.width === committedRect.width &&
+                      current.height === committedRect.height
+                    )
+                  },
+                })
+              }
+              if (packets.length > 0) requestIslandPaint()
+            }
+            const unsubscribeArtifacts = artifactOwner.subscribe(drainArtifacts)
+            scope.defer(unsubscribeArtifacts)
+            drainArtifacts()
+          }
 
           // The handle may resolve long after the mount commit. Request a
           // paint so its already-populated first buffer can show even if no
@@ -404,7 +489,7 @@ export const Island = forwardRef(function Island(
         }
       }
     },
-    [guest, hydrate],
+    [guest, hydrate, artifactCapabilities],
   )
 
   // cols/rows changes flow through the reconciler's commitUpdate →
@@ -432,7 +517,7 @@ export const Island = forwardRef(function Island(
         }
       })
     },
-    [guest, hydrate],
+    [guest, hydrate, artifactCapabilities],
   )
 
   // Host-driven resize: prop/layout owners update cols/rows without

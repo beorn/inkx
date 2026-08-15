@@ -118,6 +118,9 @@ export type { SnapshotGuestOptions, SnapshotGuestHandle, SandboxOptions } from "
 export type {
   IslandSignal,
   IslandCapabilities,
+  IslandArtifactCapabilities,
+  IslandOutputArtifact,
+  IslandOutputArtifactOwner,
   IslandHydrate,
   IslandPalettePolicy,
   IslandSizeOwner,
