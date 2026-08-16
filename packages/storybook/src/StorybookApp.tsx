@@ -76,12 +76,7 @@ function StoryNavRow({
   onClick: () => void
   selected: boolean
 }): React.ReactElement {
-  const interaction = useInteractionTreatment(
-    "control",
-    "selectableNav",
-    true,
-    { selected },
-  )
+  const interaction = useInteractionTreatment("control", "selectableNav", true, { selected })
   return (
     <Box
       width="100%"
