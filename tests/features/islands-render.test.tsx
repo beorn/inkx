@@ -129,6 +129,7 @@ function asyncSnapshotGuest(initialChar = "L", delayMs = 10) {
 function snapshotGuest(initialChar = "A", cellOverrides?: Partial<Cell>) {
   let initCount = 0
   let disposeCount = 0
+  let buffer: MutableCellBuffer | null = null
   const subscribers = new Set<() => void>()
 
   // Keep this fixture synchronous so the base render tests exercise the
@@ -138,6 +139,7 @@ function snapshotGuest(initialChar = "A", cellOverrides?: Partial<Cell>) {
     init(ctx) {
       initCount++
       const buf = fillBuffer(createCellBuffer(ctx.cols, ctx.rows), initialChar, cellOverrides)
+      buffer = buf
       let cols = ctx.cols
       let rows = ctx.rows
       const size: IslandSizeOwner = {
@@ -188,6 +190,12 @@ function snapshotGuest(initialChar = "A", cellOverrides?: Partial<Cell>) {
     },
     get disposeCount() {
       return disposeCount
+    },
+    get buffer() {
+      return buffer
+    },
+    invalidateAll() {
+      for (const fn of subscribers) fn()
     },
   }
 }
@@ -314,6 +322,15 @@ describe("Island — render-phase blit", () => {
     expect(island).toBeTruthy()
     expect(app.cell(island!.x, island!.y).char).toBe("H")
     expect(app.cell(island!.x, island!.y).hyperlink).toBe(href)
+
+    // A linked guest cell must not smear its destination onto an adjacent
+    // unlinked cell as the guest Cell becomes a host CellPatch.
+    expect(g.buffer).not.toBeNull()
+    g.buffer!.setCell(1, 0, makeCell("N"))
+    g.invalidateAll()
+    app.rerender(view)
+    expect(app.cell(island!.x + 1, island!.y).char).toBe("N")
+    expect(app.cell(island!.x + 1, island!.y).hyperlink).toBeNull()
     expect(app.text).toContain("c3.5")
   })
 
