@@ -112,7 +112,7 @@ export const interactionSurfaceRecipes = Object.freeze({
 } as const satisfies Record<string, InteractionSurface>)
 
 export type InteractionSurfaceName = keyof typeof interactionSurfaceRecipes
-// TRANSITION-COMPAT(@si/app/22571-maddoc-doc-viewer-umbrella/armed-hover-consolidation/22904-contract-surface):
+// TRANSITION-COMPAT(@si/app/22571-maddoc-doc-viewer-umbrella/armed-hover-consolidation/22906-contract):
 // Accept legacy raw surfaces only while the Ag and KM callers migrate. The linked contract bead removes
 // this union member once both component pins land; new callers must use a named recipe or explicit custom marker.
 export type InteractionSurfaceInput =
