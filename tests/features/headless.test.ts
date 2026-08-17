@@ -21,6 +21,13 @@ import {
   type ReadlineState,
 } from "@silvery/headless/readline"
 import { createMachine } from "@silvery/headless/machine"
+import {
+  canGoBack,
+  canGoForward,
+  createHistoryState,
+  historyCurrent,
+  historyUpdate,
+} from "@silvery/headless/history"
 
 // =============================================================================
 // SelectList
@@ -374,6 +381,88 @@ describe("ReadlineContext", () => {
     s2 = ctx.update(s2, { type: "kill_word_back" }) // kills "bar"
 
     expect(ctx.killRing).toEqual(["bar", "world"])
+  })
+})
+
+// =============================================================================
+// History
+// =============================================================================
+
+describe("HistoryState", () => {
+  test("factory creates a single-entry history at index 0", () => {
+    expect(createHistoryState("/a")).toEqual({ entries: ["/a"], index: 0 })
+  })
+
+  test("push appends and back/forward walk the line", () => {
+    let s = createHistoryState("/a")
+    s = historyUpdate(s, { type: "push", entry: "/b" })
+    s = historyUpdate(s, { type: "push", entry: "/c" })
+    expect(s).toEqual({ entries: ["/a", "/b", "/c"], index: 2 })
+
+    s = historyUpdate(s, { type: "back" })
+    expect(historyCurrent(s)).toBe("/b")
+    s = historyUpdate(s, { type: "forward" })
+    expect(historyCurrent(s)).toBe("/c")
+  })
+
+  test("push after back truncates the forward branch", () => {
+    let s = createHistoryState("/a")
+    s = historyUpdate(s, { type: "push", entry: "/b" })
+    s = historyUpdate(s, { type: "back" })
+    s = historyUpdate(s, { type: "push", entry: "/c" })
+    expect(s).toEqual({ entries: ["/a", "/c"], index: 1 })
+  })
+
+  test("departing amends the entry being left on push, back, and forward", () => {
+    type Spot = { path: string; offset: number | null }
+    const spot = (path: string, offset: number | null = null): Spot => ({ path, offset })
+
+    let s = createHistoryState<Spot>(spot("/a"))
+    s = historyUpdate(s, { type: "push", entry: spot("/b"), departing: spot("/a", 42) })
+    expect(s.entries[0]).toEqual(spot("/a", 42))
+
+    s = historyUpdate(s, { type: "back", departing: spot("/b", 99) })
+    expect(historyCurrent(s)).toEqual(spot("/a", 42))
+    expect(s.entries[1]).toEqual(spot("/b", 99))
+
+    s = historyUpdate(s, { type: "forward", departing: spot("/a", 11) })
+    expect(historyCurrent(s)).toEqual(spot("/b", 99))
+    expect(s.entries[0]).toEqual(spot("/a", 11))
+  })
+
+  test("replace swaps the current entry without moving the cursor", () => {
+    let s = createHistoryState("/a")
+    s = historyUpdate(s, { type: "push", entry: "/b" })
+    s = historyUpdate(s, { type: "replace", entry: "/b2" })
+    expect(s).toEqual({ entries: ["/a", "/b2"], index: 1 })
+  })
+
+  test("back at the start and forward at the end return the same state identity", () => {
+    const s = createHistoryState("/a")
+    expect(historyUpdate(s, { type: "back" })).toBe(s)
+    expect(historyUpdate(s, { type: "forward" })).toBe(s)
+  })
+
+  test("availability derives from the cursor position", () => {
+    let s = createHistoryState("/a")
+    expect(canGoBack(s)).toBe(false)
+    expect(canGoForward(s)).toBe(false)
+
+    s = historyUpdate(s, { type: "push", entry: "/b" })
+    expect(canGoBack(s)).toBe(true)
+    expect(canGoForward(s)).toBe(false)
+
+    s = historyUpdate(s, { type: "back" })
+    expect(canGoBack(s)).toBe(false)
+    expect(canGoForward(s)).toBe(true)
+  })
+
+  test("works under createMachine like every other headless machine", () => {
+    const machine = createMachine(historyUpdate<string>, createHistoryState("/a"))
+    machine.send({ type: "push", entry: "/b" })
+    machine.send({ type: "back" })
+    expect(historyCurrent(machine.state)).toBe("/a")
+    expect(canGoForward(machine.state)).toBe(true)
   })
 })
 

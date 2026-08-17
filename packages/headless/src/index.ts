@@ -53,6 +53,17 @@ export {
   type ExtractTextOptions,
 } from "./selection"
 
+// History — browser-style navigation history with amend-on-departure
+export {
+  historyUpdate,
+  createHistoryState,
+  historyCurrent,
+  canGoBack,
+  canGoForward,
+  type HistoryState,
+  type HistoryAction,
+} from "./history"
+
 // Pointer — gesture disambiguation state machine
 export {
   pointerStateUpdate,
