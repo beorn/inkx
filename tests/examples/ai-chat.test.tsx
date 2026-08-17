@@ -85,6 +85,17 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
     }
   })
 
+  /** Poll until the marker paints — same contract as beforeAll's "Fixed" wait.
+   * A single fixed settle races the fastMode chain under CI load: the read can
+   * catch the tail of the PREVIOUS exchange and fail on content that was one
+   * repaint away (Tests run #620 on 3779c1ea0). */
+  async function settleUntil(marker: string): Promise<void> {
+    for (let i = 0; i < 40; i++) {
+      if (term.screen!.getText().toLowerCase().includes(marker)) return
+      await settle(50)
+    }
+  }
+
   afterAll(() => {
     handle?.unmount()
     // Dispose the Term so the xterm.js Terminal is released —
@@ -120,7 +131,7 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
     for (const c of "ok") await handle.press(c)
     await settle(20)
     await handle.press("Enter")
-    await settle()
+    await settleUntil("rate limit")
 
     const screenText = term.screen!.getText()
     expect(screenText.toLowerCase()).toContain("rate limit")
@@ -133,7 +144,7 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
     for (const c of "ok") await handle.press(c)
     await settle(20)
     await handle.press("Enter")
-    await settle()
+    await settleUntil("i18n")
 
     // Box drawing chars should be visible on screen (exchanges have borders)
     const screenText = term.screen!.getText()
@@ -147,7 +158,7 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
     for (const c of "ok") await handle.press(c)
     await settle(20)
     await handle.press("Enter")
-    await settle()
+    await settleUntil("health")
 
     const screenText = term.screen!.getText()
     // Content should be visible and borders clean
