@@ -115,7 +115,11 @@ import {
 } from "@silvery/headless"
 
 let state = createHistoryState({ path: "/a", scroll: 0 })
-state = historyUpdate(state, { type: "push", entry: { path: "/b", scroll: 0 }, departing: { path: "/a", scroll: 120 } })
+state = historyUpdate(state, {
+  type: "push",
+  entry: { path: "/b", scroll: 0 },
+  departing: { path: "/a", scroll: 120 },
+})
 state = historyUpdate(state, { type: "back" })
 historyCurrent(state) // { path: "/a", scroll: 120 } — where you actually were
 ```
