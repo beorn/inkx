@@ -13,7 +13,7 @@ import { createLogger } from "loggily"
 import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findFocusableAncestor } from "@silvery/ag/focus-queries"
 import type { ParsedMouse } from "./mouse"
-import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
+import { getAncestorPath, hitTestInlineRects, pointInRect } from "@silvery/ag/tree-utils"
 import type { AgNode, BoxProps, Rect, TextProps, UserSelect } from "@silvery/ag/types"
 import type { SelectionScope } from "@silvery/headless/selection"
 import { setHovered, setArmed } from "@silvery/ag/interactive-signals"
@@ -235,16 +235,10 @@ function hitTestInFlow(node: AgNode, x: number, y: number): AgNode | null {
     if (hit) return hit
   }
 
-  // Virtual text children with inlineRects (nested Text inside Text).
+  // Virtual text children with inlineRects (nested Text inside Text), at any depth.
   if (node.type === "silvery-text") {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i]!
-      if (child.inlineRects) {
-        for (const inlineRect of child.inlineRects) {
-          if (pointInRect(x, y, inlineRect)) return child
-        }
-      }
-    }
+    const inlineHit = hitTestInlineRects(node, x, y)
+    if (inlineHit) return inlineHit
   }
 
   return node
@@ -519,16 +513,10 @@ function selectionHitTestInner(
     if (hit) return hit
   }
 
-  // Check virtual text children with inlineRects
+  // Check virtual text children with inlineRects, at any depth.
   if (node.type === "silvery-text") {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i]!
-      if (child.inlineRects) {
-        for (const inlineRect of child.inlineRects) {
-          if (pointInRect(x, y, inlineRect)) return child
-        }
-      }
-    }
+    const inlineHit = hitTestInlineRects(node, x, y)
+    if (inlineHit) return inlineHit
   }
 
   if (node.type === "silvery-text") {

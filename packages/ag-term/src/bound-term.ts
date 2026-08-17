@@ -16,6 +16,7 @@
  */
 
 import type { Cell, TerminalBuffer } from "./buffer"
+import { hitTestInlineRects } from "@silvery/ag/tree-utils"
 import type { AgNode } from "@silvery/ag/types"
 
 /**
@@ -93,24 +94,11 @@ function findNodeAtScreenPosition(node: AgNode, x: number, y: number): AgNode | 
     if (found) return found
   }
 
-  // Check virtual text children with inlineRects (nested Text inside Text).
-  // These don't have scrollRect/layoutNode, so standard DFS misses them.
+  // Check virtual text children with inlineRects (nested Text inside Text), at
+  // any depth. These don't have scrollRect/layoutNode, so standard DFS misses them.
   if (node.type === "silvery-text") {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i]!
-      if (child.inlineRects) {
-        for (const inlineRect of child.inlineRects) {
-          if (
-            x >= inlineRect.x &&
-            x < inlineRect.x + inlineRect.width &&
-            y >= inlineRect.y &&
-            y < inlineRect.y + inlineRect.height
-          ) {
-            return child
-          }
-        }
-      }
-    }
+    const inlineHit = hitTestInlineRects(node, x, y)
+    if (inlineHit) return inlineHit
   }
 
   // No child matched, this node is the deepest match
