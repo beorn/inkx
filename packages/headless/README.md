@@ -31,6 +31,8 @@ console.log(state.index) // 1
 - **`createSelectListState(opts)`** -- Initial state for a select list
 - **`readlineUpdate(state, action)`** -- Text editing with cursor, kill ring, and history
 - **`createReadlineState(opts)`** -- Initial state for a readline editor
+- **`historyUpdate(state, action)`** -- Browser-style navigation history with amend-on-departure
+- **`createHistoryState(initial)`** -- Initial single-entry history
 
 ### React Hooks
 

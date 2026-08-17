@@ -101,6 +101,27 @@ state = selectListUpdate(state, { type: "move_last" })
 
 Actions that move accept an optional `isDisabled` predicate to skip disabled items.
 
+### history — Browser-style navigation history
+
+Entries plus a cursor; `push` truncates the forward branch exactly as a browser does. Every move that leaves an entry (`push`, `back`, `forward`) can amend the entry being left via `departing` — a history entry records where you were, and the caller only learns that (scroll position, cursor) at the moment of departure.
+
+```typescript
+import {
+  historyUpdate,
+  createHistoryState,
+  historyCurrent,
+  canGoBack,
+  canGoForward,
+} from "@silvery/headless"
+
+let state = createHistoryState({ path: "/a", scroll: 0 })
+state = historyUpdate(state, { type: "push", entry: { path: "/b", scroll: 0 }, departing: { path: "/a", scroll: 120 } })
+state = historyUpdate(state, { type: "back" })
+historyCurrent(state) // { path: "/a", scroll: 120 } — where you actually were
+```
+
+**Actions**: `push`, `replace`, `back`, `forward` — `replace` swaps the current entry in place (a reload, not a move).
+
 ### Interaction Features (Runtime-Level)
 
 The following interaction capabilities are implemented as **runtime features** in `@silvery/ag-term/features/`, not as headless machines. The shipped `run()` runtime composes them automatically:
