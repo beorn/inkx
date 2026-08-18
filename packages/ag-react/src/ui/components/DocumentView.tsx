@@ -201,12 +201,25 @@ function resolveListItems(
 }
 
 /**
- * Width of the heading marker gutter, shared by every heading in the
- * document — not computed per-row like list markers, because the design
+ * Width of the widest heading marker in the document — shared by every
+ * heading, not computed per-row like list markers, because the design
  * intent is column ALIGNMENT: a task heading's checkbox and a non-task
  * heading's blank slot must start titles at the same column. Zero when no
  * heading block in the whole document carries a marker, so documents that
- * never use heading tasks pay no width and render exactly as before.
+ * never use heading tasks render exactly as before — no reserved gutter,
+ * no wrapping Box, byte-identical output.
+ *
+ * The gutter HANGS in the title's own left margin — it does not push the
+ * title right. `HeadingRow` renders it as a flex sibling sized exactly
+ * `markerWidth` with an equal-and-opposite negative `marginLeft`, so its
+ * outer contribution to the row's layout is zero: the title's own box,
+ * wrap width, and start column are computed exactly as if the marker slot
+ * were not there at all (unlike `Content.Row`'s side slots, which claim
+ * real width from the row's available space and can shift a centered lane
+ * once that space is genuinely scarce — see
+ * `tests/features/document-view-heading-marker.test.tsx` for the
+ * width-independence this buys). See `HeadingRow`'s own docstring for why
+ * the gutter is exactly `markerWidth`, with no separate gap cell.
  */
 function resolveHeadingMarkerWidth(blocks: readonly DocumentBlock[]): number {
   let width = 0
@@ -327,6 +340,62 @@ function ListItemRow({
   )
 }
 
+/**
+ * Renders heading content with an outdented marker gutter to its left.
+ *
+ * Unlike `ListItemRow`'s marker (every list item has one, so shifting text
+ * right by `markerWidth + gap` IS the intended hanging-indent shape for
+ * wrapped continuation lines), a heading marker is optional per-row within
+ * a document that may mix task and non-task headings — the title column
+ * must be identical whether or not THIS heading has a marker, and
+ * identical to a heading rendered before this feature existed at all. A
+ * `Content.Row` side slot (`Content.Left`) does not give that guarantee: it
+ * claims real width from the row's available space, and once that space is
+ * genuinely tight — a narrow pane, or a `Content.Layout` with a fixed
+ * `prose` target close to the pane width, as with km-tui's `DetailView`
+ * (`prose={80}`) — the lane itself narrows and the title shifts.
+ *
+ * `HeadingRow` instead sizes the marker's flex sibling to exactly
+ * `markerWidth`, with an equal, opposite negative `marginLeft`. Its outer
+ * contribution to the row's layout — content width plus margins — is
+ * therefore exactly zero: the heading's own box, wrap width, and start
+ * column are computed IDENTICALLY to a heading with no marker slot at all,
+ * at any pane width (pinned across widths 30-200 in
+ * `tests/features/document-view-heading-marker.test.tsx`, including
+ * km-tui's exact `prose={80}` configuration).
+ *
+ * No separate gap cell: the marker paints into the `markerWidth` cells
+ * immediately to the title's left, glued to it. `ProseLane` (Content.tsx)
+ * always keeps at least a 1-cell blank gutter on each side whenever
+ * `available > 2` — that 1-cell floor is what the marker hangs into, and it
+ * is the ONE thing this technique can rely on unconditionally. A
+ * `markerWidth + 1` gap cell tried first and measurably clipped the glyph
+ * off-screen the moment that floor was the binding constraint (any pane at
+ * or below the document's configured prose width, e.g. km-tui's own
+ * `prose={80}` below ~82 columns) — an invisible checkbox fails the
+ * feature outright, which is worse than a glyph with no trailing space.
+ */
+function HeadingRow({
+  markerWidth,
+  marker,
+  children,
+}: {
+  markerWidth: number
+  marker: React.ReactNode
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <Box flexDirection="row" width="100%" minWidth={0}>
+      <Box width={markerWidth} minWidth={markerWidth} marginLeft={-markerWidth} flexShrink={0}>
+        {marker}
+      </Box>
+      <Prose flexGrow={1} minWidth={0}>
+        {children}
+      </Prose>
+    </Box>
+  )
+}
+
 function DocumentBlocks({
   blocks,
   selectedId,
@@ -361,9 +430,8 @@ function DocumentBlocks({
           case "heading": {
             const headings = [H1, H2, H3, H4, H5, H6] as const
             const Heading = headings[block.level - 1] ?? H6
-            const headingColor = selected ? "$fg-on-selected" : undefined
-            const headingText = (
-              <Heading color={headingColor} wrap="wrap">
+            const headingNode = (
+              <Heading color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
                 {block.content}
               </Heading>
             )
@@ -378,17 +446,11 @@ function DocumentBlocks({
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 {headingMarkerWidth > 0 ? (
-                  <Box flexDirection="row" width="100%" minWidth={0}>
-                    <Box width={headingMarkerWidth} minWidth={headingMarkerWidth} flexShrink={0}>
-                      {block.marker}
-                    </Box>
-                    <Box width={1} minWidth={1} flexShrink={0} />
-                    <Prose flexGrow={1} minWidth={0}>
-                      {headingText}
-                    </Prose>
-                  </Box>
+                  <HeadingRow markerWidth={headingMarkerWidth} marker={block.marker}>
+                    {headingNode}
+                  </HeadingRow>
                 ) : (
-                  headingText
+                  headingNode
                 )}
               </BlockFrame>
             )
