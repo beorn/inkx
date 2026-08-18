@@ -210,16 +210,14 @@ function resolveListItems(
  * no wrapping Box, byte-identical output.
  *
  * The gutter HANGS in the title's own left margin — it does not push the
- * title right. `HeadingRow` renders it as a flex sibling sized exactly
- * `markerWidth` with an equal-and-opposite negative `marginLeft`, so its
- * outer contribution to the row's layout is zero: the title's own box,
- * wrap width, and start column are computed exactly as if the marker slot
- * were not there at all (unlike `Content.Row`'s side slots, which claim
- * real width from the row's available space and can shift a centered lane
- * once that space is genuinely scarce — see
- * `tests/features/document-view-heading-marker.test.tsx` for the
- * width-independence this buys). See `HeadingRow`'s own docstring for why
- * the gutter is exactly `markerWidth`, with no separate gap cell.
+ * title right relative to any OTHER heading in the same document, marked
+ * or not (see `HeadingRow`). It does, deliberately, reserve real inset for
+ * every heading once the document uses heading markers at all: operator
+ * feedback on an earlier revision of this fix rejected a glyph glued
+ * directly to the title with no gap, so the gutter must guarantee
+ * `markerWidth + 1` cells (marker + one visible gap cell) rather than
+ * merely hoping `ProseLane`'s natural side gutter happens to be that wide.
+ * See `HeadingRow` for how that guarantee is made unconditional.
  */
 function resolveHeadingMarkerWidth(blocks: readonly DocumentBlock[]): number {
   let width = 0
@@ -258,6 +256,7 @@ function BlockFrame({
   lane,
   marginTop,
   marginBottom,
+  contentPaddingLeft,
   onLayout,
   children,
 }: {
@@ -266,12 +265,20 @@ function BlockFrame({
   lane: DocumentLane
   marginTop?: number
   marginBottom?: number
+  /**
+   * Real, guaranteed left inset inside the resolved lane — forwarded to
+   * `Content.Body`'s own `paddingLeft`. Unlike a negative-margin hang
+   * reaching into `ProseLane`'s natural (1-cell-floor) gutter, this
+   * width counts against the lane budget itself, so it never competes
+   * with anything and is available at any pane width. See `HeadingRow`.
+   */
+  contentPaddingLeft?: number
   onLayout?: (y: number) => void
   children: React.ReactNode
 }): React.ReactElement {
   return (
     <Content.Row>
-      <Content.Body width={lane}>
+      <Content.Body width={lane} paddingLeft={contentPaddingLeft}>
         <Box
           id={String(block.id)}
           testID={String(block.id)}
@@ -347,33 +354,39 @@ function ListItemRow({
  * right by `markerWidth + gap` IS the intended hanging-indent shape for
  * wrapped continuation lines), a heading marker is optional per-row within
  * a document that may mix task and non-task headings — the title column
- * must be identical whether or not THIS heading has a marker, and
- * identical to a heading rendered before this feature existed at all. A
+ * must be identical whether or not THIS heading has a marker. A
  * `Content.Row` side slot (`Content.Left`) does not give that guarantee: it
  * claims real width from the row's available space, and once that space is
  * genuinely tight — a narrow pane, or a `Content.Layout` with a fixed
  * `prose` target close to the pane width, as with km-tui's `DetailView`
  * (`prose={80}`) — the lane itself narrows and the title shifts.
  *
- * `HeadingRow` instead sizes the marker's flex sibling to exactly
- * `markerWidth`, with an equal, opposite negative `marginLeft`. Its outer
- * contribution to the row's layout — content width plus margins — is
- * therefore exactly zero: the heading's own box, wrap width, and start
- * column are computed IDENTICALLY to a heading with no marker slot at all,
- * at any pane width (pinned across widths 30-200 in
+ * The caller (`DocumentBlocks`) reserves the gutter as REAL space first, via
+ * `BlockFrame`'s `contentPaddingLeft={markerWidth + 1}` — applied to every
+ * heading once the document has any heading marker, task or not, so all of
+ * them get the identical inset. `HeadingRow` then sizes the marker's flex
+ * sibling to exactly that same width, with an equal, opposite negative
+ * `marginLeft`: the marker's outer contribution to ITS OWN row's layout is
+ * therefore zero, so it reaches back and paints INTO the padding the caller
+ * already reserved, rather than pushing the title any further. Content
+ * width plus margins nets to zero, so the heading's wrap width and start
+ * column are computed identically whether this particular heading's own
+ * marker is present or blank — pinned across pane widths 30-200 in
  * `tests/features/document-view-heading-marker.test.tsx`, including
- * km-tui's exact `prose={80}` configuration).
+ * km-tui's exact `prose={80}` configuration.
  *
- * No separate gap cell: the marker paints into the `markerWidth` cells
- * immediately to the title's left, glued to it. `ProseLane` (Content.tsx)
- * always keeps at least a 1-cell blank gutter on each side whenever
- * `available > 2` — that 1-cell floor is what the marker hangs into, and it
- * is the ONE thing this technique can rely on unconditionally. A
- * `markerWidth + 1` gap cell tried first and measurably clipped the glyph
- * off-screen the moment that floor was the binding constraint (any pane at
- * or below the document's configured prose width, e.g. km-tui's own
- * `prose={80}` below ~82 columns) — an invisible checkbox fails the
- * feature outright, which is worse than a glyph with no trailing space.
+ * The gutter is `markerWidth + 1` — marker glyph, then one blank gap cell,
+ * then the title. That gap is required: an earlier revision reached back
+ * only `markerWidth` cells INTO `ProseLane`'s own natural side gutter
+ * (Content.tsx) instead of reserving real padding, on the theory that its
+ * 1-cell floor (whenever `available > 2`) was the one thing to rely on
+ * unconditionally — glyph glued to the title, no gap, but never clipped.
+ * Operator feedback rejected the flush result outright ("there needs to be
+ * a space between the marker and the title"). Reserving the gutter as real
+ * `paddingLeft` — this revision — gets the gap back AND keeps the
+ * unconditional guarantee: the reach-back space is never borrowed from a
+ * gutter something else might also be squeezing, so it can never be too
+ * narrow for the marker plus its gap, at any pane width.
  */
 function HeadingRow({
   markerWidth,
@@ -384,9 +397,10 @@ function HeadingRow({
   marker: React.ReactNode
   children: React.ReactNode
 }): React.ReactElement {
+  const gutter = markerWidth + 1
   return (
     <Box flexDirection="row" width="100%" minWidth={0}>
-      <Box width={markerWidth} minWidth={markerWidth} marginLeft={-markerWidth} flexShrink={0}>
+      <Box width={gutter} minWidth={gutter} marginLeft={-gutter} flexShrink={0}>
         {marker}
       </Box>
       <Prose flexGrow={1} minWidth={0}>
@@ -443,6 +457,7 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
+                contentPaddingLeft={headingMarkerWidth > 0 ? headingMarkerWidth + 1 : undefined}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 {headingMarkerWidth > 0 ? (

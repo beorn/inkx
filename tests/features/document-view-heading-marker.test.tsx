@@ -1,67 +1,55 @@
 /**
  * DocumentHeadingBlock.marker — the heading task-checkbox gutter.
  *
- * Regression coverage for @si/app/22571-maddoc-doc-viewer-umbrella/22938:
- * the landed fix first shipped by INDENTING every heading title to make
- * room for the marker column. That is backwards — headings must keep their
- * column, and the marker hangs OUTDENTED into the left margin. `HeadingRow`
- * (DocumentView.tsx) achieves this with a zero-outer-width flex sibling —
- * width `markerWidth`, `marginLeft` the exact negative of that width — so
- * the marker's presence contributes nothing to the row's layout math and
- * the title's column is provably identical with or without it, at ANY pane
- * width (unlike `Content.Row`'s `Content.Left` side slot, which claims real
- * width from the row and drifts once the pane is narrower than the
- * document's configured prose target — see the width-sweep tests below).
+ * Regression coverage for @si/app/22571-maddoc-doc-viewer-umbrella/22938,
+ * across two revisions:
  *
- * The gutter is exactly `markerWidth`, with NO separate gap cell: a wider
- * gutter (`markerWidth + 1`) measurably clipped the glyph off-screen the
- * moment `ProseLane`'s natural side gutter pinched to its 1-cell floor
- * (any pane at or below the document's configured prose width — including
- * km-tui's own `prose={80}` below ~82 columns). An invisible checkbox fails
- * the feature outright, so "glued to the text, always visible" beats "one
- * gap cell, invisible under realistic panes."
+ * Rev 1 (landed, then reverted in spirit): the shipped fix made room for a
+ * marker by INDENTING every heading title — text shifted right by
+ * markerWidth+1 the instant ANY heading in the document carried a marker.
+ * Operator: "headings keep their column; the marker outdents into the left
+ * margin" — backwards from what shipped.
+ *
+ * Rev 2 (this file, current): a zero-outer-width negative-margin technique
+ * fixed the hang direction, but its first cut reached back into
+ * `ProseLane`'s own natural side gutter — which floors at 1 cell — using
+ * ONLY `markerWidth` (no gap cell), because a `markerWidth + 1` gutter
+ * measurably clipped the glyph invisible the moment that floor was the
+ * binding constraint. Operator feedback on THAT result: "there needs to be
+ * a space between the marker and the title... now the marker is flush."
+ *
+ * Current design: `HeadingRow` still uses the zero-outer-width negative
+ * margin (so a task heading's title and a non-task heading's title in the
+ * SAME document land on the identical column, at any pane width), but the
+ * gutter it reaches into is now REAL, guaranteed `Content.Body paddingLeft`
+ * — reserved once, up front, by `BlockFrame`'s `contentPaddingLeft` — not
+ * borrowed from `ProseLane`'s uncertain natural floor. That guarantees
+ * room for `markerWidth + 1` cells (glyph + one visible gap cell) at any
+ * pane width, at the cost of insetting every heading in a marker-bearing
+ * document by that same amount relative to a fully marker-less document
+ * (or to that document's own paragraphs) — an explicit, operator-approved
+ * trade against the alternative of an invisible or gapless glyph.
  */
 
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Content, DocumentView, Text, type DocumentBlock, type DocumentHeadingBlock } from "@silvery/ag-react"
+import {
+  Content,
+  DocumentView,
+  Text,
+  type DocumentBlock,
+  type DocumentHeadingBlock,
+} from "@silvery/ag-react"
 
-function titleColumn(
-  app: ReturnType<ReturnType<typeof createRenderer>>,
-  title: string,
-): number {
+function titleColumn(app: ReturnType<ReturnType<typeof createRenderer>>, title: string): number {
   const row = app.lines.findIndex((line) => line.includes(title))
   expect(row, `row containing "${title}"`).toBeGreaterThanOrEqual(0)
   return app.lines[row]!.indexOf(title)
 }
 
 describe("DocumentView heading marker gutter", () => {
-  test("a task heading's title starts at the SAME column as a heading with no marker feature in use at all", () => {
-    const unmarked: DocumentBlock[] = [
-      { id: "h", kind: "heading", level: 2, content: "Section Title" },
-    ]
-    const marked: DocumentBlock[] = [
-      {
-        id: "h",
-        kind: "heading",
-        level: 2,
-        content: "Section Title",
-        marker: <Text color="$fg-warning">◐</Text>,
-      } satisfies DocumentHeadingBlock,
-    ]
-    const cols = 60
-    const rows = 8
-    const unmarkedApp = createRenderer({ cols, rows })(<DocumentView blocks={unmarked} />)
-    const markedApp = createRenderer({ cols, rows })(<DocumentView blocks={marked} />)
-
-    // The regression: a landed rev shifted this column right by
-    // markerWidth+1 the moment ANY heading in the document carried a
-    // marker. The title must land in the exact same place either way.
-    expect(titleColumn(markedApp, "Section Title")).toBe(titleColumn(unmarkedApp, "Section Title"))
-  })
-
-  test("the marker hangs to the LEFT of the title column, in the margin", () => {
+  test("the marker hangs to the LEFT of the title column, with a visible gap between them", () => {
     const blocks: DocumentBlock[] = [
       {
         id: "h",
@@ -74,15 +62,19 @@ describe("DocumentView heading marker gutter", () => {
     const app = createRenderer({ cols: 72, rows: 8 })(<DocumentView blocks={blocks} />)
     const row = app.lines.findIndex((line) => line.includes("PHASE 3a"))
     expect(row).toBeGreaterThanOrEqual(0)
-    const markerColumn = app.lines[row]!.indexOf("◐")
-    const titleColumnIndex = app.lines[row]!.indexOf("PHASE 3a")
+    const line = app.lines[row]!
+    const markerColumn = line.indexOf("◐")
+    const titleColumnIndex = line.indexOf("PHASE 3a")
     expect(markerColumn).toBeGreaterThanOrEqual(0)
     // Hanging indent: the glyph sits in the margin, strictly left of the
-    // title's own column — not inline-prefixed onto the title (that would
-    // put the marker immediately adjacent, still shifting nothing else, but
-    // this pins the outdent direction unambiguously against "glued to the
-    // text" alternatives).
+    // title's own column.
     expect(markerColumn).toBeLessThan(titleColumnIndex)
+    // The operator-required gap: at least one blank cell between the glyph
+    // and the title — "◐PHASE 3a" (glued, rev 2's first cut) fails this.
+    expect(titleColumnIndex - markerColumn).toBeGreaterThanOrEqual(2)
+    expect(line.slice(markerColumn + 1, titleColumnIndex)).toBe(
+      " ".repeat(titleColumnIndex - markerColumn - 1),
+    )
   })
 
   test("a task heading and a non-task heading in the SAME document still align on the title column", () => {
@@ -103,21 +95,6 @@ describe("DocumentView heading marker gutter", () => {
     expect(app.text).not.toContain("◐PHASE 3b")
   })
 
-  test("heading title column matches an ordinary paragraph's column in the same document", () => {
-    const blocks: DocumentBlock[] = [
-      {
-        id: "task",
-        kind: "heading",
-        level: 2,
-        content: "Tasked Heading",
-        marker: <Text color="$fg-warning">◐</Text>,
-      } satisfies DocumentHeadingBlock,
-      { id: "body", kind: "paragraph", content: "Plain body text." },
-    ]
-    const app = createRenderer({ cols: 60, rows: 8 })(<DocumentView blocks={blocks} />)
-    expect(titleColumn(app, "Tasked Heading")).toBe(titleColumn(app, "Plain body text."))
-  })
-
   test("a document with no heading markers renders byte-identical to the same document without the marker field", () => {
     const withoutField: DocumentBlock[] = [
       { id: "h", kind: "heading", level: 2, content: "Untasked section" },
@@ -134,59 +111,72 @@ describe("DocumentView heading marker gutter", () => {
     expect(b.text).toBe(a.text)
   })
 
-  test("title column is width-independent, including panes narrower than the configured prose target", () => {
+  test("a marker-bearing document insets EVERY heading by markerWidth + 1, deliberately — not just the marked one", () => {
+    // The explicit, operator-approved trade: reserving a real, guaranteed
+    // gutter (so the gap can never be clipped) costs a fixed inset on every
+    // heading in a document that uses heading markers at all, relative to a
+    // document that never does. This is intentional design, not a leftover
+    // bug — pin the exact amount so a future change doesn't silently drift
+    // it in either direction.
+    const unmarked: DocumentBlock[] = [
+      { id: "h", kind: "heading", level: 2, content: "Section Title" },
+    ]
+    const marked: DocumentBlock[] = [
+      {
+        id: "h",
+        kind: "heading",
+        level: 2,
+        content: "Section Title",
+        marker: <Text color="$fg-warning">◐</Text>,
+      } satisfies DocumentHeadingBlock,
+    ]
+    const cols = 60
+    const rows = 8
+    const unmarkedApp = createRenderer({ cols, rows })(<DocumentView blocks={unmarked} />)
+    const markedApp = createRenderer({ cols, rows })(<DocumentView blocks={marked} />)
+    const markerWidth = 1 // "◐" is one cell
+    expect(titleColumn(markedApp, "Section Title")).toBe(
+      titleColumn(unmarkedApp, "Section Title") + markerWidth + 1,
+    )
+  })
+
+  test("title column is width-independent WITHIN a marker-bearing document — task heading matches non-task heading at any width", () => {
     // km-tui's DetailView wraps KNodeDocumentView in <Content.Layout prose={80}
-    // wide={120}>. A `Content.Row` side slot (Content.Left) claims width from
-    // the row BEFORE the prose lane is sized, so once the pane drops below
-    // ~prose+2 the lane itself narrows and a marker'd heading's title drifts
-    // from a marker-less heading's title — invisible at generous widths,
-    // real at realistic split-pane widths. HeadingRow's zero-outer-width
-    // technique has no such threshold: assert equality across a sweep that
-    // spans comfortably-wide down through exactly this pinch point.
+    // wide={120}>. The invariant that must hold at any pane width is
+    // within-document alignment: a task heading and a non-task heading in
+    // the SAME document land on the same title column, from a narrow split
+    // pane up through a wide terminal — never just in the generous case.
     for (const cols of [40, 60, 82, 120, 200]) {
-      const unmarked: DocumentBlock[] = [
-        { id: "h", kind: "heading", level: 3, content: "Section Title" },
-        { id: "body", kind: "paragraph", content: "Body text." },
-      ]
-      const marked: DocumentBlock[] = [
+      const blocks: DocumentBlock[] = [
         {
-          id: "h",
+          id: "task",
           kind: "heading",
           level: 3,
-          content: "Section Title",
+          content: "Task Section",
           marker: <Text color="$fg-warning">◐</Text>,
         } satisfies DocumentHeadingBlock,
-        { id: "body", kind: "paragraph", content: "Body text." },
+        { id: "plain", kind: "heading", level: 3, content: "Plain Section" },
       ]
-      const unmarkedApp = createRenderer({ cols, rows: 8 })(
+      const app = createRenderer({ cols, rows: 8 })(
         <Content.Layout fill={false} prose={80} wide={120}>
-          <DocumentView blocks={unmarked} />
+          <DocumentView blocks={blocks} />
         </Content.Layout>,
       )
-      const markedApp = createRenderer({ cols, rows: 8 })(
-        <Content.Layout fill={false} prose={80} wide={120}>
-          <DocumentView blocks={marked} />
-        </Content.Layout>,
-      )
-      expect(titleColumn(markedApp, "Section Title"), `cols=${cols}`).toBe(
-        titleColumn(unmarkedApp, "Section Title"),
-      )
-      // The heading and its own document's paragraph must also stay aligned
-      // at every width — both invariants break under the side-slot approach
-      // once the pane pinches below the prose target.
-      expect(titleColumn(markedApp, "Section Title"), `cols=${cols}`).toBe(
-        titleColumn(markedApp, "Body text."),
+      expect(titleColumn(app, "Task Section"), `cols=${cols}`).toBe(
+        titleColumn(app, "Plain Section"),
       )
     }
   })
 
-  test("the marker is never clipped invisible, at any width from a narrow split pane up through a wide terminal", () => {
-    // The bug this pins: a `markerWidth + 1` gutter (marker + gap cell)
-    // rendered ZERO visible glyph at cols 40/60/70/82 under km-tui's
-    // `prose={80}` — `ProseLane`'s natural left gutter pinches to exactly 1
-    // cell in that regime, one cell short of what a 2-cell gutter needs, and
-    // the excess simply painted at a negative, off-screen column. A visible
-    // checkbox is the entire point of the feature — this must never regress.
+  test("the marker is visible WITH its gap at every width from a narrow split pane up through a wide terminal", () => {
+    // The bug this pins: a markerWidth+1 gutter reaching into ProseLane's
+    // own (1-cell-floor) side gutter rendered ZERO visible glyph at cols
+    // 40/60/70/82 under km-tui's prose={80} — the natural gutter pinched to
+    // exactly 1 cell, one short of the 2 a "glyph + gap" gutter needs, and
+    // the excess painted at a negative, off-screen column. Reserving the
+    // gutter as real Content.Body padding (this revision) must never
+    // reproduce that: the glyph AND its trailing gap must both be visible,
+    // at every width a real pane is likely to be.
     for (const cols of [30, 40, 60, 70, 82, 90, 120, 200]) {
       const marked: DocumentBlock[] = [
         {
@@ -203,6 +193,12 @@ describe("DocumentView heading marker gutter", () => {
         </Content.Layout>,
       )
       expect(app.text, `cols=${cols}`).toContain("◐")
+      const row = app.lines.findIndex((line) => line.includes("Section Title"))
+      expect(row, `cols=${cols}`).toBeGreaterThanOrEqual(0)
+      const line = app.lines[row]!
+      const markerColumn = line.indexOf("◐")
+      const titleColumnIndex = line.indexOf("Section Title")
+      expect(titleColumnIndex - markerColumn, `cols=${cols}`).toBeGreaterThanOrEqual(2)
     }
   })
 })
