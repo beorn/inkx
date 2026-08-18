@@ -34,6 +34,15 @@ export interface DocumentHeadingBlock extends DocumentBlockBase {
   readonly kind: "heading"
   readonly level: 1 | 2 | 3 | 4 | 5 | 6
   readonly content: React.ReactNode
+  /**
+   * Optional leaf marker, such as a task checkbox. DocumentView still owns
+   * its column: the moment ANY heading block in the document supplies a
+   * marker, EVERY heading reserves that same column (a non-task heading's
+   * slot renders blank) so titles all start at one aligned column. Documents
+   * with no heading markers at all pay zero width — headings render exactly
+   * as before.
+   */
+  readonly marker?: React.ReactNode
 }
 
 export interface DocumentParagraphBlock extends DocumentBlockBase {
@@ -191,6 +200,23 @@ function resolveListItems(
   )
 }
 
+/**
+ * Width of the heading marker gutter, shared by every heading in the
+ * document — not computed per-row like list markers, because the design
+ * intent is column ALIGNMENT: a task heading's checkbox and a non-task
+ * heading's blank slot must start titles at the same column. Zero when no
+ * heading block in the whole document carries a marker, so documents that
+ * never use heading tasks pay no width and render exactly as before.
+ */
+function resolveHeadingMarkerWidth(blocks: readonly DocumentBlock[]): number {
+  let width = 0
+  for (const block of blocks) {
+    if (block.kind !== "heading" || block.marker === undefined) continue
+    width = Math.max(width, textMarkerWidth(block.marker) ?? 1)
+  }
+  return width
+}
+
 function isListBlock(block: DocumentBlock | undefined): block is DocumentListItemBlock {
   return block?.kind === "list-item"
 }
@@ -312,6 +338,7 @@ function DocumentBlocks({
     onBlockLayout?: (id: DocumentBlockId, y: number) => void
   }): React.ReactElement {
   const resolvedLists = resolveListItems(blocks)
+  const headingMarkerWidth = resolveHeadingMarkerWidth(blocks)
   if (blocks.length === 0) {
     return (
       <Content.Row>
@@ -334,6 +361,12 @@ function DocumentBlocks({
           case "heading": {
             const headings = [H1, H2, H3, H4, H5, H6] as const
             const Heading = headings[block.level - 1] ?? H6
+            const headingColor = selected ? "$fg-on-selected" : undefined
+            const headingText = (
+              <Heading color={headingColor} wrap="wrap">
+                {block.content}
+              </Heading>
+            )
             return (
               <BlockFrame
                 key={block.id}
@@ -344,9 +377,19 @@ function DocumentBlocks({
                 marginBottom={1}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
-                <Heading color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
-                  {block.content}
-                </Heading>
+                {headingMarkerWidth > 0 ? (
+                  <Box flexDirection="row" width="100%" minWidth={0}>
+                    <Box width={headingMarkerWidth} minWidth={headingMarkerWidth} flexShrink={0}>
+                      {block.marker}
+                    </Box>
+                    <Box width={1} minWidth={1} flexShrink={0} />
+                    <Prose flexGrow={1} minWidth={0}>
+                      {headingText}
+                    </Prose>
+                  </Box>
+                ) : (
+                  headingText
+                )}
               </BlockFrame>
             )
           }
