@@ -728,8 +728,10 @@ describe("Lists", () => {
       )
       expect(app.text).toContain("•") // level 1
       expect(app.text).toContain("◦") // level 2
-      expect(app.text).toContain("▸") // level 3
+      expect(app.text).toContain("■") // level 3
       expect(app.text).toContain("-") // level 4
+      // A triangle is the fold affordance; a static list never wears one.
+      expect(app.text).not.toContain("▸")
     })
 
     test("nested list increases indent", () => {

@@ -445,7 +445,11 @@ export function parseInline(text: string, keyPrefix = "md"): ReactNode[] {
 // ============================================================================
 
 const HEADINGS = [H1, H2, H3, H4, H5, H6] as const
-const BULLETS = ["•", "◦", "▸"] as const
+// Third level is a square, not `▸`: a right-pointing triangle is the
+// disclosure affordance in every tree widget and a static list has nothing to
+// disclose. `■` (U+25A0) and not `▪` (U+25AA) — the small square is Emoji=Yes
+// and measures two cells. See DocumentView's UNORDERED_MARKERS.
+const BULLETS = ["•", "◦", "■"] as const
 
 function renderList(list: MdList, keyPrefix: string, depth = 0): JSX.Element {
   return (

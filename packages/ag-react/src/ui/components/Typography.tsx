@@ -408,7 +408,11 @@ export function OL({ children }: TypographyProps) {
   )
 }
 
-const BULLETS = ["•", "◦", "▸", "-"]
+// Third level is a square, not `▸`: a right-pointing triangle is the
+// disclosure affordance in every tree widget and a static list has nothing to
+// disclose. `■` (U+25A0) and not `▪` (U+25AA) — the small square is Emoji=Yes
+// and measures two cells. See DocumentView's UNORDERED_MARKERS.
+const BULLETS = ["•", "◦", "■", "-"]
 
 /** List item with hanging indent. Use inside UL or OL. 2-char marker (bullet + space). */
 export function LI({ children, color, _index }: TypographyProps & { _index?: number }) {

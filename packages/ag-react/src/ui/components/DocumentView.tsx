@@ -132,7 +132,20 @@ interface ResolvedListItem {
   readonly markerWidth: number
 }
 
-const UNORDERED_MARKERS = ["•", "◦", "▸"] as const
+/**
+ * disc → circle → square, the CSS nested-list ladder.
+ *
+ * NO TRIANGLES. The third level was `▸` until a reader read it as a collapsed
+ * node and tried to expand it. A right-pointing triangle is the disclosure
+ * affordance in every tree widget, `DocumentView` has no fold capability at
+ * all, and a marker that promises an interaction the component cannot honour
+ * is worse than a plain bullet.
+ *
+ * `■` (U+25A0) and NOT the smaller `▪` (U+25AA) / `▫` (U+25AB): the small
+ * squares carry Emoji=Yes, so they acquire emoji presentation and measure TWO
+ * cells, which silently widens a marker column sized for one.
+ */
+const UNORDERED_MARKERS = ["•", "◦", "■"] as const
 
 function textMarkerWidth(marker: React.ReactNode): number | null {
   // `displayLength`, not `.length`: this width indents every line of the list
