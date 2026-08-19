@@ -25,7 +25,9 @@ import {
   getActiveLineHeight,
 } from "@silvery/ag-term/unicode"
 import {
-  getRenderEpoch,
+  createEpochOwner,
+  markDirty,
+  type EpochOwner,
   INITIAL_EPOCH,
   isDirty,
   CONTENT_BIT,
@@ -67,16 +69,18 @@ import { syncRectSignals } from "@silvery/ag/layout-signals"
 export function createNode(
   type: AgNodeType,
   props: BoxProps | TextProps | Record<string, unknown>,
+  epochOwner: EpochOwner,
   measurer?: Measurer,
 ): AgNode {
   const layoutNode = getLayoutEngine().createNode()
-  const epoch = getRenderEpoch()
+  const epoch = epochOwner.epoch
 
   const node: AgNode = {
     type,
     props,
     children: [],
     parent: null,
+    epochOwner,
     layoutNode,
     boxRect: null,
     scrollRect: null,
@@ -128,7 +132,7 @@ export function createNode(
       // This avoids text collection entirely if we've measured this before
       const cacheKey = `${width}|${widthMode}|${height}|${heightMode}`
       const cached = measureCache.get(cacheKey)
-      if (cached && cachedText !== null && !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) {
+      if (cached && cachedText !== null && !isDirty(node, CONTENT_BIT)) {
         measureStats.cacheHits++
         return cached
       }
@@ -136,7 +140,7 @@ export function createNode(
       // Collect text content from this node and its raw text children
       // Use cached text if node hasn't been marked dirty (contentDirty)
       let text: string
-      if (cachedText !== null && !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) {
+      if (cachedText !== null && !isDirty(node, CONTENT_BIT)) {
         text = cachedText
       } else {
         measureStats.textCollects++
@@ -399,7 +403,8 @@ export function createNode(
  * flexily's default flexDirection.
  */
 export function createRootNode(): AgNode {
-  const node = createNode("silvery-root", {})
+  // A root IS a tree, so it mints the epoch state every node under it shares.
+  const node = createNode("silvery-root", {}, createEpochOwner())
   const c = getConstants()
   node.layoutNode!.setFlexDirection(c.FLEX_DIRECTION_COLUMN)
   return node
@@ -410,13 +415,14 @@ export function createRootNode(): AgNode {
  * Virtual text nodes don't have layout nodes and don't participate in layout.
  * They're used when Text is nested inside another Text.
  */
-export function createVirtualTextNode(props: TextProps): AgNode {
-  const epoch = getRenderEpoch()
+export function createVirtualTextNode(props: TextProps, epochOwner: EpochOwner): AgNode {
+  const epoch = epochOwner.epoch
   return {
     type: "silvery-text",
     props,
     children: [],
     parent: null,
+    epochOwner,
     layoutNode: null, // No layout node for virtual text
     boxRect: null,
     scrollRect: null,
@@ -1222,13 +1228,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
 
   // If dimensions changed, content needs re-render
   if (!rectEqual(node.prevLayout, node.boxRect)) {
-    const epoch = getRenderEpoch()
-    if (node.dirtyEpoch !== epoch) {
-      node.dirtyBits = CONTENT_BIT
-      node.dirtyEpoch = epoch
-    } else {
-      node.dirtyBits |= CONTENT_BIT
-    }
+    markDirty(node, CONTENT_BIT)
   }
 
   // Recursively propagate to children

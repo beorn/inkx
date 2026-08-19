@@ -20,6 +20,7 @@ import { createLogger } from "loggily"
 import type { AgNode, AgNodeType } from "@silvery/ag/types"
 import {
   getRenderEpoch,
+  markDirty,
   INITIAL_EPOCH,
   ALL_RECONCILER_BITS,
   CONTENT_BIT,
@@ -389,7 +390,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     const prevRootLayout = root.boxRect
     const dimensionsChanged =
       prevRootLayout && (prevRootLayout.width !== cols || prevRootLayout.height !== rows)
-    if (!dimensionsChanged && !root.layoutNode?.isDirty() && !hasScrollDirty()) {
+    if (!dimensionsChanged && !root.layoutNode?.isDirty() && !hasScrollDirty(root)) {
       log.debug?.("layout: skipped (Flexily clean, no scrollDirty, dimensions unchanged)")
       // Even when the full layout phase is skipped, style-only changes
       // (outline add/remove, absolute child structural changes) need cascade
@@ -627,10 +628,10 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     }
     _kittyActive = kittyActiveThisFrame
 
-    // Clear the module-level dirty tracking after each render pass.
-    // Content dirty nodes were processed by renderPhase; layout dirty is
-    // managed by Flexily internally (isDirty cleared after calculateLayout).
-    clearDirtyTracking()
+    // Clear THIS tree's dirty tracking after each render pass. Content dirty
+    // nodes were processed by renderPhase; layout dirty is managed by Flexily
+    // internally (isDirty cleared after calculateLayout).
+    clearDirtyTracking(root)
 
     // Bench instrumentation: accumulate content-phase timing.
     const acc = (globalThis as any).__silvery_bench_phases
@@ -655,6 +656,8 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       props,
       children: [],
       parent: null,
+      // Nodes an Ag mints belong to the tree that Ag renders.
+      epochOwner: root.epochOwner,
       layoutNode,
       boxRect: null,
       scrollRect: null,
@@ -664,7 +667,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       prevScreenRect: null,
       layoutChangedThisFrame: INITIAL_EPOCH,
       dirtyBits: ALL_RECONCILER_BITS,
-      dirtyEpoch: getRenderEpoch(),
+      dirtyEpoch: getRenderEpoch(root),
     }
   }
 
@@ -750,10 +753,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     setText(node, text) {
       ;(node as any).textContent = text
-      const epoch = getRenderEpoch()
-      const bits = CONTENT_BIT | STYLE_PROPS_BIT
-      node.dirtyBits = node.dirtyEpoch !== epoch ? bits : node.dirtyBits | bits
-      node.dirtyEpoch = epoch
+      markDirty(node, CONTENT_BIT | STYLE_PROPS_BIT)
       if (node.layoutNode) {
         node.layoutNode.markDirty()
       }

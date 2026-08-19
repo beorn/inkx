@@ -17,6 +17,8 @@ import {
 // of truth. No silvery-side layout dirty tracking needed.
 import {
   getRenderEpoch,
+  markDirty,
+  setDirty,
   INITIAL_EPOCH,
   isCurrentEpoch,
   isDirty,
@@ -264,7 +266,7 @@ export function layoutPhase(
     // These checks run in propagateLayout normally, but when the layout
     // phase skips, they're never computed. Run a lightweight traversal
     // that follows only subtreeDirty paths to cache these inputs.
-    if (isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)) {
+    if (isDirty(root, SUBTREE_BIT)) {
       propagateCascadeInputs(root)
     }
     return
@@ -384,8 +386,8 @@ function propagateLayout(
   if (
     incrementalSkip &&
     node.boxRect &&
-    !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) &&
-    !isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)
+    !isDirty(node, SUBTREE_BIT) &&
+    !isDirty(node, CHILDREN_BIT)
   ) {
     if (
       rect.x === node.boxRect.x &&
@@ -415,14 +417,14 @@ function propagateLayout(
   // layout phase skips on subsequent frames, this epoch is explicitly set
   // each time propagateLayout runs and expires when the render epoch advances.
   const layoutDidChange = !!(node.prevLayout && !rectEqual(node.prevLayout, node.boxRect))
-  node.layoutChangedThisFrame = layoutDidChange ? getRenderEpoch() : INITIAL_EPOCH
+  node.layoutChangedThisFrame = layoutDidChange ? getRenderEpoch(node) : INITIAL_EPOCH
 
   // STRICT invariant: if layoutChangedThisFrame is current epoch, prevLayout must differ from boxRect.
   // This validates that the flag is consistent with the actual rect comparison. A violation
   // would mean the flag is set spuriously, causing unnecessary re-renders and cascade propagation.
   if (
     isStrictEnabled(LAYOUT_FLAG_STRICT_SLUG, LAYOUT_FLAG_STRICT_MIN_TIER) &&
-    isCurrentEpoch(node.layoutChangedThisFrame)
+    isCurrentEpoch(node, node.layoutChangedThisFrame)
   ) {
     if (rectEqual(node.prevLayout, node.boxRect)) {
       const props = node.props as BoxProps
@@ -437,16 +439,10 @@ function propagateLayout(
   // fast-path skip them. Without this, a deeply nested node whose dimensions
   // change (e.g., width 3→4) would never be re-rendered because all ancestors
   // appear clean — their own layout didn't change, just a descendant's did.
-  if (isCurrentEpoch(node.layoutChangedThisFrame)) {
-    const epoch = getRenderEpoch()
+  if (isCurrentEpoch(node, node.layoutChangedThisFrame)) {
     let ancestor = node.parent
-    while (ancestor && !isDirty(ancestor.dirtyBits, ancestor.dirtyEpoch, SUBTREE_BIT)) {
-      if (ancestor.dirtyEpoch !== epoch) {
-        ancestor.dirtyBits = SUBTREE_BIT
-        ancestor.dirtyEpoch = epoch
-      } else {
-        ancestor.dirtyBits |= SUBTREE_BIT
-      }
+    while (ancestor && !isDirty(ancestor, SUBTREE_BIT)) {
+      markDirty(ancestor, SUBTREE_BIT)
       ancestor = ancestor.parent
     }
   }
@@ -460,9 +456,7 @@ function propagateLayout(
   // Both checks require children to have finalized layoutChangedThisFrame, boxRect,
   // prevLayout, childrenDirtyEpoch, and subtreeDirtyEpoch — all set above.
   // Guard: only compute when subtreeDirty (matches buildCascadeInputs guard).
-  if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) && node.children.length > 0) {
-    const epoch = getRenderEpoch()
-
+  if (isDirty(node, SUBTREE_BIT) && node.children.length > 0) {
     // absoluteChildMutated: check direct children for absolute-positioned nodes
     // that had structural changes (children mount/unmount/reorder, layout change,
     // child position shift).
@@ -478,11 +472,10 @@ function propagateLayout(
     else bits &= ~ABS_CHILD_BIT
     if (descOverflow) bits |= DESC_OVERFLOW_BIT
     else bits &= ~DESC_OVERFLOW_BIT
-    node.dirtyBits = bits
-    node.dirtyEpoch = epoch
+    setDirty(node, bits)
   } else {
     // Clear layout-phase bits (keep reconciler bits intact)
-    if (node.dirtyEpoch === getRenderEpoch()) {
+    if (node.dirtyEpoch === getRenderEpoch(node)) {
       node.dirtyBits &= ~(ABS_CHILD_BIT | DESC_OVERFLOW_BIT)
     }
   }
@@ -502,18 +495,17 @@ function propagateLayout(
  * No layout changes, no prevLayout updates, no layoutChangedThisFrame.
  */
 function propagateCascadeInputs(node: AgNode): void {
-  if (!isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) return
+  if (!isDirty(node, SUBTREE_BIT)) return
   if (!node.children || node.children.length === 0) return
 
   // Recurse into dirty children first (they need their own cascade inputs)
   for (const child of node.children) {
-    if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT)) {
+    if (isDirty(child, SUBTREE_BIT)) {
       propagateCascadeInputs(child)
     }
   }
 
   // Compute cascade inputs for this node (same logic as in propagateLayout)
-  const epoch = getRenderEpoch()
   const absChild = _hasAbsoluteChildMutated(node.children)
   const descOverflow = node.boxRect ? _hasDescendantOverflowChanged(node, node.boxRect) : false
 
@@ -522,8 +514,7 @@ function propagateCascadeInputs(node: AgNode): void {
   else bits &= ~ABS_CHILD_BIT
   if (descOverflow) bits |= DESC_OVERFLOW_BIT
   else bits &= ~DESC_OVERFLOW_BIT
-  node.dirtyBits = bits
-  node.dirtyEpoch = epoch
+  setDirty(node, bits)
 }
 
 /**
@@ -534,8 +525,8 @@ function _hasAbsoluteChildMutated(children: readonly AgNode[]): boolean {
     const cp = child.props as BoxProps
     if (
       cp.position === "absolute" &&
-      (isDirty(child.dirtyBits, child.dirtyEpoch, CHILDREN_BIT) ||
-        isCurrentEpoch(child.layoutChangedThisFrame) ||
+      (isDirty(child, CHILDREN_BIT) ||
+        isCurrentEpoch(child, child.layoutChangedThisFrame) ||
         _hasChildPositionChanged(child))
     ) {
       return true
@@ -675,7 +666,7 @@ function _checkDescendantOverflow(
   nodeBottom: number,
 ): boolean {
   for (const child of children) {
-    if (child.prevLayout && isCurrentEpoch(child.layoutChangedThisFrame)) {
+    if (child.prevLayout && isCurrentEpoch(child, child.layoutChangedThisFrame)) {
       const prev = child.prevLayout
       // Case 1: prev extended outside `node`'s current rect.
       if (
@@ -714,7 +705,7 @@ function _checkDescendantOverflow(
         }
       }
     }
-    if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT) && child.children !== undefined) {
+    if (isDirty(child, SUBTREE_BIT) && child.children !== undefined) {
       if (_checkDescendantOverflow(child.children, nodeLeft, nodeTop, nodeRight, nodeBottom)) {
         return true
       }
@@ -1494,13 +1485,7 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
     firstVisible !== prevFirstVisible ||
     lastVisible !== prevLastVisible
   ) {
-    const epoch = getRenderEpoch()
-    if (node.dirtyEpoch !== epoch) {
-      node.dirtyBits = SUBTREE_BIT
-      node.dirtyEpoch = epoch
-    } else {
-      node.dirtyBits |= SUBTREE_BIT
-    }
+    markDirty(node, SUBTREE_BIT)
   }
 
   // Store scroll state (preserve previous offset and visible range for incremental rendering)
@@ -1688,13 +1673,7 @@ export function stickyPhase(root: AgNode): void {
       // Clear stale data if previously had sticky children
       if (node.stickyChildren !== undefined) {
         node.stickyChildren = undefined
-        const epoch = getRenderEpoch()
-        if (node.dirtyEpoch !== epoch) {
-          node.dirtyBits = SUBTREE_BIT
-          node.dirtyEpoch = epoch
-        } else {
-          node.dirtyBits |= SUBTREE_BIT
-        }
+        markDirty(node, SUBTREE_BIT)
       }
       return
     }
@@ -1746,13 +1725,7 @@ export function stickyPhase(root: AgNode): void {
     node.stickyChildren = next
 
     if (changed) {
-      const epoch = getRenderEpoch()
-      if (node.dirtyEpoch !== epoch) {
-        node.dirtyBits = SUBTREE_BIT
-        node.dirtyEpoch = epoch
-      } else {
-        node.dirtyBits |= SUBTREE_BIT
-      }
+      markDirty(node, SUBTREE_BIT)
       // Always-on violation ring (cheap id; rare path — one record per resettle).
       recordPassRing("sticky-resettle", "stickyChildren", explicitIdent(node) ?? node.type)
       if (INSTRUMENT) {

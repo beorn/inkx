@@ -28,7 +28,13 @@
 import { test, expect, describe, beforeAll } from "vitest"
 import { hostConfig } from "@silvery/ag-react/reconciler/host-config"
 import { createNode } from "@silvery/ag-react/reconciler/nodes"
-import { isDirty, SUBTREE_BIT, CHILDREN_BIT, advanceRenderEpoch } from "@silvery/ag/epoch"
+import {
+  isDirty,
+  SUBTREE_BIT,
+  CHILDREN_BIT,
+  advanceRenderEpoch,
+  createEpochOwner,
+} from "@silvery/ag/epoch"
 import { ensureDefaultLayoutEngine } from "@silvery/ag-term/layout-engine"
 
 beforeAll(async () => {
@@ -37,54 +43,54 @@ beforeAll(async () => {
 
 describe("layoutDirty removal — dirty-flag propagation regression", () => {
   test("appendChild propagates SUBTREE_BIT to ancestor (ea8638fe)", () => {
-    advanceRenderEpoch()
-    const root = createNode("silvery-box", {})
-    const mid = createNode("silvery-box", {})
-    const leaf = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const root = createNode("silvery-box", {}, tree)
+    const mid = createNode("silvery-box", {}, tree)
+    const leaf = createNode("silvery-box", {}, tree)
     hostConfig.appendInitialChild(root, mid)
 
     // Clean state
-    advanceRenderEpoch()
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(false)
+    advanceRenderEpoch(root)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(false)
 
     // Dynamic mount: runtime appendChild
     hostConfig.appendChild(mid, leaf)
 
     // SUBTREE_BIT must reach root so propagateLayout won't skip it.
-    expect(isDirty(mid.dirtyBits, mid.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(mid.dirtyBits, mid.dirtyEpoch, CHILDREN_BIT)).toBe(true)
+    expect(isDirty(mid, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(mid, CHILDREN_BIT)).toBe(true)
     // Flexily isDirty also propagates to root.
     expect(root.layoutNode!.isDirty()).toBe(true)
   })
 
   test("removeChild propagates SUBTREE_BIT to ancestor (3c27b790 fold/collapse)", () => {
-    advanceRenderEpoch()
-    const root = createNode("silvery-box", {})
-    const mid = createNode("silvery-box", {})
-    const leaf = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const root = createNode("silvery-box", {}, tree)
+    const mid = createNode("silvery-box", {}, tree)
+    const leaf = createNode("silvery-box", {}, tree)
     hostConfig.appendInitialChild(root, mid)
     hostConfig.appendInitialChild(mid, leaf)
 
-    advanceRenderEpoch()
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(false)
+    advanceRenderEpoch(root)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(false)
 
     hostConfig.removeChild(mid, leaf)
 
-    expect(isDirty(mid.dirtyBits, mid.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(mid.dirtyBits, mid.dirtyEpoch, CHILDREN_BIT)).toBe(true)
+    expect(isDirty(mid, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(mid, CHILDREN_BIT)).toBe(true)
     expect(root.layoutNode!.isDirty()).toBe(true)
   })
 
   test("commitUpdate with layoutChanged propagates SUBTREE_BIT", () => {
-    advanceRenderEpoch()
-    const root = createNode("silvery-box", {})
-    const mid = createNode("silvery-box", { margin: 0 } as any)
+    const tree = createEpochOwner()
+    const root = createNode("silvery-box", {}, tree)
+    const mid = createNode("silvery-box", { margin: 0 } as any, tree)
     hostConfig.appendInitialChild(root, mid)
 
-    advanceRenderEpoch()
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(false)
+    advanceRenderEpoch(root)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(false)
 
     const oldProps = { margin: 0 } as any
     const newProps = { margin: 2 } as any
@@ -92,45 +98,45 @@ describe("layoutDirty removal — dirty-flag propagation regression", () => {
     hostConfig.commitUpdate(mid, "silvery-box", oldProps, newProps, null)
 
     // markSubtreeDirty(mid) fires when layoutChanged → SUBTREE_BIT walks to root
-    expect(isDirty(mid.dirtyBits, mid.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(mid, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(true)
     // Flexily markDirty() propagates to root.
     expect(root.layoutNode!.isDirty()).toBe(true)
   })
 
   test("clearContainer sets CHILDREN_BIT + SUBTREE_BIT + Flexily dirty", () => {
-    advanceRenderEpoch()
-    const root = createNode("silvery-box", {})
-    const child = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const root = createNode("silvery-box", {}, tree)
+    const child = createNode("silvery-box", {}, tree)
     hostConfig.appendInitialChild(root, child)
 
-    advanceRenderEpoch()
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, CHILDREN_BIT)).toBe(false)
+    advanceRenderEpoch(root)
+    expect(isDirty(root, CHILDREN_BIT)).toBe(false)
 
     hostConfig.clearContainer({ root, onRender: () => {} })
 
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, CHILDREN_BIT)).toBe(true)
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(root, CHILDREN_BIT)).toBe(true)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(true)
     expect(root.layoutNode!.isDirty()).toBe(true)
   })
 
   test("hideInstance propagates SUBTREE_BIT and Flexily dirty", () => {
-    advanceRenderEpoch()
-    const root = createNode("silvery-box", {})
-    const mid = createNode("silvery-box", {})
-    const leaf = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const root = createNode("silvery-box", {}, tree)
+    const mid = createNode("silvery-box", {}, tree)
+    const leaf = createNode("silvery-box", {}, tree)
     hostConfig.appendInitialChild(root, mid)
     hostConfig.appendInitialChild(mid, leaf)
 
-    advanceRenderEpoch()
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(false)
+    advanceRenderEpoch(root)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(false)
 
     hostConfig.hideInstance(leaf)
 
     expect(leaf.hidden).toBe(true)
-    expect(isDirty(leaf.dirtyBits, leaf.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(mid.dirtyBits, mid.dirtyEpoch, SUBTREE_BIT)).toBe(true)
-    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(leaf, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(mid, SUBTREE_BIT)).toBe(true)
+    expect(isDirty(root, SUBTREE_BIT)).toBe(true)
     expect(root.layoutNode!.isDirty()).toBe(true)
   })
 })

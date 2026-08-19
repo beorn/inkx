@@ -6,6 +6,7 @@
 
 import type { DragEventProps } from "./drag-event-types"
 import type { BuiltInBorderStyle } from "./border-presets"
+import type { EpochOwner } from "./epoch"
 import type { FocusEventProps } from "./focus-events"
 import type { LayoutNode } from "./layout-types"
 import type { MouseEventProps } from "./mouse-event-types"
@@ -1243,6 +1244,14 @@ export interface AgNode {
   /** Parent node (null for root) */
   parent: AgNode | null
 
+  /**
+   * Render-epoch state of the tree this node belongs to. Shared by every node
+   * in one tree and never shared BETWEEN trees — a peer renderer advancing its
+   * own epoch must not make this node's pending dirty bits read as clean.
+   * See `epoch.ts` for why that would surface as stale on-screen residue.
+   */
+  epochOwner: EpochOwner
+
   /** The layout node for layout calculation (null for raw text nodes) */
   layoutNode: LayoutNode | null
 
@@ -1308,9 +1317,9 @@ export interface AgNode {
    * Outlines do NOT get a dirty bit — the decoration phase redraws them
    * every frame with per-cell snapshots (see pipeline/decoration-phase.ts).
    *
-   * Check: `isDirty(node.dirtyBits, node.dirtyEpoch, BIT)`
-   * Set:   `node.dirtyBits = setDirtyBit(node.dirtyBits, node.dirtyEpoch, BIT); node.dirtyEpoch = getRenderEpoch()`
-   * Clear: `advanceRenderEpoch()` — all nodes instantly become clean
+   * Check: `isDirty(node, BIT)`
+   * Set:   `markDirty(node, BIT)`
+   * Clear: `advanceRenderEpoch(node)` — every node in THIS tree becomes clean
    *
    * NOTE: measure phase may clear CONTENT_BIT — STYLE_PROPS_BIT acts as the
    * surviving witness for style changes. See render-phase.ts contentAreaAffected.

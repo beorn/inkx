@@ -113,13 +113,9 @@ export function renderPhase(
   // - Signal-driven updates (v1.5) that bypass React
   // - Timer-driven re-renders where nothing changed
   // - Scheduler polling without React pending work
-  if (
-    hasPrevBuffer &&
-    !isAnyDirty(root.dirtyBits, root.dirtyEpoch) &&
-    !isCurrentEpoch(root.layoutChangedThisFrame)
-  ) {
+  if (hasPrevBuffer && !isAnyDirty(root) && !isCurrentEpoch(root, root.layoutChangedThisFrame)) {
     if (instr.enabled) instr.stats._noopSkip = 1
-    advanceRenderEpoch()
+    advanceRenderEpoch(root)
     return prevBuffer
   }
 
@@ -200,14 +196,14 @@ export function renderPhase(
   // The layout phase sets layoutChangedThisFrame on affected nodes; if root's
   // subtree has any, we need the full sync. If not, prevLayout is already correct.
   const anyLayoutChanged =
-    isCurrentEpoch(root.layoutChangedThisFrame) ||
-    isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)
+    isCurrentEpoch(root, root.layoutChangedThisFrame) || isDirty(root, SUBTREE_BIT)
   syncPrevLayout(root, anyLayoutChanged || !hasPrevBuffer)
 
   // Advance the render epoch — all dirty flags stamped with the old epoch
   // instantly become "not dirty". This replaces the O(N) clearDirtyFlags walk
-  // for rendered nodes (skipped nodes still need explicit clearing).
-  advanceRenderEpoch()
+  // for rendered nodes (skipped nodes still need explicit clearing). Scoped to
+  // THIS tree — a peer renderer's frame must never clear our pending bits.
+  advanceRenderEpoch(root)
 
   return buffer
 }
@@ -491,7 +487,7 @@ function renderNodeToBuffer(
 
   // FAST PATH: Skip entire subtree if unchanged and we have a previous buffer.
   // layoutChanged uses layoutChangedThisFrame (symmetric between incremental/fresh).
-  const layoutChanged = isCurrentEpoch(node.layoutChangedThisFrame)
+  const layoutChanged = isCurrentEpoch(node, node.layoutChangedThisFrame)
   const childPositionChanged = !!(hasPrevBuffer && !layoutChanged && hasChildPositionChanged(node))
   const scrollOffsetChanged = !!(
     node.scrollState && node.scrollState.offset !== node.scrollState.prevOffset
@@ -499,11 +495,11 @@ function renderNodeToBuffer(
 
   const canSkipEntireSubtree =
     hasPrevBuffer &&
-    !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) &&
-    !isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) &&
+    !isDirty(node, CONTENT_BIT) &&
+    !isDirty(node, STYLE_PROPS_BIT) &&
     !layoutChanged &&
-    !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) &&
-    !isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) &&
+    !isDirty(node, SUBTREE_BIT) &&
+    !isDirty(node, CHILDREN_BIT) &&
     !childPositionChanged &&
     !ancestorLayoutChanged &&
     !scrollOffsetChanged
@@ -562,11 +558,11 @@ function renderNodeToBuffer(
   if (instr.enabled) {
     instr.stats.nodesRendered++
     if (!hasPrevBuffer) instr.stats.noPrevBuffer++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) instr.stats.flagContentDirty++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) instr.stats.flagStylePropsDirty++
+    if (isDirty(node, CONTENT_BIT)) instr.stats.flagContentDirty++
+    if (isDirty(node, STYLE_PROPS_BIT)) instr.stats.flagStylePropsDirty++
     if (layoutChanged) instr.stats.flagLayoutChanged++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) instr.stats.flagSubtreeDirty++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) instr.stats.flagChildrenDirty++
+    if (isDirty(node, SUBTREE_BIT)) instr.stats.flagSubtreeDirty++
+    if (isDirty(node, CHILDREN_BIT)) instr.stats.flagChildrenDirty++
     if (childPositionChanged) instr.stats.flagChildPositionChanged++
     if (ancestorLayoutChanged) instr.stats.flagAncestorLayoutChanged++
   }
@@ -613,15 +609,15 @@ function renderNodeToBuffer(
     // SILVERY_REACTIVE=0 falls back to imperative computeCascade (bench only).
     const cascadeInputs = {
       hasPrevBuffer,
-      contentDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT),
-      stylePropsDirty: isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT),
+      contentDirty: isDirty(node, CONTENT_BIT),
+      stylePropsDirty: isDirty(node, STYLE_PROPS_BIT),
       layoutChanged,
-      subtreeDirty: isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT),
-      childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
+      subtreeDirty: isDirty(node, SUBTREE_BIT),
+      childrenDirty: isDirty(node, CHILDREN_BIT),
       childPositionChanged,
       ancestorLayoutChanged,
       ancestorCleared,
-      bgDirty: isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT),
+      bgDirty: isDirty(node, BG_BIT),
       isTextNode: node.type === "silvery-text",
       hasBgColor: !!getEffectiveBg(props),
       absoluteChildMutated,
@@ -685,7 +681,7 @@ function renderNodeToBuffer(
     // never had overlay (both current and prev frame) stay on the fast path.
     if (
       node.type === "silvery-box" &&
-      isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) &&
+      isDirty(node, STYLE_PROPS_BIT) &&
       (mayHaveBoxAttrOverlay(props as BoxProps) || node.hadBoxAttrOverlay)
     ) {
       const contentRegionCleared = (hasPrevBuffer || ancestorCleared) && !getEffectiveBg(props)
@@ -760,7 +756,7 @@ function renderNodeToBuffer(
       !ancestorCleared &&
       !ancestorLayoutChanged &&
       !layoutChanged &&
-      !isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT) &&
+      !isDirty(node, BG_BIT) &&
       // A truncate hook / internal_transform produces rendered chars that are
       // NOT reflected in the plain-text signature (their output can change with
       // identical raw text), so neither the sig nor the cloned chars are a sound
@@ -772,11 +768,7 @@ function renderNodeToBuffer(
       const prevSig = _textContentSigs.get(node)
       // A style change is the only thing left that re-rendered this node with
       // identical content — exactly the restyle case.
-      if (
-        prevSig !== undefined &&
-        prevSig === sig &&
-        isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)
-      ) {
+      if (prevSig !== undefined && prevSig === sig && isDirty(node, STYLE_PROPS_BIT)) {
         useTextStyleFastPath = true
       }
       _textContentSigs.set(node, sig)
@@ -816,7 +808,7 @@ function renderNodeToBuffer(
       ancestorCleared ||
       ancestorLayoutChanged ||
       cascade.contentAreaAffected ||
-      isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) ||
+      isDirty(node, STYLE_PROPS_BIT) ||
       cascade.bgRefillNeeded
 
     if (needsOwnRepaint) {
@@ -950,19 +942,15 @@ function buildCascadeInputs(
   node: AgNode,
   hasPrevBuffer: boolean,
 ): { absoluteChildMutated: boolean; descendantOverflowChanged: boolean } {
-  if (
-    !hasPrevBuffer ||
-    !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) ||
-    node.children === undefined
-  ) {
+  if (!hasPrevBuffer || !isDirty(node, SUBTREE_BIT) || node.children === undefined) {
     return { absoluteChildMutated: false, descendantOverflowChanged: false }
   }
 
   // Phase 3b: Read cached epoch values computed during layout phase
   // (propagateLayout), avoiding per-node tree walks in the render phase.
   return {
-    absoluteChildMutated: isDirty(node.dirtyBits, node.dirtyEpoch, ABS_CHILD_BIT),
-    descendantOverflowChanged: isDirty(node.dirtyBits, node.dirtyEpoch, DESC_OVERFLOW_BIT),
+    absoluteChildMutated: isDirty(node, ABS_CHILD_BIT),
+    descendantOverflowChanged: isDirty(node, DESC_OVERFLOW_BIT),
   }
 }
 
@@ -1002,19 +990,17 @@ function traceRenderDecision(
   if (instrumentEnabled) {
     if (_traceThis) {
       const flagStr = [
-        isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) && "C",
-        isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) && "P",
-        isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT) && "B",
-        isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) && "S",
-        isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) && "Ch",
+        isDirty(node, CONTENT_BIT) && "C",
+        isDirty(node, STYLE_PROPS_BIT) && "P",
+        isDirty(node, BG_BIT) && "B",
+        isDirty(node, SUBTREE_BIT) && "S",
+        isDirty(node, CHILDREN_BIT) && "Ch",
         childPositionChanged && "CP",
       ]
         .filter(Boolean)
         .join(",")
       const childrenNeedRepaint_ =
-        isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) ||
-        childPositionChanged ||
-        childrenNeedFreshRender
+        isDirty(node, CHILDREN_BIT) || childPositionChanged || childrenNeedFreshRender
       const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
       const childAncestorCleared_ =
         contentRegionCleared || (ancestorCleared && !getEffectiveBg(props))
@@ -1047,9 +1033,9 @@ function traceRenderDecision(
       }
       const id = (node.props as Record<string, unknown>).id ?? node.type
       const flags = [
-        isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) && "C",
-        isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) && "P",
-        isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) && "Ch",
+        isDirty(node, CONTENT_BIT) && "C",
+        isDirty(node, STYLE_PROPS_BIT) && "P",
+        isDirty(node, CHILDREN_BIT) && "Ch",
         layoutChanged && "L",
         childPositionChanged && "CP",
       ]
@@ -1066,13 +1052,13 @@ function traceRenderDecision(
     const depth = _getNodeDepth(node)
     const prev = node.prevLayout
     const flags = [
-      isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) && "C",
-      isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) && "P",
+      isDirty(node, CONTENT_BIT) && "C",
+      isDirty(node, STYLE_PROPS_BIT) && "P",
       layoutChanged && "L",
-      isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) && "S",
-      isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) && "Ch",
+      isDirty(node, SUBTREE_BIT) && "S",
+      isDirty(node, CHILDREN_BIT) && "Ch",
       childPositionChanged && "CP",
-      isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT) && "B",
+      isDirty(node, BG_BIT) && "B",
     ]
       .filter(Boolean)
       .join(",")
@@ -1682,7 +1668,7 @@ function renderScrollContainerChildren(
   // Compute scroll bg eagerly -- planScrollRender needs it and it's cheap
   const scrollBg =
     scrollOffsetChanged ||
-    isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) ||
+    isDirty(node, CHILDREN_BIT) ||
     childrenNeedFreshRender ||
     visibleRangeChanged
       ? getEffectiveBg(props)
@@ -1708,7 +1694,7 @@ function renderScrollContainerChildren(
     descendantDirty,
     hasStickyChildren,
     childrenNeedFreshRender,
-    childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
+    childrenDirty: isDirty(node, CHILDREN_BIT),
     hasPrevBuffer,
     ancestorCleared,
     contentRegionCleared,
@@ -1780,7 +1766,7 @@ function renderScrollContainerChildren(
 
   // Propagate ancestor layout change to scroll container children.
   const childAncestorLayoutChanged =
-    isCurrentEpoch(node.layoutChangedThisFrame) || !!ancestorLayoutChanged
+    isCurrentEpoch(node, node.layoutChangedThisFrame) || !!ancestorLayoutChanged
 
   // For buffer shift: children that were fully visible in BOTH the previous
   // and current frames have correct pixels after the shift (childHasPrev=true).
@@ -2035,13 +2021,11 @@ function renderNormalChildren(
   // Force children to re-render when parent's region was modified on a clone,
   // children were restructured, or sibling positions shifted.
   const childrenNeedRepaint =
-    isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) ||
-    childPositionChanged ||
-    childrenNeedFreshRender
+    isDirty(node, CHILDREN_BIT) || childPositionChanged || childrenNeedFreshRender
   if (instr.enabled && childrenNeedRepaint && hasPrevBuffer) {
     instr.stats.normalChildrenRepaint++
     const reasons: string[] = []
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) reasons.push("childrenDirty")
+    if (isDirty(node, CHILDREN_BIT)) reasons.push("childrenDirty")
     if (childPositionChanged) reasons.push("childPositionChanged")
     if (childrenNeedFreshRender) reasons.push("childrenNeedFreshRender")
     instr.stats.normalRepaintReason = reasons.join("+")
@@ -2060,7 +2044,7 @@ function renderNormalChildren(
   // had layoutChangedThisFrame, children must not be skipped even if their own
   // flags are clean — their pixels in the cloned buffer are at wrong positions.
   const childAncestorLayoutChanged =
-    isCurrentEpoch(node.layoutChangedThisFrame) || !!ancestorLayoutChanged
+    isCurrentEpoch(node, node.layoutChangedThisFrame) || !!ancestorLayoutChanged
 
   // Override child flags when sticky force refresh is active — all first-pass
   // children must re-render fresh (matching the scroll container pattern).
@@ -2323,7 +2307,7 @@ function computeSubtreePaintExtent(node: AgNode): NonNullable<AgNode["boxRect"]>
   // the prevLayout-overflow region (see _clearDescendantOverflow). The
   // sibling-overlap pass must treat the cleared (old) extent as "painted"
   // so later siblings overlapping it repaint over the clear.
-  if (node.prevLayout && isCurrentEpoch(node.layoutChangedThisFrame)) {
+  if (node.prevLayout && isCurrentEpoch(node, node.layoutChangedThisFrame)) {
     const prev = node.prevLayout
     if (prev.x < minX) minX = prev.x
     if (prev.y < minY) minY = prev.y
@@ -2376,10 +2360,10 @@ function canSkipChildSubtree(
   // Ancestor layout change forces re-render at new position
   if (childAncestorLayoutChanged) return false
   // Any descendant dirty (includes own flags via markSubtreeDirty)
-  if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT)) return false
+  if (isDirty(child, SUBTREE_BIT)) return false
   // Own layout changed (layout phase sets this but only propagates
   // subtreeDirtyEpoch to PARENT, not self)
-  if (isCurrentEpoch(child.layoutChangedThisFrame)) return false
+  if (isCurrentEpoch(child, child.layoutChangedThisFrame)) return false
   // Defensive: scroll offset changed without dirty propagation
   if (child.scrollState && child.scrollState.offset !== child.scrollState.prevOffset) return false
   return true
@@ -2395,8 +2379,8 @@ function canSkipChildSubtree(
  */
 function hasDirtyScrollDescendant(node: AgNode): boolean {
   for (const child of node.children) {
-    if (isAnyDirty(child.dirtyBits, child.dirtyEpoch)) return true
-    if (isCurrentEpoch(child.layoutChangedThisFrame)) return true
+    if (isAnyDirty(child)) return true
+    if (isCurrentEpoch(child, child.layoutChangedThisFrame)) return true
   }
   return false
 }
@@ -2411,8 +2395,9 @@ function hasDirtyScrollDescendant(node: AgNode): boolean {
  *
  * With epoch-stamped flags, this is only needed when a subtree is SKIPPED
  * by the fast path (clearDirtyFlags on skipped subtrees) or for the
- * render-phase-adapter. The normal render path relies on advanceRenderEpoch()
- * to expire all flags at once — O(1) instead of O(N).
+ * render-phase-adapter. The normal render path relies on
+ * advanceRenderEpoch(root) to expire this tree's flags at once — O(1) instead
+ * of O(N).
  */
 function clearNodeDirtyFlags(node: AgNode): void {
   node.dirtyBits = 0
@@ -2626,7 +2611,7 @@ function _clearDescendantOverflow(
     // box edge) is still cleared.
     if (
       child.prevLayout &&
-      isCurrentEpoch(child.layoutChangedThisFrame) &&
+      isCurrentEpoch(child, child.layoutChangedThisFrame) &&
       nodeEmitsOwnPixels(child)
     ) {
       const prev = child.prevLayout
@@ -2710,7 +2695,7 @@ function _clearDescendantOverflow(
       }
     }
     // Recurse into subtree-dirty children to find deeper overflows
-    if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT) && child.children !== undefined) {
+    if (isDirty(child, SUBTREE_BIT) && child.children !== undefined) {
       // Narrow the clip when descending through a clipping (`overflow: hidden`)
       // child. Such a child bounds its descendants' PAINT to its content rect,
       // so a descendant whose LAYOUT overflows the clearing node was actually

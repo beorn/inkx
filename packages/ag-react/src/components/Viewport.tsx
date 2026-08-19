@@ -29,7 +29,7 @@ import {
 } from "react"
 import type { AgNode, Cell } from "@silvery/ag/types"
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
-import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
+import { CONTENT_BIT, SUBTREE_BIT, isDirty, markDirty } from "@silvery/ag/epoch"
 import { createCellBuffer, type MutableCellBuffer } from "@silvery/ag/viewport-buffer"
 import type {
   CellBuffer,
@@ -257,32 +257,21 @@ export const Viewport = forwardRef(function Viewport(
  * single consumer.
  */
 function markNodeDirty(node: AgNode): void {
-  const epoch = getRenderEpoch()
   // Set CONTENT_BIT (for renderOwnContent dispatch) AND SUBTREE_BIT (so
   // `canSkipChildSubtree` in render-phase.ts:2261 — which gates on
   // SUBTREE_BIT, not CONTENT_BIT — doesn't bypass the viewport's
   // `renderNodeToBuffer` call).
   const ownBits = CONTENT_BIT | SUBTREE_BIT
-  if (node.dirtyEpoch !== epoch) {
-    node.dirtyBits = ownBits
-    node.dirtyEpoch = epoch
-  } else {
-    node.dirtyBits |= ownBits
-  }
+  markDirty(node, ownBits)
   trackContentDirty(node)
   // Propagate SUBTREE_BIT up the parent chain so renderPhase's no-op-frame
-  // skip (`!isAnyDirty(root.dirtyBits, root.dirtyEpoch)` at render-phase.ts
+  // skip (`!isAnyDirty(root)` at render-phase.ts
   // ~line 114) actually enters the walk. Mirrors `markSubtreeDirty` in
   // host-config.ts — inlined here to avoid widening the reconciler's public
   // surface for a single consumer.
   let ancestor: AgNode | null = node.parent
-  while (ancestor && !isDirty(ancestor.dirtyBits, ancestor.dirtyEpoch, SUBTREE_BIT)) {
-    if (ancestor.dirtyEpoch !== epoch) {
-      ancestor.dirtyBits = SUBTREE_BIT
-      ancestor.dirtyEpoch = epoch
-    } else {
-      ancestor.dirtyBits |= SUBTREE_BIT
-    }
+  while (ancestor && !isDirty(ancestor, SUBTREE_BIT)) {
+    markDirty(ancestor, SUBTREE_BIT)
     ancestor = ancestor.parent
   }
 }

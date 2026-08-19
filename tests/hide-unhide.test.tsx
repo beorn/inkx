@@ -16,7 +16,13 @@ import { createRenderer } from "@silvery/test"
 import { Box, Text } from "@silvery/ag-react"
 import { hostConfig } from "@silvery/ag-react/reconciler/host-config"
 import { createNode } from "@silvery/ag-react/reconciler/nodes"
-import { INITIAL_EPOCH, isDirty, CONTENT_BIT, STYLE_PROPS_BIT } from "@silvery/ag/epoch"
+import {
+  INITIAL_EPOCH,
+  isDirty,
+  CONTENT_BIT,
+  STYLE_PROPS_BIT,
+  createEpochOwner,
+} from "@silvery/ag/epoch"
 
 /**
  * Create a controllable promise for testing Suspense.
@@ -219,7 +225,8 @@ describe("hide/unhide instances (Suspense)", () => {
     //   !contentDirty && !stylePropsDirty && !layoutChanged && !subtreeDirty && !childrenDirty
     // contentDirty alone is consumed by the measure phase (cleared in measure func),
     // so stylePropsDirty is the surviving flag that ensures render phase re-renders the node.
-    const node = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const node = createNode("silvery-box", {}, tree)
     // Clear all flags (simulate post-render state)
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
@@ -227,13 +234,14 @@ describe("hide/unhide instances (Suspense)", () => {
     hostConfig.hideInstance(node)
 
     expect(node.hidden).toBe(true)
-    expect(isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)).toBe(true)
+    expect(isDirty(node, CONTENT_BIT)).toBe(true)
     // This is the missing flag — stylePropsDirty must be set
-    expect(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
+    expect(isDirty(node, STYLE_PROPS_BIT)).toBe(true)
   })
 
   test("unhideInstance sets stylePropsDirty on the instance", () => {
-    const node = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const node = createNode("silvery-box", {}, tree)
     node.hidden = true
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
@@ -241,15 +249,16 @@ describe("hide/unhide instances (Suspense)", () => {
     hostConfig.unhideInstance(node, {})
 
     expect(node.hidden).toBe(false)
-    expect(isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)).toBe(true)
-    expect(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
+    expect(isDirty(node, CONTENT_BIT)).toBe(true)
+    expect(isDirty(node, STYLE_PROPS_BIT)).toBe(true)
   })
 
   test("hideInstance marks Flexily layout node dirty", () => {
     // When a node is hidden, its measured content changes (collectNodeTextContent
     // skips hidden children). The layout engine must recalculate dimensions.
     // layoutNode.markDirty() is the sole mechanism — no silvery-side layoutDirty.
-    const node = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const node = createNode("silvery-box", {}, tree)
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
 
@@ -259,7 +268,8 @@ describe("hide/unhide instances (Suspense)", () => {
   })
 
   test("unhideInstance marks Flexily layout node dirty", () => {
-    const node = createNode("silvery-box", {})
+    const tree = createEpochOwner()
+    const node = createNode("silvery-box", {}, tree)
     node.hidden = true
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
@@ -273,8 +283,15 @@ describe("hide/unhide instances (Suspense)", () => {
   test("hideTextInstance sets stylePropsDirty and propagates layout dirty to ancestor", () => {
     // Text instances don't have layout nodes. markLayoutAncestorDirty must walk
     // up to the nearest layout ancestor and mark it dirty.
-    const parent = createNode("silvery-text", {})
-    const textNode = hostConfig.createTextInstance("hello", null, { isInsideText: true })
+    const tree = createEpochOwner()
+    const parent = createNode("silvery-text", {}, tree)
+    const textNode = hostConfig.createTextInstance(
+      "hello",
+      { root: parent, onRender: () => {} },
+      {
+        isInsideText: true,
+      },
+    )
     textNode.parent = parent
     parent.children.push(textNode)
     // Clear flags
@@ -286,17 +303,24 @@ describe("hide/unhide instances (Suspense)", () => {
     hostConfig.hideTextInstance(textNode)
 
     expect(textNode.hidden).toBe(true)
-    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, CONTENT_BIT)).toBe(true)
-    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
+    expect(isDirty(textNode, CONTENT_BIT)).toBe(true)
+    expect(isDirty(textNode, STYLE_PROPS_BIT)).toBe(true)
     // Parent (nearest layout ancestor) should be marked dirty
-    expect(isDirty(parent.dirtyBits, parent.dirtyEpoch, CONTENT_BIT)).toBe(true)
+    expect(isDirty(parent, CONTENT_BIT)).toBe(true)
     // parent's layoutNode.markDirty() should have been called via markLayoutAncestorDirty
     expect(parent.layoutNode!.isDirty()).toBe(true)
   })
 
   test("unhideTextInstance sets stylePropsDirty and propagates layout dirty to ancestor", () => {
-    const parent = createNode("silvery-text", {})
-    const textNode = hostConfig.createTextInstance("hello", null, { isInsideText: true })
+    const tree = createEpochOwner()
+    const parent = createNode("silvery-text", {}, tree)
+    const textNode = hostConfig.createTextInstance(
+      "hello",
+      { root: parent, onRender: () => {} },
+      {
+        isInsideText: true,
+      },
+    )
     textNode.parent = parent
     parent.children.push(textNode)
     textNode.hidden = true
@@ -308,9 +332,9 @@ describe("hide/unhide instances (Suspense)", () => {
     hostConfig.unhideTextInstance(textNode, "hello")
 
     expect(textNode.hidden).toBe(false)
-    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, CONTENT_BIT)).toBe(true)
-    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
-    expect(isDirty(parent.dirtyBits, parent.dirtyEpoch, CONTENT_BIT)).toBe(true)
+    expect(isDirty(textNode, CONTENT_BIT)).toBe(true)
+    expect(isDirty(textNode, STYLE_PROPS_BIT)).toBe(true)
+    expect(isDirty(parent, CONTENT_BIT)).toBe(true)
     // parent's layoutNode.markDirty() should have been called via markLayoutAncestorDirty
     expect(parent.layoutNode!.isDirty()).toBe(true)
   })

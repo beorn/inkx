@@ -779,11 +779,7 @@ function needsLayoutRecalculation(node: any): boolean {
   // Walk up from node to root checking dirty flags
   let current = node
   while (current) {
-    if (
-      isDirty(current.dirtyBits, current.dirtyEpoch, SUBTREE_BIT) ||
-      isDirty(current.dirtyBits, current.dirtyEpoch, CHILDREN_BIT)
-    )
-      return true
+    if (isDirty(current, SUBTREE_BIT) || isDirty(current, CHILDREN_BIT)) return true
     current = current.parent
   }
   return false

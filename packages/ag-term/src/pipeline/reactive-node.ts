@@ -213,11 +213,11 @@ export function syncToSignals(
   },
 ): void {
   // Sync epoch flags → boolean signals
-  state.contentDirty(isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT))
-  state.stylePropsDirty(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT))
-  state.bgDirty(isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT))
-  state.childrenDirty(isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT))
-  state.subtreeDirty(isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT))
+  state.contentDirty(isDirty(node, CONTENT_BIT))
+  state.stylePropsDirty(isDirty(node, STYLE_PROPS_BIT))
+  state.bgDirty(isDirty(node, BG_BIT))
+  state.childrenDirty(isDirty(node, CHILDREN_BIT))
+  state.subtreeDirty(isDirty(node, SUBTREE_BIT))
   state.layoutChanged(ctx.layoutChanged)
 
   // Sync context-dependent inputs

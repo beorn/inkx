@@ -276,8 +276,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
     // resets dirty rows to 0), preserving the row-level dirty markers that
     // the runtime diff needs to detect actual changes.
     // Exception: dimension changes require re-layout even without dirty flags.
-    const rootHasDirty =
-      rootNode.layoutNode?.isDirty() || isAnyDirty(rootNode.dirtyBits, rootNode.dirtyEpoch)
+    const rootHasDirty = rootNode.layoutNode?.isDirty() || isAnyDirty(rootNode)
     const dimsChanged =
       _lastLayoutDims != null &&
       (dims.cols !== _lastLayoutDims.cols || (!isInline && dims.rows !== _lastLayoutDims.rows))
@@ -287,13 +286,11 @@ export function createRenderer(opts: RendererOptions): Renderer {
     // The whole block constant-folds out when render tracing is disabled.
     const renderTraceDirtyReasons: string[] = []
     if (isRenderTraceEnabled()) {
-      const bits = rootNode.dirtyBits
-      const epoch = rootNode.dirtyEpoch
-      if (isDirty(bits, epoch, CONTENT_BIT)) renderTraceDirtyReasons.push("content")
-      if (isDirty(bits, epoch, STYLE_PROPS_BIT)) renderTraceDirtyReasons.push("styleProps")
-      if (isDirty(bits, epoch, BG_BIT)) renderTraceDirtyReasons.push("bg")
-      if (isDirty(bits, epoch, CHILDREN_BIT)) renderTraceDirtyReasons.push("children")
-      if (isDirty(bits, epoch, SUBTREE_BIT)) renderTraceDirtyReasons.push("subtree")
+      if (isDirty(rootNode, CONTENT_BIT)) renderTraceDirtyReasons.push("content")
+      if (isDirty(rootNode, STYLE_PROPS_BIT)) renderTraceDirtyReasons.push("styleProps")
+      if (isDirty(rootNode, BG_BIT)) renderTraceDirtyReasons.push("bg")
+      if (isDirty(rootNode, CHILDREN_BIT)) renderTraceDirtyReasons.push("children")
+      if (isDirty(rootNode, SUBTREE_BIT)) renderTraceDirtyReasons.push("subtree")
       if (rootNode.layoutNode?.isDirty()) renderTraceDirtyReasons.push("layout")
     }
 

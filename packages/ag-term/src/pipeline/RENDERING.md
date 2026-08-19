@@ -23,6 +23,8 @@ React state change fires. Reconciler walks the fiber tree and sets dirty flags o
 
 Layout-affecting prop changes call `node.layoutNode.markDirty()` directly — Flexily's `isDirty()` is the sole layout gate.
 
+Those flags are epoch stamps, not booleans: `markDirty(node, BIT)` stamps `node.dirtyEpoch` with the current epoch of the node's tree, and `isDirty(node, BIT)` holds only until step 3 ends with `advanceRenderEpoch(root)`. The epoch belongs to ONE tree (`node.epochOwner`) — a process-global counter lets a second renderer's frame clear this tree's pending flags between the reconciler's stamp here and the render phase's read in step 3, which shows up as stale pixels on screen. See [CLAUDE.md](CLAUDE.md#the-epoch-belongs-to-one-tree--never-the-process).
+
 Reconciler calls `scheduler.scheduleRender()`.
 
 ### 2. Scheduler Batching

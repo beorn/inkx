@@ -109,6 +109,20 @@ Layout-affecting prop changes call `node.layoutNode.markDirty()` directly — Fl
 
 The layout phase also sets `subtreeDirty` upward when a descendant's `boxRect` changes via `layoutChangedThisFrame`.
 
+### The epoch belongs to ONE tree — never the process
+
+The flags above are not booleans. They are epoch stamps: the reconciler writes `node.dirtyEpoch` with the current epoch, and `isDirty(node, BIT)` only reports true while that stamp still equals the epoch. `renderPhase` ends with `advanceRenderEpoch(root)`, which is what makes clearing O(1).
+
+**That counter lives on the tree's `EpochOwner` (`node.epochOwner`), and two trees must never share one.** A process-global counter is indistinguishable from a correct one while a single renderer runs, and silently wrong the moment a second exists. The window is real because React's commit and the pipeline are separate steps — `updateContainerSync` + `flushSyncWork` stamp the bits, `doRender()` consumes them afterwards. A peer renderer that completes a frame in between advances the shared counter, the victim's changed nodes read clean, the fast-path skip keeps their cloned pixels, and the previous frame survives on screen as residue. `yrd watch` hit exactly this: stale glyphs accumulating in the rightmost columns (`@km/silvery/render-no-stale-residue-invariant`).
+
+The same reasoning covers `dirty-tracking.ts`'s node sets, which are also per-tree and cleared once per pass — `hasScrollDirty(root)` gates the layout phase, so a peer clearing it leaves a tree painting at stale scroll offsets.
+
+Rules for pipeline code:
+
+- Never reintroduce a module-level epoch, dirty set, or "current frame" counter. Reach state through the node (`node.epochOwner`), not through a scoped save/restore global — the framework's structural-ownership rule (root `CLAUDE.md`, `wasRaw` anti-pattern) applies here too.
+- Node literals must set `epochOwner`. React-created nodes inherit it from `rootContainer.root.epochOwner` in `createInstance` / `createTextInstance`, so every node is born into the tree that renders it and no adoption pass is needed.
+- Regression pin: `tests/features/residue-cross-render.test.tsx` — a peer renderer drives a frame from the subject's layout effect (inside the commit→pipeline window) and STRICT must stay green.
+
 | Flag                     | Set by       | Meaning                                                                     |
 | ------------------------ | ------------ | --------------------------------------------------------------------------- |
 | `layoutChangedThisFrame` | Layout phase | Node's boxRect changed this frame; cleared by render phase after processing |

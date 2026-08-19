@@ -462,7 +462,7 @@
 //   Threads: hasPrevBuffer, ancestorCleared, ancestorLayoutChanged,
 //            bufferIsCloned, scrollOffset, clipBounds, inheritedBg, inheritedFg
 //   Calls: computeCascade() for core boolean algebra
-//   Clears: all dirty epoch flags via advanceRenderEpoch() (O(1))
+//   Clears: this tree's dirty epoch flags via advanceRenderEpoch(root) (O(1))
 //   Syncs: prevLayout = boxRect via syncPrevLayout() (post-render)
 //
 // ┌─────────────────────────────────────────────────────────────────────────────┐

@@ -20,7 +20,7 @@
  */
 
 import type { AgNode } from "@silvery/ag/types"
-import { getRenderEpoch, INITIAL_EPOCH, ALL_RECONCILER_BITS } from "@silvery/ag/epoch"
+import { createEpochOwner, INITIAL_EPOCH, ALL_RECONCILER_BITS } from "@silvery/ag/epoch"
 import type { TextFrame } from "@silvery/ag/text-frame"
 import type { TerminalBuffer } from "./buffer"
 import type { Ag } from "./ag"
@@ -162,6 +162,8 @@ export function from<T>(value: T): PipeBuilder<T> {
 
 export function withAg(options?: { root?: AgNode; measurer?: import("./unicode").Measurer }) {
   return <A extends AppBase>(app: A) => {
+    // A root IS a tree, so it mints the epoch state every node under it shares.
+    const epochOwner = createEpochOwner()
     const root =
       options?.root ??
       ({
@@ -169,6 +171,7 @@ export function withAg(options?: { root?: AgNode; measurer?: import("./unicode")
         props: {},
         children: [],
         parent: null,
+        epochOwner,
         layoutNode: null,
         boxRect: null,
         scrollRect: null,
@@ -178,7 +181,7 @@ export function withAg(options?: { root?: AgNode; measurer?: import("./unicode")
         prevScreenRect: null,
         layoutChangedThisFrame: INITIAL_EPOCH,
         dirtyBits: ALL_RECONCILER_BITS,
-        dirtyEpoch: getRenderEpoch(),
+        dirtyEpoch: epochOwner.epoch,
       } satisfies AgNode)
 
     const ag = createAg(root, { measurer: options?.measurer })

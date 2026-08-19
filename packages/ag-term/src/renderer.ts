@@ -90,7 +90,7 @@ import {
   MAX_CONVERGENCE_PASSES,
   INSTRUMENT,
 } from "./runtime/pass-cause"
-import { ALL_RECONCILER_BITS, getRenderEpoch, isAnyDirty } from "@silvery/ag/epoch"
+import { ALL_RECONCILER_BITS, isAnyDirty, setDirty } from "@silvery/ag/epoch"
 // Side-effect import: arms `@silvery/ag`'s wrap-measurer registry with the
 // terminal grapheme-aware adapter. Importing renderer.ts (via createRenderer
 // in tests, or run() in production) now means soft-wrap-aware
@@ -101,8 +101,7 @@ import "./runtime/wrap-measurer-registration"
 const log = createLogger("silvery:render")
 
 function invalidateRootAfterLayoutFeedback(root: ReturnType<typeof getContainerRoot>): void {
-  root.dirtyBits = ALL_RECONCILER_BITS
-  root.dirtyEpoch = getRenderEpoch()
+  setDirty(root, ALL_RECONCILER_BITS)
 }
 
 // ============================================================================
@@ -1249,7 +1248,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         // epoch-dirty as a final correctness check.
         try {
           const root = getContainerRoot(instance.container)
-          if (root && !isAnyDirty(root.dirtyBits, root.dirtyEpoch)) return
+          if (root && !isAnyDirty(root)) return
         } catch {
           return
         }

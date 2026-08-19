@@ -161,7 +161,11 @@ export {
   isCurrentEpoch,
   isDirty,
   isAnyDirty,
-  setDirtyBit,
+  markDirty,
+  setDirty,
+  createEpochOwner,
+  type EpochOwner,
+  type EpochNode,
 } from "./epoch"
 
 // Focus Queries

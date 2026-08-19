@@ -3,16 +3,33 @@
  *
  * A monotonically increasing counter that replaces boolean dirty flags.
  * Instead of setting `node.contentDirty = true` and later clearing with
- * `node.contentDirty = false`, the reconciler stamps `node.dirtyEpoch = renderEpoch`
- * and sets the appropriate bit in `node.dirtyBits`. The render phase checks
- * `node.dirtyEpoch === renderEpoch && (node.dirtyBits & BIT) !== 0`.
+ * `node.contentDirty = false`, the reconciler stamps `node.dirtyEpoch` with the
+ * owning tree's current epoch and sets the appropriate bit in `node.dirtyBits`.
+ * The render phase checks `node.dirtyEpoch === owner.epoch && (bits & BIT) !== 0`.
  *
- * Clearing all flags is O(1): just `renderEpoch++`. The old O(N) tree walk
+ * Clearing all flags is O(1): just `owner.epoch++`. The old O(N) tree walk
  * in clearDirtyFlags becomes unnecessary — stale epoch stamps automatically
  * read as "not dirty" once the epoch advances.
  *
  * INITIAL_EPOCH (-1) is the sentinel for "never dirty". New nodes use the
  * current epoch so they appear dirty on first render.
+ *
+ * ## The epoch is per render tree, never per process
+ *
+ * The counter lives on an {@link EpochOwner} that one render tree owns and no
+ * other tree can reach. A process-global counter looks equivalent while a
+ * single renderer runs, and is silently wrong the moment a second one exists:
+ * dirty bits are only readable while the stamp still equals the CURRENT epoch,
+ * and every `renderPhase()` ends by advancing it. React's commit and the
+ * pipeline are separate steps — `updateContainerSync` + `flushSyncWork` stamp
+ * the bits, `doRender()` consumes them afterwards — so a peer renderer that
+ * completes a frame in that window resets the counter, the victim's changed
+ * nodes read clean, the fast path skips them, and the previous frame's pixels
+ * survive in the clone as stale residue. That is the bug behind
+ * `@km/silvery/render-no-stale-residue-invariant`; the owner is what makes it
+ * unrepresentable. Ownership is structural rather than a scoped
+ * save/restore global, per the framework rule that shared mutable state gets an
+ * owner (see the root CLAUDE.md `wasRaw` anti-pattern).
  *
  * ## Bit-Packed Dirty Flags (S-MEM)
  *
@@ -69,30 +86,67 @@ export const ALL_BITS =
   ABS_CHILD_BIT |
   DESC_OVERFLOW_BIT
 
-/**
- * The current render epoch. Incremented after each render pass.
- * Reconciler stamps dirty nodes with this value; render phase checks equality.
- */
-let renderEpoch = 0
+// ============================================================================
+// Epoch Ownership
+// ============================================================================
 
-/** Get the current render epoch value. */
-export function getRenderEpoch(): number {
-  return renderEpoch
+/**
+ * The render epoch for ONE tree. Every node in a tree shares its owner, and no
+ * two trees ever share one — that is the whole point (see the module header).
+ *
+ * Held by the reconciler `Container` and reachable from any node as
+ * `node.epochOwner`, so the O(1) dirty predicates need no threaded context.
+ */
+export interface EpochOwner {
+  /** Incremented once per completed render pass of the owning tree. */
+  epoch: number
+}
+
+/** Create the epoch state for a new render tree. */
+export function createEpochOwner(): EpochOwner {
+  return { epoch: 0 }
 }
 
 /**
- * Advance the render epoch. Called once at the end of each render pass.
- * All nodes stamped with the old epoch instantly become "not dirty".
+ * The subset of `AgNode` the epoch helpers touch. Declared structurally so the
+ * helpers stay usable from the handful of places that build node literals
+ * without importing the full `AgNode` type.
  */
-export function advanceRenderEpoch(): void {
-  renderEpoch++
+export interface EpochNode {
+  epochOwner: EpochOwner
+  dirtyBits: number
+  dirtyEpoch: number
+}
+
+// ============================================================================
+// Epoch Access
+// ============================================================================
+
+/**
+ * Current epoch of the tree `node` belongs to. Use this to stamp a field that
+ * should read as "changed during the frame being built" — `dirtyEpoch` and
+ * `layoutChangedThisFrame` are the two.
+ */
+export function getRenderEpoch(node: { epochOwner: EpochOwner }): number {
+  return node.epochOwner.epoch
 }
 
 /**
- * Check if an epoch stamp matches the current render epoch (i.e., "is dirty").
+ * Advance the owning tree's render epoch. Called once at the end of each render
+ * pass. Every node stamped with the old epoch instantly becomes "not dirty" —
+ * and nodes of OTHER trees are untouched, which is the invariant that keeps
+ * concurrent renderers from erasing each other's pending work.
  */
-export function isCurrentEpoch(epoch: number): boolean {
-  return epoch === renderEpoch
+export function advanceRenderEpoch(node: { epochOwner: EpochOwner }): void {
+  node.epochOwner.epoch++
+}
+
+/**
+ * Check an epoch stamp against the current epoch of `node`'s tree (i.e. "was
+ * this stamped during the frame being built"). `INITIAL_EPOCH` never matches.
+ */
+export function isCurrentEpoch(node: { epochOwner: EpochOwner }, epoch: number): boolean {
+  return epoch === node.epochOwner.epoch
 }
 
 // ============================================================================
@@ -101,28 +155,35 @@ export function isCurrentEpoch(epoch: number): boolean {
 
 /**
  * Check if a specific dirty bit is set for the current epoch.
- * Returns true if dirtyEpoch matches the current render epoch AND the bit is set.
+ * Returns true if the node's stamp is current AND the bit is set.
  */
-export function isDirty(dirtyBits: number, dirtyEpoch: number, bit: number): boolean {
-  return dirtyEpoch === renderEpoch && (dirtyBits & bit) !== 0
+export function isDirty(node: EpochNode, bit: number): boolean {
+  return node.dirtyEpoch === node.epochOwner.epoch && (node.dirtyBits & bit) !== 0
 }
 
 /**
  * Check if ANY dirty bit is set for the current epoch.
  */
-export function isAnyDirty(dirtyBits: number, dirtyEpoch: number): boolean {
-  return dirtyEpoch === renderEpoch && dirtyBits !== 0
+export function isAnyDirty(node: EpochNode): boolean {
+  return node.dirtyEpoch === node.epochOwner.epoch && node.dirtyBits !== 0
 }
 
 /**
- * Set a dirty bit on a node. If the epoch has changed since last write,
- * resets all bits and starts fresh with only the new bit.
- *
- * @returns The new dirtyBits value (caller must assign to node.dirtyBits).
+ * Add dirty bits to a node and stamp it for the current epoch. When the node's
+ * stamp is from an already-consumed epoch its old bits are dropped rather than
+ * merged — they describe a frame that has already been rendered.
  */
-export function setDirtyBit(dirtyBits: number, dirtyEpoch: number, bit: number): number {
-  if (dirtyEpoch !== renderEpoch) {
-    return bit // new epoch — reset to just this bit
-  }
-  return dirtyBits | bit // same epoch — add bit
+export function markDirty(node: EpochNode, bits: number): void {
+  const epoch = node.epochOwner.epoch
+  node.dirtyBits = node.dirtyEpoch !== epoch ? bits : node.dirtyBits | bits
+  node.dirtyEpoch = epoch
+}
+
+/**
+ * Replace a node's dirty bits outright and stamp it for the current epoch.
+ * Use when the caller means "exactly these bits", not "also these bits".
+ */
+export function setDirty(node: EpochNode, bits: number): void {
+  node.dirtyBits = bits
+  node.dirtyEpoch = node.epochOwner.epoch
 }

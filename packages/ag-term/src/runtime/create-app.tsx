@@ -5546,7 +5546,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           // forceUpdate after the microtask drained).
           try {
             const root = getContainerRoot(container)
-            if (root && !isAnyDirty(root.dirtyBits, root.dirtyEpoch)) return
+            if (root && !isAnyDirty(root)) return
           } catch {
             return
           }

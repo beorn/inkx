@@ -29,7 +29,7 @@
  * the deferred Phase-2 hydration scheduler (idle / visible / only-on-focus).
  */
 
-import { ALL_RECONCILER_BITS, getRenderEpoch } from "./epoch.ts"
+import { ALL_RECONCILER_BITS, createEpochOwner } from "./epoch.ts"
 import type {
   IslandCapabilities,
   IslandArtifactCapabilities,
@@ -177,12 +177,16 @@ function resolveFrozenPalette(
  * binding then copies `islandState` from here onto that node.
  */
 function buildIslandNode(cols: number, rows: number): AgNode {
-  const epoch = getRenderEpoch()
+  // A standalone island is its own tree until the host adopts it, so it mints
+  // its own epoch state rather than borrowing anyone's.
+  const epochOwner = createEpochOwner()
+  const epoch = epochOwner.epoch
   return {
     type: "silvery-island",
     props: { cols, rows },
     children: [],
     parent: null,
+    epochOwner,
     layoutNode: null,
     boxRect: null,
     scrollRect: null,

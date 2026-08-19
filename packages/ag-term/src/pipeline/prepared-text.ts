@@ -142,7 +142,7 @@ export function getCachedPlainText(node: AgNode): { text: string; lineCount: num
   if (_cacheDisabled) return null
   const entry = textCaches.get(node)
   if (entry?.plainText == null) return null
-  if (isDirty(node.dirtyBits, node.dirtyEpoch, PLAIN_TEXT_DIRTY)) {
+  if (isDirty(node, PLAIN_TEXT_DIRTY)) {
     entry.plainText = null
     return null
   }
@@ -179,7 +179,7 @@ export function getCachedCollectedText(
   const entry = textCaches.get(node)
   if (!entry?.collected) return null
 
-  if (isDirty(node.dirtyBits, node.dirtyEpoch, COLLECTED_TEXT_DIRTY)) {
+  if (isDirty(node, COLLECTED_TEXT_DIRTY)) {
     entry.collected = null
     entry.formats = [] // collected text changed → format stale
     entry.analysis = null // analysis depends on collected text
@@ -292,7 +292,7 @@ export function getCachedAnalysis(node: AgNode): TextAnalysis | null {
   if (_cacheDisabled) return null
   const entry = textCaches.get(node)
   if (!entry?.analysis) return null
-  if (isDirty(node.dirtyBits, node.dirtyEpoch, PLAIN_TEXT_DIRTY)) {
+  if (isDirty(node, PLAIN_TEXT_DIRTY)) {
     entry.analysis = null
     return null
   }

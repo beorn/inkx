@@ -46,7 +46,7 @@ import type {
   IslandSignal,
 } from "@silvery/ag/island-types"
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
-import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
+import { CONTENT_BIT, SUBTREE_BIT, isDirty, markDirty } from "@silvery/ag/epoch"
 import type { AgNode, UserSelect } from "@silvery/ag/types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
 import type { IslandLayoutProps } from "../reconciler/nodes"
@@ -616,23 +616,12 @@ export const Island = forwardRef(function Island(
  * consumers.
  */
 function markNodeDirty(node: AgNode): void {
-  const epoch = getRenderEpoch()
   const ownBits = CONTENT_BIT | SUBTREE_BIT
-  if (node.dirtyEpoch !== epoch) {
-    node.dirtyBits = ownBits
-    node.dirtyEpoch = epoch
-  } else {
-    node.dirtyBits |= ownBits
-  }
+  markDirty(node, ownBits)
   trackContentDirty(node)
   let ancestor: AgNode | null = node.parent
-  while (ancestor && !isDirty(ancestor.dirtyBits, ancestor.dirtyEpoch, SUBTREE_BIT)) {
-    if (ancestor.dirtyEpoch !== epoch) {
-      ancestor.dirtyBits = SUBTREE_BIT
-      ancestor.dirtyEpoch = epoch
-    } else {
-      ancestor.dirtyBits |= SUBTREE_BIT
-    }
+  while (ancestor && !isDirty(ancestor, SUBTREE_BIT)) {
+    markDirty(ancestor, SUBTREE_BIT)
     ancestor = ancestor.parent
   }
 }

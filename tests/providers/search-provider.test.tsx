@@ -273,10 +273,12 @@ describe("SearchProvider", () => {
     // ctx now has the re-rendered callbacks with focusedId="pane-b"
     ctx!.open()
     ctx!.input("x")
-    await flush()
-
-    // Only pane B's searchable should have been used
-    expect(revealB).toHaveBeenCalledWith({ row: 2, startCol: 0, endCol: 1 })
+    // Poll rather than sleep — see the fixed-flush note above; the same
+    // React-scheduled chain flakes under worker contention.
+    await vi.waitFor(
+      () => expect(revealB).toHaveBeenCalledWith({ row: 2, startCol: 0, endCol: 1 }),
+      { timeout: 5000 },
+    )
     expect(revealA).not.toHaveBeenCalled()
   })
 
@@ -305,8 +307,13 @@ describe("SearchProvider", () => {
 
     ctx!.open()
     ctx!.input("a")
-    await flush()
-    expect(reveal).toHaveBeenCalledWith({ row: 3, startCol: 0, endCol: 2 })
+    // Poll rather than sleep — see the fixed-flush note above.
+    await vi.waitFor(
+      () => expect(reveal).toHaveBeenCalledWith({ row: 3, startCol: 0, endCol: 2 }),
+      {
+        timeout: 5000,
+      },
+    )
   })
 
   test("no reveal when no searchable is registered", async () => {

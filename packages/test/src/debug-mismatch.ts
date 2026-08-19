@@ -192,10 +192,10 @@ export function getNodeDebugInfo(node: AgNode): NodeDebugInfo {
     path: getNodePath(node),
     childIndex,
     dirtyFlags: {
-      contentDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT),
-      stylePropsDirty: isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT),
-      subtreeDirty: isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT),
-      childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
+      contentDirty: isDirty(node, CONTENT_BIT),
+      stylePropsDirty: isDirty(node, STYLE_PROPS_BIT),
+      subtreeDirty: isDirty(node, SUBTREE_BIT),
+      childrenDirty: isDirty(node, CHILDREN_BIT),
     },
     layout: {
       prevLayout: node.prevLayout,
@@ -251,7 +251,7 @@ function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string
   }
 
   const flags = node
-  const allClean = !isAnyDirty(flags.dirtyBits, flags.dirtyEpoch)
+  const allClean = !isAnyDirty(flags)
 
   if (allClean) {
     analysis.push("⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node")

@@ -130,11 +130,11 @@ export function inspectTree(
     // Dirty flags
     const dirtyFlags: string[] = []
     if (node.layoutNode?.isDirty()) dirtyFlags.push("layout")
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) dirtyFlags.push("content")
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) dirtyFlags.push("paint")
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT)) dirtyFlags.push("bg")
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) dirtyFlags.push("subtree")
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) dirtyFlags.push("children")
+    if (isDirty(node, CONTENT_BIT)) dirtyFlags.push("content")
+    if (isDirty(node, STYLE_PROPS_BIT)) dirtyFlags.push("paint")
+    if (isDirty(node, BG_BIT)) dirtyFlags.push("bg")
+    if (isDirty(node, SUBTREE_BIT)) dirtyFlags.push("subtree")
+    if (isDirty(node, CHILDREN_BIT)) dirtyFlags.push("children")
     const dirtyStr = dirtyFlags.length > 0 ? ` dirty=[${dirtyFlags.join(",")}]` : ""
 
     // Text content (for text nodes)
