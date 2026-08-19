@@ -27,7 +27,7 @@
 
 import { describe, test, expect } from "vitest"
 import type { AgNode, TextProps, BoxProps } from "@silvery/ag/types"
-import { INITIAL_EPOCH } from "@silvery/ag/epoch"
+import { INITIAL_EPOCH, createEpochOwner, type EpochOwner } from "@silvery/ag/epoch"
 import {
   collectPlainText,
   collectPlainTextSkipHidden,
@@ -42,6 +42,18 @@ import { Box, Text, Transform } from "@silvery/ag-react"
 // ============================================================================
 
 /**
+ * Every node in a tree shares one epoch owner — dirty bits are epoch stamps
+ * read against it, so a node answering to a different owner than its parent
+ * reads clean at the wrong moments. Production keeps this by construction (the
+ * reconciler builds each node into its container's tree); these fixtures
+ * assemble bottom-up, so the parent adopts its children's subtrees instead.
+ */
+function adoptIntoTree(node: AgNode, epochOwner: EpochOwner): void {
+  node.epochOwner = epochOwner
+  for (const child of node.children) adoptIntoTree(child, epochOwner)
+}
+
+/**
  * Create a minimal AgNode for testing. These are plain objects — no layout
  * engine needed for the text collection functions.
  */
@@ -51,6 +63,7 @@ function textNode(text: string, props: TextProps = {}): AgNode {
     props,
     children: [],
     parent: null,
+    epochOwner: createEpochOwner(),
     layoutNode: null,
     boxRect: null,
     scrollRect: null,
@@ -69,11 +82,13 @@ function textNode(text: string, props: TextProps = {}): AgNode {
 
 /** Create a virtual text node (nested Text) — no layoutNode */
 function virtualTextNode(props: TextProps, ...children: AgNode[]): AgNode {
+  const epochOwner = createEpochOwner()
   const node: AgNode = {
     type: "silvery-text",
     props,
     children,
     parent: null,
+    epochOwner,
     layoutNode: null,
     boxRect: null,
     scrollRect: null,
@@ -89,6 +104,7 @@ function virtualTextNode(props: TextProps, ...children: AgNode[]): AgNode {
   }
   for (const child of children) {
     child.parent = node
+    adoptIntoTree(child, epochOwner)
   }
   return node
 }
@@ -104,11 +120,13 @@ function layoutTextNode(props: TextProps, ...children: AgNode[]): AgNode {
 
 /** Create a box node */
 function boxNode(props: BoxProps, ...children: AgNode[]): AgNode {
+  const epochOwner = createEpochOwner()
   const node: AgNode = {
     type: "silvery-box",
     props,
     children,
     parent: null,
+    epochOwner,
     layoutNode: {} as any,
     boxRect: null,
     scrollRect: null,
@@ -122,6 +140,7 @@ function boxNode(props: BoxProps, ...children: AgNode[]): AgNode {
   }
   for (const child of children) {
     child.parent = node
+    adoptIntoTree(child, epochOwner)
   }
   return node
 }

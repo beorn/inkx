@@ -24,6 +24,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from "react"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { createScope, setDisposeErrorSink, type DisposeErrorContext } from "@silvery/scope"
 import type { AgNode } from "@silvery/ag/types"
+import { createEpochOwner } from "@silvery/ag/epoch"
 import { createRenderer } from "@silvery/test"
 import { Box, type BoxHandle } from "../src/components/Box"
 import { Text } from "../src/components/Text"
@@ -80,6 +81,7 @@ describe("attachNodeScope / getNodeScope / detachNodeScope", () => {
       props: {},
       children: [],
       parent: null,
+      epochOwner: createEpochOwner(),
       layoutNode: null,
       boxRect: null,
       scrollRect: null,
@@ -314,6 +316,7 @@ function makeFakeNode(): AgNode {
     props: {},
     children: [],
     parent: null,
+    epochOwner: createEpochOwner(),
     layoutNode: null,
     boxRect: null,
     scrollRect: null,

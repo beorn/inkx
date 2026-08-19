@@ -12,15 +12,32 @@ import { createRenderer } from "@silvery/test"
 import React from "react"
 import { Box, Text } from "silvery"
 import type { AgNode } from "@silvery/ag/types"
-import { INITIAL_EPOCH } from "@silvery/ag/epoch"
+import { INITIAL_EPOCH, createEpochOwner, type EpochOwner } from "@silvery/ag/epoch"
+
+/**
+ * Every node in a tree shares one epoch owner — dirty bits are epoch stamps
+ * read against it, so a node answering to a different owner than its parent
+ * reads clean at the wrong moments. Production keeps this by construction (the
+ * reconciler builds each node into its container's tree); these fixtures
+ * assemble bottom-up, so the parent adopts its children's subtrees instead.
+ */
+function adoptIntoTree(node: AgNode, epochOwner: EpochOwner): void {
+  node.epochOwner = epochOwner
+  for (const child of node.children) adoptIntoTree(child, epochOwner)
+}
 
 /** Minimal AgNode for feature detection tests (no layout engine needed). */
 function makeNode(type: string, props: Record<string, unknown>, children: AgNode[]): AgNode {
+  // One owner per tree: the children were built first, so this node adopts them
+  // (production builds each node into its container's tree instead).
+  const epochOwner = createEpochOwner()
+  for (const child of children) adoptIntoTree(child, epochOwner)
   return {
     type: type as AgNode["type"],
     props,
     children,
     parent: null,
+    epochOwner,
     layoutNode: null,
     boxRect: null,
     scrollRect: null,

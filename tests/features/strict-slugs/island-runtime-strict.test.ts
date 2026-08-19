@@ -14,6 +14,7 @@ import {
 } from "@silvery/ag-term/strict-island"
 import { resetStrictCache } from "@silvery/ag-term/strict-mode"
 import type { AgNode, Cell } from "@silvery/ag/types"
+import { createEpochOwner } from "@silvery/ag/epoch"
 import type {
   IslandHandle,
   IslandInputOwner,
@@ -110,6 +111,7 @@ function makeNode(handle: IslandHandle): AgNode {
     props: {},
     children: [],
     parent: null,
+    epochOwner: createEpochOwner(),
     layoutNode: null,
     boxRect: null,
     scrollRect: null,

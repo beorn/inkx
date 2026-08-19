@@ -11,11 +11,23 @@
 import { describe, test, expect, vi } from "vitest"
 import { createFocusManager, getTabOrder } from "@silvery/create"
 import type { AgNode, BoxProps } from "@silvery/ag/types"
-import { INITIAL_EPOCH } from "@silvery/ag/epoch"
+import { INITIAL_EPOCH, createEpochOwner, type EpochOwner } from "@silvery/ag/epoch"
 
 // ============================================================================
 // Helpers
 // ============================================================================
+
+/**
+ * Every node in a tree shares one epoch owner — dirty bits are epoch stamps
+ * read against it, so a node answering to a different owner than its parent
+ * reads clean at the wrong moments. Production keeps this by construction (the
+ * reconciler builds each node into its container's tree); these fixtures
+ * assemble bottom-up, so the parent adopts its children's subtrees instead.
+ */
+function adoptIntoTree(node: AgNode, epochOwner: EpochOwner): void {
+  node.epochOwner = epochOwner
+  for (const child of node.children) adoptIntoTree(child, epochOwner)
+}
 
 /** Create a minimal AgNode stub for focus manager tests. */
 function stubNode(
@@ -28,6 +40,7 @@ function stubNode(
   },
 ): AgNode {
   const children = opts?.children ?? []
+  const epochOwner = createEpochOwner()
   const node: AgNode = {
     type: "silvery-box",
     props: {
@@ -37,6 +50,7 @@ function stubNode(
     } as BoxProps,
     children,
     parent: null,
+    epochOwner,
     layoutNode: {} as any,
     boxRect: null,
     scrollRect: null,
@@ -51,6 +65,7 @@ function stubNode(
   }
   for (const child of children) {
     child.parent = node
+    adoptIntoTree(child, epochOwner)
   }
   return node
 }
