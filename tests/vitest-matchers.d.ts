@@ -14,14 +14,22 @@ declare module "vitest" {
      * RE-EXPORTS that type, so a `declare module "vitest" { interface Assertion }`
      * anywhere in the program mints a fresh, unmerged interface — and the call
      * sites resolve against that one, which carries the custom matchers and none
-     * of the built-ins. Both this file and `@termless/test/matchers` augment
-     * `"vitest"`, and pointing THIS file at `@vitest/expect` instead does not
-     * help while termless still does (measured: still 4 errors), so restoring
-     * the two matchers our suite actually calls is the fix that stays inside
-     * silvery.
+     * of the built-ins.
      *
-     * Delete these two lines once termless's `declare module "vitest"` block is
-     * gone; `tests/examples/dashboard.test.tsx` and
+     * termless does exactly that, in its `src/jest-matchers.ts`, which reaches
+     * our program transitively through our own sources — no import of termless
+     * by the failing test is needed. Isolated, it is sufficient on its own, and
+     * re-pointing THIS file at `@vitest/expect` does not help.
+     *
+     * `@termless/test/matchers` is NOT the culprit, despite being the obvious
+     * suspect: its `"vitest"` block declares `Matchers` only, which merges
+     * harmlessly. It is what supplies the `Did you mean 'toMatchSvgSnapshot'?`
+     * suggestion on the resulting error, which is exactly what makes it look
+     * guilty. Without it the same defect reports a bare TS2339.
+     *
+     * Delete these two lines once termless's `src/jest-matchers.ts` stops
+     * declaring `Assertion` inside `declare module "vitest"`;
+     * `tests/examples/dashboard.test.tsx` and
      * `tests/features/selection-cell-semantics.test.tsx` are the call sites that
      * will tell you immediately.
      */
