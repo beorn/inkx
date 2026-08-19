@@ -203,7 +203,10 @@ export function createRenderer(opts: RendererOptions): Renderer {
     // Create or reuse long-lived Ag instance. Created lazily because the root
     // AgNode is produced by the React reconciler in Phase A above.
     if (!_ag) {
-      _ag = createAg(rootNode, { measurer: opts.pipelineConfig?.measurer })
+      _ag = createAg(rootNode, {
+        measurer: opts.pipelineConfig?.measurer,
+        colorLevel: opts.pipelineConfig?.colorLevel,
+      })
     }
 
     // Invalidate prevBuffer on dimension change (resize).
@@ -386,7 +389,10 @@ export function createRenderer(opts: RendererOptions): Renderer {
       // fresh paths; see markLayoutTreeDirty + AgLayoutOptions.forceFullPropagate.
       const freshLayout = isStrictEnabled(FRESH_LAYOUT_STRICT_SLUG, FRESH_LAYOUT_STRICT_MIN_TIER)
       const doFreshRender = () => {
-        const freshAg = createAg(rootNode, { measurer: opts.pipelineConfig?.measurer })
+        const freshAg = createAg(rootNode, {
+          measurer: opts.pipelineConfig?.measurer,
+          colorLevel: opts.pipelineConfig?.colorLevel,
+        })
         if (freshLayout) markLayoutTreeDirty(rootNode)
         freshAg.layout(
           { cols: dims.cols, rows: dims.rows },
@@ -412,11 +418,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
             const savedCellDbg = (
               globalThis as { __silvery_cell_debug?: { x: number; y: number; log: string[] } }
             ).__silvery_cell_debug
-            if (
-              savedCellDbg?.x === x &&
-              savedCellDbg.y === y &&
-              savedCellDbg.log.length > 0
-            ) {
+            if (savedCellDbg?.x === x && savedCellDbg.y === y && savedCellDbg.log.length > 0) {
               cellDebugInfo = `\nCELL DEBUG (${savedCellDbg.log.length} entries for (${x},${y})):\n${savedCellDbg.log.join("\n")}\n`
             } else if (savedCellDbg?.x === x && savedCellDbg.y === y) {
               cellDebugInfo = `\nCELL DEBUG: No nodes cover (${x},${y}) during incremental render\n`

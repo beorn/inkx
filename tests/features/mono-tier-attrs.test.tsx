@@ -37,12 +37,7 @@ import { parseColor, getTextStyle } from "@silvery/ag-term/pipeline/render-helpe
 import { createOutputPhase } from "@silvery/ag-term/pipeline/output-phase"
 import { createBuffer } from "@silvery/ag-term/buffer"
 import { ansi16DarkTheme } from "@silvery/ansi"
-import {
-  getActiveColorLevel,
-  setActiveColorLevel,
-  pushContextTheme,
-  popContextTheme,
-} from "@silvery/ag-term/pipeline"
+import { pushContextTheme, popContextTheme } from "@silvery/ag-term/pipeline"
 
 // ============================================================================
 // Tier-dispatch fixtures
@@ -58,14 +53,13 @@ function withTheme(theme: typeof ansi16DarkTheme, fn: () => void): void {
   }
 }
 
-function withMonoTier(run: () => void): void {
-  const prevLevel = getActiveColorLevel()
-  try {
-    setActiveColorLevel("mono")
-    withTheme(ansi16DarkTheme, run)
-  } finally {
-    setActiveColorLevel(prevLevel)
-  }
+/**
+ * Run `fn` with the mono tier. The tier is an ARGUMENT to parseColor /
+ * getTextStyle, not module state — see pipeline/state.ts for why a shared
+ * value was wrong — so this only supplies the theme and hands the tier down.
+ */
+function withMonoTier(run: (tier: "mono") => void): void {
+  withTheme(ansi16DarkTheme, () => run("mono"))
 }
 
 // ============================================================================
@@ -74,39 +68,38 @@ function withMonoTier(run: () => void): void {
 
 describe("parseColor: monochrome tier", () => {
   test("$primary resolves to null (color stripped)", () => {
-    withMonoTier(() => {
-      expect(parseColor("$primary")).toBeNull()
+    withMonoTier((tier) => {
+      expect(parseColor("$primary", tier)).toBeNull()
     })
   })
 
   test("$muted resolves to null", () => {
-    withMonoTier(() => {
-      expect(parseColor("$muted")).toBeNull()
+    withMonoTier((tier) => {
+      expect(parseColor("$muted", tier)).toBeNull()
     })
   })
 
   test("$error resolves to null", () => {
-    withMonoTier(() => {
-      expect(parseColor("$error")).toBeNull()
+    withMonoTier((tier) => {
+      expect(parseColor("$error", tier)).toBeNull()
     })
   })
 
   test("$fg-link resolves to null", () => {
-    withMonoTier(() => {
-      expect(parseColor("$fg-link")).toBeNull()
+    withMonoTier((tier) => {
+      expect(parseColor("$fg-link", tier)).toBeNull()
     })
   })
 
   test("non-token hex still resolves to RGB (output phase strips it)", () => {
-    withMonoTier(() => {
-      expect(parseColor("#FF0000")).toEqual({ r: 255, g: 0, b: 0 })
+    withMonoTier((tier) => {
+      expect(parseColor("#FF0000", tier)).toEqual({ r: 255, g: 0, b: 0 })
     })
   })
 
   test("$primary at truecolor tier resolves to a hex RGB", () => {
-    setActiveColorLevel("truecolor")
     withTheme(ansi16DarkTheme, () => {
-      const result = parseColor("$primary")
+      const result = parseColor("$primary", "truecolor")
       // At truecolor tier, $primary must NOT be null — we rely on the normal
       // token → hex → RGB pipeline. This guards against an accidental always-on
       // mono-strip regression.
@@ -117,8 +110,8 @@ describe("parseColor: monochrome tier", () => {
 
 describe("getTextStyle: monochrome tier attrs injection", () => {
   test("$primary → bold=true", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$primary" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$primary" }, tier)
       expect(style.fg).toBeNull()
       expect(style.attrs.bold).toBe(true)
       expect(style.attrs.dim).toBeFalsy()
@@ -128,8 +121,8 @@ describe("getTextStyle: monochrome tier attrs injection", () => {
   })
 
   test("$muted → dim=true", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$muted" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$muted" }, tier)
       expect(style.fg).toBeNull()
       expect(style.attrs.dim).toBe(true)
       expect(style.attrs.bold).toBeFalsy()
@@ -137,8 +130,8 @@ describe("getTextStyle: monochrome tier attrs injection", () => {
   })
 
   test("$error → bold + inverse", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$error" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$error" }, tier)
       expect(style.fg).toBeNull()
       expect(style.attrs.bold).toBe(true)
       expect(style.attrs.inverse).toBe(true)
@@ -146,8 +139,8 @@ describe("getTextStyle: monochrome tier attrs injection", () => {
   })
 
   test("$fg-link → underline", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$fg-link" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$fg-link" }, tier)
       expect(style.fg).toBeNull()
       expect(style.attrs.underline).toBe(true)
       expect(style.attrs.underlineStyle).toBe("single")
@@ -155,30 +148,30 @@ describe("getTextStyle: monochrome tier attrs injection", () => {
   })
 
   test("$success → bold", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$success" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$success" }, tier)
       expect(style.fg).toBeNull()
       expect(style.attrs.bold).toBe(true)
     })
   })
 
   test("$warning → bold", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$warning" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$warning" }, tier)
       expect(style.attrs.bold).toBe(true)
     })
   })
 
   test("$info → italic", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "$info" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "$info" }, tier)
       expect(style.attrs.italic).toBe(true)
     })
   })
 
   test("non-token #FF0000 → no attrs (pass-through)", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ color: "#FF0000" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ color: "#FF0000" }, tier)
       // Color survives in the Style (output phase strips it on emit).
       expect(style.fg).toEqual({ r: 255, g: 0, b: 0 })
       expect(style.attrs.bold).toBeFalsy()
@@ -190,26 +183,25 @@ describe("getTextStyle: monochrome tier attrs injection", () => {
   })
 
   test("explicit bold prop + $muted → bold + dim (user attrs OR with mono attrs)", () => {
-    withMonoTier(() => {
-      const style = getTextStyle({ bold: true, color: "$muted" })
+    withMonoTier((tier) => {
+      const style = getTextStyle({ bold: true, color: "$muted" }, tier)
       expect(style.attrs.bold).toBe(true)
       expect(style.attrs.dim).toBe(true)
     })
   })
 
   test("$bg-selected → inverse", () => {
-    withMonoTier(() => {
+    withMonoTier((tier) => {
       // bg-selected → ["inverse"] in DEFAULT_MONO_ATTRS. The legacy
       // `$selectionbg` alias was removed in 0.21.0 (sterling-purge-legacy-tokens).
-      const style = getTextStyle({ backgroundColor: "$bg-selected" })
+      const style = getTextStyle({ backgroundColor: "$bg-selected" }, tier)
       expect(style.attrs.inverse).toBe(true)
     })
   })
 
   test("at truecolor tier, $primary → RGB fg, no bold injected", () => {
-    setActiveColorLevel("truecolor")
     withTheme(ansi16DarkTheme, () => {
-      const style = getTextStyle({ color: "$primary" })
+      const style = getTextStyle({ color: "$primary" }, "truecolor")
       expect(style.fg).not.toBeNull()
       // Bold is NOT auto-injected when the user didn't ask for it at color tiers.
       expect(style.attrs.bold).toBeFalsy()
@@ -280,24 +272,23 @@ describe("output phase: mono tier strips fg/bg SGR codes", () => {
 // ============================================================================
 
 describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
-  // The default test renderer hardcodes its terminal to colorLevel=truecolor,
-  // so we flip the global active color level to drive parseColor + getTextStyle
-  // down the mono branch. The buffer we inspect via app.cell() captures the
-  // Style that was written during the render phase — exactly what gets handed
-  // to the output phase. That round-trip (render writes Style → output emits
-  // ANSI) is exercised separately in "output phase: mono tier strips ...".
+  // The tier is a per-renderer option (`createRenderer({ colorLevel })`), the
+  // same value `caps.colorLevel` supplies in production — not module state, so
+  // these renders cannot restyle anyone else's. The buffer we inspect via
+  // app.cell() captures the Style written during the render phase — exactly
+  // what gets handed to the output phase. That round-trip (render writes Style
+  // → output emits ANSI) is exercised separately in "output phase: mono tier
+  // strips ...".
   beforeEach(() => {
-    setActiveColorLevel("mono")
     pushContextTheme(ansi16DarkTheme)
   })
 
   afterEach(() => {
     popContextTheme()
-    setActiveColorLevel("truecolor")
   })
 
   test("<Text color='$primary'> renders bold cells, no fg", () => {
-    const render = createRenderer({ cols: 10, rows: 1 })
+    const render = createRenderer({ cols: 10, rows: 1, colorLevel: "mono" })
     const app = render(<Text color="$primary">HELLO</Text>)
 
     expect(app.text).toContain("HELLO")
@@ -309,7 +300,7 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
   })
 
   test("<Text color='$muted'> renders dim cells, no fg", () => {
-    const render = createRenderer({ cols: 10, rows: 1 })
+    const render = createRenderer({ cols: 10, rows: 1, colorLevel: "mono" })
     const app = render(<Text color="$muted">FAINT</Text>)
 
     for (let i = 0; i < 5; i++) {
@@ -321,7 +312,7 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
   })
 
   test("<Text color='$error'> renders bold + inverse cells", () => {
-    const render = createRenderer({ cols: 10, rows: 1 })
+    const render = createRenderer({ cols: 10, rows: 1, colorLevel: "mono" })
     const app = render(<Text color="$error">DANGER</Text>)
 
     for (let i = 0; i < 6; i++) {
@@ -333,7 +324,7 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
   })
 
   test("<Text color='$fg-link'> renders underlined cells", () => {
-    const render = createRenderer({ cols: 10, rows: 1 })
+    const render = createRenderer({ cols: 10, rows: 1, colorLevel: "mono" })
     const app = render(<Text color="$fg-link">CLICK</Text>)
 
     for (let i = 0; i < 5; i++) {
@@ -344,7 +335,7 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
   })
 
   test("<Text color='#FF0000'> (non-token hex) has no attrs — fg survives to buffer", () => {
-    const render = createRenderer({ cols: 10, rows: 1 })
+    const render = createRenderer({ cols: 10, rows: 1, colorLevel: "mono" })
     const app = render(<Text color="#FF0000">PLAIN</Text>)
 
     for (let i = 0; i < 5; i++) {
@@ -366,13 +357,11 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
 
 describe("mono tier: realistic 50+ node fixture (STRICT compounding safety)", () => {
   beforeEach(() => {
-    setActiveColorLevel("mono")
     pushContextTheme(ansi16DarkTheme)
   })
 
   afterEach(() => {
     popContextTheme()
-    setActiveColorLevel("truecolor")
   })
 
   function MonoApp({ highlightIndex }: { highlightIndex: number }) {
@@ -406,7 +395,7 @@ describe("mono tier: realistic 50+ node fixture (STRICT compounding safety)", ()
   }
 
   test("mounts and rerenders without STRICT mismatches", () => {
-    const render = createRenderer({ cols: 80, rows: 24 })
+    const render = createRenderer({ cols: 80, rows: 24, colorLevel: "mono" })
     const app = render(<MonoApp highlightIndex={0} />)
     expect(app.text).toContain("Header")
     expect(app.text).toContain("Subtitle")
@@ -422,7 +411,7 @@ describe("mono tier: realistic 50+ node fixture (STRICT compounding safety)", ()
   })
 
   test("header row (Primary + Muted + Error + Warning + Link) all have distinct attrs", () => {
-    const render = createRenderer({ cols: 80, rows: 24 })
+    const render = createRenderer({ cols: 80, rows: 24, colorLevel: "mono" })
     const app = render(<MonoApp highlightIndex={0} />)
 
     // Pull one cell from each header line. Headers start at row 0.

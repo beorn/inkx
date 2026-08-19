@@ -26,10 +26,11 @@ import {
   CONTENT_BIT,
   STYLE_PROPS_BIT,
 } from "@silvery/ag/epoch"
+import { DEFAULT_COLOR_LEVEL } from "./pipeline/state"
 import { getLayoutEngine } from "./layout-engine"
 import type { RGB, TextFrame } from "@silvery/ag/text-frame"
 import { TerminalBuffer, createTextFrame } from "./buffer"
-import { runWithMeasurer, type Measurer } from "./unicode"
+import { createMeasurer, runWithMeasurer, type Measurer } from "./unicode"
 import { measurePhase } from "./pipeline/measure-phase"
 import {
   layoutPhase,
@@ -352,7 +353,16 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
   // text-only even on terminals that support Kitty graphics.
   const kittyGraphics =
     options?.kittyGraphics !== undefined ? options.kittyGraphics : isKittyGraphicsForcedFromEnv()
-  const ctx: PipelineContext | undefined = measurer ? { measurer } : undefined
+  // The context is what carries the tier into parseColor / getTextStyle, so a
+  // caller that pinned a non-default level needs one even without a measurer.
+  // Every consumer reads `ctx.measurer` on the strength of `ctx` existing, so
+  // mint the default measurer rather than hand out a half-built context — it
+  // resolves identically to the module-level width fallbacks it replaces.
+  const ctxMeasurer =
+    measurer ?? (colorLevel === DEFAULT_COLOR_LEVEL ? undefined : createMeasurer({}))
+  const ctx: PipelineContext | undefined = ctxMeasurer
+    ? { measurer: ctxMeasurer, colorLevel }
+    : undefined
   let _prevBuffer: TerminalBuffer | null = null
   // Cross-frame post-state (outline snapshots, etc.). Phase 2 Step 5 of
   // paint-clear-invariant L5 hoisted outline snapshots off `TerminalBuffer`

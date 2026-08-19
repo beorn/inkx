@@ -12,7 +12,7 @@
  */
 
 import { DEFAULT_BG, type Color, type Style, type UnderlineStyle } from "../buffer"
-import { getActiveColorLevel, getActiveTheme } from "./state"
+import { DEFAULT_COLOR_LEVEL, getActiveTheme, type ActiveColorLevel } from "./state"
 import { resolveThemeColor } from "@silvery/ansi"
 import { monoAttrsForColorString, type MonoAttr } from "@silvery/ansi"
 import { builtInBorderPreset } from "@silvery/ag"
@@ -69,8 +69,16 @@ function blendColors(
 /**
  * Parse color string to Color type.
  * Supports: mix(c1,c2,amount), $token (theme), named colors, hex (#rgb, #rrggbb), rgb(r,g,b)
+ *
+ * `colorLevel` is the tier of the render this call belongs to — pass
+ * `ctx?.colorLevel`. It is an argument rather than module state because a
+ * process can render to several terminals with different color support at
+ * once; see `state.ts`. Omitted means {@link DEFAULT_COLOR_LEVEL}.
  */
-export function parseColor(color: string): Color {
+export function parseColor(
+  color: string,
+  colorLevel: ActiveColorLevel = DEFAULT_COLOR_LEVEL,
+): Color {
   // Inherit: no color — parent's color flows through (like CSS color: inherit).
   // "currentColor" is a CSS synonym — both keywords resolve identically here.
   // For child-cascade purposes, render-phase detects these keywords directly
@@ -101,8 +109,8 @@ export function parseColor(color: string): Color {
     args.push(inner.slice(start).trim())
 
     if (args.length === 3) {
-      const c1 = parseColor(args[0]!)
-      const c2 = parseColor(args[1]!)
+      const c1 = parseColor(args[0]!, colorLevel)
+      const c2 = parseColor(args[1]!, colorLevel)
       const amountStr = args[2]!
 
       // Parse amount: percentage (e.g. "50%") or decimal (e.g. "0.5")
@@ -136,9 +144,9 @@ export function parseColor(color: string): Color {
     // by per-token SGR attrs (see getTextStyle → monoAttrsForColorString). The
     // output phase sees `null` and emits SGR 39/49 (terminal default), never
     // an RGB sequence.
-    if (getActiveColorLevel() === "mono") return null
+    if (colorLevel === "mono") return null
     const resolved = resolveThemeColor(color, getActiveTheme())
-    if (resolved && resolved !== color) return parseColor(resolved)
+    if (resolved && resolved !== color) return parseColor(resolved, colorLevel)
     return null
   }
 
@@ -231,7 +239,10 @@ function collectMonoAttrs(color: string | undefined, into: Set<MonoAttr>): void 
 /**
  * Get text style from props.
  */
-export function getTextStyle(props: TextProps): Style {
+export function getTextStyle(
+  props: TextProps,
+  colorLevel: ActiveColorLevel = DEFAULT_COLOR_LEVEL,
+): Style {
   // Determine underline style. Precedence:
   //   1. `underlineStyle` (deprecated, explicit)
   //   2. `underline: "curly" | "double" | ...` (string form of the unified prop)
@@ -259,7 +270,7 @@ export function getTextStyle(props: TextProps): Style {
   // are stripped by parseColor (returns null for $tokens at mono tier). The
   // attrs carry the hierarchy: $primary → bold, $muted → dim, $error →
   // bold+inverse, $link → underline, etc. User-supplied attrs always OR-in.
-  if (getActiveColorLevel() === "mono") {
+  if (colorLevel === "mono") {
     const monoAttrs = new Set<MonoAttr>()
     collectMonoAttrs(props.color, monoAttrs)
     collectMonoAttrs(props.backgroundColor, monoAttrs)
@@ -275,9 +286,9 @@ export function getTextStyle(props: TextProps): Style {
   }
 
   return {
-    fg: props.color ? parseColor(props.color) : null,
-    bg: props.backgroundColor ? parseColor(props.backgroundColor) : null,
-    underlineColor: props.underlineColor ? parseColor(props.underlineColor) : null,
+    fg: props.color ? parseColor(props.color, colorLevel) : null,
+    bg: props.backgroundColor ? parseColor(props.backgroundColor, colorLevel) : null,
+    underlineColor: props.underlineColor ? parseColor(props.underlineColor, colorLevel) : null,
     attrs: {
       bold,
       dim,

@@ -255,8 +255,9 @@ describe("DocumentView heading marker gutter", () => {
       )
       let fullestLine = ""
       for (const line of app.lines) {
-        if (line.includes("y") && line.trimEnd().length > fullestLine.trimEnd().length)
-          {fullestLine = line}
+        if (line.includes("y") && line.trimEnd().length > fullestLine.trimEnd().length) {
+          fullestLine = line
+        }
       }
       expect(fullestLine, `cols=${cols}`).not.toBe("")
       const rightGutter = cols - fullestLine.trimEnd().length

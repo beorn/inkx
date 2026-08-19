@@ -14,6 +14,7 @@ import { getBorderChars, getBorderSize, parseColor } from "./render-helpers"
 import { renderTextLine } from "./render-text"
 import { createFrameSink, type RenderSink } from "./render-sink"
 import type { NodeRenderState, PipelineContext } from "./types"
+import type { ActiveColorLevel } from "./state"
 
 /**
  * Get the effective background color string for a Box.
@@ -51,6 +52,7 @@ export function renderBox(
   inheritedBg?: Color | null,
   bgFillPreservesCells = false,
   inheritedFg?: Color | null,
+  colorLevel?: ActiveColorLevel,
 ): void {
   // Phase 2 Step 4b: paint emissions route through a RenderSink so the
   // intent of each op is declared at the call site (paintFill vs fillBg).
@@ -81,7 +83,7 @@ export function renderBox(
   // background metadata while preserving cloned child chars/fg/attrs.
   const effectiveBgStr = getEffectiveBg(props)
   if (effectiveBgStr && !skipBgFill) {
-    const bg = parseColor(effectiveBgStr)
+    const bg = parseColor(effectiveBgStr, colorLevel)
     // Clip background fill to bounds
     if (clipBounds) {
       const clippedY = Math.max(y, clipBounds.top)
@@ -110,7 +112,19 @@ export function renderBox(
 
   // Render border if set
   if (props.borderStyle) {
-    renderBorder(buffer, sink, x, y, width, height, props, clipBounds, inheritedBg, inheritedFg)
+    renderBorder(
+      buffer,
+      sink,
+      x,
+      y,
+      width,
+      height,
+      props,
+      clipBounds,
+      inheritedBg,
+      inheritedFg,
+      colorLevel,
+    )
   }
 }
 
@@ -132,6 +146,7 @@ export function renderBorder(
   clipBounds?: { top: number; bottom: number; left?: number; right?: number },
   inheritedBg?: Color | null,
   inheritedFg?: Color | null,
+  colorLevel?: ActiveColorLevel,
 ): void {
   const chars = getBorderChars(props.borderStyle ?? "single")
   // borderColor="currentColor"/"inherit" resolves to the Box's own fg —
@@ -139,27 +154,29 @@ export function renderBorder(
   // ancestor with a color. Mirrors CSS `border-color: currentColor`.
   let color: Color | null
   if (props.borderColor === "currentColor" || props.borderColor === "inherit") {
-    color = props.color ? parseColor(props.color) : (inheritedFg ?? null)
+    color = props.color ? parseColor(props.color, colorLevel) : (inheritedFg ?? null)
   } else {
-    color = props.borderColor ? parseColor(props.borderColor) : null
+    color = props.borderColor ? parseColor(props.borderColor, colorLevel) : null
   }
   // Preserve the box's background color on border cells. Falls back to
   // inherited bg from the nearest ancestor with backgroundColor, ensuring
   // border cells don't punch transparent holes through parent backgrounds.
-  const baseBg = props.backgroundColor ? parseColor(props.backgroundColor) : (inheritedBg ?? null)
+  const baseBg = props.backgroundColor
+    ? parseColor(props.backgroundColor, colorLevel)
+    : (inheritedBg ?? null)
 
   // Per-side border background colors — each side falls back to the shorthand
   // borderBackgroundColor, then to the box's own bg / inherited bg.
   const borderBgStr = (props as BoxProps).borderBackgroundColor
-  const borderBgBase = borderBgStr ? parseColor(borderBgStr) : baseBg
+  const borderBgBase = borderBgStr ? parseColor(borderBgStr, colorLevel) : baseBg
   const topBorderBgStr = (props as BoxProps).borderTopBackgroundColor
   const bottomBorderBgStr = (props as BoxProps).borderBottomBackgroundColor
   const leftBorderBgStr = (props as BoxProps).borderLeftBackgroundColor
   const rightBorderBgStr = (props as BoxProps).borderRightBackgroundColor
-  const topBg = topBorderBgStr ? parseColor(topBorderBgStr) : borderBgBase
-  const bottomBg = bottomBorderBgStr ? parseColor(bottomBorderBgStr) : borderBgBase
-  const leftBg = leftBorderBgStr ? parseColor(leftBorderBgStr) : borderBgBase
-  const rightBg = rightBorderBgStr ? parseColor(rightBorderBgStr) : borderBgBase
+  const topBg = topBorderBgStr ? parseColor(topBorderBgStr, colorLevel) : borderBgBase
+  const bottomBg = bottomBorderBgStr ? parseColor(bottomBorderBgStr, colorLevel) : borderBgBase
+  const leftBg = leftBorderBgStr ? parseColor(leftBorderBgStr, colorLevel) : borderBgBase
+  const rightBg = rightBorderBgStr ? parseColor(rightBorderBgStr, colorLevel) : borderBgBase
 
   const showTop = props.borderTop !== false
   const showBottom = props.borderBottom !== false
@@ -254,10 +271,13 @@ export function renderOutline(
   props: BoxProps,
   clipBounds?: { top: number; bottom: number; left?: number; right?: number },
   inheritedBg?: Color | null,
+  colorLevel?: ActiveColorLevel,
 ): void {
   const chars = getBorderChars(props.outlineStyle ?? "single")
-  const color = props.outlineColor ? parseColor(props.outlineColor) : null
-  const bg = props.backgroundColor ? parseColor(props.backgroundColor) : (inheritedBg ?? null)
+  const color = props.outlineColor ? parseColor(props.outlineColor, colorLevel) : null
+  const bg = props.backgroundColor
+    ? parseColor(props.backgroundColor, colorLevel)
+    : (inheritedBg ?? null)
   const attrs = props.outlineDimColor ? { dim: true } : {}
 
   // Outline draws OUTSIDE the box: one cell beyond each edge

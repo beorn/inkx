@@ -59,7 +59,7 @@ export interface RenderTerm extends MeasuredTerm {
  */
 export function withRender(term: Term): RenderTerm {
   const pipelineConfig = createPipeline({ caps: term.caps })
-  const { measurer } = pipelineConfig
+  const { measurer, colorLevel } = pipelineConfig
 
   function renderPipeline(
     root: AgNode,
@@ -80,7 +80,7 @@ export function withRender(term: Term): RenderTerm {
     } = opts
 
     const doRender = () => {
-      const ag = createAg(root, { measurer })
+      const ag = createAg(root, { measurer, colorLevel })
       ag.layout({ cols: width, rows: height }, { skipLayoutNotifications, skipScrollStateUpdates })
       const { buffer, overlay } = ag.render({ prevBuffer })
 

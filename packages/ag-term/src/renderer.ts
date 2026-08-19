@@ -71,6 +71,7 @@ import { createScope, reportDisposeError } from "@silvery/scope"
 
 import { isProtocolError } from "@silvery/ansi"
 import { createTerm } from "./ansi/index"
+import type { ColorLevel } from "@silvery/ansi"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "@silvery/test/debug-mismatch"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
@@ -169,6 +170,15 @@ export interface RenderOptions {
   debug?: boolean
   /** Enable incremental rendering. Default: true */
   incremental?: boolean
+  /**
+   * Color tier to render at, as `caps.colorLevel` would supply in production.
+   * At `"mono"`, `$tokens` resolve to no color and carry SGR attrs instead.
+   *
+   * Default: `"truecolor"`. The tier is per-renderer — it rides on the Ag's
+   * PipelineContext, never module state, so two renderers in one process can
+   * target terminals with different color support (pipeline/state.ts).
+   */
+  colorLevel?: ColorLevel
   /** Use Kitty keyboard protocol encoding for press(). When true, press() uses keyToKittyAnsi. */
   kittyMode?: boolean
   /**
@@ -330,6 +340,8 @@ interface RenderInstance {
   inputEmitter: EventEmitter
   debug: boolean
   incremental: boolean
+  /** Color tier this renderer targets — per-instance, never module state. */
+  colorLevel: ColorLevel
   /** Render count for SILVERY_STRICT checking (skip first render) */
   renderCount: number
   /** Max layout-pass iterations per render. See RenderOptions.maxLayoutPasses. */
@@ -363,6 +375,7 @@ function isStore(arg: unknown): arg is Store {
     !("onFrame" in obj) &&
     !("kittyMode" in obj) &&
     !("wrapRoot" in obj) &&
+    !("colorLevel" in obj) &&
     !("stdin" in obj)
   )
 }
@@ -397,6 +410,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Incremental rendering is enabled by default for all renders
   // Store mode also supports incremental - the RenderInstance tracks prevBuffer
   const incremental = storeMode ? true : (optsOrStore.incremental ?? true)
+  const colorLevel: ColorLevel = storeMode ? "truecolor" : (optsOrStore.colorLevel ?? "truecolor")
   const maxLayoutPasses = storeMode
     ? MAX_CONVERGENCE_PASSES
     : (optsOrStore.maxLayoutPasses ?? MAX_CONVERGENCE_PASSES)
@@ -440,6 +454,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     inputEmitter: new EventEmitter(),
     debug,
     incremental,
+    colorLevel,
     renderCount: 0,
     maxLayoutPasses,
     kittyActive: false,
@@ -592,7 +607,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   const mockTerm = createTerm({
     cols: instance.columns,
     rows: instance.rows,
-    caps: { colorLevel: "truecolor" },
+    caps: { colorLevel: instance.colorLevel },
   })
   const updateMockTermSize = (
     mockTerm.size as typeof mockTerm.size & { update?: (cols: number, rows: number) => void }
@@ -768,7 +783,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     carryForwardBuffer: TerminalBuffer
     overlay: string
   } {
-    const ag = createAg(root)
+    const ag = createAg(root, { colorLevel: instance.colorLevel })
     ag.layout({ cols, rows }, opts)
     // `buffer` is post-fade (what we paint); `carryForwardBuffer` is pre-fade
     // (what the NEXT frame's incremental render must clone). See ag.ts
@@ -1490,8 +1505,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         })
         if (!hadReactCommit) break
         // Always-on exhaustion marker → never-empty violation ring.
-        if (flush === MAX_CONVERGENCE_PASSES - 1)
-          {recordPassRing("unknown", "effect-flush-exhaustion")}
+        if (flush === MAX_CONVERGENCE_PASSES - 1) {
+          recordPassRing("unknown", "effect-flush-exhaustion")
+        }
         if (INSTRUMENT) {
           notePassCommit(flush)
           if (flush === MAX_CONVERGENCE_PASSES - 1) {

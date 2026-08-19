@@ -1102,8 +1102,9 @@ function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props:
           // CSS has no auto padding and BoxProps types padding as `number`, so
           // this is unreachable by construction. Throw rather than coerce: a
           // silent 0 would turn a caller's type error into a layout mystery.
-          if (value === "auto")
-            {throw new Error('padding does not accept "auto" (CSS has no auto padding)')}
+          if (value === "auto") {
+            throw new Error('padding does not accept "auto" (CSS has no auto padding)')
+          }
           layoutNode.setPadding(edge, value)
         }
       : (edge, value): void => {

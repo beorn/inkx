@@ -2,6 +2,7 @@
  * Shared types for the Silvery render pipeline.
  */
 
+import type { ColorLevel } from "@silvery/ansi"
 import type { Cell } from "../buffer"
 import type { Measurer } from "../unicode"
 
@@ -19,6 +20,16 @@ import type { Measurer } from "../unicode"
  */
 export interface PipelineContext {
   readonly measurer: Measurer
+  /**
+   * Color tier this render targets, from `caps.colorLevel`. Read by
+   * `parseColor()` / `getTextStyle()` to decide whether `$tokens` resolve to
+   * colors or to SGR attrs (the `"mono"` branch).
+   *
+   * Per-render by construction: a process can host several pipelines against
+   * terminals with different color support, and a shared value lets whichever
+   * was built last restyle all the others. Omitted means `"truecolor"`.
+   */
+  readonly colorLevel?: ColorLevel
   // Phase 3: instrumentation (all optional for backward compat)
   readonly instrumentEnabled?: boolean
   readonly stats?: RenderPhaseStats

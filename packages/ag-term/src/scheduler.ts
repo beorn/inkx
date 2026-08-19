@@ -701,6 +701,7 @@ export class RenderScheduler {
       const scrollbackOffset = this.scrollbackOffset
       this.scrollbackOffset = 0 // Consume the offset
       const measurer = this.pipelineConfig?.measurer
+      const colorLevel = this.pipelineConfig?.colorLevel
       // Inline cursor is resolved AFTER layout below — the layout-output path
       // (BoxProps.cursorOffset → cursorRect signal) requires layout to have
       // run. The legacy store fallback used to be resolved pre-layout, but
@@ -710,7 +711,7 @@ export class RenderScheduler {
         | null
         | undefined
       const doRender = () => {
-        const ag = createAg(this.root, { measurer })
+        const ag = createAg(this.root, { measurer, colorLevel })
         ag.layout({ cols: width, rows: height })
         if (this.mode === "inline") {
           const c = this.resolveActiveCursor()
@@ -943,7 +944,7 @@ export class RenderScheduler {
       if ((isStrictEnabled("incremental", 1) || freshLayout) && this.stats.renderCount > 0) {
         const renderNum = this.stats.renderCount + 1
         const doFreshRender = () => {
-          const freshAg = createAg(this.root, { measurer })
+          const freshAg = createAg(this.root, { measurer, colorLevel })
           // fresh-layout STRICT slug: force an INDEPENDENT from-scratch layout so
           // a shared stale rect (a layout-affecting change that failed to
           // markDirty flexily) surfaces as a buffer mismatch instead of being

@@ -388,8 +388,9 @@ export function nearestSelectableCellFromPoint(
   const sameRow = rows.find((candidate) => candidate.row === pointerRow)
   if (sameRow) {
     if (pointerCol < sameRow.first) return { col: sameRow.first, row: sameRow.row }
-    if (pointerCol > sameRow.last)
-      {return { col: Math.min(right, sameRow.last + 1), row: sameRow.row }}
+    if (pointerCol > sameRow.last) {
+      return { col: Math.min(right, sameRow.last + 1), row: sameRow.row }
+    }
     return { col: sameRow.nearest, row: sameRow.row }
   }
 

@@ -24,6 +24,7 @@ import type { AgNode, Cell, Rect } from "@silvery/ag/types"
 import type { CellBuffer } from "@silvery/ag/viewport-types"
 import type { RenderSink } from "./render-sink"
 import { parseColor } from "./render-helpers"
+import type { PipelineContext } from "./types"
 import { assertIslandRenderInvariants, ensureIslandStrictInstrumentation } from "../strict-island"
 
 /**
@@ -40,9 +41,10 @@ export function renderViewport(
   sink: RenderSink,
   layout: Rect,
   scrollOffset: number,
+  ctx?: PipelineContext,
 ): void {
   const state = node.viewportState
-  emitOpaqueBlit(state?.buffer ?? null, buffer, sink, layout, scrollOffset)
+  emitOpaqueBlit(state?.buffer ?? null, buffer, sink, layout, scrollOffset, null, false, ctx)
 }
 
 /**
@@ -56,11 +58,15 @@ export function renderViewport(
  * Cell shape from `@silvery/ag/types`. Islands pass an inherited background
  * so snapshot guests can leave cell.bg null and still sit on host chrome.
  */
-function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
+function viewportCellToPatch(
+  cell: Cell,
+  inheritedBg: Color = null,
+  ctx?: PipelineContext,
+): CellPatch {
   return {
     char: cell.char,
-    fg: cell.fg === null ? null : (parseColor(cell.fg) as Color),
-    bg: cell.bg === null ? inheritedBg : (parseColor(cell.bg) as Color),
+    fg: cell.fg === null ? null : (parseColor(cell.fg, ctx?.colorLevel) as Color),
+    bg: cell.bg === null ? inheritedBg : (parseColor(cell.bg, ctx?.colorLevel) as Color),
     attrs: cell.attrs,
     hyperlink: cell.hyperlink,
     wide: cell.wide,
@@ -87,6 +93,7 @@ function emitOpaqueBlit(
   scrollOffset: number,
   inheritedBg: Color = null,
   selectableMode = false,
+  ctx?: PipelineContext,
 ): void {
   const baseX = layout.x
   const baseY = layout.y - scrollOffset
@@ -103,7 +110,7 @@ function emitOpaqueBlit(
       if (dstX < 0 || dstX >= buffer.width) continue
       const cell =
         src && r < src.rows && c < src.cols
-          ? viewportCellToPatch(src.getCell(c, r), inheritedBg)
+          ? viewportCellToPatch(src.getCell(c, r), inheritedBg, ctx)
           : blank
       sink.emitSetCell(dstX, dstY, cell, selectableMode)
     }
@@ -149,10 +156,11 @@ export function renderIsland(
   scrollOffset: number,
   inheritedBg: Color = null,
   selectableMode = false,
+  ctx?: PipelineContext,
 ): void {
   const state = node.islandState
   if (!state) {
-    emitOpaqueBlit(null, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode)
+    emitOpaqueBlit(null, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode, ctx)
     return
   }
   const handle = state.handle
@@ -160,11 +168,11 @@ export function renderIsland(
   // `init()` resolves. The island rect is still opaque, so emit blank cells
   // instead of letting cloned parent-buffer content survive under it.
   if (!handle) {
-    emitOpaqueBlit(null, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode)
+    emitOpaqueBlit(null, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode, ctx)
     return
   }
   ensureIslandStrictInstrumentation(node)
   assertIslandRenderInvariants(node, layout)
   const src = handle.output.buffer
-  emitOpaqueBlit(src, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode)
+  emitOpaqueBlit(src, buffer, sink, layout, scrollOffset, inheritedBg, selectableMode, ctx)
 }

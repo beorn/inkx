@@ -119,9 +119,20 @@ The same reasoning covers `dirty-tracking.ts`'s node sets, which are also per-tr
 
 Rules for pipeline code:
 
-- Never reintroduce a module-level epoch, dirty set, or "current frame" counter. Reach state through the node (`node.epochOwner`), not through a scoped save/restore global — the framework's structural-ownership rule (root `CLAUDE.md`, `wasRaw` anti-pattern) applies here too.
+- Never reintroduce a module-level epoch, dirty set, "current frame" counter, or terminal-capability mirror. Reach per-tree state through the node (`node.epochOwner`) and per-render state through `ctx: PipelineContext`, never through a scoped save/restore global — the framework's structural-ownership rule (root `CLAUDE.md`, `wasRaw` anti-pattern) applies here too.
 - Node literals must set `epochOwner`. React-created nodes inherit it from `rootContainer.root.epochOwner` in `createInstance` / `createTextInstance`, so every node is born into the tree that renders it and no adoption pass is needed.
 - Regression pin: `tests/features/residue-cross-render.test.tsx` — a peer renderer drives a frame from the subject's layout effect (inside the commit→pipeline window) and STRICT must stay green.
+
+### The color level is per render, for the same reason
+
+`ctx.colorLevel` carries the tier from `caps.colorLevel` through `createPipeline` → `PipelineConfig` → `createAg` → `PipelineContext`, and `parseColor(color, colorLevel)` / `getTextStyle(props, colorLevel)` take it as an argument. It used to be a module-level `_activeColorLevel` that `createPipeline()` assigned.
+
+That assignment happens at app construction and on cap re-detection — never per frame — so nothing re-established it before a render read it, and with two apps in one process the one constructed LAST chose the tier for BOTH. The damage is asymmetric and easy to misread: the OUTPUT phase holds `colorLevel` per instance in a closure and kept stripping color correctly, so a mono app that lost the tier also lost the SGR attrs (`$primary` → bold, `$muted` → dim) that carry its hierarchy — flat, undifferentiated output rather than an obviously wrong color. In the other direction a truecolor app next to a mono one lost every `$token` color.
+
+- New `parseColor` / `getTextStyle` call sites inside the pipeline must pass `ctx?.colorLevel`. The parameter defaults to `DEFAULT_COLOR_LEVEL` ("truecolor") so leaf helpers stay callable from non-pipeline code (`selection-renderer`, `terminal-adapter`), which means **the typechecker will not catch a forgotten thread** — the mono path is the one that degrades silently.
+- Any new `createAg` call on a real render path must thread `colorLevel` from its `PipelineConfig`, or the tier stops at the Ag boundary.
+- `createRenderer({ colorLevel })` selects the tier in tests; `isStore()` must keep excluding it, or `{ cols, rows, colorLevel }` is misread as a `Store` and the option is dropped on the floor.
+- Regression pin: `tests/features/color-level-cross-render.test.tsx` — a mono app and a truecolor app in one process, each asserted after the other exists.
 
 | Flag                     | Set by       | Meaning                                                                     |
 | ------------------------ | ------------ | --------------------------------------------------------------------------- |

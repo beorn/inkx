@@ -8,7 +8,6 @@
 import type { Term, TerminalCaps } from "./ansi/index"
 import { createMeasurer, type Measurer } from "./unicode"
 import { createOutputPhase } from "./pipeline/output-phase"
-import { setActiveColorLevel } from "./pipeline/state"
 import type { PipelineConfig } from "./pipeline"
 
 export type { Measurer } from "./unicode"
@@ -79,12 +78,12 @@ export function createPipeline(
       : {},
     measurer,
   )
-  // Mirror colorLevel into module-scoped theme state so render-helpers
-  // (parseColor, getTextStyle) can dispatch on tier without access to
-  // OutputContext. At mono tier ("none"), $tokens resolve to null fg/bg and
-  // getTextStyle injects per-token SGR attrs from DEFAULT_MONO_ATTRS so apps
-  // keep hierarchy (bold / dim / italic / underline / inverse) when color is
-  // unavailable.
-  if (caps?.colorLevel) setActiveColorLevel(caps.colorLevel)
-  return { measurer, outputPhaseFn }
+  // The tier travels ON the config, not in module state: render-helpers
+  // (parseColor, getTextStyle) dispatch on it, and a process can hold several
+  // pipelines against terminals with different color support. At mono tier,
+  // $tokens resolve to null fg/bg and getTextStyle injects per-token SGR attrs
+  // from DEFAULT_MONO_ATTRS so apps keep hierarchy (bold / dim / italic /
+  // underline / inverse) when color is unavailable. See pipeline/state.ts for
+  // what a shared value did to a second app.
+  return { measurer, outputPhaseFn, colorLevel: caps?.colorLevel }
 }

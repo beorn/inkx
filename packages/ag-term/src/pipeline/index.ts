@@ -27,6 +27,7 @@
  */
 
 import type { CursorState } from "@silvery/ag-react/hooks/useCursor"
+import type { ColorLevel } from "@silvery/ansi"
 import type { Measurer } from "../unicode"
 import type { OutputPhaseFn } from "./output-phase"
 
@@ -69,14 +70,11 @@ export {
   realizeToKitty,
 } from "./backdrop"
 export type { BackdropOptions, BackdropResult, ColorLevel, Plan } from "./backdrop"
-// Active theme + color level state (pipeline-internal, exposed for out-of-tree consumers)
-export {
-  getActiveTheme,
-  pushContextTheme,
-  popContextTheme,
-  getActiveColorLevel,
-  setActiveColorLevel,
-} from "./state"
+// Active theme state (pipeline-internal, exposed for out-of-tree consumers).
+// The color level is deliberately NOT here: it rides on PipelineContext, and a
+// module-level getter/setter pair is what let one app restyle another. Pass
+// `ctx?.colorLevel` to `parseColor` / `getTextStyle` instead — see ./state.ts.
+export { getActiveTheme, pushContextTheme, popContextTheme, DEFAULT_COLOR_LEVEL } from "./state"
 export type { ActiveColorLevel } from "./state"
 
 // Layout signals — unified module (backward compat re-exports)
@@ -149,6 +147,16 @@ export interface PipelineConfig {
   readonly measurer: Measurer
   /** Output phase function scoped to terminal capabilities */
   readonly outputPhaseFn: OutputPhaseFn
+  /**
+   * Color tier this pipeline renders for, from `caps.colorLevel`.
+   *
+   * Carried here — not in module state — because a process can host several
+   * pipelines against terminals of different color support, and the render
+   * helpers dispatch on the tier (at `"mono"`, `$tokens` resolve to no color
+   * and carry SGR attrs instead). A shared value means whichever pipeline was
+   * built last restyles every other one. See `pipeline/state.ts`.
+   */
+  readonly colorLevel?: ColorLevel
 }
 
 // ============================================================================

@@ -41,6 +41,7 @@ import { getBorderSize, getPadding } from "./helpers"
 import { renderOutline, getEffectiveBg } from "./render-box"
 import { parseColor } from "./render-helpers"
 import { createFrameSink, type RenderSink } from "./render-sink"
+import type { PipelineContext } from "./types"
 import type { RenderPostState, OutlineCellSnapshot } from "./render-post-state"
 import type { ClipBounds } from "./types"
 
@@ -91,10 +92,11 @@ export function renderDecorationPass(
   buffer: TerminalBuffer,
   root: AgNode,
   postState: RenderPostState,
+  ctx?: PipelineContext,
 ): void {
   const snapshots: OutlineCellSnapshot[] = []
   const sink: RenderSink = createFrameSink(buffer)
-  walk(root, buffer, sink, 0, undefined, { color: null }, snapshots)
+  walk(root, buffer, sink, 0, undefined, { color: null }, snapshots, ctx)
   postState.outlineSnapshots = snapshots
   sink.setOutlineSnapshots(snapshots)
 }
@@ -112,6 +114,7 @@ function walk(
   clipBounds: ClipBounds | undefined,
   inheritedBg: { color: Color },
   snapshots: OutlineCellSnapshot[],
+  ctx?: PipelineContext,
 ): void {
   // Virtual text nodes have no layout — they're rendered by their parent's
   // text collection pass. Nothing to draw and no children to descend.
@@ -143,9 +146,9 @@ function walk(
         ? (theme["bg"] as string)
         : undefined
   const childInheritedBg: { color: Color } = effectiveBg
-    ? { color: parseColor(effectiveBg) }
+    ? { color: parseColor(effectiveBg, ctx?.colorLevel) }
     : themeBg !== undefined
-      ? { color: parseColor(themeBg) }
+      ? { color: parseColor(themeBg, ctx?.colorLevel) }
       : inheritedBg
 
   // Draw the outline AFTER content — this means we paint on top of whatever
@@ -184,6 +187,7 @@ function walk(
       props,
       clipBounds,
       boxInheritedBg,
+      ctx?.colorLevel,
     )
   }
 
@@ -207,7 +211,7 @@ function walk(
       const cp = child.props as BoxProps
       if (cp.position === "sticky") continue
       if (i < ss.firstVisibleChild || i > ss.lastVisibleChild) continue
-      walk(child, buffer, sink, ss.offset, childClip, childInheritedBg, snapshots)
+      walk(child, buffer, sink, ss.offset, childClip, childInheritedBg, snapshots, ctx)
     }
     // Sticky children: rendered at their computed sticky offset.
     if (ss.stickyChildren) {
@@ -215,7 +219,7 @@ function walk(
         const child = node.children[sticky.index]
         if (!child) continue
         const stickyOffset = sticky.naturalTop - sticky.renderOffset
-        walk(child, buffer, sink, stickyOffset, childClip, childInheritedBg, snapshots)
+        walk(child, buffer, sink, stickyOffset, childClip, childInheritedBg, snapshots, ctx)
       }
     }
   } else {
@@ -224,7 +228,7 @@ function walk(
         ? computeChildClip(layout, props, clipBounds, scrollOffset, clipX, clipY)
         : clipBounds
     for (const child of node.children) {
-      walk(child, buffer, sink, scrollOffset, childClip, childInheritedBg, snapshots)
+      walk(child, buffer, sink, scrollOffset, childClip, childInheritedBg, snapshots, ctx)
     }
   }
 }

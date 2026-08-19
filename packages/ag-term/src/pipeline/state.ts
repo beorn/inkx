@@ -43,21 +43,30 @@ export function getActiveTheme(): Theme {
 }
 
 // ============================================================================
-// Active Color Level (tier dispatch)
+// Color Level (tier dispatch)
 // ============================================================================
 
 /**
- * Color tier the render pipeline is targeting.
+ * Color tier a render is targeting.
  *
- * Mirrors `TerminalCaps.colorLevel` but lives in module state for the
- * render-helpers parseColor() / getTextStyle() functions, which don't have
- * access to the OutputContext or React props. Set by the runtime
- * (`createPipeline()` in `@silvery/ag-term/measurer.ts`) before the first
- * render, and updated on cap changes.
+ * Mirrors `TerminalCaps.colorLevel`. At `"mono"` (monochrome),
+ * `parseColor("$primary")` returns `null` and `getTextStyle()` injects
+ * mono-attrs (bold, dim, italic, underline, inverse, strikethrough) from
+ * `DEFAULT_MONO_ATTRS`, so hierarchy survives where color cannot. See
+ * `hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p4`.
  *
- * At `"mono"` (monochrome), `parseColor("$primary")` returns `null` and
- * `getTextStyle()` injects mono-attrs (bold, dim, italic, underline, inverse,
- * strikethrough) from `DEFAULT_MONO_ATTRS`. See `hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p4`.
+ * **This is NOT module state.** It rides on `PipelineContext.colorLevel`,
+ * flowing `caps → createPipeline → PipelineConfig → createAg → ctx` and into
+ * `parseColor()` / `getTextStyle()` as an argument. It used to be a
+ * module-level `_activeColorLevel` that `createPipeline()` assigned, which is
+ * indistinguishable from correct with one app running and wrong the moment
+ * there are two: `createPipeline` runs at app construction and on cap
+ * re-detection, never per frame, so nothing re-established it before a render
+ * read it, and whichever app was constructed LAST chose the tier for BOTH. A
+ * mono app then lost its SGR hierarchy attrs while its own (per-instance)
+ * output phase went on stripping color — flat, unreadable output; a truecolor
+ * app next to a mono one lost every `$token` color. Regression pin:
+ * `tests/features/color-level-cross-render.test.tsx`.
  *
  * Post km-silvery.terminal-profile-plateau Phase 1 this is an alias for the
  * canonical {@link ColorLevel} — the `ActiveColorLevel` name is retained for
@@ -65,17 +74,8 @@ export function getActiveTheme(): Theme {
  */
 export type ActiveColorLevel = import("@silvery/ansi").ColorLevel
 
-let _activeColorLevel: ActiveColorLevel = "truecolor"
-
-/** Set the active color level (called by the runtime based on TerminalCaps). */
-export function setActiveColorLevel(level: ActiveColorLevel): void {
-  _activeColorLevel = level
-}
-
-/** Get the active color level (called by parseColor / getTextStyle in render-helpers). */
-export function getActiveColorLevel(): ActiveColorLevel {
-  return _activeColorLevel
-}
+/** Tier assumed when a caller supplies none — full color, no attr injection. */
+export const DEFAULT_COLOR_LEVEL: ActiveColorLevel = "truecolor"
 
 // ============================================================================
 // Context Theme Stack (per-subtree overrides during render phase)

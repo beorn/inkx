@@ -185,7 +185,7 @@ export function renderPhase(
   // snapshots on the `postState` carrier for the next frame's
   // `clearPreviousOutlines` (Phase 2 Step 5 — snapshots no longer live on
   // the buffer).
-  renderDecorationPass(buffer, root, postState)
+  renderDecorationPass(buffer, root, postState, ctx)
 
   if (instr.enabled) {
     emitRenderPhaseStats(instr.stats, instr.nodeTrace, instr.nodeTraceEnabled, tClone, tRender)
@@ -843,22 +843,22 @@ function renderNodeToBuffer(
     // color, or theme, children inherit from this node. Otherwise, inherit from parent.
     const effectiveBg = getEffectiveBg(props)
     const childInheritedBg = effectiveBg
-      ? { color: parseColor(effectiveBg), ancestorRect: node.boxRect }
+      ? { color: parseColor(effectiveBg, ctx?.colorLevel), ancestorRect: node.boxRect }
       : nodeTheme
-        ? { color: parseColor(nodeTheme.bg), ancestorRect: node.boxRect }
+        ? { color: parseColor(nodeTheme.bg, ctx?.colorLevel), ancestorRect: node.boxRect }
         : nodeState.inheritedBg
     // color="inherit"/"currentColor" is a pass-through — children inherit
     // from this node's OWN inheritedFg (our parent's color), not from null.
     // Without this, an intermediate "inherit" node breaks the cascade to
-    // grandchildren because parseColor("inherit") returns null, clobbering
+    // grandchildren because parseColor("inherit", ctx?.colorLevel) returns null, clobbering
     // the ancestor fg. See Bead km-silvery.color-inherit.
     const isInheritKeyword = props.color === "inherit" || props.color === "currentColor"
     const childInheritedFg = isInheritKeyword
       ? nodeState.inheritedFg
       : props.color
-        ? parseColor(props.color)
+        ? parseColor(props.color, ctx?.colorLevel)
         : nodeTheme
-          ? parseColor(nodeTheme.fg)
+          ? parseColor(nodeTheme.fg, ctx?.colorLevel)
           : nodeState.inheritedFg
 
     // Render children — pass inherited bg/fg/selectableMode so children
@@ -910,7 +910,15 @@ function renderNodeToBuffer(
     // Sets `node.hadBoxAttrOverlay` so next frame's cascade can detect the
     // "overlay was removed" case and trigger a clear.
     if (node.type === "silvery-box") {
-      const applied = applyBoxAttrOverlay(buffer, sink, layout, props, scrollOffset, clipBounds)
+      const applied = applyBoxAttrOverlay(
+        buffer,
+        sink,
+        layout,
+        props,
+        scrollOffset,
+        clipBounds,
+        ctx,
+      )
       node.hadBoxAttrOverlay = applied
     }
 
@@ -1221,13 +1229,14 @@ function renderOwnContent(
       boxInheritedBg,
       bgFillPreservesCells,
       nodeState.inheritedFg,
+      ctx?.colorLevel,
     )
   } else if (node.type === "silvery-viewport") {
     // Opaque blit of the foreign cell domain. The viewport doesn't participate
     // in bg-coherence with the parent — `renderText`'s bg-conflict throw is
     // never reached because viewport cells route through `sink.emitSetCell`
     // directly. See bead @km/silvery/15513.
-    renderViewport(node, buffer, sink, layout, nodeState.scrollOffset)
+    renderViewport(node, buffer, sink, layout, nodeState.scrollOffset, ctx)
   } else if (node.type === "silvery-island") {
     // Sibling of silvery-viewport — opaque blit of the guest's cell buffer.
     // The island generalises Viewport with the runtime-agnostic IslandGuest
@@ -1242,6 +1251,7 @@ function renderOwnContent(
       nodeState.scrollOffset,
       nodeState.inheritedBg.color,
       nodeState.selectableMode,
+      ctx,
     )
   } else if (node.type === "silvery-text") {
     if (instrumentEnabled) stats.textNodes++
@@ -1317,7 +1327,10 @@ function mayHaveBoxAttrOverlay(props: BoxProps): boolean {
  *
  * Returns null when no overlay attrs are present (fast path — most Boxes).
  */
-function computeBoxAttrOverlay(props: BoxProps): {
+function computeBoxAttrOverlay(
+  props: BoxProps,
+  ctx?: PipelineContext,
+): {
   attrs: import("../buffer").CellAttrs
   underlineColor: Color | undefined
 } | null {
@@ -1355,7 +1368,9 @@ function computeBoxAttrOverlay(props: BoxProps): {
     underlineStyle: hasUnderline ? underlineStyle : undefined,
   }
 
-  const underlineColor = props.underlineColor ? parseColor(props.underlineColor) : undefined
+  const underlineColor = props.underlineColor
+    ? parseColor(props.underlineColor, ctx?.colorLevel)
+    : undefined
 
   return { attrs, underlineColor: underlineColor ?? undefined }
 }
@@ -1376,8 +1391,9 @@ function applyBoxAttrOverlay(
   props: BoxProps,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
+  ctx?: PipelineContext,
 ): boolean {
-  const overlay = computeBoxAttrOverlay(props)
+  const overlay = computeBoxAttrOverlay(props, ctx)
   if (!overlay) return false
 
   const x = layout.x

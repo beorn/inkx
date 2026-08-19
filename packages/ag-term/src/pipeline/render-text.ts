@@ -41,7 +41,7 @@ import {
 } from "../unicode"
 import { collectPlainText } from "./collect-text"
 import { getTextStyle, getTextWidth, parseColor } from "./render-helpers"
-import { getActiveColorLevel, getActiveTheme } from "./state"
+import { getActiveTheme, type ActiveColorLevel } from "./state"
 import {
   getCachedPlainText,
   setCachedPlainText,
@@ -168,7 +168,7 @@ interface StyleContext {
  * Background color is handled at the buffer level (via BgSegment tracking)
  * to prevent bg bleed across wrapped text lines. See km-silvery.bg-bleed.
  */
-function styleToAnsi(style: StyleContext): string {
+function styleToAnsi(style: StyleContext, colorLevel?: ActiveColorLevel): string {
   const parts: string[] = []
   let bold = style.bold
   let dim = style.dim
@@ -182,11 +182,14 @@ function styleToAnsi(style: StyleContext): string {
   // token fallbacks into their inline ANSI segments. Without this,
   // `$fg-on-inverse-muted` loses its SGR dim fallback inside a parent Text and
   // color-driven animations disappear on mono terminals.
-  if (getActiveColorLevel() === "mono") {
-    const monoAttrs = getTextStyle({
-      color: style.color,
-      backgroundColor: style.backgroundColor,
-    }).attrs
+  if (colorLevel === "mono") {
+    const monoAttrs = getTextStyle(
+      {
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+      },
+      colorLevel,
+    ).attrs
     if (monoAttrs.bold) bold = true
     if (monoAttrs.dim) dim = true
     if (monoAttrs.italic) italic = true
@@ -200,7 +203,7 @@ function styleToAnsi(style: StyleContext): string {
 
   // Foreground color - use parseColor directly instead of roundtripping through getTextStyle
   if (style.color) {
-    const color = parseColor(style.color)
+    const color = parseColor(style.color, colorLevel)
     if (color !== null) {
       if (typeof color === "number") {
         parts.push(`38;5;${color}`)
@@ -240,7 +243,7 @@ function styleToAnsi(style: StyleContext): string {
         ? style.color
         : style.underlineColor
     if (underlineSource) {
-      const ulColor = parseColor(underlineSource)
+      const ulColor = parseColor(underlineSource, colorLevel)
       if (ulColor !== null) {
         if (typeof ulColor === "number") {
           parts.push(`58;5;${ulColor}`)
@@ -331,13 +334,14 @@ function applyTextStyleAnsi(
   text: string,
   childStyle: StyleContext,
   parentStyle: StyleContext,
+  colorLevel?: ActiveColorLevel,
 ): string {
   if (!text) {
     return text
   }
 
-  const childAnsi = styleToAnsi(childStyle)
-  const parentAnsi = styleToAnsi(parentStyle)
+  const childAnsi = styleToAnsi(childStyle, colorLevel)
+  const parentAnsi = styleToAnsi(parentStyle, colorLevel)
   const linkChanged = childStyle.hyperlink !== parentStyle.hyperlink
 
   // If child has no style changes, just return text
@@ -371,7 +375,11 @@ function applyTextStyleAnsi(
  * @param node - The node to collect text from
  * @param parentContext - The inherited style context from parent (used for restoration)
  */
-export function collectTextContent(node: AgNode, parentContext: StyleContext = {}): string {
+export function collectTextContent(
+  node: AgNode,
+  parentContext: StyleContext = {},
+  colorLevel?: ActiveColorLevel,
+): string {
   // If this node has direct text content, return it
   if (node.textContent !== undefined) {
     return node.textContent
@@ -389,7 +397,7 @@ export function collectTextContent(node: AgNode, parentContext: StyleContext = {
       // Merge child props with parent context to get effective child style
       const childContext = mergeStyleContext(parentContext, childProps)
       // Recursively collect with child's context
-      let childContent = collectTextContent(child, childContext)
+      let childContent = collectTextContent(child, childContext, colorLevel)
       // Apply internal_transform from virtual text nodes (nested Transform components).
       // Matches Ink's squashTextNodes: transform is applied to the full concatenated
       // text of the child, with index = child position in parent's children array.
@@ -398,10 +406,10 @@ export function collectTextContent(node: AgNode, parentContext: StyleContext = {
         childContent = childTransform(childContent, i)
       }
       // Apply styles with proper push/pop (child style, then restore parent)
-      result += applyTextStyleAnsi(childContent, childContext, parentContext)
+      result += applyTextStyleAnsi(childContent, childContext, parentContext, colorLevel)
     } else {
       // Not a styled Text node, just collect recursively
-      result += collectTextContent(child, parentContext)
+      result += collectTextContent(child, parentContext, colorLevel)
     }
   }
   return result
@@ -536,14 +544,19 @@ function collectTextWithBg(
       }
 
       // Apply ANSI styles for fg/attrs (but NOT bg) with push/pop
-      const styledText = applyTextStyleAnsi(childResult.text, childContext, parentContext)
+      const styledText = applyTextStyleAnsi(
+        childResult.text,
+        childContext,
+        parentContext,
+        ctx?.colorLevel,
+      )
       result += styledText
 
       // Track bg segment if this child (or its ancestors) has backgroundColor.
       // When backgroundColor is "" (empty string), create a null-bg segment to
       // explicitly clear inherited background (e.g., from a parent Box).
       if (childContext.backgroundColor) {
-        const bg = parseColor(childContext.backgroundColor)
+        const bg = parseColor(childContext.backgroundColor, ctx?.colorLevel)
         if (bg !== null) {
           if (childResult.plainLen > 0) {
             bgSegments.push({
@@ -1296,9 +1309,9 @@ function colorToFgSgr(color: Color): string {
  * `mix(...)` all work and resolve against the active theme at paint time — the
  * same path `getTextStyle` uses for `color`. No second token-resolution path.
  */
-function resolveMarkerSgr(markerColor: string | undefined): string {
+function resolveMarkerSgr(markerColor: string | undefined, colorLevel?: ActiveColorLevel): string {
   if (!markerColor) return ""
-  return colorToFgSgr(parseColor(markerColor))
+  return colorToFgSgr(parseColor(markerColor, colorLevel))
 }
 
 /**
@@ -2239,7 +2252,7 @@ export function renderText(
 
   // Get style for this Text node.
   // Inherit foreground from nearest ancestor Box with color prop (CSS semantics).
-  const style = getTextStyle(props)
+  const style = getTextStyle(props, ctx?.colorLevel)
   style.hyperlink = props.internal_hyperlink
   if (style.fg === null && inheritedFg !== undefined) {
     style.fg = inheritedFg
@@ -2270,7 +2283,7 @@ export function renderText(
   // parseColor (same path as the `color` prop). A theme change invalidates the
   // collected-text cache (which keys on contextTheme), which clears the format
   // cache — so the embedded marker SGR is recomputed with the new token value.
-  const markerSgr = resolveMarkerSgr(props.truncateMarkerColor ?? "$fg-muted")
+  const markerSgr = resolveMarkerSgr(props.truncateMarkerColor ?? "$fg-muted", ctx?.colorLevel)
 
   let lines: string[]
   let lineOffsets: Array<{ start: number; end: number }>
@@ -2368,6 +2381,7 @@ export function renderText(
       childSpans,
       lineOffsets,
       clipBounds,
+      ctx?.colorLevel,
     )
     // inlineRects geometry is unchanged on a style-only render, but recompute so
     // hit-testing stays consistent with the full path.
@@ -2560,8 +2574,12 @@ const CLEAR_ATTRS: CellAttrs = {
  * parseAnsiText turns it into a StyledSegment, and renderAnsiTextLineReturn
  * merges it over baseStyle. We reproduce that per span (once, not per grapheme).
  */
-function resolveSpanStyle(baseStyle: Style, context: StyleContext): Style {
-  const ansi = styleToAnsi(context)
+function resolveSpanStyle(
+  baseStyle: Style,
+  context: StyleContext,
+  colorLevel?: ActiveColorLevel,
+): Style {
+  const ansi = styleToAnsi(context, colorLevel)
   if (!ansi) return mergeAnsiStyle(baseStyle, EMPTY_ANSI_SEGMENT)
   // Append a sentinel char so parseAnsiText emits a segment carrying the SGR.
   const segs = parseAnsiText(ansi + " ")
@@ -2595,6 +2613,7 @@ function restyleTextSegments(
   childSpans: ChildSpan[],
   lineOffsets: Array<{ start: number; end: number }>,
   clipBounds?: ClipBounds,
+  colorLevel?: ActiveColorLevel,
 ): void {
   const effectiveBg: Color = baseStyle.bg !== null ? baseStyle.bg : (inheritedBg ?? null)
   const contentStyle = mergeAnsiStyle(baseStyle, EMPTY_ANSI_SEGMENT)
@@ -2638,7 +2657,7 @@ function restyleTextSegments(
 
   // 3. nested runs on top (outer-before-inner)
   for (const span of childSpans) {
-    const runStyle = resolveSpanStyle(baseStyle, span.context)
+    const runStyle = resolveSpanStyle(baseStyle, span.context, colorLevel)
     const applied: Style = {
       fg: runStyle.fg,
       bg: effectiveBg,
