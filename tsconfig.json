@@ -35,6 +35,14 @@
       "@silvery/ink/*": ["./packages/ink/src/*"]
     }
   },
-  "include": ["src", "packages/*/src", "../termless/src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist"]
+  // `tests` and `packages/*/tests` are in the program on purpose. They were
+  // outside it until 2026-08-19, which meant a required-field addition to a
+  // widely-stubbed type (`AgNode.epochOwner`) compiled clean here and failed in
+  // the host repo's typecheck instead — eleven fixtures, found at the merge gate
+  // rather than at the author's desk. Whatever `bun run test` executes, this
+  // gate reads.
+  "include": ["src", "packages/*/src", "tests", "packages/*/tests", "../termless/src/**/*.d.ts"],
+  // `tests/compat/ink/generated` is generated Ink-compat output, not authored
+  // source; the host repo excludes it for the same reason.
+  "exclude": ["node_modules", "dist", "tests/compat/ink/generated"]
 }
