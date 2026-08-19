@@ -37,6 +37,15 @@ export type ContentLayoutContextValue = {
   full: number
   align: "start" | "center" | "stretch"
   gap: number
+  /**
+   * Minimum blank margin `ProseLane` keeps on EACH side, in cells.
+   * Defaults to `1`. A caller that needs guaranteed room for content that
+   * hangs into that margin (e.g. `DocumentView`'s heading task-marker
+   * gutter) raises this on its own `Content.Layout`, rather than a
+   * consumer hoping the default floor happens to be wide enough — see
+   * `ProseLane`.
+   */
+  gutterMinWidth: number
 }
 
 const DEFAULT_CONTEXT: ContentLayoutContextValue = {
@@ -46,6 +55,7 @@ const DEFAULT_CONTEXT: ContentLayoutContextValue = {
   full: 0,
   align: "start",
   gap: 1,
+  gutterMinWidth: 1,
 }
 
 const layoutLog = createLogger("silvery:content-layout")
@@ -167,6 +177,7 @@ function Layout({
   wide = 120,
   align = "center",
   gap = 1,
+  gutterMinWidth = 1,
 }: {
   children?: React.ReactNode
   fill?: boolean
@@ -174,6 +185,8 @@ function Layout({
   wide?: ContentResponsive<ContentWidthValue>
   align?: ContentResponsive<"start" | "center" | "stretch">
   gap?: number
+  /** See {@link ContentLayoutContextValue.gutterMinWidth}. Default `1`. */
+  gutterMinWidth?: number
 }): React.ReactElement {
   // Declarative paneCols — from PaneSize context if the host provides it,
   // else fall back to the active surface width. NO useBoxRect read; ctx is correct
@@ -196,13 +209,14 @@ function Layout({
       full: paneCols,
       align: resolveResponsive(align, paneCols),
       gap,
+      gutterMinWidth,
     }),
-    [paneCols, prose, wide, align, gap],
+    [paneCols, prose, wide, align, gap, gutterMinWidth],
   )
 
   const lastLogKey = useRef("")
   useEffect(() => {
-    const key = `${value.available}:${value.prose}:${value.wide}:${value.full}:${value.align}:${value.gap}`
+    const key = `${value.available}:${value.prose}:${value.wide}:${value.full}:${value.align}:${value.gap}:${value.gutterMinWidth}`
     if (key === lastLogKey.current) return
     lastLogKey.current = key
     layoutLog.debug?.("content layout resolved (declarative)", value)
@@ -568,7 +582,13 @@ function ProseLane({ children }: { children: React.ReactNode }): React.ReactElem
   const row = useContext(ContentRowContext)
   const ctx = useContentLayout()
   const available = row?.available ?? ctx.available
-  const gutterMinWidth = available > 2 ? 1 : 0
+  // The configured floor (default 1, see ContentLayoutContextValue.gutterMinWidth)
+  // still degrades to 0 below the same `available > 2` threshold the
+  // original 1-cell floor used — a pane too narrow for even one blank
+  // column on each side is narrower than any realistic document surface,
+  // and this is the one degrade `DocumentView` does NOT opt out of: it
+  // only ever asks for a WIDER floor, never a different threshold.
+  const gutterMinWidth = available > 2 ? ctx.gutterMinWidth : 0
   const proseWidth =
     available > 0 ? Math.max(1, Math.min(ctx.prose, available - gutterMinWidth * 2)) : ctx.prose
   const lane = (

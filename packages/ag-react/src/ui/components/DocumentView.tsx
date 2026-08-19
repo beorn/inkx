@@ -5,7 +5,7 @@ import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Blockquote, CodeBlock, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
 import { Prose } from "./Prose"
-import { Content, type ContentBodyWidth, useHasContentLayout } from "./Content"
+import { Content, type ContentBodyWidth, useContentLayout, useHasContentLayout } from "./Content"
 import { StylePriorityProvider } from "../../style-priority"
 import { useSearchOptional } from "../../providers/SearchProvider"
 import type { ScrollController } from "./ScrollArea"
@@ -206,18 +206,15 @@ function resolveListItems(
  * intent is column ALIGNMENT: a task heading's checkbox and a non-task
  * heading's blank slot must start titles at the same column. Zero when no
  * heading block in the whole document carries a marker, so documents that
- * never use heading tasks render exactly as before — no reserved gutter,
- * no wrapping Box, byte-identical output.
+ * never use heading tasks render exactly as before — no wrapping Box.
  *
  * The gutter HANGS in the title's own left margin — it does not push the
- * title right relative to any OTHER heading in the same document, marked
- * or not (see `HeadingRow`). It does, deliberately, reserve real inset for
- * every heading once the document uses heading markers at all: operator
- * feedback on an earlier revision of this fix rejected a glyph glued
- * directly to the title with no gap, so the gutter must guarantee
- * `markerWidth + 1` cells (marker + one visible gap cell) rather than
- * merely hoping `ProseLane`'s natural side gutter happens to be that wide.
- * See `HeadingRow` for how that guarantee is made unconditional.
+ * title right, relative to any OTHER heading in the document (marked or
+ * not) OR to a fully marker-less document (see `HeadingRow`,
+ * `DOCUMENT_MIN_GUTTER`). `markerWidth + 1` — marker glyph, then one
+ * visible gap cell — is the space it needs; `DocumentView` separately
+ * guarantees at least that much margin is always there to hang into,
+ * whether or not this particular document happens to use heading markers.
  */
 function resolveHeadingMarkerWidth(blocks: readonly DocumentBlock[]): number {
   let width = 0
@@ -256,7 +253,6 @@ function BlockFrame({
   lane,
   marginTop,
   marginBottom,
-  contentPaddingLeft,
   onLayout,
   children,
 }: {
@@ -265,20 +261,12 @@ function BlockFrame({
   lane: DocumentLane
   marginTop?: number
   marginBottom?: number
-  /**
-   * Real, guaranteed left inset inside the resolved lane — forwarded to
-   * `Content.Body`'s own `paddingLeft`. Unlike a negative-margin hang
-   * reaching into `ProseLane`'s natural (1-cell-floor) gutter, this
-   * width counts against the lane budget itself, so it never competes
-   * with anything and is available at any pane width. See `HeadingRow`.
-   */
-  contentPaddingLeft?: number
   onLayout?: (y: number) => void
   children: React.ReactNode
 }): React.ReactElement {
   return (
     <Content.Row>
-      <Content.Body width={lane} paddingLeft={contentPaddingLeft}>
+      <Content.Body width={lane}>
         <Box
           id={String(block.id)}
           testID={String(block.id)}
@@ -361,32 +349,33 @@ function ListItemRow({
  * `prose` target close to the pane width, as with km-tui's `DetailView`
  * (`prose={80}`) — the lane itself narrows and the title shifts.
  *
- * The caller (`DocumentBlocks`) reserves the gutter as REAL space first, via
- * `BlockFrame`'s `contentPaddingLeft={markerWidth + 1}` — applied to every
- * heading once the document has any heading marker, task or not, so all of
- * them get the identical inset. `HeadingRow` then sizes the marker's flex
- * sibling to exactly that same width, with an equal, opposite negative
- * `marginLeft`: the marker's outer contribution to ITS OWN row's layout is
- * therefore zero, so it reaches back and paints INTO the padding the caller
- * already reserved, rather than pushing the title any further. Content
- * width plus margins nets to zero, so the heading's wrap width and start
- * column are computed identically whether this particular heading's own
- * marker is present or blank — pinned across pane widths 30-200 in
+ * `HeadingRow` sizes the marker's flex sibling to exactly `markerWidth + 1`
+ * (glyph, then one blank gap cell), with an equal, opposite negative
+ * `marginLeft`. The marker's outer contribution to the row's layout —
+ * content width plus margins — is therefore exactly zero: the heading's
+ * own box, wrap width, and start column are computed identically whether
+ * this particular heading's own marker is present or blank, and identically
+ * to a heading in a document that never uses heading markers at all —
+ * pinned across pane widths 30-200 in
  * `tests/features/document-view-heading-marker.test.tsx`, including
  * km-tui's exact `prose={80}` configuration.
  *
- * The gutter is `markerWidth + 1` — marker glyph, then one blank gap cell,
- * then the title. That gap is required: an earlier revision reached back
- * only `markerWidth` cells INTO `ProseLane`'s own natural side gutter
- * (Content.tsx) instead of reserving real padding, on the theory that its
- * 1-cell floor (whenever `available > 2`) was the one thing to rely on
- * unconditionally — glyph glued to the title, no gap, but never clipped.
- * Operator feedback rejected the flush result outright ("there needs to be
- * a space between the marker and the title"). Reserving the gutter as real
- * `paddingLeft` — this revision — gets the gap back AND keeps the
- * unconditional guarantee: the reach-back space is never borrowed from a
- * gutter something else might also be squeezing, so it can never be too
- * narrow for the marker plus its gap, at any pane width.
+ * The reach-back space this hangs into is `ProseLane`'s own natural side
+ * gutter (Content.tsx) — but that gutter defaults to a 1-cell floor,
+ * one cell short of `markerWidth + 1`. `DocumentView` widens it to
+ * `DOCUMENT_MIN_GUTTER` (2) for every document it renders, unconditionally
+ * — not a per-heading reservation here, a lane-wide floor raised once, up
+ * front. Two earlier revisions are worth recording as the paths NOT taken:
+ * reaching into the UNwidened 1-cell floor directly clipped the glyph
+ * invisible the moment a pane was narrow enough to hit it (any pane at or
+ * below the document's configured prose width); reserving the gutter as a
+ * per-heading `Content.Body paddingLeft` instead of raising the shared
+ * floor worked, but only insets headings, so a heading and an ordinary
+ * paragraph in the same marker-bearing document no longer shared a left
+ * margin. Operator ruling settled on raising the floor itself, both sides,
+ * for every document, with no narrower "flush" fallback — see
+ * `DOCUMENT_MIN_GUTTER`'s own docstring for the rejected inline-marker
+ * degrade this replaces.
  */
 function HeadingRow({
   markerWidth,
@@ -457,7 +446,6 @@ function DocumentBlocks({
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
                 marginBottom={1}
-                contentPaddingLeft={headingMarkerWidth > 0 ? headingMarkerWidth + 1 : undefined}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 {headingMarkerWidth > 0 ? (
@@ -590,6 +578,23 @@ function DocumentBlocks({
 }
 
 /**
+ * Minimum blank margin `DocumentView`'s prose lane keeps on EACH side, in
+ * cells — always, not just when a heading marker is present. This is what
+ * lets `HeadingRow`'s marker gutter (`markerWidth + 1` — see there) hang
+ * into ORDINARY document margin at any pane width, with no narrower "flush"
+ * degrade: `ProseLane`'s own default floor is only 1 (`Content.tsx`), too
+ * narrow to guarantee a glyph plus its gap. Operator: "we always make sure
+ * there's a 2-space column to the left and right of text" — deliberately
+ * NOT conditioned on whether the document happens to use heading markers,
+ * both so every document (marker-bearing or not) gets identical geometry
+ * and so the guarantee can never depend on a callsite remembering to ask
+ * for it. A rejected alternative — degrade to the marker sitting inline
+ * with the title once the pane pinches — is recorded here as the option
+ * NOT taken, should a future revision want it back.
+ */
+const DOCUMENT_MIN_GUTTER = 2
+
+/**
  * Store-neutral semantic document presenter.
  *
  * Adapters supply identities and inline/leaf content. DocumentView owns block
@@ -604,6 +609,7 @@ export function DocumentView({
   reveal,
 }: DocumentViewProps): React.ReactElement {
   const hasContentLayout = useHasContentLayout()
+  const ambientLayout = useContentLayout()
   const searchContext = useSearchOptional()
   const autoSearchId = useId()
   const searchId = search?.id ?? autoSearchId
@@ -695,6 +701,29 @@ export function DocumentView({
       }}
     />
   )
-  if (hasContentLayout) return document
-  return <Content.Layout fill={false}>{document}</Content.Layout>
+  // Always nest a Content.Layout — even when an ancestor already provides
+  // one (e.g. km-tui DetailView's own `prose={80} wide={120}`) — so
+  // DOCUMENT_MIN_GUTTER is guaranteed regardless of whether the caller's
+  // own Layout happens to be wide enough. When an ancestor exists, its
+  // resolved prose/wide/align/gap are threaded through unchanged (`ctx`
+  // already reflects the real pane's resolved values, so re-declaring them
+  // here is a width no-op — see `Layout` in Content.tsx); only
+  // `gutterMinWidth` is ever widened. When there is no ancestor, passing
+  // `undefined` for those four lets `Content.Layout`'s OWN prop defaults
+  // apply exactly as before (notably `align="center"`, which the
+  // no-ancestor fallback context value does NOT share — reading `ctx.align`
+  // unconditionally here would have silently flipped standalone documents
+  // from centered to left-aligned).
+  return (
+    <Content.Layout
+      fill={false}
+      prose={hasContentLayout ? ambientLayout.prose : undefined}
+      wide={hasContentLayout ? ambientLayout.wide : undefined}
+      align={hasContentLayout ? ambientLayout.align : undefined}
+      gap={hasContentLayout ? ambientLayout.gap : undefined}
+      gutterMinWidth={Math.max(ambientLayout.gutterMinWidth, DOCUMENT_MIN_GUTTER)}
+    >
+      {document}
+    </Content.Layout>
+  )
 }
