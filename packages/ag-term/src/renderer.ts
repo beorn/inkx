@@ -1491,7 +1491,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         if (!hadReactCommit) break
         // Always-on exhaustion marker → never-empty violation ring.
         if (flush === MAX_CONVERGENCE_PASSES - 1)
-          recordPassRing("unknown", "effect-flush-exhaustion")
+          {recordPassRing("unknown", "effect-flush-exhaustion")}
         if (INSTRUMENT) {
           notePassCommit(flush)
           if (flush === MAX_CONVERGENCE_PASSES - 1) {

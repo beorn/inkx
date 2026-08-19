@@ -491,7 +491,7 @@ export function formatMismatchContext(
     if (s.flagSubtreeDirty) flagLines.push(`subtreeDirty=${s.flagSubtreeDirty}`)
     if (s.flagChildrenDirty) flagLines.push(`childrenDirty=${s.flagChildrenDirty}`)
     if (s.flagChildPositionChanged)
-      flagLines.push(`childPositionChanged=${s.flagChildPositionChanged}`)
+      {flagLines.push(`childPositionChanged=${s.flagChildPositionChanged}`)}
     if (flagLines.length > 0) {
       lines.push(`  render reasons: ${flagLines.join(", ")}`)
     }

@@ -413,13 +413,12 @@ export function createRenderer(opts: RendererOptions): Renderer {
               globalThis as { __silvery_cell_debug?: { x: number; y: number; log: string[] } }
             ).__silvery_cell_debug
             if (
-              savedCellDbg &&
-              savedCellDbg.x === x &&
+              savedCellDbg?.x === x &&
               savedCellDbg.y === y &&
               savedCellDbg.log.length > 0
             ) {
               cellDebugInfo = `\nCELL DEBUG (${savedCellDbg.log.length} entries for (${x},${y})):\n${savedCellDbg.log.join("\n")}\n`
-            } else if (savedCellDbg && savedCellDbg.x === x && savedCellDbg.y === y) {
+            } else if (savedCellDbg?.x === x && savedCellDbg.y === y) {
               cellDebugInfo = `\nCELL DEBUG: No nodes cover (${x},${y}) during incremental render\n`
             } else {
               cellDebugInfo = `\nCELL DEBUG: Target cell (${x},${y}) differs from debug cell (${savedCellDbg?.x},${savedCellDbg?.y})\n`
@@ -458,7 +457,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
                 __silvery_strict_incremental_trap?: { x: number; y: number; log: string[] }
               }
             ).__silvery_strict_incremental_trap
-            if (incrementalTrap && incrementalTrap.x === x && incrementalTrap.y === y) {
+            if (incrementalTrap?.x === x && incrementalTrap.y === y) {
               if (incrementalTrap.log.length > 0) {
                 trapInfo =
                   `\nINCREMENTAL WRITE TRAP (${incrementalTrap.log.length} writes to (${x},${y})):\n${incrementalTrap.log.join("\n")}\n` +
