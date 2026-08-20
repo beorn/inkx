@@ -43,9 +43,9 @@
  * ```
  */
 
-import { writeSync, writeFileSync } from "node:fs"
+import { writeSync } from "node:fs"
 import { writeStderrDurably } from "./stderr-durable"
-import { tmpdir } from "node:os"
+import { writeDumpFile, dumpGlob } from "./dump-file"
 import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
 import { type StateCreator, type StoreApi, createStore } from "@silvery/create/signal-store"
@@ -1947,10 +1947,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       _processPanicCircuitBroken || _processPanicDumpCount >= MAX_PANIC_DUMPS_PER_RUN
     let dumpPath: string | undefined
     if (!skipDumpWrite) {
-      try {
-        dumpPath = `${tmpdir()}/silvery-render-error-${Date.now()}.txt`
-        writeFileSync(dumpPath, `${error.message}\n\n${error.stack ?? "(no stack)"}\n`)
-      } catch {}
+      dumpPath = writeDumpFile(
+        "render-error",
+        `${error.message}\n\n${error.stack ?? "(no stack)"}\n`,
+      )
     }
     caughtErrors.push({ error, dumpPath })
     // panicApp is declared later in this same closure (line ~1973). The body
@@ -2004,7 +2004,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         try {
           process.stderr.write(
             `\n[silvery] auto-panic circuit-break: ${_processPanicDumpCount} dump(s) ` +
-              `written to ${tmpdir()}/silvery-panic-*.txt. Refusing further dumps to ` +
+              `written to ${dumpGlob("panic")}. Refusing further dumps to ` +
               `prevent disk + CPU bleed. Set SILVERY_AUTO_PANIC_MAX_DUMPS to override ` +
               `(default: ${MAX_PANIC_DUMPS_PER_RUN}).\n`,
           )
@@ -2025,13 +2025,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     let dumpPath: string | undefined
     if (stack) {
-      try {
-        dumpPath = `${tmpdir()}/silvery-panic-${Date.now()}.txt`
-        writeFileSync(dumpPath, `${message}\n\n${stack}\n`)
-        _processPanicDumpCount++
-      } catch {
-        // Best-effort: panic must still restore the terminal and print a summary.
-      }
+      // Best-effort: panic must still restore the terminal and print a summary.
+      dumpPath = writeDumpFile("panic", `${message}\n\n${stack}\n`)
+      if (dumpPath) _processPanicDumpCount++
     }
     panicReports.push({
       title,
@@ -5477,13 +5473,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // stderr, and for deep stacks (e.g. "Maximum call stack size exceeded")
     // the user needs the recursive frame to diagnose. Same pattern as the
     // SILVERY_STRICT mismatch dump and the React render-error dump.
-    let dumpPath: string | undefined
-    try {
-      dumpPath = `${tmpdir()}/silvery-eventloop-failure-${Date.now()}.txt`
-      writeFileSync(dumpPath, `${msg}\n\n${stack}\n`)
-    } catch {
-      // Best-effort
-    }
+    // Best-effort
+    const dumpPath = writeDumpFile("eventloop-failure", `${msg}\n\n${stack}\n`)
 
     const summaryLine = dumpPath
       ? `eventLoop failed: ${msg.split("\n")[0]}\n  dump: ${dumpPath}`

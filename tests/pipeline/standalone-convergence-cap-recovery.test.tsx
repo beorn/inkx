@@ -54,6 +54,9 @@
 
 import React, { useEffect, useLayoutEffect, useState } from "react"
 import { describe, test, expect, beforeAll, afterAll, vi } from "vitest"
+import { mkdtempSync, readdirSync, readFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text } from "../../src/index.js"
@@ -64,7 +67,37 @@ import {
 } from "../../packages/ag-term/src/runtime/pass-cause"
 
 const STANDALONE_EXHAUSTION_EDGE = "standalone-flush-exhaustion"
+const CONVERGENCE_PANIC_SIGNATURE = "convergence bound exceeded in standalone-flush"
 const settle = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Names of the panic dumps currently sitting in `dir` (missing dir → none). */
+function panicDumpsIn(dir: string): string[] {
+  try {
+    return readdirSync(dir).filter((f) => f.startsWith("silvery-panic-") && f.endsWith(".txt"))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Panic dumps in `dir` that carry THIS suite's convergence signature.
+ *
+ * Keyed to the signature rather than to the raw file count on purpose: the
+ * system temp dir is shared, and vitest runs test files in parallel workers,
+ * so an unrelated concurrent dump must not turn the no-bleed assertion into a
+ * flake. Only a dump whose contents name our own panic can be our leak.
+ */
+function convergenceDumpsIn(dir: string, exclude: ReadonlySet<string> = new Set()): string[] {
+  return panicDumpsIn(dir)
+    .filter((f) => !exclude.has(f))
+    .filter((f) => {
+      try {
+        return readFileSync(join(dir, f), "utf8").includes(CONVERGENCE_PANIC_SIGNATURE)
+      } catch {
+        return false
+      }
+    })
+}
 
 /**
  * Grows `count` 0 → `target` via a self-limiting microtask chain kicked by a
@@ -254,15 +287,33 @@ async function driveStandaloneGrowth(target: number): Promise<{
 
 describe("@si/silvercode/19383 — standalone convergence cap recovers non-lossily", () => {
   let prevStrict: string | undefined
+  let prevDumpDir: string | undefined
+  // Where this file's deliberate panics are allowed to write.
+  let redirectedDumpDir = ""
+  // Panic dumps already in the DEFAULT location before we start, so the
+  // no-bleed assertion below measures only what this run added.
+  let preexistingDefaultDumps: ReadonlySet<string> = new Set()
+
   // tier 2 = incremental (tier 1) + residue (tier 2); both fire inside
   // runtime.render on every painted frame, including the cap-recovery frame.
   beforeAll(() => {
     prevStrict = process.env.SILVERY_STRICT
     process.env.SILVERY_STRICT = "2"
+
+    // Set the dump redirect HERE rather than leaning on the suite-wide
+    // default in `tests/vitest.setup.ts`: that setup file is inert under km's
+    // monorepo runner, and a test that asserts the no-bleed contract must
+    // establish its own precondition under every runner it executes on.
+    prevDumpDir = process.env.SILVERY_DUMP_DIR
+    redirectedDumpDir = mkdtempSync(join(tmpdir(), "silvery-convergence-dumps-"))
+    process.env.SILVERY_DUMP_DIR = redirectedDumpDir
+    preexistingDefaultDumps = new Set(panicDumpsIn(tmpdir()))
   })
   afterAll(() => {
     if (prevStrict === undefined) delete process.env.SILVERY_STRICT
     else process.env.SILVERY_STRICT = prevStrict
+    if (prevDumpDir === undefined) delete process.env.SILVERY_DUMP_DIR
+    else process.env.SILVERY_DUMP_DIR = prevDumpDir
   })
 
   test("a standalone growing stream that EXCEEDS the cap converges fully under STRICT", async () => {
@@ -337,6 +388,42 @@ describe("@si/silvercode/19383 — standalone convergence cap recovers non-lossi
         `cap-exceed streak exceeded STANDALONE_CAP_STREAK_LIMIT (= 5). captured ` +
         `stderr panics: ${convergencePanics.join(" | ") || "(none)"}`,
     ).toBeGreaterThan(0)
-    expect(convergencePanics[0]).toContain("convergence bound exceeded in standalone-flush")
+    expect(convergencePanics[0]).toContain(CONVERGENCE_PANIC_SIGNATURE)
+
+    // The dump is still WRITTEN and still READABLE — redirecting the
+    // destination must not weaken the diagnostic. This is the half of the
+    // contract a "skip dump writes in tests" flag would have destroyed.
+    const redirected = convergenceDumpsIn(redirectedDumpDir)
+    expect(
+      redirected.length,
+      `the panic reached stderr but no dump file was written to the redirected ` +
+        `dump dir — the incident lost its copy-pasteable artifact. dir=${redirectedDumpDir}`,
+    ).toBeGreaterThan(0)
+    expect(
+      readFileSync(join(redirectedDumpDir, redirected[0]!), "utf8"),
+      `the redirected dump exists but does not carry the failing loop's stack — ` +
+        `dump content regressed`,
+    ).toContain("assertBoundedConvergence")
+  })
+
+  test("a deliberate panic leaves NO dump in the default (shared) dump location", () => {
+    // Runs last on purpose: the cases above have already panicked, so any
+    // bleed into the shared system temp dir has already happened by now.
+    //
+    // THE BUG THIS PINS: `recordPanic` used to hardcode `${tmpdir()}/...`, so
+    // every green run of this file deposited a `silvery-panic-*.txt` in the
+    // shared temp dir that was byte-identical to production crash evidence —
+    // a passing test manufacturing false crash reports for whoever triaged
+    // that directory next, and a live feeder of temp-dir inode exhaustion.
+    // `SILVERY_AUTO_PANIC_MAX_DUMPS` never bounded it, because test
+    // infrastructure resets the circuit-breaker between cases.
+    const leaked = convergenceDumpsIn(tmpdir(), preexistingDefaultDumps)
+    expect(
+      leaked,
+      `a PASSING test wrote ${leaked.length} panic dump(s) carrying this suite's ` +
+        `convergence signature into the shared dump location (${tmpdir()}) — ` +
+        `deliberate test panics must honour SILVERY_DUMP_DIR and stay in ` +
+        `${redirectedDumpDir}. Leaked: ${leaked.join(", ")}`,
+    ).toEqual([])
   })
 })

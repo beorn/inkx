@@ -17,8 +17,7 @@
  * intended to be used outside that module (no public barrel export).
  */
 
-import { tmpdir } from "node:os"
-import { writeFileSync } from "node:fs"
+import { writeDumpFile } from "./dump-file"
 import { reconciler, getContainerRoot } from "@silvery/ag-react/reconciler"
 import { createAg, type Ag } from "../ag"
 import { runWithMeasurer } from "../unicode"
@@ -519,11 +518,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
               trapInfo +
               `\n--- incremental ---\n${incText}\n--- fresh ---\n${freshText}`
             // Dump full diagnostics to temp file — alt screen hides stderr
-            let dumpPath: string | undefined
-            try {
-              dumpPath = `${tmpdir()}/silvery-strict-failure-${Date.now()}.txt`
-              writeFileSync(dumpPath, msg)
-            } catch {}
+            const dumpPath = writeDumpFile("strict-failure", msg)
             throw new IncrementalRenderMismatchError(
               dumpPath ? `${msg.split("\n")[0]}\n  dump: ${dumpPath}` : msg,
             )
