@@ -5,7 +5,7 @@
  * Run: `bunx playwright test tests/site-smoke.test.ts`
  * Prod: `SITE_URL=https://silvery.dev bunx playwright test ...`
  */
-import { test, expect, type Page } from "@playwright/test"
+import { test, expect, type Page } from "playwright/test"
 
 const BASE = process.env.SITE_URL ?? "http://localhost:5173"
 

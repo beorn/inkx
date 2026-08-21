@@ -44,5 +44,12 @@
   "include": ["src", "packages/*/src", "tests", "packages/*/tests", "../termless/src/**/*.d.ts"],
   // `tests/compat/ink/generated` is generated Ink-compat output, not authored
   // source; the host repo excludes it for the same reason.
-  "exclude": ["node_modules", "dist", "tests/compat/ink/generated"]
+  //
+  // `*.fuzz.ts{x}` are FUZZ=1 and not in vitest include (see vitest.config.ts
+  // `**/*.{test,spec}.{ts,tsx}`), so they are not in `bun run test`. Published
+  // vimonkey@0.2.5 ships `dist/*.mjs` with tsdown `dts: false`, so a standalone
+  // clone's tsc reports TS7016 on `vimonkey/fuzz`. Do not `declare module`
+  // (that's an implicit any). Keep them out of this program until vimonkey
+  // ships types.
+  "exclude": ["node_modules", "dist", "tests/compat/ink/generated", "**/*.fuzz.ts", "**/*.fuzz.tsx"]
 }
