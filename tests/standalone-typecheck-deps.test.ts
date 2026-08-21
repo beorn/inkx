@@ -44,6 +44,7 @@ function packageName(specifier: string): string | null {
   }
   if (specifier.startsWith("@")) {
     const [scope, name] = specifier.split("/")
+    if (!scope) return null
     return name ? `${scope}/${name}` : scope
   }
   return specifier.split("/")[0] ?? null
