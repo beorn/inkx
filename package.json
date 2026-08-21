@@ -30,13 +30,13 @@
     "type": "git",
     "url": "https://github.com/beorn/silvery.git"
   },
+  "bin": {
+    "silvery": "./bin/silvery.ts"
+  },
   "workspaces": [
     "packages/*",
     "!examples"
   ],
-  "bin": {
-    "silvery": "./bin/silvery.ts"
-  },
   "files": [
     "bin",
     "dist"
