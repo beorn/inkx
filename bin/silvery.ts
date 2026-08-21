@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * silvery CLI — delegates to @silvery/examples.
  * Tries local workspace first, then npx @silvery/examples.

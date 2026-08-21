@@ -34,7 +34,11 @@
     "packages/*",
     "!examples"
   ],
+  "bin": {
+    "silvery": "./bin/silvery.ts"
+  },
   "files": [
+    "bin",
     "dist"
   ],
   "type": "module",
