@@ -354,7 +354,7 @@ export function protectManagedCursorSuffix(cursorSuffix: string): string {
  * @km/code/v0.2/19702 fixes patched one copy at a time, so the live path always
  * lagged a fix. `computeManagedFrame` collapses all four steps into ONE
  * function — changing the policy is now a single edit, and a regression cannot
- * hide in an uncovered copy (`docs/lessons/no-parallel-derivation.md`).
+ * hide in an uncovered copy (`/hh/docs/lessons/no-parallel-derivation.md`).
  *
  * **Policy (the @km/code/v0.2/19702 fix):** paint the visible inverse caret into
  * the presentation buffer ONLY when a FOCUSED editable owns the active cursor.

@@ -1,7 +1,7 @@
 /**
  * Follow-end content-height authority must be a FIXED POINT.
  *
- * Bug class: `no-parallel-derivation` (docs/lessons/no-parallel-derivation.md).
+ * Bug class: `no-parallel-derivation` (/hh/docs/lessons/no-parallel-derivation.md).
  * The follow-end pin and the at-end test each derive "total content rows" from
  * a DIFFERENT authority:
  *   - count-space   `heightModel.totalRows()`  (measured-where-mounted ?? estimate)

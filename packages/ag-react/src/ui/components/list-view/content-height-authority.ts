@@ -4,7 +4,7 @@
  *
  * ## Why this module exists
  *
- * `no-parallel-derivation` (docs/lessons/no-parallel-derivation.md): the
+ * `no-parallel-derivation` (/hh/docs/lessons/no-parallel-derivation.md): the
  * follow-end pin and the at-end test historically derived total content rows
  * from TWO authorities and merged them with `Math.max(...)`:
  *

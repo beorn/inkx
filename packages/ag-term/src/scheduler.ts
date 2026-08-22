@@ -215,7 +215,7 @@ export class RenderScheduler {
    * Render-output throughput monitor — backs `SILVERY_STRICT=bytes_out`.
    * Constructed lazily, only when the slug is active, so the no-op path
    * has zero overhead. See `bytes-out-monitor.ts` +
-   * `docs/lessons/cmux-pty-buffer-firehose.md`.
+   * `/hh/docs/lessons/cmux-pty-buffer-firehose.md`.
    */
   private bytesOutMonitor: BytesOutMonitor | null = null
   /**

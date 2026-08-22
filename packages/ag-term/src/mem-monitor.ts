@@ -11,7 +11,7 @@
  * render pipeline. L2 (`mem`, this file) watches data still inside the
  * process. L4 (`bun memwatch <pid>`) is the external view. Together they
  * cover the bytes-out / bytes-in / RSS-outside triad for a pty-attached
- * TUI. See `docs/lessons/cmux-pty-buffer-firehose.md` (in km root) for the
+ * TUI. See `/hh/docs/lessons/cmux-pty-buffer-firehose.md` (in km root) for the
  * motivating incident.
  *
  * Convention: tier-1 default, opt-out via `SILVERY_STRICT=1,!mem`. No env

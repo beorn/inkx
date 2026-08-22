@@ -10,7 +10,7 @@
  * firehose because the bytes are already gone. The 2026-05-13 cmux/silvercode
  * incident attributed multi-GB of memory to cmux, not silvercode; silvercode's
  * own heap looked healthy throughout. See
- * `docs/lessons/cmux-pty-buffer-firehose.md` (in km root) for the full
+ * `/hh/docs/lessons/cmux-pty-buffer-firehose.md` (in km root) for the full
  * incident write-up.
  *
  * Behavior (fixed thresholds — no env knobs):

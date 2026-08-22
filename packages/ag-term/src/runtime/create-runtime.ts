@@ -364,7 +364,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         // transcript), and parks+hides the hardware cursor regardless so a
         // dropped/overridden `?25l` cannot leave a hollow cursor in
         // transcript/chrome. All three render entry points call this — see
-        // `docs/lessons/no-parallel-derivation.md`.
+        // `/hh/docs/lessons/no-parallel-derivation.md`.
         const managed = computeManagedFrame(buffer._buffer, buffer.nodes, "fullscreen", {
           prevCaret: prevPresentation?.caret ?? null,
           windowFocused: readWindowFocused(),
