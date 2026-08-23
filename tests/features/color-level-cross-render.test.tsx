@@ -26,6 +26,8 @@ import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
 
 import { Box, Text } from "../../src/index.js"
+import type { TerminalCaps } from "../../packages/ansi/src/caps"
+import { createTerminalProfile } from "../../packages/ansi/src/profile"
 import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 import { useInput } from "../../packages/ag-react/src/hooks/useInput"
 
@@ -70,7 +72,7 @@ const BASE_CAPS = {
   maybeDarkBackground: true,
   maybeNerdFont: false,
   maybeWideEmojis: true,
-}
+} satisfies Partial<TerminalCaps>
 
 /** SGR 1 (bold) — the attr `$primary` carries at mono tier. */
 function hasBold(ansi: string): boolean {
@@ -111,7 +113,12 @@ async function startApp(
     writable: sink.writable,
     cols: 20,
     rows: 2,
-    caps: { ...BASE_CAPS, colorLevel } as never,
+    profile: createTerminalProfile({
+      env: {},
+      stdout: { isTTY: false },
+      colorLevel,
+      caps: BASE_CAPS,
+    }),
   })
   await new Promise((r) => setImmediate(r))
   return handle
