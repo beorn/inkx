@@ -1011,7 +1011,10 @@ export function createTermless(
 
         sendInput(chunk)
         eventCount += groupEventCount
-        await Promise.resolve()
+        // `afterGroup` observes rendered terminal state, so yield a real
+        // event-loop turn. A microtask alone can run before React's scheduled
+        // paint under load, making the callback sample the previous group.
+        await sleep(0)
 
         const deliveredGroup: TermlessTrackpadFlickGroup = {
           index,
