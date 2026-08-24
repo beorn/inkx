@@ -200,6 +200,33 @@ describe("replayAnsiWithStyles regional-indicator handling (UAX #29 GB12/GB13)",
     expect(incr[0]![2]!.char).toBe("p")
   })
 
+  test("text variation selector U+FE0E stays attached when disclosure glyph changes", () => {
+    // Yrd queue-watch reproduction: the collapsed disclosure triangle changes
+    // to the expanded triangle in one sparse incremental output. U+25BC is not
+    // an Emoji-property base, but U+FE0E is still Grapheme_Extend and must not
+    // become an orphan zero-width write in the following terminal cell.
+    const prev = new TerminalBuffer(COLS, ROWS)
+    writeText(prev, 0, 0, "\u25B6\uFE0E Diff +324 \u2212323")
+    prev.resetDirtyRows()
+
+    const next = prev.clone()
+    writeText(next, 0, 0, "\u25BC\uFE0E Diff +324 \u2212323")
+
+    const initialAnsi = outputPhase(null, prev, "fullscreen")
+    const incrAnsi = outputPhase(prev, next, "fullscreen")
+    const freshAnsi = outputPhase(null, next, "fullscreen")
+
+    const incr = replayAnsiWithStyles(COLS, ROWS, initialAnsi + incrAnsi)
+    const fresh = replayAnsiWithStyles(COLS, ROWS, freshAnsi)
+
+    for (let cx = 0; cx < 18; cx++) {
+      expect(incr[0]![cx]!.char, `col ${cx}`).toBe(fresh[0]![cx]!.char)
+    }
+    expect(incr[0]![0]!.char).toBe("\u25BC\uFE0E")
+    expect(incr[0]![1]!.char).toBe(" ")
+    expect(incr[0]![2]!.char).toBe("D")
+  })
+
   test("incremental render matches fresh through verifyOutputEquivalence (vt100)", () => {
     // End-to-end verification: this is what SILVERY_STRICT=1 actually
     // runs. Before the fix, this test would throw an

@@ -664,10 +664,19 @@ export function replayAnsiWithStyles(
           continue
         }
 
-        // Variation selectors and skin-tone modifiers only extend an
-        // emoji-capable base. Without this gate, U+FE0F glues onto
-        // arbitrary preceding ASCII and inflates grapheme width.
-        if (cp === 0xfe0e || cp === 0xfe0f) {
+        // VS15 requests text presentation and remains zero-width even for
+        // bases outside our conservative emoji table (for example Yrd's
+        // disclosure glyph `▼︎`). A terminal applies it to the preceding
+        // cell; replaying it as a standalone zero-width write leaves an
+        // orphan selector in sparse incremental output. VS16 is different:
+        // it can widen the cluster, so keep its emoji-base gate.
+        if (cp === 0xfe0e) {
+          grapheme += ansi.slice(j, j + cpLen)
+          advance += cpLen
+          j += cpLen
+          continue
+        }
+        if (cp === 0xfe0f) {
           if (firstCpIsEmojiBase) {
             grapheme += ansi.slice(j, j + cpLen)
             advance += cpLen
