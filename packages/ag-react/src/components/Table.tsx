@@ -246,6 +246,10 @@ function TableImplementation<T>({
     () => (available === null ? null : allocateTracks(tracks, available, cellWrap)),
     [available, cellWrap, tracks],
   )
+  const allocationHasSlack =
+    allocation !== null &&
+    available !== null &&
+    allocation.widths.reduce((total, width) => total + width, 0) < available
   const borderColor = "$border"
   const ruleColor = presentation === "document" ? "$border-muted" : borderColor
   const leftPadding = directRows ? Math.floor(padding / 2) : 0
@@ -259,12 +263,11 @@ function TableImplementation<T>({
 
   // The band the allocator worked under, carried onto the rendered track so the
   // `apportion-bands` STRICT check can compare the width the layout engine
-  // actually realized against the width the allocation promised. The flex props
-  // below are exactly where that promise can be broken — a `grow` track carries
-  // no maxWidth, and the unmeasured/no-legal-allocation fallback floors tracks
-  // at the author's minWidth rather than the track's own min-content.
+  // actually realized against the width the allocation promised. An
+  // unmeasured first frame or visible hard-overflow fallback has no allocation
+  // promise, so it deliberately carries no band assertion.
   const trackProps = (column: Column<T>, track: Track, columnIndex: number) => ({
-    [TRACK_BAND_ATTR]: `${track.min},${track.max}`,
+    ...(allocation === null ? {} : { [TRACK_BAND_ATTR]: `${track.min},${track.max}` }),
     ...trackFlexProps(column, track, columnIndex),
   })
 
@@ -280,8 +283,12 @@ function TableImplementation<T>({
     }
     if (allocation !== null) {
       const width = allocation.widths[columnIndex] ?? track.min
-      // Grow columns keep taking positive free space beyond their allocation.
-      return column.grow
+      // A feasible in-band allocation already owns every available cell. Lock
+      // those tracks to the widths the allocator promised: leaving grow
+      // enabled lets JSX-rendered cell content expand past its band and steal
+      // width from siblings. Grow is only needed when the container is wider
+      // than the sum of every track's max and genuine positive slack remains.
+      return column.grow && allocationHasSlack
         ? { flexBasis: width, minWidth: width, flexGrow: 1, flexShrink: 0 }
         : { width, minWidth: width, maxWidth: width, flexGrow: 0, flexShrink: 0 }
     }

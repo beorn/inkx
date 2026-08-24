@@ -22,6 +22,8 @@ import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { displayWidth } from "@silvery/ag-term/unicode"
 import { Box } from "../src/components/Box"
+import { Table, type Column } from "../src/components/Table"
+import { Text } from "../src/components/Text"
 import { Content } from "../src/ui/components/Content"
 
 const HEADERS = ["Rung", "What lands", "Why"]
@@ -101,6 +103,77 @@ function textHeight(app: App, text: string): number {
 }
 
 describe("table width allocation (@si/apportion-consolidation gate)", () => {
+  test("realizes a feasible many-column allocation without grow tracks escaping their bands", () => {
+    const bands = [
+      [6, 6],
+      [8, 12],
+      [9, 9],
+      [2, 4],
+      [4, 4],
+      [13, 13],
+      [2, 25],
+      [2, 25],
+      [2, 25],
+      [2, 5],
+      [2, 23],
+      [2, 12],
+      [10, 80],
+      [2, 7],
+      [2, 32],
+      [9, 9],
+      [10, 11],
+    ] as const
+    const grow = [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]
+    const values = bands.map(([, max], index) => String.fromCodePoint(0x41 + index).repeat(max))
+    const row = Object.fromEntries(values.map((value, index) => [`c${index}`, value])) as Record<
+      string,
+      string
+    >
+    const columns: Column<Record<string, string>>[] = bands.map(([min, max], index) => ({
+      header: `C${index}`,
+      key: `c${index}`,
+      minWidth: min,
+      maxWidth: max,
+      grow: grow[index],
+      render: () => <Text>{values[index]!}</Text>,
+    }))
+    const render = createRenderer({ cols: 120, rows: 10 })
+    const app = render(
+      <Box width={120} flexDirection="column">
+        <Table data={[row]} columns={columns} padding={0} />
+      </Box>,
+    )
+    const widths = values.map((value) => cellWidth(app, value))
+
+    expect(widths.reduce((total, width) => total + width, 0)).toBe(120)
+    expect(
+      widths.flatMap((width, index) => {
+        const [min, max] = bands[index]!
+        return width < min || width > max
+          ? [`track ${index}: ${width} outside [${min},${max}]`]
+          : []
+      }),
+    ).toEqual([])
+  })
+
   test("FLOOR: no column below its min-content while a sibling holds more than its own min-content", () => {
     const violations: string[] = []
     for (let cols = 70; cols <= 160; cols += 10) {
