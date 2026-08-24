@@ -4744,6 +4744,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
    */
   async function processEventBatch(events: NamespacedEvent[]): Promise<Buffer | null> {
     if (shouldExit || events.length === 0) return null
+    // A real input/resize event breaks an autonomous standalone-frame chain.
+    // Preserve lifetime/max telemetry, but require consecutive autonomous
+    // frames before warning or panicking about a perpetual feedback edge.
+    // Without this reset, repeated Tab/wheel events each followed by a bounded
+    // layout recovery accumulate into one false "perpetual" incident.
+    standaloneCapExceedStreak = 0
     renderer.resetCount()
     _eventStart = performance.now()
 
@@ -5567,6 +5573,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       exit()
     },
     async press(rawKey: string) {
+      // `press()` is the headless/test host's external-input boundary, parallel
+      // to processEventBatch() in the terminal event loop. Do not join bounded
+      // recoveries from separate synthetic keypresses into an autonomous streak.
+      standaloneCapExceedStreak = 0
       // perfLog.span is always defined; the cost of performance.now() is negligible.
       const pressStart = performance.now()
       // Convert named keys to ANSI bytes (Kitty protocol when enabled)
