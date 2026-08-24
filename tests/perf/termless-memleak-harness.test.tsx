@@ -89,7 +89,7 @@ const MAX_STEADY_GROWTH_KB_PER_ITER = 600
  * separate passes. A single gc(true) leaves 10-25 MB on the heap that a
  * second pass reclaims; the third is insurance for the rare third wave.
  *
- * Critical for the median-of-thirds growth metric — without multi-pass GC,
+ * Critical for the robust growth metric — without multi-pass GC,
  * the per-sample RSS reading is noisy enough to fail the threshold check
  * even on a healthy run.
  */
@@ -143,36 +143,67 @@ function emitCurve(samples: Sample[]): void {
 }
 
 /**
- * Compute steady-state growth as "(median RSS of last third) − (median RSS
- * of middle third)" divided by the iteration gap between them. Median is
- * robust to the sawtooth caused by GC heap-total bumps. Early warmup
- * samples (iter < WARMUP_ITERS) are excluded entirely.
+ * Compute steady-state growth with the Theil-Sen estimator: the median of
+ * every pairwise RSS slope after warmup. Unlike comparing two tiny windows,
+ * one allocator chunk grant cannot choose both endpoints of the estimate.
+ * Early warmup samples (iter < WARMUP_ITERS) are excluded entirely.
  *
  * A genuine leak (per-iter retained xterm Terminal) produces monotonic
- * growth that shows up cleanly in the median-of-thirds delta. Flat noise
- * (what the `using` path produces) cancels to near zero.
+ * growth that shows up in every pairwise slope. Allocator sawtooth (what the
+ * `using` path produces) contributes positive and negative slopes that
+ * cancel around the underlying trend.
  */
 function steadyGrowthKbPerIter(samples: Sample[]): number {
   const steady = samples.filter((s) => s.iter >= WARMUP_ITERS)
   if (steady.length < 6) return 0
   const sortedByIter = steady.slice().sort((a, b) => a.iter - b.iter)
-  const third = Math.floor(sortedByIter.length / 3)
-  if (third < 2) return 0
-  const midGroup = sortedByIter.slice(third, third * 2)
-  const lastGroup = sortedByIter.slice(-third)
-  const median = (arr: Sample[]): number => {
-    const vs = arr.map((s) => s.rss).sort((a, b) => a - b)
-    return vs[Math.floor(vs.length / 2)]!
+  const slopes: number[] = []
+  for (let i = 0; i < sortedByIter.length - 1; i++) {
+    for (let j = i + 1; j < sortedByIter.length; j++) {
+      const iterGap = sortedByIter[j]!.iter - sortedByIter[i]!.iter
+      if (iterGap > 0) {
+        slopes.push((sortedByIter[j]!.rss - sortedByIter[i]!.rss) / iterGap)
+      }
+    }
   }
-  const deltaMb = median(lastGroup) - median(midGroup)
-  const midIter = midGroup[Math.floor(midGroup.length / 2)]!.iter
-  const lastIter = lastGroup[Math.floor(lastGroup.length / 2)]!.iter
-  const iterGap = lastIter - midIter
-  if (iterGap <= 0) return 0
-  return (deltaMb * 1024) / iterGap
+  if (slopes.length === 0) return 0
+  slopes.sort((a, b) => a - b)
+  const middle = Math.floor(slopes.length / 2)
+  const medianSlopeMb =
+    slopes.length % 2 === 0
+      ? (slopes[middle - 1]! + slopes[middle]!) / 2
+      : slopes[middle]!
+  return medianSlopeMb * 1024
 }
 
 describe("termless memory leak harness", () => {
+  test("steady growth ignores the observed healthy allocator sawtooth", () => {
+    const rss = [435.9, 412.7, 367.7, 360.1, 422.3, 444.7, 433.9]
+    const samples = rss.map((value, index): Sample => ({
+      iter: WARMUP_ITERS + index * 10,
+      rss: value,
+      heap: 100,
+      elapsedMs: index,
+    }))
+
+    expect(steadyGrowthKbPerIter(samples)).toBeLessThanOrEqual(
+      MAX_STEADY_GROWTH_KB_PER_ITER,
+    )
+  })
+
+  test("steady growth detects monotonic retained memory", () => {
+    const samples = Array.from({ length: 7 }, (_, index): Sample => ({
+      iter: WARMUP_ITERS + index * 10,
+      rss: 400 + index * 10,
+      heap: 100 + index * 10,
+      elapsedMs: index,
+    }))
+
+    expect(steadyGrowthKbPerIter(samples)).toBeGreaterThan(
+      MAX_STEADY_GROWTH_KB_PER_ITER,
+    )
+  })
+
   test(`using term = createTermless — steady-state RSS is bounded (${SAMPLES} iters)`, async () => {
     const samples: Sample[] = []
     const start = Date.now()
