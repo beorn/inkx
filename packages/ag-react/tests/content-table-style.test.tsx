@@ -7,7 +7,7 @@
  */
 
 import React from "react"
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { parseColor } from "@silvery/ag-term/pipeline/render-helpers"
 import { createRenderer } from "@silvery/test"
 import { Box } from "../src/components/Box"
@@ -54,6 +54,28 @@ function parentRect(
 }
 
 describe("Content.Table document presentation (@km/tui/22807)", () => {
+  test("keeps blank header labels distinct from column identity", () => {
+    const consoleErrors: unknown[][] = []
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation((...args: unknown[]) => consoleErrors.push(args))
+
+    try {
+      const render = createRenderer({ cols: 80, rows: 20 })
+      const app = render(<Content.Table headers={["", ""]} rows={[["left", "right"]]} />)
+
+      expect(app.text).toContain("left")
+      expect(app.text).toContain("right")
+      expect(
+        consoleErrors.filter(([message]) =>
+          String(message).includes("Encountered two children with the same key"),
+        ),
+      ).toEqual([])
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
   test("uses an emphasized header and faint row rules without a box or junctions", () => {
     const app = renderDocumentTable()
     const visibleLines = app.lines.filter((line) => line.trim().length > 0)

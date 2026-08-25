@@ -355,7 +355,7 @@ function TableImplementation<T>({
       )
     return (
       <Box
-        key={column.header}
+        key={columnIndex}
         {...trackProps(column, track, columnIndex)}
         {...cellBorderProps(columnIndex)}
         overflow="hidden"
@@ -394,12 +394,12 @@ function TableImplementation<T>({
       >
         {data.map((item, itemIndex) => (
           <Box key={itemIndex} flexDirection="column" minWidth={0}>
-            {columns.map((column) => {
+            {columns.map((column, columnIndex) => {
               const rendered = column.render ? column.render(item, itemIndex) : null
               const value =
                 rendered == null ? String((column.key ? item[column.key] : "") ?? "") : rendered
               return (
-                <Box key={column.header} flexDirection="column" width="100%" minWidth={0}>
+                <Box key={columnIndex} flexDirection="column" width="100%" minWidth={0}>
                   <Text bold color={headerColor} flexShrink={0}>
                     {column.header}:
                   </Text>
@@ -429,7 +429,7 @@ function TableImplementation<T>({
     >
       {columns.map((column, columnIndex) => (
         <Box
-          key={column.header}
+          key={columnIndex}
           {...trackProps(column, trackAt(tracks, columnIndex), columnIndex)}
           {...cellBorderProps(columnIndex)}
           overflow="hidden"
