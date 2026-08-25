@@ -33,6 +33,7 @@ import {
   useFocusManager,
   useInteractionTreatment,
   useInput,
+  useOnBoxRectCommitted,
   useScrollController,
   useTerm,
   type Key,
@@ -65,6 +66,16 @@ const STORYBOOK_PREVIEW_FOCUS_ID = "storybook-preview"
 interface StoryListItem {
   label: string
   value: string
+}
+
+function CommittedHeightObserver({ onHeight }: { onHeight: (height: number) => void }): null {
+  const lastHeight = useRef<number | null>(null)
+  useOnBoxRectCommitted((rect) => {
+    if (lastHeight.current === rect.height) return
+    lastHeight.current = rect.height
+    onHeight(rect.height)
+  })
+  return null
 }
 
 function StoryNavRow({
@@ -416,16 +427,16 @@ function StoryFrame({ story }: { story: StoryDef }): React.ReactElement {
             overflow="scroll"
             backgroundColor={STORYBOOK_CHROME_BG}
             scrollOffset={scroll.scrollOffset}
-            onLayout={(rect) => scroll.setViewportHeight(rect.height)}
           >
+            <CommittedHeightObserver onHeight={scroll.setViewportHeight} />
             <Box
               flexDirection="column"
               flexShrink={0}
               minWidth={0}
               paddingRight={3}
               backgroundColor={STORYBOOK_CHROME_BG}
-              onLayout={(rect) => scroll.setContentHeight(rect.height)}
             >
+              <CommittedHeightObserver onHeight={scroll.setContentHeight} />
               {body}
             </Box>
           </Box>

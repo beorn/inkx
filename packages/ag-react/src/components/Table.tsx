@@ -14,10 +14,10 @@
  * back to truncation with visible loss marking. The table never silently
  * renders an allocation that violates its own floors while looking fine.
  */
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import { apportion, TRACK_BAND_ATTR, type ApportionTrack } from "@silvery/ag"
 import { displayWidth, intrinsicWidths } from "@silvery/ag-term/unicode"
-import { useBoxRectDangerously } from "../hooks/useLayout"
+import { useOnBoxRectCommitted } from "../hooks/useLayout"
 import { Box } from "./Box"
 import { Text, type TextProps } from "./Text"
 import { ListView } from "../ui/components/ListView"
@@ -60,6 +60,14 @@ export type TableProps<T> = {
   layout?: "grid" | "auto" | "blocks"
   /** Host-declared width, used before a committed layout rectangle exists. */
   availableWidth?: number
+}
+
+function useContainerWidth(): number {
+  const [width, setWidth] = useState(0)
+  useOnBoxRectCommitted((rect) => {
+    setWidth((previous) => (previous === rect.width ? previous : rect.width))
+  })
+  return width
 }
 
 type TablePresentation = "plain" | "framed" | "document"
@@ -234,10 +242,15 @@ function TableImplementation<T>({
   // the table is being laid into. Batch-invariant, so allocating from it
   // cannot oscillate: a content-sized parent measures Σmax, and
   // apportion(Σmax) returns exactly the max widths — a fixpoint.
-  const container = useBoxRectDangerously()
+  // Allocation depends only on the containing box's width. Observe committed
+  // geometry and project that single scalar into state: subscribing to the
+  // full rect or `{width,height}` wakes every table while its own rendered
+  // rows change the container height, which forms a self-sustaining follow-up
+  // frame in table-heavy documents.
+  const containerWidth = useContainerWidth()
   const declaredAvailable =
-    container.width > 0
-      ? container.width
+    containerWidth > 0
+      ? containerWidth
       : availableWidth !== undefined && availableWidth > 0
         ? availableWidth
         : 0
@@ -259,7 +272,7 @@ function TableImplementation<T>({
     layout === "blocks" ||
     (layout === "auto" &&
       available !== null &&
-      (container.width <= 0 || allocation === null || allocation.degraded))
+      (containerWidth <= 0 || allocation === null || allocation.degraded))
 
   // The band the allocator worked under, carried onto the rendered track so the
   // `apportion-bands` STRICT check can compare the width the layout engine

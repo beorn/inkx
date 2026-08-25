@@ -51,6 +51,38 @@ const ROWS: string[][] = [
 /** Total horizontal cell chrome under the document presentation (padding = 2, no separators). */
 const CELL_CHROME = 2
 
+type ObserverProbeRow = {
+  readonly label: string
+  readonly detail: string
+}
+
+const OBSERVER_PROBE_ROWS: readonly ObserverProbeRow[] = [
+  {
+    label: "observer",
+    detail:
+      "committed geometry should reallocate width without following height-only layout changes",
+  },
+]
+
+const OBSERVER_PROBE_COLUMNS: readonly Column<ObserverProbeRow>[] = [
+  { header: "Label", key: "label", shrink: true },
+  { header: "Detail", key: "detail", shrink: true },
+]
+
+function observedTable(
+  width: number,
+  height: number,
+  onCommit: React.ProfilerProps["onRender"],
+): React.ReactElement {
+  return (
+    <Box width={width} height={height} flexDirection="column">
+      <React.Profiler id="table-commits" onRender={onCommit}>
+        <Table data={OBSERVER_PROBE_ROWS} columns={OBSERVER_PROBE_COLUMNS} />
+      </React.Profiler>
+    </Box>
+  )
+}
+
 const maxContent = (columnIndex: number): number =>
   Math.max(
     displayWidth(HEADERS[columnIndex]!),
@@ -217,5 +249,30 @@ describe("table width allocation (@si/apportion-consolidation gate)", () => {
       }
     }
     expect(violations, `\n${violations.join("\n")}`).toEqual([])
+  })
+
+  test("committed width changes reallocate once while height-only commits schedule no follow-up", async () => {
+    let commits = 0
+    const countCommit: React.ProfilerProps["onRender"] = () => {
+      commits++
+    }
+    const render = createRenderer({ cols: 140, rows: 50, autoRender: true })
+    const app = render(observedTable(100, 20, countCommit))
+    await app.waitForLayoutStable()
+    const wideDetail = cellWidth(app, "Detail")
+
+    commits = 0
+    app.rerender(observedTable(70, 20, countCommit))
+    await app.waitForLayoutStable()
+    const narrowDetail = cellWidth(app, "Detail")
+
+    expect(narrowDetail).toBeLessThan(wideDetail)
+    expect(commits, "one width allocation plus the bounded parent/child commit chain").toBe(3)
+
+    commits = 0
+    app.rerender(observedTable(70, 24, countCommit))
+    await app.waitForLayoutStable()
+
+    expect(commits, "height-only geometry must not wake the width-only table consumer").toBe(1)
   })
 })
