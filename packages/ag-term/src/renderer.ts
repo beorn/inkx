@@ -358,6 +358,34 @@ interface RenderInstance {
   kittyActive: boolean
 }
 
+/**
+ * Append a finished frame to `instance.frames`, flattening it first.
+ *
+ * The output phase builds a frame by repeated concatenation — one `+=` per
+ * painted row — and JavaScriptCore represents that as an unresolved ROPE: a
+ * tree that holds every operand alive as its own `JSString`. Retaining the
+ * rope therefore retains one string node PER ROW, not one per frame. Each
+ * leaf costs a GC cell plus a malloc'd `StringImpl` header off the JS heap,
+ * so the cost tracks LINE COUNT and is nearly independent of byte count —
+ * 2 MB of text as 28k short lines pins ~1400x the string nodes that the same
+ * 2 MB pins as 20 long lines, and a heap profiler reading `heapUsed` barely
+ * moves while RSS climbs (bead
+ * pm/@i/1-instruments/silvery-render-path-leaks-off-heap).
+ *
+ * Measured in isolation on Bun/JSC: ten 300-row frames held as ropes retain
+ * 1,219 string nodes each; forcing resolution first drops that to 1, with
+ * the string's value and length unchanged.
+ *
+ * `charCodeAt` needs the characters, so it resolves the rope in place. The
+ * comparison keeps the call from being optimised away as dead code — the
+ * predicate is never true for a real frame, and an empty frame has no rope
+ * to flatten.
+ */
+function pushFrame(instance: RenderInstance, frame: string): void {
+  if (frame.charCodeAt(0) < 0) throw new Error("silvery: unreachable frame flatten guard")
+  instance.frames.push(frame)
+}
+
 function isStore(arg: unknown): arg is Store {
   // Store has cols and rows as required (not optional) properties.
   // RenderOptions has them as optional. Disambiguate by checking for
@@ -510,7 +538,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
           if (hadReactCommit) {
             newFrame = doRender()
           }
-          instance.frames.push(newFrame)
+          pushFrame(instance, newFrame)
           onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
         } finally {
           inRenderCycle = false
@@ -1271,7 +1299,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       }
       if (next !== lastFrame) {
         lastFrame = next
-        instance.frames.push(next)
+        pushFrame(instance, next)
         onFrame?.(next, instance.prevBuffer!, getRootContentHeight())
       }
     }
@@ -1311,7 +1339,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
   output = settleAfterCommit(output)
 
-  instance.frames.push(output)
+  pushFrame(instance, output)
   onFrame?.(output, instance.prevBuffer!, getRootContentHeight())
 
   if (debug) {
@@ -1542,7 +1570,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
 
     const t2 = performance.now()
-    instance.frames.push(newFrame)
+    pushFrame(instance, newFrame)
     onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
       console.log("[silvery] stdin.write:", newFrame)
@@ -1582,7 +1610,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       instance.rendering = false
     }
     const newFrame = settleAfterCommit(doRender())
-    instance.frames.push(newFrame)
+    pushFrame(instance, newFrame)
     onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
       console.log("[silvery] Rerender:", newFrame)
@@ -1685,7 +1713,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       })
     })
     const newFrame = settleAfterCommit(doRender())
-    instance.frames.push(newFrame)
+    pushFrame(instance, newFrame)
     onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
   }
 
@@ -1744,7 +1772,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       prevBufferForDirtying.markAllRowsDirty()
     }
 
-    instance.frames.push(newFrame)
+    pushFrame(instance, newFrame)
     onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
       console.log("[silvery] Resize:", newCols, "x", newRows)
