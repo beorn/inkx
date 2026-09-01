@@ -40,6 +40,8 @@
 
 interface BackendCache {
   core: typeof import("@termless/core") | null
+  /** The io vocabulary (`Emulator`, `Event`, `micros`) — unterm A2's consumer surface. */
+  io: typeof import("@termless/core/io") | null
   xterm: typeof import("@termless/xtermjs") | null
   ghostty: typeof import("@termless/ghostty") | null
 }
@@ -59,7 +61,7 @@ const CACHE_KEY = Symbol.for("@silvery/ag-term:strict-terminal-backends")
 
 function backendCache(): BackendCache {
   const store = globalThis as typeof globalThis & { [CACHE_KEY]?: BackendCache }
-  return (store[CACHE_KEY] ??= { core: null, xterm: null, ghostty: null })
+  return (store[CACHE_KEY] ??= { core: null, io: null, xterm: null, ghostty: null })
 }
 
 export interface StrictTerminalPreloadOptions {
@@ -96,6 +98,7 @@ export async function preloadStrictTerminalBackends(
   // core + xtermjs are always needed by both verifiers (the fresh-render
   // comparison terminal is xterm even in ghostty mode).
   cache.core ??= await import("@termless/core")
+  cache.io ??= await import("@termless/core/io")
   cache.xterm ??= await import("@termless/xtermjs")
 
   if (wantGhostty) {
@@ -119,6 +122,11 @@ function missing(specifier: string, extra = ""): never {
 /** Sync accessor for `@termless/core`. Throws loud if not preloaded. */
 export function getTermlessCore(): typeof import("@termless/core") {
   return backendCache().core ?? missing("@termless/core")
+}
+
+/** Sync accessor for `@termless/core/io`. Throws loud if not preloaded. */
+export function getTermlessIo(): typeof import("@termless/core/io") {
+  return backendCache().io ?? missing("@termless/core/io")
 }
 
 /** Sync accessor for `@termless/xtermjs`. Throws loud if not preloaded. */
@@ -145,6 +153,84 @@ export function getTermlessGhostty(): typeof import("@termless/ghostty") {
 export function _resetStrictTerminalBackendsForTesting(): void {
   const cache = backendCache()
   cache.core = null
+  cache.io = null
   cache.xterm = null
   cache.ghostty = null
+}
+
+// ── The verifier's emulator (unterm A2) ──────────────────────────────────────
+//
+// The strict verifiers speak the io vocabulary: an `Emulator` eats `output`
+// Events and shows the picture (`getText`, `getCell`, `cursor`). The legacy
+// `TerminalBackend` is adapted at THIS one seam through termless's own
+// `emulatorFromBackend` until backends implement `Emulator` directly (A4b);
+// no other silvery file names `createTerminal` or a backend factory.
+
+/** Which bundled backend drives a strict emulator. */
+export type StrictEmulatorKind = "xterm" | "ghostty"
+
+/**
+ * A verifier-owned emulator: the io `Emulator` the verifiers feed and read,
+ * plus the lifecycle the io contract deliberately leaves to whoever created
+ * the backend.
+ */
+export interface StrictEmulator {
+  /** The io Emulator — `getText()`, `getCell(row, col)`, `cursor`, `modes`, `size`. */
+  readonly emulator: import("@termless/core/io").Emulator
+  /**
+   * Feed program output. An `output` Event carries bytes, so the text is
+   * UTF-8 encoded here; the verifier has no timeline, so `at` is zero.
+   */
+  feed(text: string): void
+  /** Release the backend (WASM instance, buffers). Idempotent. */
+  close(): void
+}
+
+/**
+ * Create a strict emulator over a freshly initialized bundled backend.
+ * Synchronous by contract: the verifiers run in the render pipeline's output
+ * phase and read the picture right after feeding, so an `Emulator` whose
+ * `apply` returns a Promise is refused loudly rather than read stale.
+ * Ghostty requires the WASM preload (`initGhosttyWasm`) — a PRELOAD
+ * precondition, never a fire-and-forget init here (that was the null-WASM
+ * race window).
+ */
+export function createStrictEmulator(
+  kind: StrictEmulatorKind,
+  size: { cols: number; rows: number },
+): StrictEmulator {
+  const core = getTermlessCore()
+  const io = getTermlessIo()
+  const backend =
+    kind === "xterm"
+      ? getTermlessXterm().createXtermBackend()
+      : getTermlessGhostty().createGhosttyBackend()
+  backend.init({ cols: size.cols, rows: size.rows })
+  const emulator = core.emulatorFromBackend(backend, { cols: size.cols, rows: size.rows })
+  const encoder = new TextEncoder()
+  let closed = false
+  return {
+    emulator,
+    feed(text: string): void {
+      if (closed) {
+        throw new Error(`[silvery] strict ${kind} emulator: feed() after close()`)
+      }
+      const pending = emulator.apply({
+        at: io.micros(0),
+        type: "output",
+        data: encoder.encode(text),
+      })
+      if (pending !== undefined) {
+        throw new Error(
+          `[silvery] strict ${kind} emulator: Emulator.apply returned a Promise; the strict ` +
+            `verifiers read the picture synchronously in the output phase and cannot await it.`,
+        )
+      }
+    },
+    close(): void {
+      if (closed) return
+      closed = true
+      backend.destroy()
+    },
+  }
 }

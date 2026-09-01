@@ -1502,7 +1502,7 @@ export function outputPhase(
       checkRenderEmulatorDivergence(
         next,
         {
-          nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+          nonSpaceCells: countNonSpaceInText(divergenceTerm.emulator.getText()),
           backendName: tvState.terminal ? "xterm" : "ghostty",
         },
         tvState.frameCount,
@@ -1857,7 +1857,7 @@ function inlineIncrementalRender(
         checkRenderEmulatorDivergence(
           next,
           {
-            nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+            nonSpaceCells: countNonSpaceInText(divergenceTerm.emulator.getText()),
             backendName: tvState.terminal ? "xterm" : "ghostty",
           },
           tvState.frameCount,
