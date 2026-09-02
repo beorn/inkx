@@ -45,6 +45,7 @@ import {
   createScreenView,
   createScrollbackView,
   emulatorFromBackend,
+  type Cell,
   type TerminalBackend,
 } from "@termless/core"
 import { micros, type Emulator, type Event as IoEvent, type Micros } from "@termless/core/io"
@@ -1146,14 +1147,10 @@ function createHeadlessTerm(
  * the probes that talk to it directly, and the io Emulator itself.
  */
 interface IoTermEmulatorExtras {
-  cell(
-    row: number,
-    col: number,
-  ): { readonly fg: unknown; readonly bg: unknown; readonly char: string }
-  row(n: number): {
-    getText(): string
-    cell(col: number): { readonly fg: unknown; readonly bg: unknown; readonly char: string }
-  }
+  /** A screen cell (negative rows count from the bottom), as termless's `Cell`. */
+  cell(row: number, col: number): Cell
+  /** A screen row (negative rows count from the bottom): its text and its cells. */
+  row(n: number): { getText(): string; cell(col: number): Cell }
   readonly backend: TermEmulatorBackend
   /** The io Emulator the bridge paints into — termless's picture, not silvery's. */
   readonly io: Emulator
