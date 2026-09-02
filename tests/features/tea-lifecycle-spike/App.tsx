@@ -129,7 +129,7 @@ export function App({ pass = 0, useStore, actions }: AppProps): React.ReactEleme
   }, [])
 
   // Wrap the state transitions — the spike logs these to distinguish
-  // "keys arrived but state didn't advance" from "state advanced twice".
+  // a key arriving without a state transition from a duplicated state transition.
   const openDialog = useCallback(() => {
     if (actions) {
       actions.openDialog()
