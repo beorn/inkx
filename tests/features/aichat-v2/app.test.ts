@@ -20,7 +20,8 @@ import { SCRIPT, RANDOM_AGENT_RESPONSES } from "../../../examples/apps/aichat/sc
 function testAI(response = RANDOM_AGENT_RESPONSES[0]!) {
   return {
     async *generateResponse() {
-      for (const word of response.content.split(/(\s+)/)) yield { type: "text-delta" as const, text: word }
+      for (const word of response.content.split(/(\s+)/))
+        yield { type: "text-delta" as const, text: word }
       yield { type: "done" as const, tokens: response.tokens }
     },
   }
@@ -150,7 +151,12 @@ describe("createChatModel", () => {
 
 describe("withChat (headless)", () => {
   function createApp() {
-    return pipe(create(), withScope(createInstantScope()), withCommands(), withChat({ ai: testAI() }))
+    return pipe(
+      create(),
+      withScope(createInstantScope()),
+      withCommands(),
+      withChat({ ai: testAI() }),
+    )
   }
 
   it("registers model and commands", () => {
@@ -178,9 +184,11 @@ describe("withDemoScript (headless)", () => {
     const driver = {
       cursor: 0,
       async *generateResponse() {
-        while (driver.cursor < entries.length && entries[driver.cursor]!.role === "user") driver.cursor++
+        while (driver.cursor < entries.length && entries[driver.cursor]!.role === "user")
+          driver.cursor++
         const entry = driver.cursor < entries.length ? entries[driver.cursor++]! : entries[0]!
-        for (const word of entry.content.split(/(\s+)/)) yield { type: "text-delta" as const, text: word }
+        for (const word of entry.content.split(/(\s+)/))
+          yield { type: "text-delta" as const, text: word }
         yield { type: "done" as const, tokens: entry.tokens }
       },
       nextUserHint() {
@@ -188,7 +196,8 @@ describe("withDemoScript (headless)", () => {
         return entry?.role === "user" ? entry.content : ""
       },
       advancePastAgentEntries() {
-        while (driver.cursor < entries.length && entries[driver.cursor]!.role !== "user") driver.cursor++
+        while (driver.cursor < entries.length && entries[driver.cursor]!.role !== "user")
+          driver.cursor++
       },
     }
     return pipe(

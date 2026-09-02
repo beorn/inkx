@@ -32,7 +32,8 @@ import { RANDOM_AGENT_RESPONSES } from "../../../examples/apps/aichat/script.ts"
 function testAI(response = RANDOM_AGENT_RESPONSES[0]!) {
   return {
     async *generateResponse() {
-      for (const word of response.content.split(/(\s+)/)) yield { type: "text-delta" as const, text: word }
+      for (const word of response.content.split(/(\s+)/))
+        yield { type: "text-delta" as const, text: word }
       yield { type: "done" as const, tokens: response.tokens }
     },
   }
@@ -59,9 +60,12 @@ describe("apply-chain integration with chat model", () => {
 
     app.dispatch({ type: "input:key", input: "enter", key: { eventType: "press" } })
     expect(submittedContent).toBe("hello from key handler")
-    expect(chat.messages().filter((m) => m.role === "user").map((m) => m.content)).toContain(
-      "hello from key handler",
-    )
+    expect(
+      chat
+        .messages()
+        .filter((m) => m.role === "user")
+        .map((m) => m.content),
+    ).toContain("hello from key handler")
     // No runner effects for a no-op handler — but the chain was engaged.
     expect(app.drainEffects()).toEqual([])
   })

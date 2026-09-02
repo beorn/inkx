@@ -51,7 +51,10 @@ export function getTracer(plugin: string): Tracer {
       return effects
     },
     passed(op, downstream) {
-      const verdict = downstream === false ? "false (nobody handled)" : `handled-downstream(${downstream.length} fx)`
+      const verdict =
+        downstream === false
+          ? "false (nobody handled)"
+          : `handled-downstream(${downstream.length} fx)`
       appendFileSync(
         TRACE_PATH,
         `[${plugin}] op=${op.type} decision=passed downstream=${verdict}\n`,

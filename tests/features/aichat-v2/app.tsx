@@ -21,10 +21,24 @@ import {
   type WithCommands,
 } from "./shims/app.js"
 import { createScope, type Scope, type Task } from "./shims/scope.js"
-import { signal, computed, useSignal, useModel, type WritableSignal, type Signal } from "./shims/signals.js"
+import {
+  signal,
+  computed,
+  useSignal,
+  useModel,
+  type WritableSignal,
+  type Signal,
+} from "./shims/signals.js"
 import { when } from "./shims/commands.js"
 import { createClock, type Clock } from "./shims/clock.js"
-import React, { createContext, useContext, useState, useEffect, type JSX, type ReactNode } from "react"
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type JSX,
+  type ReactNode,
+} from "react"
 import { Box, Text, Link, Spinner, ListView, TextArea, useTerminalFocused } from "@silvery/ag-react"
 import * as demo from "../../../examples/apps/aichat/script.ts"
 
@@ -36,20 +50,32 @@ import * as demo from "../../../examples/apps/aichat/script.ts"
 
 const ChatContext = createContext<ChatModel | null>(null)
 
-export function ChatProvider({ chat, children }: { chat: ChatModel; children: ReactNode }): JSX.Element {
+export function ChatProvider({
+  chat,
+  children,
+}: {
+  chat: ChatModel
+  children: ReactNode
+}): JSX.Element {
   return <ChatContext.Provider value={chat}>{children}</ChatContext.Provider>
 }
 
 function useChat<U>(selector: (m: ChatModel) => U): U {
   const chat = useContext(ChatContext)
-  if (!chat) throw new Error("useChat() called outside <ChatProvider>. Wrap the view in <ChatProvider chat={app.chat}>.")
+  if (!chat)
+    throw new Error(
+      "useChat() called outside <ChatProvider>. Wrap the view in <ChatProvider chat={app.chat}>.",
+    )
   return useModel(chat, selector)
 }
 
 /** Escape hatch for imperative access (e.g. input onChange handlers). */
 function useChatModel(): ChatModel {
   const chat = useContext(ChatContext)
-  if (!chat) throw new Error("useChatModel() called outside <ChatProvider>. Wrap the view in <ChatProvider chat={app.chat}>.")
+  if (!chat)
+    throw new Error(
+      "useChatModel() called outside <ChatProvider>. Wrap the view in <ChatProvider chat={app.chat}>.",
+    )
   return chat
 }
 
@@ -156,9 +182,12 @@ export function createChatModel({
 
   // ── Mutation helpers ──────────────────────────────────────────
 
-  function appendMessage(entry: Record<string, unknown> & { role: string; content: string }): number {
+  function appendMessage(
+    entry: Record<string, unknown> & { role: string; content: string },
+  ): number {
     const id = nextId++
-    const tokens = entry.role === "system" ? undefined : (entry.tokens ?? estimateTokens(entry.content))
+    const tokens =
+      entry.role === "system" ? undefined : (entry.tokens ?? estimateTokens(entry.content))
     messages([...messages(), { ...entry, id, tokens } as ChatMessage])
     return id
   }
@@ -383,12 +412,15 @@ function createDemoDriver(entries: ScriptEntry[]): AIProvider {
       const entry =
         cursor < entries.length
           ? entries[cursor++]!
-          : demo.RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * demo.RANDOM_AGENT_RESPONSES.length)]!
+          : demo.RANDOM_AGENT_RESPONSES[
+              Math.floor(Math.random() * demo.RANDOM_AGENT_RESPONSES.length)
+            ]!
 
       const { content, thinking, toolCalls, tokens } = entry
       if (thinking) yield { type: "thinking", text: thinking }
       for (const word of content.split(/(\s+)/)) yield { type: "text-delta", text: word }
-      for (const { tool, args, output } of toolCalls ?? []) yield { type: "tool-result", tool, args, output }
+      for (const { tool, args, output } of toolCalls ?? [])
+        yield { type: "tool-result", tool, args, output }
       yield { type: "done", tokens }
     },
 
@@ -457,7 +489,8 @@ function InputFooter(): JSX.Element {
               }
             }}
             submitKey="enter"
-            height={1}
+            fieldSizing="fixed"
+            rows={1}
             placeholder={!terminalFocused ? "Click to focus" : placeholder}
             isActive={!isDone && terminalFocused}
           />
@@ -497,7 +530,11 @@ function MessageItem({ message }: { message: ChatMessage }): JSX.Element {
   }
 
   // Agent messages split by delivery state to avoid conditional hooks
-  return message.delivery ? <StreamingAgentMessage message={message} /> : <SettledAgentMessage message={message} />
+  return message.delivery ? (
+    <StreamingAgentMessage message={message} />
+  ) : (
+    <SettledAgentMessage message={message} />
+  )
 }
 
 /** Agent message being delivered — hooks always called. */
@@ -514,7 +551,7 @@ function StreamingAgentMessage({ message }: { message: AgentMessage }): JSX.Elem
   return (
     <Box flexDirection="column">
       <Text>
-        <Text bold color={hasOps ? "$success" : "$muted"} dimColor={hasOps && !pulse}>
+        <Text bold color={hasOps && pulse ? "$success" : "$muted"}>
           {"●"}
         </Text>
         {stage === "thinking" ? (
@@ -667,7 +704,9 @@ function ToolRunBlock({ run, done }: { run: ToolRun; done: boolean }): JSX.Eleme
             <LinkifiedLine
               key={i}
               text={line}
-              color={line.startsWith("+") ? "$success" : line.startsWith("-") ? "$error" : undefined}
+              color={
+                line.startsWith("+") ? "$success" : line.startsWith("-") ? "$error" : undefined
+              }
             />
           ))}
         </Box>

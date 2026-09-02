@@ -34,12 +34,7 @@ import { withBoardSpike } from "./with-board-spike.ts"
 // ---------------------------------------------------------------------------
 
 function buildSpikeApp() {
-  return pipe(
-    createBaseApp(),
-    withTerminalChain(),
-    withInputChain,
-    withBoardSpike(),
-  )
+  return pipe(createBaseApp(), withTerminalChain(), withInputChain, withBoardSpike())
 }
 
 // ---------------------------------------------------------------------------
@@ -161,9 +156,7 @@ describe("Phase 1 — runEventBatch + keybinding plugin → cursor_down", () => 
     }
 
     let renderCount = 0
-    const batch: BatchedEvent[] = [
-      { type: "term:key", input: "j", key: { eventType: "press" } },
-    ]
+    const batch: BatchedEvent[] = [{ type: "term:key", input: "j", key: { eventType: "press" } }]
     await runEventBatch(app, batch, {
       onRender: () => {
         renderCount += 1
@@ -180,9 +173,7 @@ describe("Phase 1 — runEventBatch + keybinding plugin → cursor_down", () => 
     const app = buildSpikeApp()
 
     let renderCount = 0
-    const batch: BatchedEvent[] = [
-      { type: "term:key", input: "x", key: { eventType: "press" } },
-    ]
+    const batch: BatchedEvent[] = [{ type: "term:key", input: "x", key: { eventType: "press" } }]
     await runEventBatch(app, batch, {
       onRender: () => {
         renderCount += 1

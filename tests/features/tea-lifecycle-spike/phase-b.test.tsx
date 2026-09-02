@@ -70,7 +70,9 @@ interface VanillaStore<T> {
   subscribe(listener: () => void): () => void
 }
 
-function createStore<T extends object>(initializer: (set: VanillaStore<T>["setState"]) => T): VanillaStore<T> {
+function createStore<T extends object>(
+  initializer: (set: VanillaStore<T>["setState"]) => T,
+): VanillaStore<T> {
   let state: T
   const listeners = new Set<() => void>()
 

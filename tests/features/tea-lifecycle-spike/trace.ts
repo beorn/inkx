@@ -73,7 +73,10 @@ export function logDialog(open: boolean, query: string): void {
 }
 
 export function logRender(pass: number, open: boolean, query: string): void {
-  appendFileSync(TRACE_PATH, `[render]   pass=${pass} open=${open} query=${JSON.stringify(query)}\n`)
+  appendFileSync(
+    TRACE_PATH,
+    `[render]   pass=${pass} open=${open} query=${JSON.stringify(query)}\n`,
+  )
 }
 
 export function logHandler(direction: "register" | "dispose", scope: string): void {

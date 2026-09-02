@@ -65,7 +65,13 @@ export function pipe<A>(a: A): A
 export function pipe<A, B>(a: A, f1: (a: A) => B): B
 export function pipe<A, B, C>(a: A, f1: (a: A) => B, f2: (b: B) => C): C
 export function pipe<A, B, C, D>(a: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D): D
-export function pipe<A, B, C, D, E>(a: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E): E
+export function pipe<A, B, C, D, E>(
+  a: A,
+  f1: (a: A) => B,
+  f2: (b: B) => C,
+  f3: (c: C) => D,
+  f4: (d: D) => E,
+): E
 export function pipe<A, B, C, D, E, F>(
   a: A,
   f1: (a: A) => B,
@@ -210,7 +216,8 @@ export function withReact({ view }: { view: ReactElement }) {
           if (inv) {
             try {
               const r = invoke(inv)
-              if (r && typeof r === "object" && "catch" in r) (r as Promise<unknown>).catch(console.error)
+              if (r && typeof r === "object" && "catch" in r)
+                (r as Promise<unknown>).catch(console.error)
             } catch (e) {
               console.error("Command error:", e)
             }

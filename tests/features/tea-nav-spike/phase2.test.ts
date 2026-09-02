@@ -56,10 +56,7 @@ function buildPhase2App() {
     withBoardSpike(),
     withDialog,
   )
-  return pipe(
-    appWithBoardAndDialog,
-    withCommandsSpike({ dialog: appWithBoardAndDialog.dialog }),
-  )
+  return pipe(appWithBoardAndDialog, withCommandsSpike({ dialog: appWithBoardAndDialog.dialog }))
 }
 
 // ---------------------------------------------------------------------------
