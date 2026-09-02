@@ -3,6 +3,7 @@
  * leaving duplicate or ghost handlers after dialog and remount transitions.
  * @level l3
  * @consumer @silvery/ag-react and @silvery/ag-term application runtimes
+ * @see hh STATE hub/silvery/experiments/tea-lifecycle-spike/README.md
  *
  * Phase A — Real React/Ink mount/unmount + termless key events.
  *

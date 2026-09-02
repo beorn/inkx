@@ -3,6 +3,7 @@
  * model, so consumers must maintain a parallel event substrate.
  * @level l3
  * @consumer applications composed with @silvery/create
+ * @see hh STATE hub/silvery/prototype/aichat-v2/MANUAL-VERIFICATION.md
  *
  * Apply-chain integration coverage for the aichat-v2 model.
  *

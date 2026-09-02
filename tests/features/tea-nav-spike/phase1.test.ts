@@ -3,6 +3,7 @@
  * so key events fail to advance state or request a render.
  * @level l3
  * @consumer navigation-heavy applications composed with @silvery/create
+ * @see hh STATE hub/silvery/experiments/tea-nav-spike/README.md
  *
  * Phase 1 of the TEA confidence spike (2026-04-21 dual-pro recommendation).
  *

@@ -3,6 +3,7 @@
  * or deterministic scripted responses before the React view consumes it.
  * @level l1
  * @consumer the Silvery aichat example application
+ * @see hh STATE hub/silvery/prototype/aichat-v2/MANUAL-VERIFICATION.md
  *
  * Pure model tests — no React, no rendering.
  * Two patterns: direct model + headless app composition.

@@ -3,6 +3,7 @@
  * causing stale state, duplicate renders, or leaked handlers.
  * @level l3
  * @consumer @silvery/ag-react applications backed by external stores
+ * @see hh STATE hub/silvery/experiments/tea-lifecycle-spike/README.md
  *
  * Phase B — Zustand bridge cohabitation with the apply chain.
  *

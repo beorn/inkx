@@ -3,6 +3,7 @@
  * editing keys leak into board navigation or commands remain captured on close.
  * @level l3
  * @consumer modal applications composed with @silvery/create
+ * @see hh STATE hub/silvery/experiments/tea-nav-spike/README.md
  *
  * Phase 2 of the TEA confidence spike (2026-04-21 dual-pro recommendation).
  *
