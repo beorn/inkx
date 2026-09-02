@@ -29,7 +29,7 @@ import {
   type WritableSignal,
   type Signal,
 } from "./shims/signals.js"
-import { when } from "./shims/commands.js"
+import { when, type Command } from "./shims/commands.js"
 import { createClock, type Clock } from "./shims/clock.js"
 import React, {
   createContext,
@@ -321,14 +321,28 @@ export function withChat(options: { chat: ChatModel } | { ai: AIProvider }) {
             onExit: () => app.quit(),
           })
 
-    app.commands.chat = {
+    const chatCommands = {
       submit: { fn: ({ content }: { content: string }) => chat.submit(content) },
       compact: { fn: () => chat.compact() },
       exit: { fn: () => chat.exit() },
-    }
+    } satisfies ChatCommandSet
+    app.commands.chat = chatCommands
 
-    return extend(app, { chat })
+    return extend(app, {
+      chat,
+      commands: app.commands as A["commands"] & WithChatCommands["commands"],
+    })
   }
+}
+
+interface ChatCommandSet {
+  submit: Command
+  compact: Command
+  exit: Command
+}
+
+interface WithChatCommands {
+  commands: { chat: ChatCommandSet }
 }
 
 /**
@@ -346,7 +360,7 @@ export function withChat(options: { chat: ChatModel } | { ai: AIProvider }) {
  */
 /** Keybindings for the chat. Separate from withChat so headless apps skip it. */
 function withKeymap() {
-  return <A extends WithCommands & { chat: ChatModel }>(app: A) => {
+  return <A extends WithCommands & WithChatCommands & { chat: ChatModel }>(app: A) => {
     app.keymap({
       "ctrl+l": app.commands.chat.compact,
       escape: app.commands.chat.exit,
