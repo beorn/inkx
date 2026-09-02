@@ -170,6 +170,22 @@ export function _resetStrictTerminalBackendsForTesting(): void {
 export type StrictEmulatorKind = "xterm" | "ghostty"
 
 /**
+ * A fresh, uninitialized bundled backend from the cache — the one place in
+ * silvery that names a termless backend factory. The caller owns its
+ * lifecycle: `createTerm(backend, dims)` inits it and destroys it on close,
+ * `createStrictEmulator` does the same for the verifiers. Ghostty requires
+ * the WASM preload first (`preloadStrictTerminalBackends({ ghostty: true,
+ * initGhosttyWasm: true })` or the test's own `initGhostty()`).
+ */
+export function createTermlessBackend(
+  kind: StrictEmulatorKind,
+): import("@termless/core").TerminalBackend {
+  return kind === "xterm"
+    ? getTermlessXterm().createXtermBackend()
+    : getTermlessGhostty().createGhosttyBackend()
+}
+
+/**
  * A verifier-owned emulator: the io `Emulator` the verifiers feed and read,
  * plus the lifecycle the io contract deliberately leaves to whoever created
  * the backend.
@@ -201,10 +217,7 @@ export function createStrictEmulator(
 ): StrictEmulator {
   const core = getTermlessCore()
   const io = getTermlessIo()
-  const backend =
-    kind === "xterm"
-      ? getTermlessXterm().createXtermBackend()
-      : getTermlessGhostty().createGhosttyBackend()
+  const backend = createTermlessBackend(kind)
   backend.init({ cols: size.cols, rows: size.rows })
   const emulator = core.emulatorFromBackend(backend, { cols: size.cols, rows: size.rows })
   const encoder = new TextEncoder()

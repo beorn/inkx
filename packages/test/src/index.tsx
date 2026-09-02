@@ -173,28 +173,32 @@ import {
   type TerminalCaps,
   type TermEmulatorBackend,
 } from "@silvery/ag-term"
-import { preloadStrictTerminalBackends } from "@silvery/ag-term/strict-terminal-backends"
+import {
+  createTermlessBackend,
+  preloadStrictTerminalBackends,
+} from "@silvery/ag-term/strict-terminal-backends"
 import { warnOnce } from "@silvery/ansi"
-import { createGhosttyBackend } from "@termless/ghostty"
+import { micros, type OutputEvent } from "@termless/core/io"
 import { createGhosttyNativeBackend } from "@termless/ghostty-native"
-import { createXtermBackend } from "@termless/xtermjs" // REFERENCE-ONLY — see below; do not remove
-// ┌─ WHY @termless/xtermjs IS HERE, for anyone sweeping xterm references ─────────┐
-// │ This is NOT a production xterm dependency and NOT a leftover. createTermless  │
-// │ IS silvery's ANSI-fidelity harness, and xterm.js is the differential          │
-// │ REFERENCE it measures against — including the STRICT terminal cross-check.    │
-// │ Deleting it does not retire xterm; it deletes the oracle that proves vterm    │
-// │ correct, and every backend divergence becomes undetectable.                   │
+// ┌─ WHY xterm.js IS STILL HERE, for anyone sweeping xterm references ────────────┐
+// │ createTermless("xterm") reaches @termless/xtermjs through ag-term's loader    │
+// │ (strict-terminal-backends.ts, `createTermlessBackend("xterm")`), preloaded   │
+// │ just below. This is NOT a production xterm dependency and NOT a leftover.     │
+// │ createTermless IS silvery's ANSI-fidelity harness, and xterm.js is the        │
+// │ differential REFERENCE it measures against — including the STRICT terminal   │
+// │ cross-check. Retiring it does not retire xterm; it deletes the oracle that    │
+// │ proves vterm correct, and every backend divergence becomes undetectable.      │
 // │ Production shell guest = vterm (@si/vterm/21016). Reference = xterm. Both     │
 // │ are load-bearing, for different reasons. @pm/22783 Track 2, class 2.          │
 // └──────────────────────────────────────────────────────────────────────────────┘
 
-// Preload the @termless emulator backends into ag-term's strict-verify cache so
-// the SYNCHRONOUS SILVERY_STRICT_TERMINAL / cursor verifiers (output-verify.ts,
+// Preload the @termless emulator backends into ag-term's loader cache: it is the
+// one place that names a backend factory (unterm A2), and the SYNCHRONOUS
+// SILVERY_STRICT_TERMINAL / cursor verifiers (output-verify.ts,
 // cursor-diagnostics.ts) resolve them mid-frame WITHOUT createRequire — the
-// 2026-07-02 Ghostty-WASM singleton-split fix. The backends are already statically
-// imported just above, so this is a free ESM-graph re-resolve; ghostty WASM init
-// stays deferred to each ghostty test's own `await initGhostty()` (initGhosttyWasm:
-// false) so non-ghostty suites don't pay the WASM load.
+// 2026-07-02 Ghostty-WASM singleton-split fix. Ghostty WASM init stays deferred
+// to each ghostty test's own `await initGhostty()` (initGhosttyWasm: false) so
+// non-ghostty suites don't pay the WASM load.
 await preloadStrictTerminalBackends({ ghostty: true, initGhosttyWasm: false })
 
 /**
@@ -531,7 +535,15 @@ export interface TermlessClipboard {
   clear(): void
 }
 
+/**
+ * Everything silvery wrote to the emulator, as the harness recorded it: a log
+ * of termless io `output` Events (unterm A2). `getChunks()` and `getText()`
+ * are decodes over that log for the migration window; the Events are the
+ * record.
+ */
 export interface TermlessOutput {
+  /** The recorded `output` Events, oldest first. */
+  readonly events: readonly OutputEvent[]
   getText(): string
   getChunks(): readonly string[]
   containsOutput(text: string): boolean
@@ -686,7 +698,7 @@ function sgrButtonByte(options?: TermlessMouseOptions): number {
 /**
  * Create a Term backed by a termless xterm.js emulator for full ANSI testing.
  *
- * Convenience wrapper around `createTerm(createXtermBackend(), dims)` that
+ * Convenience wrapper around `createTerm(backend, dims)` (the backend from ag-term's loader) that
  * handles the xterm.js backend import. Use with `run()` to render components
  * into a real terminal emulator in-process — no PTY, no timing issues.
  *
@@ -758,11 +770,11 @@ export function createTermless(
 
   let backend: import("@silvery/ag-term").TermEmulatorBackend
   if (choice === "ghostty") {
-    backend = createGhosttyBackend()
+    backend = createTermlessBackend("ghostty")
   } else if (choice === "ghostty-native") {
     backend = createGhosttyNativeBackend()
   } else if (choice === "xterm") {
-    backend = createXtermBackend()
+    backend = createTermlessBackend("xterm")
   } else {
     throw new Error(
       `[silvery/test] createTermless: unknown backend "${choice}". ` +
@@ -780,6 +792,51 @@ export function createTermless(
   }
 
   const term = createTerm(backend, dims)
+
+  // --- Output log (unterm A2) ---
+  // Everything silvery writes reaches the emulator through `_emulator.feed`
+  // (the mock stdout, write/writeLine, paint, notify). The harness records
+  // each write as a termless io `output` Event; `out.getChunks()` and
+  // `out.getText()` are decodes over that log. The reflow-residue marker is
+  // injected below this point, inside the backend wrapper, so it never
+  // enters the log: the log is what silvery wrote, not what the terminal
+  // received.
+  const outputEvents: OutputEvent[] = []
+  const outputStarted = performance.now()
+  const outputEncoder = new TextEncoder()
+  const outputDecoder = new TextDecoder()
+  const out: TermlessOutput = {
+    get events() {
+      return outputEvents
+    },
+    getChunks: () => outputEvents.map((e) => outputDecoder.decode(e.data)),
+    getText: () => outputEvents.map((e) => outputDecoder.decode(e.data)).join(""),
+    containsOutput: (text) => out.getText().includes(text),
+    clear() {
+      outputEvents.length = 0
+    },
+  }
+  {
+    const emulator = (
+      term as unknown as { _emulator?: { feed: (data: Uint8Array | string) => void } }
+    )._emulator
+    if (!emulator) {
+      throw new Error(
+        "[silvery/test] createTermless: createTerm(backend, dims) returned a Term without an emulator, " +
+          "so the output log has nothing to record",
+      )
+    }
+    const origFeed = emulator.feed.bind(emulator)
+    emulator.feed = (data) => {
+      outputEvents.push({
+        at: micros(Math.round((performance.now() - outputStarted) * 1000)),
+        type: "output",
+        data: typeof data === "string" ? outputEncoder.encode(data) : data,
+      })
+      origFeed(data)
+    }
+  }
+  Object.defineProperty(term, "out", { value: out, enumerable: true })
 
   // Track this instance for leak detection
   liveTermlessInstances.add(new WeakRef(term))
@@ -829,10 +886,9 @@ export function createTermless(
 
   const SGR_PIXELS_ENABLE = "\x1b[?1016h"
   let cachedPixelMode: boolean | null = null
-  const out = (term as unknown as { out?: { getText(): string } }).out
+  // `out` is the harness's own output log, defined above.
   function isPixelMode(): boolean {
     if (cachedPixelMode !== null) return cachedPixelMode
-    if (!out) return false
     const written = out.getText()
     // Latches once observed — silvery enables the mode at boot and doesn't
     // toggle it during a test session.
