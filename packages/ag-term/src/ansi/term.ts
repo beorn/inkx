@@ -46,6 +46,7 @@ import {
   createScrollbackView,
   emulatorFromBackend,
   type Cell,
+  type Cursor,
   type TerminalBackend,
 } from "@termless/core"
 import { micros, type Emulator, type Event as IoEvent, type Micros } from "@termless/core/io"
@@ -1154,6 +1155,18 @@ interface IoTermEmulatorExtras {
   readonly backend: TermEmulatorBackend
   /** The io Emulator the bridge paints into — termless's picture, not silvery's. */
   readonly io: Emulator
+  /**
+   * The legacy termless read contract members that downstream suites still
+   * reach through the bridge (census 2026-09-01 over every createTermless
+   * suite: getCursor ×5, getText ×1, getCell ×1 — nothing else). Kept for the
+   * migration window and answered from `io`.
+   * @deprecated REMOVING in unterm phase A4c — read `term.io` (`cursor`, `getText()`, `getCell()`) instead.
+   */
+  getCursor(): Cursor
+  /** @deprecated REMOVING in unterm phase A4c — `term.io.getText()`. */
+  getText(): string
+  /** Absolute buffer row, as the legacy contract read it. @deprecated REMOVING in unterm phase A4c — `term.io.getCell()`. */
+  getCell(row: number, col: number): Cell
 }
 
 /**
@@ -1232,6 +1245,9 @@ function createIoTermEmulator(
     },
     backend,
     io,
+    getCursor: () => io.cursor,
+    getText: () => io.getText(),
+    getCell: (row: number, col: number) => io.getCell(row, col),
   }
 }
 
