@@ -266,7 +266,7 @@ function renderedCellCount(buffer: TerminalBuffer, termRows?: number): number {
 function changedRowCount(pool: readonly CellChange[], count: number): number {
   if (count <= 0) return 0
   let rows: Set<number> | null = null
-  let firstRow = pool[0]?.y ?? -1
+  const firstRow = pool[0]?.y ?? -1
   for (let i = 1; i < count; i++) {
     const y = pool[i]!.y
     if (y === firstRow) continue
@@ -1085,8 +1085,9 @@ export function outputPhase(
       const firstMaxOutput =
         termRows != null ? Math.min(firstContentLines, termRows) : firstContentLines
       let firstStartLine = 0
-      if (termRows != null && firstContentLines > termRows)
+      if (termRows != null && firstContentLines > termRows) {
         firstStartLine = firstContentLines - termRows
+      }
 
       // Resize: clear the entire visible screen and re-render.
       // Terminal reflow is unpredictable — lines wrap differently based on content,
@@ -1145,15 +1146,14 @@ export function outputPhase(
       const target = cursorPos
         ? { x: cursorPos.x, y: cursorPos.y, visible: cursorPos.visible, shape: cursorPos.shape }
         : null
-      const expectedTerminal =
-        cursorPos && cursorPos.visible
-          ? {
-              x: cursorPos.x,
-              y: cursorPos.y - firstStartLine,
-              visible: true,
-              shape: cursorPos.shape,
-            }
-          : target
+      const expectedTerminal = cursorPos?.visible
+        ? {
+            x: cursorPos.x,
+            y: cursorPos.y - firstStartLine,
+            visible: true,
+            shape: cursorPos.shape,
+          }
+        : target
       recordOutputCursorDiagnostics({
         reason: "inline-first-render",
         mode,
@@ -1502,7 +1502,7 @@ export function outputPhase(
       checkRenderEmulatorDivergence(
         next,
         {
-          nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+          nonSpaceCells: countNonSpaceInText(divergenceTerm.emulator.getText()),
           backendName: tvState.terminal ? "xterm" : "ghostty",
         },
         tvState.frameCount,
@@ -1857,7 +1857,7 @@ function inlineIncrementalRender(
         checkRenderEmulatorDivergence(
           next,
           {
-            nonSpaceCells: countNonSpaceInText(divergenceTerm.getText()),
+            nonSpaceCells: countNonSpaceInText(divergenceTerm.emulator.getText()),
             backendName: tvState.terminal ? "xterm" : "ghostty",
           },
           tvState.frameCount,

@@ -40,7 +40,15 @@ import {
   type TerminalProfile,
   type TerminalEmulator,
 } from "@silvery/ansi"
-import { createTerminal } from "@termless/core"
+import {
+  createRow,
+  createScreenView,
+  createScrollbackView,
+  emulatorFromBackend,
+  type Cell,
+  type Cursor,
+} from "@termless/core"
+import { micros, type Emulator, type Event as IoEvent, type Micros } from "@termless/core/io"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -643,7 +651,7 @@ function finalizeTerm(
  * const term = createTerm({ cols: 80, rows: 24 })
  *
  * // Terminal emulator (termless) for full ANSI testing
- * using term = createTerm(createXtermBackend(), { cols: 80, rows: 24 })
+ * using term = createTerm(backend, { cols: 80, rows: 24 }) // a termless backend, e.g. from @termless/xtermjs
  * await run(<App />, term)
  * expect(term.screen).toContainText("Hello")
  *
@@ -671,17 +679,7 @@ export function createTerm(
   // Two-arg: createTerm(backend, { cols, rows, caps? }) — raw backend + dims
   if (second && first && isTermBackend(first)) {
     const dims = second as { cols: number; rows: number; caps?: Partial<TerminalCaps> }
-    const createTermlessTerminal = createTerminal as unknown as (opts: {
-      backend: TermEmulatorBackend
-      cols: number
-      rows: number
-    }) => TermEmulator
-    const emulator = createTermlessTerminal({
-      backend: first as TermEmulatorBackend,
-      cols: dims.cols,
-      rows: dims.rows,
-    })
-    return createBackendTerm(emulator, dims.caps)
+    return createBackendTerm(createIoTermEmulator(first as TermEmulatorBackend, dims), dims.caps)
   }
   // Detect terminal emulator (termless Terminal): has feed + screen
   if (first && isTermEmulator(first)) {
@@ -1143,6 +1141,117 @@ function createHeadlessTerm(
 }
 
 /** Create a terminal backed by a termless emulator — real ANSI processing, screen/scrollback. */
+/**
+ * What the io bridge adds beyond the `TermEmulator` duck type: the positioned
+ * reads the Term contract promises on emulator-backed terms, the backend for
+ * the probes that talk to it directly, and the io Emulator itself.
+ */
+interface IoTermEmulatorExtras {
+  /** A screen cell (negative rows count from the bottom), as termless's `Cell`. */
+  cell(row: number, col: number): Cell
+  /** A screen row (negative rows count from the bottom): its text and its cells. */
+  row(n: number): { getText(): string; cell(col: number): Cell }
+  readonly backend: TermEmulatorBackend
+  /** The io Emulator the bridge paints into — termless's picture, not silvery's. */
+  readonly io: Emulator
+  /**
+   * The legacy termless read contract members that downstream suites still
+   * reach through the bridge (census 2026-09-01 over every createTermless
+   * suite: getCursor ×5, getText ×1, getCell ×1 — nothing else). Kept for the
+   * migration window and answered from `io`.
+   * @deprecated REMOVING in unterm phase A4c — read `term.io` (`cursor`, `getText()`, `getCell()`) instead.
+   */
+  getCursor(): Cursor
+  /** @deprecated REMOVING in unterm phase A4c — `term.io.getText()`. */
+  getText(): string
+  /** Absolute buffer row, as the legacy contract read it. @deprecated REMOVING in unterm phase A4c — `term.io.getCell()`. */
+  getCell(row: number, col: number): Cell
+}
+
+/**
+ * The runtime bridge onto termless's io vocabulary (unterm A2).
+ *
+ * silvery owns the backend's lifecycle — `init` here, `destroy` on close —
+ * and speaks to it only through the io `Emulator`: bytes go in as `output`
+ * Events, a resize is a `resize` control Event, and the picture comes back
+ * through termless's own region views over the Emulator. One region
+ * implementation; silvery builds none. The returned object still wears the
+ * `TermEmulator` duck type so `createBackendTerm` and the test harness keep
+ * their shape until unterm A4c deletes the mirrors.
+ */
+function createIoTermEmulator(
+  backend: TermEmulatorBackend,
+  dims: { cols: number; rows: number },
+): TermEmulator & IoTermEmulatorExtras {
+  backend.init({ cols: dims.cols, rows: dims.rows })
+  // The duck type names only the lifecycle; the adapter reads the whole backend contract.
+  const io = emulatorFromBackend(backend as unknown as Parameters<typeof emulatorFromBackend>[0], {
+    cols: dims.cols,
+    rows: dims.rows,
+  })
+  const screen = createScreenView(io)
+  const scrollback = createScrollbackView(io)
+  const encoder = new TextEncoder()
+  const started = performance.now()
+  const now = (): Micros => micros(Math.round((performance.now() - started) * 1000))
+  let closed = false
+  const apply = (event: IoEvent): void => {
+    if (closed) {
+      throw new Error("[silvery] createTerm: write after close() on an emulator-backed Term")
+    }
+    const pending = io.apply(event)
+    if (pending !== undefined) {
+      throw new Error(
+        "[silvery] createTerm: the termless Emulator returned a Promise from apply(); " +
+          "silvery's runtime bridge paints synchronously and would read a stale picture",
+      )
+    }
+  }
+  const screenRowOf = (n: number): number => (n >= 0 ? n : io.size.rows + n)
+  const bridge = {
+    get cols() {
+      return io.size.cols
+    },
+    get rows() {
+      return io.size.rows
+    },
+    screen,
+    scrollback,
+    feed(data: Uint8Array | string) {
+      apply({
+        at: now(),
+        type: "output",
+        data: typeof data === "string" ? encoder.encode(data) : data,
+      })
+    },
+    resize(cols: number, rows: number) {
+      apply({ at: now(), type: "control", control: "resize", size: { cols, rows } })
+    },
+    close(): Promise<void> {
+      if (!closed) {
+        closed = true
+        backend.destroy()
+      }
+      return Promise.resolve()
+    },
+    cell(row: number, col: number) {
+      const screenRow = screenRowOf(row)
+      return createRow(io, io.scrollback + screenRow, screenRow).cellAt(col)
+    },
+    row(n: number) {
+      const screenRow = screenRowOf(n)
+      const view = createRow(io, io.scrollback + screenRow, screenRow)
+      return { getText: () => view.getText(), cell: (col: number) => view.cellAt(col) }
+    },
+    backend,
+    io,
+    getCursor: () => io.cursor,
+    getText: () => io.getText(),
+    getCell: (row: number, col: number) => io.getCell(row, col),
+  }
+  return bridge
+}
+
 function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<TerminalCaps>): Term {
   const { stdout, resizeListeners, updateDims } = createEmulatorStdout(
     (s) => emulator.feed(s),

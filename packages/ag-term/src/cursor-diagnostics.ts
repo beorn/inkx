@@ -1,5 +1,5 @@
 import { isStrictEnabled } from "./strict-mode"
-import { getTermlessCore, getTermlessXterm } from "./strict-terminal-backends"
+import { createStrictEmulator } from "./strict-terminal-backends"
 import { createLogger } from "loggily"
 
 const log = createLogger("silvery:cursor")
@@ -159,32 +159,23 @@ export function clearLastOutputCursorDiagnostics(): void {
   lastOutputCursorDiagnostics = null
 }
 
-function loadTermless(): {
-  createTerminal: typeof import("@termless/core").createTerminal
-  createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
-} {
-  // ESM-graph load (never createRequire) so the cursor replay terminal shares
-  // the single @termless instance — see strict-terminal-backends.ts for the
-  // Ghostty-WASM singleton-split rationale. Preloaded by @silvery/test / run().
-  const core = getTermlessCore()
-  const xtermjs = getTermlessXterm()
-  return { createTerminal: core.createTerminal, createXtermBackend: xtermjs.createXtermBackend }
-}
-
 function replayCursor(output: string, cols: number, rows: number): OutputCursorTerminalState {
-  const { createTerminal, createXtermBackend } = loadTermless()
-  const terminal = createTerminal({ backend: createXtermBackend(), cols, rows })
+  // The replay emulator comes from createStrictEmulator: an ESM-graph load
+  // (never createRequire) so it shares the single @termless instance — see
+  // strict-terminal-backends.ts for the Ghostty-WASM singleton-split rationale.
+  // Preloaded by @silvery/test / run().
+  const strict = createStrictEmulator("xterm", { cols, rows })
   try {
-    terminal.feed(output)
-    const cursor = terminal.getCursor()
+    strict.feed(output)
+    const cursor = strict.emulator.cursor
     return {
-      x: cursor.x,
-      y: cursor.y,
+      x: cursor.col,
+      y: cursor.row,
       visible: cursor.visible,
       style: cursor.style,
     }
   } finally {
-    void terminal.close()
+    strict.close()
   }
 }
 
