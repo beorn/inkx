@@ -48,7 +48,13 @@ import {
   type Cell,
   type Cursor,
 } from "@termless/core"
-import { micros, type Emulator, type Event as IoEvent, type Micros } from "@termless/core/io"
+import {
+  micros,
+  type Emulator,
+  type Event as IoEvent,
+  type Micros,
+  type Mode,
+} from "@termless/core/io"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -610,15 +616,19 @@ function finalizeTerm(
   Object.defineProperty(termBase, "frame", { get: frame.get, enumerable: true })
   if (opts?.defineProperties) Object.defineProperties(termBase, opts.defineProperties)
   if (opts?.delegateFrom) {
-    for (const key of Object.keys(opts.delegateFrom)) {
+    const delegate = opts.delegateFrom as Record<string, unknown>
+    for (const key of Object.keys(delegate)) {
       if (key in termBase) continue
-      const val = (opts.delegateFrom as any)[key]
+      const value = delegate[key]
       Object.defineProperty(
         termBase,
         key,
-        typeof val === "function"
-          ? { value: (...args: unknown[]) => (opts.delegateFrom as any)[key](...args) }
-          : { get: () => (opts.delegateFrom as any)[key] },
+        typeof value === "function"
+          ? {
+              value: (...args: unknown[]): unknown =>
+                Reflect.apply(value, delegate, args) as unknown,
+            }
+          : { get: () => delegate[key] },
       )
     }
   }
@@ -864,7 +874,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
   // be dropped. Pro-review finding, 2026-04-22.
   const ownedWrite = (s: string): boolean => {
     const out = _output
-    if (out && out.active()) return out.write(s)
+    if (out?.active()) return out.write(s)
     return stdout.write(s)
   }
   const notificationWrite =
@@ -1166,6 +1176,8 @@ interface IoTermEmulatorExtras {
   getText(): string
   /** Absolute buffer row, as the legacy contract read it. @deprecated REMOVING in unterm phase A4c — `term.io.getCell()`. */
   getCell(row: number, col: number): Cell
+  /** @deprecated REMOVING in unterm phase A4c — `term.io.modes[mode]`. */
+  getMode(mode: Mode): boolean
 }
 
 /**
@@ -1248,6 +1260,7 @@ function createIoTermEmulator(
     getCursor: () => io.cursor,
     getText: () => io.getText(),
     getCell: (row: number, col: number) => io.getCell(row, col),
+    getMode: (mode: Mode) => io.modes[mode],
   }
   return bridge
 }
