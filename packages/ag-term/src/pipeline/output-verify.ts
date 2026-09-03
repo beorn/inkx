@@ -12,7 +12,7 @@
 
 import type { TerminalBuffer } from "../buffer"
 import { IncrementalRenderMismatchError } from "../errors"
-import { getTermlessCore, getTermlessGhostty, getTermlessXterm } from "../strict-terminal-backends"
+import { createStrictEmulator, type StrictEmulator } from "../strict-terminal-backends"
 import { graphemeWidth, isTextPresentationEmoji } from "../unicode"
 import { createLogger } from "loggily"
 import type { OutputContext } from "./output-phase"
@@ -48,7 +48,8 @@ export interface AccumulateState {
   accumulateFrameCount: number
 }
 
-type VerificationTerminal = ReturnType<typeof import("@termless/core").createTerminal>
+/** A verifier emulator: the io `Emulator` plus its backend's lifecycle (unterm A2). */
+type VerificationTerminal = StrictEmulator
 
 /** Per-instance state for SILVERY_STRICT_TERMINAL verification.
  *  Holds persistent terminal(s) that accumulate incremental ANSI output
@@ -1076,18 +1077,22 @@ export function verifyOutputEquivalence(
 
       // Check styles
       const diffs: string[] = []
-      if (!sgrColorEquals(incr.fg, fresh.fg))
+      if (!sgrColorEquals(incr.fg, fresh.fg)) {
         diffs.push(`fg: ${formatColor(incr.fg)} vs ${formatColor(fresh.fg)}`)
-      if (!sgrColorEquals(incr.bg, fresh.bg))
+      }
+      if (!sgrColorEquals(incr.bg, fresh.bg)) {
         diffs.push(`bg: ${formatColor(incr.bg)} vs ${formatColor(fresh.bg)}`)
+      }
       if (incr.bold !== fresh.bold) diffs.push(`bold: ${incr.bold} vs ${fresh.bold}`)
       if (incr.dim !== fresh.dim) diffs.push(`dim: ${incr.dim} vs ${fresh.dim}`)
       if (incr.italic !== fresh.italic) diffs.push(`italic: ${incr.italic} vs ${fresh.italic}`)
-      if (incr.underline !== fresh.underline)
+      if (incr.underline !== fresh.underline) {
         diffs.push(`underline: ${incr.underline} vs ${fresh.underline}`)
+      }
       if (incr.inverse !== fresh.inverse) diffs.push(`inverse: ${incr.inverse} vs ${fresh.inverse}`)
-      if (incr.strikethrough !== fresh.strikethrough)
+      if (incr.strikethrough !== fresh.strikethrough) {
         diffs.push(`strikethrough: ${incr.strikethrough} vs ${fresh.strikethrough}`)
+      }
 
       if (diffs.length > 0) {
         const msg =
@@ -1158,19 +1163,24 @@ export function verifyAccumulatedOutput(
       }
 
       const diffs: string[] = []
-      if (!sgrColorEquals(accum.fg, fresh.fg))
+      if (!sgrColorEquals(accum.fg, fresh.fg)) {
         diffs.push(`fg: ${formatColor(accum.fg)} vs ${formatColor(fresh.fg)}`)
-      if (!sgrColorEquals(accum.bg, fresh.bg))
+      }
+      if (!sgrColorEquals(accum.bg, fresh.bg)) {
         diffs.push(`bg: ${formatColor(accum.bg)} vs ${formatColor(fresh.bg)}`)
+      }
       if (accum.bold !== fresh.bold) diffs.push(`bold: ${accum.bold} vs ${fresh.bold}`)
       if (accum.dim !== fresh.dim) diffs.push(`dim: ${accum.dim} vs ${fresh.dim}`)
       if (accum.italic !== fresh.italic) diffs.push(`italic: ${accum.italic} vs ${fresh.italic}`)
-      if (accum.underline !== fresh.underline)
+      if (accum.underline !== fresh.underline) {
         diffs.push(`underline: ${accum.underline} vs ${fresh.underline}`)
-      if (accum.inverse !== fresh.inverse)
+      }
+      if (accum.inverse !== fresh.inverse) {
         diffs.push(`inverse: ${accum.inverse} vs ${fresh.inverse}`)
-      if (accum.strikethrough !== fresh.strikethrough)
+      }
+      if (accum.strikethrough !== fresh.strikethrough) {
         diffs.push(`strikethrough: ${accum.strikethrough} vs ${fresh.strikethrough}`)
+      }
 
       if (diffs.length > 0) {
         const msg =
@@ -1196,26 +1206,14 @@ export function verifyAccumulatedOutput(
 // SILVERY_STRICT_TERMINAL: Independent xterm.js emulator verification
 // =============================================================================
 
-function loadTermless(): {
-  createTerminal: typeof import("@termless/core").createTerminal
-  createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
-} {
-  // ESM-graph load (never createRequire) so this verifier shares the single
-  // @termless instance with createTermless / createGhosttyBackend / the tests'
-  // own imports — the 2026-07-02 Ghostty-WASM singleton-split fix. Preloaded by
-  // @silvery/test's top-level await / run()'s setup; see strict-terminal-backends.ts.
-  const core = getTermlessCore()
-  const xtermjs = getTermlessXterm()
-  return { createTerminal: core.createTerminal, createXtermBackend: xtermjs.createXtermBackend }
-}
-
-function loadGhosttyBackend(): typeof import("@termless/ghostty").createGhosttyBackend {
-  // WASM readiness (initGhostty) is a PRELOAD precondition — the ghostty tests
-  // await initGhostty() in setup and the live run() path preloads with WASM, so
-  // by the time this synchronous mid-frame call runs the shared sharedGhostty is
-  // populated. No fire-and-forget init here (that was the null-WASM race window).
-  return getTermlessGhostty().createGhosttyBackend
-}
+// The emulators come from `createStrictEmulator` (strict-terminal-backends.ts):
+// an ESM-graph load (never createRequire) so this verifier shares the single
+// @termless instance with createTermless / the tests' own imports — the
+// 2026-07-02 Ghostty-WASM singleton-split fix — and Ghostty's WASM readiness is
+// a PRELOAD precondition (the ghostty tests await initGhostty() in setup; the
+// live run() path preloads with WASM), so these synchronous mid-frame calls
+// never race a null WASM. Preloaded by @silvery/test's top-level await /
+// run()'s setup.
 
 /**
  * Initialize the terminal verify state: create persistent terminal emulators
@@ -1227,24 +1225,21 @@ export function initTerminalVerifyState(
   height: number,
   initialAnsi: string,
 ): void {
-  // Close any existing terminals from a previous run
-  if (state.terminal) void state.terminal.close()
-  if (state.ghosttyTerminal) void state.ghosttyTerminal.close()
+  // Close any existing emulators from a previous run
+  if (state.terminal) state.terminal.close()
+  if (state.ghosttyTerminal) state.ghosttyTerminal.close()
 
-  // Create xterm.js terminal if requested
+  // Create the xterm.js emulator if requested
   if (state.backends.includes("xterm")) {
-    const { createTerminal, createXtermBackend } = loadTermless()
-    state.terminal = createTerminal({ backend: createXtermBackend(), cols: width, rows: height })
+    state.terminal = createStrictEmulator("xterm", { cols: width, rows: height })
     state.terminal.feed(initialAnsi)
   } else {
     state.terminal = null
   }
 
-  // Create Ghostty terminal if requested
+  // Create the Ghostty emulator if requested
   if (state.backends.includes("ghostty")) {
-    const { createTerminal } = loadTermless()
-    const createGhostty = loadGhosttyBackend()
-    state.ghosttyTerminal = createTerminal({ backend: createGhostty(), cols: width, rows: height })
+    state.ghosttyTerminal = createStrictEmulator("ghostty", { cols: width, rows: height })
     state.ghosttyTerminal.feed(initialAnsi)
   } else {
     state.ghosttyTerminal = null
@@ -1288,15 +1283,10 @@ export function verifyTerminalEquivalence(
   // Verify xterm.js terminal
   if (state.terminal) {
     state.terminal.feed(incrOutput)
-    const { createTerminal, createXtermBackend } = loadTermless()
-    const freshTerm = createTerminal({
-      backend: createXtermBackend(),
-      cols: state.width,
-      rows: state.height,
-    })
+    const freshTerm = createStrictEmulator("xterm", { cols: state.width, rows: state.height })
     freshTerm.feed(freshAnsi)
     try {
-      compareTerminals(state.terminal, freshTerm, state, "xterm")
+      compareTerminals(state.terminal.emulator, freshTerm.emulator, state, "xterm")
     } catch (e) {
       if (e instanceof IncrementalRenderMismatchError) {
         const dir = captureStrictFailureArtifacts({
@@ -1313,23 +1303,17 @@ export function verifyTerminalEquivalence(
       }
       throw e
     } finally {
-      void freshTerm.close()
+      freshTerm.close()
     }
   }
 
   // Verify Ghostty terminal
   if (state.ghosttyTerminal) {
     state.ghosttyTerminal.feed(incrOutput)
-    const { createTerminal } = loadTermless()
-    const createGhostty = loadGhosttyBackend()
-    const freshTerm = createTerminal({
-      backend: createGhostty(),
-      cols: state.width,
-      rows: state.height,
-    })
+    const freshTerm = createStrictEmulator("ghostty", { cols: state.width, rows: state.height })
     freshTerm.feed(freshAnsi)
     try {
-      compareTerminals(state.ghosttyTerminal, freshTerm, state, "ghostty")
+      compareTerminals(state.ghosttyTerminal.emulator, freshTerm.emulator, state, "ghostty")
     } catch (e) {
       if (e instanceof IncrementalRenderMismatchError) {
         const dir = captureStrictFailureArtifacts({
@@ -1346,15 +1330,15 @@ export function verifyTerminalEquivalence(
       }
       throw e
     } finally {
-      void freshTerm.close()
+      freshTerm.close()
     }
   }
 }
 
 /** Compare two terminal states cell-by-cell. Throws IncrementalRenderMismatchError on divergence. */
 function compareTerminals(
-  incrTerm: import("@termless/core").Terminal,
-  freshTerm: import("@termless/core").Terminal,
+  incrTerm: import("@termless/core/io").Emulator,
+  freshTerm: import("@termless/core/io").Emulator,
   state: TerminalVerifyState,
   backendName: string,
 ): void {
@@ -1403,15 +1387,19 @@ function compareTerminals(
       }
 
       const attrDiffs: string[] = []
-      if (incrCell.bold !== freshCell.bold)
+      if (incrCell.bold !== freshCell.bold) {
         attrDiffs.push(`bold: ${incrCell.bold} vs ${freshCell.bold}`)
+      }
       if (incrCell.dim !== freshCell.dim) attrDiffs.push(`dim: ${incrCell.dim} vs ${freshCell.dim}`)
-      if (incrCell.italic !== freshCell.italic)
+      if (incrCell.italic !== freshCell.italic) {
         attrDiffs.push(`italic: ${incrCell.italic} vs ${freshCell.italic}`)
-      if (incrCell.inverse !== freshCell.inverse)
+      }
+      if (incrCell.inverse !== freshCell.inverse) {
         attrDiffs.push(`inverse: ${incrCell.inverse} vs ${freshCell.inverse}`)
-      if (incrCell.strikethrough !== freshCell.strikethrough)
+      }
+      if (incrCell.strikethrough !== freshCell.strikethrough) {
         attrDiffs.push(`strikethrough: ${incrCell.strikethrough} vs ${freshCell.strikethrough}`)
+      }
 
       if (attrDiffs.length > 0) {
         const msg =
