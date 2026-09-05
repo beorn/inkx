@@ -515,9 +515,11 @@ function DocumentBlocks({
                 marginBottom={1}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
-                <CodeBlock color={selected ? "$fg-on-selected" : undefined}>
-                  {block.content}
-                </CodeBlock>
+                <Box flexGrow={1} minWidth={0} marginX={-2}>
+                  <CodeBlock color={selected ? "$fg-on-selected" : undefined}>
+                    {block.content}
+                  </CodeBlock>
+                </Box>
               </BlockFrame>
             )
           case "table":

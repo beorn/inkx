@@ -427,14 +427,14 @@ describe("Block elements", () => {
     ).toThrow(/requires interactionSurface/u)
   })
 
-  test("Blockquote renders with a hairline left rail", () => {
+  test("Blockquote is inset two cells without a rail", () => {
     const app = render(<Blockquote>Quoted text</Blockquote>)
-    expect(app.text).toContain("▏")
+    expect(app.text).not.toContain("▏")
     expect(app.text).not.toContain("│")
-    expect(app.text).toContain("Quoted text")
+    expect(app.lines[0]).toMatch(/^  Quoted text/)
   })
 
-  test("Blockquote rail spans wrapped rows with balanced prose insets", () => {
+  test("Blockquote preserves its two-cell inset on wrapped rows", () => {
     const narrow = createRenderer({ cols: 32, rows: 10 })
     const app = narrow(
       <Box width={32}>
@@ -447,15 +447,15 @@ describe("Block elements", () => {
 
     expect(rows.length).toBeGreaterThan(1)
     for (const { line } of rows) {
-      expect(line[2]).toBe("▏")
-      expect(line[3]).toBe(" ")
-      expect(line.slice(28).trim()).toBe("")
+      expect(line.slice(0, 2)).toBe("  ")
+      expect(line[2]).toMatch(/\S/)
+      expect(line).not.toMatch(/[▏│]/)
     }
   })
 
   test("Blockquote content is italic", () => {
     const app = render(<Blockquote>Quote</Blockquote>)
-    // Find the 'Q' in "Quote" — after "│ " (2 chars)
+    // Find the first quoted character after the two-cell inset.
     const buffer = app.term.buffer
     let quoteCol = -1
     for (let x = 0; x < 80; x++) {
@@ -468,42 +468,50 @@ describe("Block elements", () => {
     expect(buffer.getCell(quoteCol, 0).attrs.italic).toBe(true)
   })
 
-  test("Blockquote rail uses $fg-faint below the $fg-muted body", () => {
+  test("Blockquote uses the muted foreground", () => {
     const localRender = createRenderer({ cols: 80, rows: 4 })
     const app = localRender(<Blockquote>Text</Blockquote>)
-    const faint = createRenderer({ cols: 4, rows: 2 })(<Text color="$fg-faint">x</Text>)
     const muted = createRenderer({ cols: 4, rows: 2 })(<Text color="$fg-muted">x</Text>)
     const buffer = app.term.buffer
-    let barCol = -1
-    for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "▏") {
-        barCol = x
-        break
-      }
-    }
-    expect(barCol).toBeGreaterThanOrEqual(0)
-    expect(buffer.getCell(barCol, 0).fg).toEqual(faint.term.buffer.getCell(0, 0).fg)
-    expect(buffer.getCell(barCol + 2, 0).fg).toEqual(muted.term.buffer.getCell(0, 0).fg)
+    expect(buffer.getCell(2, 0).char).toBe("T")
+    expect(buffer.getCell(2, 0).fg).toEqual(muted.term.buffer.getCell(0, 0).fg)
   })
 
-  test("CodeBlock renders with a structural hairline rail", () => {
-    const app = render(<CodeBlock>const x = 1</CodeBlock>)
-    expect(app.text).toContain("▏")
+  test("CodeBlock frames code with two-cell sides and one-row padding", () => {
+    const app = render(
+      <Box width={30} flexDirection="column">
+        <Box paddingX={2}>
+          <Text>Prose</Text>
+        </Box>
+        <CodeBlock>{"const x = 1\nnext line"}</CodeBlock>
+      </Box>,
+    )
+    const subtle = createRenderer({ cols: 1, rows: 1 })(
+      <Box backgroundColor="$bg-surface-subtle">
+        <Text>x</Text>
+      </Box>,
+    )
+    const bg = subtle.cell(0, 0).bg
+    expect(bg).not.toBeNull()
+    expect(app.text).not.toMatch(/[▏│]/)
     expect(app.text).toContain("const x = 1")
+    expect(app.lines[2]?.indexOf("const")).toBe(app.lines[0]?.indexOf("Prose"))
+    for (const row of [1, 2, 3, 4]) {
+      for (let col = 0; col < 30; col++) {
+        expect(app.cell(col, row).bg).toEqual(bg)
+      }
+      expect(app.cell(30, row).bg).not.toEqual(bg)
+    }
+    expect(app.lines[1]?.trim()).toBe("")
+    expect(app.lines[4]?.trim()).toBe("")
+    expect(app.cell(2, 2).italic).toBe(false)
   })
 
   test("CodeBlock content is not italic", () => {
     const app = render(<CodeBlock>code</CodeBlock>)
-    const buffer = app.term.buffer
-    let codeCol = -1
-    for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "c") {
-        codeCol = x
-        break
-      }
-    }
-    expect(codeCol).toBeGreaterThan(0)
-    expect(buffer.getCell(codeCol, 0).attrs.italic).toBeFalsy()
+    const row = app.lines.findIndex((line) => line.includes("code"))
+    expect(row).toBe(1)
+    expect(app.cell(app.lines[row]!.indexOf("code"), row).italic).toBe(false)
   })
 
   // Tracking: @km/silvery/15087-markdown-code-block-char-wrap-default.
@@ -513,7 +521,7 @@ describe("Block elements", () => {
   // default for fenced code.
   test("CodeBlock defaults to wrap='hard' (long identifier wraps mid-token)", () => {
     const longId = "getPolygonIntervalForBandWithFloatingPointPrecision"
-    // 20-wide container — the rail + padding leaves ~18 cols for body.
+    // The frame shares the 20-column measure with its padding.
     const app = render(
       <Box width={20}>
         <CodeBlock>{longId}</CodeBlock>
@@ -526,68 +534,42 @@ describe("Block elements", () => {
     // The identifier is 51 chars — must span multiple rendered rows.
     const linesWithContent = app.text.split("\n").filter((l) => l.trim().length > 0).length
     expect(linesWithContent).toBeGreaterThan(1)
-    expect(
-      app.text
-        .split("\n")
-        .filter((line) => /[A-Za-z]/.test(line))
-        .every((line) => line.includes("▏")),
-    ).toBe(true)
+    expect(app.text).not.toMatch(/[▏│]/)
     // Hard-wrap doesn't insert ellipsis — fully visible content.
     expect(app.text).not.toContain("…")
     // All identifier characters preserved on screen.
-    const joined = app.text.replace(/[▏\s]/g, "")
-    for (const ch of "abcdefghijklmnopqrstuvwxyz") {
-      if (longId.includes(ch)) {
-        expect(joined, `char '${ch}' missing from rendered output`).toContain(ch)
-      }
-    }
+    expect(app.text.replace(/\s/g, "")).toBe(longId)
   })
 
-  test("CodeBlock short content stays on one line", () => {
-    const app = render(<CodeBlock>{"const x = 1"}</CodeBlock>)
+  test("CodeBlock short content stays on one line without growing vertically", () => {
+    const app = render(
+      <Box height={12} flexDirection="column">
+        <CodeBlock>{"const x = 1"}</CodeBlock>
+        <Text>After</Text>
+      </Box>,
+    )
     // Single-line content should not wrap.
     const linesWithContent = app.text.split("\n").filter((l) => l.includes("const")).length
     expect(linesWithContent).toBe(1)
+    expect(app.lines.findIndex((line) => line.includes("After"))).toBe(3)
   })
 
-  test("CodeBlock rail uses $border-default color", () => {
-    const app = render(<CodeBlock>x</CodeBlock>)
-    const buffer = app.term.buffer
-    let barCol = -1
-    for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "▏") {
-        barCol = x
-        break
-      }
-    }
-    expect(barCol).toBeGreaterThanOrEqual(0)
-    // $border-default resolves to a color
-    expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
+  test("CodeBlock honors caller foreground", () => {
+    const expected = createRenderer({ cols: 1, rows: 1 })(<Text color="$fg-error">x</Text>)
+    const app = render(<CodeBlock color="$fg-error">x</CodeBlock>)
+    expect(app.cell(2, 1).fg).toEqual(expected.cell(0, 0).fg)
   })
 
-  test("Blockquote hairline and CodeBlock rail have different colors", () => {
-    const app1 = render(<Blockquote>a</Blockquote>)
-    const buf1 = app1.term.buffer
-    let bqBarFg = null
-    for (let x = 0; x < 80; x++) {
-      if (buf1.getCell(x, 0).char === "▏") {
-        bqBarFg = buf1.getCell(x, 0).fg
-        break
-      }
-    }
-
-    const app2 = render(<CodeBlock>a</CodeBlock>)
-    const buf2 = app2.term.buffer
-    let cbBarFg = null
-    for (let x = 0; x < 80; x++) {
-      if (buf2.getCell(x, 0).char === "│") {
-        cbBarFg = buf2.getCell(x, 0).fg
-        break
-      }
-    }
-
-    // $fg-muted and $border-default should be different colors
-    expect(bqBarFg).not.toEqual(cbBarFg)
+  test("the code surface does not paint adjacent quote or prose rows", () => {
+    const app = render(
+      <Box flexDirection="column" width={30} paddingX={2}>
+        <Blockquote>Quote</Blockquote>
+        <CodeBlock>code</CodeBlock>
+        <Text>After</Text>
+      </Box>,
+    )
+    expect(app.cell(4, 0).bg).toEqual(app.cell(2, 4).bg)
+    expect(app.cell(2, 2).bg).not.toEqual(app.cell(2, 4).bg)
   })
 })
 

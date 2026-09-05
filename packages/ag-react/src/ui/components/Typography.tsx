@@ -281,20 +281,21 @@ export function DecoratedRegion({
   )
 }
 
-/** Blockquote — an inset structural hairline around italic muted prose. */
+/** Blockquote — italic muted prose inset two cells, without structural chrome. */
 export function Blockquote({ children, color }: TypographyProps) {
   const muted = color ?? "$fg-muted"
   return (
-    <DecoratedRegion marginLeft={2} marginRight={4} railColor="$fg-faint">
+    <Box marginLeft={2} minWidth={0}>
       <Text color={muted} italic wrap="wrap">
         {children}
       </Text>
-    </DecoratedRegion>
+    </Box>
   )
 }
 
 /**
- * Code block — │ border in `$border-default` + monospace content.
+ * Code block — subtle surface with two-cell sides and one-row vertical padding.
+ * Document layouts can outdent this surface to align its code with prose.
  * Distinct from Blockquote. Body Text defaults to `wrap="hard"` (CSS
  * `word-break: break-all`): long code lines wrap mid-identifier at
  * the column boundary rather than spilling off the right edge. Code
@@ -303,9 +304,18 @@ export function Blockquote({ children, color }: TypographyProps) {
  */
 export function CodeBlock({ children, color }: TypographyProps) {
   return (
-    <DecoratedRegion railColor={color ?? "$border-default"}>
-      <Text wrap="hard">{children}</Text>
-    </DecoratedRegion>
+    <Box
+      flexDirection="column"
+      width="100%"
+      minWidth={0}
+      paddingX={2}
+      paddingY={1}
+      backgroundColor="$bg-surface-subtle"
+    >
+      <Text color={color} wrap="hard">
+        {children}
+      </Text>
+    </Box>
   )
 }
 

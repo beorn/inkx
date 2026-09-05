@@ -37,7 +37,7 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<Small>`              | `$fg-muted` (pre-dimmed at truecolor)                                      |
 | `<Lead>`               | `italic` text                                                              |
 | `<Code>`               | `$fg-info`, no background chip or padding                                  |
-| `<Blockquote>`         | `$fg-faint` hairline rail + `$fg-muted` italic body                        |
+| `<Blockquote>`         | `$fg-muted` italic body, inset two cells without a rail                    |
 | `<P>`                  | body text (semantic wrapper)                                               |
 | `<LI>`                 | `•` bullet + indented content                                              |
 
@@ -164,7 +164,7 @@ import { H1, H2, H3, Muted, Small, Lead, Code, Blockquote, P, LI } from "silvery
 <Small>Last updated 2 hours ago</Small> // $fg-muted (pre-dimmed)
 <Lead>Welcome to the app</Lead>       // italic
 <Code>npm install silvery</Code>      // $fg-info, no background chip
-<Blockquote>Less is more.</Blockquote> // ▏ hairline rail + italic
+<Blockquote>Less is more.</Blockquote> // two-cell inset + muted italic
 <LI>First item</LI>                   // • bullet
 <LI>Second item</LI>
 ```

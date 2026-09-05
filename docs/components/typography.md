@@ -76,13 +76,18 @@ import {
 | ------------- | ------------------------------ | ----------------------- |
 | `<Code>`      | `$fg-info`, no chip or padding | Inline code             |
 | `<Kbd>`       | `$bg-muted` + bold             | Keyboard shortcut badge |
-| `<CodeBlock>` | `$border-default` left border  | Multi-line code block   |
+| `<CodeBlock>` | `$bg-surface-subtle` padded surface | Multi-line code block   |
 
 ```tsx
 <Code>npm install silvery</Code>      // inline code
 <Kbd>Ctrl+C</Kbd>                      // keyboard shortcut
 <CodeBlock>{"const x = 1\nconst y = 2"}</CodeBlock>
 ```
+
+`<CodeBlock>` has two cells of horizontal padding and one blank row above and
+below its content, with no border. It fills the available width without growing
+vertically. `DocumentView` outdents the surface two cells into its gutters so
+code text aligns with prose; the generic component does not assume those gutters.
 
 Inline code and links may share a blue-family hue, but they remain distinct by
 decoration: links use a dotted underline while code does not. This survives
@@ -94,7 +99,7 @@ on two nearby shades. An explicit `color` on `<Code>` still overrides
 
 | Component      | Default Style                                            | Use For         |
 | -------------- | -------------------------------------------------------- | --------------- |
-| `<Blockquote>` | `$fg-muted` italic body + `$fg-faint` hairline left rail | Quotations      |
+| `<Blockquote>` | `$fg-muted` italic body, inset two cells | Quotations      |
 | `<HR>`         | `$border-default` dashes                                 | Horizontal rule |
 
 ```tsx
@@ -102,10 +107,8 @@ on two nearby shades. An explicit `color` on `<Code>` still overrides
 <HR />
 ```
 
-`<Blockquote>` uses a structural Box border (`▏` on terminal targets), not a
-text prefix. The border therefore continues across wrapped and nested content.
-Its two-column left margin, one-column body gap, and four-column right margin
-keep quoted prose inset on both sides of its surrounding measure.
+`<Blockquote>` has a two-cell left inset and no border or text prefix. Wrapped
+rows keep the same inset, muted foreground, and italic styling.
 
 ## Lists
 
