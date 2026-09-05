@@ -538,9 +538,11 @@ export interface TermlessClipboard {
  * Everything silvery wrote to the emulator, as the harness recorded it: a log
  * of termless io `output` Events (unterm A2). `getChunks()` and `getText()`
  * are decodes over that log for the migration window; the Events are the
- * record.
+ * record. The shape is the harness's own (unterm A2, `@cto` b9cd4ee7 Q3), not
+ * a mirror of any termless type, which is why it is not an A4c deletion
+ * target (`@cto` 1f1b679d, 24172).
  */
-export interface TermlessOutput {
+export interface OutputLog {
   /** The recorded `output` Events, oldest first. */
   readonly events: readonly OutputEvent[]
   getText(): string
@@ -548,6 +550,9 @@ export interface TermlessOutput {
   containsOutput(text: string): boolean
   clear(): void
 }
+
+/** @deprecated Renamed `OutputLog` (unterm A2 remainder, 24172); the alias goes with A4c's mirror deletion. */
+export type TermlessOutput = OutputLog
 
 export interface TermlessReflowResidue {
   /** Visible marker injected by the residue simulator when an app repaints without ED2. */
@@ -576,7 +581,7 @@ export interface TermlessReflowResidue {
 export interface TermlessTerm extends Term {
   readonly mouse: TermlessMouse
   readonly clipboard: TermlessClipboard
-  readonly out: TermlessOutput
+  readonly out: OutputLog
   readonly reflowResidue?: TermlessReflowResidue
   readonly screen: NonNullable<Term["screen"]>
   readonly scrollback: NonNullable<Term["scrollback"]>
@@ -804,7 +809,7 @@ export function createTermless(
   const outputStarted = performance.now()
   const outputEncoder = new TextEncoder()
   const outputDecoder = new TextDecoder()
-  const out: TermlessOutput = {
+  const out: OutputLog = {
     get events() {
       return outputEvents
     },
