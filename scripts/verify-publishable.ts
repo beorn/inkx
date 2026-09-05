@@ -297,9 +297,7 @@ async function publishToVerdaccio(prepared: PreparedPkg, npmrc: string) {
   if (result.error) {
     // Spawn never happened (ENOENT and friends): stdout/stderr are null, so
     // printing them tells the reader nothing. Name the real failure.
-    fail(
-      `could not run \`pnpm publish\` for ${entry.name} in ${dir}: ${result.error.message}`,
-    )
+    fail(`could not run \`pnpm publish\` for ${entry.name} in ${dir}: ${result.error.message}`)
   }
   if (result.status !== 0) {
     console.error(`\n[verdaccio publish] ${entry.name} stdout:\n${result.stdout}`)
@@ -462,7 +460,11 @@ const REQUIRED_TOOLS: ReadonlyArray<{ bin: string; neededFor: string; install: s
   { bin: "bun", neededFor: "build:all", install: "https://bun.sh" },
   { bin: "npm", neededFor: "pack-size gate and the import probes", install: "ships with Node.js" },
   { bin: "node", neededFor: "import probes", install: "https://nodejs.org (>=24)" },
-  { bin: "pnpm", neededFor: "publishing to the local verdaccio registry", install: "corepack enable pnpm" },
+  {
+    bin: "pnpm",
+    neededFor: "publishing to the local verdaccio registry",
+    install: "corepack enable pnpm",
+  },
 ]
 
 function requireExternalTools() {
