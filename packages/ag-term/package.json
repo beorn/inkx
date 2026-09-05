@@ -380,9 +380,9 @@
     "@silvery/signals": "0.24.0",
     "@silvery/test": "0.24.0",
     "@silvery/theme": "0.24.0",
-    "@termless/core": ">=0.8.1 <1.0.0",
-    "@termless/ghostty": ">=0.8.2 <1.0.0",
-    "@termless/xtermjs": ">=0.8.1 <1.0.0",
+    "@termless/core": ">=0.9.1 <1.0.0",
+    "@termless/ghostty": ">=0.9.1 <1.0.0",
+    "@termless/xtermjs": ">=0.9.1 <1.0.0",
     "flexily": "0.7.1",
     "loggily": "^0.10.0"
   },

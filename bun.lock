@@ -8,7 +8,7 @@
         "@chenglou/pretext": "^0.0.8",
         "@silvery/color": "0.24.0",
         "@silvery/commander": "0.24.0",
-        "@termless/core": ">=0.8.1 <1.0.0",
+        "@termless/core": ">=0.9.1 <1.0.0",
         "css-select": "^7.0.0",
         "css-what": "^8.0.0",
         "flexily": "0.7.3",
@@ -24,10 +24,10 @@
         "@silvery/ag-term": "0.24.0",
         "@silvery/ansi": "0.24.0",
         "@silvery/theme": "0.24.0",
-        "@termless/ghostty": ">=0.8.2 <1.0.0",
-        "@termless/ghostty-native": ">=0.8.1 <1.0.0",
-        "@termless/test": ">=0.8.1 <1.0.0",
-        "@termless/xtermjs": ">=0.8.1 <1.0.0",
+        "@termless/ghostty": ">=0.9.1 <1.0.0",
+        "@termless/ghostty-native": ">=0.9.1 <1.0.0",
+        "@termless/test": ">=0.9.1 <1.0.0",
+        "@termless/xtermjs": ">=0.9.1 <1.0.0",
         "@types/bun": "^1.1.0",
         "@types/react": "^19.0.0",
         "@vue/server-renderer": "^3.5.31",
@@ -63,10 +63,10 @@
         "yoga-wasm-web": "^0.3.3",
       },
       "peerDependencies": {
-        "@termless/ghostty": ">=0.8.2 <1.0.0",
-        "@termless/ghostty-native": ">=0.8.1 <1.0.0",
-        "@termless/test": ">=0.8.1 <1.0.0",
-        "@termless/xtermjs": ">=0.8.1 <1.0.0",
+        "@termless/ghostty": ">=0.9.1 <1.0.0",
+        "@termless/ghostty-native": ">=0.9.1 <1.0.0",
+        "@termless/test": ">=0.9.1 <1.0.0",
+        "@termless/xtermjs": ">=0.9.1 <1.0.0",
         "playwright": ">=1.40.0",
         "react": "^18.0.0 || ^19.0.0",
       },
@@ -127,9 +127,9 @@
         "@silvery/signals": "0.24.0",
         "@silvery/test": "0.24.0",
         "@silvery/theme": "0.24.0",
-        "@termless/core": ">=0.8.1 <1.0.0",
-        "@termless/ghostty": ">=0.8.2 <1.0.0",
-        "@termless/xtermjs": ">=0.8.1 <1.0.0",
+        "@termless/core": ">=0.9.1 <1.0.0",
+        "@termless/ghostty": ">=0.9.1 <1.0.0",
+        "@termless/xtermjs": ">=0.9.1 <1.0.0",
         "flexily": "0.7.1",
         "loggily": "^0.10.0",
       },
@@ -272,10 +272,10 @@
         "@silvery/ag-react": "0.24.0",
         "@silvery/ag-term": "0.24.0",
         "@silvery/create": "0.24.0",
-        "@termless/core": ">=0.8.1 <1.0.0",
-        "@termless/ghostty": ">=0.8.2 <1.0.0",
-        "@termless/ghostty-native": ">=0.8.1 <1.0.0",
-        "@termless/xtermjs": ">=0.8.1 <1.0.0",
+        "@termless/core": ">=0.9.1 <1.0.0",
+        "@termless/ghostty": ">=0.9.1 <1.0.0",
+        "@termless/ghostty-native": ">=0.9.1 <1.0.0",
+        "@termless/xtermjs": ">=0.9.1 <1.0.0",
       },
     },
     "packages/theme": {
@@ -716,15 +716,15 @@
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
-    "@termless/core": ["@termless/core@0.8.1", "", { "optionalDependencies": { "@napi-rs/canvas": "^1.0.0", "@resvg/resvg-js": "^2.6.2", "@twemoji/svg": "^15.0.0", "ghostty-web": "^0.4.0", "gifenc": "^1.0.3", "playwright": "^1.59.0", "upng-js": "^2.1.0" }, "peerDependencies": { "node-pty": ">=1.0.0" }, "optionalPeers": ["node-pty"] }, "sha512-iUzbvxleaK1qYELygTv5+s0ntyeigqxA2jUqnMvwHGXFErFbGHHjzs5K/tOoeFhGj/toyJ69hTYiHA0HGsRqzQ=="],
+    "@termless/core": ["@termless/core@0.9.1", "", { "optionalDependencies": { "@napi-rs/canvas": "^1.0.2", "@resvg/resvg-js": "^2.6.2", "@twemoji/svg": "^15.0.0", "ghostty-web": "^0.4.0", "gifenc": "^1.0.3", "playwright": "^1.59.0", "upng-js": "^2.1.0" }, "peerDependencies": { "node-pty": ">=1.0.0" }, "optionalPeers": ["node-pty"] }, "sha512-VVJc5aX3WWRtWkfvTe2e/WtItoSbDSdX+lnV/H/Ara4HtUBFY5x5l4nna1N/sdQAKg6IP6Lrk+RqiasdpzoY8Q=="],
 
-    "@termless/ghostty": ["@termless/ghostty@0.8.2", "", { "dependencies": { "@napi-rs/canvas": "^1.0.0", "ghostty-web": "^0.4.0" }, "peerDependencies": { "@termless/core": "0.8.1" } }, "sha512-xh3zBeI6JRUiE/zEJwdYnsQUBco8Jf3ftqQSA9uopfwhGzxT5zEZLqm5btO2W9IS4tEwpNfE1j/Kd5N03xLwEA=="],
+    "@termless/ghostty": ["@termless/ghostty@0.9.1", "", { "dependencies": { "@napi-rs/canvas": "^1.0.2", "ghostty-web": "^0.4.0" }, "peerDependencies": { "@termless/core": "^0.9.1" } }, "sha512-RU+LNMSfUNMczUjfwR2x13aaB38qzH6njWbkt+nMBOnLX1bBbdpsO9CU0NMfgeyijgalKjZfrhoTEiKPz/hx4w=="],
 
-    "@termless/ghostty-native": ["@termless/ghostty-native@0.8.1", "", { "peerDependencies": { "@termless/core": "0.8.1" } }, "sha512-HAotqyaaXzKwD0GOmUsqMsmNgZdA2ycDIF5nbKVm9g4sxSDC+J0pCBOOFf+jGzI+QWrGtIDa41mOyMBlec5ldA=="],
+    "@termless/ghostty-native": ["@termless/ghostty-native@0.9.1", "", { "peerDependencies": { "@termless/core": "^0.9.1" } }, "sha512-GLaE6ekxNvJE0PxSW9fMWQJ/mfYkH6wO0WXD6IUZvg3ZukEa9s9qn8VfJf111yTJ9vBYjatV23lNqwxLph2DNA=="],
 
-    "@termless/test": ["@termless/test@0.8.1", "", { "peerDependencies": { "@termless/core": "0.8.1", "vitest": ">=2.0.0" } }, "sha512-Wtb1ChJbbJgmnTQW8ujaMa1RJq2oM0JpSr0lagTQ59nAAgX3BCsWV9XZt1MnOlpx3S2frmnFXGDqYawXCGMgPw=="],
+    "@termless/test": ["@termless/test@0.9.1", "", { "peerDependencies": { "@termless/core": "^0.9.1", "vitest": ">=2.0.0" } }, "sha512-0MBZjONJ35Iyh4OtqitNxFn1g8J1ZFAJD6uOxEjvnx1FhYxUASufXhOmbh3kcaDqjSTr5tlj7SVTddUxW+b+gg=="],
 
-    "@termless/xtermjs": ["@termless/xtermjs@0.8.1", "", { "dependencies": { "@xterm/addon-unicode11": "^0.9.0", "@xterm/headless": "^5.5.0" }, "peerDependencies": { "@termless/core": "0.8.1", "silvery": ">=0.4.2" }, "optionalPeers": ["silvery"] }, "sha512-vURpp36ZQ+ubIlnkbgV6a/stZV0cYzy0207yHeu9GcQCtHgfgZDV2tbdz4nm0TSbBnVr5zx9/O2Jkn/a3+bKCg=="],
+    "@termless/xtermjs": ["@termless/xtermjs@0.9.1", "", { "dependencies": { "@xterm/addon-unicode11": "^0.9.0", "@xterm/headless": "^6.0.0" }, "peerDependencies": { "@termless/core": "^0.9.1", "silvery": ">=0.4.2" }, "optionalPeers": ["silvery"] }, "sha512-y2qy+N2YA9hy7mO44orU68mEChKHtwGxM/eRBPDn15a2GLr5TSWnP3vwZbBuctzvdMtwZfyj3ifZ5PLJaU/Oxw=="],
 
     "@ts-morph/common": ["@ts-morph/common@0.25.0", "", { "dependencies": { "minimatch": "^9.0.4", "path-browserify": "^1.0.1", "tinyglobby": "^0.2.9" } }, "sha512-kMnZz+vGGHi4GoHnLmMhGNjm44kGtKUXGnOvrKmMwAuvNjM/PgKVGfUnL7IDvK7Jb2QQ82jq3Zmp04Gy+r3Dkg=="],
 
@@ -906,7 +906,7 @@
 
     "@xterm/addon-unicode11": ["@xterm/addon-unicode11@0.9.0", "", {}, "sha512-FxDnYcyuXhNl+XSqGZL/t0U9eiNb/q3EWT5rYkQT/zuig8Gz/VagnQANKHdDWFM2lTMk9ly0EFQxxxtZUoRetw=="],
 
-    "@xterm/headless": ["@xterm/headless@5.5.0", "", {}, "sha512-5xXB7kdQlFBP82ViMJTwwEc3gKCLGKR/eoxQm4zge7GPBl86tCdI0IdPJjoKd8mUSFXz5V7i/25sfsEkP4j46g=="],
+    "@xterm/headless": ["@xterm/headless@6.0.0", "", {}, "sha512-5Yj1QINYCyzrZtf8OFIHi47iQtI+0qYFPHmouEfG8dHNxbZ9Tb9YGSuLcsEwj9Z+OL75GJqPyJbyoFer80a2Hw=="],
 
     "@xterm/xterm": ["@xterm/xterm@6.0.0", "", {}, "sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg=="],
 
