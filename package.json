@@ -121,7 +121,7 @@
     "@termless/core": ">=0.9.1 <1.0.0",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
-    "flexily": "0.7.3",
+    "flexily": "github:beorn/flexily#807ff1866b866fa4487e0f155f455856a2dcce1c",
     "loggily": "^0.10.2",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^8.0.0",
@@ -198,7 +198,7 @@
     }
   },
   "overrides": {
-    "flexily": "github:beorn/flexily",
+    "flexily": "github:beorn/flexily#807ff1866b866fa4487e0f155f455856a2dcce1c",
     "loggily": "^0.10.2"
   },
   "tsdown": {

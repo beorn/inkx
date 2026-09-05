@@ -383,7 +383,7 @@
     "@termless/core": ">=0.9.1 <1.0.0",
     "@termless/ghostty": ">=0.9.1 <1.0.0",
     "@termless/xtermjs": ">=0.9.1 <1.0.0",
-    "flexily": "0.7.1",
+    "flexily": "github:beorn/flexily#807ff1866b866fa4487e0f155f455856a2dcce1c",
     "loggily": "^0.10.0"
   },
   "peerDependencies": {
