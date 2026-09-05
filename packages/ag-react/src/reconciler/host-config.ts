@@ -987,6 +987,13 @@ export const hostConfig = {
   },
 
   prepareForCommit() {
+    // React's development reconciler writes User Timing entries per component,
+    // and Bun retains that native timeline until its owner clears it. Silvery
+    // owns the commit timeline, so bound it before invoking user render work.
+    if (process.env.NODE_ENV !== "production") {
+      performance.clearMeasures()
+      performance.clearMarks()
+    }
     return null
   },
 
