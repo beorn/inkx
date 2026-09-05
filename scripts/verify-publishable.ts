@@ -21,7 +21,15 @@
  */
 
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { setTimeout as sleep } from "node:timers/promises"
@@ -395,8 +403,8 @@ import('${entry.name}').then(m => {
 }
 
 // Tarball-size regression gate, introduced after the 0.21.0 native-binary
-// bundle leak. Size alone cannot identify the cause: inspect npm's file list.
-// `npm pack` honours `files`/dist, so the dry-run size ≈ the published size.
+// bundle leak. Pack with the publication tool so publishConfig is applied;
+// npm inspects that artifact, never repacks the source with different semantics.
 // Ref @silvery/release verdaccio-413.
 const MAX_UNPACKED_BYTES = 25 * 1024 * 1024
 
@@ -406,14 +414,36 @@ function checkPackSizes() {
   )
   const oversized: string[] = []
   for (const entry of PACKAGES) {
-    // Pack the package dir directly, NOT the workspace root — a root pack can hit
-    // npm's overrides-vs-direct-dep conflict, and per-dir matches what publishes anyway.
-    const r = spawnSync("npm", ["pack", "--dry-run", "--json"], {
-      cwd: join(ROOT, entry.dir),
+    const dir = join(ROOT, entry.dir)
+    const packDir = mkdtempSync(join(tmpdir(), "silvery-pack-"))
+    onExit(() => rmSync(packDir, { recursive: true, force: true }))
+    const packArgs = ["pack", "--pack-destination", packDir]
+    const packed = spawnSync("pnpm", packArgs, { cwd: dir, encoding: "utf-8" })
+    const packQuery = `${entry.name}: pnpm ${packArgs.join(" ")} in ${dir}`
+    if (packed.error || packed.signal || packed.status !== 0) {
+      fail(
+        `${packQuery} failed; tarball size could not be verified (exit ${packed.status}, signal ${packed.signal ?? "none"}).\n` +
+          `spawn error: ${packed.error?.message ?? "none"}\nstdout:\n${packed.stdout ?? "(unavailable)"}\nstderr:\n${packed.stderr ?? "(unavailable)"}`,
+      )
+    }
+    // Lifecycle scripts may write to stdout even with --json. The fresh output
+    // directory, not mixed lifecycle output or a guessed name, identifies the pack.
+    const artifacts = readdirSync(packDir, { withFileTypes: true })
+    const artifact = artifacts.length === 1 ? artifacts[0] : undefined
+    if (!artifact?.isFile() || !artifact.name.endsWith(".tgz")) {
+      fail(
+        `${packQuery} must produce exactly one tarball; found ${JSON.stringify(artifacts.map(({ name }) => name))}.\n` +
+          `stdout:\n${packed.stdout}\nstderr:\n${packed.stderr}`,
+      )
+    }
+    const tarball = join(packDir, artifact.name)
+    const measureArgs = ["pack", tarball, "--dry-run", "--json", "--ignore-scripts"]
+    const r = spawnSync("npm", measureArgs, {
+      cwd: packDir,
       encoding: "utf-8",
       env: { ...process.env, npm_config_registry: "https://registry.npmjs.org/" },
     })
-    const query = `${entry.name}: npm pack --dry-run --json in ${join(ROOT, entry.dir)}`
+    const query = `${entry.name}: npm ${measureArgs.join(" ")} in ${packDir}`
     if (r.error || r.signal || r.status !== 0) {
       fail(
         `${query} failed; tarball size could not be verified (exit ${r.status}, signal ${r.signal ?? "none"}).\n` +
@@ -441,7 +471,7 @@ function checkPackSizes() {
     const mb = (unpacked / 1024 / 1024).toFixed(1)
     if (unpacked > MAX_UNPACKED_BYTES) {
       oversized.push(
-        `${entry.name}: ${mb} MB unpacked (limit ${(MAX_UNPACKED_BYTES / 1024 / 1024).toFixed(0)} MB)`,
+        `${entry.name}: ${mb} MB unpacked (limit ${(MAX_UNPACKED_BYTES / 1024 / 1024).toFixed(0)} MB), artifact ${tarball}`,
       )
       console.error(`  ✗ ${entry.name}: ${mb} MB`)
     } else {
@@ -450,7 +480,7 @@ function checkPackSizes() {
   }
   if (oversized.length > 0) {
     fail(
-      `tarball size exceeds the limit:\n  - ${oversized.join("\n  - ")}\n  Inspect npm pack --dry-run --json in each listed package directory to identify the large files; size alone does not establish the cause.`,
+      `tarball size exceeds the limit:\n  - ${oversized.join("\n  - ")}\n  Re-run with --keep to retain the listed pnpm artifacts, then inspect them using npm pack <tarball> --dry-run --json --ignore-scripts; size alone does not establish the cause.`,
     )
   }
 }
@@ -472,7 +502,7 @@ const REQUIRED_TOOLS: ReadonlyArray<{ bin: string; neededFor: string; install: s
   { bin: "node", neededFor: "import probes", install: "https://nodejs.org (>=24)" },
   {
     bin: "pnpm",
-    neededFor: "publishing to the local verdaccio registry",
+    neededFor: "packing the size-gate artifacts and publishing to the local verdaccio registry",
     install: "corepack enable pnpm",
   },
 ]
