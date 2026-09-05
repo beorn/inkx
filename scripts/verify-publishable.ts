@@ -202,7 +202,7 @@ listen: 127.0.0.1:${REGISTRY_PORT}
   })
   proc.stderr?.on("data", (chunk: Buffer) => {
     logBuf += chunk.toString()
-    if (process.env.VERDACCIO_DEBUG) process.stderr.write(`[verdaccio:err] ${chunk}`)
+    if (process.env.VERDACCIO_DEBUG) process.stderr.write(`[verdaccio:err] ${chunk.toString()}`)
   })
   let exited = false
   let exitCode: number | null = null
@@ -241,7 +241,7 @@ listen: 127.0.0.1:${REGISTRY_PORT}
   throw new Error(`verdaccio failed to start within 90s. Captured:\n${logBuf}`)
 }
 
-async function buildAll() {
+function buildAll() {
   if (NO_BUILD) {
     console.log("Skipping build (--no-build)")
     return
@@ -276,7 +276,7 @@ function restorePackage(prepared: PreparedPkg) {
   writeFileSync(join(ROOT, prepared.entry.dir, "package.json"), prepared.origJson)
 }
 
-async function publishToVerdaccio(prepared: PreparedPkg, npmrc: string) {
+function publishToVerdaccio(prepared: PreparedPkg, npmrc: string) {
   const { entry } = prepared
   const dir = join(ROOT, entry.dir)
   const result = spawnSync(
@@ -314,7 +314,7 @@ interface ProbeResult {
   message: string
 }
 
-async function importProbe(prepared: PreparedPkg, npmrc: string): Promise<ProbeResult> {
+function importProbe(prepared: PreparedPkg, npmrc: string): ProbeResult {
   const { entry, pkg } = prepared
   const probeDir = mkdtempSync(join(tmpdir(), `silvery-probe-${entry.name.replace(/[/@]/g, "_")}-`))
   onExit(() => rmSync(probeDir, { recursive: true, force: true }))
@@ -394,14 +394,13 @@ import('${entry.name}').then(m => {
   return { name: entry.name, version: pkg.version, ok: true, message: imports.join("; ") }
 }
 
-// Tarball-size regression gate. A published package that exceeds this almost
-// certainly inlined a native-binary transitive tree (skia/resvg pulled in via an
-// UNDECLARED workspace dep that tsdown then bundled) — the 0.21.0 leak that packed
-// 54-100 MB unpacked, ~8x the legit ~12 MB umbrella. `npm pack` honours `files`/dist,
-// so the dry-run unpacked size ≈ the published size. Ref @silvery/release verdaccio-413.
+// Tarball-size regression gate, introduced after the 0.21.0 native-binary
+// bundle leak. Size alone cannot identify the cause: inspect npm's file list.
+// `npm pack` honours `files`/dist, so the dry-run size ≈ the published size.
+// Ref @silvery/release verdaccio-413.
 const MAX_UNPACKED_BYTES = 25 * 1024 * 1024
 
-async function checkPackSizes() {
+function checkPackSizes() {
   console.log(
     "\nTarball-size gate (regression backstop for the 0.21.0 native-binary bundle leak)...",
   )
@@ -414,19 +413,30 @@ async function checkPackSizes() {
       encoding: "utf-8",
       env: { ...process.env, npm_config_registry: "https://registry.npmjs.org/" },
     })
-    if (r.status !== 0) {
-      console.warn(
-        `  ⚠ ${entry.name}: npm pack --dry-run failed — size not checked (${(r.stderr || "").split("\n")[0]})`,
+    const query = `${entry.name}: npm pack --dry-run --json in ${join(ROOT, entry.dir)}`
+    if (r.error || r.signal || r.status !== 0) {
+      fail(
+        `${query} failed; tarball size could not be verified (exit ${r.status}, signal ${r.signal ?? "none"}).\n` +
+          `spawn error: ${r.error?.message ?? "none"}\nstdout:\n${r.stdout ?? "(unavailable)"}\nstderr:\n${r.stderr ?? "(unavailable)"}`,
       )
-      continue
     }
-    let unpacked = 0
+    let parsed: unknown
     try {
-      const parsed = JSON.parse(r.stdout) as Array<{ unpackedSize?: number }>
-      unpacked = parsed[0]?.unpackedSize ?? 0
-    } catch {
-      console.warn(`  ⚠ ${entry.name}: could not parse npm pack --json — size not checked`)
-      continue
+      parsed = JSON.parse(r.stdout)
+    } catch (error) {
+      fail(
+        `${query} returned invalid JSON: ${String(error)}\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`,
+      )
+    }
+    const info: unknown = Array.isArray(parsed) && parsed.length === 1 ? parsed[0] : undefined
+    const unpacked =
+      typeof info === "object" && info !== null && "unpackedSize" in info
+        ? info.unpackedSize
+        : undefined
+    if (typeof unpacked !== "number" || !Number.isSafeInteger(unpacked) || unpacked <= 0) {
+      fail(
+        `${query} must return one package with a positive integer unpackedSize.\nstdout:\n${r.stdout}\nstderr:\n${r.stderr}`,
+      )
     }
     const mb = (unpacked / 1024 / 1024).toFixed(1)
     if (unpacked > MAX_UNPACKED_BYTES) {
@@ -440,7 +450,7 @@ async function checkPackSizes() {
   }
   if (oversized.length > 0) {
     fail(
-      `tarball size regression — an undeclared workspace dependency is pulling native binaries into the bundle:\n  - ${oversized.join("\n  - ")}\n  Fix: declare the offending @silvery/* or @termless/* dep so tsdown externalizes it instead of inlining.`,
+      `tarball size exceeds the limit:\n  - ${oversized.join("\n  - ")}\n  Inspect npm pack --dry-run --json in each listed package directory to identify the large files; size alone does not establish the cause.`,
     )
   }
 }
@@ -494,10 +504,10 @@ async function main() {
   // Before any slow work: prove every binary we shell out to actually exists.
   requireExternalTools()
 
-  await buildAll()
+  buildAll()
 
   // Fail-fast size gate BEFORE the slow verdaccio publish/probe flow.
-  await checkPackSizes()
+  checkPackSizes()
 
   // Storage / npmrc — fresh tmpdir per run so verdaccio starts empty
   const storage = mkdtempSync(join(tmpdir(), "silvery-verdaccio-"))
@@ -565,7 +575,7 @@ async function main() {
 
   console.log("\nPublishing all packages to verdaccio...")
   for (const p of prepared) {
-    await publishToVerdaccio(p, npmrc)
+    publishToVerdaccio(p, npmrc)
   }
 
   // Restore package.json files BEFORE the import probe (so dev workspace
@@ -579,7 +589,7 @@ async function main() {
 
   const results: ProbeResult[] = []
   for (const p of probeTargets) {
-    const result = await importProbe(p, npmrc)
+    const result = importProbe(p, npmrc)
     if (result.ok) {
       console.log(`  ✓ ${result.name}@${result.version} → import OK [${result.message}]`)
     } else {
