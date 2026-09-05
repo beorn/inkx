@@ -294,10 +294,17 @@ async function publishToVerdaccio(prepared: PreparedPkg, npmrc: string) {
       stdio: ["ignore", "pipe", "pipe"],
     },
   )
+  if (result.error) {
+    // Spawn never happened (ENOENT and friends): stdout/stderr are null, so
+    // printing them tells the reader nothing. Name the real failure.
+    fail(
+      `could not run \`pnpm publish\` for ${entry.name} in ${dir}: ${result.error.message}`,
+    )
+  }
   if (result.status !== 0) {
     console.error(`\n[verdaccio publish] ${entry.name} stdout:\n${result.stdout}`)
     console.error(`\n[verdaccio publish] ${entry.name} stderr:\n${result.stderr}`)
-    fail(`pnpm publish failed for ${entry.name}`)
+    fail(`pnpm publish failed for ${entry.name} (exit ${result.status})`)
   }
   console.log(`  ✓ published ${entry.name}@${prepared.pkg.version}`)
 }
@@ -442,9 +449,48 @@ async function checkPackSizes() {
 
 // --- main ---
 
+/**
+ * Every external binary this gate shells out to, and who needs it.
+ *
+ * Without this preflight a missing binary surfaces as `spawnSync` returning
+ * status null with null stdout/stderr — which the publish step then reported
+ * as "pnpm publish failed" with two empty output blocks, hiding the real
+ * cause (pnpm simply absent from PATH). Fail loudly, naming the tool, the
+ * step that needs it, and the PATH we searched.
+ */
+const REQUIRED_TOOLS: ReadonlyArray<{ bin: string; neededFor: string; install: string }> = [
+  { bin: "bun", neededFor: "build:all", install: "https://bun.sh" },
+  { bin: "npm", neededFor: "pack-size gate and the import probes", install: "ships with Node.js" },
+  { bin: "node", neededFor: "import probes", install: "https://nodejs.org (>=24)" },
+  { bin: "pnpm", neededFor: "publishing to the local verdaccio registry", install: "corepack enable pnpm" },
+]
+
+function requireExternalTools() {
+  const missing: string[] = []
+  for (const tool of REQUIRED_TOOLS) {
+    const probe = spawnSync(tool.bin, ["--version"], { encoding: "utf-8", stdio: "ignore" })
+    // ENOENT (or any spawn-level error) means the binary is not on PATH. A
+    // non-zero exit from a binary that DID run is not our concern here.
+    if (probe.error) {
+      missing.push(
+        `${tool.bin} — needed for ${tool.neededFor}; spawn failed: ${probe.error.message}; install: ${tool.install}`,
+      )
+    }
+  }
+  if (missing.length > 0) {
+    fail(
+      `verify-publishable requires external tools that are not on PATH:\n  - ${missing.join("\n  - ")}\n` +
+        `PATH searched:\n  ${(process.env.PATH ?? "(unset)").split(":").join("\n  ")}`,
+    )
+  }
+}
+
 async function main() {
   console.log("silvery verify-publishable (verdaccio gate)")
   console.log("===========================================\n")
+
+  // Before any slow work: prove every binary we shell out to actually exists.
+  requireExternalTools()
 
   await buildAll()
 
