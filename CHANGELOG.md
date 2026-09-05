@@ -514,6 +514,14 @@ This is a stepping-stone toward 0.20.0, which will make Sterling THE Theme type 
 - `inlineSterlingTokens` deleted; runtime resolution requires Sterling flat-token names only.
 - `deriveTheme` removed; `sterling.deriveFromScheme` is the only path.
 
+## [0.24.1] - 2026-09-04
+
+### Fixed
+
+- Bound React development User Timing entries at Silvery's commit boundary so
+  long-lived renderers no longer retain one timeline entry set per commit
+  (`@ag/dutiful-and-maddoc-grow-without-bound`).
+
 ## [0.18.2] - 2026-04-20
 
 Backdrop internal refactor + snap-scroll fix. **No public API break.**
