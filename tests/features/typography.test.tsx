@@ -493,7 +493,7 @@ describe("Block elements", () => {
     )
     const bg = subtle.cell(0, 0).bg
     const codeForeground = createRenderer({ cols: 1, rows: 1 })(
-      <Text color="mix($fg, $fg-muted, 25%)">x</Text>,
+      <Text color="mix($fg, $fg-muted, 50%)">x</Text>,
     )
     expect(bg).not.toBeNull()
     expect(app.text).not.toMatch(/[▏│]/)
