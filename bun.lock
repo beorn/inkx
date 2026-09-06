@@ -1134,7 +1134,7 @@
 
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
-    "flexily": ["flexily@github:beorn/flexily#3f9c818", {}, "beorn-flexily-3f9c818", "sha512-qYnAaBEh4sX0cH+at7cfa6r6+RoEhUBe/jPUesSJueYFRmIACBc8fssBJOrheMiNGQI33ns7OHC58+5e4mo6IA=="],
+    "flexily": ["flexily@github:beorn/flexily#883b7bf", {}, "beorn-flexily-883b7bf", "sha512-Zw2zQBHcS6XB/xl4A89betcbTkvIosF6lPgNr06+nQpOVLCsbhQN1e2qiAKfE5aSKBsGvvRCc5BNJWnu4LrsOA=="],
 
     "focus-trap": ["focus-trap@7.8.0", "", { "dependencies": { "tabbable": "^6.4.0" } }, "sha512-/yNdlIkpWbM0ptxno3ONTuf+2g318kh2ez3KSeZN5dZ8YC6AAmgeWz+GasYYiBJPFaYcSAPeu4GfhUaChzIJXA=="],
 
