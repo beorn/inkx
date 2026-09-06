@@ -24,10 +24,23 @@ import { Box } from "../../packages/ag-react/src/components/Box"
 import { Text } from "../../packages/ag-react/src/components/Text"
 import { Tab, TabList, TabPanel, Tabs } from "../../packages/ag-react/src/ui/components/Tabs"
 
-const TABS = ["Changes", "✓ setup (submit)", "✓ typecheck", "✓ manifest-co-change", "✓ substrate-pair", "✓ setup (merge)", "✓ affected-tests"]
+const TABS = [
+  "Changes",
+  "✓ setup (submit)",
+  "✓ typecheck",
+  "✓ manifest-co-change",
+  "✓ substrate-pair",
+  "✓ setup (merge)",
+  "✓ affected-tests",
+]
 
 /** The yrd detail pane's shape: a fixed head, then Tabs filling the rest of a definite column. */
-function Frame({ cols, rows, wrap, panelLines }: Readonly<{ cols: number; rows: number; wrap: boolean; panelLines: number }>) {
+function Frame({
+  cols,
+  rows,
+  wrap,
+  panelLines,
+}: Readonly<{ cols: number; rows: number; wrap: boolean; panelLines: number }>) {
   return (
     <Box flexDirection="column" width={cols} height={rows}>
       <Box id="head" flexDirection="column" flexShrink={0}>
@@ -58,7 +71,9 @@ function Frame({ cols, rows, wrap, panelLines }: Readonly<{ cols: number; rows: 
 }
 
 function read(cols: number, rows: number, wrap: boolean, panelLines = 3) {
-  const app = createRenderer({ cols, rows })(<Frame cols={cols} rows={rows} wrap={wrap} panelLines={panelLines} />)
+  const app = createRenderer({ cols, rows })(
+    <Frame cols={cols} rows={rows} wrap={wrap} panelLines={panelLines} />,
+  )
   const rect = (id: string) => {
     const node = app.locator(`#${id}`).resolve()
     if (!node?.boxRect) throw new Error(`no #${id} box was laid out`)
