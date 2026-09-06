@@ -41,11 +41,14 @@ const render = createRenderer({ cols: 80, rows: 10 })
 // ============================================================================
 
 describe("Headings", () => {
-  test.each([H1, H2, H3, H4, H5, H6])("%p renders underlined heading text", (Heading) => {
-    const app = render(<Heading>Page Title</Heading>)
-    expect(app.text).toContain("Page Title")
-    expect(app.cell(0, 0).underline).toBe("single")
-  })
+  test.each([H1, H2, H3, H4, H5, H6])(
+    "%p leaves heading text un-underlined by default",
+    (Heading) => {
+      const app = render(<Heading>Page Title</Heading>)
+      expect(app.text).toContain("Page Title")
+      expect(app.cell(0, 0).underline).toBeFalsy()
+    },
+  )
 
   test("H1 is bold with $fg-accent color", () => {
     const app = render(<H1>Title</H1>)

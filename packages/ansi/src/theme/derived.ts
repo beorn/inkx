@@ -22,12 +22,12 @@ import type { Theme, Variant } from "./types.ts"
 
 /** Default typography variants — token-based, works across any theme. */
 export const DEFAULT_VARIANTS: Record<string, Variant> = {
-  h1: { color: "$primary", bold: true, underlineStyle: "single" },
-  h2: { color: "mix($primary, $fg, 50%)", bold: true, underlineStyle: "single" },
-  h3: { bold: true, underlineStyle: "single" },
-  h4: { color: "$muted", bold: true, underlineStyle: "single" },
-  h5: { color: "$muted", italic: true, underlineStyle: "single" },
-  h6: { color: "$muted", dim: true, underlineStyle: "single" },
+  h1: { color: "$primary", bold: true },
+  h2: { color: "mix($primary, $fg, 50%)", bold: true },
+  h3: { bold: true },
+  h4: { color: "$muted", bold: true },
+  h5: { color: "$muted", italic: true },
+  h6: { color: "$muted", dim: true },
   body: { color: "mix($fg, $fg-muted, 25%)" },
   "body-muted": { color: "$muted" },
   "fine-print": { color: "$muted", dim: true },

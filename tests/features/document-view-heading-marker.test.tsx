@@ -42,6 +42,7 @@ import {
   Content,
   DocumentView,
   Text,
+  ThemeProvider,
   type DocumentBlock,
   type DocumentHeadingBlock,
 } from "@silvery/ag-react"
@@ -81,23 +82,47 @@ describe("DocumentView heading marker gutter", () => {
     )
   })
 
-  test("a task heading and a non-task heading in the SAME document still align on the title column", () => {
-    const blocks: DocumentBlock[] = [
-      {
-        id: "task",
-        kind: "heading",
-        level: 3,
-        content: "PHASE 3a — Git and Yrd",
-        marker: <Text color="$fg-warning">◐</Text>,
-      } satisfies DocumentHeadingBlock,
-      { id: "plain", kind: "heading", level: 3, content: "PHASE 3b — Agent management" },
-    ]
-    const app = createRenderer({ cols: 72, rows: 10 })(<DocumentView blocks={blocks} />)
-    expect(titleColumn(app, "PHASE 3a")).toBe(titleColumn(app, "PHASE 3b"))
-    // The non-task heading's reserved slot renders blank, not a stray glyph.
-    expect(app.text).not.toContain("◐ PHASE 3b")
-    expect(app.text).not.toContain("◐PHASE 3b")
-  })
+  test.each([
+    [1, "$primary"],
+    [2, "mix($primary, $fg, 50%)"],
+    [3, "$fg"],
+    [4, "$muted"],
+    [5, "$muted"],
+    [6, "$muted"],
+  ] as const)(
+    "level %i keeps task/title alignment and gives only non-task headings a subdued #",
+    (level, foreground) => {
+      const blocks: DocumentBlock[] = [
+        {
+          id: "task",
+          kind: "heading",
+          level,
+          content: "PHASE 3a — Git and Yrd",
+          marker: <Text color="$fg-warning">◐</Text>,
+        } satisfies DocumentHeadingBlock,
+        { id: "plain", kind: "heading", level, content: "PHASE 3b — Agent management" },
+      ]
+      const tokens = { fg: "#eeeeee", bg: "#202020" }
+      const app = createRenderer({ cols: 72, rows: 10 })(
+        <ThemeProvider tokens={tokens}>
+          <DocumentView blocks={blocks} />
+        </ThemeProvider>,
+      )
+      expect(titleColumn(app, "PHASE 3a")).toBe(titleColumn(app, "PHASE 3b"))
+      const taskRow = app.lines.findIndex((line) => line.includes("PHASE 3a"))
+      const plainRow = app.lines.findIndex((line) => line.includes("PHASE 3b"))
+      const markerColumn = titleColumn(app, "PHASE 3b") - 2
+      expect(app.lines[taskRow]).toContain("◐ PHASE 3a")
+      expect(app.lines[taskRow]).not.toContain("#")
+      expect(app.lines[plainRow]).toContain("# PHASE 3b")
+      const expected = createRenderer({ cols: 1, rows: 1 })(
+        <ThemeProvider tokens={tokens}>
+          <Text color={`mix(${foreground}, $bg, 75%)`}>#</Text>
+        </ThemeProvider>,
+      )
+      expect(app.cell(markerColumn, plainRow).fg).toEqual(expected.cell(0, 0).fg)
+    },
+  )
 
   test("a document with no heading markers renders byte-identical to the same document without the marker field", () => {
     const withoutField: DocumentBlock[] = [
@@ -215,7 +240,7 @@ describe("DocumentView heading marker gutter", () => {
     }
   })
 
-  test("every document keeps a blank 2-cell margin on the LEFT of its text, at any pane width, marker or no marker", () => {
+  test("every document reserves a 2-cell LEFT margin for the heading # and its gap, at any pane width", () => {
     // Operator: "we always make sure there's a 2-space column to the left
     // and right of text" — unconditional, not gated on whether this
     // particular document happens to use heading markers. A plain,
@@ -233,8 +258,9 @@ describe("DocumentView heading marker gutter", () => {
       const row = app.lines.findIndex((line) => line.includes("Plain Heading"))
       expect(row, `cols=${cols}`).toBeGreaterThanOrEqual(0)
       expect(titleColumn(app, "Plain Heading"), `cols=${cols}`).toBeGreaterThanOrEqual(2)
-      expect(app.cell(0, row).char, `cols=${cols} col 0 blank`).toBe(" ")
-      expect(app.cell(1, row).char, `cols=${cols} col 1 blank`).toBe(" ")
+      const titleStart = titleColumn(app, "Plain Heading")
+      expect(app.cell(titleStart - 2, row).char, `cols=${cols} outdented marker`).toBe("#")
+      expect(app.cell(titleStart - 1, row).char, `cols=${cols} marker gap`).toBe(" ")
     }
   })
 

@@ -120,14 +120,25 @@ describe("MarkdownView — inline emphasis (Typography presets)", () => {
 })
 
 describe("MarkdownView — block elements", () => {
-  test("# heading renders bold and strips the hashes", () => {
-    const app = render("# Title\n\nBody text")
-    const cell = app.cell(0, 0)
+  test("headings render one outdented # while titles stay aligned with prose", () => {
+    const app = createRenderer({ cols: 80, rows: 8 })(
+      <Box width={80} paddingX={2}>
+        <MarkdownView source={"### Title\n\nBody text"} />
+      </Box>,
+    )
+    const headingRow = app.lines.findIndex((line) => line.includes("Title"))
+    const bodyRow = app.lines.findIndex((line) => line.includes("Body text"))
+    const titleStart = app.lines[headingRow]!.indexOf("Title")
+    const cell = app.cell(titleStart, headingRow)
     expect(cell.char).toBe("T")
     expect(cell.bold).toBe(true)
     expect(app.text).toContain("Title")
     expect(app.text).toContain("Body text")
-    expect(app.text).not.toContain("#")
+    expect(titleStart).toBe(app.lines[bodyRow]!.indexOf("Body text"))
+    expect(app.cell(titleStart - 2, headingRow).char).toBe("#")
+    expect(app.cell(titleStart - 1, headingRow).char).toBe(" ")
+    expect(app.text.match(/#/gu)).toHaveLength(1)
+    expect(cell.underline).toBeFalsy()
   })
 
   test("bullet list renders one marked row per item", () => {

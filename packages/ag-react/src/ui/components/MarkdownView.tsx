@@ -37,6 +37,7 @@ import { Fragment, type JSX, type ReactNode } from "react"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Blockquote, Code, CodeBlock, Em, H1, H2, H3, H4, H5, H6, HR, Strong } from "./Typography"
+import { HeadingRow } from "./HeadingRow"
 
 // ============================================================================
 // Block model
@@ -472,7 +473,11 @@ function renderBlock(block: MdBlock, key: string): ReactNode {
   switch (block.kind) {
     case "heading": {
       const Heading = HEADINGS[Math.min(Math.max(block.level, 1), 6) - 1] ?? H1
-      return <Heading wrap="wrap">{parseInline(block.text, key)}</Heading>
+      return (
+        <HeadingRow level={block.level}>
+          <Heading wrap="wrap">{parseInline(block.text, key)}</Heading>
+        </HeadingRow>
+      )
     }
     case "paragraph":
       return (
