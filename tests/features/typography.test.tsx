@@ -492,6 +492,9 @@ describe("Block elements", () => {
       </Box>,
     )
     const bg = subtle.cell(0, 0).bg
+    const codeForeground = createRenderer({ cols: 1, rows: 1 })(
+      <Text color="mix($fg, $fg-muted, 25%)">x</Text>,
+    )
     expect(bg).not.toBeNull()
     expect(app.text).not.toMatch(/[▏│]/)
     expect(app.text).toContain("const x = 1")
@@ -505,6 +508,8 @@ describe("Block elements", () => {
     expect(app.lines[1]?.trim()).toBe("")
     expect(app.lines[4]?.trim()).toBe("")
     expect(app.cell(2, 2).italic).toBe(false)
+    expect(app.cell(2, 2).fg).toEqual(codeForeground.cell(0, 0).fg)
+    expect(app.cell(2, 2).fg).not.toEqual(app.cell(2, 0).fg)
   })
 
   test("CodeBlock content is not italic", () => {

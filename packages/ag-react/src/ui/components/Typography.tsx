@@ -312,7 +312,7 @@ export function CodeBlock({ children, color }: TypographyProps) {
       paddingY={1}
       backgroundColor="$bg-surface-subtle"
     >
-      <Text color={color} wrap="hard">
+      <Text color={color ?? "mix($fg, $fg-muted, 25%)"} wrap="hard">
         {children}
       </Text>
     </Box>
