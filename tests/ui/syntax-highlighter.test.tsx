@@ -6,6 +6,7 @@ import {
   ScrollArea,
   SearchProvider,
   SyntaxHighlighter,
+  Text,
   type SearchContextValue,
   useScrollController,
   useSearch,
@@ -17,6 +18,9 @@ describe("SyntaxHighlighter", () => {
     const app = render(<SyntaxHighlighter language="typescript" code="const answer = 42" bare />)
 
     expect(app.text).toContain("const answer = 42")
+    const plainForeground = createRenderer({ cols: 1, rows: 1 })(
+      <Text color="mix($fg, $fg-muted, 50%)">x</Text>,
+    ).cell(0, 0).fg
     await vi.waitFor(
       () => {
         const row = app.lines.findIndex((line) => line.includes("const answer"))
@@ -24,6 +28,7 @@ describe("SyntaxHighlighter", () => {
         expect(row).toBeGreaterThanOrEqual(0)
         expect(column).toBeGreaterThanOrEqual(0)
         expect(app.cell(column, row).fg).not.toBeNull()
+        expect(app.cell(column, row).fg).not.toEqual(plainForeground)
       },
       { timeout: 5_000 },
     )

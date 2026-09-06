@@ -244,9 +244,13 @@ describe("Typography wrapper parity", () => {
     expect(cell.fg).toEqual(successDirect.fg)
   })
 
-  test("<H2> uses $accent color from variant", () => {
+  test("<H2> blends the H1 color halfway toward foreground", () => {
     const app1 = r(<H2>Section</H2>)
-    const app2 = r(<Text variant="h2">Section</Text>)
+    const app2 = createRenderer({ cols: 80, rows: 5 })(
+      <Text color="mix($primary, $fg, 50%)" bold>
+        Section
+      </Text>,
+    )
 
     const cell1 = app1.cell(0, 0)
     const cell2 = app2.cell(0, 0)
@@ -340,10 +344,10 @@ describe("Theme.variants structure", () => {
     expect(h1?.bold).toBe(true)
   })
 
-  test("body variant is an empty object (plain body text)", () => {
+  test("body variant softens foreground without changing weight", () => {
     const body = defaultDarkTheme.variants?.body
     expect(body).toBeDefined()
-    expect(body?.color).toBeUndefined()
+    expect(body?.color).toBe("mix($fg, $fg-muted, 25%)")
     expect(body?.bold).toBeUndefined()
   })
 })

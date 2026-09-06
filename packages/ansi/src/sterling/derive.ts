@@ -66,18 +66,18 @@ import { WCAG_AA, autoLift, checkAA, ContrastError, type ContrastViolation } fro
  * derived Theme without further wiring.
  */
 export const DEFAULT_VARIANTS: Record<string, Variant> = {
-  h1: { color: "$fg-accent", bold: true },
-  h2: { color: "$fg-accent", bold: true },
-  h3: { bold: true },
-  h4: { color: "$fg-muted", bold: true },
-  h5: { color: "$fg-muted", italic: true },
-  h6: { color: "$fg-muted", dim: true },
-  body: {},
+  h1: { color: "$fg-accent", bold: true, underlineStyle: "single" },
+  h2: { color: "mix($fg-accent, $fg, 50%)", bold: true, underlineStyle: "single" },
+  h3: { bold: true, underlineStyle: "single" },
+  h4: { color: "$fg-muted", bold: true, underlineStyle: "single" },
+  h5: { color: "$fg-muted", italic: true, underlineStyle: "single" },
+  h6: { color: "$fg-muted", dim: true, underlineStyle: "single" },
+  body: { color: "mix($fg, $fg-muted, 25%)" },
   "body-muted": { color: "$fg-muted" },
   "fine-print": { color: "$fg-muted", dim: true },
   strong: { bold: true },
   em: { italic: true },
-  link: { color: "$fg-accent", underlineStyle: "dotted" },
+  link: { color: "$fg-link", underlineStyle: "dotted" },
   key: { color: "$fg-accent", bold: true },
   code: { color: "$fg-info" },
   kbd: { backgroundColor: "$bg-muted", color: "$fg-accent", bold: true },
@@ -760,14 +760,15 @@ export function deriveRoles(
   //
   // Hyperlink text color. Not the same as accent — many design systems want
   // "link blue" (Material, Polaris, GitHub) distinct from the brand-derived
-  // accent. Default: scheme.brightBlue (dark mode) / scheme.blue (light mode).
+  // accent. Dark mode softens bright blue halfway toward foreground;
+  // light mode retains scheme.blue to preserve contrast on a light canvas.
   // Apps that want link === accent can pin `{ "link.fg": "$fg-accent" }`.
   const linkFg = guard(
     "link.fg",
     "fg-link",
-    mode === "dark" ? "scheme.brightBlue" : "scheme.blue",
-    [mode === "dark" ? scheme.brightBlue : scheme.blue],
-    mode === "dark" ? scheme.brightBlue : scheme.blue,
+    mode === "dark" ? "blend(scheme.brightBlue, fg, 0.5)" : "scheme.blue",
+    mode === "dark" ? [scheme.brightBlue, fg] : [scheme.blue],
+    mode === "dark" ? blend(scheme.brightBlue, fg, 0.5) : scheme.blue,
     bg,
   )
   const link: LinkRole = { fg: linkFg }

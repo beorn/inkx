@@ -10,14 +10,14 @@
  *
  * ## Color inheritance
  *
- * Body-text components (P, Strong, Em, H3) inherit foreground color from
+ * Inline emphasis and H3 inherit foreground color from
  * the nearest ancestor Box with a `color` or `theme` prop — just like CSS.
- * They do NOT hardcode `$fg`, so `<Box color="$fg-error"><P>red text</P></Box>` works.
+ * P uses the theme's body variant; an explicit color overrides it.
  *
  * `Box theme={}` auto-inherits `$fg` for all text and auto-fills `$bg`:
  * ```tsx
  * <Box theme={lightTheme}>
- *   <P>This text uses the light theme's fg on its bg</P>
+ *   <P>This text uses the light theme's body foreground on its bg</P>
  * </Box>
  * ```
  *
@@ -87,7 +87,7 @@ export function H1({ children, color, ...rest }: TypographyProps) {
   return <Heading variant="h1" children={children} color={color} {...rest} />
 }
 
-/** Section heading — $fg-accent + bold. Contrasts with H1. */
+/** Section heading — H1's color blended halfway toward foreground, plus bold. */
 export function H2({ children, color, ...rest }: TypographyProps) {
   return <Heading variant="h2" children={children} color={color} {...rest} />
 }
@@ -116,7 +116,7 @@ export function H6({ children, color, ...rest }: TypographyProps) {
 // Body Text
 // ============================================================================
 
-/** Paragraph — plain body text. Inherits foreground from parent. */
+/** Paragraph — the theme's body foreground, with optional caller override. */
 export function P({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="body" color={color} {...rest}>
@@ -418,19 +418,12 @@ export function OL({ children }: TypographyProps) {
   )
 }
 
-// Third level is a square, not `▸`: a right-pointing triangle is the
-// disclosure affordance in every tree widget and a static list has nothing to
-// disclose. `■` (U+25A0) and not `▪` (U+25AA) — the small square is Emoji=Yes
-// and measures two cells. See DocumentView's UNORDERED_MARKERS.
-const BULLETS = ["•", "◦", "■", "-"]
-
 /** List item with hanging indent. Use inside UL or OL. 2-char marker (bullet + space). */
 export function LI({ children, color, _index }: TypographyProps & { _index?: number }) {
   const { level, ordered } = useContext(ListContext)
   const effectiveLevel = Math.max(level, 1)
   const indent = "  ".repeat(effectiveLevel - 1)
-  const bullet = BULLETS[Math.min(effectiveLevel - 1, BULLETS.length - 1)]
-  const marker = ordered && _index != null ? `${_index}. ` : `${bullet} `
+  const marker = ordered && _index != null ? `${_index}. ` : "• "
 
   return (
     <Box>
@@ -439,7 +432,7 @@ export function LI({ children, color, _index }: TypographyProps & { _index?: num
         {marker}
       </Text>
       <Box flexShrink={1}>
-        <Text color={color}>{children}</Text>
+        <P color={color}>{children}</P>
       </Box>
     </Box>
   )

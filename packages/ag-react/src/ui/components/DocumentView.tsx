@@ -141,21 +141,6 @@ interface ResolvedListItem {
   readonly markerWidth: number
 }
 
-/**
- * disc → circle → square, the CSS nested-list ladder.
- *
- * NO TRIANGLES. The third level was `▸` until a reader read it as a collapsed
- * node and tried to expand it. A right-pointing triangle is the disclosure
- * affordance in every tree widget, `DocumentView` has no fold capability at
- * all, and a marker that promises an interaction the component cannot honour
- * is worse than a plain bullet.
- *
- * `■` (U+25A0) and NOT the smaller `▪` (U+25AA) / `▫` (U+25AB): the small
- * squares carry Emoji=Yes, so they acquire emoji presentation and measure TWO
- * cells, which silently widens a marker column sized for one.
- */
-const UNORDERED_MARKERS = ["•", "◦", "■"] as const
-
 function textMarkerWidth(marker: React.ReactNode): number | null {
   // `displayLength`, not `.length`: this width indents every line of the list
   // item, so it is terminal columns. The built-in markers are all one cell, but
@@ -180,10 +165,7 @@ function resolveListItems(
     const count = groupCounts.get(block.list.groupId) ?? 0
     groupCounts.set(block.list.groupId, count + 1)
     const marker =
-      block.marker ??
-      (block.list.ordered
-        ? `${(block.list.start ?? 1) + count}.`
-        : (UNORDERED_MARKERS[Math.min(block.list.depth, UNORDERED_MARKERS.length - 1)] ?? "•"))
+      block.marker ?? (block.list.ordered ? `${(block.list.start ?? 1) + count}.` : "•")
     const width = Math.max(1, block.markerWidth ?? textMarkerWidth(marker) ?? 1)
     provisional.set(block.id, { marker, width, groupId: block.list.groupId })
     groupWidths.set(block.list.groupId, Math.max(groupWidths.get(block.list.groupId) ?? 0, width))
@@ -326,7 +308,7 @@ function ListItemRow({
         </Box>
         <Box width={1} minWidth={1} flexShrink={0} />
         <Prose flexGrow={1} minWidth={0}>
-          <Text color={color} wrap="wrap">
+          <Text variant="body" color={color} wrap="wrap">
             {block.content}
           </Text>
         </Prose>
@@ -568,7 +550,7 @@ function DocumentBlocks({
                 marginBottom={1}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
-                <Text color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
+                <Text variant="body" color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
                   {block.content}
                 </Text>
               </BlockFrame>

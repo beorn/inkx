@@ -47,7 +47,12 @@ export function SyntaxHighlighter({
     />
   ) : (
     lines.map((line, lineIndex) => (
-      <Text key={lineIndex} wrap={lineWrap} backgroundColor={backgroundColor}>
+      <Text
+        key={lineIndex}
+        color="mix($fg, $fg-muted, 50%)"
+        wrap={lineWrap}
+        backgroundColor={backgroundColor}
+      >
         {line.tokens.map((token, tokenIndex) => (
           <Text
             key={tokenIndex}
@@ -182,7 +187,7 @@ function SearchableSyntaxLines({
           flexDirection="row"
           onLayout={(rect) => recordLineOrigin(lineIndex, rect.y)}
         >
-          <Text wrap={lineWrap} backgroundColor={backgroundColor}>
+          <Text color="mix($fg, $fg-muted, 50%)" wrap={lineWrap} backgroundColor={backgroundColor}>
             {line.tokens.map((token, tokenIndex) => (
               <Text
                 key={tokenIndex}
