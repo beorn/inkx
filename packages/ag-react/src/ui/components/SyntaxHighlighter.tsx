@@ -52,28 +52,13 @@ export function SyntaxHighlighter({
     />
   ) : (
     lines.map((line, lineIndex) => (
-      <Text
+      <SyntaxLine
         key={lineIndex}
-        color="mix($fg, $fg-muted, 50%)"
-        wrap={lineWrap}
+        line={line}
+        lineWrap={lineWrap}
         backgroundColor={backgroundColor}
-      >
-        {line.tokens.map((token, tokenIndex) => (
-          <Text
-            key={tokenIndex}
-            color={
-              token.color === undefined
-                ? undefined
-                : `mix(${token.color}, mix($fg, $fg-muted, 50%), 50%)`
-            }
-            bold={forceBold || token.bold}
-            italic={token.italic}
-            backgroundColor={backgroundColor}
-          >
-            {token.text}
-          </Text>
-        ))}
-      </Text>
+        forceBold={forceBold}
+      />
     ))
   )
 
@@ -112,6 +97,38 @@ function useSyntaxTokens(code: string, language: string, theme: string): TokenLi
 
 function isDiffLanguage(language: string): boolean {
   return ["diff", "patch", "udiff", "gitdiff", "git-diff"].includes(language)
+}
+
+function SyntaxLine({
+  line,
+  lineWrap,
+  backgroundColor,
+  forceBold,
+}: {
+  readonly line: TokenLine
+  readonly lineWrap: "hard" | "truncate"
+  readonly backgroundColor?: string
+  readonly forceBold: boolean
+}): ReactElement {
+  return (
+    <Text color="mix($fg, $fg-muted, 50%)" wrap={lineWrap} backgroundColor={backgroundColor}>
+      {line.tokens.map((token, tokenIndex) => (
+        <Text
+          key={tokenIndex}
+          color={
+            token.color === undefined
+              ? undefined
+              : `mix(${token.color}, mix($fg, $fg-muted, 50%), 50%)`
+          }
+          bold={forceBold || token.bold}
+          italic={token.italic}
+          backgroundColor={backgroundColor}
+        >
+          {token.text}
+        </Text>
+      ))}
+    </Text>
+  )
 }
 
 interface SearchableSyntaxLinesProps {
@@ -177,23 +194,12 @@ function SearchableSyntaxLines({
           flexDirection="row"
           onLayout={(rect) => recordLineOrigin(lineIndex, rect.y)}
         >
-          <Text color="mix($fg, $fg-muted, 50%)" wrap={lineWrap} backgroundColor={backgroundColor}>
-            {line.tokens.map((token, tokenIndex) => (
-              <Text
-                key={tokenIndex}
-                color={
-                  token.color === undefined
-                    ? undefined
-                    : `mix(${token.color}, mix($fg, $fg-muted, 50%), 50%)`
-                }
-                bold={forceBold || token.bold}
-                italic={token.italic}
-                backgroundColor={backgroundColor}
-              >
-                {token.text}
-              </Text>
-            ))}
-          </Text>
+          <SyntaxLine
+            line={line}
+            lineWrap={lineWrap}
+            backgroundColor={backgroundColor}
+            forceBold={forceBold}
+          />
         </Box>
       ))}
     </>

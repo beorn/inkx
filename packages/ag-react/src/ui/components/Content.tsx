@@ -37,15 +37,8 @@ export type ContentLayoutContextValue = {
   full: number
   align: "start" | "center" | "stretch"
   gap: number
-  /**
-   * Minimum blank margin `ProseLane` keeps on EACH side, in cells.
-   * Defaults to `1`. A caller that needs guaranteed room for content that
-   * hangs into that margin (e.g. `DocumentView`'s heading task-marker
-   * gutter) raises this on its own `Content.Layout`, rather than a
-   * consumer hoping the default floor happens to be wide enough — see
-   * `ProseLane`.
-   */
-  gutterMinWidth: number
+  /** Minimum left/right prose gutters in cells, normalized by Content.Layout. */
+  gutterMinWidth: { readonly left: number; readonly right: number }
 }
 
 const DEFAULT_CONTEXT: ContentLayoutContextValue = {
@@ -55,7 +48,7 @@ const DEFAULT_CONTEXT: ContentLayoutContextValue = {
   full: 0,
   align: "start",
   gap: 1,
-  gutterMinWidth: 1,
+  gutterMinWidth: { left: 1, right: 1 },
 }
 
 const layoutLog = createLogger("silvery:content-layout")
@@ -185,8 +178,8 @@ function Layout({
   wide?: ContentResponsive<ContentWidthValue>
   align?: ContentResponsive<"start" | "center" | "stretch">
   gap?: number
-  /** See {@link ContentLayoutContextValue.gutterMinWidth}. Default `1`. */
-  gutterMinWidth?: number
+  /** Minimum prose gutters; a number applies to both sides. Default `1`. */
+  gutterMinWidth?: number | ContentLayoutContextValue["gutterMinWidth"]
 }): React.ReactElement {
   // Declarative paneCols — from PaneSize context if the host provides it,
   // else fall back to the active surface width. NO useBoxRect read; ctx is correct
@@ -209,14 +202,17 @@ function Layout({
       full: paneCols,
       align: resolveResponsive(align, paneCols),
       gap,
-      gutterMinWidth,
+      gutterMinWidth:
+        typeof gutterMinWidth === "number"
+          ? { left: gutterMinWidth, right: gutterMinWidth }
+          : gutterMinWidth,
     }),
     [paneCols, prose, wide, align, gap, gutterMinWidth],
   )
 
   const lastLogKey = useRef("")
   useEffect(() => {
-    const key = `${value.available}:${value.prose}:${value.wide}:${value.full}:${value.align}:${value.gap}:${value.gutterMinWidth}`
+    const key = `${value.available}:${value.prose}:${value.wide}:${value.full}:${value.align}:${value.gap}:${value.gutterMinWidth.left}:${value.gutterMinWidth.right}`
     if (key === lastLogKey.current) return
     lastLogKey.current = key
     layoutLog.debug?.("content layout resolved (declarative)", value)
@@ -588,17 +584,20 @@ function ProseLane({ children }: { children: React.ReactNode }): React.ReactElem
   // column on each side is narrower than any realistic document surface,
   // and this is the one degrade `DocumentView` does NOT opt out of: it
   // only ever asks for a WIDER floor, never a different threshold.
-  const gutterMinWidth = available > 2 ? ctx.gutterMinWidth : 0
+  const leftGutter = available > 2 ? ctx.gutterMinWidth.left : 0
+  const rightGutter = available > 2 ? ctx.gutterMinWidth.right : 0
   const proseWidth =
-    available > 0 ? Math.max(1, Math.min(ctx.prose, available - gutterMinWidth * 2)) : ctx.prose
+    available > 0
+      ? Math.max(1, Math.min(ctx.prose, available - leftGutter - rightGutter))
+      : ctx.prose
   const lane = (
     <Box flexDirection="row" width="100%" minWidth={0}>
       <Box
-        width={gutterMinWidth}
+        width={leftGutter}
         flexGrow={1}
-        flexBasis={gutterMinWidth}
+        flexBasis={leftGutter}
         flexShrink={0}
-        minWidth={gutterMinWidth}
+        minWidth={leftGutter}
       />
       {/*
         `maxWidth="100%"`, not `maxWidth={proseWidth}` — the pair is
@@ -622,11 +621,11 @@ function ProseLane({ children }: { children: React.ReactNode }): React.ReactElem
         {children}
       </Box>
       <Box
-        width={gutterMinWidth}
+        width={rightGutter}
         flexGrow={1}
-        flexBasis={gutterMinWidth}
+        flexBasis={rightGutter}
         flexShrink={0}
-        minWidth={gutterMinWidth}
+        minWidth={rightGutter}
       />
     </Box>
   )

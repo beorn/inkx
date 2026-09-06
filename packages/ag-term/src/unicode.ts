@@ -707,7 +707,7 @@ export function isSoftBreakPoint(grapheme: string): boolean {
 
 /**
  * Longest unbreakable run of one source line under word-aware wrapping — the
- * per-line CSS min-content. Hard break opportunities (space, tab, hyphen) end
+ * per-line CSS min-content. Hard break opportunities (space, tab) end
  * a segment BEFORE the breaking character; soft break points
  * (`isSoftBreakPoint`) end the segment INCLUDING the separator, because wrap
  * breaks after it.
@@ -725,7 +725,7 @@ export function longestUnbreakableSegment(
   let segment = 0
   for (let pos = 0; pos < line.length; pos++) {
     const ch = line[pos]!
-    if (ch === " " || ch === "\t" || ch === "-") {
+    if (isWordBoundary(ch)) {
       if (segment > longest) longest = segment
       segment = 0
       continue

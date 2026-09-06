@@ -1,38 +1,8 @@
 /**
- * DocumentHeadingBlock.marker — the heading task-checkbox gutter.
- *
- * Regression coverage for @si/app/22571-maddoc-doc-viewer-umbrella/22938,
- * across three revisions:
- *
- * Rev 1 (landed, then reverted in spirit): the shipped fix made room for a
- * marker by INDENTING every heading title — text shifted right by
- * markerWidth+1 the instant ANY heading in the document carried a marker.
- * Operator: "headings keep their column; the marker outdents into the left
- * margin" — backwards from what shipped.
- *
- * Rev 2: a zero-outer-width negative-margin technique fixed the hang
- * direction, but reached back into `ProseLane`'s own natural side gutter
- * (a 1-cell floor) using ONLY `markerWidth`, no gap cell — a wider
- * `markerWidth + 1` gutter had been tried first and measurably clipped the
- * glyph invisible the moment that floor was the binding constraint.
- * Operator feedback on the glued-glyph result: "there needs to be a space
- * between the marker and the title... now the marker is flush." A
- * follow-up cut reserved the gap as a real, per-heading `Content.Body
- * paddingLeft` instead — safe and gapped, but it insets only headings, so
- * a heading and an ordinary paragraph in the same marker-bearing document
- * no longer shared a left margin.
- *
- * Rev 3 (this file, current): operator ruling — no degrade at all.
- * `ProseLane`'s gutter floor (`Content.tsx`, `ContentLayoutContextValue.
- * gutterMinWidth`) is now CONFIGURABLE, and `DocumentView` raises it to
- * `DOCUMENT_MIN_GUTTER` (2) for every document it renders, unconditionally
- * — not just marker-bearing ones, both sides, regardless of pane width.
- * `HeadingRow` still reaches back `markerWidth + 1` cells with the same
- * zero-outer-width negative margin, but now into a gutter that is ALWAYS
- * wide enough, so the gap can never be pinched away, and — as a direct
- * consequence of raising a shared floor rather than reserving a per-block
- * inset — a marked heading's title lands on the exact same column as it
- * would in a document that never uses heading markers at all.
+ * Shared document geometry: headings keep the prose column, with their
+ * marker and gap in the left gutter. Compact mode keeps one trailing cell;
+ * framed source still reserves two inner padding cells.
+ * Tracking: @si/app/22571-maddoc-doc-viewer-umbrella/22938.
  */
 
 import React from "react"
@@ -41,6 +11,7 @@ import { createRenderer } from "@silvery/test"
 import {
   Content,
   DocumentView,
+  PopoverProvider,
   Text,
   ThemeProvider,
   type DocumentBlock,
@@ -54,6 +25,102 @@ function titleColumn(app: ReturnType<ReturnType<typeof createRenderer>>, title: 
 }
 
 describe("DocumentView heading marker gutter", () => {
+  test.each([
+    { id: "heading", kind: "heading", level: 2, content: "Embedded heading" },
+    { id: "paragraph", kind: "paragraph", content: "Embedded paragraph" },
+    {
+      id: "item",
+      kind: "list-item",
+      content: "Embedded item",
+      list: { groupId: "g", depth: 0, ordered: false },
+    },
+    { id: "quote", kind: "quote", content: "Embedded quote" },
+    { id: "code", kind: "code", content: "Embedded code" },
+    { id: "table", kind: "table", headers: ["Embedded table"], rows: [["value"]] },
+    { id: "rule", kind: "rule" },
+    { id: "extension", kind: "extension", token: "custom", content: "Embedded extension" },
+    { id: "media", kind: "media", content: <Text>Embedded media</Text> },
+  ] satisfies DocumentBlock[])(
+    "every embedded $kind gets the shared region tint and source marker",
+    (block) => {
+      const render = createRenderer({ cols: 60, rows: 12 })
+      const app = render(<DocumentView blocks={[{ ...block, embed: { source: "source.md" } }]} />)
+      expect(app.text).toContain("→")
+      const row = app.lines.findIndex((line) =>
+        line.includes(block.kind === "rule" ? "─" : "Embedded"),
+      )
+      expect(row).toBeGreaterThanOrEqual(0)
+      const expected = createRenderer({ cols: 1, rows: 1 })(
+        <Text backgroundColor="mix($fg-link, $bg, 95%)">x</Text>,
+      )
+      // The whole lane, not just the inline title or a padded child, is tinted.
+      expect(app.cell(8, row).bg).toEqual(expected.cell(0, 0).bg)
+      expect(app.cell(50, row).bg).toEqual(expected.cell(0, 0).bg)
+      const frame = app.locator(`#${block.id}`).boundingBox()!
+      const markerRow = app.lines.findIndex((line) => line.includes("→"))
+      expect(app.lines[markerRow]!.indexOf("→")).toBe(frame.x + frame.width - 1)
+    },
+  )
+
+  test("embed source hover preserves task markers, geometry, and selection priority", async () => {
+    const blocks: DocumentBlock[] = [
+      {
+        id: "task-embed",
+        kind: "heading",
+        level: 2,
+        content: "Task title",
+        marker: <Text>◐</Text>,
+        embed: { source: "notes.md#task" },
+      },
+      { id: "after-embed", kind: "paragraph", content: "Following prose" },
+    ]
+    const app = createRenderer({ cols: 60, rows: 12, autoRender: true })(
+      <PopoverProvider>
+        <DocumentView blocks={blocks} selectedId="task-embed" />
+      </PopoverProvider>,
+    )
+    const row = app.lines.findIndex((line) => line.includes("Task title"))
+    const column = app.lines[row]!.indexOf("Task title")
+    expect(app.lines[row]).toContain("→")
+    expect(app.lines[row]).toContain("◐ Task title")
+    const expected = createRenderer({ cols: 1, rows: 1 })(
+      <Text backgroundColor="$bg-selected">x</Text>,
+    )
+    expect(app.cell(column, row).bg).toEqual(expected.cell(0, 0).bg)
+    const followingBox = app.locator("#after-embed").boundingBox()
+    expect(app.text).not.toContain("notes.md#task")
+    await app.hover(column, row)
+    await new Promise((resolve) => setTimeout(resolve, 650))
+    expect(app.text).toContain("notes.md#task")
+    expect(app.lines.findIndex((line) => line.includes("Task title"))).toBe(row)
+    expect(app.locator("#after-embed").boundingBox()).toEqual(followingBox)
+  })
+
+  test.each([48, 65, 72, 89, 90, 120])(
+    "code preserves every character and right padding at %i columns",
+    (cols) => {
+      const source = "abcdefghijklmnopqrstuvwxyz_".repeat(5)
+      const app = createRenderer({ cols, rows: 16 })(
+        <DocumentView blocks={[{ id: "source", kind: "code", content: source }]} />,
+      )
+      const lines = app.lines.filter((line) => /[a-z_]/.test(line))
+      expect(lines.map((line) => line.trim()).join("")).toBe(source)
+      const codeStart = lines[0]!.indexOf("a")
+      const firstRow = app.lines.indexOf(lines[0]!)
+      const background = app.cell(codeStart, firstRow).bg
+      let rightEdge = codeStart
+      while (
+        rightEdge + 1 < cols &&
+        JSON.stringify(app.cell(rightEdge + 1, firstRow).bg) === JSON.stringify(background)
+      ) {
+        rightEdge++
+      }
+      for (const line of lines) {
+        expect(line.slice(rightEdge - 1, rightEdge + 1)).toBe("  ")
+      }
+    },
+  )
+
   test("code frames fill the prose lane even for a short line", () => {
     const app = createRenderer({ cols: 72, rows: 10 })(
       <DocumentView
@@ -70,7 +137,31 @@ describe("DocumentView heading marker gutter", () => {
     const background = app.cell(x, row).bg
     expect(background).not.toBeNull()
     expect(app.cell(0, row).bg).toEqual(background)
-    expect(app.cell(71, row).bg).toEqual(background)
+    expect(app.cell(70, row).bg).toEqual(background)
+    expect(app.cell(71, row).bg).not.toEqual(background)
+  })
+
+  test("auto-width tables keep the compact document gutters", () => {
+    const app = createRenderer({ cols: 72, rows: 12 })(
+      <DocumentView
+        blocks={[
+          { id: "prose", kind: "paragraph", content: "Normal prose" },
+          {
+            id: "table",
+            kind: "table",
+            lane: "auto",
+            headers: ["Name", "Description"],
+            rows: [["Sample", "A readable table"]],
+          },
+        ]}
+      />,
+    )
+    const prose = app.locator("#prose").boundingBox()!
+    const table = app.locator("#table").boundingBox()!
+    expect(table.x).toBe(prose.x)
+    expect(table.width).toBe(prose.width)
+    expect(table.x).toBe(2)
+    expect(table.x + table.width).toBe(71)
   })
 
   test.each([
@@ -336,14 +427,8 @@ describe("DocumentView heading marker gutter", () => {
     }
   })
 
-  test("a paragraph keeps a blank 2-cell margin on the RIGHT of its text at a pinch-band width, marker or no marker", () => {
-    // Right-side counterpart to the left-margin test above, at the exact
-    // width band (prose={80}, panes at/under ~82 cols) where the OLD
-    // 1-cell floor used to pinch the marker gutter — tight-packed
-    // single-character tokens fill lines to within 1 cell of ProseLane's
-    // true content edge, so the fullest wrapped line's own trailing gap
-    // measures the real right gutter, not word-wrap slack.
-    for (const cols of [40, 60, 82]) {
+  test("compact prose keeps only its marker gutter and one trailing cell below md", () => {
+    for (const cols of [40, 60, 82, 89]) {
       const content = Array.from({ length: 200 }, () => "y").join(" ")
       const blocks: DocumentBlock[] = [{ id: "p", kind: "paragraph", content }]
       const app = createRenderer({ cols, rows: 20 })(
@@ -351,18 +436,11 @@ describe("DocumentView heading marker gutter", () => {
           <DocumentView blocks={blocks} />
         </Content.Layout>,
       )
-      let fullestLine = ""
-      for (const line of app.lines) {
-        if (line.includes("y") && line.trimEnd().length > fullestLine.trimEnd().length) {
-          fullestLine = line
-        }
-      }
-      expect(fullestLine, `cols=${cols}`).not.toBe("")
-      const rightGutter = cols - fullestLine.trimEnd().length
-      // >= 2 with headroom for word-wrap slack (a token may not fit even
-      // when 2+ blank cells remain) — the guarantee is a FLOOR, not an
-      // exact width, so this only needs to rule out the old 0-1 cell pinch.
-      expect(rightGutter, `cols=${cols}`).toBeGreaterThanOrEqual(2)
+      expect(app.locator("#p").boundingBox(), `cols=${cols}`).toMatchObject({
+        x: 2,
+        width: cols - 3,
+      })
+      expect(app.cell(cols - 1, 0).char).toBe(" ")
     }
   })
 })

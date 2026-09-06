@@ -27,18 +27,18 @@
  *
  * A pragmatic subset, not a CommonMark implementation: no tables, reference
  * links, raw HTML, setext headings, or nested-emphasis edge cases. Fenced code
- * is rendered verbatim (line breaks preserved, no reflow) without syntax
- * highlighting — `@silvery/syntax` highlighting is an async follow-up. When a
- * consumer needs more, grow the parser here rather than pre-formatting Markdown
- * at the call site.
+ * preserves authored lines and uses the shared SyntaxHighlighter, including
+ * its language label and collapsible frame. When a consumer needs more, grow
+ * the parser here rather than pre-formatting Markdown at the call site.
  */
 
 import { Fragment, type JSX, type ReactNode } from "react"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { Link } from "../../components/Link"
-import { Blockquote, Code, CodeBlock, Em, H1, H2, H3, H4, H5, H6, HR, Strong } from "./Typography"
+import { Blockquote, Code, Em, H1, H2, H3, H4, H5, H6, HR, Strong } from "./Typography"
 import { HeadingRow } from "./HeadingRow"
+import { SyntaxHighlighter } from "./SyntaxHighlighter"
 
 // ============================================================================
 // Block model
@@ -59,7 +59,7 @@ interface MdList {
 type MdBlock =
   | { kind: "heading"; level: number; text: string }
   | { kind: "paragraph"; text: string }
-  | { kind: "code"; lines: string[] }
+  | { kind: "code"; lines: string[]; language: string }
   | { kind: "quote"; text: string }
   | { kind: "hr" }
   | { kind: "list"; list: MdList }
@@ -79,13 +79,14 @@ const ORDERED_MARKER_RE = /^\s*\d/u
 interface FenceInfo {
   ch: string
   len: number
+  language: string
 }
 
 function matchFenceOpen(line: string): FenceInfo | null {
   const m = FENCE_RE.exec(line)
   if (m === null) return null
   const run = m[1] ?? ""
-  return { ch: run[0] ?? "`", len: run.length }
+  return { ch: run[0] ?? "`", len: run.length, language: m[2] ?? "" }
 }
 
 function matchFenceClose(line: string, fence: FenceInfo): boolean {
@@ -203,7 +204,7 @@ function collectFence(lines: string[], start: number, fence: FenceInfo): [MdBloc
     body.push(line)
     i++
   }
-  return [{ kind: "code", lines: body }, i]
+  return [{ kind: "code", lines: body, language: fence.language }, i]
 }
 
 function collectQuote(lines: string[], start: number): [MdBlock, number] {
@@ -464,10 +465,10 @@ function renderList(list: MdList, keyPrefix: string, depth = 0): JSX.Element {
 }
 
 /** Fenced source uses the shared code surface and preserves authored lines. */
-function CodeFence({ lines }: { lines: string[] }): JSX.Element {
+function CodeFence({ lines, language }: { lines: string[]; language: string }): JSX.Element {
   return (
     <Box minWidth={0} marginX={-2}>
-      <CodeBlock>{lines.join("\n")}</CodeBlock>
+      <SyntaxHighlighter language={language} code={lines.join("\n")} />
     </Box>
   )
 }
@@ -493,7 +494,7 @@ function renderBlock(block: MdBlock, key: string, previous: MdBlock | undefined)
         </Text>
       )
     case "code":
-      return <CodeFence lines={block.lines} />
+      return <CodeFence lines={block.lines} language={block.language} />
     case "quote":
       return <Blockquote>{parseInline(block.text, key)}</Blockquote>
     case "hr":

@@ -99,8 +99,8 @@ type Track = Readonly<{
   min: number
   /** Band cap: max-content + chrome, capped by an explicit maxWidth. */
   max: number
-  /** Cell chrome inside the track: padding + column separator. */
-  chrome: number
+  /** Character-wrap floor; document headers and explicit minima still fit. */
+  degradedMin: number
   /** Explicit author width — the band is a single point and never degrades. */
   fixed: boolean
 }>
@@ -144,18 +144,23 @@ function computeTracks<T>(
   padding: number,
   columnSeparators: boolean,
   cellWrap: TextProps["wrap"],
+  wrapHeaders: boolean,
 ): Track[] {
   return columns.map((column, columnIndex) => {
     const separatorWidth = columnSeparators && columnIndex > 0 ? 1 : 0
     const chrome = padding + separatorWidth
     if (column.width !== undefined) {
       const total = column.width + separatorWidth
-      return { min: total, max: total, chrome, fixed: true }
+      return { min: total, max: total, degradedMin: total, fixed: true }
     }
     // Intrinsic sizing reads the RENDERED cell text (a render() that returns a
     // string participates), never the source data — a cell rendering a long
     // source down to a short label must not inflate the floor.
-    let minContent = intrinsicWidths(column.header, "truncate").minContentWidth
+    const headerMin = intrinsicWidths(
+      column.header,
+      wrapHeaders ? "wrap" : "truncate",
+    ).minContentWidth
+    let minContent = headerMin
     let maxContent = displayWidth(column.header)
     for (let itemIndex = 0; itemIndex < data.length; itemIndex++) {
       const item = data[itemIndex]
@@ -167,7 +172,11 @@ function computeTracks<T>(
     }
     const max = Math.min(maxContent + chrome, column.maxWidth ?? Number.MAX_SAFE_INTEGER)
     const min = Math.min(Math.max(minContent + chrome, column.minWidth ?? 0), max)
-    return { min, max, chrome, fixed: false }
+    const degradedMin = Math.min(
+      wrapHeaders ? Math.max(headerMin + chrome, column.minWidth ?? 0) : chrome + 1,
+      max,
+    )
+    return { min, max, degradedMin, fixed: false }
   })
 }
 
@@ -176,10 +185,9 @@ function computeTracks<T>(
  * floors do not fit:
  *
  * 1. Bands as computed — the normal case.
- * 2. Floors exceed the width: wrap-capable tracks drop their floor to one
- *    cell (character wrapping can break anywhere) and re-allocate. The
- *    degradation is visible — text breaks mid-word — never a silent squeeze
- *    below a floor.
+ * 2. Floors exceed the width: re-allocate with character-wrap floors. Document
+ *    headers and explicit minima stay readable; other tracks may reach one cell.
+ *    The degradation is visible — text breaks mid-word — never a silent squeeze.
  * 3. Even one-cell floors do not fit: no legal allocation exists. Returns
  *    null; cells fall back to flex truncation, whose ellipsis marks the loss.
  */
@@ -194,11 +202,10 @@ function allocateTracks(
   if (first.feasible) return { widths: first.widths, degraded: false }
 
   if (isWrapCapable(cellWrap)) {
-    const degradedBands: ApportionTrack[] = tracks.map((track) =>
-      track.fixed
-        ? { min: track.min, max: track.max }
-        : { min: Math.min(track.chrome + 1, track.max), max: track.max },
-    )
+    const degradedBands: ApportionTrack[] = tracks.map((track) => ({
+      min: track.degradedMin,
+      max: track.max,
+    }))
     const second = apportion(degradedBands, available)
     if (second.feasible) return { widths: second.widths, degraded: true }
   }
@@ -234,9 +241,10 @@ function TableImplementation<T>({
 }: TableImplementationProps<T>): React.ReactElement {
   const directRows = presentation !== "plain"
   const framed = presentation === "framed"
+  const wrapHeaders = presentation === "document" && isWrapCapable(cellWrap)
   const tracks = useMemo(
-    () => computeTracks(columns, data, padding, framed, cellWrap),
-    [cellWrap, columns, data, framed, padding],
+    () => computeTracks(columns, data, padding, framed, cellWrap, wrapHeaders),
+    [cellWrap, columns, data, framed, padding, wrapHeaders],
   )
   // The committed inner rect of the CONTAINING Box (NodeContext) — the width
   // the table is being laid into. Batch-invariant, so allocating from it
@@ -267,12 +275,12 @@ function TableImplementation<T>({
   const ruleColor = presentation === "document" ? "$border-muted" : borderColor
   const leftPadding = directRows ? Math.floor(padding / 2) : 0
   const rightPadding = directRows ? padding - leftPadding : padding
-  const bodyWrap: TextProps["wrap"] = allocation?.degraded ? "hard" : cellWrap
+  const bodyWrap: TextProps["wrap"] = allocation?.degraded && !wrapHeaders ? "hard" : cellWrap
   const blocks =
     layout === "blocks" ||
     (layout === "auto" &&
       available !== null &&
-      (containerWidth <= 0 || allocation === null || allocation.degraded))
+      (containerWidth <= 0 || allocation === null || (allocation.degraded && !wrapHeaders)))
 
   // The band the allocator worked under, carried onto the rendered track so the
   // `apportion-bands` STRICT check can compare the width the layout engine
@@ -280,7 +288,11 @@ function TableImplementation<T>({
   // unmeasured first frame or visible hard-overflow fallback has no allocation
   // promise, so it deliberately carries no band assertion.
   const trackProps = (column: Column<T>, track: Track, columnIndex: number) => ({
-    ...(allocation === null ? {} : { [TRACK_BAND_ATTR]: `${track.min},${track.max}` }),
+    ...(allocation === null
+      ? {}
+      : {
+          [TRACK_BAND_ATTR]: `${allocation.degraded ? track.degradedMin : track.min},${track.max}`,
+        }),
     ...trackFlexProps(column, track, columnIndex),
   })
 
@@ -437,7 +449,13 @@ function TableImplementation<T>({
           paddingRight={rightPadding}
           justifyContent={cellJustify(column)}
         >
-          <Text bold color={headerColor} minWidth={0} maxWidth="100%" wrap="truncate">
+          <Text
+            bold
+            color={headerColor}
+            minWidth={0}
+            maxWidth="100%"
+            wrap={wrapHeaders ? "wrap" : "truncate"}
+          >
             {column.header}
           </Text>
         </Box>

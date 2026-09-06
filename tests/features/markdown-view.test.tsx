@@ -5,7 +5,7 @@
  * paragraph join into one logical line and re-wrap to the container width — the
  * terminal, not the author, decides where lines break. Plus emphasis / inline
  * code / heading / list styling via Typography presets + semantic tokens
- * (`strong`→bold, `em`→italic, `code`→`$fg-muted`, headings bold).
+ * (`strong`→bold, `em`→italic, `code`→muted/link blend, headings bold).
  *
  * Assertions render the buffer and check what the user sees (The Silvery Way
  * §10); one parser unit test pins the reflow join at the source. Runs at
@@ -200,12 +200,32 @@ describe("MarkdownView — block elements", () => {
     }
   })
 
-  test("fenced code preserves line breaks and does not reflow", () => {
-    const app = render("```ts\nconst a = 1\nconst b = 2\n```")
+  test("fenced code preserves line breaks and forwards its language for highlighting", async () => {
+    const app = createRenderer({ cols: 80, rows: 24, autoRender: true })(
+      <Box width={80} height={24}>
+        <MarkdownView source={"```typescript\nconst a = 1\nconst b = 2\n```"} />
+      </Box>,
+    )
     expect(app.text).toContain("const a = 1")
     expect(app.text).toContain("const b = 2")
     expect(app.text).not.toContain("const a = 1 const b = 2") // stayed on two lines
     expect(app.text).not.toContain("```") // fence markers stripped
+    const sourceRow = app.lines.findIndex((line) => line.includes("const a = 1"))
+    const sourceColumn = app.lines[sourceRow]!.indexOf("const")
+    await app.hover(sourceColumn, sourceRow)
+    expect(app.text).toContain("typescript")
+    const plainForeground = createRenderer({ cols: 1, rows: 1 })(
+      <Text color="mix($fg, $fg-muted, 50%)">x</Text>,
+    ).cell(0, 0).fg
+    await vi.waitFor(
+      () => {
+        const row = app.lines.findIndex((line) => line.includes("const a = 1"))
+        const column = app.lines[row]!.indexOf("const")
+        expect(app.cell(column, row).fg).not.toBeNull()
+        expect(app.cell(column, row).fg).not.toEqual(plainForeground)
+      },
+      { timeout: 5_000 },
+    )
   })
 })
 

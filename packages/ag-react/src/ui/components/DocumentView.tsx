@@ -3,6 +3,7 @@ import { computeMatchRanges, type SearchMatch } from "@silvery/ag-term/search-ov
 import { displayLength } from "@silvery/ansi"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
+import { usePopoverHandlers } from "../../components/Popover"
 import { Blockquote, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
 import { SyntaxHighlighter } from "./SyntaxHighlighter"
 import { Prose } from "./Prose"
@@ -10,6 +11,8 @@ import { HeadingRow } from "./HeadingRow"
 import { Content, type ContentBodyWidth, useContentLayout, useHasContentLayout } from "./Content"
 import { StylePriorityProvider } from "../../style-priority"
 import { useSearchOptional } from "../../providers/SearchProvider"
+import { useTerm } from "../../hooks/useTerm"
+import { DEFAULT_BREAKPOINTS } from "../../hooks/useResponsiveValue"
 import type { ScrollController } from "./ScrollArea"
 
 export type DocumentBlockId = string | number
@@ -30,6 +33,10 @@ interface DocumentBlockBase {
   readonly lane?: DocumentLane
   /** Non-geometric leaf content such as a measurement registrar. */
   readonly accessory?: React.ReactNode
+  /** Content projected from another source; the presenter owns its visual treatment. */
+  readonly embed?: { readonly source: string }
+  /** Keep this block directly beneath its preceding owner without a paragraph gap. */
+  readonly attachedToPrevious?: true
 }
 
 export interface DocumentHeadingBlock extends DocumentBlockBase {
@@ -245,6 +252,11 @@ function BlockFrame({
   onLayout?: (y: number) => void
   children: React.ReactNode
 }): React.ReactElement {
+  const popover = usePopoverHandlers(
+    { body: <Text color="$fg-muted">{block.embed?.source}</Text> },
+    { trigger: "hover" },
+  )
+  const background = selected ? "$bg-selected" : block.embed ? "mix($fg-link, $bg, 95%)" : undefined
   return (
     <Content.Row>
       <Content.Body width={lane}>
@@ -256,19 +268,28 @@ function BlockFrame({
           data-cursor={selected ? true : undefined}
           focusable
           minWidth={0}
-          marginTop={marginTop}
+          width={block.embed ? "100%" : undefined}
+          paddingRight={block.embed ? 2 : undefined}
+          marginTop={block.attachedToPrevious ? 0 : marginTop}
           marginBottom={marginBottom}
           onLayout={onLayout ? (rect) => onLayout(rect.y) : undefined}
-          backgroundColor={selected ? "$bg-selected" : undefined}
+          backgroundColor={background}
           color={selected ? "$fg-on-selected" : undefined}
+          onMouseEnter={block.embed ? popover.onMouseEnter : undefined}
+          onMouseLeave={block.embed ? popover.onMouseLeave : undefined}
         >
           <StylePriorityProvider
             foreground={selected ? "$fg-on-selected" : undefined}
-            background={selected ? "$bg-selected" : undefined}
+            background={background}
           >
             {block.accessory}
             {children}
           </StylePriorityProvider>
+          {block.embed ? (
+            <Box position="absolute" right={0} top={0} width={1}>
+              <Text color={selected ? "$fg-on-selected" : "mix($fg-link, $bg, 75%)"}>→</Text>
+            </Box>
+          ) : null}
         </Box>
       </Content.Body>
     </Content.Row>
@@ -321,11 +342,13 @@ function DocumentBlocks({
   selectedId,
   empty,
   lane,
+  compact,
   onBlockLayout,
   collapsedCode,
   onCodeExpandedChange,
 }: Required<Pick<DocumentViewProps, "blocks" | "lane">> &
   Pick<DocumentViewProps, "selectedId" | "empty"> & {
+    compact: boolean
     onBlockLayout?: (id: DocumentBlockId, y: number) => void
     collapsedCode: ReadonlySet<DocumentBlockId>
     onCodeExpandedChange: (id: DocumentBlockId, expanded: boolean) => void
@@ -346,9 +369,10 @@ function DocumentBlocks({
     <Box flexDirection="column" minWidth={0}>
       {blocks.map((block, index) => {
         const selected = block.id === selectedId
-        const blockLane = block.lane ?? lane
+        const blockLane = compact && block.kind === "table" ? "prose" : (block.lane ?? lane)
         const previous = blocks[index - 1]
         const afterList = !isListBlock(block) && isListBlock(previous)
+        const bottomMargin = blocks[index + 1]?.attachedToPrevious ? 0 : 1
 
         switch (block.kind) {
           case "heading": {
@@ -373,7 +397,7 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={topMargin || undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <HeadingRow
@@ -411,7 +435,7 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <HR />
@@ -425,7 +449,7 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Blockquote color={selected ? "$fg-on-selected" : undefined}>
@@ -441,10 +465,10 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
-                <Box flexDirection="column" flexGrow={1} minWidth={0} marginX={-2}>
+                <Box flexDirection="column" flexGrow={1} minWidth={0} marginLeft={-2}>
                   <SyntaxHighlighter
                     language={block.language ?? "plain"}
                     code={block.content}
@@ -462,7 +486,7 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Content.Table
@@ -480,7 +504,7 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Box width="100%" flexDirection="column">
@@ -497,7 +521,7 @@ function DocumentBlocks({
                 selected={selected}
                 lane={blockLane}
                 marginTop={afterList ? 1 : undefined}
-                marginBottom={1}
+                marginBottom={bottomMargin}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
                 <Text variant="body" color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
@@ -511,21 +535,7 @@ function DocumentBlocks({
   )
 }
 
-/**
- * Minimum blank margin `DocumentView`'s prose lane keeps on EACH side, in
- * cells — always, not just when a heading marker is present. This is what
- * lets `HeadingRow`'s marker gutter (`markerWidth + 1` — see there) hang
- * into ORDINARY document margin at any pane width, with no narrower "flush"
- * degrade: `ProseLane`'s own default floor is only 1 (`Content.tsx`), too
- * narrow to guarantee a glyph plus its gap. Operator: "we always make sure
- * there's a 2-space column to the left and right of text" — deliberately
- * NOT conditioned on whether the document happens to use heading markers,
- * both so every document (marker-bearing or not) gets identical geometry
- * and so the guarantee can never depend on a callsite remembering to ask
- * for it. A rejected alternative — degrade to the marker sitting inline
- * with the title once the pane pinches — is recorded here as the option
- * NOT taken, should a future revision want it back.
- */
+/** Normal document margin; compact mode keeps only one trailing cell. */
 const DOCUMENT_MIN_GUTTER = 2
 
 /**
@@ -544,6 +554,10 @@ export function DocumentView({
 }: DocumentViewProps): React.ReactElement {
   const hasContentLayout = useHasContentLayout()
   const ambientLayout = useContentLayout()
+  const termCols = useTerm((term) => term.size.cols())
+  const paneCols = hasContentLayout ? ambientLayout.available : termCols
+  const compact = paneCols > 0 && paneCols < DEFAULT_BREAKPOINTS.md
+  const markerGutter = resolveHeadingMarkerWidth(blocks) + 1
   const searchContext = useSearchOptional()
   const autoSearchId = useId()
   const searchId = search?.id ?? autoSearchId
@@ -652,6 +666,7 @@ export function DocumentView({
       selectedId={searchSelectedId ?? selectedId}
       empty={empty}
       lane={lane}
+      compact={compact}
       collapsedCode={collapsedCode}
       onCodeExpandedChange={(id, expanded) => {
         setCollapsedCode((current) => {
@@ -678,27 +693,19 @@ export function DocumentView({
       }}
     />
   )
-  // Always nest a Content.Layout — even when an ancestor already provides
-  // one (e.g. km-tui DetailView's own `prose={80} wide={120}`) — so
-  // DOCUMENT_MIN_GUTTER is guaranteed regardless of whether the caller's
-  // own Layout happens to be wide enough. When an ancestor exists, its
-  // resolved prose/wide/align/gap are threaded through unchanged (`ctx`
-  // already reflects the real pane's resolved values, so re-declaring them
-  // here is a width no-op — see `Layout` in Content.tsx); only
-  // `gutterMinWidth` is ever widened. When there is no ancestor, passing
-  // `undefined` for those four lets `Content.Layout`'s OWN prop defaults
-  // apply exactly as before (notably `align="center"`, which the
-  // no-ancestor fallback context value does NOT share — reading `ctx.align`
-  // unconditionally here would have silently flipped standalone documents
-  // from centered to left-aligned).
+  // Keep ambient wide-lane policy. Compact prose fills the pane, reserving
+  // enough leading cells for its heading marker and a single trailing space.
   return (
     <Content.Layout
       fill={false}
-      prose={hasContentLayout ? ambientLayout.prose : undefined}
+      prose={compact ? "100%" : hasContentLayout ? ambientLayout.prose : undefined}
       wide={hasContentLayout ? ambientLayout.wide : undefined}
       align={hasContentLayout ? ambientLayout.align : undefined}
       gap={hasContentLayout ? ambientLayout.gap : undefined}
-      gutterMinWidth={Math.max(ambientLayout.gutterMinWidth, DOCUMENT_MIN_GUTTER)}
+      gutterMinWidth={{
+        left: Math.max(ambientLayout.gutterMinWidth.left, markerGutter),
+        right: compact ? 1 : Math.max(ambientLayout.gutterMinWidth.right, DOCUMENT_MIN_GUTTER),
+      }}
     >
       {document}
     </Content.Layout>
