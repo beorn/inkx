@@ -10,9 +10,8 @@
  *
  * ## Color inheritance
  *
- * Inline emphasis and H3 inherit foreground color from
- * the nearest ancestor Box with a `color` or `theme` prop — just like CSS.
- * P uses the theme's body variant; an explicit color overrides it.
+ * H3 inherits foreground; body and inline emphasis use theme variants.
+ * An explicit color or structural style priority overrides those defaults.
  *
  * `Box theme={}` auto-inherits `$fg` for all text and auto-fills `$bg`:
  * ```tsx
@@ -36,12 +35,16 @@
 import type { ReactNode } from "react"
 import { createContext, useContext, Children, cloneElement, isValidElement } from "react"
 import type { InteractionSurfaceInput, InteractionTreatment, InteractiveState } from "@silvery/ag"
+import type { TerminalSelectionState } from "@silvery/ag-term"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 import type { TextProps } from "../../components/Text"
 import { useInteractionTreatment } from "../../hooks/useInteractionTreatment"
 import { useTheme } from "../../ThemeContext"
-import { StylePriorityProvider } from "../../style-priority"
+import { CapabilityRegistryContext } from "../../context"
+import { StylePriorityContext, StylePriorityProvider } from "../../style-priority"
+import { useExpansion } from "./use-expansion"
+import { HangingMarkerRow } from "./HeadingRow"
 
 export interface TypographyProps extends Omit<TextProps, "children"> {
   children?: ReactNode
@@ -152,7 +155,7 @@ export function Small({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Bold emphasis — inline strong text. Inherits foreground from parent. */
+/** Bold emphasis — halfway between body foreground and the theme's full foreground. */
 export function Strong({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="strong" color={color} {...rest}>
@@ -161,7 +164,7 @@ export function Strong({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Italic emphasis — inline emphasized text. Inherits foreground from parent. */
+/** Italic emphasis — halfway between body foreground and the theme's full foreground. */
 export function Em({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="em" color={color} {...rest}>
@@ -175,7 +178,7 @@ export function Em({ children, color, ...rest }: TypographyProps) {
 // ============================================================================
 
 /**
- * Inline code — `$fg-info` text without a background chip or padding.
+ * Inline code — muted/link foreground blend without a background chip or padding.
  * An explicit caller color still wins (for selection and local emphasis).
  * Defaults to `wrap="truncate-middle"` (GitHub-style):
  * inline code is one unbroken token, so when it overflows the container
@@ -302,19 +305,99 @@ export function Blockquote({ children, color }: TypographyProps) {
  * fences in a narrow terminal stay fully visible. Tracking:
  * @km/silvery/15087-markdown-code-block-char-wrap-default.
  */
-export function CodeBlock({ children, color }: TypographyProps) {
+export interface CodeBlockProps extends Omit<BoxProps, "children" | "content"> {
+  children?: ReactNode
+  /** Already-rendered source, such as a bare SyntaxHighlighter. */
+  content?: ReactNode
+  label?: string
+  expanded?: boolean
+  defaultExpanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
+}
+
+export function CodeBlock({
+  children,
+  content,
+  label = "text",
+  expanded,
+  defaultExpanded = true,
+  onExpandedChange,
+  color,
+  backgroundColor,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  ...props
+}: CodeBlockProps) {
+  const [isExpanded, setExpanded] = useExpansion(expanded, defaultExpanded, onExpandedChange)
+  const interaction = useInteractionTreatment("control", "surfaceHover")
+  const priority = useContext(StylePriorityContext)
+  const registry = useContext(CapabilityRegistryContext)
+  const background =
+    priority?.background ??
+    backgroundColor ??
+    (!isExpanded && interaction.isHovered ? "$bg-surface-hover" : "$bg-surface-subtle")
+  const labelColor = "mix($fg-faint, $bg, 50%)"
   return (
     <Box
       flexDirection="column"
+      position="relative"
       width="100%"
       minWidth={0}
       paddingX={2}
-      paddingY={1}
-      backgroundColor="$bg-surface-subtle"
+      {...props}
+      paddingY={isExpanded ? 1 : 0}
+      color={color}
+      backgroundColor={background}
+      mouseCursor="pointer"
+      onMouseEnter={(event) => {
+        interaction.onMouseEnter(event)
+        onMouseEnter?.(event)
+      }}
+      onMouseLeave={(event) => {
+        interaction.onMouseLeave(event)
+        onMouseLeave?.(event)
+      }}
+      onClick={(event) => {
+        onClick?.(event)
+        if (event.defaultPrevented) return
+        // The runtime consumes drag releases. Also leave an existing text
+        // selection intact rather than interpreting it as a disclosure click.
+        const selection = registry?.get<{ readonly state: TerminalSelectionState }>(
+          Symbol.for("silvery.selection"),
+        )?.state
+        const range = selection?.range
+        if (
+          selection?.selecting ||
+          (range && (range.anchor.col !== range.head.col || range.anchor.row !== range.head.row))
+        ) {
+          return
+        }
+        setExpanded(!isExpanded)
+        event.preventDefault()
+        event.stopPropagation()
+      }}
     >
-      <Text color={color ?? "mix($fg, $fg-muted, 50%)"} wrap="hard">
-        {children}
-      </Text>
+      <StylePriorityProvider background={background}>
+        {isExpanded ? (
+          <>
+            {interaction.isHovered ? (
+              <Box position="absolute" top={0} right={2}>
+                <Text color={labelColor}>{label}</Text>
+              </Box>
+            ) : null}
+            {content ?? (
+              <Text color={color ?? "mix($fg, $fg-muted, 50%)"} wrap="hard">
+                {children}
+              </Text>
+            )}
+          </>
+        ) : (
+          <HangingMarkerRow marker={<Text color="$fg-faint">▸</Text>}>
+            <Text color="$fg-muted">{label}</Text>
+          </HangingMarkerRow>
+        )}
+      </StylePriorityProvider>
     </Box>
   )
 }

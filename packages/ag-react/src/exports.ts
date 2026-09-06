@@ -284,7 +284,7 @@ export {
   OL,
   LI,
 } from "./ui/components"
-export type { DecoratedRegionProps, TypographyProps } from "./ui/components"
+export type { CodeBlockProps, DecoratedRegionProps, TypographyProps } from "./ui/components"
 
 // Shared noun#value.revision identity grammar.
 export { formatNounId, NounId } from "./ui/components"

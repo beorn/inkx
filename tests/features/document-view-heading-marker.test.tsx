@@ -54,6 +54,78 @@ function titleColumn(app: ReturnType<ReturnType<typeof createRenderer>>, title: 
 }
 
 describe("DocumentView heading marker gutter", () => {
+  test("code frames fill the prose lane even for a short line", () => {
+    const app = createRenderer({ cols: 72, rows: 10 })(
+      <DocumentView
+        blocks={[
+          { id: "prose", kind: "paragraph", content: "Normal prose" },
+          { id: "source", kind: "code", content: "x" },
+        ]}
+      />,
+    )
+    const row = app.lines.findIndex((line) => line.trim() === "x")
+    expect(row).toBeGreaterThanOrEqual(0)
+    const x = app.lines[row]!.indexOf("x")
+    expect(x).toBe(app.lines[0]!.indexOf("Normal prose"))
+    const background = app.cell(x, row).bg
+    expect(background).not.toBeNull()
+    expect(app.cell(0, row).bg).toEqual(background)
+    expect(app.cell(71, row).bg).toEqual(background)
+  })
+
+  test.each([
+    { metadata: false, firstLevel: 1 },
+    { metadata: true, firstLevel: 1 },
+    { metadata: false, firstLevel: 2 },
+  ] as const)(
+    "adds leading space to H1/H2 only after body content ($metadata, $firstLevel)",
+    ({ metadata, firstLevel }) => {
+      const blocks: DocumentBlock[] = [
+        ...(metadata
+          ? [{ id: "metadata", kind: "media" as const, content: <Text>Frontmatter</Text> }]
+          : []),
+        { id: "title", kind: "heading", level: firstLevel, content: "Opening heading" },
+        {
+          id: "heading-after-heading",
+          kind: "heading",
+          level: 2,
+          content: "Heading after heading",
+        },
+        { id: "opening", kind: "paragraph", content: "Opening prose" },
+        { id: "section", kind: "heading", level: 2, content: "Second-level section" },
+        { id: "section-body", kind: "paragraph", content: "Section prose" },
+        { id: "later-title", kind: "heading", level: 1, content: "Later first-level heading" },
+        { id: "later-body", kind: "paragraph", content: "Later prose" },
+        { id: "subsection", kind: "heading", level: 3, content: "Third-level subsection" },
+        {
+          id: "last-item",
+          kind: "list-item",
+          list: { groupId: "items", depth: 0, ordered: false },
+          content: "Last list item",
+        },
+        { id: "after-list", kind: "heading", level: 2, content: "Section after list" },
+        { id: "divider", kind: "rule" },
+        { id: "after-rule", kind: "heading", level: 2, content: "Section after rule" },
+        { id: "inline-media", kind: "media", content: <Text>Media content</Text> },
+        { id: "after-media", kind: "heading", level: 1, content: "Title after media" },
+      ]
+      const app = createRenderer({ cols: 72, rows: 48 })(<DocumentView blocks={blocks} />)
+      const row = (text: string) => {
+        const index = app.lines.findIndex((line) => line.includes(text))
+        expect(index, `row containing ${text}`).toBeGreaterThanOrEqual(0)
+        return index
+      }
+      expect(row("Opening heading")).toBe(metadata ? row("Frontmatter") + 2 : 0)
+      expect(row("Heading after heading") - row("Opening heading")).toBe(2)
+      expect(row("Second-level section") - row("Opening prose")).toBe(3)
+      expect(row("Later first-level heading") - row("Section prose")).toBe(3)
+      expect(row("Third-level subsection") - row("Later prose")).toBe(2)
+      expect(row("Section after list") - row("Last list item")).toBe(3)
+      expect(row("Section after rule") - row("─")).toBe(2)
+      expect(row("Title after media") - row("Media content")).toBe(2)
+    },
+  )
+
   test("the marker hangs to the LEFT of the title column, with a visible gap between them", () => {
     const blocks: DocumentBlock[] = [
       {

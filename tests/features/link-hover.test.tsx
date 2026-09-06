@@ -538,19 +538,37 @@ describe("Link role-derived reveal", () => {
     expect(app.cell(col, 0).fg).toEqual(idleForeground)
   })
 
-  test("default variant still requires Cmd", async () => {
-    const render = createRenderer({ cols: 40, rows: 5 })
-    const app = render(
-      <Box>
-        <Link href="https://example.com">Default</Link>
-      </Box>,
-    )
+  test.each([
+    ["https://example.com", "$fg"],
+    ["file:///tmp/diagram.png", "$fg-success"],
+  ])(
+    "URL %s brightens on plain hover without changing its destination or underline",
+    async (href, revealColor) => {
+      const render = createRenderer({ cols: 40, rows: 5 })
+      const app = render(
+        <Box flexDirection="column">
+          <Link href={href} revealColor={revealColor} variant="link">
+            Default
+          </Link>
+          <Text>Other</Text>
+        </Box>,
+      )
 
-    const col = app.text.indexOf("Default")
-    await app.hover(col, 0)
+      const col = app.text.indexOf("Default")
+      const idleForeground = app.cell(col, 0).fg
+      const expected = createRenderer({ cols: 1, rows: 1 })(<Text color={revealColor}>X</Text>)
+      await app.hover(col, 0)
 
-    expect(app.term.cell(col, 0).attrs.underline).toBeFalsy()
-  })
+      expect(app.cell(col, 0).fg).not.toEqual(idleForeground)
+      expect(app.cell(col, 0).fg).toEqual(expected.cell(0, 0).fg)
+      expect(app.cell(col, 0).underline).toBeFalsy()
+      expect(app.term.cell(col, 0).hyperlink).toBe(href)
+
+      await app.hover(0, 1)
+      expect(app.cell(col, 0).fg).toEqual(idleForeground)
+      expect(app.cell(col, 0).underline).toBeFalsy()
+    },
+  )
 })
 
 // ============================================================================

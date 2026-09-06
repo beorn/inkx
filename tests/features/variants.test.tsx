@@ -129,13 +129,15 @@ describe("Text variant prop", () => {
   })
 
   // =============================================================================
-  // Test 6: variant="code" → $fg-info foreground without a background chip
+  // Test 6: variant="code" → muted-link foreground without a background chip
   // =============================================================================
 
-  test("variant='code' → $fg-info foreground and inherited background", () => {
+  test("variant='code' → muted-link foreground and inherited background", () => {
     const code = createRenderer({ cols: 40, rows: 3 })
     const app = code(<Text variant="code">hello</Text>)
-    const info = createRenderer({ cols: 40, rows: 3 })(<Text color="$fg-info">hello</Text>)
+    const info = createRenderer({ cols: 40, rows: 3 })(
+      <Text color="mix($fg-muted, $fg-link, 50%)">hello</Text>,
+    )
     const cell = app.cell(0, 0)
     expect(cell.char).toBe("h")
     expect(cell.fg).toEqual(info.cell(0, 0).fg)
@@ -347,7 +349,7 @@ describe("Theme.variants structure", () => {
   test("body variant softens foreground without changing weight", () => {
     const body = defaultDarkTheme.variants?.body
     expect(body).toBeDefined()
-    expect(body?.color).toBe("mix($fg, $fg-muted, 25%)")
+    expect(body?.color).toBe("mix($fg, $fg-muted, 12.5%)")
     expect(body?.bold).toBeUndefined()
   })
 })

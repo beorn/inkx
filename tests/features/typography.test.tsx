@@ -118,10 +118,10 @@ describe("Body text", () => {
     expect(app.text).toContain("Body text here")
   })
 
-  test("P has no bold/italic by default", () => {
+  test("P softens foreground by 12.5% without bold or italic", () => {
     const app = render(<P>Plain</P>)
     const expected = createRenderer({ cols: 1, rows: 1 })(
-      <Text color="mix($fg, $fg-muted, 25%)">P</Text>,
+      <Text color="mix($fg, $fg-muted, 12.5%)">P</Text>,
     )
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.attrs.bold).toBeFalsy()
@@ -174,9 +174,13 @@ describe("Body text", () => {
 describe("Inline emphasis", () => {
   test("Strong renders bold text", () => {
     const app = render(<Strong>Important</Strong>)
+    const reference = createRenderer({ cols: 1, rows: 1 })(
+      <Text color="mix($fg, mix($fg, $fg-muted, 12.5%), 50%)">I</Text>,
+    )
     expect(app.text).toContain("Important")
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.attrs.bold).toBe(true)
+    expect(cell.fg).toEqual(reference.cell(0, 0).fg)
   })
 
   test("Strong is not italic", () => {
@@ -187,9 +191,13 @@ describe("Inline emphasis", () => {
 
   test("Em renders italic text", () => {
     const app = render(<Em>Emphasis</Em>)
+    const reference = createRenderer({ cols: 1, rows: 1 })(
+      <Text color="mix($fg, mix($fg, $fg-muted, 12.5%), 50%)">E</Text>,
+    )
     expect(app.text).toContain("Emphasis")
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.attrs.italic).toBe(true)
+    expect(cell.fg).toEqual(reference.cell(0, 0).fg)
   })
 
   test("Em is not bold", () => {
@@ -218,9 +226,11 @@ describe("Inline code elements", () => {
     expect(app.text).not.toContain(" fn() ")
   })
 
-  test("Code uses $fg-info without a background chip", () => {
+  test("Code mixes muted and link foreground without a background chip", () => {
     const app = render(<Code>x</Code>)
-    const info = render(<Text color="$fg-info">x</Text>)
+    const info = createRenderer({ cols: 1, rows: 1 })(
+      <Text color="mix($fg-muted, $fg-link, 50%)">x</Text>,
+    )
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.char).toBe("x")
     expect(cell.fg).toEqual(info.term.buffer.getCell(0, 0).fg)
@@ -250,7 +260,7 @@ describe("Inline code elements", () => {
     expect(kbdCell.attrs.bold).toBe(true)
   })
 
-  test("Code caller color overrides $fg-info", () => {
+  test("Code caller color overrides its muted-link foreground", () => {
     const app = render(<Code color="$fg-success">ok</Code>)
     const override = render(<Text color="$fg-success">ok</Text>)
     expect(app.term.buffer.getCell(0, 0).fg).toEqual(override.term.buffer.getCell(0, 0).fg)
@@ -486,6 +496,43 @@ describe("Block elements", () => {
     const buffer = app.term.buffer
     expect(buffer.getCell(2, 0).char).toBe("T")
     expect(buffer.getCell(2, 0).fg).toEqual(muted.term.buffer.getCell(0, 0).fg)
+  })
+
+  test("CodeBlock reveals its label on hover and collapses on a body click", async () => {
+    const app = createRenderer({ cols: 40, rows: 8, autoRender: true })(
+      <Box width={40} flexDirection="column">
+        <CodeBlock label="tsx">const answer = 42</CodeBlock>
+        <Text>After</Text>
+      </Box>,
+    )
+    expect(app.text).not.toContain("tsx")
+    const expandedBackground = app.cell(0, 0).bg
+    expect(app.lines.findIndex((line) => line.includes("After"))).toBe(3)
+    await app.hover(3, 1)
+    expect(app.lines[0]).toContain("tsx")
+    expect(app.cell(0, 0).bg).toEqual(expandedBackground)
+    expect(app.text).not.toContain("▾")
+    await app.click(3, 1)
+    expect(app.text).not.toContain("const answer")
+    expect(app.lines[0]).toContain("▸ tsx")
+    expect(app.cell(0, 0).char).toBe("▸")
+    expect(app.cell(2, 0).char).toBe("t")
+    const mutedLabel = createRenderer({ cols: 1, rows: 1 })(<Text color="$fg-muted">t</Text>)
+    expect(app.cell(2, 0).fg).toEqual(mutedLabel.cell(0, 0).fg)
+    expect(app.lines.findIndex((line) => line.includes("After"))).toBe(1)
+    await app.click(3, 0)
+    expect(app.text).toContain("const answer = 42")
+  })
+
+  test("CodeBlock respects a child that prevents the toggle click", async () => {
+    const app = createRenderer({ cols: 40, rows: 8, autoRender: true })(
+      <CodeBlock
+        label="text"
+        content={<Text onClick={(event) => event.preventDefault()}>Keep open</Text>}
+      />,
+    )
+    await app.click(3, 1)
+    expect(app.text).toContain("Keep open")
   })
 
   test("CodeBlock frames code with two-cell sides and one-row padding", () => {

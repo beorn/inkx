@@ -72,14 +72,14 @@ export const DEFAULT_VARIANTS: Record<string, Variant> = {
   h4: { color: "$fg-muted", bold: true },
   h5: { color: "$fg-muted", italic: true },
   h6: { color: "$fg-muted", dim: true },
-  body: { color: "mix($fg, $fg-muted, 25%)" },
+  body: { color: "mix($fg, $fg-muted, 12.5%)" },
   "body-muted": { color: "$fg-muted" },
   "fine-print": { color: "$fg-muted", dim: true },
-  strong: { bold: true },
-  em: { italic: true },
-  link: { color: "$fg-link", underlineStyle: "dotted" },
+  strong: { color: "mix($fg, mix($fg, $fg-muted, 12.5%), 50%)", bold: true },
+  em: { color: "mix($fg, mix($fg, $fg-muted, 12.5%), 50%)", italic: true },
+  link: { color: "$fg-link" },
   key: { color: "$fg-accent", bold: true },
-  code: { color: "$fg-info" },
+  code: { color: "mix($fg-muted, $fg-link, 50%)" },
   kbd: { backgroundColor: "$bg-muted", color: "$fg-accent", bold: true },
 }
 
@@ -760,15 +760,15 @@ export function deriveRoles(
   //
   // Hyperlink text color. Not the same as accent — many design systems want
   // "link blue" (Material, Polaris, GitHub) distinct from the brand-derived
-  // accent. Dark mode softens bright blue halfway toward foreground;
+  // accent. Dark mode softens bright blue 35% toward foreground;
   // light mode retains scheme.blue to preserve contrast on a light canvas.
   // Apps that want link === accent can pin `{ "link.fg": "$fg-accent" }`.
   const linkFg = guard(
     "link.fg",
     "fg-link",
-    mode === "dark" ? "blend(scheme.brightBlue, fg, 0.5)" : "scheme.blue",
+    mode === "dark" ? "blend(scheme.brightBlue, fg, 0.35)" : "scheme.blue",
     mode === "dark" ? [scheme.brightBlue, fg] : [scheme.blue],
-    mode === "dark" ? blend(scheme.brightBlue, fg, 0.5) : scheme.blue,
+    mode === "dark" ? blend(scheme.brightBlue, fg, 0.35) : scheme.blue,
     bg,
   )
   const link: LinkRole = { fg: linkFg }

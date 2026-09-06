@@ -216,7 +216,7 @@ export {
   OL,
   LI,
 } from "./components/Typography"
-export type { DecoratedRegionProps, TypographyProps } from "./components/Typography"
+export type { CodeBlockProps, DecoratedRegionProps, TypographyProps } from "./components/Typography"
 
 export { formatNounId, NounId } from "./components/NounId"
 export type { NounIdProps, NounIdValue } from "./components/NounId"

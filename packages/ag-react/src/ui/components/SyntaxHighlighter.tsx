@@ -4,9 +4,9 @@ import { computeMatchRanges, type SearchMatch } from "@silvery/ag-term/search-ov
 import { highlight, type TokenLine } from "@silvery/syntax"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
-import { useHover } from "../../hooks/useHover"
 import { useSearchOptional } from "../../providers/SearchProvider"
 import type { ScrollController } from "./ScrollArea"
+import { CodeBlock } from "./Typography"
 
 export interface SyntaxHighlighterProps {
   language: string
@@ -15,6 +15,9 @@ export interface SyntaxHighlighterProps {
   bare?: boolean
   backgroundColor?: string
   bold?: boolean
+  expanded?: boolean
+  defaultExpanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
   /** Register this source with the enclosing SearchProvider. */
   search?: {
     readonly id?: string
@@ -31,9 +34,11 @@ export function SyntaxHighlighter({
   backgroundColor,
   bold: forceBold = false,
   search,
+  expanded,
+  defaultExpanded,
+  onExpandedChange,
 }: SyntaxHighlighterProps): ReactElement {
   const lang = (language || "plain").toLowerCase()
-  const hover = useHover()
   const lines = useSyntaxTokens(code, lang, theme)
   const lineWrap = isDiffLanguage(lang) ? "truncate" : "hard"
   const body = search ? (
@@ -56,7 +61,11 @@ export function SyntaxHighlighter({
         {line.tokens.map((token, tokenIndex) => (
           <Text
             key={tokenIndex}
-            color={token.color}
+            color={
+              token.color === undefined
+                ? undefined
+                : `mix(${token.color}, mix($fg, $fg-muted, 50%), 50%)`
+            }
             bold={forceBold || token.bold}
             italic={token.italic}
             backgroundColor={backgroundColor}
@@ -71,34 +80,15 @@ export function SyntaxHighlighter({
   if (bare) return <Box flexDirection="column">{body}</Box>
 
   return (
-    <Box
-      flexDirection="column"
-      position="relative"
-      minWidth={0}
-      backgroundColor="$bg-surface-subtle"
-      paddingX={2}
-      onMouseEnter={hover.onMouseEnter}
-      onMouseLeave={hover.onMouseLeave}
-    >
-      <Text> </Text>
-      {hover.isHovered ? (
-        <Box
-          position="absolute"
-          top={1}
-          right={1}
-          flexDirection="row"
-          backgroundColor="$bg-surface-subtle"
-        >
-          <Text backgroundColor="$bg-surface-subtle"> </Text>
-          <Text color="$fg-muted" backgroundColor="$bg-surface-subtle">
-            {lang}
-          </Text>
-          <Text backgroundColor="$bg-surface-subtle"> </Text>
-        </Box>
-      ) : null}
-      {body}
-      <Text> </Text>
-    </Box>
+    <CodeBlock
+      width="auto"
+      label={lang}
+      content={body}
+      expanded={expanded}
+      defaultExpanded={defaultExpanded}
+      onExpandedChange={onExpandedChange}
+      backgroundColor={backgroundColor}
+    />
   )
 }
 
@@ -191,7 +181,11 @@ function SearchableSyntaxLines({
             {line.tokens.map((token, tokenIndex) => (
               <Text
                 key={tokenIndex}
-                color={token.color}
+                color={
+                  token.color === undefined
+                    ? undefined
+                    : `mix(${token.color}, mix($fg, $fg-muted, 50%), 50%)`
+                }
                 bold={forceBold || token.bold}
                 italic={token.italic}
                 backgroundColor={backgroundColor}

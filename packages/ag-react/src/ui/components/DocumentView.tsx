@@ -1,9 +1,10 @@
-import React, { useEffect, useId, useRef } from "react"
+import React, { useEffect, useId, useRef, useState } from "react"
 import { computeMatchRanges, type SearchMatch } from "@silvery/ag-term/search-overlay"
 import { displayLength } from "@silvery/ansi"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
-import { Blockquote, CodeBlock, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
+import { Blockquote, H1, H2, H3, H4, H5, H6, HR, Small } from "./Typography"
+import { SyntaxHighlighter } from "./SyntaxHighlighter"
 import { Prose } from "./Prose"
 import { HeadingRow } from "./HeadingRow"
 import { Content, type ContentBodyWidth, useContentLayout, useHasContentLayout } from "./Content"
@@ -65,7 +66,8 @@ export interface DocumentQuoteBlock extends DocumentBlockBase {
 
 export interface DocumentCodeBlock extends DocumentBlockBase {
   readonly kind: "code"
-  readonly content: React.ReactNode
+  readonly content: string
+  readonly language?: string
 }
 
 export interface DocumentRuleBlock extends DocumentBlockBase {
@@ -320,9 +322,13 @@ function DocumentBlocks({
   empty,
   lane,
   onBlockLayout,
+  collapsedCode,
+  onCodeExpandedChange,
 }: Required<Pick<DocumentViewProps, "blocks" | "lane">> &
   Pick<DocumentViewProps, "selectedId" | "empty"> & {
     onBlockLayout?: (id: DocumentBlockId, y: number) => void
+    collapsedCode: ReadonlySet<DocumentBlockId>
+    onCodeExpandedChange: (id: DocumentBlockId, expanded: boolean) => void
   }): React.ReactElement {
   const resolvedLists = resolveListItems(blocks)
   const headingMarkerWidth = resolveHeadingMarkerWidth(blocks)
@@ -348,6 +354,13 @@ function DocumentBlocks({
           case "heading": {
             const headings = [H1, H2, H3, H4, H5, H6] as const
             const Heading = headings[block.level - 1] ?? H6
+            const afterBody =
+              previous !== undefined &&
+              previous.kind !== "heading" &&
+              previous.kind !== "rule" &&
+              previous.kind !== "media"
+            const extraSpace = block.level <= 2 && afterBody
+            const topMargin = (afterList ? 1 : 0) + (extraSpace ? 1 : 0)
             const headingNode = (
               <Heading color={selected ? "$fg-on-selected" : undefined} wrap="wrap">
                 {block.content}
@@ -359,7 +372,7 @@ function DocumentBlocks({
                 block={block}
                 selected={selected}
                 lane={blockLane}
-                marginTop={afterList ? 1 : undefined}
+                marginTop={topMargin || undefined}
                 marginBottom={1}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
@@ -431,10 +444,13 @@ function DocumentBlocks({
                 marginBottom={1}
                 onLayout={(y) => onBlockLayout?.(block.id, y)}
               >
-                <Box flexGrow={1} minWidth={0} marginX={-2}>
-                  <CodeBlock color={selected ? "$fg-on-selected" : undefined}>
-                    {block.content}
-                  </CodeBlock>
+                <Box flexDirection="column" flexGrow={1} minWidth={0} marginX={-2}>
+                  <SyntaxHighlighter
+                    language={block.language ?? "plain"}
+                    code={block.content}
+                    expanded={!collapsedCode.has(block.id)}
+                    onExpandedChange={(expanded) => onCodeExpandedChange(block.id, expanded)}
+                  />
                 </Box>
               </BlockFrame>
             )
@@ -538,9 +554,13 @@ export function DocumentView({
   const revealRef = useRef(reveal)
   const revealedOperationRef = useRef<string | number | null>(null)
   const rowOffsetsRef = useRef(new Map<DocumentBlockId, number>())
+  const [collapsedCode, setCollapsedCode] = useState<ReadonlySet<DocumentBlockId>>(() => new Set())
+  const collapsedCodeRef = useRef(collapsedCode)
+  const pendingSearchRevealRef = useRef<DocumentBlockId | null>(null)
   blocksRef.current = blocks
   searchRef.current = search
   revealRef.current = reveal
+  collapsedCodeRef.current = collapsedCode
 
   useEffect(() => {
     if (!searchEnabled || !registerSearchable) return
@@ -561,6 +581,15 @@ export function DocumentView({
         const block = currentBlocks[match.row]
         const currentSearch = searchRef.current
         if (!block || !currentSearch) return
+        if (block.kind === "code" && collapsedCodeRef.current.has(block.id)) {
+          pendingSearchRevealRef.current = block.id
+          setCollapsedCode((current) => {
+            const next = new Set(current)
+            next.delete(block.id)
+            return next
+          })
+          return
+        }
         revealDocumentBlock(
           currentBlocks,
           rowOffsetsRef.current,
@@ -570,6 +599,27 @@ export function DocumentView({
       },
     })
   }, [registerSearchable, searchEnabled, searchId])
+
+  // A collapsed match must acquire its expanded layout before scrolling.
+  useEffect(() => {
+    const id = pendingSearchRevealRef.current
+    const currentSearch = searchRef.current
+    if (id === null || !currentSearch || collapsedCode.has(id)) return
+    if (
+      revealDocumentBlock(
+        blocksRef.current,
+        rowOffsetsRef.current,
+        id,
+        currentSearch.scrollController,
+      )
+    ) {
+      pendingSearchRevealRef.current = null
+    }
+  }, [
+    collapsedCode,
+    search?.scrollController.contentHeight,
+    search?.scrollController.viewportHeight,
+  ])
 
   useEffect(() => {
     const currentReveal = revealRef.current
@@ -602,6 +652,15 @@ export function DocumentView({
       selectedId={searchSelectedId ?? selectedId}
       empty={empty}
       lane={lane}
+      collapsedCode={collapsedCode}
+      onCodeExpandedChange={(id, expanded) => {
+        setCollapsedCode((current) => {
+          const next = new Set(current)
+          if (expanded) next.delete(id)
+          else next.add(id)
+          return next
+        })
+      }}
       onBlockLayout={(id, y) => {
         rowOffsetsRef.current.set(id, y)
         const currentReveal = revealRef.current

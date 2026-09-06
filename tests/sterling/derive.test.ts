@@ -11,7 +11,7 @@
 import { describe, test, expect } from "vitest"
 import { sterling, STERLING_FLAT_TOKENS } from "@silvery/theme/sterling"
 import { builtinPalettes } from "@silvery/theme/schemes"
-import { relativeLuminance } from "@silvery/color"
+import { blend, relativeLuminance } from "@silvery/color"
 
 /** WCAG contrast ratio between two hex colors (1..21). */
 function contrastRatio(a: string, b: string): number {
@@ -152,6 +152,9 @@ describe("sterling.deriveFromScheme — shape", () => {
     expect(theme.derivationTrace!.length).toBeGreaterThan(20)
     // First step should be accent.fg
     expect(theme.derivationTrace![0]?.token).toBe("accent.fg")
+    expect(theme.derivationTrace!.find((step) => step.token === "link.fg")?.rule).toBe(
+      "blend(scheme.brightBlue, fg, 0.35)",
+    )
   })
 
   test("D2: theme.info.fg equals theme.accent.fg by default (same seed, same rule)", () => {
@@ -176,7 +179,8 @@ describe("sterling.deriveFromScheme — shape", () => {
   )
 
   test("legacy → flat token mapping (inline.ts)", () => {
-    const theme = sterling.deriveFromScheme(builtinPalettes["nord"]!)
+    const scheme = builtinPalettes["nord"]!
+    const theme = sterling.deriveFromScheme(scheme)
     // Spot-check that the new tokens are populated as hex
     expect(theme["bg-selected"]).toMatch(/^#[0-9a-fA-F]{6}$/)
     expect(theme["fg-on-selected"]).toMatch(/^#[0-9a-fA-F]{6}$/)
@@ -185,7 +189,7 @@ describe("sterling.deriveFromScheme — shape", () => {
     expect(theme["fg-on-inverse"]).toMatch(/^#[0-9a-fA-F]{6}$/)
     expect(theme["bg-inverse-hover"]).toMatch(/^#[0-9a-fA-F]{6}$/)
     expect(theme["fg-on-inverse-muted"]).toMatch(/^#[0-9a-fA-F]{6}$/)
-    expect(theme["fg-link"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["fg-link"]).toBe(blend(scheme.brightBlue, scheme.foreground, 0.35))
   })
 
   test("deriveFromColor produces a well-formed theme", () => {

@@ -36,6 +36,7 @@
 import { Fragment, type JSX, type ReactNode } from "react"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
+import { Link } from "../../components/Link"
 import { Blockquote, Code, CodeBlock, Em, H1, H2, H3, H4, H5, H6, HR, Strong } from "./Typography"
 import { HeadingRow } from "./HeadingRow"
 
@@ -381,13 +382,15 @@ function findInline(s: string): InlineCandidate | null {
   const link = LINK_RE.exec(s)
   if (link !== null) {
     const label = link[1] ?? ""
+    const href = link[2]
+    if (href === undefined) throw new Error("Markdown link match is missing its destination")
     candidates.push({
       start: link.index,
       end: link.index + link[0].length,
       build: (key) => (
-        <Text key={key} color="$fg-link">
+        <Link key={key} href={href}>
           {parseInline(label, key)}
-        </Text>
+        </Link>
       ),
     })
   }
@@ -469,14 +472,18 @@ function CodeFence({ lines }: { lines: string[] }): JSX.Element {
   )
 }
 
-function renderBlock(block: MdBlock, key: string): ReactNode {
+function renderBlock(block: MdBlock, key: string, previous: MdBlock | undefined): ReactNode {
   switch (block.kind) {
     case "heading": {
       const Heading = HEADINGS[Math.min(Math.max(block.level, 1), 6) - 1] ?? H1
+      const afterBody =
+        previous !== undefined && previous.kind !== "heading" && previous.kind !== "hr"
       return (
-        <HeadingRow level={block.level}>
-          <Heading wrap="wrap">{parseInline(block.text, key)}</Heading>
-        </HeadingRow>
+        <Box marginTop={block.level <= 2 && afterBody ? 1 : 0} minWidth={0}>
+          <HeadingRow level={block.level}>
+            <Heading wrap="wrap">{parseInline(block.text, key)}</Heading>
+          </HeadingRow>
+        </Box>
       )
     }
     case "paragraph":
@@ -520,7 +527,7 @@ export function MarkdownView({ source, ...boxProps }: MarkdownViewProps): JSX.El
   return (
     <Box width="100%" flexDirection="column" flexShrink={1} minWidth={0} gap={1} {...boxProps}>
       {blocks.map((block, index) => (
-        <Fragment key={index}>{renderBlock(block, `b${index}`)}</Fragment>
+        <Fragment key={index}>{renderBlock(block, `b${index}`, blocks[index - 1])}</Fragment>
       ))}
     </Box>
   )
