@@ -30,14 +30,14 @@ import {
 
 ## Headings
 
-| Component | Default Style | Use For |
-| --------- | ------------- | ------- |
-| `<H1>` | `$fg-accent` + bold | Page title |
-| `<H2>` | `mix($fg-accent, $fg, 50%)` + bold | Section heading |
-| `<H3>` | inherited foreground + bold | Group heading |
-| `<H4>` | `$fg-muted` + bold | Sub-group heading |
-| `<H5>` | `$fg-muted` + italic | Minor heading |
-| `<H6>` | `$fg-muted` + dim | Deepest heading |
+| Component | Default Style                      | Use For           |
+| --------- | ---------------------------------- | ----------------- |
+| `<H1>`    | `$fg-accent` + bold                | Page title        |
+| `<H2>`    | `mix($fg-accent, $fg, 50%)` + bold | Section heading   |
+| `<H3>`    | inherited foreground + bold        | Group heading     |
+| `<H4>`    | `$fg-muted` + bold                 | Sub-group heading |
+| `<H5>`    | `$fg-muted` + italic               | Minor heading     |
+| `<H6>`    | `$fg-muted` + dim                  | Deepest heading   |
 
 ```tsx
 <H1>Settings</H1>                    // $fg-accent + bold
@@ -53,7 +53,7 @@ inline styling; an explicit `color` overrides the heading's default.
 
 | Component | Default Style                         | Use For                         |
 | --------- | ------------------------------------- | ------------------------------- |
-| `<P>`     | `mix($fg, $fg-muted, 12.5%)`           | Body text                       |
+| `<P>`     | `mix($fg, $fg-muted, 12.5%)`          | Body text                       |
 | `<Lead>`  | `$fg-muted` + italic                  | Introductory/lead text          |
 | `<Muted>` | `$fg-muted`                           | Secondary/supporting text       |
 | `<Small>` | `$fg-muted` (pre-dimmed at truecolor) | Fine print, captions, footnotes |
@@ -67,10 +67,10 @@ inline styling; an explicit `color` overrides the heading's default.
 
 ## Inline Emphasis
 
-| Component  | Default Style | Use For                |
-| ---------- | ------------- | ---------------------- |
-| `<Strong>` | bold + brighter body foreground | Inline strong emphasis |
-| `<Em>`     | italic + brighter body foreground | Inline emphasis |
+| Component  | Default Style                     | Use For                |
+| ---------- | --------------------------------- | ---------------------- |
+| `<Strong>` | bold + brighter body foreground   | Inline strong emphasis |
+| `<Em>`     | italic + brighter body foreground | Inline emphasis        |
 
 ```tsx
 <Text variant="body">
@@ -84,11 +84,11 @@ Use `<Text variant="body">` for body styling without a `<P>` wrapper; bare
 
 ## Code & Keys
 
-| Component     | Default Style                  | Use For                 |
-| ------------- | ------------------------------ | ----------------------- |
-| `<Code>`      | `mix($fg-muted, $fg-link, 50%)`, no chip or padding | Inline code |
-| `<Kbd>`       | `$bg-muted` + bold             | Keyboard shortcut badge |
-| `<CodeBlock>` | `$bg-surface-subtle` padded surface | Multi-line code block   |
+| Component     | Default Style                                       | Use For                 |
+| ------------- | --------------------------------------------------- | ----------------------- |
+| `<Code>`      | `mix($fg-muted, $fg-link, 50%)`, no chip or padding | Inline code             |
+| `<Kbd>`       | `$bg-muted` + bold                                  | Keyboard shortcut badge |
+| `<CodeBlock>` | `$bg-surface-subtle` padded surface                 | Multi-line code block   |
 
 ```tsx
 <Code>npm install silvery</Code>      // inline code
@@ -124,10 +124,10 @@ brighten on plain hover; inline code is muted and non-interactive. An explicit
 
 ## Block Elements
 
-| Component      | Default Style                                            | Use For         |
-| -------------- | -------------------------------------------------------- | --------------- |
+| Component      | Default Style                            | Use For         |
+| -------------- | ---------------------------------------- | --------------- |
 | `<Blockquote>` | `$fg-muted` italic body, inset two cells | Quotations      |
-| `<HR>`         | `$border-default` dashes                                 | Horizontal rule |
+| `<HR>`         | `$border-default` dashes                 | Horizontal rule |
 
 ```tsx
 <Blockquote>Less is more.</Blockquote>

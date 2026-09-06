@@ -36,12 +36,12 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<Muted>`              | `$fg-muted` text                                                           |
 | `<Small>`              | `$fg-muted` (pre-dimmed at truecolor)                                      |
 | `<Lead>`               | `$fg-muted` + italic                                                       |
-| `<Code>`               | `mix($fg-muted, $fg-link, 50%)`, no chip or padding                          |
+| `<Code>`               | `mix($fg-muted, $fg-link, 50%)`, no chip or padding                        |
 | `<CodeBlock>`          | Subtle padded frame, click to collapse; hover reveals its label            |
 | `<Link>`               | `$fg-link`, plain-hover brightening, no default underline                  |
 | `<Blockquote>`         | `$fg-muted` italic body, inset two cells without a rail                    |
-| `<P>`                  | `mix($fg, $fg-muted, 12.5%)` body foreground                                |
-| `<LI>`                 | Same `•` at every unordered depth; indentation expresses nesting          |
+| `<P>`                  | `mix($fg, $fg-muted, 12.5%)` body foreground                               |
+| `<LI>`                 | Same `•` at every unordered depth; indentation expresses nesting           |
 
 ::: tip ✨ Shiny
 
@@ -88,15 +88,15 @@ Rebuilding what the component already does. If you're writing `color="$fg"` or `
 
 TUIs can't vary font size — bold, dim, and italic are your only typographic tools. That makes color **more important** for hierarchy than in web UIs. Use intentional combinations of color + bold/dim to create clear levels.
 
-| Level           | Style                       | Visual effect                                  |
-| --------------- | --------------------------- | ---------------------------------------------- |
-| H1 — Page title | `$fg-accent` + `bold`       | Brand color, bold — maximum emphasis           |
+| Level           | Style                                | Visual effect                           |
+| --------------- | ------------------------------------ | --------------------------------------- |
+| H1 — Page title | `$fg-accent` + `bold`                | Brand color, bold — maximum emphasis    |
 | H2 — Section    | `mix($fg-accent, $fg, 50%)` + `bold` | Softer accent, still prominent          |
-| H3 — Group      | inherited foreground + `bold` | Stands out without accent color             |
-| Body            | `mix($fg, $fg-muted, 12.5%)` | Slightly receded prose                        |
-| Meta / caption  | `$fg-muted`                 | Dimmed, recedes                                |
-| Fine print      | `$fg-muted` (via `<Small>`) | Maximally receded — captions, footnotes        |
-| Disabled        | `$fg-muted`                 | Faded — clearly inactive                       |
+| H3 — Group      | inherited foreground + `bold`        | Stands out without accent color         |
+| Body            | `mix($fg, $fg-muted, 12.5%)`         | Slightly receded prose                  |
+| Meta / caption  | `$fg-muted`                          | Dimmed, recedes                         |
+| Fine print      | `$fg-muted` (via `<Small>`)          | Maximally receded — captions, footnotes |
+| Disabled        | `$fg-muted`                          | Faded — clearly inactive                |
 
 ::: tip ✨ Rule — `dim` is a rendering detail, not a design primitive
 
