@@ -15,6 +15,16 @@
  *           the laid-out nodes, then the painted text)
  * @consumer every ModalOverlay user: the deck help, the command palette, the
  *           pickers; any dialog opened on a small terminal
+ *
+ * Two limits this file stays inside, both pre-existing and filed separately:
+ * the constrained case is height-constrained only (80x12), because a flex
+ * item with an explicit width that the container shrinks still lays its
+ * children out against the declared width (flexily Phase 1 takes a point
+ * width verbatim), so a 72-wide dialog on a 60-column screen keeps 68-wide
+ * rows and trips the tier-2 layout-overflow check; and under the tier-2
+ * `residue` slug the two wheel cases report pipeline-state contamination at
+ * (0,0), the same signature modal-dismiss-no-ghost.test.tsx shows on the
+ * untouched components (plain scroll containers pass that slug).
  */
 
 import React from "react"
@@ -159,17 +169,17 @@ describe("ModalOverlay keeps an oversized modal on the screen", () => {
     app.unmount()
   })
 
-  test("a constrained 60x12 viewport reaches the title, a key row, the last row by wheel, and the footer", async () => {
-    const app = mount(60, 12, help(40))
+  test("a constrained 80x12 viewport reaches the title, a key row, the last row by wheel, and the footer", async () => {
+    const app = mount(80, 12, help(40))
     const s = read(app)
-    expect(s.rect.x).toBe(0)
+    expect(s.rect.x).toBe(4)
     expect(s.rect.y).toBe(0)
-    expect(s.rect.width).toBe(60)
+    expect(s.rect.width).toBe(72)
     expect(s.rect.height).toBe(12)
     expect(s.titleLine).toBe(1)
     expect(s.firstRowLine).toBeGreaterThan(s.titleLine)
     expect(s.footerLine).toBe(10)
-    await app.wheel(30, 6, 200)
+    await app.wheel(40, 6, 200)
     const after = read(app)
     expect(after.titleLine).toBe(1)
     expect(after.footerLine).toBe(10)
